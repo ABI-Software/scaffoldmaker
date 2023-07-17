@@ -9,7 +9,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.colon_terms import get_colon_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -29,14 +29,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Human 3", "Mouse 1",
                                              "Mouse 2", "Pig 1"])
 
-        centralPathDefaultScaffoldPackages = {
-            'Test line': ScaffoldPackage(MeshType_1d_path1, {
+        parameterSetStructureStrings = {
+            'Test line': ScaffoldPackage(MeshType_1d_network_layout1, {
                 'scaffoldSettings': {
-                    'Coordinate dimensions': 3,
-                    'D2 derivatives': True,
-                    'D3 derivatives': True,
-                    'Length': 1.0,
-                    'Number of elements': 3
+                    "Structure": "1-2-3-4"
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
                     [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -69,7 +65,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
                     }]
             })
         }
-        centralPathOption = centralPathDefaultScaffoldPackages['Test line']
+        centralPathOption = parameterSetStructureStrings['Test line']
         segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 1')
         options = {
             'Central path': copy.deepcopy(centralPathOption),

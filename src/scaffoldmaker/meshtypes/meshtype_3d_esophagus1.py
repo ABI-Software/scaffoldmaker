@@ -6,6 +6,7 @@ wall, with variable radius and thickness along.
 
 import copy
 import math
+
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
     findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
@@ -14,14 +15,14 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
     findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters,\
     get_nodeset_path_field_parameters
 
 
@@ -32,15 +33,11 @@ class MeshType_3d_esophagus1(Scaffold_base):
     segment along a central path profile.
     """
 
-    centralPathDefaultScaffoldPackages = {
-        'Human 1': ScaffoldPackage(MeshType_1d_path1, {
+    parameterSetStructureStrings = {
+        'Human 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 4
-                },
+                "Structure": "1-2-3-4-5"
+            },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                 (1, [ [ -0.42, -100.50, 1401.88 ], [  0.74,  14.22, -46.12 ], [ 7.85, -0.56, -0.05 ], [  0.69,  0.03, 0.02 ], [ -0.22, -2.98, -0.92 ], [  0.19, 1.51, 0.43 ] ] ),
@@ -86,7 +83,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
+        centralPathOption = cls.parameterSetStructureStrings['Human 1']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around': 8,
@@ -128,13 +125,13 @@ class MeshType_3d_esophagus1(Scaffold_base):
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
-            return [MeshType_1d_path1]
+            return [MeshType_1d_network_layout1]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
-            return list(cls.centralPathDefaultScaffoldPackages.keys())
+            return list(cls.parameterSetStructureStrings.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -152,14 +149,14 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
         if optionName == 'Central path':
             if not parameterSetName:
-                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
+            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
+            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -208,6 +205,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
+
         esophagusTermsAlong =\
             [None, 'cervical part of esophagus', 'thoracic part of esophagus', 'abdominal part of esophagus']
         arcLengthOfGroupsAlong = []

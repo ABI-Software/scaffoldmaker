@@ -22,8 +22,8 @@ class CecumScaffoldTestCase(unittest.TestCase):
         Test creation of cecum scaffold.
         """
         parameterSetNames = MeshType_3d_cecum1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Human 3", "Pig 1"])
-        options = MeshType_3d_cecum1.getDefaultOptions("Human 3")
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Pig 1"])
+        options = MeshType_3d_cecum1.getDefaultOptions("Human 2")
 
         centralPath = options.get("Central path")
         centralPathSettings = centralPath.getScaffoldSettings()
@@ -59,9 +59,9 @@ class CecumScaffoldTestCase(unittest.TestCase):
         mesh2d = fieldmodule.findMeshByDimension(2)
         self.assertEqual(1164, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1412, mesh1d.getSize())
+        self.assertEqual(1408, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(558, nodes.getSize())
+        self.assertEqual(552, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 

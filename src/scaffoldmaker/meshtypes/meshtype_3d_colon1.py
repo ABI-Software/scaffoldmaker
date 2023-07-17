@@ -12,7 +12,7 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
 from scaffoldmaker.annotation.colon_terms import get_colon_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1, \
     ColonSegmentTubeMeshInnerPoints, getTeniaColi, createFlatCoordinatesTeniaColi, createColonCoordinatesTeniaColi, \
     createNodesAndElementsTeniaColi
@@ -34,14 +34,11 @@ class MeshType_3d_colon1(Scaffold_base):
     line profile.
     '''
 
-    centralPathDefaultScaffoldPackages = {
-        'Cattle 1': ScaffoldPackage(MeshType_1d_path1, {
+    parameterSetStructureStrings = {
+        'Cattle 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 52
+                "Structure": "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-"
+                             "33-34-35-36-37-38-39-40-41-42-43-44-45-46-47-48-49-50-51-52-53"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ], [
@@ -122,13 +119,9 @@ class MeshType_3d_colon1(Scaffold_base):
                     'ontId': get_colon_term('left colon')[1]
                 }]
         }),
-        'Human 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Human 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 8
+                "Structure": "1-2-3-4-5-6-7-8-9"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -165,13 +158,9 @@ class MeshType_3d_colon1(Scaffold_base):
                 'ontId': get_colon_term('descending colon')[1]
             }]
         }),
-        'Human 2': ScaffoldPackage(MeshType_1d_path1, {
+        'Human 2': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 8
+                "Structure": "1-2-3-4-5-6-7-8-9"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -208,13 +197,10 @@ class MeshType_3d_colon1(Scaffold_base):
                     'ontId': get_colon_term('descending colon')[1]
                 }]
         }),
-        'Human 3': ScaffoldPackage(MeshType_1d_path1, {
+        'Human 3': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 48
+                "Structure": "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-"
+                             "33-34-35-36-37-38-39-40-41-42-43-44-45-46-47-48-49"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -298,13 +284,9 @@ class MeshType_3d_colon1(Scaffold_base):
                     'ontId': get_colon_term('descending colon')[1]
                 }]
         }),
-        'Mouse 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Mouse 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 7
+                "Structure": "1-2-3-4-5-6-7-8"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -340,13 +322,9 @@ class MeshType_3d_colon1(Scaffold_base):
                     'ontId': get_colon_term('left colon')[1]
                 }]
         }),
-        'Mouse 2': ScaffoldPackage(MeshType_1d_path1, {
+         'Mouse 2': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 4
+                "Structure": "1-2-3-4-5"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -379,13 +357,10 @@ class MeshType_3d_colon1(Scaffold_base):
                     'ontId': get_colon_term('left colon')[1]
                 }]
         }),
-        'Pig 1': ScaffoldPackage(MeshType_1d_path1, {
+         'Pig 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 39
+                "Structure": "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-"
+                             "33-34-35-36-37-38-39-40"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -474,19 +449,19 @@ class MeshType_3d_colon1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 2']
+            centralPathOption = cls.parameterSetStructureStrings['Human 2']
         elif 'Human 3' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 3']
+            centralPathOption = cls.parameterSetStructureStrings['Human 3']
         elif 'Cattle 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Cattle 1']
+            centralPathOption = cls.parameterSetStructureStrings['Cattle 1']
         elif 'Mouse 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 1']
+            centralPathOption = cls.parameterSetStructureStrings['Mouse 1']
         elif 'Mouse 2' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Mouse 2']
+            centralPathOption = cls.parameterSetStructureStrings['Mouse 2']
         elif 'Pig 1' in parameterSetName:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Pig 1']
+            centralPathOption = cls.parameterSetStructureStrings['Pig 1']
         else:
-            centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
+            centralPathOption = cls.parameterSetStructureStrings['Human 1']
 
         if 'Human 3' in parameterSetName:
             segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 2')
@@ -553,7 +528,7 @@ class MeshType_3d_colon1(Scaffold_base):
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
-            return [MeshType_1d_path1]
+            return [MeshType_1d_network_layout1]
         if optionName == 'Segment profile':
             return [MeshType_3d_colonsegment1]
         return []
@@ -561,7 +536,7 @@ class MeshType_3d_colon1(Scaffold_base):
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
-            return list(cls.centralPathDefaultScaffoldPackages.keys())
+            return list(cls.parameterSetStructureStrings.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -579,8 +554,8 @@ class MeshType_3d_colon1(Scaffold_base):
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
         if optionName == 'Central path':
             if not parameterSetName:
-                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
+            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
         if optionName == 'Segment profile':
             if not parameterSetName:
                 parameterSetName = scaffoldType.getParameterSetNames()[0]
@@ -590,7 +565,7 @@ class MeshType_3d_colon1(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
+            options['Central path'] = cls.getOptionScaffoldPackage('Central path',  MeshType_1d_network_layout1)
         if not options['Segment profile'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Segment profile'):
             options['Segment profile'] = cls.getOptionScaffoldPackage('Segment profile', MeshType_3d_colonsegment1)
         for key in [

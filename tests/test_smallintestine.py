@@ -9,7 +9,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
@@ -25,14 +25,10 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         """
         parameterSetNames = MeshType_3d_smallintestine1.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Mouse 1"])
-        centralPathDefaultScaffoldPackages = {
-            'Test line': ScaffoldPackage(MeshType_1d_path1, {
+        parameterSetStructureStrings = {
+            'Test line': ScaffoldPackage(MeshType_1d_network_layout1, {
                 'scaffoldSettings': {
-                    'D2 derivatives': True,
-                    'D3 derivatives': True,
-                    'Coordinate dimensions': 3,
-                    'Length': 1.0,
-                    'Number of elements': 3
+                    "Structure": "1-2-3-4"
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
                     [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [
@@ -65,7 +61,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                     }]
             })
         }
-        centralPathOption = centralPathDefaultScaffoldPackages['Test line']
+        centralPathOption = parameterSetStructureStrings['Test line']
         options = MeshType_3d_smallintestine1.getDefaultOptions("Mouse 1")
         options['Central path'] = copy.deepcopy(centralPathOption)
         options['Number of segments'] = 3
