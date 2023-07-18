@@ -1939,7 +1939,7 @@ class CecumCentralPath:
         :param centralPath: Central path subscaffold from meshtype_1d_path1
         :param termsAlong: Annotation terms along length of central path
         """
-        # Extract length of each group along stomach from central path
+        # Extract length of each group along cecum from central path
         arcLengthOfGroupsAlong = []
         cxGroups = []
         cd1Groups = []
