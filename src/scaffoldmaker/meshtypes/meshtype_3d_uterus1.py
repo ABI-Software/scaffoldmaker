@@ -89,6 +89,72 @@ class MeshType_3d_uterus1(Scaffold_base):
                     'ontId': get_uterus_term('vagina')[1]
                 }]
         }),
+        'Rat 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+            'scaffoldSettings': {
+                "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11-12-13, 13-14"
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
+                         [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
+                    (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22],
+                         [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
+                    (3, [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22],
+                         [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]]),
+                    (4, [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20],
+                         [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]]),
+                    (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]],
+                         [[0.66, 0.01, -0.76], [0.66, -0.01, 0.76], [1.00, 0.00, 0.00]], [-0.10, 0.09, 0.10],
+                         [[0.05, -1.00, 0.03], [0.05, -1.00, 0.03], [0.05, -1.00, 0.03]], [-0.01, 0.01, -0.10]]),
+                    (6, [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40],
+                         [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
+                    (7, [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22],
+                         [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
+                    (8, [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22],
+                         [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
+                    (9, [[-5.97, 0.24, 3.53], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20],
+                         [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]]),
+                    (10, [[0.00, 0.00, -2.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15],
+                          [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]]),
+                    (11, [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (12, [[0.00, 0.00, -6.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (13, [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (14, [[0.00, 0.00, -10.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-4',
+                    'name': get_uterus_term('right uterine horn')[0],
+                    'ontId': get_uterus_term('right uterine horn')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '5-8',
+                    'name': get_uterus_term('left uterine horn')[0],
+                    'ontId': get_uterus_term('left uterine horn')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '9-12',
+                    'name': get_uterus_term('uterine cervix')[0],
+                    'ontId': get_uterus_term('uterine cervix')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '13',
+                    'name': get_uterus_term('vagina')[0],
+                    'ontId': get_uterus_term('vagina')[1]
+                }]
+        }),
         'Sheep 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3-4-5-6, 7-8-9-10-11-6.2, 6.3-12-13, 13-14-15-16"
@@ -218,6 +284,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         return [
             'Default',
             'Mouse 1',
+            'Rat 1',
             'Sheep 1',
             'Material']
 
@@ -225,12 +292,14 @@ class MeshType_3d_uterus1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Mouse 1' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
+        elif 'Rat 1' in parameterSetName:
+            networkLayoutOption = cls.parameterSetStructureStrings['Rat 1']
         elif 'Sheep 1' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Sheep 1']
         elif 'Material' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Material']
         else:
-            networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
+            networkLayoutOption = cls.parameterSetStructureStrings['Rat 1']
         options = {
             'Network layout': copy.deepcopy(networkLayoutOption),
             'Target element length': 4.0,
@@ -349,8 +418,13 @@ class MeshType_3d_uterus1(Scaffold_base):
         elementsCountInCervix = math.ceil(cervixLength / targetElementLength)
         elementsCountInVagina = math.ceil(vaginaLength / targetElementLength)
 
+        # nodeIdentifier, elementIdentifier, annotationGroups = \
+        #     createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+        #                        elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
+        #                        elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
+
         nodeIdentifier, elementIdentifier, annotationGroups = \
-            createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+            createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
                                elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
                                elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
 
@@ -1446,3 +1520,576 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
                                              meshGroups=[vaginaMeshGroup])
 
     return nodeIdentifier, elementIdentifier, annotationGroups
+
+def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountThroughWall,
+                       elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
+                       wallThickness, useCrossDerivatives):
+
+    mesh = fm.findMeshByDimension(3)
+
+    firstNodeIdentifier = 1
+    firstElementIdentifier = 1
+
+    cx_right_horn_group = geometricNetworkLayout.cxGroups[0]
+    cx_left_horn_group = geometricNetworkLayout.cxGroups[1]
+    cx_cervix_group = geometricNetworkLayout.cxGroups[2]
+    cx_vagina_group = geometricNetworkLayout.cxGroups[3]
+
+    sx_right_horn_group = geometricNetworkLayout.sxGroups[0]
+    sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
+    sx_cervix_group = geometricNetworkLayout.sxGroups[2]
+    # sx_vagina_group = geometricNetworkLayout.sxGroups[3]
+
+    # Create annotation groups
+    rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
+    leftHornGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
+    cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
+    vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
+    uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
+    annotationGroups = [cervixGroup, vaginaGroup, leftHornGroup, rightHornGroup, uterusGroup]
+
+    rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
+    leftHornMeshGroup = leftHornGroup.getMeshGroup(mesh)
+    cervixMeshGroup = cervixGroup.getMeshGroup(mesh)
+    vaginaMeshGroup = vaginaGroup.getMeshGroup(mesh)
+    uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
+
+    # Get right horn nodes
+    rightHornCoordinates = getCoordinatesAlongTube3D(cx_right_horn_group, elementsCountAround,
+                                                     elementsCountInRightHorn, elementsCountThroughWall,
+                                                     wallThickness, startRadian=-math.pi / 2)
+
+    rhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(rightHornCoordinates, elementsCountAround,
+                                                                elementsCountInRightHorn, elementsCountThroughWall,
+                                                                omitStartRows=0, omitEndRows=1)
+
+    rhLastRingNodeId, nodeCount = getTargetedRingNodesId(firstNodeIdentifier, elementsCountAround,
+                                                         elementsCountInRightHorn, elementsCountThroughWall,
+                                                         omitStartRows=0, omitEndRows=1)
+
+    # Get left horn nodes
+    leftHornCoordinates = getCoordinatesAlongTube3D(cx_left_horn_group, elementsCountAround,
+                                                    elementsCountInLeftHorn, elementsCountThroughWall,
+                                                    wallThickness, startRadian=-math.pi / 2)
+
+    lhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAround,
+                                                                elementsCountInLeftHorn, elementsCountThroughWall,
+                                                                omitStartRows=0, omitEndRows=1)
+
+    lhLastRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInLeftHorn,
+                                                         elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
+
+
+    # Get cervix right and left path
+    # print('cx_cervix_group', cx_cervix_group)
+    # print('len(cx_cervix_group)', len(cx_cervix_group))
+    # print('len(cx_cervix_group[0])', len(cx_cervix_group[0]))
+    # print('len(cx_cervix_group[0][0])', len(cx_cervix_group[0][0]))
+    cx_cervix_group_right = cx_cervix_group[1:]
+    cx_cervix_group_left = cx_cervix_group[1:]
+    distance = 2.0
+    xrList = []
+    xlList = []
+    for n in range(len(cx_cervix_group[0])):
+        x = cx_cervix_group[0][n]
+        v = vector.normalise(cx_cervix_group[2][n])
+        v_trans = vector.setMagnitude(v, distance)
+        x_right = [x[c] + v_trans[c] for  c in range(3)]
+        x_left = [x[c] - v_trans[c] for  c in range(3)]
+        # print('x', x)
+        # print('x_right', x_right)
+        # print('x_left', x_left)
+        xrList.append(x_right)
+        xlList.append(x_left)
+    cx_cervix_group_right.insert(0, xrList)
+    cx_cervix_group_left.insert(0, xlList)
+    # print('cx_cervix_group', cx_cervix_group)
+    # print('cx_cervix_group_right', cx_cervix_group_right)
+
+    # Get right inner cervix nodes
+    cervixInnerRightCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_right, elementsCountAround,
+                                                            elementsCountInCervix, startRadian=-math.pi / 2)
+
+    # Get left inner cervix nodes
+    cervixInnerLeftCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_left, elementsCountAround,
+                                                           elementsCountInCervix, startRadian=-math.pi / 2)
+
+    # cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
+    #                                                             elementsCountInCervix, elementsCountThroughWall,
+    #                                                             omitStartRows=1, omitEndRows=0)
+
+    # Find outer nodes along cervix
+    # sx_cervix = []
+    # for n in range(len(sx_right_tube_group_cervix[0])):
+    #     x = [(sx_right_tube_group_cervix[0][n][c] + sx_left_tube_group_cervix[0][n][c]) / 2 for c in range(3)]
+    #     sx_cervix.append(x)
+
+    cervix_radius1 = []
+    cervix_radius2 = []
+    sx_cervix = cx_cervix_group[0]
+    for n in range(len(cx_cervix_group[0])):
+        v2 = cx_cervix_group_right[0][n]
+        v1 = cx_cervix_group_left[0][n]
+        v1v2 = [v2[c] - v1[c] for c in range(3)]
+        d1Dir = vector.normalise(v1v2)
+        d1Mag = vector.magnitude(v1v2)
+        sd2RMag = vector.magnitude(cx_cervix_group_right[2][n])
+        sd3RMag = vector.magnitude(cx_cervix_group_right[4][n])
+        # sd2LMag = sx_left_tube_group[2][n]
+        radius1 = d1Mag / 2 + sd2RMag + wallThickness
+        radius2 = sd3RMag + wallThickness
+        radius1_v = vector.setMagnitude(vector.normalise(v1v2), radius1)
+        radius2_v = vector.setMagnitude(vector.normalise(cx_cervix_group_right[4][n]), radius2)
+        # radius2_v = vector.setMagnitude(vector.normalise(sx_right_tube_group_cervix[4][n]), radius1)
+        cervix_radius1.append(radius1_v)
+        cervix_radius2.append(radius2_v)
+    sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius2]
+    # sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius1]
+
+    cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
+    startRadian = -math.pi / 2
+    xCervix, d1Cervix, d2Cervix, d3Cervix = \
+        findNodesAlongTubes2D(sx_cervix_group, elementsCountAround, elementsCountInCervix,
+                              elementsCountThroughWall, wallThickness, cervixLength, startRadian)
+
+    # Coordinates across septum, between two inner canals
+    elementsCountAcross = 2
+    xAcrossSeptum = []
+    d1AcrossSeptum = []
+    nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
+    for n in range(elementsCountInCervix + 1):
+        oa = 0
+        ob = nodesCountFreeEnd - 1
+        v1 = xCervix[n][oa]
+        v2 = xCervix[n][ob]
+        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+        v1v2 = [v2[c] - v1[c] for c in range(3)]
+        nx = [xCervix[n][oa], v3, xCervix[n][ob]]
+        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+               [d / elementsCountAcross for d in v1v2]]
+        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+        xAcrossSeptum.append(px)
+        d1AcrossSeptum.append(pd1)
+
+    # Find d2 across septum
+    d2Raw = []
+    for n2 in range(elementsCountAcross + 1):
+        xAlongSeptum = []
+        d2AlongSeptum = []
+        for n1 in range(elementsCountInCervix):
+            v1 = xAcrossSeptum[n1][n2]
+            v2 = xAcrossSeptum[n1 + 1][n2]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlongSeptum.append(v1)
+            d2AlongSeptum.append(d2)
+        xAlongSeptum.append(xAcrossSeptum[-1][n2])
+        d2AlongSeptum.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2AcrossSeptum = []
+    for n2 in range(elementsCountInCervix + 1):
+        d2Across = []
+        for n1 in range(elementsCountAcross + 1):
+            d2 = d2Raw[n1][n2]
+            d2Across.append(d2)
+        d2AcrossSeptum.append(d2Across)
+
+    # # Create nodes through muscle layer and make d3 for the nodes
+    # d3Cervix = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     d3CervixRaw = []
+    #     for n1 in range(elementsCountAround // 2 + 1):
+    #         v1 = xRightTubeCervix[n2][n1 + elementsCountAcross // 2]
+    #         v2 = xCervix[n2][n1]
+    #         v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #         d3CervixRaw.append(v1v2)
+    #     for n1 in range(1, elementsCountAround // 2):
+    #         v1 = xLeftTubeCervix[n2][n1 + elementsCountAcross // 2]
+    #         v2 = xCervix[n2][n1 + elementsCountAround // 2]
+    #         v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #         d3CervixRaw.append(v1v2)
+    #     d3Cervix.append(d3CervixRaw)
+
+
+    # Create nodes
+    # Create right horn nodes
+    nodeIdentifier = generateTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
+                                       elementsCountInRightHorn, elementsCountAround, elementsCountThroughWall,
+                                       omitStartRows=0, omitEndRows=1, startNodes=None)
+
+    # Create left horn nodes
+    nodeIdentifier = generateTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
+                                       elementsCountAround, elementsCountThroughWall, omitStartRows=0,
+                                       omitEndRows=1, startNodes=None)
+
+    # # Create bifurcation nodes
+    # paCentre = sx_cervix_group[0][1]
+    # c1Centre = sx_right_horn_group[0][-2]
+    # c2Centre = sx_left_horn_group[0][-2]
+    # paxList = cFirstRingNodeCoordinates[0]
+    # # pad1List = cFirstRingNodeCoordinates[1]
+    # # pad2List = cFirstRingNodeCoordinates[2]
+    # pad2 = cFirstRingNodeCoordinates[2]
+    # c1xList = rhLastRingNodeCoordinates[0]
+    # c1d2 = rhLastRingNodeCoordinates[2]
+    # c2xList = lhLastRingNodeCoordinates[0]
+    # c2d2 = lhLastRingNodeCoordinates[2]
+    # nodeIdentifier, roNodeId, coNodeId = create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
+    #                                                               pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
+    #                                                               c2d2, elementsCountThroughWall)
+
+    # Create inner cervix nodes
+    nodeCount = nodeIdentifier
+    nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerRightCoordinates, elementsCountInCervix,
+                                       elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
+
+    nodeCount = nodeIdentifier
+    nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerLeftCoordinates, elementsCountInCervix,
+                                       elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
+
+    # Create outer cervix nodes
+    # nodeIdentifier = 1
+    # Cervix outer nodes
+    cache = fm.createFieldcache()
+    coordinates = findOrCreateFieldCoordinates(fm)
+
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    for n2 in range(1, elementsCountInCervix + 1):
+        for n1 in range(elementsCountAround):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCervix[n2][n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Cervix[n2][n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Cervix[n2][n1])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Cervix[n2][n1])
+            if n1 == 0:
+                d3Raw = d1AcrossSeptum[n2][0]
+                d3 = [-1 * d3Raw[c] for c in range(3)]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            if n1 == elementsCountAround // 2:
+                d3Raw = d1AcrossSeptum[n2][1]
+                d3 = [-1 * d3Raw[c] for c in range(3)]
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            nodeIdentifier += 1
+
+    # Cervix septum nodes
+    for n2 in range(elementsCountInCervix + 1):
+        for n1 in range(len(xAcrossSeptum[0])):
+            if 0 < n1 < len(xAcrossSeptum[0]) - 1:
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAcrossSeptum[n2][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AcrossSeptum[n2][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AcrossSeptum[n2][n1])
+                nodeIdentifier += 1
+
+    # # Create elements
+    # # Create right horn elements
+    # startNodeId = firstNodeIdentifier
+    # elementIdentifier = \
+    #     generateTubeElements(fm, coordinates, startNodeId, firstElementIdentifier, elementsCountInRightHorn,
+    #                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives, omitStartRows=0,
+    #                          omitEndRows=1, meshGroups=[rightHornMeshGroup, uterusMeshGroup])
+    #
+    # # Create left horn elements
+    # startNodeId = rhLastRingNodeId[-1][-1] + 1
+    # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInLeftHorn,
+    #                                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+    #                                          omitStartRows=0, omitEndRows=1,
+    #                                          meshGroups=[leftHornMeshGroup, uterusMeshGroup])
+    #
+    # # Create bifurcation elements
+    # cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
+    #                                                      elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
+    # paNodeId = cFirstRingNodeId
+    # c1NodeId = rhLastRingNodeId
+    # c2NodeId = lhLastRingNodeId
+    # elementIdentifier = make_tube_bifurcation_elements_3d(fm, coordinates, elementIdentifier,
+    #                                                       elementsCountAround, elementsCountThroughWall, paNodeId,
+    #                                                       c1NodeId, c2NodeId, roNodeId, coNodeId,
+    #                                                       meshGroups=[cervixMeshGroup, rightHornMeshGroup,
+    #                                                                   leftHornMeshGroup, uterusMeshGroup])
+    #
+    # # Create cervix elements
+    # startNodeId = paNodeId[0][0]
+    # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInCervix,
+    #                                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+    #                                          omitStartRows=1, omitEndRows=0,
+    #                                          meshGroups=[cervixMeshGroup, uterusMeshGroup])
+    #
+    # # Create vagina elements
+    # startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
+    # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
+    #                                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+    #                                          omitStartRows=0, omitEndRows=0,
+    #                                          meshGroups=[vaginaMeshGroup])
+    elementIdentifier = firstElementIdentifier
+
+    return nodeIdentifier, elementIdentifier, annotationGroups
+
+def getCoordinatesAlongTube2D(cx_group, elementsCountAround, elementsCountAlongTube, startRadian):
+
+    # Create ellipses along tube around the central path
+    xEllipsesAlong = []
+    d1EllipsesAlong = []
+    for n in range(len(cx_group[0])):
+        px, pd1 = createEllipsePoints(cx_group[0][n], 2 * math.pi, cx_group[2][n], cx_group[4][n], elementsCountAround,
+                                      startRadians=startRadian)
+        xEllipsesAlong.append(px)
+        d1EllipsesAlong.append(pd1)
+
+    # Find d2
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipsesAlong) - 1):
+            v1 = xEllipsesAlong[n2][n1]
+            v2 = xEllipsesAlong[n2 + 1][n1]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlong.append(v1)
+            d2Along.append(d2)
+        xAlong.append(xEllipsesAlong[-1][n1])
+        d2Along.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2EllipsesAlong = []
+    for n2 in range(len(xEllipsesAlong)):
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            d2 = d2Raw[n1][n2]
+            d2Around.append(d2)
+        d2EllipsesAlong.append(d2Around)
+
+    # Spread out elements along tube
+    xRaw = []
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipsesAlong)):
+            xAlong.append(xEllipsesAlong[n2][n1])
+            d2Along.append(d2EllipsesAlong[n2][n1])
+        xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongTube,
+                                                                        arcLengthDerivatives=True)[0:2]
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlong, d2SampledAlong)
+        xRaw.append(xSampledAlong)
+        d2Raw.append(d2SampledAlong)
+
+    # Rearrange x and d2
+    xSampledTube = []
+    d1SampledTube = []
+    d2SampledTube = []
+    for n2 in range(elementsCountAlongTube + 1):
+        xAround = []
+        d1Around = []
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            x = xRaw[n1][n2]
+            d2 = d2Raw[n1][n2]
+            xAround.append(x)
+            d2Around.append(d2)
+            # Calculate d1
+            v1 = xRaw[n1][n2]
+            v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 1 else 0][n2]
+            d1 = findDerivativeBetweenPoints(v1, v2)
+            d1Around.append(d1)
+        d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+        xSampledTube.append(xAround)
+        d1SampledTube.append(d1Smoothed)
+        d2SampledTube.append(d2Around)
+
+    xList = []
+    d1List = []
+    d2List = []
+    for n2 in range(elementsCountAlongTube + 1):
+        for n1 in range(elementsCountAround):
+            xList.append(xSampledTube[n2][n1])
+            d1List.append(d1SampledTube[n2][n1])
+            d2List.append(d2SampledTube[n2][n1])
+
+    coordinatesList = [xList, d1List, d2List]
+
+    return coordinatesList
+
+def generateTubeNodes2D(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongTube, elementsCountAround,
+                        omitStartRows, omitEndRows, startNodes=None):
+
+    cache = fm.createFieldcache()
+    coordinates = findOrCreateFieldCoordinates(fm)
+
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+
+    # Create tube nodes
+    lastRingsNodeId = []
+    xLastRing = []
+    d1LastRing = []
+    d2LastRing = []
+    firstRingsNodeId = []
+    xFirstRing = []
+    d1FirstRing = []
+    d2FirstRing = []
+    for n2 in range(elementsCountAlongTube + 1):
+        lastRingNodeIdThroughWall = []
+        xLastRingThroughWall = []
+        d1LastRingThroughWall = []
+        d2LastRingThroughWall = []
+        firstRingNodeIdThroughWall = []
+        xFirstRingThroughWall = []
+        d1FirstRingThroughWall = []
+        d2FirstRingThroughWall = []
+        for n1 in range(elementsCountAround):
+            n = n2 * elementsCountAround + n1
+            x = tubeCoordinates[0][n]
+            d1 = tubeCoordinates[1][n]
+            d2 = tubeCoordinates[2][n]
+            if omitEndRows == 1:  # merging to the bifurcation
+                if n2 == elementsCountAlongTube:
+                    pass
+                else:
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    if n2 == elementsCountAlongTube - 1:
+                        lastRingNodeIdThroughWall.append(nodeIdentifier)
+                        xLastRingThroughWall.append(x)
+                        d1LastRingThroughWall.append(d1)
+                        d2LastRingThroughWall.append(d2)
+                    nodeIdentifier += 1
+            elif omitStartRows == 1:  # diverging from bifurcation
+                if n2 == 0:
+                    pass
+                else:
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    cache.setNode(node)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    if n2 == 1:
+                        firstRingNodeIdThroughWall.append(nodeIdentifier)
+                        xFirstRingThroughWall.append(x)
+                        d1FirstRingThroughWall.append(d1)
+                        d2FirstRingThroughWall.append(d2)
+                    nodeIdentifier += 1
+            else:
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                nodeIdentifier += 1
+        if omitEndRows == 1:
+            if n2 == elementsCountAlongTube - 1:
+                lastRingsNodeId.append(lastRingNodeIdThroughWall)
+                xLastRing.append(xLastRingThroughWall)
+                d1LastRing.append(d1LastRingThroughWall)
+                d2LastRing.append(d2LastRingThroughWall)
+        elif omitStartRows == 1:
+            if n2 == 1:
+                firstRingsNodeId.append(firstRingNodeIdThroughWall)
+                xFirstRing.append(xFirstRingThroughWall)
+                d1FirstRing.append(d1FirstRingThroughWall)
+                d2FirstRing.append(d2FirstRingThroughWall)
+
+    return nodeIdentifier
+
+def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
+                          wallThickness, tubeLength, startRadian):
+
+    # Create ellipses along tube around the central path
+    xEllipsesAlong = []
+    d1EllipsesAlong = []
+    for n in range(len(sx_group[0])):
+        px, pd1 = createEllipsePoints(sx_group[0][n], 2 * math.pi, sx_group[2][n], sx_group[4][n], elementsCountAround,
+                                      startRadians=startRadian)
+        xEllipsesAlong.append(px)
+        d1EllipsesAlong.append(pd1)
+
+    # Find d2
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipsesAlong) - 1):
+            v1 = xEllipsesAlong[n2][n1]
+            v2 = xEllipsesAlong[n2 + 1][n1]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlong.append(v1)
+            d2Along.append(d2)
+        xAlong.append(xEllipsesAlong[-1][n1])
+        d2Along.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlong, d2Along)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2EllipsesAlong = []
+    for n2 in range(len(xEllipsesAlong)):
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            d2 = d2Raw[n1][n2]
+            d2Around.append(d2)
+        d2EllipsesAlong.append(d2Around)
+
+    # Spread out elements along tube
+    xRaw = []
+    d2Raw = []
+    for n1 in range(elementsCountAround):
+        xAlong = []
+        d2Along = []
+        for n2 in range(len(xEllipsesAlong)):
+            xAlong.append(xEllipsesAlong[n2][n1])
+            d2Along.append(d2EllipsesAlong[n2][n1])
+        xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongTube,
+                                                                        arcLengthDerivatives=False)[0:2]
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlong, d2SampledAlong)
+        xRaw.append(xSampledAlong)
+        d2Raw.append(d2SampledAlong)
+
+    # Rearrange x and d2
+    xSampledTube = []
+    d1SampledTube = []
+    d2SampledTube = []
+    for n2 in range(elementsCountAlongTube + 1):
+        xAround = []
+        d1Around = []
+        d2Around = []
+        for n1 in range(elementsCountAround):
+            x = xRaw[n1][n2]
+            d2 = d2Raw[n1][n2]
+            xAround.append(x)
+            d2Around.append(d2)
+            # Calculate d1
+            v1 = xRaw[n1][n2]
+            v2 = xRaw[n1 + 1 if n1 < elementsCountAround - 1 else 0][n2]
+            d1 = findDerivativeBetweenPoints(v1, v2)
+            d1Around.append(d1)
+        d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+        xSampledTube.append(xAround)
+        d1SampledTube.append(d1Smoothed)
+        d2SampledTube.append(d2Around)
+
+    d3Tube = []
+    for n2 in range(elementsCountAlongTube + 1):
+        d3Around = []
+        for n1 in range(elementsCountAround):
+            d3Around.append(vector.normalise(
+                vector.crossproduct3(vector.normalise(d1SampledTube[n2][n1]), vector.normalise(d2SampledTube[n2][n1]))))
+        d3Tube.append(d3Around)
+
+    return xSampledTube, d1SampledTube, d2SampledTube, d3Tube
