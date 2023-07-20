@@ -1623,7 +1623,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # for n in range(len(sx_right_tube_group_cervix[0])):
     #     x = [(sx_right_tube_group_cervix[0][n][c] + sx_left_tube_group_cervix[0][n][c]) / 2 for c in range(3)]
     #     sx_cervix.append(x)
-
     cervix_radius1 = []
     cervix_radius2 = []
     sx_cervix = cx_cervix_group[0]
@@ -1653,13 +1652,14 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                               elementsCountThroughWall, wallThickness, cervixLength, startRadian)
 
     # Coordinates across septum, between two inner canals
-    elementsCountAcross = 2
+    elementsCountAcross = 3
     xAcrossSeptum = []
     d1AcrossSeptum = []
     nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
     for n in range(elementsCountInCervix + 1):
         oa = 0
-        ob = nodesCountFreeEnd - 1
+        # ob = nodesCountFreeEnd - 1
+        ob = elementsCountAround // 2
         v1 = xCervix[n][oa]
         v2 = xCervix[n][ob]
         v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
@@ -1740,55 +1740,58 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                                                               pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
     #                                                               c2d2, elementsCountThroughWall)
 
-    # Create inner cervix nodes
-    nodeCount = nodeIdentifier
-    nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerRightCoordinates, elementsCountInCervix,
-                                       elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
+    # Create cervix nodes
+    nodeIdentifier = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates[0], cervixInnerLeftCoordinates[0],
+                                         xCervix, xAcrossSeptum, elementsCountInCervix, elementsCountAround,
+                                         elementsCountAcross, omitStartRows=1, omitEndRows=0, startNodes=None)
 
-    nodeCount = nodeIdentifier
-    nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerLeftCoordinates, elementsCountInCervix,
-                                       elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
-
-    # Create outer cervix nodes
-    # nodeIdentifier = 1
-    # Cervix outer nodes
-    cache = fm.createFieldcache()
-    coordinates = findOrCreateFieldCoordinates(fm)
-
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    nodetemplate = nodes.createNodetemplate()
-    nodetemplate.defineField(coordinates)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    for n2 in range(1, elementsCountInCervix + 1):
-        for n1 in range(elementsCountAround):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCervix[n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Cervix[n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Cervix[n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Cervix[n2][n1])
-            if n1 == 0:
-                d3Raw = d1AcrossSeptum[n2][0]
-                d3 = [-1 * d3Raw[c] for c in range(3)]
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-            if n1 == elementsCountAround // 2:
-                d3Raw = d1AcrossSeptum[n2][1]
-                d3 = [-1 * d3Raw[c] for c in range(3)]
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-            nodeIdentifier += 1
-
-    # Cervix septum nodes
-    for n2 in range(elementsCountInCervix + 1):
-        for n1 in range(len(xAcrossSeptum[0])):
-            if 0 < n1 < len(xAcrossSeptum[0]) - 1:
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAcrossSeptum[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AcrossSeptum[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AcrossSeptum[n2][n1])
-                nodeIdentifier += 1
+    # # Create inner cervix nodes
+    # nodeCount = nodeIdentifier
+    # nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerRightCoordinates, elementsCountInCervix,
+    #                                    elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
+    #
+    # nodeCount = nodeIdentifier
+    # nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerLeftCoordinates, elementsCountInCervix,
+    #                                    elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
+    #
+    # # Create outer cervix nodes
+    # cache = fm.createFieldcache()
+    # coordinates = findOrCreateFieldCoordinates(fm)
+    #
+    # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    # nodetemplate = nodes.createNodetemplate()
+    # nodetemplate.defineField(coordinates)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    # for n2 in range(1, elementsCountInCervix + 1):
+    #     for n1 in range(elementsCountAround):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCervix[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Cervix[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Cervix[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Cervix[n2][n1])
+    #         if n1 == 0:
+    #             d3Raw = d1AcrossSeptum[n2][0]
+    #             d3 = [-1 * d3Raw[c] for c in range(3)]
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+    #         if n1 == elementsCountAround // 2:
+    #             d3Raw = d1AcrossSeptum[n2][1]
+    #             d3 = [-1 * d3Raw[c] for c in range(3)]
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+    #         nodeIdentifier += 1
+    #
+    # # Cervix septum nodes
+    # for n2 in range(elementsCountInCervix + 1):
+    #     for n1 in range(len(xAcrossSeptum[0])):
+    #         if 0 < n1 < len(xAcrossSeptum[0]) - 1:
+    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #             cache.setNode(node)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAcrossSeptum[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AcrossSeptum[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AcrossSeptum[n2][n1])
+    #             nodeIdentifier += 1
 
     # # Create elements
     # # Create right horn elements
@@ -2093,3 +2096,125 @@ def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube,
         d3Tube.append(d3Around)
 
     return xSampledTube, d1SampledTube, d2SampledTube, d3Tube
+
+
+def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountInCervix,
+                        elementsCountAround, elementsCountAcross, omitStartRows, omitEndRows, startNodes=None):
+
+    cache = fm.createFieldcache()
+    coordinates = findOrCreateFieldCoordinates(fm)
+
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+
+    for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix + 1):
+        for n1 in range(elementsCountAround):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            n = n2 * elementsCountAround + n1
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerRigh[n])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            nodeIdentifier += 1
+        for n1 in range(elementsCountAround):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            n = n2 * elementsCountAround + n1
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[n])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            nodeIdentifier += 1
+        for n1 in range(1, elementsCountAcross):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAcross[n2][n1])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            nodeIdentifier += 1
+        for n1 in range(elementsCountAround):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            cache.setNode(node)
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[n2][n1])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            nodeIdentifier += 1
+
+
+    # # Create tube nodes
+    # lastRingsNodeId = []
+    # xLastRing = []
+    # d1LastRing = []
+    # d2LastRing = []
+    # firstRingsNodeId = []
+    # xFirstRing = []
+    # d1FirstRing = []
+    # d2FirstRing = []
+    # for n2 in range(elementsCountAlongTube + 1):
+    #     lastRingNodeIdThroughWall = []
+    #     xLastRingThroughWall = []
+    #     d1LastRingThroughWall = []
+    #     d2LastRingThroughWall = []
+    #     firstRingNodeIdThroughWall = []
+    #     xFirstRingThroughWall = []
+    #     d1FirstRingThroughWall = []
+    #     d2FirstRingThroughWall = []
+    #     for n1 in range(elementsCountAround):
+    #         n = n2 * elementsCountAround + n1
+    #         x = tubeCoordinates[0][n]
+    #         d1 = tubeCoordinates[1][n]
+    #         d2 = tubeCoordinates[2][n]
+    #         if omitEndRows == 1:  # merging to the bifurcation
+    #             if n2 == elementsCountAlongTube:
+    #                 pass
+    #             else:
+    #                 node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #                 cache.setNode(node)
+    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+    #                 if n2 == elementsCountAlongTube - 1:
+    #                     lastRingNodeIdThroughWall.append(nodeIdentifier)
+    #                     xLastRingThroughWall.append(x)
+    #                     d1LastRingThroughWall.append(d1)
+    #                     d2LastRingThroughWall.append(d2)
+    #                 nodeIdentifier += 1
+    #         elif omitStartRows == 1:  # diverging from bifurcation
+    #             if n2 == 0:
+    #                 pass
+    #             else:
+    #                 node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #                 cache.setNode(node)
+    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+    #                 if n2 == 1:
+    #                     firstRingNodeIdThroughWall.append(nodeIdentifier)
+    #                     xFirstRingThroughWall.append(x)
+    #                     d1FirstRingThroughWall.append(d1)
+    #                     d2FirstRingThroughWall.append(d2)
+    #                 nodeIdentifier += 1
+    #         else:
+    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #             cache.setNode(node)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+    #             nodeIdentifier += 1
+    #     if omitEndRows == 1:
+    #         if n2 == elementsCountAlongTube - 1:
+    #             lastRingsNodeId.append(lastRingNodeIdThroughWall)
+    #             xLastRing.append(xLastRingThroughWall)
+    #             d1LastRing.append(d1LastRingThroughWall)
+    #             d2LastRing.append(d2LastRingThroughWall)
+    #     elif omitStartRows == 1:
+    #         if n2 == 1:
+    #             firstRingsNodeId.append(firstRingNodeIdThroughWall)
+    #             xFirstRing.append(xFirstRingThroughWall)
+    #             d1FirstRing.append(d1FirstRingThroughWall)
+    #             d2FirstRing.append(d2FirstRingThroughWall)
+
+    return nodeIdentifier
