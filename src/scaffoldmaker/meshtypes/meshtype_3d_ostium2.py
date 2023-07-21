@@ -11,17 +11,18 @@ from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.geometry import createCirclePoints, getCircleProjectionAxes
+from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
+from scaffoldmaker.utils.tracksurface import TrackSurface, calculate_surface_axes
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    get_nodeset_path_field_parameters
 
 
 
@@ -29,14 +30,10 @@ class MeshType_3d_ostium2(Scaffold_base):
     """
     Generates a 3-D single or double/common ostium inlet or outlet.
     """
-    centralPathDefaultScaffoldPackages = {
-        'Default': ScaffoldPackage(MeshType_1d_path1, {
+    parameterSetStructureStrings = {
+        'Default': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 2
+                "Structure": "1-2-3"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -52,30 +49,23 @@ class MeshType_3d_ostium2(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['Default']
+        centralPathOption = cls.parameterSetStructureStrings['Default']
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             # 'Number of vessels': 1,
             # 'Number of elements across common': 2,
             'Number of elements around ostium': 8,
-            'Number of elements along': 2, #1,
+            'Number of elements along': 2,
             'Number of elements through wall': 1,
             'Unit scale': 1.0,
             'Outlet': False,
-            # 'Ostium diameter': 1.0,
-            # 'Ostium length': 0.4,
             'Ostium wall thickness': 0.08,
             'Ostium wall relative thicknesses': [1.0],
             # 'Ostium inter-vessel distance': 0.8,
             # 'Ostium inter-vessel height': 0.0,
             'Use linear through ostium wall': False,
-            # 'Vessel end length factor': 1.0,
-            # 'Vessel inner diameter': 0.6,
             'Vessel wall thickness': 0.04,
             'Vessel wall relative thicknesses': [1.0],
-            # 'Vessel angle 1 degrees': 0.0,
-            # 'Vessel angle 1 spread degrees': 0.0,
-            # 'Vessel angle 2 degrees': 0.0,
             'Use linear through vessel wall': True,
             #  'Use cross derivatives': False,
             'Refine': False,
@@ -97,20 +87,13 @@ class MeshType_3d_ostium2(Scaffold_base):
             'Number of elements through wall',
             'Unit scale',
             'Outlet',
-            # 'Ostium diameter',
-            # 'Ostium length',
             'Ostium wall thickness',
             'Ostium wall relative thicknesses',
             # 'Ostium inter-vessel distance',
             # 'Ostium inter-vessel height',
             'Use linear through ostium wall',
-            # 'Vessel end length factor',
-            # 'Vessel inner diameter',
             'Vessel wall thickness',
             'Vessel wall relative thicknesses',
-            # 'Vessel angle 1 degrees',
-            # 'Vessel angle 1 spread degrees',
-            # 'Vessel angle 2 degrees',
             'Use linear through vessel wall',
             #  'Use cross derivatives',  # not implemented
             'Refine',
@@ -122,12 +105,12 @@ class MeshType_3d_ostium2(Scaffold_base):
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Central path':
-            return [MeshType_1d_path1]
+            return [MeshType_1d_network_layout1]
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Central path':
-            return list(cls.centralPathDefaultScaffoldPackages.keys())
+            return list(cls.parameterSetStructureStrings.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -145,15 +128,15 @@ class MeshType_3d_ostium2(Scaffold_base):
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
         if optionName == 'Central path':
             if not parameterSetName:
-                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
+            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
         if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
+            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
         # vesselsCount = options['Number of vessels']
         # if vesselsCount != 1:
         #     vesselsCount = options['Number of vessels'] = 1
@@ -175,15 +158,11 @@ class MeshType_3d_ostium2(Scaffold_base):
         #     dependentChanges = True  # because can happen by changing number of vessels
         for key in [
             'Unit scale',
-            # 'Ostium length',
             'Ostium wall thickness',
             # 'Ostium inter-vessel distance',
-            # 'Vessel inner diameter',
             'Vessel wall thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        # if options['Ostium diameter'] <= 0.0:
-        #     options['Ostium diameter'] = 0.000001  # avoid division by zero
         elementsThroughWall = options['Number of elements through wall']
         ostiumThicknessProportionsCountKey = 'Ostium wall relative thicknesses'
         vesselThicknessProportionsCountKey = 'Vessel wall relative thicknesses'
@@ -221,7 +200,6 @@ class MeshType_3d_ostium2(Scaffold_base):
         centralPath = options['Central path']
         centralPath = CentralPath(region, centralPath, unitScale)
 
-        # ostiumRadius = 0.5 * unitScale * options['Ostium diameter']
         # interVesselDistance = unitScale * options['Ostium inter-vessel distance']
         ox = centralPath.cxPath[-1]
         od2 = centralPath.cd2Path[-1]
@@ -240,40 +218,8 @@ class MeshType_3d_ostium2(Scaffold_base):
         nd1 = [vector.setMagnitude(od3, 2.0 * scale)] * 4
         nd2 = [vector.setMagnitude(od2, 2.0 * scale)] * 4
 
-        # fm = region.getFieldmodule()
-        # fm.beginChange()
-        # cache = fm.createFieldcache()
-        # coordinates = findOrCreateFieldCoordinates(fm)
-        #
-        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodeIdentifier = 1000
-        #
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(coordinates)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        #
-        # for n1 in range(len(nx)):
-        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #     cache.setNode(node)
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n1])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n1])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, nd2[n1])
-        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [0.0, 0.0, 0.0])
-        #     nodeIdentifier += 1
-
-        # #  curve track surface:
-        # zf = 2.0
-        # nd1 = [ [ 2.0 * scale, 0.0, zf * scale ], [ 2.0 * scale, 0.0, -zf * scale ],
-        #         [ 2.0 * scale, 0.0, zf * scale ], [ 2.0 * scale, 0.0, -zf * scale ] ]
-        # nd2 = [ [ 0.0, 2.0 * scale, zf * scale ], [ 0.0, 2.0 * scale, zf * scale ],
-        #         [ 0.0, 2.0 * scale, -zf * scale ], [ 0.0, 2.0 * scale, -zf * scale ] ]
         trackSurface = TrackSurface(1, 1, nx, nd1, nd2)
-        # centrePosition = TrackSurfacePosition(0, 0, 0.5, 0.5)
-        # axis1 = [1.0, 0.0, 0.0]
-        generateOstiumMesh(region, options, trackSurface, centralPath) #centrePosition, axis1)
+        generateOstiumMesh(region, options, trackSurface, centralPath)
         return [], None
 
     @classmethod
@@ -324,9 +270,8 @@ def getOstiumElementsCountsAroundVessels(elementsCountAroundOstium, elementsCoun
     return [countOuter, countInner, countOuter], elementsCountAroundMid
 
 
-def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIdentifier=1,
-                       startElementIdentifier=1, vesselMeshGroups=None, ostiumMeshGroups=None,
-                       wallAnnotationGroups=None, coordinates=None):
+def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIdentifier=1, startElementIdentifier=1,
+                       vesselMeshGroups=None, ostiumMeshGroups=None, wallAnnotationGroups=None, coordinates=None):
     """
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
     :param ostiumMeshGroups: List of mesh groups to add only row of elements at ostium end to.
@@ -351,27 +296,17 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
     unitScale = options['Unit scale']
 
     isOutlet = options['Outlet']
-    # ostiumRadius = 0.5 * unitScale * options['Ostium diameter']
-    # ostiumLength = unitScale * options['Ostium length']
     ostiumWallThickness = unitScale * options['Ostium wall thickness']
     ostiumWallThicknessProportionsUI = copy.deepcopy(options['Ostium wall relative thicknesses'])
     # interVesselHeight = unitScale * options['Ostium inter-vessel height']
     # interVesselDistance = unitScale * options['Ostium inter-vessel distance'] if (vesselsCount > 1) else 0.0
     # halfInterVesselDistance = 0.5 * interVesselDistance
     useCubicHermiteThroughOstiumWall = not(options['Use linear through ostium wall'])
-    # vesselEndDerivative = ostiumLength * options['Vessel end length factor'] / elementsCountAlong
-    # vesselInnerRadius = 0.5 * unitScale * options['Vessel inner diameter']
     vesselWallThickness = unitScale * options['Vessel wall thickness']
     vesselWallThicknessProportionsUI = copy.deepcopy(options['Vessel wall relative thicknesses'])
-    # vesselOuterRadius = vesselInnerRadius + vesselWallThickness
-    # vesselAngle1Radians = math.radians(options['Vessel angle 1 degrees'])
-    # vesselAngle1SpreadRadians = math.radians(options['Vessel angle 1 spread degrees'])
-    # vesselAngle2Radians = math.radians(options['Vessel angle 2 degrees'])
     useCubicHermiteThroughVesselWall = not(options['Use linear through vessel wall'])
     useCrossDerivatives = False  # options['Use cross derivatives']  # not implemented
-
     ostiumRadius = vector.magnitude(centralPath.cd2Path[-1])
-    # ostiumD3Radius = vector.magnitude(cd3Path[0]) * unitScale
 
     arcLength = 0.0
     for e in range(len(centralPath.cxPath) - 1):
@@ -407,7 +342,6 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
     centrePosition = trackSurface.findNearestPosition(centralPath.cxPath[-1])
     cx, cd1, cd2 = trackSurface.evaluateCoordinates(centrePosition, True)
     trackDirection1, trackDirection2, centreNormal = calculate_surface_axes(cd1, cd2, cd1)
-    # trackDirection2reverse = [-d for d in trackDirection2]
 
     halfCircumference = math.pi * ostiumRadius
     circumference = 2.0 * halfCircumference
@@ -504,7 +438,6 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
         #     print('5')
 
         position = trackSurface.findNearestPosition(xOstiumInner[n1])
-        # position = trackSurface.trackVector(position, sideDirection, ostiumRadius)
         oPositions.append(position)
         px, d1, d2 = trackSurface.evaluateCoordinates(position, True)
         angleRadians = 2.0 * math.pi / elementsCountAroundOstium * n1
@@ -1046,7 +979,8 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
             maxStartThickness=vesselWallThickness, maxEndThickness=vesselWallThickness,
             elementsCountRadial=elementsCountAlong, meshGroups=rowMeshGroups, wallAnnotationGroups=wallAnnotationGroups,
             coordinates=coordinates)
-        #
+
+        # To visualise central path
         # nodeIdentifierLine = nodeIdentifier
         # for n1 in range(len(centralPath.cxPath)):
         #     node = nodes.createNode(nodeIdentifier, nodetemplate )
@@ -1080,21 +1014,41 @@ class CentralPath:
         """
         :param region: Zinc region to define model in.
         :param centralPath: Central path subscaffold from meshtype_1d_path1
-        :param unitScale:
+        :param unitScale: Unit scale of ostium
         :param termsAlong: Annotation terms along length of central path
         """
-        # Extract length of each group along stomach from central path
+
         tmpRegion = region.createRegion()
         centralPath.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
 
-        cxPath, cd1Path, cd2Path, cd3Path, cd12Path, cd13Path = \
-            get_nodeset_path_field_parameters(tmpNodes, tmpCoordinates,
-                                              [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                               Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                                               Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+        for termName in termsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+
+            if not termName:
+                cx = cxGroup
+                cd1 = cd1Group
+                cd2 = cd2Group
+                cd3 = cd3Group
+                cd12 = cd12Group
+                cd13 = cd13Group
+
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
+        del tmpRegion
 
         self.cxPath = []
         self.cd1Path = []
@@ -1103,10 +1057,10 @@ class CentralPath:
         self.cd12Path = []
         self.cd13Path = []
 
-        for i in range(len(cxPath)):
-            self.cxPath.append([unitScale * x for x in cxPath[i]])
-            self.cd1Path.append([unitScale * cd1 for cd1 in cd1Path[i]])
-            self.cd2Path.append([unitScale * cd2 for cd2 in cd2Path[i]])
-            self.cd3Path.append([unitScale * cd3 for cd3 in cd3Path[i]])
-            self.cd12Path.append([unitScale * cd12 for cd12 in cd12Path[i]])
-            self.cd13Path.append([unitScale * cd13 for cd13 in cd13Path[i]])
+        for i in range(len(cx)):
+            self.cxPath.append([unitScale * x for x in cx[i]])
+            self.cd1Path.append([unitScale * cd1 for cd1 in cd1[i]])
+            self.cd2Path.append([unitScale * cd2 for cd2 in cd2[i]])
+            self.cd3Path.append([unitScale * cd3 for cd3 in cd3[i]])
+            self.cd12Path.append([unitScale * cd12 for cd12 in cd12[i]])
+            self.cd13Path.append([unitScale * cd13 for cd13 in cd13[i]])
