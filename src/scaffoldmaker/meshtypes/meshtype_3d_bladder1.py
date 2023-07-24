@@ -337,7 +337,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements along neck': 4,
             'Number of elements around': 8,
             'Number of elements through wall': 1,
-            'Wall thickness': 0.008,
+            'Wall thickness': 0.016,
             'Ureter position around': 0.67,
             'Use linear through wall': True,
             'Refine': False,
@@ -346,19 +346,19 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Cat 1' in parameterSetName:
-            options['Wall thickness'] = 0.008  # was 1.5 / 178.08271473110773
+            options['Wall thickness'] = 0.017  # was 1.5 * 2.0 / 178.08271473110773
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Human 1' in parameterSetName:
-            options['Wall thickness'] = 0.009  # was 3.0 / 327.63
+            options['Wall thickness'] = 0.018  # was 3.0 * 2.0 / 327.63
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Mouse 1' in parameterSetName:
-            options['Wall thickness'] = 0.007  # was 0.5 / 72.004931756029
+            options['Wall thickness'] = 0.014  # was 0.5 * 2.0 / 72.004931756029
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Pig 1' in parameterSetName:
-            options['Wall thickness'] = 0.005  # was 2.5 / 505.2045520616655
+            options['Wall thickness'] = 0.010  # was 2.5 * 2.0 / 505.2045520616655
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Rat 1' in parameterSetName:
-            options['Wall thickness'] = 0.003  # was 0.3 / 110.40996641878101
+            options['Wall thickness'] = 0.005  # was 0.3 * 2.0 / 110.40996641878101
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Material' in parameterSetName:
             options['Number of elements along dome'] = 8
