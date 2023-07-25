@@ -1335,7 +1335,7 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
             d3Inner.append(d3)
 
     # Create outer layers from the inner nodes
-    wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
+    wallThicknessList = [-wallThickness] * (elementsCountAlongBladder + 1)
     relativeThicknessList = []
     transitElementList = [0] * elementsCountAround
     xList, d1List, d2List, d3List, curvatureList = \
@@ -1362,7 +1362,7 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     d2Final = []
     d3Final = []
     for n3 in range(elementsCountThroughWall + 1):
-        xApex = [xApexInner[c] +
+        xApex = [xApexInner[c] -
                  d3ApexUnit[c] * wallThickness / elementsCountThroughWall * n3 for c in range(3)]
         xFinal.append(xApex)
         d1Final.append(d1ApexInner)
