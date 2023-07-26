@@ -352,25 +352,25 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Cat 1' in parameterSetName:
-            options['Wall thickness'] = 0.017  # was 1.5 * 2.0 / 178.08271473110773
+            options['Wall thickness'] = 0.007  # was 1.5 * 2.0 / 178.08271473110773
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Human 1' in parameterSetName:
-            options['Wall thickness'] = 0.018  # was 3.0 * 2.0 / 327.63
+            options['Wall thickness'] = 0.043  # was 3.0 * 2.0 / 327.63
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Mouse 1' in parameterSetName:
-            options['Wall thickness'] = 0.014  # was 0.5 * 2.0 / 72.004931756029
+            options['Wall thickness'] = 0.008  # was 0.5 * 2.0 / 72.004931756029
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Pig 1' in parameterSetName:
-            options['Wall thickness'] = 0.010  # was 2.5 * 2.0 / 505.2045520616655
+            options['Wall thickness'] = 0.016  # was 2.5 * 2.0 / 505.2045520616655
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Rat 1' in parameterSetName:
-            options['Wall thickness'] = 0.005  # was 0.3 * 2.0 / 110.40996641878101
+            options['Wall thickness'] = 0.006  # was 0.3 * 2.0 / 110.40996641878101
             options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Material' in parameterSetName:
             options['Number of elements along dome'] = 8
             options['Number of elements along neck'] = 4
             options['Number of elements around'] = 8
-            options['Wall thickness'] = 0.01
+            options['Wall thickness'] = 0.016  # an average of the wall thicknesses for above species
             options['Ureter position around'] = 0.67
         return options
 
@@ -466,7 +466,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
         materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
-        materialWallThickness = 0.01
+        materialWallThickness = 0.016
 
         elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
 
