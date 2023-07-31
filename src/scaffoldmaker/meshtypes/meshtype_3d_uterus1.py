@@ -304,7 +304,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout': copy.deepcopy(networkLayoutOption),
             'Target element length': 6.0,
             'Number of elements around': 8,
-            'Wall thickness': 0.5,
+            'Wall thickness': 2.0,
             'Number of elements through wall': 1,
             'Use linear through wall': True,
             'Use cross derivatives': False,
@@ -428,34 +428,34 @@ class MeshType_3d_uterus1(Scaffold_base):
                                elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
                                elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
 
-        # Material coordinates
-        tmp_region = region.createRegion()
-        tmp_fm = tmp_region.getFieldmodule()
-        with ChangeManager(tmp_fm):
-            tmp_uterus_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="uterus coordinates")
-            materialNetworkLayout = UterusNetworkLayout(tmp_region, materialNetworkLayout, materialTargetElementLength)
-
-            nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
-                createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
-                                   elementsCountAround, elementsCountThroughWall, elementsCountInRightHorn,
-                                   elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
-                                   materialWallThickness, useCrossDerivatives)
-
-            # Write two coordinates
-            sir = tmp_region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemory()
-            tmp_region.write(sir)
-            result, buffer = srm.getBuffer()
-
-            sir = region.createStreaminformationRegion()
-            srm = sir.createStreamresourceMemoryBuffer(buffer)
-            region.read(sir)
-
-            del srm
-            del sir
-            del tmp_uterus_coordinates
-        del tmp_fm
-        del tmp_region
+        # # Material coordinates
+        # tmp_region = region.createRegion()
+        # tmp_fm = tmp_region.getFieldmodule()
+        # with ChangeManager(tmp_fm):
+        #     tmp_uterus_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="uterus coordinates")
+        #     materialNetworkLayout = UterusNetworkLayout(tmp_region, materialNetworkLayout, materialTargetElementLength)
+        #
+        #     nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
+        #         createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
+        #                            elementsCountAround, elementsCountThroughWall, elementsCountInRightHorn,
+        #                            elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
+        #                            materialWallThickness, useCrossDerivatives)
+        #
+        #     # Write two coordinates
+        #     sir = tmp_region.createStreaminformationRegion()
+        #     srm = sir.createStreamresourceMemory()
+        #     tmp_region.write(sir)
+        #     result, buffer = srm.getBuffer()
+        #
+        #     sir = region.createStreaminformationRegion()
+        #     srm = sir.createStreamresourceMemoryBuffer(buffer)
+        #     region.read(sir)
+        #
+        #     del srm
+        #     del sir
+        #     del tmp_uterus_coordinates
+        # del tmp_fm
+        # del tmp_region
 
         return annotationGroups, None
 
@@ -1587,7 +1587,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # print('len(cx_cervix_group[0][0])', len(cx_cervix_group[0][0]))
     cx_cervix_group_right = cx_cervix_group[1:]
     cx_cervix_group_left = cx_cervix_group[1:]
-    distance = 2.0
+    distance = wallThickness
     xrList = []
     xlList = []
     for n in range(len(cx_cervix_group[0])):
@@ -1656,7 +1656,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                                                                   omitEndRows=0)
 
     # Coordinates across septum, between two inner canals
-    elementsCountAcross = 2
+    elementsCountAcross = 3
     xAcrossSeptum = []
     d1AcrossSeptum = []
     nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
@@ -1850,6 +1850,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                                                               c2d2, elementsCountThroughWall)
 
     # Create extra right inner nodes in bifurcation
+    cirNodeId = []
     for n2 in range(2):
         for n1 in range(elementsCountAround):
             if n2 == 1:
@@ -1858,9 +1859,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationRight[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationRight[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationRight[n2][n1])
+                cirNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
 
     # Create extra left inner nodes in bifurcation
+    cilNodeId = []
     for n2 in range(2):
         for n1 in range(elementsCountAround):
             if n2 == 1:
@@ -1869,6 +1872,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationLeft[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationLeft[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationLeft[n2][n1])
+                cilNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
 
     # Create bifurcation nodes
@@ -1889,7 +1893,12 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre,
                                  c2xList, c2d2)
 
-
+    print('roNodeId', roNodeId)
+    print('len(roNodeId)', len(roNodeId))
+    print('coNodeId', coNodeId)
+    print('len(coNodeId)', len(coNodeId))
+    print('cirNodeId', cirNodeId)
+    print('len(cirNodeId)', len(cirNodeId))
     # Create cervix nodes
     nodeIdentifier = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
                                          cervixCoordinatesOuter, septumCoordinates, elementsCountInCervix, elementsCountAround,
@@ -1970,6 +1979,29 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                                                       meshGroups=[cervixMeshGroup, rightHornMeshGroup,
     #                                                                   leftHornMeshGroup, uterusMeshGroup])
     #
+
+
+    # Test for creating bifurcation elements
+    cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
+                                                         elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
+    paNodeId = cFirstRingNodeId
+    c1NodeId = rhLastRingNodeId
+    c2NodeId = lhLastRingNodeId
+    print('c1NodeId', c1NodeId)
+    print('len(c1NodeId)', len(c1NodeId))
+    print('c2NodeId', c2NodeId)
+    print('len(c2NodeId)', len(c2NodeId))
+    elementIdentifier = make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier,
+                                                          elementsCountAround, elementsCountThroughWall, paNodeId,
+                                                          c1NodeId, c2NodeId, roNodeId, coNodeId, cirNodeId, cilNodeId,
+                                                          meshGroups=[cervixMeshGroup, rightHornMeshGroup,
+                                                                      leftHornMeshGroup, uterusMeshGroup])
+
+
+
+
+
+
     # # Create cervix elements
     # startNodeId = paNodeId[0][0]
     # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInCervix,
@@ -2532,3 +2564,251 @@ def make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1
     cod1 = crotchd1[1:-1]
     cod2 = c1c2d2[1:-1]
     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
+
+
+def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, elementsCountAround,
+                                      elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
+                                      cirNodeId, cilNodeId, meshGroups=None):
+
+    paCount = len(paNodeId[0])
+    c1Count = len(c1NodeId[0])
+    c2Count = len(c2NodeId[0])
+    pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+
+    # fm = region.getFieldmodule()
+    mesh = fm.findMeshByDimension(3)
+    eftfactory = eftfactory_bicubichermitelinear(mesh, None)
+    eftStd = eftfactory.createEftBasic()
+
+    elementtemplateStd = mesh.createElementtemplate()
+    elementtemplateStd.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplateStd.defineField(coordinates, -1, eftStd)
+
+    elementtemplateMod = mesh.createElementtemplate()
+    elementtemplateMod.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    # Right tube part
+    for e3 in range(elementsCountThroughWall):
+        for e1 in range(8):
+            eft = eftStd
+            elementtemplate = elementtemplateStd
+            scalefactors = None
+            # if e1 == 0:
+            #     nodeIdentifiers = [65, 66, 161, 162, 73, 74, 177, 178]
+            # if e1 == 1:
+            #     nodeIdentifiers = [66, 67, 162, 163, 74, 75, 178, 179]
+            # elif e1 == 2:
+            #     nodeIdentifiers = [67, 68, 163, 164, 75, 76, 179, 180]
+            # elif e1 == 3:
+            #     nodeIdentifiers = [68, 69, 164, 165, 76, 77, 180, 181]
+            # elif e1 == 4:
+            #     nodeIdentifiers = [69, 70, 165, 166, 77, 78, 181, 185]
+            # elif e1 == 5:
+            #     nodeIdentifiers = [70, 71, 166, 167, 78, 79, 185, 186]
+            # elif e1 == 6:
+            #     nodeIdentifiers = [71, 72, 167, 168, 79, 80, 186, 187]
+            # elif e1 == 7:
+            #     nodeIdentifiers = [72, 65, 168, 161, 80, 73, 187, 177]
+            if e1 < elementsCountAround // 2:
+                bni1 = c1NodeId[e3][e1]
+                bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
+                # bni3 = roNodeId[e3][e1]
+                bni3 = cirNodeId[e1]
+                bni4 = cirNodeId[(e1 + 1) % c1Count]
+                bni5 = bni1 + elementsCountAround
+                bni6 = bni5 + 1
+                # bni7 = bni3 + len(roNodeId) + len(coNodeId)
+                bni7 = bni3 + 2 * elementsCountAround
+                bni8 = bni7 + 1
+                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                print('nodeIdentifiers', nodeIdentifiers)
+            elif e1 == elementsCountAround // 2:
+                bni1 = c1NodeId[e3][e1]
+                bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
+                # bni3 = roNodeId[e3][e1]
+                # bni4 = coNodeId[e3][e1 - elementsCountAround // 2]
+                bni3 = cirNodeId[e1]
+                bni4 = cirNodeId[(e1 + 1) % c1Count]
+                bni5 = bni1 + elementsCountAround
+                bni6 = bni5 + 1
+                # bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
+                # bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
+                bni7 = bni3 + 2 * elementsCountAround
+                bni8 = coNodeId[0]
+                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                print('nodeIdentifiers', nodeIdentifiers)
+            else:
+                bni1 = c1NodeId[e3][e1]
+                bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
+                # bni3 = coNodeId[e3][e1 - elementsCountAround // 2 - 1]
+                bni3 = cirNodeId[e1]
+                bni5 = bni1 + elementsCountAround
+                bni7 = coNodeId[e1 - elementsCountAround // 2 - 1]
+                if e1 == c1Count - 1:
+                    bni4 = cirNodeId[0]
+                    bni6 = bni5 - elementsCountAround + 1
+                    bni8 = roNodeId[0]
+                else:
+                    bni4 = bni3 + 1
+                    bni6 = bni5 + 1
+                    bni8 = bni7 + 1
+                # bni7 = bni3 + 2 * elementsCountAround
+                # bni8 = bni4 + 2 * elementsCountAround
+
+                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+                print('nodeIdentifiers', nodeIdentifiers)
+
+                # elif e1 == 5:
+                #     nodeIdentifiers = [70, 71, 166, 167, 78, 79, 185, 186]
+                # elif e1 == 6:
+                #     nodeIdentifiers = [71, 72, 167, 168, 79, 80, 186, 187]
+                # elif e1 == 7:
+                #     nodeIdentifiers = [72, 65, 168, 161, 80, 73, 187, 177]
+            if e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
+                eft = eftfactory.createEftBasic()
+                if e1 == 0:
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                elif e1 == pac1Count - 1:
+                    remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                elif e1 == pac1Count:
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                elif e1 == c1Count - 1:
+                    scalefactors = [-1.0]
+                    setEftScaleFactorIds(eft, [1], [])
+                    remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                elementtemplateMod.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateMod
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            result2 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+            if scalefactors:
+                result3 = element.setScaleFactors(eft, scalefactors)
+            else:
+                result3 = '-'
+            elementIdentifier += 1
+            for meshGroup in meshGroups:
+                if meshGroups.index(meshGroup) == 1:
+                    meshGroup.addElement(element)
+                elif meshGroups.index(meshGroup) == 3:
+                    meshGroup.addElement(element)
+
+    # # Left tube part
+    # for e3 in range(elementsCountThroughWall):
+    #     for e1 in range(c2Count):
+    #         eft = eftStd
+    #         elementtemplate = elementtemplateStd
+    #         scalefactors = None
+    #         if e1 < elementsCountAround//2:
+    #             bni1 = c2NodeId[e3][e1]
+    #             bni2 = c2NodeId[e3][(e1 + 1) % c1Count]
+    #             if e1 == 0:
+    #                 bni3 = roNodeId[e3][e1]
+    #                 bni4 = coNodeId[e3][-1 - e1]
+    #             else:
+    #                 bni3 = coNodeId[e3][-e1]
+    #                 if e1 == elementsCountAround//2 - 1:
+    #                     bni4 = roNodeId[e3][0] + pac1Count
+    #                 else:
+    #                     bni4 = bni3 - 1
+    #             bni5 = bni1 + elementsCountAround
+    #             bni6 = bni2 + elementsCountAround
+    #             bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
+    #             bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
+    #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #         else:
+    #             bni1 = c2NodeId[e3][e1]
+    #             bni2 = c2NodeId[e3][(e1 + 1) % c1Count]
+    #             bni3 = roNodeId[e3][e1]
+    #             bni4 = roNodeId[e3][(e1 + 1) % c2Count]
+    #             bni5 = bni1 + elementsCountAround
+    #             bni6 = bni2 + elementsCountAround
+    #             bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
+    #             bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
+    #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #         if e1 <= c1c2Count:
+    #             eft = eftfactory.createEftBasic()
+    #             scalefactors = [-1.0]
+    #             setEftScaleFactorIds(eft, [1], [])
+    #             if e1 == 0:
+    #                 remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2,
+    #                                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #                 remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #                 scaleEftNodeValueLabels(eft, [4, 8], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+    #             elif e1 < (c1c2Count - 1):
+    #                 scaleEftNodeValueLabels(eft, [3, 4, 7, 8], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+    #             elif e1 == (c1c2Count - 1):
+    #                 scaleEftNodeValueLabels(eft, [3, 7], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+    #                 remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+    #             elif e1 == c1c2Count:
+    #                 remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1,
+    #                                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft)
+    #             elementtemplate = elementtemplateMod
+    #         elif e1 == c2Count - 1:
+    #             eft = eftfactory.createEftBasic()
+    #             remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2,
+    #                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft)
+    #             elementtemplate = elementtemplateMod
+    #         element = mesh.createElement(elementIdentifier, elementtemplate)
+    #         result2 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+    #         if scalefactors:
+    #             result3 = element.setScaleFactors(eft, scalefactors)
+    #         else:
+    #             result3 = '-'
+    #         elementIdentifier += 1
+    #         for meshGroup in meshGroups:
+    #             if meshGroups.index(meshGroup) == 2:
+    #                 meshGroup.addElement(element)
+    #             elif meshGroups.index(meshGroup) == 3:
+    #                 meshGroup.addElement(element)
+    #
+    # # parent part
+    # for e3 in range(elementsCountThroughWall):
+    #     for e1 in range(paCount):
+    #         eft = eftStd
+    #         elementtemplate = elementtemplateStd
+    #         scalefactors = None
+    #         bni1 = roNodeId[e3][e1]
+    #         bni2 = roNodeId[e3][(e1 + 1) % elementsCountAround]
+    #         bni3 = paNodeId[e3][e1]
+    #         bni4 = paNodeId[e3][(e1 + 1) % elementsCountAround]
+    #         bni5 = bni1 + len(roNodeId[0]) + len(coNodeId[0])
+    #         bni6 = bni2 + len(roNodeId[0]) + len(coNodeId[0])
+    #         bni7 = bni3 + elementsCountAround
+    #         bni8 = bni4 + elementsCountAround
+    #         nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #         # print('nodeIdentifiers', nodeIdentifiers)
+    #         if e1 in (0, pac1Count):
+    #             eft = eftfactory.createEftBasic()
+    #             if e1 in (0, pac1Count):
+    #                 remapEftNodeValueLabel(eft, [1, 5], Node.VALUE_LABEL_D_DS1,
+    #                                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft)
+    #             elementtemplate = elementtemplateMod
+    #         element = mesh.createElement(elementIdentifier, elementtemplate)
+    #         result2 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+    #         if scalefactors:
+    #             result3 = element.setScaleFactors(eft, scalefactors)
+    #         else:
+    #             result3 = '-'
+    #         elementIdentifier += 1
+    #         for meshGroup in meshGroups:
+    #             if meshGroups.index(meshGroup) == 0:
+    #                 meshGroup.addElement(element)
+    #             elif meshGroups.index(meshGroup) == 3:
+    #                 meshGroup.addElement(element)
+    # # lastNodeId = startNodeIndex + (elementsCountThroughWall + 1) * (len(roNodeId) + len(coNodeId)) + 1
+    # # lastNodeId = paNodeId[0][0]
+    return elementIdentifier
