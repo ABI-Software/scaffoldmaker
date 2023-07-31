@@ -1526,14 +1526,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         cd12Group = centralPath.cd12Groups[i + 1]
         cd13Group = centralPath.cd13Groups[i + 1]
 
-        for n2 in range(len(cxGroup)):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxGroup[n2])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd2Group[n2])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd1Group[n2])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3Group[n2])
-            nodeIdentifier += 1
+        # for n2 in range(len(cxGroup)):
+        #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+        #     cache.setNode(node)
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxGroup[n2])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd2Group[n2])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd1Group[n2])
+        #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3Group[n2])
+        #     nodeIdentifier += 1
 
         if materialCoordinates and i == len(elementCountGroupList) - 1:
             for n in range(len(cxGroup)):
@@ -1679,7 +1679,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     for n2 in range(len(xEllipseAroundAll)):
         for n1 in range(len(xEllipseAroundAll[n2])):
             xTrackSurface.append(xEllipseAroundAll[n2][n1])
-            d1TrackSurface.append(d1EllipseAroundAll[n2][n1])
+            d1TrackSurface.append(d1EllipseAroundAll[n2][n1] if n2 else zero)
             d2TrackSurface.append(d2EllipseAroundAll[n2][n1])
 
     trackSurfaceStomach = TrackSurface(elementsCountAroundDuod, len(xEllipseAroundAll) - 1,
