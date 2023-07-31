@@ -1687,45 +1687,45 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     # Visualise track surface
     # tmpRegion = region.createRegion()
-    # trackSurfaceStomach.generateMesh(tmpRegion)
+    nodeIdentifier, elementIdentifier = trackSurfaceStomach.generateMesh(region) #tmpRegion)
 
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    startNodeIdentifier = nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
-    nodetemplate = nodes.createNodetemplate()
-    nodetemplate.defineField(coordinates)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-
-    mesh = fm.findMeshByDimension(2)
-    elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
-    elementtemplate = mesh.createElementtemplate()
-    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-    bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-    eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-    # remove cross derivative terms
-    for n in range(4):
-        eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
-    elementtemplate.defineField(coordinates, -1, eft)
-
-    fieldcache = fm.createFieldcache()
-    with ChangeManager(fm):
-        for n1 in range(len(trackSurfaceStomach.nx)):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, trackSurfaceStomach.nx[n1])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, trackSurfaceStomach.nd1[n1])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, trackSurfaceStomach.nd2[n1])
-            nodeIdentifier += 1
-
-        del n1
-        nodesCount1 = trackSurfaceStomach.elementsCount1 + 1
-        for e2 in range(trackSurfaceStomach.elementsCount2):
-            for e1 in range(trackSurfaceStomach.elementsCount1):
-                nid1 = startNodeIdentifier + e2 * nodesCount1 + e1
-                nids = [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1]
-                element = mesh.createElement(elementIdentifier, elementtemplate)
-                element.setNodesByIdentifier(eft, nids)
-                elementIdentifier += 1
+    # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    # startNodeIdentifier = nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
+    # nodetemplate = nodes.createNodetemplate()
+    # nodetemplate.defineField(coordinates)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    #
+    # mesh = fm.findMeshByDimension(2)
+    # elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
+    # elementtemplate = mesh.createElementtemplate()
+    # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+    # bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+    # eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+    # # remove cross derivative terms
+    # for n in range(4):
+    #     eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
+    # elementtemplate.defineField(coordinates, -1, eft)
+    #
+    # fieldcache = fm.createFieldcache()
+    # with ChangeManager(fm):
+    #     for n1 in range(len(trackSurfaceStomach.nx)):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         fieldcache.setNode(node)
+    #         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, trackSurfaceStomach.nx[n1])
+    #         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, trackSurfaceStomach.nd1[n1])
+    #         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, trackSurfaceStomach.nd2[n1])
+    #         nodeIdentifier += 1
+    #
+    #     del n1
+    #     nodesCount1 = trackSurfaceStomach.elementsCount1 + 1
+    #     for e2 in range(trackSurfaceStomach.elementsCount2):
+    #         for e1 in range(trackSurfaceStomach.elementsCount1):
+    #             nid1 = startNodeIdentifier + e2 * nodesCount1 + e1
+    #             nids = [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1]
+    #             element = mesh.createElement(elementIdentifier, elementtemplate)
+    #             element.setNodesByIdentifier(eft, nids)
+    #             elementIdentifier += 1
 
     # tmpRegion.getFieldmodule().defineAllFaces()
     # tmpRegion.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_tracksurface.exf")

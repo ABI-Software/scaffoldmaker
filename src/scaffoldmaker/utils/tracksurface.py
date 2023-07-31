@@ -498,7 +498,7 @@ class TrackSurface:
         """
         Generate nodes and surface elements in region.
         :param region:
-        :return:
+        :return: next node identifier, next 2D element identifier
         """
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
@@ -514,11 +514,12 @@ class TrackSurface:
         elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-        bicubicHermiteBasis = fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        # bicubicHermiteBasis = fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        bicubicHermiteBasis = fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY)
         eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-        # remote cross derivative terms
-        for n in range(4):
-            eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
+        # # remove cross derivative terms for regular Hermite
+        # for n in range(4):
+        #     eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
         elementtemplate.defineField(coordinates, -1, eft)
 
         fieldcache = fieldmodule.createFieldcache()
@@ -540,6 +541,8 @@ class TrackSurface:
                     element.setNodesByIdentifier(eft, nids)
                     # print(elementIdentifier, element.isValid(), nids)
                     elementIdentifier += 1
+
+        return nodeIdentifier, elementIdentifier
 
 def calculate_surface_delta_xi(d1, d2, direction):
     '''
