@@ -1655,68 +1655,53 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                                                                   elementsCountInCervix, omitStartRows=1,
     #                                                                   omitEndRows=0)
 
-    # Coordinates across septum, between two inner canals
-    elementsCountAcross = 3
-    xAcrossSeptum = []
-    d1AcrossSeptum = []
-    nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
-    for n in range(elementsCountInCervix + 1):
-        oa = 0
-        # ob = nodesCountFreeEnd - 1
-        ob = elementsCountAround // 2
-        v1 = xCervix[n][oa]
-        v2 = xCervix[n][ob]
-        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
-        v1v2 = [v2[c] - v1[c] for c in range(3)]
-        nx = [xCervix[n][oa], v3, xCervix[n][ob]]
-        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
-               [d / elementsCountAcross for d in v1v2]]
-        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
-        xAcrossSeptum.append(px)
-        d1AcrossSeptum.append(pd1)
-
-    # Find d2 across septum
-    d2Raw = []
-    for n2 in range(elementsCountAcross + 1):
-        xAlongSeptum = []
-        d2AlongSeptum = []
-        for n1 in range(elementsCountInCervix):
-            v1 = xAcrossSeptum[n1][n2]
-            v2 = xAcrossSeptum[n1 + 1][n2]
-            d2 = findDerivativeBetweenPoints(v1, v2)
-            xAlongSeptum.append(v1)
-            d2AlongSeptum.append(d2)
-        xAlongSeptum.append(xAcrossSeptum[-1][n2])
-        d2AlongSeptum.append(d2)
-        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
-        d2Raw.append(d2Smoothed)
-
-    # Rearrange d2
-    d2AcrossSeptum = []
-    for n2 in range(elementsCountInCervix + 1):
-        d2Across = []
-        for n1 in range(elementsCountAcross + 1):
-            d2 = d2Raw[n1][n2]
-            d2Across.append(d2)
-        d2AcrossSeptum.append(d2Across)
-
-    septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
-
-    # # Create nodes through muscle layer and make d3 for the nodes
-    # d3Cervix = []
+    # # Coordinates across septum, between two inner canals
+    # elementsCountAcross = 4
+    # # elementsCountAcross = len(coxList)
+    # xAcrossSeptum = []
+    # d1AcrossSeptum = []
+    # nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
+    # for n in range(elementsCountInCervix + 1):
+    #     oa = 0
+    #     # ob = nodesCountFreeEnd - 1
+    #     ob = elementsCountAround // 2
+    #     v1 = xCervix[n][ob]
+    #     v2 = xCervix[n][oa]
+    #     v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+    #     v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #     nx = [xCervix[n][ob], v3, xCervix[n][oa]]
+    #     nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+    #            [d / elementsCountAcross for d in v1v2]]
+    #     px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+    #     xAcrossSeptum.append(px)
+    #     d1AcrossSeptum.append(pd1)
+    #
+    # # Find d2 across septum
+    # d2Raw = []
+    # for n2 in range(elementsCountAcross + 1):
+    #     xAlongSeptum = []
+    #     d2AlongSeptum = []
+    #     for n1 in range(elementsCountInCervix):
+    #         v1 = xAcrossSeptum[n1][n2]
+    #         v2 = xAcrossSeptum[n1 + 1][n2]
+    #         d2 = findDerivativeBetweenPoints(v1, v2)
+    #         xAlongSeptum.append(v1)
+    #         d2AlongSeptum.append(d2)
+    #     xAlongSeptum.append(xAcrossSeptum[-1][n2])
+    #     d2AlongSeptum.append(d2)
+    #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+    #     d2Raw.append(d2Smoothed)
+    #
+    # # Rearrange d2
+    # d2AcrossSeptum = []
     # for n2 in range(elementsCountInCervix + 1):
-    #     d3CervixRaw = []
-    #     for n1 in range(elementsCountAround // 2 + 1):
-    #         v1 = xRightTubeCervix[n2][n1 + elementsCountAcross // 2]
-    #         v2 = xCervix[n2][n1]
-    #         v1v2 = [v2[c] - v1[c] for c in range(3)]
-    #         d3CervixRaw.append(v1v2)
-    #     for n1 in range(1, elementsCountAround // 2):
-    #         v1 = xLeftTubeCervix[n2][n1 + elementsCountAcross // 2]
-    #         v2 = xCervix[n2][n1 + elementsCountAround // 2]
-    #         v1v2 = [v2[c] - v1[c] for c in range(3)]
-    #         d3CervixRaw.append(v1v2)
-    #     d3Cervix.append(d3CervixRaw)
+    #     d2Across = []
+    #     for n1 in range(elementsCountAcross + 1):
+    #         d2 = d2Raw[n1][n2]
+    #         d2Across.append(d2)
+    #     d2AcrossSeptum.append(d2Across)
+    #
+    # septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
 
     # Sample/create a layer of nodes between the end of iiner horns and inner cervix canal
@@ -1889,7 +1874,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     c1d2 = rhLastRingNodeCoordinates[2][1]
     c2xList = lhLastRingNodeCoordinates[0][1]
     c2d2 = lhLastRingNodeCoordinates[2][1]
-    nodeIdentifier, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex = \
+    nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex = \
         create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre,
                                  c2xList, c2d2)
 
@@ -1899,6 +1884,105 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     print('len(coNodeId)', len(coNodeId))
     print('cirNodeId', cirNodeId)
     print('len(cirNodeId)', len(cirNodeId))
+
+    # Coordinates across septum, between two inner canals
+    # elementsCountAcross = 4
+    elementsCountAcross = len(coNodeId) + 1
+    # elementsCountAcross = len(coxList)
+    xAcrossSeptum = []
+    d1AcrossSeptum = []
+    nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
+    for n in range(elementsCountInCervix + 1):
+        oa = 0
+        # ob = nodesCountFreeEnd - 1
+        ob = elementsCountAround // 2
+        v1 = xCervix[n][ob]
+        v2 = xCervix[n][oa]
+        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+        v1v2 = [v2[c] - v1[c] for c in range(3)]
+        nx = [xCervix[n][ob], v3, xCervix[n][oa]]
+        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+               [d / elementsCountAcross for d in v1v2]]
+        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+        xAcrossSeptum.append(px)
+        d1AcrossSeptum.append(pd1)
+
+    # Find d2 across septum
+    d2Raw = []
+    for n2 in range(elementsCountAcross + 1):
+        xAlongSeptum = []
+        d2AlongSeptum = []
+        for n1 in range(elementsCountInCervix):
+            v1 = xAcrossSeptum[n1][n2]
+            v2 = xAcrossSeptum[n1 + 1][n2]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlongSeptum.append(v1)
+            d2AlongSeptum.append(d2)
+        xAlongSeptum.append(xAcrossSeptum[-1][n2])
+        d2AlongSeptum.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2AcrossSeptum = []
+    for n2 in range(elementsCountInCervix + 1):
+        d2Across = []
+        for n1 in range(elementsCountAcross + 1):
+            d2 = d2Raw[n1][n2]
+            d2Across.append(d2)
+        d2AcrossSeptum.append(d2Across)
+
+    septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
+
+    # Add nodes between the two nodes of bifurcation in rox
+    elementsCountAcross = len(coNodeId) + 1
+    v1 = rox[elementsCountAround // 2]
+    v2 = rox[0]
+    v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+    v1v2 = [v2[c] - v1[c] for c in range(3)]
+    nx = [v1, v3, v2]
+    nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+           [d / elementsCountAcross for d in v1v2]]
+    xSeptumBifurcation, d1SeptumBifurcation, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[
+                                                       0:4]
+
+    # Find d2 across septum
+    d2Raw = []
+    d2SeptumBifurcation = []
+    for n2 in range(1, elementsCountAcross):
+        # xAlongSeptum = []
+        # d2AlongSeptum = []
+        v1 = xSeptumBifurcation[n2]
+        v2 = xAcrossSeptum[1][n2]
+        d2 = findDerivativeBetweenPoints(v1, v2)
+        d2SeptumBifurcation.append(d2)
+        d2SeptumBifurcation.append(d2)
+        # xAlongSeptum.append(xAcrossSeptum[-1][n2])
+        # d2AlongSeptum.append(d2)
+        # d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+        # d2Raw.append(d2Smoothed)
+
+    # Create septum nodes in bifurcation
+    sbNodeId = []
+    for n in range(1, len(xSeptumBifurcation) - 1):
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSeptumBifurcation[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SeptumBifurcation[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SeptumBifurcation[n])
+        sbNodeId = [].append(nodeIdentifier)
+        nodeIdentifier += 1
+
+    # sbNodeId = []
+    # for n in range(1, len(xSeptumBifurcation) - 1):
+    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     cache.setNode(node)
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSeptumBifurcation[n])
+    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SeptumBifurcation[n])
+    #     # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
+    #     sbNodeId.append(nodeIdentifier)
+    #     nodeIdentifier = nodeIdentifier + 1
+
     # Create cervix nodes
     nodeIdentifier = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
                                          cervixCoordinatesOuter, septumCoordinates, elementsCountInCervix, elementsCountAround,
@@ -2438,7 +2522,7 @@ def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, c1Centre, 
         nodeIdentifier = nodeIdentifier + 1
 
     nextNodeId = nodeIdentifier
-    return nodeIdentifier, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex
+    return nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex
 
 
 def getTargetedRingNodesCoordinates2D(tubeCoordinates, elementsCountAround, elementsCountAlongTube, omitStartRows,
@@ -2589,7 +2673,7 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
 
     # Right tube part
     for e3 in range(elementsCountThroughWall):
-        for e1 in range(8):
+        for e1 in range(elementsCountAround):
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
