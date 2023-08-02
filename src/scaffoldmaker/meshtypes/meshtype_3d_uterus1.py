@@ -1903,6 +1903,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     c2Centre = sx_left_horn_group[0][-2]
     paxList = xCervix[1]
     pad2 = d2Cervix[1]
+    pad3 = d3Cervix[1]
     # paxList = cFirstRingNodeCoordinates[0]
     # pad2 = cFirstRingNodeCoordinates[2]
     c1xList = rhLastRingNodeCoordinates[0][1]
@@ -1912,11 +1913,14 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     c2xList = lhLastRingNodeCoordinates[0][1]
     c2d2 = lhLastRingNodeCoordinates[2][1]
     nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex = \
-        create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre,
+        create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, pad3, c1Centre, c1xList, c1d2, c2Centre,
                                  c2xList, c2d2)
 
+    print('rox', rox)
+    print('rox[0]', rox[0])
+    print('rox[0][0]', rox[0][0])
     # print('roNodeId', roNodeId)
-    # print('len(roNodeId)', len(roNodeId))
+    print('len(rox)', len(rox))
     # print('coNodeId', coNodeId)
     # print('len(coNodeId)', len(coNodeId))
     # print('cirNodeId', cirNodeId)
@@ -2561,7 +2565,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
     return nodeIdentifier, citfNodeId, cotNodeId, csNodeId
 
 
-def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
+def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, pad3, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
 
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -2572,10 +2576,12 @@ def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, c1Centre, 
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
     rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
         make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
 
+    rod3 = pad3
     # Create bifurcation nodes
     roNodeId = []
     for n in range(len(rox)):
@@ -2584,6 +2590,7 @@ def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, c1Centre, 
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rod3[n])
         roNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
     coNodeId = []
