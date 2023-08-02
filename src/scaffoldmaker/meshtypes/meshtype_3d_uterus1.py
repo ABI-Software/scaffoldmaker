@@ -12,7 +12,8 @@ from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, \
+    remapEftLocalNodes
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
     findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.uterus_terms import get_uterus_term
@@ -1581,10 +1582,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
 
     # Get cervix right and left path
-    # print('cx_cervix_group', cx_cervix_group)
-    # print('len(cx_cervix_group)', len(cx_cervix_group))
-    # print('len(cx_cervix_group[0])', len(cx_cervix_group[0]))
-    # print('len(cx_cervix_group[0][0])', len(cx_cervix_group[0][0]))
     cx_cervix_group_right = cx_cervix_group[1:]
     cx_cervix_group_left = cx_cervix_group[1:]
     distance = wallThickness
@@ -1596,15 +1593,10 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         v_trans = vector.setMagnitude(v, distance)
         x_right = [x[c] + v_trans[c] for  c in range(3)]
         x_left = [x[c] - v_trans[c] for  c in range(3)]
-        # print('x', x)
-        # print('x_right', x_right)
-        # print('x_left', x_left)
         xrList.append(x_right)
         xlList.append(x_left)
     cx_cervix_group_right.insert(0, xrList)
     cx_cervix_group_left.insert(0, xlList)
-    # print('cx_cervix_group', cx_cervix_group)
-    # print('cx_cervix_group_right', cx_cervix_group_right)
 
     # Get right inner cervix nodes
     cervixInnerRightCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_right, elementsCountAround,
@@ -1651,12 +1643,8 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         findNodesAlongTubes2D(sx_cervix_group, elementsCountAround, elementsCountInCervix,
                               elementsCountThroughWall, wallThickness, cervixLength, startRadian)
     cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
-    # print('d3Cervix', d3Cervix)
-    # print('d1Cervix', d1Cervix)
 
     # # Find d3 for cervix outer nodes
-    # print('cervixInnerRightCoordinates', cervixInnerRightCoordinates)
-    # print('xCervix', xCervix)
     # d3Cervix = []
     # for n2 in range(0, elementsCountInCervix + 1):
     #     d3CervixRaw = []
@@ -1667,9 +1655,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #             v1 = cervixInnerRightCoordinates[n2][n1]
     #             v2 = xCervix[n2][n1]
     #             v1v2 = [v2[c] - v1[c] for c in range(3)]
-    #             print('v1', v1)
-    #             print('v2', v2)
-    #             print('v1v2', v1v2)
     #             d3CervixRaw.append(v1v2)
     #         if n1 > elementsCountAround:
     #             v1 = cervixInnerLeftCoordinates[n2][n1]
@@ -1679,11 +1664,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #             # d3CervixRaw.append([1.0, 0.0, 0.0])
     #     d3Cervix.append(d3CervixRaw)
     #
-    # print('len(xCervix)', len(xCervix))
-    # print('len(d3Cervix)', len(d3Cervix))
-    # print('len(xCervix[0])', len(xCervix[0]))
-    # print('len(d3Cervix[0])', len(d3Cervix[0]))
-    # print('d3Cervix[0]', d3Cervix[0])
     #
     # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
 
@@ -1872,7 +1852,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                                                               c2d2, elementsCountThroughWall)
 
     # Create extra right inner nodes in bifurcation
-    cirNodeId = []
+    birNodeId = []  # bifurcation right inner ring node id
     for n2 in range(2):
         for n1 in range(elementsCountAround):
             if n2 == 1:
@@ -1881,11 +1861,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationRight[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationRight[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationRight[n2][n1])
-                cirNodeId.append(nodeIdentifier)
+                birNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
 
     # Create extra left inner nodes in bifurcation
-    cilNodeId = []
+    bilNodeId = [] # bifurcation left inner ring node id
     for n2 in range(2):
         for n1 in range(elementsCountAround):
             if n2 == 1:
@@ -1894,7 +1874,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationLeft[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationLeft[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationLeft[n2][n1])
-                cilNodeId.append(nodeIdentifier)
+                bilNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
 
     # Create bifurcation nodes
@@ -1907,24 +1887,12 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # paxList = cFirstRingNodeCoordinates[0]
     # pad2 = cFirstRingNodeCoordinates[2]
     c1xList = rhLastRingNodeCoordinates[0][1]
-    # print('c1xList', c1xList)
-    # print('len(c1xList)', len(c1xList))
     c1d2 = rhLastRingNodeCoordinates[2][1]
     c2xList = lhLastRingNodeCoordinates[0][1]
     c2d2 = lhLastRingNodeCoordinates[2][1]
     nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex = \
         create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, pad3, c1Centre, c1xList, c1d2, c2Centre,
                                  c2xList, c2d2)
-
-    print('rox', rox)
-    print('rox[0]', rox[0])
-    print('rox[0][0]', rox[0][0])
-    # print('roNodeId', roNodeId)
-    print('len(rox)', len(rox))
-    # print('coNodeId', coNodeId)
-    # print('len(coNodeId)', len(coNodeId))
-    # print('cirNodeId', cirNodeId)
-    # print('len(cirNodeId)', len(cirNodeId))
 
     # Coordinates across septum, between two inner canals
     # elementsCountAcross = 4
@@ -1976,8 +1944,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
     # # Create nodes through muscle layer and make d3 for the nodes
-    # print('cervixInnerRightCoordinates', cervixInnerRightCoordinates)
-    # print('len(cervixInnerRightCoordinates)', len(cervixInnerRightCoordinates))
     # d3Cervix = []
     # for n2 in range(1, elementsCountInCervix + 1):
     #     d3CervixRaw = []
@@ -2132,15 +2098,9 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     paNodeId = cFirstRingNodeId
     c1NodeId = rhLastRingNodeId
     c2NodeId = lhLastRingNodeId
-    # print('c1NodeId', c1NodeId)
-    # print('len(c1NodeId)', len(c1NodeId))
-    # print('c2NodeId', c2NodeId)
-    # print('len(c2NodeId)', len(c2NodeId))
-    # print('citfNodeId', citfNodeId)
-    # print('len(citfNodeId)', len(citfNodeId))
     elementIdentifier = make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier,
                                                           elementsCountAround, elementsCountThroughWall, paNodeId,
-                                                          c1NodeId, c2NodeId, roNodeId, coNodeId, cirNodeId, cilNodeId,
+                                                          c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
                                                           citfNodeId, cotNodeId, sbNodeId, csNodeId,
                                                            meshGroups=[cervixMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
 
@@ -2485,9 +2445,6 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
             cotNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
-    print('citfNodeId', citfNodeId)
-    print('cotNodeId', cotNodeId)
-    print('csNodeId', csNodeId)
 
     # # Create tube nodes
     # lastRingsNodeId = []
@@ -2734,7 +2691,7 @@ def make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1
 
 def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, elementsCountAround,
                                       elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                      cirNodeId, cilNodeId, citfNodeId, cotNodeId, sbNodeId, csNodeId, meshGroups=None):
+                                      birNodeId, bilNodeId, citfNodeId, cotNodeId, sbNodeId, csNodeId, meshGroups=None):
 
     paCount = len(paNodeId[0])
     c1Count = len(c1NodeId[0])
@@ -2759,31 +2716,13 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
-            # if e1 == 0:
-            #     nodeIdentifiers = [65, 66, 161, 162, 73, 74, 177, 178]
-            # if e1 == 1:
-            #     nodeIdentifiers = [66, 67, 162, 163, 74, 75, 178, 179]
-            # elif e1 == 2:
-            #     nodeIdentifiers = [67, 68, 163, 164, 75, 76, 179, 180]
-            # elif e1 == 3:
-            #     nodeIdentifiers = [68, 69, 164, 165, 76, 77, 180, 181]
-            # elif e1 == 4:
-            #     nodeIdentifiers = [69, 70, 165, 166, 77, 78, 181, 185]
-            # elif e1 == 5:
-            #     nodeIdentifiers = [70, 71, 166, 167, 78, 79, 185, 186]
-            # elif e1 == 6:
-            #     nodeIdentifiers = [71, 72, 167, 168, 79, 80, 186, 187]
-            # elif e1 == 7:
-            #     nodeIdentifiers = [72, 65, 168, 161, 80, 73, 187, 177]
             if e1 < elementsCountAround // 2:
                 bni1 = c1NodeId[e3][e1]
                 bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
-                # bni3 = roNodeId[e3][e1]
-                bni3 = cirNodeId[e1]
-                bni4 = cirNodeId[(e1 + 1) % c1Count]
+                bni3 = birNodeId[e1]
+                bni4 = birNodeId[(e1 + 1) % c1Count]
                 bni5 = bni1 + elementsCountAround
                 bni6 = bni5 + 1
-                # bni7 = bni3 + len(roNodeId) + len(coNodeId)
                 bni7 = bni3 + 2 * elementsCountAround
                 bni8 = bni7 + 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
@@ -2791,14 +2730,10 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
             elif e1 == elementsCountAround // 2:
                 bni1 = c1NodeId[e3][e1]
                 bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
-                # bni3 = roNodeId[e3][e1]
-                # bni4 = coNodeId[e3][e1 - elementsCountAround // 2]
-                bni3 = cirNodeId[e1]
-                bni4 = cirNodeId[(e1 + 1) % c1Count]
+                bni3 = birNodeId[e1]
+                bni4 = birNodeId[(e1 + 1) % c1Count]
                 bni5 = bni1 + elementsCountAround
                 bni6 = bni5 + 1
-                # bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
-                # bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
                 bni7 = bni3 + 2 * elementsCountAround
                 bni8 = coNodeId[0]
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
@@ -2806,30 +2741,20 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
             else:
                 bni1 = c1NodeId[e3][e1]
                 bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
-                # bni3 = coNodeId[e3][e1 - elementsCountAround // 2 - 1]
-                bni3 = cirNodeId[e1]
+                bni3 = birNodeId[e1]
                 bni5 = bni1 + elementsCountAround
                 bni7 = coNodeId[e1 - elementsCountAround // 2 - 1]
                 if e1 == c1Count - 1:
-                    bni4 = cirNodeId[0]
+                    bni4 = birNodeId[0]
                     bni6 = bni5 - elementsCountAround + 1
                     bni8 = roNodeId[0]
                 else:
                     bni4 = bni3 + 1
                     bni6 = bni5 + 1
                     bni8 = bni7 + 1
-                # bni7 = bni3 + 2 * elementsCountAround
-                # bni8 = bni4 + 2 * elementsCountAround
-
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
-
-                # elif e1 == 5:
-                #     nodeIdentifiers = [70, 71, 166, 167, 78, 79, 185, 186]
-                # elif e1 == 6:
-                #     nodeIdentifiers = [71, 72, 167, 168, 79, 80, 186, 187]
-                # elif e1 == 7:
-                #     nodeIdentifiers = [72, 65, 168, 161, 80, 73, 187, 177]
+            # Remap the derivatives
             if e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
                 eft = eftfactory.createEftBasic()
                 if e1 == 0:
@@ -2866,6 +2791,79 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
                     meshGroup.addElement(element)
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
+
+    # Fundus right tube part
+    elementsCountAcross = len((sbNodeId)) + 1
+    for e3 in range(elementsCountThroughWall):
+        for e1 in range(elementsCountAcross):
+            eft = eftStd
+            elementtemplate = elementtemplateStd
+            scalefactors = None
+            if e1 == 0:
+                bni1 = coNodeId[e1]
+                bni2 = birNodeId[e1 + elementsCountAround // 2]
+                bni3 = bni2 + 1
+                bni4 = roNodeId[elementsCountAround // 2]
+                bni5 = sbNodeId[e1]
+                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5]
+                # print('nodeIdentifiers', nodeIdentifiers)
+            elif 0 < e1 < elementsCountAcross - 1:
+                bni1 = coNodeId[e1 - 1]
+                bni2 = bni1 + 1
+                bni3 = birNodeId[e1 + elementsCountAround // 2]
+                bni4 = bni3 + 1
+                bni5 = sbNodeId[e1 - 1]
+                bni6 = bni5 + 1
+                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6]
+                # print('nodeIdentifiers', nodeIdentifiers)
+            elif e1 == elementsCountAcross - 1:
+                bni1 = coNodeId[-1]
+                bni2 = birNodeId[e1 + elementsCountAround // 2]
+                bni3 = birNodeId[0]
+                bni4 = sbNodeId[-1]
+                bni5 = roNodeId[0]
+                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5]
+                # print('nodeIdentifiers', nodeIdentifiers)
+            # # # Remap derivatives for elements at the beginning and end of the septum
+            # # if e1 == 0:
+            # #     eft1 = eftfactory.createEftBasic()
+            # #     nodes = [1, 2, 3, 4]
+            # #     collapseNodes = [1, 2, 3]
+            # #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            # #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            # #     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+            # #                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+            # #     ln_map = [1, 1, 1, 1, 2, 3, 4, 5]
+            # #     remapEftLocalNodes(eft, 5, ln_map)
+            # #     elementtemplateMod.defineField(coordinates, -1, eft1)
+            # #     elementtemplate1 = elementtemplateMod
+            # # if e1 == 1:
+            # #     eft1 = eftfactory.createEftBasic()
+            # #     nodes = [1, 2, 3, 4]
+            # #     collapseNodes = [1, 2]
+            # #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            # #     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+            # #                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+            # #     ln_map = [1, 2, 1, 2, 3, 4, 5, 6]
+            # #     remapEftLocalNodes(eft, 5, ln_map)
+            # #     elementtemplateMod.defineField(coordinates, -1, eft1)
+            # #     elementtemplate1 = elementtemplateMod
+            # # else:
+            # #     scalefactors = None
+            # #     eft1 = eft
+            # #     elementtemplate1 = elementtemplate
+            # element = mesh.createElement(elementIdentifier, elementtemplate1)
+            # result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+            # if scalefactors:
+            #     result3 = element.setScaleFactors(eft1, scalefactors)
+            # else:
+            #     result3 = '-'
+            # elementIdentifier += 1
+            # for meshGroup in meshGroups:
+            #     if meshGroups.index(meshGroup) == 0:
+            #         meshGroup.addElement(element)
+            #     elif meshGroups.index(meshGroup) == 3:
+            #         meshGroup.addElement(element)
 
     # # Left tube part
     # for e3 in range(elementsCountThroughWall):
@@ -2941,16 +2939,13 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
     #                 meshGroup.addElement(element)
     #
     # parent part
-    print('citfNodeId', citfNodeId)
-    print('cotNodeId', cotNodeId)
-    print('csNodeId', csNodeId)
     for e3 in range(elementsCountThroughWall):
         for e1 in range(elementsCountAround): # was paCount
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
-            bni1 = cirNodeId[e1] # was [e3][e1]
-            bni2 = cirNodeId[(e1 + 1) % elementsCountAround]
+            bni1 = birNodeId[e1] # was [e3][e1]
+            bni2 = birNodeId[(e1 + 1) % elementsCountAround]
             bni3 = citfNodeId[e1]
             bni4 = citfNodeId[(e1 + 1) % elementsCountAround]
             if e1 < elementsCountAround // 2:
@@ -2980,10 +2975,6 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
                 remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateMod
-            # elif e1 == elementsCountAround - 1:
-            #     scalefactors = [-1.0]
-            #     setEftScaleFactorIds(eft, [1], [])
-            #     remapEftNodeValueLabel(eft, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
             elif e1 == elementsCountAround - 1:
                 eft1 = eftfactory.createEftBasic()
                 remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
@@ -3005,8 +2996,6 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
                     meshGroup.addElement(element)
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
-    # # lastNodeId = startNodeIndex + (elementsCountThroughWall + 1) * (len(roNodeId) + len(coNodeId)) + 1
-    # # lastNodeId = paNodeId[0][0]
     return elementIdentifier
 
 
@@ -3058,7 +3047,7 @@ def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlon
                     bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
                     bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                print('nodeIdentifiers', nodeIdentifiers)
+                # print('nodeIdentifiers', nodeIdentifiers)
                 # Remap derivatives for elements at the beginning and end of the septum
                 if e1 == elementsCountAround // 2:
                     scalefactors = [-1.0]
