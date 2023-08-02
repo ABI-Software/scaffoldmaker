@@ -2975,21 +2975,28 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
                 bni7 = bni8 - 1
             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             # print('nodeIdentifiers', nodeIdentifiers)
-            if e1 in (0, pac1Count, paCount):
-                eft = eftfactory.createEftBasic()
-                if e1 in (0, pac1Count):
-                    remapEftNodeValueLabel(eft, [5], Node.VALUE_LABEL_D_DS1,
-                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                elif e1 == pac1Count:
-                    scalefactors = [-1.0]
-                    setEftScaleFactorIds(eft, [1], [])
-                    remapEftNodeValueLabel(eft, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                elementtemplateMod.defineField(coordinates, -1, eft)
-                elementtemplate = elementtemplateMod
-            element = mesh.createElement(elementIdentifier, elementtemplate)
-            result2 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+            if e1 == elementsCountAround // 2:
+                eft1 = eftfactory.createEftBasic()
+                remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                elementtemplateMod.defineField(coordinates, -1, eft1)
+                elementtemplate1 = elementtemplateMod
+            # elif e1 == elementsCountAround - 1:
+            #     scalefactors = [-1.0]
+            #     setEftScaleFactorIds(eft, [1], [])
+            #     remapEftNodeValueLabel(eft, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+            elif e1 == elementsCountAround - 1:
+                eft1 = eftfactory.createEftBasic()
+                remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                elementtemplateMod.defineField(coordinates, -1, eft1)
+                elementtemplate1 = elementtemplateMod
+            else:
+                scalefactors = None
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
             if scalefactors:
-                result3 = element.setScaleFactors(eft, scalefactors)
+                result3 = element.setScaleFactors(eft1, scalefactors)
             else:
                 result3 = '-'
             elementIdentifier += 1
