@@ -92,7 +92,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         }),
         'Rat 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11-12-13, 13-14"
+                "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11, 11-12-13-14"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
@@ -144,14 +144,14 @@ class MeshType_3d_uterus1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '9-12',
+                    'identifierRanges': '9-10',
                     'name': get_uterus_term('uterine cervix')[0],
                     'ontId': get_uterus_term('uterine cervix')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '13',
+                    'identifierRanges': '11-13',
                     'name': get_uterus_term('vagina')[0],
                     'ontId': get_uterus_term('vagina')[1]
                 }]
@@ -316,7 +316,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         }
         if 'Rat' in parameterSetName:
             options['Number of elements through wall'] = 1  # only works for 1
-            options['Target element length'] = 7.0
+            options['Target element length'] = 6.0
             options['Wall thickness'] = 1.5
         if 'Sheep' in parameterSetName:
             options['Target element length'] = 11.0
