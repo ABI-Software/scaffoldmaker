@@ -2590,38 +2590,42 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             # Remap the derivatives
-            # if e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
-            #     eft = eftfactory.createEftBasic()
-            if e1 == 0:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1,
-                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-            elif e1 == pac1Count - 1:
-                eft = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2,
-                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-            elif e1 == pac1Count:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
-                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-            elif e1 == c1Count - 1:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
-            element = mesh.createElement(elementIdentifier, elementtemplate)
-            result2 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+            if e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
+                eft1 = eftfactory.createEftBasic()
+                if e1 == 0:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                elif e1 == pac1Count - 1:
+                    # eft = eftfactory.createEftBasic()
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                elif e1 == pac1Count:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                elif e1 == c1Count - 1:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                elementtemplateMod.defineField(coordinates, -1, eft1)
+                elementtemplate1 = elementtemplateMod
+            else:
+                scalefactors = None
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
             if scalefactors:
-                result3 = element.setScaleFactors(eft, scalefactors)
+                result3 = element.setScaleFactors(eft1, scalefactors)
             else:
                 result3 = '-'
             elementIdentifier += 1
@@ -2634,7 +2638,7 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
     # # Fundus right tube part
     # elementsCountAcross = len((sbNodeId)) + 1
     # for e3 in range(elementsCountThroughWall):
-    #     for e1 in range(elementsCountAcross):
+    #     for e1 in range(2):
     #         eft = eftStd
     #         elementtemplate = elementtemplateStd
     #         scalefactors = None
@@ -2655,54 +2659,90 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
     #             bni6 = bni5 + 1
     #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6]
     #             # print('nodeIdentifiers', nodeIdentifiers)
-    #         elif e1 == elementsCountAcross - 1:
-    #             bni1 = coNodeId[-1]
-    #             bni2 = birNodeId[e1 + elementsCountAround // 2]
-    #             bni3 = birNodeId[0]
-    #             bni4 = sbNodeId[-1]
-    #             bni5 = roNodeId[0]
-    #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5]
-    #             # print('nodeIdentifiers', nodeIdentifiers)
-    #         # # # Remap derivatives for elements at the beginning and end of the septum
-    #         # # if e1 == 0:
-    #         # #     eft1 = eftfactory.createEftBasic()
-    #         # #     nodes = [1, 2, 3, 4]
-    #         # #     collapseNodes = [1, 2, 3]
-    #         # #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
-    #         # #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-    #         # #     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
-    #         # #                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
-    #         # #     ln_map = [1, 1, 1, 1, 2, 3, 4, 5]
-    #         # #     remapEftLocalNodes(eft, 5, ln_map)
-    #         # #     elementtemplateMod.defineField(coordinates, -1, eft1)
-    #         # #     elementtemplate1 = elementtemplateMod
-    #         # # if e1 == 1:
-    #         # #     eft1 = eftfactory.createEftBasic()
-    #         # #     nodes = [1, 2, 3, 4]
-    #         # #     collapseNodes = [1, 2]
-    #         # #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
-    #         # #     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
-    #         # #                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
-    #         # #     ln_map = [1, 2, 1, 2, 3, 4, 5, 6]
-    #         # #     remapEftLocalNodes(eft, 5, ln_map)
-    #         # #     elementtemplateMod.defineField(coordinates, -1, eft1)
-    #         # #     elementtemplate1 = elementtemplateMod
-    #         # # else:
-    #         # #     scalefactors = None
-    #         # #     eft1 = eft
-    #         # #     elementtemplate1 = elementtemplate
-    #         # element = mesh.createElement(elementIdentifier, elementtemplate1)
-    #         # result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-    #         # if scalefactors:
-    #         #     result3 = element.setScaleFactors(eft1, scalefactors)
-    #         # else:
-    #         #     result3 = '-'
-    #         # elementIdentifier += 1
-    #         # for meshGroup in meshGroups:
-    #         #     if meshGroups.index(meshGroup) == 0:
-    #         #         meshGroup.addElement(element)
-    #         #     elif meshGroups.index(meshGroup) == 3:
-    #         #         meshGroup.addElement(element)
+    #         # elif e1 == elementsCountAcross - 1:
+    #         #     bni1 = coNodeId[-1]
+    #         #     bni2 = birNodeId[e1 + elementsCountAround // 2]
+    #         #     bni3 = birNodeId[0]
+    #         #     bni4 = sbNodeId[-1]
+    #         #     bni5 = roNodeId[0]
+    #         #     nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5]
+    #         #     # print('nodeIdentifiers', nodeIdentifiers)
+    #
+    #         # Remap derivatives for elements at the beginning and end of the septum
+    #         if e1 == 0:
+    #             va = e1
+    #             vb = e1 + 1
+    #             # set general linear map coefficients
+    #             elementtemplate6 = elementtemplateMod
+    #             radiansPerElementAround = math.pi / elementsCountAcross
+    #             radiansAround = va * radiansPerElementAround
+    #             radiansAroundNext = vb * radiansPerElementAround
+    #             scalefactors = [-1.0,
+    #                             math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
+    #                             math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround]
+    #             eft6 = eftfactory.createEftPyramidBottomSimple(va * 10000, vb * 10000)
+    #             elementtemplate6.defineField(coordinates, -1, eft6)
+    #             element = \
+    #                 mesh.createElement(elementIdentifier, elementtemplate6)
+    #             element.setNodesByIdentifier(eft6, nodeIdentifiers)
+    #             element.setScaleFactors(eft6, scalefactors)
+    #             elementIdentifier = elementIdentifier + 1
+    #         elif e1 == 1:
+    #             elementtemplate7 = elementtemplateMod
+    #             eftWedgeCollapseXi1_12 = eftfactory.createEftWedgeCollapseXi2Quadrant([1, 2])
+    #             elementtemplate7.defineField(coordinates, -1, eftWedgeCollapseXi1_12)
+    #             element = \
+    #                 mesh.createElement(elementIdentifier, elementtemplate7)
+    #             element.setNodesByIdentifier(eftWedgeCollapseXi1_12, nodeIdentifiers)
+    #             # element.setScaleFactors(eftWedgeCollapseXi1_12, scalefactors)
+    #             elementIdentifier = elementIdentifier + 1
+
+
+
+
+
+
+
+            # # Remap derivatives for elements at the beginning and end of the septum
+            # if e1 == 0:
+            #     eft1 = eftfactory.createEftBasic()
+            #     nodes = [1, 2, 3, 4]
+            #     collapseNodes = [1, 2, 3]
+            #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS1, [])
+            #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            #     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+            #                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+            #     ln_map = [1, 1, 1, 1, 2, 3, 4, 5]
+            #     remapEftLocalNodes(eft, 5, ln_map)
+            #     elementtemplateMod.defineField(coordinates, -1, eft1)
+            #     elementtemplate1 = elementtemplateMod
+            # if e1 == 1:
+            #     eft1 = eftfactory.createEftBasic()
+            #     nodes = [1, 2, 3, 4]
+            #     collapseNodes = [1, 2]
+            #     remapEftNodeValueLabel(eft, nodes, Node.VALUE_LABEL_D_DS2, [])
+            #     remapEftNodeValueLabel(eft, collapseNodes, Node.VALUE_LABEL_D_DS3,
+            #                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS3, [])])
+            #     ln_map = [1, 2, 1, 2, 3, 4, 5, 6]
+            #     remapEftLocalNodes(eft, 5, ln_map)
+            #     elementtemplateMod.defineField(coordinates, -1, eft1)
+            #     elementtemplate1 = elementtemplateMod
+            # else:
+            #     scalefactors = None
+            #     eft1 = eft
+            #     elementtemplate1 = elementtemplate
+            # element = mesh.createElement(elementIdentifier, elementtemplate1)
+            # result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+            # if scalefactors:
+            #     result3 = element.setScaleFactors(eft1, scalefactors)
+            # else:
+            #     result3 = '-'
+            # elementIdentifier += 1
+            # for meshGroup in meshGroups:
+            #     if meshGroups.index(meshGroup) == 0:
+            #         meshGroup.addElement(element)
+            #     elif meshGroups.index(meshGroup) == 3:
+            #         meshGroup.addElement(element)
 
     # Left tube part
     for e3 in range(elementsCountThroughWall):
@@ -2740,52 +2780,60 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             # Remap the derivatives
-            if e1 == 0:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
-                #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
-                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-            elif 0 < e1 < elementsCountAcross - 1:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                # remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-            elif e1 == elementsCountAcross - 1:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-            elif e1 == elementsCountAcross:
-                scalefactors = [-1.0]
-                eft = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft, [1], [])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+            if 0 <= e1 < elementsCountAcross + 1:
+                eft1 = eftfactory.createEftBasic()
+                if e1 == 0:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
+                    #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                elif 0 < e1 < elementsCountAcross - 1:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    # remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                elif e1 == elementsCountAcross - 1:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+                elif e1 == elementsCountAcross:
+                    scalefactors = [-1.0]
+                    # eft = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+                elementtemplateMod.defineField(coordinates, -1, eft1)
+                elementtemplate1 = elementtemplateMod
             elif e1 == elementsCountAround - 1:
-                eft = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-            elementtemplateMod.defineField(coordinates, -1, eft)
-            elementtemplate = elementtemplateMod
-            element = mesh.createElement(elementIdentifier, elementtemplate)
-            result2 = element.setNodesByIdentifier(eft, nodeIdentifiers)
+                eft1 = eftfactory.createEftBasic()
+                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                elementtemplateMod.defineField(coordinates, -1, eft1)
+                elementtemplate1 = elementtemplateMod
+            else:
+                scalefactors = None
+                eft1 = eft
+                elementtemplate1 = elementtemplate
+            element = mesh.createElement(elementIdentifier, elementtemplate1)
+            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
             if scalefactors:
-                result3 = element.setScaleFactors(eft, scalefactors)
+                result3 = element.setScaleFactors(eft1, scalefactors)
             else:
                 result3 = '-'
             elementIdentifier += 1
@@ -2827,7 +2875,13 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
                 bni7 = bni8 - 1
             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             # print('nodeIdentifiers', nodeIdentifiers)
-            if e1 == elementsCountAround // 2:
+            # Remap the derivatives
+            if e1 == 0:
+                eft1 = eftfactory.createEftBasic()
+                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                elementtemplateMod.defineField(coordinates, -1, eft1)
+                elementtemplate1 = elementtemplateMod
+            elif e1 == elementsCountAround // 2:
                 eft1 = eftfactory.createEftBasic()
                 remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft1)
@@ -2894,32 +2948,36 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             # print('nodeIdentifiers', nodeIdentifiers)
             # Remap the derivatives
-            if e1 == 0:
-                scalefactors = [-1.0]
+            if 0 <= e1 < elementsCountAcross + 1:
                 eft1 = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif 0 < e1 < elementsCountAcross - 1:
-                scalefactors = [-1.0]
-                eft1 = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif e1 == elementsCountAcross - 1:
-                scalefactors = [-1.0]
-                eft1 = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif e1 == elementsCountAcross:
-                eft1 = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                if e1 == 0:
+                    scalefactors = [-1.0]
+                    # eft1 = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                    remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    # elementtemplateMod.defineField(coordinates, -1, eft1)
+                    # elementtemplate1 = elementtemplateMod
+                elif 0 < e1 < elementsCountAcross - 1:
+                    scalefactors = [-1.0]
+                    # eft1 = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    # elementtemplateMod.defineField(coordinates, -1, eft1)
+                    # elementtemplate1 = elementtemplateMod
+                elif e1 == elementsCountAcross - 1:
+                    scalefactors = [-1.0]
+                    # eft1 = eftfactory.createEftBasic()
+                    setEftScaleFactorIds(eft1, [1], [])
+                    remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+                    remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+                    # elementtemplateMod.defineField(coordinates, -1, eft1)
+                    # elementtemplate1 = elementtemplateMod
+                elif e1 == elementsCountAcross:
+                    # eft1 = eftfactory.createEftBasic()
+                    remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                    # elementtemplateMod.defineField(coordinates, -1, eft1)
+                    # elementtemplate1 = elementtemplateMod
                 elementtemplateMod.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateMod
             else:
@@ -2938,6 +2996,7 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
                     meshGroup.addElement(element)
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
+
     return elementIdentifier
 
 
