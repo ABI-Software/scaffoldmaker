@@ -314,6 +314,10 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Refine number of elements around': 4,
             'Refine number of elements through wall': 1
         }
+        if 'Rat' in parameterSetName:
+            options['Number of elements through wall'] = 1  # only works for 1
+            options['Target element length'] = 7.0
+            options['Wall thickness'] = 1.5
         if 'Sheep' in parameterSetName:
             options['Target element length'] = 11.0
             options['Wall thickness'] = 3.0
@@ -1668,60 +1672,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
 
 
-    # cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates2D(cervixCoordinatesOuter, elementsCountAround,
-    #                                                                   elementsCountInCervix, omitStartRows=1,
-    #                                                                   omitEndRows=0)
-
-    # # Coordinates across septum, between two inner canals
-    # elementsCountAcross = 4
-    # # elementsCountAcross = len(coxList)
-    # xAcrossSeptum = []
-    # d1AcrossSeptum = []
-    # nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
-    # for n in range(elementsCountInCervix + 1):
-    #     oa = 0
-    #     # ob = nodesCountFreeEnd - 1
-    #     ob = elementsCountAround // 2
-    #     v1 = xCervix[n][ob]
-    #     v2 = xCervix[n][oa]
-    #     v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
-    #     v1v2 = [v2[c] - v1[c] for c in range(3)]
-    #     nx = [xCervix[n][ob], v3, xCervix[n][oa]]
-    #     nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
-    #            [d / elementsCountAcross for d in v1v2]]
-    #     px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
-    #     xAcrossSeptum.append(px)
-    #     d1AcrossSeptum.append(pd1)
-    #
-    # # Find d2 across septum
-    # d2Raw = []
-    # for n2 in range(elementsCountAcross + 1):
-    #     xAlongSeptum = []
-    #     d2AlongSeptum = []
-    #     for n1 in range(elementsCountInCervix):
-    #         v1 = xAcrossSeptum[n1][n2]
-    #         v2 = xAcrossSeptum[n1 + 1][n2]
-    #         d2 = findDerivativeBetweenPoints(v1, v2)
-    #         xAlongSeptum.append(v1)
-    #         d2AlongSeptum.append(d2)
-    #     xAlongSeptum.append(xAcrossSeptum[-1][n2])
-    #     d2AlongSeptum.append(d2)
-    #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
-    #     d2Raw.append(d2Smoothed)
-    #
-    # # Rearrange d2
-    # d2AcrossSeptum = []
-    # for n2 in range(elementsCountInCervix + 1):
-    #     d2Across = []
-    #     for n1 in range(elementsCountAcross + 1):
-    #         d2 = d2Raw[n1][n2]
-    #         d2Across.append(d2)
-    #     d2AcrossSeptum.append(d2Across)
-    #
-    # septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
-
-
-    # Sample/create a layer of nodes between the end of iiner horns and inner cervix canal
+    # Sample/create a layer of nodes between the end of inner horns and inner cervix canal
     # Right part
     firstRingRightInnerCervix = [cervixInnerRightCoordinates[0][elementsCountAround:2*elementsCountAround], cervixInnerRightCoordinates[1][elementsCountAround:2*elementsCountAround],
                                  cervixInnerRightCoordinates[2][elementsCountAround:2*elementsCountAround]]
@@ -1734,7 +1685,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     for n1 in range(elementsCountAround):
         xAlong = []
         d2Along = []
-        # for n2 in range(2):
         xAlong.append(lastRingRightInnerHorn[0][n1])
         xAlong.append(firstRingRightInnerCervix[0][n1])
         d2Along.append(lastRingRightInnerHorn[2][n1])
@@ -1780,7 +1730,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     for n1 in range(elementsCountAround):
         xAlong = []
         d2Along = []
-        # for n2 in range(2):
         xAlong.append(lastRingLeftInnerHorn[0][n1])
         xAlong.append(firstRingLeftInnerCervix[0][n1])
         d2Along.append(lastRingLeftInnerHorn[2][n1])
@@ -1835,22 +1784,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                        elementsCountAround, elementsCountThroughWall, omitStartRows=0,
                                        omitEndRows=1, startNodes=None)
 
-    # # Create bifurcation nodes
-    # paCentre = sx_cervix_group[0][1]
-    # c1Centre = sx_right_horn_group[0][-2]
-    # c2Centre = sx_left_horn_group[0][-2]
-    # paxList = cFirstRingNodeCoordinates[0]
-    # # pad1List = cFirstRingNodeCoordinates[1]
-    # # pad2List = cFirstRingNodeCoordinates[2]
-    # pad2 = cFirstRingNodeCoordinates[2]
-    # c1xList = rhLastRingNodeCoordinates[0]
-    # c1d2 = rhLastRingNodeCoordinates[2]
-    # c2xList = lhLastRingNodeCoordinates[0]
-    # c2d2 = lhLastRingNodeCoordinates[2]
-    # nodeIdentifier, roNodeId, coNodeId = create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
-    #                                                               pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
-    #                                                               c2d2, elementsCountThroughWall)
-
     # Create extra right inner nodes in bifurcation
     birNodeId = []  # bifurcation right inner ring node id
     for n2 in range(2):
@@ -1865,7 +1798,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 nodeIdentifier += 1
 
     # Create extra left inner nodes in bifurcation
-    bilNodeId = [] # bifurcation left inner ring node id
+    bilNodeId = []  # bifurcation left inner ring node id
     for n2 in range(2):
         for n1 in range(elementsCountAround):
             if n2 == 1:
@@ -1895,15 +1828,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                  c2xList, c2d2)
 
     # Coordinates across septum, between two inner canals
-    # elementsCountAcross = 4
     elementsCountAcross = len(coNodeId) + 1
-    # elementsCountAcross = len(coxList)
     xAcrossSeptum = []
     d1AcrossSeptum = []
-    nodesCountFreeEnd = elementsCountAround + 1 - elementsCountAcross
     for n in range(elementsCountInCervix + 1):
         oa = 0
-        # ob = nodesCountFreeEnd - 1
         ob = elementsCountAround // 2
         v1 = xCervix[n][ob]
         v2 = xCervix[n][oa]
@@ -1943,25 +1872,8 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
-    # # Create nodes through muscle layer and make d3 for the nodes
-    # d3Cervix = []
-    # for n2 in range(1, elementsCountInCervix + 1):
-    #     d3CervixRaw = []
-    #     # for n1 in range(elementsCountAround):
-    #     for n1 in range(elementsCountAround // 2 + 1):
-    #         v1 = cervixInnerRightCoordinates[0][n2][n1 + elementsCountAcross // 2]
-    #         v2 = xCervix[n2][n1]
-    #         v1v2 = [v2[c] - v1[c] for c in range(3)]
-    #         d3CervixRaw.append(v1v2)
-    #     for n1 in range(1, elementsCountAround // 2):
-    #         v1 = cervixInnerLeftCoordinates[n2][n1 + elementsCountAcross // 2]
-    #         v2 = xCervix[n2][n1 + elementsCountAround // 2]
-    #         v1v2 = [v2[c] - v1[c] for c in range(3)]
-    #         d3CervixRaw.append(v1v2)
-    #     d3Cervix.append([1.0, 0.0, 0.0])
 
-
-    # Add nodes between the two nodes of bifurcation in rox
+    # Add nodes between the two nodes of bifurcation in rox (along septum)
     elementsCountAcross = len(coNodeId) + 1
     v1 = rox[elementsCountAround // 2]
     v2 = rox[0]
@@ -2000,68 +1912,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         sbNodeId.append(nodeIdentifier)
         nodeIdentifier += 1
 
-    # sbNodeId = []
-    # for n in range(1, len(xSeptumBifurcation) - 1):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSeptumBifurcation[n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SeptumBifurcation[n])
-    #     # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
-    #     sbNodeId.append(nodeIdentifier)
-    #     nodeIdentifier = nodeIdentifier + 1
-
     # Create cervix nodes
     nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
                                          cervixCoordinatesOuter, septumCoordinates, elementsCountInCervix, elementsCountAround,
                                          elementsCountAcross, omitStartRows=1, omitEndRows=0, startNodes=None)
 
-    # # Create inner cervix nodes
-    # nodeCount = nodeIdentifier
-    # nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerRightCoordinates, elementsCountInCervix,
-    #                                    elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
-    #
-    # nodeCount = nodeIdentifier
-    # nodeIdentifier = generateTubeNodes2D(fm, nodeIdentifier, cervixInnerLeftCoordinates, elementsCountInCervix,
-    #                                    elementsCountAround, omitStartRows=1, omitEndRows=0, startNodes=None)
-    #
-    # # Create outer cervix nodes
-    # cache = fm.createFieldcache()
-    # coordinates = findOrCreateFieldCoordinates(fm)
-    #
-    # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    # nodetemplate = nodes.createNodetemplate()
-    # nodetemplate.defineField(coordinates)
-    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    # for n2 in range(1, elementsCountInCervix + 1):
-    #     for n1 in range(elementsCountAround):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xCervix[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Cervix[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Cervix[n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Cervix[n2][n1])
-    #         if n1 == 0:
-    #             d3Raw = d1AcrossSeptum[n2][0]
-    #             d3 = [-1 * d3Raw[c] for c in range(3)]
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-    #         if n1 == elementsCountAround // 2:
-    #             d3Raw = d1AcrossSeptum[n2][1]
-    #             d3 = [-1 * d3Raw[c] for c in range(3)]
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-    #         nodeIdentifier += 1
-    #
-    # # Cervix septum nodes
-    # for n2 in range(elementsCountInCervix + 1):
-    #     for n1 in range(len(xAcrossSeptum[0])):
-    #         if 0 < n1 < len(xAcrossSeptum[0]) - 1:
-    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #             cache.setNode(node)
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAcrossSeptum[n2][n1])
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AcrossSeptum[n2][n1])
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AcrossSeptum[n2][n1])
-    #             nodeIdentifier += 1
 
     # Create elements
     # Create right horn elements
@@ -2077,28 +1932,15 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
                                              omitStartRows=0, omitEndRows=1,
                                              meshGroups=[leftHornMeshGroup, uterusMeshGroup])
-    #
-    # # Create bifurcation elements
-    # cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
-    #                                                      elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
-    # paNodeId = cFirstRingNodeId
-    # c1NodeId = rhLastRingNodeId
-    # c2NodeId = lhLastRingNodeId
-    # elementIdentifier = make_tube_bifurcation_elements_3d(fm, coordinates, elementIdentifier,
-    #                                                       elementsCountAround, elementsCountThroughWall, paNodeId,
-    #                                                       c1NodeId, c2NodeId, roNodeId, coNodeId,
-    #                                                       meshGroups=[cervixMeshGroup, rightHornMeshGroup,
-    #                                                                   leftHornMeshGroup, uterusMeshGroup])
-    #
 
 
-    # Test for creating bifurcation elements
+    # Create bifurcation elements
     cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
                                                          elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
     paNodeId = cFirstRingNodeId
     c1NodeId = rhLastRingNodeId
     c2NodeId = lhLastRingNodeId
-    elementIdentifier = make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier,
+    elementIdentifier = make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier,
                                                           elementsCountAround, elementsCountThroughWall, paNodeId,
                                                           c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
                                                           cricNodeId, clicNodeId, cotNodeId, sbNodeId, csNodeId,
@@ -2110,17 +1952,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              elementsCountAround, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
                                              meshGroups=[cervixMeshGroup, uterusMeshGroup])
 
-
-
-
-
-    # # Create cervix elements
-    # startNodeId = paNodeId[0][0]
-    # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInCervix,
-    #                                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-    #                                          omitStartRows=1, omitEndRows=0,
-    #                                          meshGroups=[cervixMeshGroup, uterusMeshGroup])
-    #
     # # Create vagina elements
     # startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
     # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
@@ -2691,7 +2522,7 @@ def make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1
     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
 
-def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, elementsCountAround,
+def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountAround,
                                       elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
                                       birNodeId, bilNodeId, cricNodeId, clicNodeId, cotNodeId, sbNodeId, csNodeId, meshGroups=None):
 
@@ -2886,12 +2717,6 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
             bni5 = bni1 + elementsCountAround
             bni6 = bni2 + elementsCountAround
             if 0 <= e1 < elementsCountAcross:
-                # bni1 = c2NodeId[e3][e1]
-                # bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAround]
-                # bni3 = bilNodeId[e1]
-                # bni4 = bilNodeId[(e1 + 1) % elementsCountAround]
-                # bni5 = bni1 + elementsCountAround
-                # bni6 = bni2 + elementsCountAround
                 if e1 == 0:
                     # bni7 = roNodeId[0]
                     # bni8 = sbNodeId[-1]
@@ -2910,12 +2735,6 @@ def make_new_bifurcation_elements_test(fm, coordinates, elementIdentifier, eleme
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             else:
-                # bni1 = c2NodeId[e3][e1]
-                # bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAround]
-                # bni3 = bilNodeId[e1]
-                # bni4 = bilNodeId[(e1 + 1) % c1Count]
-                # bni5 = bni1 + elementsCountAround
-                # bni6 = bni2 + elementsCountAround
                 bni7 = roNodeId[e1]
                 bni8 = roNodeId[(e1+1) % elementsCountAround]
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
