@@ -6,8 +6,12 @@ from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from cmlibs.maths.vectorops import cross, normalize, sub
+from cmlibs.maths.vectorops import cross, magnitude, normalize, sub
+from scaffoldmaker.utils.interpolation import interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,\
+    smoothCubicHermiteDerivativesLoop
+from scaffoldmaker.utils.vector import vectorRejection
 
+import math
 import sys
 
 
@@ -156,6 +160,12 @@ class NetworkMesh:
     """
 
     def __init__(self, structureString):
+        self._networkNodes = {}
+        self._networkSegments = []
+        self.build(structureString)
+        self._region = None  # set when generated
+
+    def build(self, structureString):
         """
         Set up network structure from structure string description.
         :param structureString: Comma-separated sequences of dash-separated node identifiers defining connectivity and
@@ -277,11 +287,18 @@ class NetworkMesh:
         """
         return self._networkSegments
 
+    def getRegion(self):
+        """
+        :return: Zinc Region containing generated network layout, or None if not generated
+        """
+        return self._region
+
     def create1DLayoutMesh(self, region):
         """
         Expects region Fieldmodule ChangeManager to be in effect.
         :param region: Zinc region to create network layout in.
         """
+        self._region = region
         fieldmodule = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fieldmodule)
 
@@ -374,3 +391,127 @@ class NetworkMesh:
                     eft, [segmentNodes[e].getNodeIdentifier(), segmentNodes[e + 1].getNodeIdentifier()])
                 networkSegment.setElementIdentifier(e, elementIdentifier)
                 elementIdentifier += 1
+
+
+def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlong, radius=1.0):
+    """
+    Generate coordinates around and along a tube in parametric space around the path parameters,
+    at xi2^2 + xi3^2 = radius, resampled to be evenly spaced around and along the final surface.
+    :param pathParameters: List over nodes of 6 parameters vectors [cx, cd1, cd2, cd12, cd3, cd13] giving
+    coordinates cx along path centre, derivatives cd1 along path, cd2 and cd3 giving side vectors,
+    and cd12, cd13 giving rate of change of side vectors. Parameters have 3 components.
+    Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
+    :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
+    :param elementsCountAlong: Number of elements to create along tube.
+    :param radius: Redius of tube in xi space.
+    :return: x[][], d1[][], d2[][] with first index in range(elementsCountAlong + 1),
+    second inner index in range(elementsCountAround)
+    """
+    assert len(pathParameters) == 6
+    pointsCountAlong = len(pathParameters[0])
+    assert pointsCountAlong > 1
+    assert len(pathParameters[0][0]) == 3
+
+    # sample around circle in xi splace, later smooth and re-sample to get even spacing in geometric space
+    ellipsePointCount = 16
+    aroundScale = 2.0 * math.pi / ellipsePointCount
+    sxi = []
+    sdxi = []
+    for q in range(ellipsePointCount):
+        theta = (q / ellipsePointCount) * 2.0 * math.pi
+        xi2 = radius * math.cos(theta)
+        xi3 = radius * math.sin(theta)
+        sxi.append([xi2, xi3])
+        dxi2 = -xi3 * aroundScale
+        dxi3 = xi2 * aroundScale
+        sdxi.append([dxi2, dxi3])
+
+    px = []
+    pd1 = []
+    pd2 = []
+    pd12 = []
+    for p in range(pointsCountAlong):
+        cx, cd1, cd2, cd12, cd3, cd13 = [cp[p] for cp in pathParameters]
+        tx = []
+        td1 = []
+        txi = []
+        tdxi = []
+        for q in range(ellipsePointCount):
+            xi2 = sxi[q][0]
+            xi3 = sxi[q][1]
+            x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+            tx.append(x)
+            dxi2 = sdxi[q][0]
+            dxi3 = sdxi[q][1]
+            d1 = [(dxi2 * cd2[c] + dxi3 * cd3[c]) for c in range(3)]
+            td1.append(d1)
+        # smooth to get reasonable derivative magnitudes
+        td1 = smoothCubicHermiteDerivativesLoop(tx, td1, fixAllDirections=True)
+        # resample to get evenly spaced points around loop, temporarily adding start point to end
+        ex, ed1, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(tx + tx[:1], td1 + td1[:1], elementsCountAround)
+        exi, edxi = interpolateSampleCubicHermite(sxi + sxi[:1], sdxi + sdxi[:1], pe, pxi, psf)
+        ex.pop()
+        ed1.pop()
+        exi.pop()
+        edxi.pop()
+
+        # check closeness of x(exi[i]) to ex[i]
+        # find nearest xi2, xi3 if above is finite error
+        # a small but non-negligible error, but results look fine so not worrying
+        # dxi = []
+        # for i in range(len(ex)):
+        #     xi2 = exi[i][0]
+        #     xi3 = exi[i][1]
+        #     xi23 = xi2 * xi3
+        #     x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+        #     dxi.append(sub(x, ex[i]))
+        # print("error", p, "=", [magnitude(v) for v in dxi])
+
+        # calculate d2, d12 at exi
+        ed2 = []
+        ed12 = []
+        for i in range(len(ex)):
+            xi2 = exi[i][0]
+            xi3 = exi[i][1]
+            d2 = [(cd1[c] + xi2 * cd12[c] + xi3 * cd13[c]) for c in range(3)]
+            ed2.append(d2)
+            dxi2 = edxi[i][0]
+            dxi3 = edxi[i][1]
+            d12 = [(dxi2 * cd12[c] + dxi3 * cd13[c]) for c in range(3)]
+            ed12.append(d12)
+
+        px.append(ex)
+        pd1.append(ed1)
+        pd2.append(ed2)
+        pd12.append(ed12)
+
+    # resample at even spacing along
+    rx = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
+    rd1 = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
+    rd2 = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
+    for q in range(elementsCountAround):
+        qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
+            [px[p][q] for p in range(pointsCountAlong)],
+            [pd2[p][q] for p in range(pointsCountAlong)],
+            elementsCountAlong)
+        qd1, _ = interpolateSampleCubicHermite(
+            [pd1[p][q] for p in range(pointsCountAlong)],
+            [pd12[p][q] for p in range(pointsCountAlong)],
+            pe, pxi, psf)
+        # swizzle
+        for p in range(elementsCountAlong + 1):
+            rx[p][q] = qx[p]
+            rd1[p][q] = qd1[p]
+            rd2[p][q] = qd2[p]
+
+    # recalculate d1 around intermediate rings, but still in plane
+    # normally looks fine, but d1 derivatives are wavy when very distorred
+    for p in range(1, elementsCountAlong):
+        # first smooth to get d1 with new directions not tangential to surface
+        td1 = smoothCubicHermiteDerivativesLoop(rx[p], rd1[p])
+        # constraint to be tangential to surface
+        td1 = [vectorRejection(td1[q], normalize(cross(rd1[p][q], rd2[p][q]))) for q in range(elementsCountAround)]
+        # smooth magnitudes only
+        rd1[p] = smoothCubicHermiteDerivativesLoop(rx[p], td1, fixAllDirections=True)
+
+    return rx, rd1, rd2

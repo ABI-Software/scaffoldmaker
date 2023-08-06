@@ -9,7 +9,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils.networkmesh import NetworkMesh
-from scaffoldmaker.utils.zinc_utils import make_nodeset_derivatives_orthogonal, \
+from scaffoldmaker.utils.zinc_utils import clearRegion, make_nodeset_derivatives_orthogonal, \
     get_nodeset_path_field_parameters, setPathParameters
 
 
@@ -39,7 +39,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
     @classmethod
     def getOrderedOptionNames(cls):
         return [
-            "Structure"
+            #  "Structure"  Hidden as too easily edited.
         ]
 
     @classmethod
@@ -63,11 +63,33 @@ class MeshType_1d_network_layout1(Scaffold_base):
         return [], networkMesh
 
     @classmethod
-    def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):
+    def editStructure(cls, region, options, networkMesh, functionOptions, editGroupName):
+        """
+        Edit structure safely, to prevent accidental changes.
+        Copies functionOptions["Structure"] to options["Structure"] and regenerates with
+        default geometric coordinates.
+        :param region: Region containing model to clear and re-generate.
+        :param options: The scaffold settings used to create the original model, pre-edits.
+        :param networkMesh: The NetworkMesh construction object model was created from. Contents replaced.
+        :param functionOptions: functionOptions["Structure"] contains new structure string.
+        :param editGroupName: Name of Zinc group to put edited nodes in. Cleared.
+        :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
+        """
+        fieldmodule = region.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            clearRegion(region)
+            structure = options["Structure"] = functionOptions["Structure"]
+            networkMesh.build(structure)
+            networkMesh.create1DLayoutMesh(region)
+        return True, False  # settings changed, nodes not changed (since reset to original coordinates)
+
+    @classmethod
+    def makeSideDerivativesNormal(cls, region, options, networkMesh, functionOptions, editGroupName):
         """
         Make side directions normal to d1 and each other. Works for all versions.
         :param region: Region containing model to change parameters of.
         :param options: The scaffold settings used to create the original model, pre-edits.
+        :param networkMesh: The NetworkMesh construction object model was created from. Unused.
         :param functionOptions: Which side directions to make normal.
         :param editGroupName: Name of Zinc group to put edited nodes in.
         :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
@@ -83,12 +105,14 @@ class MeshType_1d_network_layout1(Scaffold_base):
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def smoothSideCrossDerivatives(cls, region, options, functionOptions, editGroupName):
+    def smoothSideCrossDerivatives(cls, region, options, networkMesh, functionOptions, editGroupName):
         """
         Smooth side cross derivatives giving rate of change of side directions d2, d3 w.r.t. d1.
         Note: only works for a single path with version 1.
         :param region: Region containing model to change parameters of.
         :param options: The scaffold settings used to create the original model, pre-edits.
+        :param networkMesh: The NetworkMesh construction object model was created from.
+        Used to determine connected paths for smoothing.
         :param functionOptions: Which side derivatives to smooth.
         :param editGroupName: Name of Zinc group to put edited nodes in.
         :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
@@ -128,14 +152,18 @@ class MeshType_1d_network_layout1(Scaffold_base):
         Supply client with functions for smoothing path parameters.
         """
         return Scaffold_base.getInteractiveFunctions() + [
+            ("Edit structure...",
+                {"Structure": None},  # None = take value from options
+                lambda region, options, networkMesh, functionOptions, editGroupName:
+                    cls.editStructure(region, options, networkMesh, functionOptions, editGroupName)),
             ("Make side derivatives normal...",
                 {"Make D2 normal": True,
                  "Make D3 normal": True},
-                lambda region, options, functionOptions, editGroupName:
-                    cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
+                lambda region, options, networkMesh, functionOptions, editGroupName:
+                    cls.makeSideDerivativesNormal(region, options, networkMesh, functionOptions, editGroupName)),
             ("Smooth side cross derivatives...",
                 {"Smooth D12": True,
                  "Smooth D13": True},
-                lambda region, options, functionOptions, editGroupName:
-                    cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
+                lambda region, options, networkMesh, functionOptions, editGroupName:
+                    cls.smoothSideCrossDerivatives(region, options, networkMesh, functionOptions, editGroupName))
         ]

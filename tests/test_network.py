@@ -44,7 +44,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
                 functionOptions = interactiveFunction[1]
                 break
         functionOptions["Update directions"] = True
-        scaffold.smoothDerivatives(region, options, functionOptions, "meshEdits")
+        scaffold.smoothDerivatives(region, options, None, functionOptions, "meshEdits")
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [0.0, -0.25, 0.0], 1.0E-6)

@@ -579,3 +579,30 @@ def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGrou
             element = elemiter.next()
 
     return nextNodeIdentifier, list(copyIdentifiersMap.values())
+
+
+def clearRegion(region):
+    """
+    Destroy all elements, nodes, datapoints in region and unmanage all fields.
+    Remove all child regions.
+    Some fields may remain due to external references being held.
+    :param region: Region to clear.
+    """
+    with HierarchicalChangeManager(region):
+        child = region.getFirstChild()
+        while child.isValid():
+            nextSibling = child.getNextSibling()
+            region.removeChild(child)
+            child = nextSibling
+        fieldmodule = region.getFieldmodule()
+        for dimension in range(3, 0, -1):
+            mesh = fieldmodule.findMeshByDimension(dimension)
+            mesh.destroyAllElements()
+        for fieldDomainType in [Field.DOMAIN_TYPE_NODES, Field.DOMAIN_TYPE_DATAPOINTS]:
+            nodeset = fieldmodule.findNodesetByFieldDomainType(fieldDomainType)
+            nodeset.destroyAllNodes()
+        fieldIter = fieldmodule.createFielditerator()
+        field = fieldIter.next()
+        while field.isValid():
+            field.setManaged(False)
+            field = fieldIter.next()
