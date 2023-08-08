@@ -344,7 +344,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements around': 8,
             'Number of elements through wall': 1,
             'Wall thickness': 0.016,
-            'Ureter position around': 0.67,
+            'Ureter position around': 0.67,  # should be on the dorsal part (> 0.5). It's a fixed material coordinate and thus not to be edited.
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements along': 4,
@@ -353,25 +353,19 @@ class MeshType_3d_bladder1(Scaffold_base):
         }
         if 'Cat 1' in parameterSetName:
             options['Wall thickness'] = 0.007  # was 1.5 * 2.0 / 178.08271473110773
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Human 1' in parameterSetName:
             options['Wall thickness'] = 0.043  # was 3.0 * 2.0 / 327.63
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Mouse 1' in parameterSetName:
             options['Wall thickness'] = 0.008  # was 0.5 * 2.0 / 72.004931756029
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Pig 1' in parameterSetName:
             options['Wall thickness'] = 0.016  # was 2.5 * 2.0 / 505.2045520616655
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Rat 1' in parameterSetName:
             options['Wall thickness'] = 0.006  # was 0.3 * 2.0 / 110.40996641878101
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
         if 'Material' in parameterSetName:
             options['Number of elements along dome'] = 8
             options['Number of elements along neck'] = 4
             options['Number of elements around'] = 8
             options['Wall thickness'] = 0.016  # an average of the wall thicknesses for above species
-            options['Ureter position around'] = 0.67
         return options
 
     @staticmethod
@@ -383,7 +377,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements around',
             'Number of elements through wall',
             'Wall thickness',
-            'Ureter position around',
+            # 'Ureter position around',  # it's a fixed material coordinate and thus not to be edited.
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
