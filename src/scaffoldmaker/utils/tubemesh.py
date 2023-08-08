@@ -617,6 +617,12 @@ def createNodesAndElements(region,
         organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         if useCrossDerivatives:
             organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        if useCubicHermiteThroughWall:
+            organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+            if useCrossDerivatives:
+                organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
+                organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
+                organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
 
         organElementtemplate = mesh.createElementtemplate()
         organElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
