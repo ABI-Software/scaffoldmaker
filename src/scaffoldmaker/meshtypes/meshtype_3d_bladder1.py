@@ -1334,27 +1334,28 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
             d2Inner.append(d2)
             d3Inner.append(d3)
 
-    # Create outer layers from the inner nodes
-    wallThicknessList = [-wallThickness] * (elementsCountAlongBladder + 1)
+    # Create inner layers from the outer nodes
+    wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
     relativeThicknessList = []
     transitElementList = [0] * elementsCountAround
     xList, d1List, d2List, d3List, curvatureList = \
-        tubemesh.getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList, relativeThicknessList,
+        tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList, relativeThicknessList,
                                          elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
-                                         transitElementList)
+                                         transitElementList, outward=False)
 
     # Deal with multiple nodes at the start point for closed proximal end
-    xApexInner = xList[0]
+    n = elementsCountAround * (elementsCountThroughWall + 1)
+    xApexOuter = xList[n - 1]
     # Arclength between apex point and corresponding point on next face
-    mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
-                                          d2List[2 * elementsCountAround])
-    d2ApexInner = vector.setMagnitude(sx_dome_group[2][0], mag)
+    mag = interp.getCubicHermiteArcLength(xList[n - 1], d2List[n - 1], xList[2 * n - 1],
+                                          d2List[2 * n - 1])
+    d2ApexOuter = vector.setMagnitude(sx_dome_group[2][0], mag)
 
-    d1ApexInner = vector.crossproduct3(sx_dome_group[1][0], d2ApexInner)
-    d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
+    d1ApexOuter = vector.crossproduct3(sx_dome_group[1][0], d2ApexOuter)
+    d1ApexOuter = vector.setMagnitude(d1ApexOuter, mag)
     d3ApexUnit = vector.normalise(
-        vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
-    d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
+        vector.crossproduct3(vector.normalise(d1ApexOuter), vector.normalise(d2ApexOuter)))
+    d3ApexOuter = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
 
     # Final nodes on the bladder
     xFinal = []
@@ -1362,12 +1363,12 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     d2Final = []
     d3Final = []
     for n3 in range(elementsCountThroughWall + 1):
-        xApex = [xApexInner[c] -
-                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * n3 for c in range(3)]
+        xApex = [xApexOuter[c] -
+                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * (elementsCountThroughWall - n3) for c in range(3)]
         xFinal.append(xApex)
-        d1Final.append(d1ApexInner)
-        d2Final.append(d2ApexInner)
-        d3Final.append(d3ApexInner)
+        d1Final.append(d1ApexOuter)
+        d2Final.append(d2ApexOuter)
+        d3Final.append(d3ApexOuter)
 
     xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAround:]
     d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]
