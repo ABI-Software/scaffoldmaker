@@ -648,8 +648,6 @@ class MeshType_3d_stomach1(Scaffold_base):
         options = {
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around duodenum': 16,
-            'Number of elements between fundus apex and cardia': 3,
-            'Number of elements between cardia and duodenum': 6,
             'Target element unit length': 0.1,
             'Number of elements through wall': 4,
             'Wall thickness': 0.0525,
@@ -665,13 +663,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Human 2' in parameterSetName:
-            options['Number of elements between cardia and duodenum'] = 8
             options['Number of elements through wall'] = 1  # 4 later
             options['Wall thickness'] = 0.0525 * 101
         elif 'Mouse 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 5
-            options['Number of elements between cardia and duodenum'] = 5
             options['Wall thickness'] = 0.05145
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
@@ -680,8 +675,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = True
         elif 'Pig 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 3
-            options['Number of elements between cardia and duodenum'] = 6
             options['Wall thickness'] = 0.059
             options['Mucosa relative thickness'] = 0.47
             options['Submucosa relative thickness'] = 0.1
@@ -690,8 +683,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 5
-            options['Number of elements between cardia and duodenum'] = 6
             options['Wall thickness'] = 0.0215
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
@@ -700,8 +691,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = True
         elif 'Material' in parameterSetName:
             options['Number of elements around duodenum'] = 16
-            options['Number of elements between fundus apex and cardia'] = 5
-            options['Number of elements between cardia and duodenum'] = 5
             options['Wall thickness'] = 0.05
             options['Mucosa relative thickness'] = 0.25
             options['Submucosa relative thickness'] = 0.25
@@ -717,8 +706,6 @@ class MeshType_3d_stomach1(Scaffold_base):
         return [
             'Central path',
             'Number of elements around duodenum',
-            'Number of elements between fundus apex and cardia',
-            'Number of elements between cardia and duodenum',
             'Target element unit length',
             'Number of elements through wall',
             'Wall thickness',
@@ -784,10 +771,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 12
         if options['Number of elements around duodenum'] % 4 > 0:
             options['Number of elements around duodenum'] = options['Number of elements around duodenum'] // 4 * 4
-        if options['Number of elements between fundus apex and cardia'] < 2:
-            options['Number of elements between fundus apex and cardia'] = 2
-        if options['Number of elements between cardia and duodenum'] < 4:
-            options['Number of elements between cardia and duodenum'] = 4
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -834,8 +817,6 @@ class MeshType_3d_stomach1(Scaffold_base):
         materialCentralPath = cls.centralPathDefaultScaffoldPackages['Material']
         limitingRidge = options['Limiting ridge']
         elementsCountThroughWall = options['Number of elements through wall']
-        elementsAlongFundusApexToCardia = options['Number of elements between fundus apex and cardia']
-        elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
         elementsCountAroundEso = 8
         elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
         allAnnotationGroups = []
@@ -851,36 +832,9 @@ class MeshType_3d_stomach1(Scaffold_base):
         # geometricCentralPath._path_region.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_path.exf")
         arcLengthOfGroupsAlong = geometricCentralPath.arcLengthOfGroupsAlong
 
-        # Pre-calculate element numbers in each group
-        elementsAlongFromBody = elementsAlongCardiaToDuod + elementsAroundQuarterEso - 1
-        arcLengthOfGroupsAlongFromBody = arcLengthOfGroupsAlong[0] - arcLengthOfGroupsAlong[1]
-        estElementLengthFromBody = arcLengthOfGroupsAlongFromBody / elementsAlongFromBody
-
-        modGroups = [0.0]
-        elementsAlongCPFundus = elementsAlongFundusApexToCardia + elementsAroundQuarterEso - 1
-        elementCountGroupList = [elementsAlongCPFundus]
-        elementsTally = 0
-        for i in range(2, len(stomachTermsAlong)):
-            numberOfElementsGroup = int(arcLengthOfGroupsAlong[i] // estElementLengthFromBody)
-            if numberOfElementsGroup < 1:
-                numberOfElementsGroup = 1
-
-            mod = arcLengthOfGroupsAlong[i] - estElementLengthFromBody * numberOfElementsGroup
-            modGroups.append(mod)
-
-            elementsTally += numberOfElementsGroup
-            elementCountGroupList.append(numberOfElementsGroup)
-
-        excessElements = elementsAlongFromBody - elementsTally
-        for i in range(excessElements):
-            maxIdx = max(range(len(modGroups)), key=modGroups.__getitem__)
-            elementCountGroupList[maxIdx] += 1
-            modGroups[maxIdx] = arcLengthOfGroupsAlong[maxIdx] - estElementLengthFromBody * \
-                                elementCountGroupList[maxIdx]
-
         allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
-                                allAnnotationGroups, elementCountGroupList, centralPath=geometricCentralPath,
+                                allAnnotationGroups, centralPath=geometricCentralPath,
                                 options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
                                 materialCoordinates=False)
 
@@ -897,7 +851,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         #
         #     allAnnotationGroupsMaterial, nextNodeIdentifier, nextElementIdentifier = \
         #         createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
-        #                             allAnnotationGroupsMaterial, elementCountGroupList,
+        #                             allAnnotationGroupsMaterial,
         #                             centralPath=materialCentralPath, options=options, nodeIdentifier=1,
         #                             elementIdentifier=1, splitCoordinates=False, materialCoordinates=True)
         #
@@ -1367,7 +1321,7 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
 
 
 def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups,
-                        elementCountGroupList, centralPath, options, nodeIdentifier, elementIdentifier,
+                        centralPath, options, nodeIdentifier, elementIdentifier,
                         splitCoordinates, materialCoordinates=False):
     """
     Generates a stomach scaffold in the region using a central path and parameter options.
@@ -1376,7 +1330,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     :param coordinates: Coordinate field to define nodes and elements.
     :param stomachTermsAlong: Annotation terms along length of stomach.
     :param allAnnotationGroups: List of annotation groups.
-    :param elementCountGroupList: List contains number of elements in each annotation group along the stomach.
     :param centralPath: Central path through the axis of the stomach scaffold.
     :param options: Parameter options for stomach scaffold.
     :param nodeIdentifier: First node identifier.
@@ -1386,8 +1339,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     :return allAnnotationGroups, elementsCountGroupList
     """
     elementsCountAroundDuod = options['Number of elements around duodenum']
-    # elementsAlongFundusApexToCardia = options['Number of elements between fundus apex and cardia']
-    # elementsAlongCardiaToDuod = options['Number of elements between cardia and duodenum']
     targetLength = options['Target element unit length']
     elementsCountThroughWall = options['Number of elements through wall']
     mucosaRelThickness = options['Mucosa relative thickness']
@@ -1518,7 +1469,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     targetLengthTS = 0.025
 
-    for i in (list(range(1, len(elementCountGroupList))) + [0]):  # start from body, go back to fundus
+    for i in (list(range(1, len(stomachTermsAlong) - 1)) + [0]):  # start from body, go back to fundus
         cxGroup = centralPath.cxGroups[i + 1]
         cd1Group = centralPath.cd1Groups[i + 1]
         cd2Group = centralPath.cd2Groups[i + 1]
@@ -1535,7 +1486,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3Group[n2])
         #     nodeIdentifier += 1
 
-        if materialCoordinates and i == len(elementCountGroupList) - 1:
+        if materialCoordinates and i == len(stomachTermsAlong) - 1:
             for n in range(len(cxGroup)):
                 cd12Group[n] = zero
                 cd13Group[n] = zero
@@ -2892,7 +2843,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     elementtemplateX = mesh.createElementtemplate()
     elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
-    fundusElements = elementCountGroupList[0]
+    fundusElements = elementsAlongSections[0]
     radiansPerElementAroundDuod = math.pi * 2.0 / elementsCountAroundDuod
 
     for e2 in range(len(xSampledAroundAlong) - 1):
