@@ -1672,7 +1672,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
 
 
-    # Sample/create a layer of nodes between the end of inner horns and inner cervix canal
+    # Sample/create a layer of nodes in bifurcation means between end of inner horns and begining of inner cervix canal
     # Right part
     firstRingRightInnerCervix = [cervixInnerRightCoordinates[0][elementsCountAround:2*elementsCountAround], cervixInnerRightCoordinates[1][elementsCountAround:2*elementsCountAround],
                                  cervixInnerRightCoordinates[2][elementsCountAround:2*elementsCountAround]]
@@ -1728,7 +1728,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
             d3Around.append(v3)
         d3SampledBifurcationRight.append(d3Around)
 
-
+    innerBifurcationRight = [xSampledBifurcationRight, d1SampledBifurcationRight, d2SampledBifurcationRight]
 
     # Left part
     firstRingLeftInnerCervix = [cervixInnerLeftCoordinates[0][elementsCountAround:2 * elementsCountAround],
@@ -1775,6 +1775,109 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         xSampledBifurcationLeft.append(xAround)
         d1SampledBifurcationLeft.append(d1Smoothed)
         d2SampledBifurcationLeft.append(d2Around)
+
+    innerBifurcationLeft = [xSampledBifurcationLeft, d1SampledBifurcationLeft, d2SampledBifurcationLeft]
+
+    # Get bifurcation outer nodes
+    paCentre = sx_cervix_group[0][1]
+    c1Centre = sx_right_horn_group[0][-2]
+    c2Centre = sx_left_horn_group[0][-2]
+    paxList = xCervix[1]
+    pad2 = d2Cervix[1]
+    pad3 = d3Cervix[1]
+    # paxList = cFirstRingNodeCoordinates[0]
+    # pad2 = cFirstRingNodeCoordinates[2]
+    c1xList = rhLastRingNodeCoordinates[0][1]
+    c1d2 = rhLastRingNodeCoordinates[2][1]
+    c2xList = lhLastRingNodeCoordinates[0][1]
+    c2d2 = lhLastRingNodeCoordinates[2][1]
+    rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
+        make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
+    rod3 = pad3
+
+    # Get coordinates across cervix septum, between two inner canals
+    elementsCountAcross = len(cox) + 1
+    xAcrossSeptum = []
+    d1AcrossSeptum = []
+    for n in range(elementsCountInCervix + 1):
+        oa = 0
+        ob = elementsCountAround // 2
+        v1 = xCervix[n][ob]
+        v2 = xCervix[n][oa]
+        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+        v1v2 = [v2[c] - v1[c] for c in range(3)]
+        nx = [xCervix[n][ob], v3, xCervix[n][oa]]
+        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+               [d / elementsCountAcross for d in v1v2]]
+        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+        xAcrossSeptum.append(px)
+        d1AcrossSeptum.append(pd1)
+
+    # Find d2 across cervix septum
+    d2Raw = []
+    for n2 in range(elementsCountAcross + 1):
+        xAlongSeptum = []
+        d2AlongSeptum = []
+        for n1 in range(elementsCountInCervix):
+            v1 = xAcrossSeptum[n1][n2]
+            v2 = xAcrossSeptum[n1 + 1][n2]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlongSeptum.append(v1)
+            d2AlongSeptum.append(d2)
+        xAlongSeptum.append(xAcrossSeptum[-1][n2])
+        d2AlongSeptum.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2AcrossSeptum = []
+    for n2 in range(elementsCountInCervix + 1):
+        d2Across = []
+        for n1 in range(elementsCountAcross + 1):
+            d2 = d2Raw[n1][n2]
+            d2Across.append(d2)
+        d2AcrossSeptum.append(d2Across)
+
+    septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
+
+
+    # Add nodes between the two nodes of bifurcation in rox (along septum)
+    # Get coordinates across bifurcation septum, between two inner canals
+    # elementsCountAcross = len(cox) + 1
+    v1 = rox[elementsCountAround // 2]
+    v2 = rox[0]
+    v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+    v1v2 = [v2[c] - v1[c] for c in range(3)]
+    nx = [v1, v3, v2]
+    nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+           [d / elementsCountAcross for d in v1v2]]
+    xSeptumBifurcation, d1SeptumBifurcation, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[
+                                                       0:4]
+    xSeptumBifurcation = xSeptumBifurcation[1:-1]
+    d1SeptumBifurcation = d1SeptumBifurcation[1:-1]
+
+    # Find d2 across bifurcation septum
+    d2SeptumBifurcation = []
+    for n2 in range(elementsCountAcross - 1):
+        v1 = xSeptumBifurcation[n2]
+        v2 = xAcrossSeptum[1][n2]
+        d2 = findDerivativeBetweenPoints(v1, v2)
+        d2SeptumBifurcation.append(d2)
+
+    # Find d3 across bifurcation septum
+    d3SeptumBifurcation = []
+    for n2 in range(elementsCountAcross - 1):
+        v1 = d1SeptumBifurcation[n2]
+        v2 = d2AcrossSeptum[1][n2]
+        v3 = vector.crossproduct3(v1, v2)
+        v3Norm = vector.normalise(v3)
+        d1mag = vector.magnitude(v1)
+        d3 = vector.setMagnitude(v3Norm, d1mag)
+        d3SeptumBifurcation.append(d3)
+    print('len(d3SeptumBifurcation)', len(d3SeptumBifurcation))
+
+    septumBifurCoordinates = [xSeptumBifurcation, d1SeptumBifurcation, d2SeptumBifurcation, d3SeptumBifurcation]
+
 
     # Create nodes
     cache = fm.createFieldcache()
@@ -1827,128 +1930,28 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 nodeIdentifier += 1
 
     # Create bifurcation nodes
-    paCentre = sx_cervix_group[0][1]
-    c1Centre = sx_right_horn_group[0][-2]
-    c2Centre = sx_left_horn_group[0][-2]
-    paxList = xCervix[1]
-    pad2 = d2Cervix[1]
-    pad3 = d3Cervix[1]
-    # paxList = cFirstRingNodeCoordinates[0]
-    # pad2 = cFirstRingNodeCoordinates[2]
-    c1xList = rhLastRingNodeCoordinates[0][1]
-    c1d2 = rhLastRingNodeCoordinates[2][1]
-    c2xList = lhLastRingNodeCoordinates[0][1]
-    c2d2 = lhLastRingNodeCoordinates[2][1]
-    nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex = \
-        create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, pad3, c1Centre, c1xList, c1d2, c2Centre,
-                                 c2xList, c2d2)
-
-    # Coordinates across septum, between two inner canals
-    elementsCountAcross = len(coNodeId) + 1
-    xAcrossSeptum = []
-    d1AcrossSeptum = []
-    for n in range(elementsCountInCervix + 1):
-        oa = 0
-        ob = elementsCountAround // 2
-        v1 = xCervix[n][ob]
-        v2 = xCervix[n][oa]
-        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
-        v1v2 = [v2[c] - v1[c] for c in range(3)]
-        nx = [xCervix[n][ob], v3, xCervix[n][oa]]
-        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
-               [d / elementsCountAcross for d in v1v2]]
-        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
-        xAcrossSeptum.append(px)
-        d1AcrossSeptum.append(pd1)
-
-    # Find d2 across septum
-    d2Raw = []
-    for n2 in range(elementsCountAcross + 1):
-        xAlongSeptum = []
-        d2AlongSeptum = []
-        for n1 in range(elementsCountInCervix):
-            v1 = xAcrossSeptum[n1][n2]
-            v2 = xAcrossSeptum[n1 + 1][n2]
-            d2 = findDerivativeBetweenPoints(v1, v2)
-            xAlongSeptum.append(v1)
-            d2AlongSeptum.append(d2)
-        xAlongSeptum.append(xAcrossSeptum[-1][n2])
-        d2AlongSeptum.append(d2)
-        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
-        d2Raw.append(d2Smoothed)
-
-    # Rearrange d2
-    d2AcrossSeptum = []
-    for n2 in range(elementsCountInCervix + 1):
-        d2Across = []
-        for n1 in range(elementsCountAcross + 1):
-            d2 = d2Raw[n1][n2]
-            d2Across.append(d2)
-        d2AcrossSeptum.append(d2Across)
-
-    septumCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
-
-
-    # Add nodes between the two nodes of bifurcation in rox (along septum)
-    elementsCountAcross = len(coNodeId) + 1
-    v1 = rox[elementsCountAround // 2]
-    v2 = rox[0]
-    v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
-    v1v2 = [v2[c] - v1[c] for c in range(3)]
-    nx = [v1, v3, v2]
-    nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
-           [d / elementsCountAcross for d in v1v2]]
-    xSeptumBifurcation, d1SeptumBifurcation, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[
-                                                       0:4]
-    xSeptumBifurcation = xSeptumBifurcation[1:-1]
-    d1SeptumBifurcation = d1SeptumBifurcation[1:-1]
-
-    # Find d2 across septum
-    d2Raw = []
-    d2SeptumBifurcation = []
-    for n2 in range(elementsCountAcross - 1):
-        # xAlongSeptum = []
-        # d2AlongSeptum = []
-        v1 = xSeptumBifurcation[n2]
-        v2 = xAcrossSeptum[1][n2]
-        d2 = findDerivativeBetweenPoints(v1, v2)
-        d2SeptumBifurcation.append(d2)
-        # d2SeptumBifurcation.append(d2)
-        # xAlongSeptum.append(xAcrossSeptum[-1][n2])
-        # d2AlongSeptum.append(d2)
-        # d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
-        # d2Raw.append(d2Smoothed)
-    print('len(d1SeptumBifurcation)', len(d1SeptumBifurcation))
-    print('len(d2SeptumBifurcation)', len(d2SeptumBifurcation))
-
-    # Find d3 across septum
-    d3SeptumBifurcation = []
-    for n2 in range(elementsCountAcross - 1):
-        v1 = d1SeptumBifurcation[n2]
-        v2 = d2AcrossSeptum[1][n2]
-        v3 = vector.crossproduct3(v1, v2)
-        v3Norm = vector.normalise(v3)
-        d1mag = vector.magnitude(v1)
-        d3 = vector.setMagnitude(v3Norm, d1mag)
-        # d2 = findDerivativeBetweenPoints(v1, v2)
-        d3SeptumBifurcation.append(d3)
-    print('len(d3SeptumBifurcation)', len(d3SeptumBifurcation))
-
-    # Create septum nodes in bifurcation
-    sbNodeId = []
-    for n in range(len(xSeptumBifurcation)):
-        node = nodes.createNode(nodeIdentifier, nodetemplate)
-        cache.setNode(node)
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSeptumBifurcation[n])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SeptumBifurcation[n])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SeptumBifurcation[n])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SeptumBifurcation[n])
-        sbNodeId.append(nodeIdentifier)
-        nodeIdentifier += 1
+    nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
+        create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, septumBifurCoordinates)
+    #old
+    # paCentre = sx_cervix_group[0][1]
+    # c1Centre = sx_right_horn_group[0][-2]
+    # c2Centre = sx_left_horn_group[0][-2]
+    # paxList = xCervix[1]
+    # pad2 = d2Cervix[1]
+    # pad3 = d3Cervix[1]
+    # # paxList = cFirstRingNodeCoordinates[0]
+    # # pad2 = cFirstRingNodeCoordinates[2]
+    # c1xList = rhLastRingNodeCoordinates[0][1]
+    # c1d2 = rhLastRingNodeCoordinates[2][1]
+    # c2xList = lhLastRingNodeCoordinates[0][1]
+    # c2d2 = lhLastRingNodeCoordinates[2][1]
+    # nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex = \
+    #     create2DBifurcationNodes(fm, nodeIdentifier, paCentre, paxList, pad2, pad3, c1Centre, c1xList, c1d2, c2Centre,
+    #                              c2xList, c2d2)
 
     # Create cervix nodes
     nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
-                                         cervixCoordinatesOuter, septumCoordinates, elementsCountInCervix, elementsCountAround,
+                                         cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
                                          elementsCountAcross, omitStartRows=1, omitEndRows=0, startNodes=None)
 
 
@@ -2389,7 +2392,48 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
     return nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId
 
 
-def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, pad3, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
+# def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, pad3, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
+#
+#     cache = fm.createFieldcache()
+#     coordinates = findOrCreateFieldCoordinates(fm)
+#
+#     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+#     nodetemplate = nodes.createNodetemplate()
+#     nodetemplate.defineField(coordinates)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+#     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+#
+#     rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
+#         make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
+#
+#     rod3 = pad3
+#     # Create bifurcation nodes
+#     roNodeId = []
+#     for n in range(len(rox)):
+#         node = nodes.createNode(nodeIdentifier, nodetemplate)
+#         cache.setNode(node)
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox[n])
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rod3[n])
+#         roNodeId.append(nodeIdentifier)
+#         nodeIdentifier = nodeIdentifier + 1
+#     coNodeId = []
+#     for n in range(len(cox)):
+#         node = nodes.createNode(nodeIdentifier, nodetemplate)
+#         cache.setNode(node)
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cox[n])
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cod1[n])
+#         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cod2[n])
+#         coNodeId.append(nodeIdentifier)
+#         nodeIdentifier = nodeIdentifier + 1
+#
+#     nextNodeId = nodeIdentifier
+#     return nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex
+
+def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, septumBifurCoordinates):
 
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -2402,10 +2446,10 @@ def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, pad3, c1Ce
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
-    rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-        make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
-
-    rod3 = pad3
+    # rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
+    #     make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
+    #
+    # rod3 = pad3
     # Create bifurcation nodes
     roNodeId = []
     for n in range(len(rox)):
@@ -2427,9 +2471,20 @@ def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, pad3, c1Ce
         coNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
 
-    nextNodeId = nodeIdentifier
-    return nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex
+    # Create septum nodes in bifurcation
+    sbNodeId = []
+    for n in range(len(septumBifurCoordinates[0])):
+        node = nodes.createNode(nodeIdentifier, nodetemplate)
+        cache.setNode(node)
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, septumBifurCoordinates[0][n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, septumBifurCoordinates[1][n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, septumBifurCoordinates[2][n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, septumBifurCoordinates[3][n])
+        sbNodeId.append(nodeIdentifier)
+        nodeIdentifier += 1
 
+    nextNodeId = nodeIdentifier
+    return nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId
 
 def getTargetedRingNodesCoordinates2D(tubeCoordinates, elementsCountAround, elementsCountAlongTube, omitStartRows,
                                       omitEndRows):
