@@ -647,6 +647,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         options = {
             'Central path': copy.deepcopy(centralPathOption),
+            'Number of elements around esophagus': 8,
             'Number of elements around duodenum': 16,
             'Target element unit length': 0.1,
             'Number of elements through wall': 4,
@@ -705,6 +706,7 @@ class MeshType_3d_stomach1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             'Central path',
+            'Number of elements around esophagus',
             'Number of elements around duodenum',
             'Target element unit length',
             'Number of elements through wall',
@@ -767,10 +769,14 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Gastro-esophageal junction'):
             options['Gastro-esophageal junction'] = cls.getOptionScaffoldPackage('Gastro-esophageal junction',
                                                                                 MeshType_3d_ostium1)
+        if options['Number of elements around esophagus'] < 8:
+            options['Number of elements around esophagus'] = 8
         if options['Number of elements around duodenum'] < 12:
             options['Number of elements around duodenum'] = 12
-        if options['Number of elements around duodenum'] % 4 > 0:
-            options['Number of elements around duodenum'] = options['Number of elements around duodenum'] // 4 * 4
+        for key in ['Number of elements around esophagus',
+                    'Number of elements around duodenum']:
+            if options[key] % 4 > 0:
+                options[key] = options[key] // 4 * 4
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -788,6 +794,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         """
         ostiumOptions = options['Gastro-esophageal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
+        ostiumSettings['Number of elements around ostium'] = options['Number of elements around esophagus']
         wallThickness = options['Wall thickness'] / ostiumSettings['Unit scale']
         ostiumSettings['Ostium wall thickness'] = wallThickness
         elementsCountThroughWall = options['Number of elements through wall']
@@ -817,7 +824,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         materialCentralPath = cls.centralPathDefaultScaffoldPackages['Material']
         limitingRidge = options['Limiting ridge']
         elementsCountThroughWall = options['Number of elements through wall']
-        elementsCountAroundEso = 8
+        elementsCountAroundEso = options['Number of elements around esophagus']
         elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
         allAnnotationGroups = []
 
@@ -1338,6 +1345,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     :param materialCoordinates: Create material coordinates if True.
     :return allAnnotationGroups, elementsCountGroupList
     """
+    elementsCountAroundEso = options['Number of elements around esophagus']
     elementsCountAroundDuod = options['Number of elements around duodenum']
     targetLength = options['Target element unit length']
     elementsCountThroughWall = options['Number of elements through wall']
@@ -1356,7 +1364,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     limitingRidge = options['Limiting ridge']
     wallThickness = options['Wall thickness']
 
-    elementsCountAroundEso = 8
     elementsCountAcrossCardia = 1
     cardiaDiameterFactor = 1.4  # scale to ostium diameter
     sf = (cardiaDiameterFactor - 1) * ostiumDiameter * 0.5 * GEJSettings['Unit scale']
@@ -1753,46 +1760,41 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     elementsAlongSections = [math.ceil(c / targetLength) for c in ratioArcLengthSections]
     totalElementsAlong = sum(elementsAlongSections)
-    print(elementsAlongSections)
 
     xSampledAlong = [[] for n1 in range(elementsCountAroundDuod)]
     d1SampledAlong = [[] for n1 in range(elementsCountAroundDuod)]
     d2SampledAlong = [[] for n1 in range(elementsCountAroundDuod)]
     d3SampledAlong = [[] for n1 in range(elementsCountAroundDuod)]
 
+    n1IdxAtBodyStartIdxPlusMinusOne = list(range(elementsAroundHalfDuod - 1,
+                                             elementsAroundHalfDuod + 2))
+    annulusIdxAtBodyStartIdxMinusOne = list(range(1, -2, -1))
+    annulusIdxAtBodyStartIdxPlusOne = list(range(elementsAroundHalfEso - 1,
+                                                 elementsAroundHalfEso + 2))
+
     for i in range(len(sectionIdx) - 1):
         s = sectionIdx[i]
         sNext = sectionIdx[i + 1]
+        count = 0
         for n1 in range(len(xEllipseAroundAll[s])):
             #for each pt around, we take the point on the sectionIdx as Pt A and the point on sectionIdx + 1 as Pt B,
             # do a tracksurface sampling to divide the elements into equal sized elements while keeping the start and
             # end derivatives direction at both pts
             elementsOut = elementsAlongSections[i]
-            if i == 1 and n1 == elementsAroundHalfDuod - 1:
-                aPosition = xAnnulusOuterPosition[elementsAroundHalfEso - 1]
-                elementsOut = elementsAlongSections[i] - 1
-            elif i == 1 and n1 == elementsAroundHalfDuod:
-                aPosition = xAnnulusOuterPosition[elementsAroundHalfEso]
-                elementsOut = elementsAlongSections[i] - 1
-            elif i == 1 and n1 == elementsAroundHalfDuod + 1:
-                aPosition = xAnnulusOuterPosition[elementsAroundHalfEso + 1]
-                elementsOut = elementsAlongSections[i] - 1
+            if i == 1 and n1 in n1IdxAtBodyStartIdxPlusMinusOne:
+                aPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxPlusOne[count]]
+                count += 1
+                elementsOut = elementsAlongSections[i] - (elementsAroundQuarterEso - 1)
             else:
                 startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0/elementsCountAroundDuod * n1,
                                                                                   1.0/len(xEllipseAroundAll) * s)
                 aPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[s][n1], startGuessPosition)
             aProportion = trackSurfaceStomach.getProportion(aPosition)
 
-            if i == 0 and n1 == elementsAroundHalfDuod - 1:
-                bPosition = xAnnulusOuterPosition[1]
-                elementsOut = elementsAlongSections[i] - 1
-            elif i == 0 and n1 == elementsAroundHalfDuod:
-                bPosition = xAnnulusOuterPosition[0]
-                elementsOut = elementsAlongSections[i] - 1
-            elif i == 0 and n1 == elementsAroundHalfDuod + 1:
-                bPosition = xAnnulusOuterPosition[-1]
-                elementsOut = elementsAlongSections[i] - 1
-
+            if i == 0 and n1 in n1IdxAtBodyStartIdxPlusMinusOne:
+                bPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxMinusOne[count]]
+                elementsOut = elementsAlongSections[i] - (elementsAroundQuarterEso - 1)
+                count += 1
             else:
                 startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod * n1,
                                                                                   1.0 / len(xEllipseAroundAll) * sNext)
@@ -1815,27 +1817,34 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             # Deal with annulus
             if i == 0:
                 if n1 == elementsAroundHalfDuod:
-                    nx.append(zero)
-                    nd1.append(zero)
-                    nd2.append(zero)
-                    nd3.append(zero)
+                    for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                        nx.append(zero)
+                        nd1.append(zero)
+                        nd2.append(zero)
+                        nd3.append(zero)
                 elif n1 == elementsAroundHalfDuod - 1:
-                    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[elementsAroundQuarterEso], math.pi)
-                    d2 = d2AnnulusOuter[elementsAroundQuarterEso]
-                    d2 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-                    nx.append(xAnnulusOuter[elementsAroundQuarterEso])
-                    nd1.append(d1AnnulusOuter[elementsAroundQuarterEso])
-                    nd2.append(d2)
-                    nd3.append(d3Annulus[elementsAroundQuarterEso])
+                    for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                        annulusIdx = m + 2
+                        rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdx], math.pi)
+                        d2 = d2AnnulusOuter[annulusIdx]
+                        d2 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2]
+                              for j in range(3)]
+                        nx.append(xAnnulusOuter[annulusIdx])
+                        nd1.append(d1AnnulusOuter[annulusIdx])
+                        nd2.append(d2)
+                        nd3.append(d3Annulus[annulusIdx])
 
                 elif n1 == elementsAroundHalfDuod + 1:
-                    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[-elementsAroundQuarterEso], math.pi)
-                    d1 = d1AnnulusOuter[-elementsAroundQuarterEso]
-                    d1 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
-                    nx.append(xAnnulusOuter[-elementsAroundQuarterEso])
-                    nd1.append(d1)
-                    nd2.append(d2AnnulusOuter[-elementsAroundQuarterEso])
-                    nd3.append(d3Annulus[-elementsAroundQuarterEso])
+                    for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                        annulusIdx = -2 - m
+                        rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdx], math.pi)
+                        d1 = d1AnnulusOuter[annulusIdx]
+                        d1 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2]
+                              for j in range(3)]
+                        nx.append(xAnnulusOuter[annulusIdx])
+                        nd1.append(d1)
+                        nd2.append(d2AnnulusOuter[annulusIdx])
+                        nd3.append(d3Annulus[annulusIdx])
 
             if i == 1 and elementsAroundHalfDuod - 1 <= n1 <= elementsAroundHalfDuod + 1:
                 xSampledAlong[n1] += nx
@@ -1881,11 +1890,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         d3SampledAroundAlong.append(d3SampledAround)
 
     bodyStartIdx = elementsAlongSections[0]
+    annulusFundusOpenRingIdx = bodyStartIdx - (elementsAroundQuarterEso - 2)
+    annulusBodyOpenRingIdx = bodyStartIdx + (elementsAroundQuarterEso - 2)
 
     # Smooth d1 around
     d1SmoothedAroundAlong = [d1EllipseAroundAll[0]]
     for n2 in range(1, len(xSampledAroundAlong)):
-        if n2 == bodyStartIdx:
+        if annulusFundusOpenRingIdx <= n2 <= annulusBodyOpenRingIdx:
             d1SmoothedLeft = \
                 interp.smoothCubicHermiteDerivativesLine(xSampledAroundAlong[n2][0:elementsAroundHalfDuod],
                                                          d1SampledAroundAlong[n2][0:elementsAroundHalfDuod])
@@ -1902,6 +1913,77 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     d1SampledAroundAlong = d1SmoothedAroundAlong
 
+    # Smooth d2 along
+    for n1 in range(elementsCountAroundDuod):
+        nx = []
+        nd2 = []
+        if n1 == elementsAroundHalfDuod:
+            for n2 in range(annulusFundusOpenRingIdx):
+                nx.append(xSampledAroundAlong[n2][n1])
+                nd2.append(d2SampledAroundAlong[n2][n1])
+            d2SmoothedAlongGC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+            d2SmoothedAlongGC[-1] = vector.setMagnitude(d2SmoothedAlongGC[-1],
+                                                        0.5*(vector.magnitude(d2AnnulusOuter[0]) +
+                                                             vector.magnitude(d2SmoothedAlongGC[-1])))
+
+            nx = []
+            nd2 = []
+            for n2 in range(annulusBodyOpenRingIdx + 1, len(xSampledAroundAlong)):
+                nx.append(xSampledAroundAlong[n2][n1])
+                nd2.append(d2SampledAroundAlong[n2][n1])
+            d2SmoothedAlongLC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+            d2SmoothedAlongLC[0] = vector.setMagnitude(d2SmoothedAlongLC[0],
+                                                       0.5*(vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]) +
+                                                            (vector.magnitude(d2SmoothedAlongLC[0]))))
+
+            d2Smoothed = d2SmoothedAlongGC + \
+                         [[0.0, 1.0, 0.0] for n in range(2 * (elementsAroundQuarterEso - 2) + 1)] + \
+                         d2SmoothedAlongLC
+
+        else:
+            for n2 in range(len(xSampledAroundAlong)):
+                nx.append(xSampledAroundAlong[n2][n1])
+                nd2.append(d2SampledAroundAlong[n2][n1])
+            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+
+            if n1 == elementsAroundHalfDuod - 1:
+                d2Smoothed[annulusFundusOpenRingIdx - 1] = \
+                    vector.setMagnitude(
+                        d1AnnulusOuter[1],
+                        0.5 * (vector.magnitude(d2Smoothed[annulusFundusOpenRingIdx - 1]) +
+                               vector.magnitude(d1AnnulusOuter[1])))
+                d2Smoothed[bodyStartIdx] = \
+                    vector.setMagnitude(d2Smoothed[bodyStartIdx],
+                                        vector.magnitude(d1AnnulusOuter[elementsAroundQuarterEso]))
+                d2Smoothed[annulusBodyOpenRingIdx + 1] = \
+                    vector.setMagnitude(
+                        d1AnnulusOuter[elementsAroundHalfEso - 1],
+                        0.5 * (vector.magnitude(d2Smoothed[annulusBodyOpenRingIdx + 1]) +
+                               vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso - 1])))
+
+            if n1 == elementsAroundHalfDuod + 1:
+                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[-1], math.pi)
+                d1 = d1AnnulusOuter[-1]
+                d2 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
+                d2Smoothed[annulusFundusOpenRingIdx - 1] = \
+                    vector.setMagnitude(
+                        d2, 0.5*(vector.magnitude(d2Smoothed[annulusFundusOpenRingIdx - 1]) +
+                                 vector.magnitude(d1AnnulusOuter[-1])))
+
+                d2Smoothed[bodyStartIdx] = \
+                    vector.setMagnitude(d2Smoothed[bodyStartIdx],
+                                        vector.magnitude(d1AnnulusOuter[-elementsAroundQuarterEso]))
+
+                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[elementsAroundHalfEso + 1], math.pi)
+                d1 = d1AnnulusOuter[elementsAroundHalfEso + 1]
+                d2 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
+                d2Smoothed[annulusBodyOpenRingIdx + 1] = \
+                    vector.setMagnitude(d2, 0.5 * (vector.magnitude(d2Smoothed[annulusBodyOpenRingIdx + 1]) +
+                                                   vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso + 1])))
+
+        for n2 in range(len(d2Smoothed)):
+            d2SampledAroundAlong[n2][n1] = d2Smoothed[n2]
+
     # for n2 in range(len(xSampledAroundAlong)):
     #     for n1 in range(len(xSampledAroundAlong[n2])):
     #         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1912,91 +1994,29 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledAroundAlong[n2][n1])
     #         nodeIdentifier += 1
 
-    # Smooth d2 along
-    for n1 in range(elementsCountAroundDuod):
-        nx = []
-        nd2 = []
-        if n1 == elementsAroundHalfDuod:
-            for n2 in range(bodyStartIdx):
-                nx.append(xSampledAroundAlong[n2][n1])
-                nd2.append(d2SampledAroundAlong[n2][n1])
-            d2SmoothedAlongGC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
-            d2SmoothedAlongGC[-1] = vector.setMagnitude(d2SmoothedAlongGC[-1],
-                                                        0.5*(vector.magnitude(d2AnnulusOuter[0]) +
-                                                             vector.magnitude(d2SmoothedAlongGC[-1])))
-
-            nx = []
-            nd2 = []
-            for n2 in range(bodyStartIdx + 1, len(xSampledAroundAlong)):
-                nx.append(xSampledAroundAlong[n2][n1])
-                nd2.append(d2SampledAroundAlong[n2][n1])
-            d2SmoothedAlongLC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
-            d2SmoothedAlongLC[0] = vector.setMagnitude(d2SmoothedAlongLC[0],
-                                                       0.5*(vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]) +
-                                                            (vector.magnitude(d2SmoothedAlongLC[0]))))
-
-            d2Smoothed = d2SmoothedAlongGC + [[0.0, 1.0, 0.0]] + d2SmoothedAlongLC
-
-        else:
-            for n2 in range(len(xSampledAroundAlong)):
-                nx.append(xSampledAroundAlong[n2][n1])
-                nd2.append(d2SampledAroundAlong[n2][n1])
-            d2Smoothed = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
-
-            if n1 == elementsAroundHalfDuod - 1:
-                d2Smoothed[bodyStartIdx - 1] = \
-                    vector.setMagnitude(d1AnnulusOuter[1],
-                                        0.5 * (vector.magnitude(d2Smoothed[bodyStartIdx - 1]) +
-                                               vector.magnitude(d1AnnulusOuter[1])))
-                d2Smoothed[bodyStartIdx] = \
-                    vector.setMagnitude(d2Smoothed[bodyStartIdx],
-                                        vector.magnitude(d1AnnulusOuter[elementsAroundQuarterEso]))
-                d2Smoothed[bodyStartIdx + 1] = \
-                    vector.setMagnitude(d1AnnulusOuter[elementsAroundQuarterEso + 1],
-                                        0.5 * (vector.magnitude(d2Smoothed[bodyStartIdx + 1]) +
-                                               vector.magnitude(d2AnnulusOuter[elementsAroundQuarterEso + 1])))
-
-            if n1 == elementsAroundHalfDuod + 1:
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[-1], math.pi)
-                d1 = d1AnnulusOuter[-1]
-                d2 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
-                d2Smoothed[bodyStartIdx - 1] = \
-                    vector.setMagnitude(d2, 0.5*(vector.magnitude(d2Smoothed[bodyStartIdx - 1]) +
-                                                 vector.magnitude(d1AnnulusOuter[-1])))
-                d2Smoothed[bodyStartIdx] = \
-                    vector.setMagnitude(d2Smoothed[bodyStartIdx],
-                                        vector.magnitude(d1AnnulusOuter[-elementsAroundQuarterEso]))
-
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[-elementsAroundQuarterEso - 1], math.pi)
-                d1 = d1AnnulusOuter[-elementsAroundQuarterEso - 1]
-                d2 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
-                d2Smoothed[bodyStartIdx + 1] = \
-                    vector.setMagnitude(d2, 0.5 * (vector.magnitude(d2Smoothed[bodyStartIdx + 1]) +
-                                                   vector.magnitude(d2AnnulusOuter[-elementsAroundQuarterEso - 1])))
-
-        for n2 in range(len(d2Smoothed)):
-            d2SampledAroundAlong[n2][n1] = d2Smoothed[n2]
-
     # calculate d3
     for n2 in range(len(xSampledAroundAlong)):
         for n1 in range(len(xSampledAroundAlong[n2])):
-            d3SampledAroundAlong[n2][n1] = vector.normalise(vector.crossproduct3(vector.normalise(d1SampledAroundAlong[n2][n1]),
-                                                                vector.normalise(d2SampledAroundAlong[n2][n1])))
+            d3SampledAroundAlong[n2][n1] = vector.normalise(vector.crossproduct3(
+                vector.normalise(d1SampledAroundAlong[n2][n1]), vector.normalise(d2SampledAroundAlong[n2][n1])))
 
     # Calculate curvature around
-    d1CurvatureAroundAlong = [[0.0 for n in range(elementsCountAroundDuod)]] # check later
+    d1CurvatureAroundAlong = [[0.0 for n in range(elementsCountAroundDuod)]]
     for n2 in range(1, len(xSampledAroundAlong)):
-        if n2 == bodyStartIdx:
+        if annulusFundusOpenRingIdx <= n2 <= annulusBodyOpenRingIdx:
             d1CurvatureLeft = findCurvatureAlongLine(xSampledAroundAlong[n2][0:elementsAroundHalfDuod],
-                                                  d1SampledAroundAlong[n2][0:elementsAroundHalfDuod],
-                                                  d3SampledAroundAlong[n2][0:elementsAroundHalfDuod])
+                                                     d1SampledAroundAlong[n2][0:elementsAroundHalfDuod],
+                                                     d3SampledAroundAlong[n2][0:elementsAroundHalfDuod])
             d1CurvatureRight = \
-                findCurvatureAlongLine(xSampledAroundAlong[n2][elementsAroundHalfDuod + 1:] + [xSampledAroundAlong[n2][0]],
-                                      d1SampledAroundAlong[n2][elementsAroundHalfDuod + 1:] + [d1SampledAroundAlong[n2][0]],
-                                      d3SampledAroundAlong[n2][elementsAroundHalfDuod + 1:] + [d3SampledAroundAlong[n2][0]])
+                findCurvatureAlongLine(
+                    xSampledAroundAlong[n2][elementsAroundHalfDuod + 1:] + [xSampledAroundAlong[n2][0]],
+                    d1SampledAroundAlong[n2][elementsAroundHalfDuod + 1:] + [d1SampledAroundAlong[n2][0]],
+                    d3SampledAroundAlong[n2][elementsAroundHalfDuod + 1:] + [d3SampledAroundAlong[n2][0]])
+
             d1Curvature = d1CurvatureLeft + [0.0] + d1CurvatureRight[:-1]
         else:
-            d1Curvature = findCurvatureAroundLoop(xSampledAroundAlong[n2], d1SampledAroundAlong[n2], d3SampledAroundAlong[n2])
+            d1Curvature = findCurvatureAroundLoop(xSampledAroundAlong[n2], d1SampledAroundAlong[n2],
+                                                  d3SampledAroundAlong[n2])
         d1CurvatureAroundAlong.append(d1Curvature)
 
     # Replace derivatives around annulus
@@ -2004,37 +2024,41 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[1], math.pi)
     d2 = d2AnnulusOuter[1]
     d1 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-    d1SampledAroundAlong[bodyStartIdx - 1][elementsAroundHalfDuod - 1] = \
-        vector.setMagnitude(d1, 0.5 *
-                            (vector.magnitude(d1SampledAroundAlong[bodyStartIdx - 1][elementsAroundHalfDuod - 1]) +
-                             vector.magnitude(d2AnnulusOuter[1])))
+    d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod - 1] = \
+        vector.setMagnitude(
+            d1,
+            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod - 1]) +
+                   vector.magnitude(d2AnnulusOuter[1])))
 
-    d1SampledAroundAlong[bodyStartIdx - 1][elementsAroundHalfDuod] = \
-        vector.setMagnitude(d1SampledAroundAlong[bodyStartIdx - 1][elementsAroundHalfDuod],
+    d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod] = \
+        vector.setMagnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod],
                             vector.magnitude(d1AnnulusOuter[0]))
 
-    d1SampledAroundAlong[bodyStartIdx - 1][elementsAroundHalfDuod + 1] = \
-        vector.setMagnitude(d2AnnulusOuter[-1], 0.5 *
-                            (vector.magnitude(d1SampledAroundAlong[bodyStartIdx - 1][elementsAroundHalfDuod + 1]) +
-                             vector.magnitude(d2AnnulusOuter[-1])))
+    d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod + 1] = \
+        vector.setMagnitude(
+            d2AnnulusOuter[-1],
+            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod + 1]) +
+                   vector.magnitude(d2AnnulusOuter[-1])))
 
     # bodyStartIdx + 1
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[elementsAroundQuarterEso + 1], math.pi)
-    d2 = d2AnnulusOuter[elementsAroundQuarterEso + 1]
+    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[elementsAroundHalfEso - 1], math.pi)
+    d2 = d2AnnulusOuter[elementsAroundHalfEso - 1]
     d1 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-    d1SampledAroundAlong[bodyStartIdx + 1][elementsAroundHalfDuod - 1] = \
-        vector.setMagnitude(d1, 0.5 *
-                            (vector.magnitude(d1SampledAroundAlong[bodyStartIdx + 1][elementsAroundHalfDuod - 1]) +
-                             vector.magnitude(d2AnnulusOuter[elementsAroundQuarterEso + 1])))
+    d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod - 1] = \
+        vector.setMagnitude(
+            d1,
+            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod - 1]) +
+                   vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso - 1])))
 
-    d1SampledAroundAlong[bodyStartIdx + 1][elementsAroundHalfDuod] = \
-        vector.setMagnitude(d1SampledAroundAlong[bodyStartIdx + 1][elementsAroundHalfDuod],
+    d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod] = \
+        vector.setMagnitude(d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod],
                             vector.magnitude(d1AnnulusOuter[elementsAroundHalfEso]))
 
-    d1SampledAroundAlong[bodyStartIdx + 1][elementsAroundHalfDuod + 1] = \
-        vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso + 1], 0.5 *
-                            (vector.magnitude(d1SampledAroundAlong[bodyStartIdx + 1][elementsAroundHalfDuod + 1]) +
-                             vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso + 1])))
+    d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod + 1] = \
+        vector.setMagnitude(
+            d2AnnulusOuter[elementsAroundHalfEso + 1],
+            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod + 1]) +
+                   vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso + 1])))
 
     # Calculate curvature along
     d2CurvatureAroundAlong = [[[] for n1 in range(len(xSampledAroundAlong[n2]))]
@@ -2045,7 +2069,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         nd2 = []
         nd3 = []
         if n1 == elementsAroundHalfDuod:
-            for n2 in range(bodyStartIdx):
+            for n2 in range(annulusFundusOpenRingIdx):
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
                 nd3.append(d3SampledAroundAlong[n2][n1])
@@ -2054,14 +2078,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             nx = []
             nd2 = []
             nd3 = []
-            # print(d2SampledAroundAlong[bodyStartIdx + 1][n1])
-            for n2 in range(bodyStartIdx + 1, len(xSampledAroundAlong)):
+            for n2 in range(annulusBodyOpenRingIdx + 1, len(xSampledAroundAlong)):
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
                 nd3.append(d3SampledAroundAlong[n2][n1])
-            # print(n2, n1)
             d2CurvatureAlongLC = findCurvatureAlongLine(nx, nd2, nd3)
-            d2CurvatureAlong = d2CurvatureAlongGC + [0.0] + d2CurvatureAlongLC
+            d2CurvatureAlong = d2CurvatureAlongGC + \
+                               [0.0 for n in range(2 * (elementsAroundQuarterEso - 2) + 1)] + \
+                               d2CurvatureAlongLC
 
         else:
             for n2 in range(len(xSampledAroundAlong)):
@@ -2073,10 +2097,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         for n2 in range(len(d2CurvatureAlong)):
             d2CurvatureAroundAlong[n2][n1] = d2CurvatureAlong[n2]
 
-    del xSampledAroundAlong[bodyStartIdx][elementsAroundHalfDuod]
-    del d1SampledAroundAlong[bodyStartIdx][elementsAroundHalfDuod]
-    del d2SampledAroundAlong[bodyStartIdx][elementsAroundHalfDuod]
-    del d3SampledAroundAlong[bodyStartIdx][elementsAroundHalfDuod]
+    for i in range(annulusFundusOpenRingIdx, annulusBodyOpenRingIdx + 1):
+        del xSampledAroundAlong[i][elementsAroundHalfDuod]
+        del d1SampledAroundAlong[i][elementsAroundHalfDuod]
+        del d2SampledAroundAlong[i][elementsAroundHalfDuod]
+        del d3SampledAroundAlong[i][elementsAroundHalfDuod]
 
     # Remove multiple nodes at apex
     del xSampledAroundAlong[0][1:], d1SampledAroundAlong[0][1:], d2SampledAroundAlong[0][1:], \
@@ -2189,627 +2214,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, zero)
         nodeIdentifier += 1
 
-    # # Adjust annulus derivatives
-    # # Make d2 on second half of eso point towards duodenum
-    # for n1 in range(elementsAroundHalfEso - 1):
-    #     idx = n1 + elementsAroundHalfEso + 1
-    #     rotAxis = d3Annulus[idx]
-    #     rotAngle = math.pi
-    #     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
-    #     d2 = d2AnnulusOuter[idx]
-    #     d2AnnulusOuter[idx] = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] +
-    #                            rotFrame[j][2] * d2[2] for j in range(3)]
-    #
-    # # Make d1 on first half of eso point towards esophagus
-    # for n1 in range(1, elementsAroundHalfEso):
-    #     rotAxis = d3Annulus[n1]
-    #     rotAngle = math.pi
-    #     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
-    #     d1 = d1AnnulusOuter[n1]
-    #     d1AnnulusOuter[n1] = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] +
-    #                           rotFrame[j][2] * d1[2] for j in range(3)]
-    #
-    # # Flip d1 and d2 on xAnnulusOuter[0]
-    # d1 = d1AnnulusOuter[0]  # original d1
-    # rotAxis = d3Annulus[0]
-    # rotAngle = math.pi
-    # rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
-    # d1Rot = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
-    #
-    # d2 = d2AnnulusOuter[0]  # original d2
-    # rotAngle = math.pi
-    # rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
-    # d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-    #
-    # d2AnnulusOuter[0] = d1Rot  # d2 is now d1
-    # d1AnnulusOuter[0] = d2Rot  # d1 is now d2 - curvature = annulusD2Curvature[0]
-    #
-    # # Flip d1 and d2 on xAnnulusOuter[halfEso]
-    # d1 = d1AnnulusOuter[elementsAroundHalfEso]  # original d1
-    # d2 = d2AnnulusOuter[elementsAroundHalfEso]  # original d2
-    # d2AnnulusOuter[elementsAroundHalfEso] = d1  # d2 is now d1
-    # d1AnnulusOuter[elementsAroundHalfEso] = d2  # d1 is now d2 - curvature = annulusD2Curvature[halfEso]
-    #
-    # # x along GC and LC row - needs to be in 2 parts
-    # # GC
-    # xAlongGCHalfDuod = []
-    # endGCEsoP2 = trackSurfaceStomach.getProportion(o1_Positions[0])[1]
-    #
-    # for n2 in range(len(xEllipseAroundAll)):
-    #     xPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2][elementsAroundHalfDuod if n2 else 0])
-    #     p2 = trackSurfaceStomach.getProportion(xPosition)
-    #     if p2[1] < endGCEsoP2:
-    #         # xAlongGCHalfDuod.append(xAroundAllTransformed[n2][elementsAroundHalfDuod if n2 else 0])
-    #         xAlongGCHalfDuod.append(xEllipseAroundAll[n2][elementsAroundHalfDuod if n2 else 0])
-    #     else:
-    #         break
-    #
-    # xAlongGCHalfDuod.append(xAnnulusOuter[0])
-    #
-    # rotAngle = -math.pi * 2.0 / elementsCountAroundDuod * elementsAroundHalfDuod
-    # rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
-    # d2ApexRot = [rotFrame[j][0] * d2Apex[0] + rotFrame[j][1] * d2Apex[1] + rotFrame[j][2] * d2Apex[2] for j in range(3)]
-    #
-    # d2AlongGCHalfDuod = [d2ApexRot]
-    # for n2 in range(1, len(xAlongGCHalfDuod) - 1):
-    #     d = findDerivativeBetweenPoints(xAlongGCHalfDuod[n2], xAlongGCHalfDuod[n2 + 1])
-    #     d2AlongGCHalfDuod.append(d)
-    # d2AlongGCHalfDuod.append(d2AnnulusOuter[0])
-    #
-    # xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod = \
-    #     interp.sampleCubicHermiteCurvesSmooth(xAlongGCHalfDuod + [o1_x[-1][0]], d2AlongGCHalfDuod + [d2AnnulusOuter[0]],
-    #                                           elementsAlongFundusApexToCardia + 1,
-    #                                           derivativeMagnitudeEnd=vector.magnitude(d2AnnulusOuter[0]))[0:2]
-    #
-    # d2SampledAlongGCHalfDuod = \
-    #     interp.smoothCubicHermiteDerivativesLine(xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod,
-    #                                              fixEndDerivative=True)
-    #
-    # xAlongGCHalfDuod = xSampledAlongGCHalfDuod[:-1]
-    # d2AlongGCHalfDuod = d2SampledAlongGCHalfDuod[:-1]
-    # for n2 in range(len(xAlongGCHalfDuod)):
-    #     xEllipseAroundAll[n2][elementsAroundHalfDuod] = xAlongGCHalfDuod[n2]
-    #
-    # # LC part
-    # elementsInBody = elementCountGroupList[1]
-    # xAnnulusOuterHalfEsoPosition = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[elementsAroundHalfEso])
-    # startLCAnnulus = trackSurfaceStomach.getProportion(xAnnulusOuterHalfEsoPosition)
-    #
-    # xAlongLCHalfDuod = [xAnnulusOuter[elementsAroundHalfEso]]
-    # n2IdxEndBody = elementCountGroupList[0] + elementCountGroupList[1]
-    #
-    # if elementsInBody - elementsAroundQuarterEso + 1 > 1:
-    #     xPositionEndBody = \
-    #         trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2IdxEndBody][elementsAroundHalfDuod])
-    #     xProportionEndBody = trackSurfaceStomach.getProportion(xPositionEndBody)
-    #
-    #     nx, nd1, nd2, nd3, proportions = \
-    #         trackSurfaceStomach.createHermiteCurvePoints(
-    #             startLCAnnulus[0], startLCAnnulus[1], xProportionEndBody[0], xProportionEndBody[1],
-    #             elementsInBody - elementsAroundQuarterEso + 1, derivativeStart=d2AnnulusOuter[elementsAroundHalfEso])
-    #
-    #     nxNew, nd1New = \
-    #         trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-    #             nx, nd1, nd2, nd3, proportions,
-    #             derivativeMagnitudeStart=vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]))[0:2]
-    #     xAlongLCHalfDuod += nxNew[1:-1]
-    #
-    # for n2 in range(sum(elementCountGroupList) - sum(elementCountGroupList[:2]) + 1):
-    #     xAlongLCHalfDuod.append(xEllipseAroundAll[n2IdxEndBody + n2][elementsAroundHalfDuod])
-    #
-    # d2AlongLCHalfDuod = [d2AnnulusOuter[elementsAroundHalfEso]]
-    # for n2 in range(1, len(xAlongLCHalfDuod)):
-    #     d = findDerivativeBetweenPoints(xAlongLCHalfDuod[n2 - 1], xAlongLCHalfDuod[n2])
-    #     d2AlongLCHalfDuod.append(d)
-    # d2AlongLCHalfDuod[-1] = cd1Sections[-1][-1]
-    #
-    # if materialCoordinates:
-    #     # Break point along at body-antrum and pylorus-duod intersection and smooth separately to keep derivative at
-    #     # body end
-    #     d2AlongBody = \
-    #         interp.smoothCubicHermiteDerivativesLine(
-    #             xAlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
-    #             d2AlongLCHalfDuod[:elementsInBody - elementsAroundQuarterEso + 2],
-    #             fixStartDirection=True, fixEndDirection=True)
-    #
-    #     for n in range(elementCountGroupList[-1] + 1):
-    #         d2AlongLCHalfDuod[-(n + 1)] = cd1Sections[-1][-1]
-    #
-    #     d2AlongBodyToPylorus = \
-    #         interp.smoothCubicHermiteDerivativesLine(
-    #             xAlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:-n],
-    #             d2AlongLCHalfDuod[elementsInBody - elementsAroundQuarterEso + 1:-n],
-    #             fixStartDirection=True, fixEndDirection=True)
-    #     d2AlongDuod = \
-    #         interp.smoothCubicHermiteDerivativesLine(
-    #             xAlongLCHalfDuod[-(n + 1):], d2AlongLCHalfDuod[-(n + 1):], fixStartDirection=True, fixEndDirection=True)
-    #     d2AlongLCHalfDuod = d2AlongBody[:-1] + d2AlongBodyToPylorus[:-1] + d2AlongDuod
-    # else:
-    #     d2AlongLCHalfDuod = \
-    #         interp.smoothCubicHermiteDerivativesLine(xAlongLCHalfDuod, d2AlongLCHalfDuod,
-    #                                                  fixStartDerivative=True, fixEndDirection=True)
-    #
-    # for n2 in range(len(xAlongLCHalfDuod)):
-    #     xEllipseAroundAll[n2 + elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2][elementsAroundHalfDuod] = \
-    #         xAlongLCHalfDuod[n2]
-    #
-    # xAlongCurvatures = xAlongGCHalfDuod + xAlongLCHalfDuod
-    # d2AlongCurvatures = d2AlongGCHalfDuod + d2AlongLCHalfDuod
-    #
-    # esoCount = 1
-    # # Find arclengths to points on quarter, GC and 3-quarter fundus as trackSurface search for nearest position doesnt
-    # # work well near apex
-    # proportionsAlongQuarterMidThree = []
-    # count = 0
-    # for n1 in [elementsAroundQuarterDuod, elementsAroundHalfDuod, elementsAroundQuarterDuod + elementsAroundHalfDuod]:
-    #     xAlong = []
-    #     arcLength = 0.0
-    #     proportions = []
-    #     for n2 in range(elementsAlongFundusApexToCardia):
-    #         xAlong.append(xEllipseAroundAll[n2][n1])
-    #
-    #     rotAngle = -math.pi * 2.0 / elementsCountAroundDuod * n1
-    #     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
-    #     d2ApexRot = [rotFrame[j][0] * d2Apex[0] + rotFrame[j][1] * d2Apex[1] +
-    #                  rotFrame[j][2] * d2Apex[2] for j in range(3)]
-    #     d2Along = [d2ApexRot]
-    #
-    #     for n2 in range(len(xAlong) - 1):
-    #         d2Along.append(findDerivativeBetweenPoints(xAlong[n2], xAlong[n2 + 1]))
-    #
-    #     for n2 in range(len(xAlong) - 1):
-    #         arcLength += interp.getCubicHermiteArcLength(xAlong[n2], d2Along[n2], xAlong[n2 + 1], d2Along[n2 + 1])
-    #         proportion = arcLength / arcLengthsAlongTS[count]
-    #         proportions.append(proportion)
-    #     proportionsAlongQuarterMidThree.append(proportions)
-    #     count += 1
-    #
-    # for n2 in range(1, len(xEllipseAroundAll) - 1):
-    #     startAnnulus = n2 == elementsAlongFundusApexToCardia
-    #     endAnnulus = n2 == elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2
-    #     interiorAnnulus = \
-    #         elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2
-    #
-    #     if startAnnulus or interiorAnnulus or endAnnulus:
-    #         xEllipseAroundAll[n2][elementsAroundHalfDuod - 1] = xAnnulusOuter[esoCount]
-    #         d1EllipseAroundAll[n2][elementsAroundHalfDuod - 1] = d1AnnulusOuter[esoCount]
-    #         xEllipseAroundAll[n2][elementsAroundHalfDuod + 1] = xAnnulusOuter[-esoCount]
-    #         d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1] = d1AnnulusOuter[-esoCount]
-    #
-    #         if startAnnulus or endAnnulus:
-    #             xEllipseAroundAll[n2][elementsAroundHalfDuod] = \
-    #                 xAnnulusOuter[0 if startAnnulus else elementsAroundHalfEso]
-    #
-    #         xPositionA = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2][elementsAroundQuarterDuod])
-    #         xProportionA = trackSurfaceStomach.getProportion(xPositionA)
-    #         xPositionB = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[esoCount])
-    #         xProportionB = trackSurfaceStomach.getProportion(xPositionB)
-    #
-    #         nx, nd1, nd2, nd3, proportions = \
-    #             trackSurfaceStomach.createHermiteCurvePoints(
-    #                 xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1], elementsAroundQuarterDuod - 1,
-    #                 derivativeStart=d1EllipseAroundAll[n2][elementsAroundQuarterDuod])
-    #
-    #         nx, nd1 = \
-    #             trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-    #                 nx, nd1, nd2, nd3, proportions,
-    #                 derivativeMagnitudeStart=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundQuarterDuod]))[0:2]
-    #
-    #         xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nx[1:-1]
-    #         d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nd1[1:-1]
-    #
-    #         # Smooth two halves separately and join together again with d1 at xOuterAnnulus[0] and
-    #         # xOuterAnnulus[elementsAroundHalfEso]
-    #         d1SmoothedFirstHalf = \
-    #             interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][:elementsAroundHalfDuod],
-    #                                                      d1EllipseAroundAll[n2][:elementsAroundHalfDuod],
-    #                                                      fixEndDerivative=True if interiorAnnulus else None)
-    #
-    #         if interiorAnnulus:
-    #             d1EllipseAroundAll[n2][:elementsAroundHalfDuod] = d1SmoothedFirstHalf
-    #         else:
-    #             d1SmoothedFirstHalf[-1] = vector.setMagnitude(d1SmoothedFirstHalf[-1],
-    #                                                           0.5 * (vector.magnitude(d1SmoothedFirstHalf[-2]) +
-    #                                                           vector.magnitude(d1AnnulusOuter[1])))
-    #
-    #         xPositionA = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[-esoCount])
-    #         xProportionA = trackSurfaceStomach.getProportion(xPositionA)
-    #         xPositionB = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[n2][elementsAroundHalfDuod +
-    #                                                                                    elementsAroundQuarterDuod])
-    #         xProportionB = trackSurfaceStomach.getProportion(xPositionB)
-    #
-    #         nx, nd1, nd2, nd3, proportions = \
-    #             trackSurfaceStomach.createHermiteCurvePoints(
-    #                 xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
-    #                 elementsAroundQuarterDuod - 1,
-    #                 derivativeEnd=d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod])
-    #
-    #         nx, nd1 = \
-    #             trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-    #                 nx, nd1, nd2, nd3, proportions,
-    #                 derivativeMagnitudeEnd=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundHalfDuod +
-    #                                                                                elementsAroundQuarterDuod]))[0:2]
-    #
-    #         xEllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
-    #             nx[1:-1]
-    #         d1EllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
-    #             nd1[1:-1]
-    #
-    #         esoCount += 1
-    #         if startAnnulus or endAnnulus:
-    #             d1SmoothedSecondHalf = \
-    #                 interp.smoothCubicHermiteDerivativesLine(
-    #                     xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [xEllipseAroundAll[n2][0]],
-    #                     d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [d1SmoothedFirstHalf[0]],
-    #                     fixEndDerivative=True)
-    #             d1SmoothedSecondHalf[0] = vector.setMagnitude(d1SmoothedSecondHalf[0],
-    #                                                           0.5 * (vector.magnitude(d1SmoothedFirstHalf[1]) +
-    #                                                                  vector.magnitude(d1AnnulusOuter[1])))
-    #
-    #             d1EllipseAroundAll[n2] = d1SmoothedFirstHalf + \
-    #                                      [d1AnnulusOuter[0 if startAnnulus else elementsAroundHalfEso]] + \
-    #                                      d1SmoothedSecondHalf[:-1]
-    #         else:
-    #             d1Smoothed = \
-    #                 interp.smoothCubicHermiteDerivativesLine(xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] +
-    #                                                          [xEllipseAroundAll[n2][0]],
-    #                                                          d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] +
-    #                                                          [d1EllipseAroundAll[n2][0]],
-    #                                                          fixStartDerivative=True, fixEndDerivative=True)
-    #
-    #             d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] = d1Smoothed[:-1]
-    #
-    #             del xEllipseAroundAll[n2][elementsAroundHalfDuod]
-    #             del d1EllipseAroundAll[n2][elementsAroundHalfDuod]
-    #             del d2EllipseAroundAll[n2][elementsAroundHalfDuod]
-    #
-    #     elif 0 < n2 < elementsAlongFundusApexToCardia or \
-    #             elementsAlongFundusApexToCardia + elementsAroundHalfEso - 1 <= n2 < elementsAlongFundusApexToCardia + \
-    #             elementsAroundHalfEso + elementsInBody - elementsAroundQuarterEso - 1:
-    #             if 0 < n2 < elementsAlongFundusApexToCardia:
-    #                 xToSample = [xEllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
-    #                             [xAlongGCHalfDuod[n2]] + \
-    #                             [xEllipseAroundAll[n2][elementsAroundQuarterDuod + elementsAroundHalfDuod]]
-    #                 xToSampleProportion0 = [0.25, 0.5, 0.75]
-    #                 xToSampleProportion1 = [proportionsAlongQuarterMidThree[0][n2 - 1],
-    #                                         proportionsAlongQuarterMidThree[1][n2 - 1],
-    #                                         proportionsAlongQuarterMidThree[2][n2 - 1]]
-    #             else:
-    #                 n2Idx = n2 - (elementsAlongFundusApexToCardia + elementsAroundHalfEso - 1) + 1
-    #                 xToSample = [xEllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
-    #                             [xAlongLCHalfDuod[n2Idx]] + \
-    #                             [xEllipseAroundAll[n2][elementsAroundQuarterDuod + elementsAroundHalfDuod]]
-    #
-    #             d1ToSample = [d1EllipseAroundAll[n2][elementsAroundQuarterDuod]] + \
-    #                          [d1EllipseAroundAll[n2][elementsAroundHalfDuod]] + \
-    #                          [d1EllipseAroundAll[n2][elementsAroundHalfDuod + elementsAroundQuarterDuod]]
-    #
-    #             if 0 < n2 < elementsAlongFundusApexToCardia:
-    #                 xProportionA = [xToSampleProportion0[0], xToSampleProportion1[0]]
-    #                 xProportionB = [xToSampleProportion0[1], xToSampleProportion1[1]]
-    #                 xProportionC = [xToSampleProportion0[2], xToSampleProportion1[2]]
-    #
-    #             else:
-    #                 xPositionA = trackSurfaceStomach.findNearestPosition(xToSample[0])
-    #                 xProportionA = trackSurfaceStomach.getProportion(xPositionA)
-    #                 xPositionB = trackSurfaceStomach.findNearestPosition(xToSample[1])
-    #                 xProportionB = trackSurfaceStomach.getProportion(xPositionB)
-    #                 xPositionC = trackSurfaceStomach.findNearestPosition(xToSample[2])
-    #                 xProportionC = trackSurfaceStomach.getProportion(xPositionC)
-    #
-    #             nx, nd1, nd2, nd3, proportions = \
-    #                 trackSurfaceStomach.createHermiteCurvePoints(
-    #                     xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
-    #                     elementsAroundQuarterDuod, derivativeStart=d1ToSample[0], derivativeEnd=d1ToSample[1])
-    #             if n2 == 1:
-    #                 sampledProportionsOneLeft = proportions
-    #             nxLeft, nd1Left = \
-    #                 trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-    #                     nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=vector.magnitude(d1ToSample[0]))[0:2]
-    #
-    #             nx, nd1, nd2, nd3, proportions = \
-    #                 trackSurfaceStomach.createHermiteCurvePoints(
-    #                     xProportionB[0], xProportionB[1],  xProportionC[0], xProportionC[1], elementsAroundQuarterDuod,
-    #                     derivativeStart=d1ToSample[1], derivativeEnd=d1ToSample[2])
-    #             if n2 == 1:
-    #                 sampledProportionsOneRight = proportions
-    #             nxRight, nd1Right = \
-    #                 trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-    #                     nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=vector.magnitude(d1ToSample[2]))[0:2]
-    #
-    #             xNew = nxLeft[1:] + nxRight[1:-1]
-    #             d1New = nd1Left[1:] + nd1Right[1:-1]
-    #
-    #             xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:-elementsAroundQuarterDuod] = xNew
-    #             d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:-elementsAroundQuarterDuod] = d1New
-    #
-    #             d1EllipseAroundAll[n2] = interp.smoothCubicHermiteDerivativesLoop(xEllipseAroundAll[n2],
-    #                                                                               d1EllipseAroundAll[n2])
-    #
-    # # Calculate and smooth d2
-    # xAlongAll = []
-    # for n1 in range(elementsAroundHalfDuod - 1):
-    #     xAlong = []
-    #     for n2 in range(len(xEllipseAroundAll)):
-    #         xAlong.append(xEllipseAroundAll[n2][n1 if n2 else 0])
-    #     xAlongAll.append(xAlong)
-    #
-    # # Row with annulus - left
-    # xAlong = []
-    # for n2 in range(len(xEllipseAroundAll)):
-    #     xAlong.append(xEllipseAroundAll[n2][elementsAroundHalfDuod - 1 if n2 else 0])
-    # xAlongAll.append(xAlong)
-    #
-    # xAlongAll.append(xAlongCurvatures)
-    #
-    # for n1 in range(elementsAroundHalfDuod - 1):
-    #     xAlong = []
-    #     for n2 in range(len(xEllipseAroundAll)):
-    #         if n2 == 0:
-    #             ringIdx = 0
-    #         elif elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2:
-    #             ringIdx = n1 + elementsAroundHalfDuod
-    #         else:
-    #             ringIdx = n1 + elementsAroundHalfDuod + 1
-    #         xAlong.append(xEllipseAroundAll[n2][ringIdx])
-    #     xAlongAll.append(xAlong)
-    #
-    # d2AlongAll = []
-    # for n1 in range(elementsCountAroundDuod):
-    #     rotAngle = -math.pi * 2.0 / elementsCountAroundDuod * n1
-    #     rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
-    #     d2ApexRot = [rotFrame[j][0] * d2Apex[0] + rotFrame[j][1] * d2Apex[1] +
-    #                  rotFrame[j][2] * d2Apex[2] for j in range(3)]
-    #
-    #     if n1 == elementsAroundHalfDuod:  # Process LC and GC
-    #         # GC
-    #         # Resample point downstream from apex
-    #         nx = \
-    #             trackSurfaceStomach.createHermiteCurvePoints(
-    #                 sampledProportionsOneLeft[-2][0], sampledProportionsOneLeft[-2][1],
-    #                 sampledProportionsOneRight[1][0], sampledProportionsOneRight[1][1], 2,
-    #                 derivativeStart=d1EllipseAroundAll[1][elementsAroundHalfDuod - 1],
-    #                 derivativeEnd=d1EllipseAroundAll[1][elementsAroundHalfDuod + 1])[0]
-    #
-    #         xEllipseAroundAll[1][elementsAroundHalfDuod] = nx[1]
-    #
-    #         d1EllipseAroundAll[1] = interp.smoothCubicHermiteDerivativesLoop(xEllipseAroundAll[1],
-    #                                                                          d1EllipseAroundAll[1])
-    #
-    #         xAlongGCHalfDuodNew = []
-    #         for n2 in range(elementsAlongFundusApexToCardia + 1):
-    #             xAlongGCHalfDuodNew.append(xEllipseAroundAll[n2][elementsAroundHalfDuod])
-    #
-    #         d2AlongGCHalfDuodNew = [d2ApexRot]
-    #         for n2 in range(1, len(xAlongGCHalfDuodNew) - 1):
-    #             d = findDerivativeBetweenPoints(xAlongGCHalfDuodNew[n2], xAlongGCHalfDuodNew[n2 + 1])
-    #             d2AlongGCHalfDuodNew.append(d)
-    #         d2AlongGCHalfDuodNew.append(d2AnnulusOuter[0])
-    #
-    #         d2AlongGCHalfDuodNew = \
-    #             interp.smoothCubicHermiteDerivativesLine(xAlongGCHalfDuodNew + [o1_x[-1][0]],
-    #                                                      d2AlongGCHalfDuodNew + [d2AnnulusOuter[0]],
-    #                                                      fixEndDerivative=True)[:-1]
-    #         d2AlongCurvatures[:len(d2AlongGCHalfDuodNew)] = d2AlongGCHalfDuodNew
-    #         d2AlongAll.append(d2AlongCurvatures)
-    #
-    #     else:
-    #         d2Along = [d2ApexRot]
-    #         for n2 in range(1, len(xAlongAll[n1])):
-    #             d = findDerivativeBetweenPoints(xAlongAll[n1][n2 - 1], xAlongAll[n1][n2])
-    #             d2Along.append(d)
-    #         d2Along[-1] = cd1Sections[-1][-1]
-    #
-    #         if materialCoordinates:
-    #             # Break point along at body-antrum and pylorus-duod intersection and smooth separately to keep
-    #             # derivative at body end
-    #             d2AlongFundusBody = \
-    #                 interp.smoothCubicHermiteDerivativesLine(
-    #                     xAlongAll[n1][:elementCountGroupList[0] + elementCountGroupList[1] + 1],
-    #                     d2Along[:elementCountGroupList[0] + elementCountGroupList[1] + 1],
-    #                     fixStartDirection=True, fixEndDirection=True)
-    #
-    #             for n in range(elementCountGroupList[-1] + 1):
-    #                 d2Along[-(n + 1)] = cd1Sections[-1][-1]
-    #
-    #             d2AlongBodyToPylorus = \
-    #                 interp.smoothCubicHermiteDerivativesLine(
-    #                     xAlongAll[n1][elementCountGroupList[0] + elementCountGroupList[1]:-n],
-    #                     d2Along[elementCountGroupList[0] + elementCountGroupList[1]:-n],
-    #                     fixStartDirection=True, fixEndDirection=True)
-    #
-    #             d2AlongDuod = \
-    #                 interp.smoothCubicHermiteDerivativesLine(
-    #                     xAlongAll[n1][-(n + 1):], d2Along[-(n + 1):], fixStartDirection=True, fixEndDirection=True)
-    #
-    #             d2Along = d2AlongFundusBody[:-1] + d2AlongBodyToPylorus[:-1] + d2AlongDuod
-    #         else:
-    #             d2Along = interp.smoothCubicHermiteDerivativesLine(xAlongAll[n1], d2Along, fixStartDirection=True,
-    #                                                                fixEndDirection=True)
-    #         if n1 == elementsAroundHalfDuod - 1 or n1 == elementsAroundHalfDuod + 1:
-    #             d2Along[elementsAlongFundusApexToCardia] = \
-    #                 vector.setMagnitude(d2Along[elementsAlongFundusApexToCardia],
-    #                                     0.5 * (vector.magnitude(d2Along[elementsAlongFundusApexToCardia]) +
-    #                                            vector.magnitude(d2AnnulusOuter[1])))
-    #             d2Along[elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2] = \
-    #                 vector.setMagnitude(d2Along[elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2],
-    #                                     0.5 * (vector.magnitude(d2Along[elementsAlongFundusApexToCardia +
-    #                                                                     elementsAroundHalfEso - 2]) +
-    #                                            vector.magnitude(d2AnnulusOuter[1])))
-    #         d2AlongAll.append(d2Along)
-    #
-    # # Replace d2 for points sitting on annulus
-    # for n2 in range(2, elementsAroundHalfEso - 1):
-    #     n2Idx = n2 + elementsAlongFundusApexToCardia - 1
-    #     d2AlongAll[elementsAroundHalfDuod - 1][n2Idx] = d2AnnulusOuter[n2]
-    #     d2AlongAll[elementsAroundHalfDuod + 1][n2Idx] = d2AnnulusOuter[-n2]
-    #
-    # # Re-arrange back to around followed by along
-    # for n2 in range(len(xEllipseAroundAll)):
-    #     incompleteRingsWithinEso = elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + \
-    #                                elementsAroundHalfEso - 2
-    #     for n1 in range(len(xEllipseAroundAll[n2]) + (1 if incompleteRingsWithinEso else 0)):
-    #         if incompleteRingsWithinEso:
-    #             if n1 == elementsAroundHalfDuod:
-    #                 pass
-    #             else:
-    #                 d2EllipseAroundAll[n2][n1 - (1 if n1 > elementsAroundHalfDuod else 0)] = d2AlongAll[n1][n2]
-    #         elif n2 >= elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2:
-    #             d2EllipseAroundAll[n2][n1] = \
-    #                 d2AlongAll[n1][n2 - (elementsAroundHalfEso + 1 - 4 if n1 == elementsAroundHalfDuod else 0)]
-    #         else:
-    #             d2EllipseAroundAll[n2][n1] = d2AlongAll[n1][n2]
-    #
-    # xOuter = xEllipseAroundAll
-    # d1Outer = d1EllipseAroundAll
-    # d2Outer = d2EllipseAroundAll
-    #
-    # # Calculate d3
-    # d3UnitOuter = []
-    # for n2 in range(len(xOuter)):
-    #     d3Around = []
-    #     for n1 in range(len(xOuter[n2])):
-    #         if n2 == 0:
-    #             d3Around.append(rotAxisApex)
-    #         else:
-    #             d3Around.append(vector.normalise(
-    #                 vector.crossproduct3(vector.normalise(d1Outer[n2][n1]), vector.normalise(d2Outer[n2][n1]))))
-    #     d3UnitOuter.append(d3Around)
-    #
-    # # Calculate curvature around
-    # d1Curvature = []
-    # d1Curvature.append([1.0 for n in range(len(xOuter[0]))])  # Will be replaced in later step
-    # esoCount = 1
-    # for n2 in range(1, len(xOuter)):
-    #     incompleteRingsWithinEso = elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + \
-    #                                elementsAroundHalfEso - 2
-    #     completeRingsOnCardia = (n2 == elementsAlongFundusApexToCardia or n2 == elementsAlongFundusApexToCardia +
-    #                              elementsAroundHalfEso - 2)
-    #     if incompleteRingsWithinEso:
-    #         d2 = o1_d2[-1][esoCount]
-    #         rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][esoCount]),
-    #                                                         vector.normalise(o1_d2[-1][esoCount])))
-    #         rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
-    #         d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-    #         d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod] + [o1_x[-1][esoCount]],
-    #                                                       d1Outer[n2][:elementsAroundHalfDuod] + [d2Rot],
-    #                                                       d3UnitOuter[n2][:elementsAroundHalfDuod] + [rotAxis])
-    #         curvature = interp.getCubicHermiteCurvature(xAnnulusOuter[esoCount], d1AnnulusOuter[esoCount],
-    #                                                     o1_x[-1][esoCount], d2Rot,
-    #                                                     d3UnitOuter[n2][elementsAroundHalfDuod - 1], 0.0)
-    #         d1CurvatureFirstHalf[-2] = curvature
-    #
-    #         d3 = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][-esoCount]),
-    #                                                    vector.normalise(o1_d2[-1][-esoCount])))
-    #         d1CurvatureSecondHalf = findCurvatureAlongLine([o1_x[-1][-esoCount]] +
-    #                                                        xOuter[n2][elementsAroundHalfDuod:] + [xOuter[n2][0]],
-    #                                                        [o1_d2[-1][-esoCount]] +
-    #                                                        d1Outer[n2][elementsAroundHalfDuod:] + [d1Outer[n2][0]],
-    #                                                        [d3] + d3UnitOuter[n2][elementsAroundHalfDuod:] +
-    #                                                        [d3UnitOuter[n2][0]])[:-1]
-    #
-    #         curvature = interp.getCubicHermiteCurvature(o1_x[-1][-esoCount], o1_d2[-1][-esoCount],
-    #                                                     xAnnulusOuter[-esoCount], d1AnnulusOuter[-esoCount],
-    #                                                     d3UnitOuter[n2][elementsAroundHalfDuod], 1.0)
-    #         d1CurvatureSecondHalf[1] = curvature
-    #         d1Curvature.append(d1CurvatureFirstHalf[:-1] + d1CurvatureSecondHalf[1:])
-    #         esoCount += 1
-    #
-    #     elif completeRingsOnCardia:
-    #         d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod],
-    #                                                       d1Outer[n2][:elementsAroundHalfDuod],
-    #                                                       d3UnitOuter[n2][:elementsAroundHalfDuod])
-    #
-    #         d1CurvatureSecondHalf = findCurvatureAlongLine(xOuter[n2][elementsAroundHalfDuod + 1:] + [xOuter[n2][0]],
-    #                                                        d1Outer[n2][elementsAroundHalfDuod + 1:] + [d1Outer[n2][0]],
-    #                                                        d3UnitOuter[n2][elementsAroundHalfDuod + 1:] +
-    #                                                        [d3UnitOuter[n2][0]])[:-1]
-    #
-    #         midPtCurvature = annulusD2Curvature[0 if n2 == elementsAlongFundusApexToCardia else elementsAroundHalfEso]
-    #         d1Curvature.append(d1CurvatureFirstHalf + [midPtCurvature] + d1CurvatureSecondHalf)
-    #         esoCount += 1
-    #     else:
-    #         d1Curvature.append(findD1CurvatureAround(xOuter[n2], d1Outer[n2], d3UnitOuter[n2]))
-    #
-    # # Populate d3Along for use to calculate curvature along
-    # d3UnitAlongAll = []
-    # for n1 in range(elementsAroundHalfDuod - 1):
-    #     d3Along = []
-    #     for n2 in range(len(d3UnitOuter)):
-    #         d3Along.append(d3UnitOuter[n2][n1 if n2 else 0])
-    #     d3UnitAlongAll.append(d3Along)
-    #
-    # # Row wth annulus - left
-    # d3Along = []
-    # for n2 in range(len(d3UnitOuter)):
-    #     d3Along.append(d3UnitOuter[n2][elementsAroundHalfDuod - 1 if n2 else 0])
-    # d3UnitAlongAll.append(d3Along)
-    #
-    # # GC and LC row - needs to be in 2 parts
-    # # GC part
-    # d3AlongGCHalfDuod = []
-    # for n2 in range(elementsAlongFundusApexToCardia + 1):
-    #     d3AlongGCHalfDuod.append(d3UnitOuter[n2][elementsAroundHalfDuod if n2 else 0])
-    #
-    # # LC part
-    # d3AlongLCHalfDuod = []
-    # for n2 in range(elementsAlongCardiaToDuod + 1):
-    #     d3AlongLCHalfDuod.append(d3UnitOuter[n2 + elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2]
-    #                             [elementsAroundHalfDuod])
-    # d3Along = d3AlongGCHalfDuod + d3AlongLCHalfDuod
-    # d3UnitAlongAll.append(d3Along)
-    #
-    # for n1 in range(elementsAroundHalfDuod - 1):
-    #     d3Along = []
-    #     for n2 in range(len(d3UnitOuter)):
-    #         if n2 == 0:
-    #             ringIdx = 0
-    #         elif elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2:
-    #             ringIdx = n1 + elementsAroundHalfDuod
-    #         else:
-    #             ringIdx = n1 + elementsAroundHalfDuod + 1
-    #         d3Along.append(d3UnitOuter[n2][ringIdx])
-    #     d3UnitAlongAll.append(d3Along)
-    #
-    # # Calculate curvature along
-    # d2CurvatureAlong = []
-    # for n1 in range(len(xAlongAll)):
-    #     if n1 == elementsAroundHalfDuod:  # Process LC and GC
-    #         # GC
-    #         d2CurvatureAlongGCHalfDuod = findCurvatureAlongLine(xAlongGCHalfDuod, d2AlongGCHalfDuod, d3AlongGCHalfDuod)
-    #         # LC
-    #         d2CurvatureAlongLCHalfDuod = findCurvatureAlongLine(xAlongLCHalfDuod, d2AlongLCHalfDuod, d3AlongLCHalfDuod)
-    #         d2CurvaturesAlongCurvature = d2CurvatureAlongGCHalfDuod + d2CurvatureAlongLCHalfDuod
-    #         d2CurvatureAlong.append(d2CurvaturesAlongCurvature)
-    #     else:
-    #         curvature = findCurvatureAlongLine(xAlongAll[n1], d2AlongAll[n1], d3UnitAlongAll[n1])
-    #         # replace with curvature from annulus
-    #         if n1 == elementsAroundHalfDuod - 1 or n1 == elementsAroundHalfDuod + 1:
-    #             for n2 in range(2, elementsAroundHalfEso - 1):
-    #                 n2Idx = n2 + elementsAlongFundusApexToCardia + 1
-    #                 curvature[n2Idx] = annulusD2Curvature[(n2 + 1 if elementsAroundHalfDuod - 1 else -(n2 + 1))]
-    #         d2CurvatureAlong.append(curvature)
-    #
-    # # Re-arrange back to around followed by along
-    # for n2 in range(len(xEllipseAroundAll)):
-    #     incompleteRingsWithinEso = elementsAlongFundusApexToCardia < n2 < elementsAlongFundusApexToCardia + \
-    #                                elementsAroundHalfEso - 2
-    #     for n1 in range(len(xEllipseAroundAll[n2]) + (1 if incompleteRingsWithinEso else 0)):
-    #         if incompleteRingsWithinEso:
-    #             if n1 == elementsAroundHalfDuod:
-    #                 pass
-    #             else:
-    #                 d2Curvature[n2][n1 - (1 if n1 > elementsAroundHalfDuod else 0)] = d2CurvatureAlong[n1][n2]
-    #         elif n2 >= elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2:
-    #             d2Curvature[n2][n1] = \
-    #                 d2CurvatureAlong[n1][n2 - (elementsAroundHalfEso + 1 - 4 if n1 == elementsAroundHalfDuod else 0)]
-    #         else:
-    #             d2Curvature[n2][n1] = d2CurvatureAlong[n1][n2]
-    #
-    # # Replace d1Curvature at apex with d2Curvature
-    # for n1 in range(elementsCountAroundDuod):
-    #     d1Curvature[0][n1] = d2Curvature[0][n1]
-
     annotationGroupsAlong = []
     for i in range(len(elementsAlongSections)):
         elementsCount = elementsAlongSections[i]
@@ -2889,24 +2293,24 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 elementIdxThroughWall.append(elementIdxAround)
             elementIdxMat.append(elementIdxThroughWall)
 
-        # elif 0 < e2 < bodyStartIdx - 1 or e2 > bodyStartIdx:
         else:
-            e1Range = elementsCountAroundDuod - 2 if (e2 == bodyStartIdx - 1 or e2 == bodyStartIdx) \
+            e1Range = elementsCountAroundDuod - 2 if (annulusFundusOpenRingIdx - 1 <= e2 <= annulusBodyOpenRingIdx) \
                 else len(xSampledAroundAlong[e2])
             for e3 in range(elementsCountThroughWall):
                 elementIdxAround = []
                 for e1 in range(e1Range):
+                    e1IdxBni1 = e1
+                    e1IdxBni3 = e1
                     if e1 > elementsAroundHalfDuod - 2:
-                        e1IdxBni1 = e1 + (2 if e2 == bodyStartIdx - 1 else 1 if e2 == bodyStartIdx else 0)
-                        e1IdxBni3 = e1 + (1 if e2 == bodyStartIdx - 1 else 2 if e2 == bodyStartIdx else 0)
-                    else:
-                        e1IdxBni1 = e1
-                        e1IdxBni3 = e1
-                        # elif elementsAlongFundusApexToCardia < e2 < elementsAlongFundusApexToCardia + \
-                        #         elementsAroundHalfEso - 3:  # incomplete rings interior of eso
-                        #     print('3')
-                        #     e1IdxBni1 = e1 + 1
-                        #     e1IdxBni3 = e1 + 1
+                        if e2 == annulusFundusOpenRingIdx - 1:
+                            e1IdxBni1 = e1 + 2
+                            e1IdxBni3 = e1 + 1
+                        elif annulusFundusOpenRingIdx - 1 < e2 < annulusBodyOpenRingIdx:
+                            e1IdxBni1 = e1 + 1
+                            e1IdxBni3 = e1 + 1
+                        elif e2 == annulusBodyOpenRingIdx:
+                            e1IdxBni1 = e1 + 1
+                            e1IdxBni3 = e1 + 2
 
                     eft1 = eftStandard
                     scaleFactors = []
@@ -2922,7 +2326,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     nodeIdentifiers = [bni111, bni211, bni121, bni221,
                                        bni112, bni212, bni122, bni222]
 
-                    if e2 == bodyStartIdx - 2:
+                    if e2 == annulusFundusOpenRingIdx - 2:
                         if e1 == elementsAroundHalfDuod - 2:
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
@@ -2961,7 +2365,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
-                    if e2 == bodyStartIdx + 1:
+                    if e2 == annulusBodyOpenRingIdx + 1:
                         if e1 == elementsAroundHalfDuod - 2:
                             scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
@@ -3028,16 +2432,32 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     for n3 in range(elementsCountThroughWall + 1):
         n1 = 0
+        m = -1
         for nAround in range(elementsCountAroundEso):
             if nAround == 0:
-                idx = idxMat[bodyStartIdx - 1][n3][elementsAroundHalfDuod]
-            elif 0 < nAround < elementsAroundQuarterEso or nAround > elementsAroundQuarterEso + elementsAroundHalfEso:
-                idx = idxMat[bodyStartIdx - 1][n3][elementsAroundHalfDuod + (-1 if 0 < nAround < elementsAroundQuarterEso else 1)]
-            elif nAround == elementsAroundQuarterEso or nAround == elementsAroundQuarterEso + elementsAroundHalfEso:
-                idx = idxMat[bodyStartIdx][n3][elementsAroundHalfDuod - (1 if nAround == elementsAroundQuarterEso else 0)]
-            elif elementsAroundQuarterEso < nAround < elementsAroundHalfEso + 2:
-                idx = idxMat[bodyStartIdx + 1][n3][elementsAroundHalfDuod - 1 + n1]
+                idx = idxMat[annulusFundusOpenRingIdx - 1][n3][elementsAroundHalfDuod]
+            elif 0 < nAround < elementsAroundQuarterEso:
+                idx = idxMat[annulusFundusOpenRingIdx - 1 + n1][n3][elementsAroundHalfDuod - 1]
                 n1 += 1
+            elif nAround == elementsAroundQuarterEso or nAround == elementsAroundQuarterEso + elementsAroundHalfEso:
+                idx = idxMat[bodyStartIdx][n3][elementsAroundHalfDuod - (1 if nAround == elementsAroundQuarterEso
+                                                                         else 0)]
+                n1 = 1
+            elif elementsAroundQuarterEso < nAround < elementsAroundHalfEso - 1:
+                idx = idxMat[bodyStartIdx + n1][n3][elementsAroundHalfDuod - 1]
+                n1 += 1
+            elif elementsAroundHalfEso - 1 <= nAround <= elementsAroundHalfEso + 1:
+                idx = idxMat[annulusBodyOpenRingIdx + 1][n3][elementsAroundHalfDuod + m]
+                m += 1
+                n1 = 1
+            elif elementsAroundHalfEso + 1 < nAround < elementsAroundHalfEso + elementsAroundQuarterEso:
+                idx = idxMat[annulusBodyOpenRingIdx + 1 - n1][n3][elementsAroundHalfDuod]
+                n1 += 1
+            elif elementsAroundHalfEso + elementsAroundQuarterEso < nAround < elementsCountAroundEso - 1:
+                idx = idxMat[bodyStartIdx - n1][n3][elementsAroundHalfDuod]
+                n1 += 1
+            else:
+                idx = idxMat[annulusFundusOpenRingIdx - 1][n3][elementsAroundHalfDuod + 1]
 
             endPoints_x[n3][nAround] = xList[idx - stomachStartNode]
             endPoints_d1[n3][nAround] = d1List[idx - stomachStartNode]
