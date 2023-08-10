@@ -1717,16 +1717,16 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         d1SampledBifurcationRight.append(d1Smoothed)
         d2SampledBifurcationRight.append(d2Around)
 
-    # should be fixed
-    d3SampledBifurcationRight = []
-    for n2 in range(2 + 1):
-        d3Around = []
-        for n1 in range(elementsCountAround):
-            v1 = d1SampledBifurcationRight[n2][n1]
-            v2 = d2SampledBifurcationRight[n2][n1]
-            v3 = vector.crossproduct3(v1, v2)
-            d3Around.append(v3)
-        d3SampledBifurcationRight.append(d3Around)
+    # # should be fixed
+    # d3SampledBifurcationRight = []
+    # for n2 in range(2 + 1):
+    #     d3Around = []
+    #     for n1 in range(elementsCountAround):
+    #         v1 = d1SampledBifurcationRight[n2][n1]
+    #         v2 = d2SampledBifurcationRight[n2][n1]
+    #         v3 = vector.crossproduct3(v1, v2)
+    #         d3Around.append(v3)
+    #     d3SampledBifurcationRight.append(d3Around)
 
     innerBifurcationRight = [xSampledBifurcationRight, d1SampledBifurcationRight, d2SampledBifurcationRight]
 
@@ -1793,7 +1793,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     c2d2 = lhLastRingNodeCoordinates[2][1]
     rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
         make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
-    rod3 = pad3
+    # rod3 = pad3
 
     # Get coordinates across cervix septum, between two inner canals
     elementsCountAcross = len(cox) + 1
@@ -1879,6 +1879,38 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     septumBifurCoordinates = [xSeptumBifurcation, d1SeptumBifurcation, d2SeptumBifurcation, d3SeptumBifurcation]
 
 
+    # Get d3 for inner right bifurcation tube
+    d3SampledBifurcationRight = []
+    for n1 in range(elementsCountAround):
+        v1 = xSampledBifurcationRight[1][n1]
+        if n1 <= elementsCountAround // 2:
+            v2 = rox[n1]
+        else:
+            v2 = xSeptumBifurcation[n1 - elementsCountAround // 2 - 1]
+        d3 = findDerivativeBetweenPoints(v1, v2)
+        d3SampledBifurcationRight.append(d3)
+
+    # Get d3 for outer bifurcation (for rox nodes)
+    rod3 = []
+    for n in range(elementsCountAround):
+        if n == 0:
+            rod3.append(pad3[n])
+        elif 0 < n < elementsCountAround // 2:
+            rod3.append(d3SampledBifurcationRight[n])
+        elif n == elementsCountAround // 2:
+            rod3.append(pad3[n])
+        else:
+            # should be d3 of the d3SampledBifurcationLeft
+            rod3.append(d3SampledBifurcationRight[n])
+
+    # Get d3 for outer bifurcation (for cox nodes)
+    cod3 = []
+    for n in range(len(cox)):
+        v1 = cox[n]
+        v2 = xSeptumBifurcation[n]
+        d3 = findDerivativeBetweenPoints(v1, v2)
+        cod3.append(d3)
+
     # Create nodes
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -1912,7 +1944,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationRight[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationRight[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationRight[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationRight[n2][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationRight[n1])
                 birNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
 
@@ -1931,7 +1963,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     # Create bifurcation nodes
     nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
-        create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, septumBifurCoordinates)
+        create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
     #old
     # paCentre = sx_cervix_group[0][1]
     # c1Centre = sx_right_horn_group[0][-2]
@@ -2433,7 +2465,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
 #     nextNodeId = nodeIdentifier
 #     return nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex
 
-def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, septumBifurCoordinates):
+def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates):
 
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -2468,6 +2500,7 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cox[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cod1[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cod2[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cod3[n])
         coNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
 
@@ -2769,10 +2802,14 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
                                 math.sin(radiansAround), math.cos(radiansAround), radiansPerElementAround,
                                 math.sin(radiansAroundNext), math.cos(radiansAroundNext), radiansPerElementAround]
                 eft1 = eftfactory.createEftPyramidBottomSimple(va * 10000, vb * 10000)
+                # remapEftNodeValueLabel(eft1, [1], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1]), (Node.VALUE_LABEL_D_DS3, [])])
+                # remapEftNodeValueLabel(eft1, [4], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+                # remapEftNodeValueLabel(eft1, [2], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1]), (Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateMod
             elif 0 < e1 < elementsCountAcross - 1:
                 eft1 = eftfactory.createEftWedgeCollapseXi2Quadrant([5, 6])
+                # remapEftNodeValueLabel(eft1, [1, 2 ], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateMod
 
