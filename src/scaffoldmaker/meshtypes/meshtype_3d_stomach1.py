@@ -11,9 +11,9 @@ import math
 
 from cmlibs.maths.vectorops import cross, sub
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
-from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
+from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.zinc.element import Element,  Elementbasis
+from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnotationGroups, \
@@ -458,7 +458,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
                 'Number of elements along': 2,
-                'Number of elements through wall': 1,  # 4, later
+                'Number of elements through wall': 1,
                 'Unit scale': 0.0105 * 101,
                 'Outlet': False,
                 'Ostium diameter': 25.0,
@@ -664,7 +664,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Human 2' in parameterSetName:
-            options['Number of elements through wall'] = 1  # 4 later
+            options['Number of elements through wall'] = 1
             options['Wall thickness'] = 0.0525 * 101
         elif 'Mouse 1' in parameterSetName:
             options['Number of elements around duodenum'] = 16
@@ -824,8 +824,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         materialCentralPath = cls.centralPathDefaultScaffoldPackages['Material']
         limitingRidge = options['Limiting ridge']
         elementsCountThroughWall = options['Number of elements through wall']
-        elementsCountAroundEso = options['Number of elements around esophagus']
-        elementsAroundQuarterEso = int(elementsCountAroundEso * 0.25)
+
         allAnnotationGroups = []
 
         stomachTermsAlong = [None, 'fundus of stomach', 'body of stomach',
@@ -836,87 +835,83 @@ class MeshType_3d_stomach1(Scaffold_base):
         coordinates = find_or_create_field_coordinates(fm)
 
         geometricCentralPath = StomachCentralPath(region, geometricCentralPath, stomachTermsAlong)
-        # geometricCentralPath._path_region.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_path.exf")
-        arcLengthOfGroupsAlong = geometricCentralPath.arcLengthOfGroupsAlong
 
-        allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier = \
+        allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongGroups = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
                                 allAnnotationGroups, centralPath=geometricCentralPath,
-                                options=options, nodeIdentifier=1, elementIdentifier=1, splitCoordinates=False,
-                                materialCoordinates=False)
+                                options=options, nodeIdentifier=1, elementIdentifier=1)
 
-        # # Material coordinates
-        # stomach_coordinates = find_or_create_field_coordinates(fm, name="stomach coordinates")
-        # allAnnotationGroupsMaterial = []
-        # tmp_region = region.createRegion()
-        # tmp_fm = tmp_region.getFieldmodule()
-        # with ChangeManager(tmp_fm):
-        #     tmp_stomach_coordinates = find_or_create_field_coordinates(tmp_fm, name="stomach coordinates")
-        #
-        #     materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
-        #     materialCentralPath._path_region.writeFile("C:\\Users\\mlin865\\tmp\\km_stomach_path_material.exf")
-        #
-        #     allAnnotationGroupsMaterial, nextNodeIdentifier, nextElementIdentifier = \
-        #         createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
-        #                             allAnnotationGroupsMaterial,
-        #                             centralPath=materialCentralPath, options=options, nodeIdentifier=1,
-        #                             elementIdentifier=1, splitCoordinates=False, materialCoordinates=True)
-        #
-        #     # Write two coordinates
-        #     sir = tmp_region.createStreaminformationRegion()
-        #     srm = sir.createStreamresourceMemory()
-        #     tmp_region.write(sir)
-        #     result, buffer = srm.getBuffer()
-        #
-        #     sir = region.createStreaminformationRegion()
-        #     srm = sir.createStreamresourceMemoryBuffer(buffer)
-        #     region.read(sir)
-        #
-        #     del srm
-        #     del sir
-        #     del tmp_stomach_coordinates
-        # del tmp_fm
-        # del tmp_region
+        # Material coordinates
+        stomach_coordinates = find_or_create_field_coordinates(fm, name="stomach coordinates")
+        allAnnotationGroupsMaterial = []
+        tmp_region = region.createRegion()
+        tmp_fm = tmp_region.getFieldmodule()
+        with ChangeManager(tmp_fm):
+            tmp_stomach_coordinates = find_or_create_field_coordinates(tmp_fm, name="stomach coordinates")
 
-        # # Create markers
-        # markerTermNameStomachCoordinatesMap = {
-        #     'body-antrum junction along the greater curvature on luminal surface': [0.6020919166990195, -0.45004378032192227, 0.0],
-        #     'body-antrum junction along the greater curvature on serosa': [0.6, -0.5, 0.0],
-        #     'distal point of lower esophageal sphincter serosa on the greater curvature of stomach': [1.280068326927052, 0.7999733714717442, 4.9153708368810965e-16],
-        #     'distal point of lower esophageal sphincter serosa on the lesser curvature of stomach': [1.1200683310311637, 0.8000096111703247, 5.132730495672042e-16],
-        #     'esophagogastric junction along the greater curvature on luminal surface': [1.3499430436270714, 0.44878481258293096, -4.212552457001039e-17],
-        #     'esophagogastric junction along the greater curvature on serosa': [1.3499935896233386, 0.4987847870339471, -2.4350160282618435e-17],
-        #     'esophagogastric junction along the lesser curvature on luminal surface': [1.0489058130975502, 0.4491717442850351, 3.0345621453573164e-16],
-        #     'esophagogastric junction along the lesser curvature on serosa': [1.050012637401148, 0.4991433628042418, 2.8296958630895795e-16],
-        #     'gastroduodenal junction along the greater curvature on luminal surface': [0.2, -0.15, 0.0],
-        #     'gastroduodenal junction along the greater curvature on serosa': [0.2, -0.2, 0.0],
-        #     'gastroduodenal junction along the lesser curvature on luminal surface': [0.2, 0.15, 0.0],
-        #     'gastroduodenal junction along the lesser curvature on serosa': [0.20, 0.20, 0.00],
-        #     'limiting ridge at the greater curvature on the luminal surface' if limitingRidge else
-        #     'fundus-body junction along the greater curvature on luminal surface': [1.1997241080276948, -0.4500013598322351, -0.0002446732391805909],
-        #     'limiting ridge at the greater curvature on serosa' if limitingRidge else
-        #     'fundus-body junction along the greater curvature on serosa': [1.2, -0.5, 0.0]
-        # }
-        # if elementsCountThroughWall == 4:
-        #     markerTermNameStomachCoordinatesCMLMMap = {
-        #         'body-antrum junction along the greater curvature on circular-longitudinal muscle interface': [0.6005229791747548, -0.48751094508048054, 0.0],
-        #         'esophagogastric junction along the greater curvature on circular-longitudinal muscle interface': [1.349980953124272, 0.4862847934211931, -2.8794001354466424e-17],
-        #         'esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface': [1.0497365634804512, 0.4866625412064305, 3.2195156437946623e-16],
-        #         'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [0.2, -0.1875, 0.0],
-        #         'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [0.2, 0.1875, 0.0],
-        #         'limiting ridge at the greater curvature on the circular-longitudinal muscle interface' if limitingRidge
-        #         else 'fundus-body junction along the greater curvature on circular-longitudinal muscle interface': [1.199934138287874, -0.48750032317766967, -6.116839191743296e-05]
-        #     }
-        #     markerTermNameStomachCoordinatesMap.update(markerTermNameStomachCoordinatesCMLMMap)
-        #
-        # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        #
-        # for termName, stomachCoordinatesValues in markerTermNameStomachCoordinatesMap.items():
-        #     annotationGroup = findOrCreateAnnotationGroupForTerm(
-        #         allAnnotationGroups, region, get_stomach_term(termName), isMarker=True)
-        #     annotationGroup.createMarkerNode(nodeIdentifier, stomach_coordinates, stomachCoordinatesValues)
-        #     nodeIdentifier += 1
+            materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
+
+            allAnnotationGroupsMaterial, nextNodeIdentifier, nextElementIdentifier = \
+                createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
+                                    allAnnotationGroupsMaterial,
+                                    centralPath=materialCentralPath, options=options, nodeIdentifier=1,
+                                    elementIdentifier=1, elementsAlongSections=elementsAlongGroups,
+                                    materialCoordinates=True)[:-1]
+
+            # Write two coordinates
+            sir = tmp_region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemory()
+            tmp_region.write(sir)
+            result, buffer = srm.getBuffer()
+
+            sir = region.createStreaminformationRegion()
+            srm = sir.createStreamresourceMemoryBuffer(buffer)
+            region.read(sir)
+
+            del srm
+            del sir
+            del tmp_stomach_coordinates
+        del tmp_fm
+        del tmp_region
+
+        # Create markers
+        markerTermNameStomachCoordinatesMap = {
+            'body-antrum junction along the greater curvature on luminal surface': [-0.6, -0.45, 6.34622e-18],
+            'body-antrum junction along the greater curvature on serosa': [-0.6, -0.5, 0.0],
+            'distal point of lower esophageal sphincter serosa on the greater curvature of stomach': [0.08, 0.8, 4.48345e-16],
+            'distal point of lower esophageal sphincter serosa on the lesser curvature of stomach': [-0.08, 0.8, 4.67938e-16],
+            'esophagogastric junction along the greater curvature on luminal surface': [0.14885, 0.451205, 3.88484e-14],
+            'esophagogastric junction along the greater curvature on serosa': [0.149987, 0.501192, 3.72966e-16],
+            'esophagogastric junction along the lesser curvature on luminal surface': [-0.15, 0.45, 3.33066e-16],
+            'esophagogastric junction along the lesser curvature on serosa': [-0.15, 0.5, 2.28983e-16],
+            'gastroduodenal junction along the greater curvature on luminal surface': [-1.1, -0.15, 7.93284e-18],
+            'gastroduodenal junction along the greater curvature on serosa': [-1.1, -0.2, 0],
+            'gastroduodenal junction along the lesser curvature on luminal surface': [-1.1, 0.15, -4.73333e-17],
+            'gastroduodenal junction along the lesser curvature on serosa': [-1.1, 0.2, -2.77556e-16],
+            'limiting ridge at the greater curvature on the luminal surface' if limitingRidge else
+            'fundus-body junction along the greater curvature on luminal surface': [-2.60734e-23, -0.450001, -0.00024468],
+            'fundus-body junction along the greater curvature on serosa': [2.77556e-17, -0.5, 5.74685e-16]
+        }
+        if elementsCountThroughWall == 4:
+            markerTermNameStomachCoordinatesCMLMMap = {
+                'body-antrum junction along the greater curvature on circular-longitudinal muscle interface': [-0.6, -0.4875, -8.32667e-17],
+                'esophagogastric junction along the greater curvature on circular-longitudinal muscle interface': [0.149703, 0.488695, 9.99176e-15],
+                'esophagogastric junction along the lesser curvature on circular-longitudinal muscle interface': [-0.15, 0.4875, 2.76195e-16],
+                'gastroduodenal junction along the greater curvature on circular-longitudinal muscle interface': [-1.1, -0.1875, 1.66533e-16],
+                'gastroduodenal junction along the lesser curvature on circular-longitudinal muscle interface': [-1.1, 0.1875, -2.24625e-16],
+                'limiting ridge at the greater curvature on the circular-longitudinal muscle interface' if limitingRidge
+                else 'fundus-body junction along the greater curvature on circular-longitudinal muscle interface': [3.75751e-17, -0.4875, -6.117e-05]
+            }
+            markerTermNameStomachCoordinatesMap.update(markerTermNameStomachCoordinatesCMLMMap)
+
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = max(1, get_maximum_node_identifier(nodes) + 1)
+
+        for termName, stomachCoordinatesValues in markerTermNameStomachCoordinatesMap.items():
+            annotationGroup = findOrCreateAnnotationGroupForTerm(
+                allAnnotationGroups, region, get_stomach_term(termName), isMarker=True)
+            annotationGroup.createMarkerNode(nodeIdentifier, stomach_coordinates, stomachCoordinatesValues)
+            nodeIdentifier += 1
 
         return allAnnotationGroups, None
 
@@ -935,257 +930,257 @@ class MeshType_3d_stomach1(Scaffold_base):
                                                        refineElementsCountThroughWall)
         return
 
-    # @classmethod
-    # def defineFaceAnnotations(cls, region, options, annotationGroups):
-    #     """
-    #     Add face annotation groups from the highest dimension mesh.
-    #     Must have defined faces and added subelements for highest dimension groups.
-    #     :param region: Zinc region containing model.
-    #     :param options: Dict containing options. See getDefaultOptions().
-    #     :param annotationGroups: List of annotation groups for top-level elements.
-    #     New face annotation groups are appended to this list.
-    #     """
-    #
-    #     limitingRidge = options['Limiting ridge']
-    #     elementsCountThroughWall = options['Number of elements through wall']
-    #
-    #     stomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("stomach"))
-    #     dorsalStomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("dorsal stomach"))
-    #     ventralStomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("ventral stomach"))
-    #     bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
-    #     cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
-    #     duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("duodenum"))
-    #     fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
-    #     antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
-    #     pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
-    #     esoGroup = getAnnotationGroupForTerm(annotationGroups, get_esophagus_term("esophagus"))
-    #     nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
-    #                                             ("elements adjacent to lesser curvature", "None"))
-    #
-    #     # Create new groups
-    #     stomachLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                              get_stomach_term("luminal surface of stomach"))
-    #     stomachSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                             get_stomach_term("serosa of stomach"))
-    #     bodyLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                           get_stomach_term("luminal surface of body of stomach"))
-    #     bodySerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                          get_stomach_term("serosa of body of stomach"))
-    #     cardiaLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                             get_stomach_term(
-    #                                                                 "luminal surface of cardia of stomach"))
-    #     cardiaSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                            get_stomach_term("serosa of cardia of stomach"))
-    #     duodenumLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                               get_smallintestine_term("luminal surface of duodenum"))
-    #     duodenumSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                              get_smallintestine_term("serosa of duodenum"))
-    #     esoLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                          get_esophagus_term("luminal surface of esophagus"))
-    #     esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                         get_esophagus_term("serosa of esophagus"))
-    #     fundusLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                             get_stomach_term(
-    #                                                                 "luminal surface of fundus of stomach"))
-    #     fundusSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                            get_stomach_term("serosa of fundus of stomach"))
-    #     antrumLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                             get_stomach_term("luminal surface of pyloric antrum"))
-    #     antrumSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                            get_stomach_term("serosa of pyloric antrum"))
-    #     pylorusLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                              get_stomach_term("luminal surface of pyloric canal"))
-    #     pylorusSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                             get_stomach_term("serosa of pyloric canal"))
-    #     gastroduodenalJunctionGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                                      get_stomach_term("gastroduodenal junction"))
-    #
-    #     fm = region.getFieldmodule()
-    #     mesh2d = fm.findMeshByDimension(2)
-    #     mesh1d = fm.findMeshByDimension(1)
-    #
-    #     is_exterior = fm.createFieldIsExterior()
-    #     is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-    #     is_exterior_face_inner = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-    #
-    #     is_gastroduod = fm.createFieldAnd(duodenumGroup.getGroup(), pylorusGroup.getGroup())
-    #     gastroduodenalJunctionGroup.getMeshGroup(mesh2d).addElementsConditional(is_gastroduod)
-    #
-    #     is_dorsal = dorsalStomachGroup.getGroup()
-    #     is_ventral = ventralStomachGroup.getGroup()
-    #     is_curvatures = fm.createFieldAnd(is_dorsal, is_ventral)
-    #
-    #     is_nearLC = nearLCGroup.getGroup()
-    #     is_lesserCurvature = fm.createFieldAnd(is_curvatures, is_nearLC)
-    #     lesserCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                               get_stomach_term("lesser curvature of stomach"))
-    #     lesserCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_lesserCurvature)
-    #
-    #     is_nearGC = fm.createFieldNot(is_nearLC)
-    #     is_greaterCurvature = fm.createFieldAnd(is_curvatures, is_nearGC)
-    #     greaterCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                                get_stomach_term("greater curvature of stomach"))
-    #     greaterCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_greaterCurvature)
-    #
-    #     if elementsCountThroughWall == 4:
-    #         CMLMInterfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #             "circular-longitudinal muscle interface of stomach"))
-    #         circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
-    #                                                         get_stomach_term("circular muscle layer of stomach"))
-    #         longitudinalMuscleGroup = \
-    #             getAnnotationGroupForTerm(annotationGroups, get_stomach_term("longitudinal muscle layer of stomach"))
-    #         is_CM = circularMuscleGroup.getGroup()
-    #         is_LM = longitudinalMuscleGroup.getGroup()
-    #         is_CMLMInterface = fm.createFieldAnd(is_CM, is_LM)
-    #         CMLMInterfaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_CMLMInterface)
-    #         is_curvatures_CMLM = fm.createFieldAnd(is_curvatures, is_CMLMInterface)
-    #         is_greaterCurvature_CMLM = fm.createFieldAnd(is_greaterCurvature, is_CMLMInterface)
-    #         is_lesserCurvature_CMLM = fm.createFieldAnd(is_lesserCurvature, is_CMLMInterface)
-    #
-    #         dorsalStomach_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #             "circular-longitudinal muscle interface of dorsal stomach"))
-    #         ventralStomach_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #             "circular-longitudinal muscle interface of ventral stomach"))
-    #         is_dorsal_CMLM = fm.createFieldAnd(is_dorsal, is_CMLMInterface)
-    #         dorsalStomach_CMLMGroup.getMeshGroup(mesh2d).addElementsConditional(is_dorsal_CMLM)
-    #         is_ventral_CMLM = fm.createFieldAnd(is_ventral, is_CMLMInterface)
-    #         ventralStomach_CMLMGroup.getMeshGroup(mesh2d).addElementsConditional(is_ventral_CMLM)
-    #
-    #         gastroduod_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #             "circular-longitudinal muscle interface of gastroduodenal junction"))
-    #         is_gastroduod_CMLM = fm.createFieldAnd(is_gastroduod, is_CMLMInterface)
-    #         gastroduod_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_gastroduod_CMLM)
-    #
-    #         bodyCurvaturesCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
-    #         duodenumCurvaturesCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                get_smallintestine_term("circular-longitudinal muscle interface of "
-    #                                                                        "first segment of the duodenum along the "
-    #                                                                        "gastric-omentum attachment"))
-    #         esoCurvaturesCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_esophagus_term(
-    #                 "circular-longitudinal muscle interface of esophagus along the cut margin"))
-    #         fundusCurvaturesCMLMGroup =\
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "circular-longitudinal muscle interface of fundus of stomach along the greater curvature"))
-    #         antrumGreaterCurvatureCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "circular-longitudinal muscle interface of pyloric antrum along the greater curvature"))
-    #         antrumLesserCurvatureCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "circular-longitudinal muscle interface of pyloric antrum along the lesser curvature"))
-    #         pylorusGreaterCurvatureCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "circular-longitudinal muscle interface of pyloric canal along the greater curvature"))
-    #         pylorusLesserCurvatureCMLMGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "circular-longitudinal muscle interface of pyloric canal along the lesser curvature"))
-    #
-    #         sectionCurvaturesCMLMGroups = [None, bodyCurvaturesCMLMGroup, None, duodenumCurvaturesCMLMGroup,
-    #                                        esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup,
-    #                                        antrumGreaterCurvatureCMLMGroup, pylorusGreaterCurvatureCMLMGroup,
-    #                                        antrumLesserCurvatureCMLMGroup, pylorusLesserCurvatureCMLMGroup]
-    #
-    #     sectionGroups = [stomachGroup, bodyGroup, cardiaGroup, duodenumGroup, esoGroup, fundusGroup, antrumGroup,
-    #                      pylorusGroup]
-    #     sectionSerosaGroups = [stomachSerosaGroup, bodySerosaGroup, cardiaSerosaGroup, duodenumSerosaGroup,
-    #                            esoSerosaGroup, fundusSerosaGroup, antrumSerosaGroup,
-    #                            pylorusSerosaGroup]
-    #     sectionLuminalGroups = [stomachLuminalGroup, bodyLuminalGroup, cardiaLuminalGroup, duodenumLuminalGroup,
-    #                             esoLuminalGroup, fundusLuminalGroup, antrumLuminalGroup,
-    #                             pylorusLuminalGroup]
-    #
-    #     for i in range(len(sectionGroups)):
-    #         is_section = sectionGroups[i].getGroup()
-    #         is_sectionSerosa = fm.createFieldAnd(is_section, is_exterior_face_outer)
-    #         sectionSerosaGroups[i].getMeshGroup(mesh2d).addElementsConditional(is_sectionSerosa)
-    #         is_sectionLuminal = fm.createFieldAnd(is_section, is_exterior_face_inner)
-    #         sectionLuminalGroups[i].getMeshGroup(mesh2d).addElementsConditional(is_sectionLuminal)
-    #
-    #         if elementsCountThroughWall == 4:
-    #             if sectionGroups[i] is antrumGroup or sectionGroups[i] is pylorusGroup:
-    #                 is_sectionGreaterCurvatureCMLM = fm.createFieldAnd(is_section, is_greaterCurvature_CMLM)
-    #                 is_sectionLesserCurvatureCMLM = fm.createFieldAnd(is_section, is_lesserCurvature_CMLM)
-    #                 if sectionCurvaturesCMLMGroups[i]:
-    #                     sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
-    #                         addElementsConditional(is_sectionGreaterCurvatureCMLM)
-    #                     sectionCurvaturesCMLMGroups[i+2].getMeshGroup(mesh1d). \
-    #                         addElementsConditional(is_sectionLesserCurvatureCMLM)
-    #             else:
-    #                 is_sectionCurvaturesCMLM = fm.createFieldAnd(is_section, is_curvatures_CMLM)
-    #                 if sectionCurvaturesCMLMGroups[i]:
-    #                     sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
-    #                         addElementsConditional(is_sectionCurvaturesCMLM)
-    #
-    #     if limitingRidge:
-    #         limitingRidgeGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                get_stomach_term("forestomach-glandular stomach junction"))
-    #         innerLimitingRidgeGroup = \
-    #             findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                get_stomach_term("limiting ridge on luminal surface"))
-    #         outerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-    #                                                                      get_stomach_term("limiting ridge on serosa"))
-    #
-    #         is_antrum = antrumGroup.getGroup()
-    #         is_body = bodyGroup.getGroup()
-    #         is_cardia = cardiaGroup.getGroup()
-    #         is_fundus = fundusGroup.getGroup()
-    #         is_limitingRidgeBody = fm.createFieldAnd(is_fundus, is_body)
-    #         is_limitingRidgeCardia = fm.createFieldAnd(is_body, is_cardia)
-    #         is_limitingRidgeAntrum = fm.createFieldAnd(is_antrum, is_cardia)
-    #         is_limitingRidgeBodyCardia = fm.createFieldOr(is_limitingRidgeBody, is_limitingRidgeCardia)
-    #         is_limitingRidgeAntrumCardia = fm.createFieldOr(is_limitingRidgeAntrum, is_limitingRidgeCardia)
-    #         is_limitingRidge = fm.createFieldOr(is_limitingRidgeBodyCardia, is_limitingRidgeAntrumCardia)
-    #
-    #         if elementsCountThroughWall == 4:
-    #             mucosaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("mucosa of stomach"))
-    #             is_mucosa = mucosaGroup.getGroup()
-    #             is_bodyMucosa = fm.createFieldAnd(is_body, is_mucosa)
-    #             is_antrumMucosa = fm.createFieldAnd(is_antrum, is_mucosa)
-    #             is_bodyAntrumMucosa = fm.createFieldOr(is_bodyMucosa, is_antrumMucosa)
-    #
-    #             is_xi1Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0),
-    #                                                fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1))
-    #             is_xi1All = fm.createFieldOr(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0),
-    #                                          fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1))
-    #             is_xi1BodyAntrumMucosaAll = fm.createFieldAnd(is_bodyAntrumMucosa, is_xi1All)
-    #             is_limitingRidgeAroundCardia = fm.createFieldAnd(is_xi1BodyAntrumMucosaAll,
-    #                                                              fm.createFieldNot(is_xi1Interior))
-    #
-    #             is_xi2Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0),
-    #                                                fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
-    #             is_xi2ZeroBodyMucosa = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0), is_bodyMucosa)
-    #             is_limitingRidgeBodyBoundary = fm.createFieldAnd(is_xi2ZeroBodyMucosa,
-    #                                                              fm.createFieldNot(is_xi2Interior))
-    #
-    #             is_limitingRidgeMucosa = fm.createFieldOr(is_limitingRidgeAroundCardia, is_limitingRidgeBodyBoundary)
-    #             is_limitingRidge = fm.createFieldOr(is_limitingRidge, is_limitingRidgeMucosa)
-    #
-    #         limitingRidgeGroup.getMeshGroup(mesh2d).addElementsConditional(is_limitingRidge)
-    #
-    #         is_xi3Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0),
-    #                                            fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-    #         is_xi3ZeroLimitingRidge = fm.createFieldAnd(is_limitingRidge,
-    #                                                     fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
-    #         is_xi3OneLimitingRidge = fm.createFieldAnd(is_limitingRidge,
-    #                                                    fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-    #
-    #         is_limitingRidgeInner = fm.createFieldAnd(is_xi3ZeroLimitingRidge, fm.createFieldNot(is_xi3Interior))
-    #         innerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeInner)
-    #
-    #         is_limitingRidgeOuter = fm.createFieldAnd(is_xi3OneLimitingRidge, fm.createFieldNot(is_xi3Interior))
-    #         outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
-    #
-    #         if elementsCountThroughWall == 4:
-    #             limitingRidge_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
-    #                 "limiting ridge on circular-longitudinal muscle interface"))
-    #             is_limitingRidgeCMLM = fm.createFieldAnd(is_CMLMInterface, is_limitingRidge)
-    #             limitingRidge_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeCMLM)
-    #
-    #     annotationGroups.remove(nearLCGroup)
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+
+        limitingRidge = options['Limiting ridge']
+        elementsCountThroughWall = options['Number of elements through wall']
+
+        stomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("stomach"))
+        dorsalStomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("dorsal stomach"))
+        ventralStomachGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("ventral stomach"))
+        bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("body of stomach"))
+        cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
+        duodenumGroup = getAnnotationGroupForTerm(annotationGroups, get_smallintestine_term("duodenum"))
+        fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("fundus of stomach"))
+        antrumGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric antrum"))
+        pylorusGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("pyloric canal"))
+        esoGroup = getAnnotationGroupForTerm(annotationGroups, get_esophagus_term("esophagus"))
+        nearLCGroup = getAnnotationGroupForTerm(annotationGroups,
+                                                ("elements adjacent to lesser curvature", "None"))
+
+        # Create new groups
+        stomachLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_stomach_term("luminal surface of stomach"))
+        stomachSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_stomach_term("serosa of stomach"))
+        bodyLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_stomach_term("luminal surface of body of stomach"))
+        bodySerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                             get_stomach_term("serosa of body of stomach"))
+        cardiaLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_stomach_term(
+                                                                    "luminal surface of cardia of stomach"))
+        cardiaSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_stomach_term("serosa of cardia of stomach"))
+        duodenumLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_smallintestine_term("luminal surface of duodenum"))
+        duodenumSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_smallintestine_term("serosa of duodenum"))
+        esoLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                             get_esophagus_term("luminal surface of esophagus"))
+        esoSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                            get_esophagus_term("serosa of esophagus"))
+        fundusLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_stomach_term(
+                                                                    "luminal surface of fundus of stomach"))
+        fundusSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_stomach_term("serosa of fundus of stomach"))
+        antrumLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_stomach_term("luminal surface of pyloric antrum"))
+        antrumSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_stomach_term("serosa of pyloric antrum"))
+        pylorusLuminalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_stomach_term("luminal surface of pyloric canal"))
+        pylorusSerosaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_stomach_term("serosa of pyloric canal"))
+        gastroduodenalJunctionGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                         get_stomach_term("gastroduodenal junction"))
+
+        fm = region.getFieldmodule()
+        mesh2d = fm.findMeshByDimension(2)
+        mesh1d = fm.findMeshByDimension(1)
+
+        is_exterior = fm.createFieldIsExterior()
+        is_exterior_face_outer = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+        is_exterior_face_inner = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+
+        is_gastroduod = fm.createFieldAnd(duodenumGroup.getGroup(), pylorusGroup.getGroup())
+        gastroduodenalJunctionGroup.getMeshGroup(mesh2d).addElementsConditional(is_gastroduod)
+
+        is_dorsal = dorsalStomachGroup.getGroup()
+        is_ventral = ventralStomachGroup.getGroup()
+        is_curvatures = fm.createFieldAnd(is_dorsal, is_ventral)
+
+        is_nearLC = nearLCGroup.getGroup()
+        is_lesserCurvature = fm.createFieldAnd(is_curvatures, is_nearLC)
+        lesserCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_stomach_term("lesser curvature of stomach"))
+        lesserCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_lesserCurvature)
+
+        is_nearGC = fm.createFieldNot(is_nearLC)
+        is_greaterCurvature = fm.createFieldAnd(is_curvatures, is_nearGC)
+        greaterCurvatureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_stomach_term("greater curvature of stomach"))
+        greaterCurvatureGroup.getMeshGroup(mesh2d).addElementsConditional(is_greaterCurvature)
+
+        if elementsCountThroughWall == 4:
+            CMLMInterfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                "circular-longitudinal muscle interface of stomach"))
+            circularMuscleGroup = getAnnotationGroupForTerm(annotationGroups,
+                                                            get_stomach_term("circular muscle layer of stomach"))
+            longitudinalMuscleGroup = \
+                getAnnotationGroupForTerm(annotationGroups, get_stomach_term("longitudinal muscle layer of stomach"))
+            is_CM = circularMuscleGroup.getGroup()
+            is_LM = longitudinalMuscleGroup.getGroup()
+            is_CMLMInterface = fm.createFieldAnd(is_CM, is_LM)
+            CMLMInterfaceGroup.getMeshGroup(mesh2d).addElementsConditional(is_CMLMInterface)
+            is_curvatures_CMLM = fm.createFieldAnd(is_curvatures, is_CMLMInterface)
+            is_greaterCurvature_CMLM = fm.createFieldAnd(is_greaterCurvature, is_CMLMInterface)
+            is_lesserCurvature_CMLM = fm.createFieldAnd(is_lesserCurvature, is_CMLMInterface)
+
+            dorsalStomach_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                "circular-longitudinal muscle interface of dorsal stomach"))
+            ventralStomach_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                "circular-longitudinal muscle interface of ventral stomach"))
+            is_dorsal_CMLM = fm.createFieldAnd(is_dorsal, is_CMLMInterface)
+            dorsalStomach_CMLMGroup.getMeshGroup(mesh2d).addElementsConditional(is_dorsal_CMLM)
+            is_ventral_CMLM = fm.createFieldAnd(is_ventral, is_CMLMInterface)
+            ventralStomach_CMLMGroup.getMeshGroup(mesh2d).addElementsConditional(is_ventral_CMLM)
+
+            gastroduod_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                "circular-longitudinal muscle interface of gastroduodenal junction"))
+            is_gastroduod_CMLM = fm.createFieldAnd(is_gastroduod, is_CMLMInterface)
+            gastroduod_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_gastroduod_CMLM)
+
+            bodyCurvaturesCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of body of stomach along the gastric-omentum attachment"))
+            duodenumCurvaturesCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                   get_smallintestine_term("circular-longitudinal muscle interface of "
+                                                                           "first segment of the duodenum along the "
+                                                                           "gastric-omentum attachment"))
+            esoCurvaturesCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_esophagus_term(
+                    "circular-longitudinal muscle interface of esophagus along the cut margin"))
+            fundusCurvaturesCMLMGroup =\
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of fundus of stomach along the greater curvature"))
+            antrumGreaterCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric antrum along the greater curvature"))
+            antrumLesserCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric antrum along the lesser curvature"))
+            pylorusGreaterCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric canal along the greater curvature"))
+            pylorusLesserCurvatureCMLMGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "circular-longitudinal muscle interface of pyloric canal along the lesser curvature"))
+
+            sectionCurvaturesCMLMGroups = [None, bodyCurvaturesCMLMGroup, None, duodenumCurvaturesCMLMGroup,
+                                           esoCurvaturesCMLMGroup, fundusCurvaturesCMLMGroup,
+                                           antrumGreaterCurvatureCMLMGroup, pylorusGreaterCurvatureCMLMGroup,
+                                           antrumLesserCurvatureCMLMGroup, pylorusLesserCurvatureCMLMGroup]
+
+        sectionGroups = [stomachGroup, bodyGroup, cardiaGroup, duodenumGroup, esoGroup, fundusGroup, antrumGroup,
+                         pylorusGroup]
+        sectionSerosaGroups = [stomachSerosaGroup, bodySerosaGroup, cardiaSerosaGroup, duodenumSerosaGroup,
+                               esoSerosaGroup, fundusSerosaGroup, antrumSerosaGroup,
+                               pylorusSerosaGroup]
+        sectionLuminalGroups = [stomachLuminalGroup, bodyLuminalGroup, cardiaLuminalGroup, duodenumLuminalGroup,
+                                esoLuminalGroup, fundusLuminalGroup, antrumLuminalGroup,
+                                pylorusLuminalGroup]
+
+        for i in range(len(sectionGroups)):
+            is_section = sectionGroups[i].getGroup()
+            is_sectionSerosa = fm.createFieldAnd(is_section, is_exterior_face_outer)
+            sectionSerosaGroups[i].getMeshGroup(mesh2d).addElementsConditional(is_sectionSerosa)
+            is_sectionLuminal = fm.createFieldAnd(is_section, is_exterior_face_inner)
+            sectionLuminalGroups[i].getMeshGroup(mesh2d).addElementsConditional(is_sectionLuminal)
+
+            if elementsCountThroughWall == 4:
+                if sectionGroups[i] is antrumGroup or sectionGroups[i] is pylorusGroup:
+                    is_sectionGreaterCurvatureCMLM = fm.createFieldAnd(is_section, is_greaterCurvature_CMLM)
+                    is_sectionLesserCurvatureCMLM = fm.createFieldAnd(is_section, is_lesserCurvature_CMLM)
+                    if sectionCurvaturesCMLMGroups[i]:
+                        sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionGreaterCurvatureCMLM)
+                        sectionCurvaturesCMLMGroups[i+2].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionLesserCurvatureCMLM)
+                else:
+                    is_sectionCurvaturesCMLM = fm.createFieldAnd(is_section, is_curvatures_CMLM)
+                    if sectionCurvaturesCMLMGroups[i]:
+                        sectionCurvaturesCMLMGroups[i].getMeshGroup(mesh1d). \
+                            addElementsConditional(is_sectionCurvaturesCMLM)
+
+        if limitingRidge:
+            limitingRidgeGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                   get_stomach_term("forestomach-glandular stomach junction"))
+            innerLimitingRidgeGroup = \
+                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                   get_stomach_term("limiting ridge on luminal surface"))
+            outerLimitingRidgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                         get_stomach_term("limiting ridge on serosa"))
+
+            is_antrum = antrumGroup.getGroup()
+            is_body = bodyGroup.getGroup()
+            is_cardia = cardiaGroup.getGroup()
+            is_fundus = fundusGroup.getGroup()
+            is_limitingRidgeBody = fm.createFieldAnd(is_fundus, is_body)
+            is_limitingRidgeCardia = fm.createFieldAnd(is_body, is_cardia)
+            is_limitingRidgeAntrum = fm.createFieldAnd(is_antrum, is_cardia)
+            is_limitingRidgeBodyCardia = fm.createFieldOr(is_limitingRidgeBody, is_limitingRidgeCardia)
+            is_limitingRidgeAntrumCardia = fm.createFieldOr(is_limitingRidgeAntrum, is_limitingRidgeCardia)
+            is_limitingRidge = fm.createFieldOr(is_limitingRidgeBodyCardia, is_limitingRidgeAntrumCardia)
+
+            if elementsCountThroughWall == 4:
+                mucosaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("mucosa of stomach"))
+                is_mucosa = mucosaGroup.getGroup()
+                is_bodyMucosa = fm.createFieldAnd(is_body, is_mucosa)
+                is_antrumMucosa = fm.createFieldAnd(is_antrum, is_mucosa)
+                is_bodyAntrumMucosa = fm.createFieldOr(is_bodyMucosa, is_antrumMucosa)
+
+                is_xi1Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0),
+                                                   fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1))
+                is_xi1All = fm.createFieldOr(fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0),
+                                             fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1))
+                is_xi1BodyAntrumMucosaAll = fm.createFieldAnd(is_bodyAntrumMucosa, is_xi1All)
+                is_limitingRidgeAroundCardia = fm.createFieldAnd(is_xi1BodyAntrumMucosaAll,
+                                                                 fm.createFieldNot(is_xi1Interior))
+
+                is_xi2Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0),
+                                                   fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1))
+                is_xi2ZeroBodyMucosa = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0), is_bodyMucosa)
+                is_limitingRidgeBodyBoundary = fm.createFieldAnd(is_xi2ZeroBodyMucosa,
+                                                                 fm.createFieldNot(is_xi2Interior))
+
+                is_limitingRidgeMucosa = fm.createFieldOr(is_limitingRidgeAroundCardia, is_limitingRidgeBodyBoundary)
+                is_limitingRidge = fm.createFieldOr(is_limitingRidge, is_limitingRidgeMucosa)
+
+            limitingRidgeGroup.getMeshGroup(mesh2d).addElementsConditional(is_limitingRidge)
+
+            is_xi3Interior = fm.createFieldAnd(fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0),
+                                               fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            is_xi3ZeroLimitingRidge = fm.createFieldAnd(is_limitingRidge,
+                                                        fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            is_xi3OneLimitingRidge = fm.createFieldAnd(is_limitingRidge,
+                                                       fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+
+            is_limitingRidgeInner = fm.createFieldAnd(is_xi3ZeroLimitingRidge, fm.createFieldNot(is_xi3Interior))
+            innerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeInner)
+
+            is_limitingRidgeOuter = fm.createFieldAnd(is_xi3OneLimitingRidge, fm.createFieldNot(is_xi3Interior))
+            outerLimitingRidgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeOuter)
+
+            if elementsCountThroughWall == 4:
+                limitingRidge_CMLMGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_stomach_term(
+                    "limiting ridge on circular-longitudinal muscle interface"))
+                is_limitingRidgeCMLM = fm.createFieldAnd(is_CMLMInterface, is_limitingRidge)
+                limitingRidge_CMLMGroup.getMeshGroup(mesh1d).addElementsConditional(is_limitingRidgeCMLM)
+
+        annotationGroups.remove(nearLCGroup)
 
 class StomachCentralPath:
     """
@@ -1250,42 +1245,6 @@ class StomachCentralPath:
         self.cd13Groups = cd13Groups
 
 
-def findD1CurvatureAround(xAround, d1Around, normsAround):
-    """
-    Rearrange points around so that the group of points starts from left side of the annulus to the greater curvature
-    and ends on the right side of the annulus. This put points in consecutive order for calculating curvature.
-    The calculated curvatures are then re-arranged such that it starts from the greater curvature and goes to the right
-    side of the annulus, followed by the left side of the annulus and closing the loop back at the greater curvature.
-    :param xAround: points around a loop joining to the annulus.
-    :param d1Around: derivative of points.
-    :param normsAround: radial normal at each point.
-    :return: curvature in the original order.
-    """
-    xLoop = xAround[int(len(xAround) * 0.5 + 1):] + xAround[: int(len(xAround) * 0.5 + 1)]
-    d1Loop = d1Around[int(len(d1Around) * 0.5 + 1):] + d1Around[: int(len(d1Around) * 0.5 + 1)]
-    normsLoop = normsAround[int(len(d1Around) * 0.5 + 1):] + normsAround[: int(len(d1Around) * 0.5 + 1)]
-    curvature = findCurvatureAlongLine(xLoop, d1Loop, normsLoop)
-    # Rearrange to correct order
-    d1CurvatureAround = curvature[int(len(xAround) * 0.5):] + curvature[: int(len(xAround) * 0.5):]
-
-    return d1CurvatureAround
-
-
-def findDerivativeBetweenPoints(v1, v2):
-    """
-    Find vector difference between two points and rescale vector difference using cubic hermite arclength
-    between the points to derive the derivative between the points.
-    :param v1: start vector
-    :param v2: end vector
-    :return: derivative of between v1 and v2
-    """
-    d = [v2[c] - v1[c] for c in range(3)]
-    arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-    d = [c * arcLengthAround for c in vector.normalise(d)]
-
-    return d
-
-
 def findCurvatureAroundLoop(nx, nd, radialVectors):
     """
     Calculate curvature for points lying along a loop.
@@ -1327,9 +1286,8 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
     return curvature
 
 
-def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups,
-                        centralPath, options, nodeIdentifier, elementIdentifier,
-                        splitCoordinates, materialCoordinates=False):
+def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups, centralPath, options,
+                        nodeIdentifier, elementIdentifier, elementsAlongSections = [], materialCoordinates=False):
     """
     Generates a stomach scaffold in the region using a central path and parameter options.
     :param region: Region to create elements in.
@@ -1341,9 +1299,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     :param options: Parameter options for stomach scaffold.
     :param nodeIdentifier: First node identifier.
     :param elementIdentifier: First element identifier.
-    :param splitCoordinates: Create split coordinates if True.
+    :param elementsAlongSections: Number of elements along each section.
     :param materialCoordinates: Create material coordinates if True.
-    :return allAnnotationGroups, elementsCountGroupList
+    :return allAnnotationGroups, elementsAlongSections
     """
     elementsCountAroundEso = options['Number of elements around esophagus']
     elementsCountAroundDuod = options['Number of elements around duodenum']
@@ -1694,17 +1652,17 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nodeIdentifier = nextNodeIdentifier
     elementIdentifier = nextElementIdentifier
 
-    # if materialCoordinates:
-    #     GEJSettings['Unit scale'] = unitScale
-    #     GEJSettings['Ostium diameter'] = ostiumDiameter
-    #     GEJSettings['Ostium length'] = ostiumLength
-    #     GEJSettings['Ostium wall thickness'] = ostiumWallThickness
-    #     GEJSettings['Ostium wall relative thicknesses'] = ostiumWallRelThicknesses
-    #     GEJSettings['Vessel inner diameter'] = vesselInnerDiameter
-    #     GEJSettings['Vessel wall thickness'] = vesselWallThickness
-    #     GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
-    #     GEJSettings['Vessel angle 1 degrees'] = vesselAngle1
-    #     GEJSettings['Vessel angle 2 degrees'] = vesselAngle2
+    if materialCoordinates:
+        GEJSettings['Unit scale'] = unitScale
+        GEJSettings['Ostium diameter'] = ostiumDiameter
+        GEJSettings['Ostium length'] = ostiumLength
+        GEJSettings['Ostium wall thickness'] = ostiumWallThickness
+        GEJSettings['Ostium wall relative thicknesses'] = ostiumWallRelThicknesses
+        GEJSettings['Vessel inner diameter'] = vesselInnerDiameter
+        GEJSettings['Vessel wall thickness'] = vesselWallThickness
+        GEJSettings['Vessel wall relative thicknesses'] = vesselWallRelThicknesses
+        GEJSettings['Vessel angle 1 degrees'] = vesselAngle1
+        GEJSettings['Vessel angle 2 degrees'] = vesselAngle2
 
     # Create location of annulus
     xAnnulusOuter = [[] for x in range(elementsCountAroundEso)]
@@ -1722,14 +1680,18 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     d1AnnulusOuter = []
     for n in range(elementsCountAroundEso):
-        d = findDerivativeBetweenPoints(xAnnulusOuter[n], xAnnulusOuter[(n + 1) % elementsCountAroundEso])
-        d1AnnulusOuter.append(d)
+        v1 = xAnnulusOuter[n]
+        v2 = xAnnulusOuter[(n + 1) % elementsCountAroundEso]
+        d = [v2[c] - v1[c] for c in range(3)]
+        arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
+        d1 = [c * arcLengthAround for c in vector.normalise(d)]
+        d1AnnulusOuter.append(d1)
+
     d1AnnulusOuter = interp.smoothCubicHermiteDerivativesLoop(xAnnulusOuter, d2AnnulusOuter)
     d3Annulus = []
     for n in range(elementsCountAroundEso):
         d3 = vector.normalise(vector.crossproduct3(vector.normalise(d1AnnulusOuter[n]), d2AnnulusNorm[n]))
         d3Annulus.append(d3)
-    # annulusD2Curvature = findCurvatureAroundLoop(xAnnulusOuter, d2AnnulusOuter, d3Annulus)
 
     # for m in range(len(xAnnulusOuter)):
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1741,24 +1703,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     #     nodeIdentifier += 1
 
     # Calculate arclength at quarter line between lesser and greater curvature for each region
-    xQuarterEllipseAll = []
-    d2QuarterEllipseAll = []
-    for n2 in range(len(xEllipseAroundAll)):
-        xQuarterEllipseAll.append(xEllipseAroundAll[n2][elementsAroundQuarterDuod])
-        d2QuarterEllipseAll.append(d2EllipseAroundAll[n2][elementsAroundQuarterDuod])
-    totalQuarterLength = interp.getCubicHermiteCurvesLength(xQuarterEllipseAll, d2QuarterEllipseAll)
+    if not elementsAlongSections:
+        xQuarterEllipseAll = []
+        d2QuarterEllipseAll = []
+        for n2 in range(len(xEllipseAroundAll)):
+            xQuarterEllipseAll.append(xEllipseAroundAll[n2][elementsAroundQuarterDuod])
+            d2QuarterEllipseAll.append(d2EllipseAroundAll[n2][elementsAroundQuarterDuod])
+        totalQuarterLength = interp.getCubicHermiteCurvesLength(xQuarterEllipseAll, d2QuarterEllipseAll)
 
-    ratioArcLengthSections = []
-    for i in range(len(nodeStartEndSections)):
-        xList = []
-        d2List = []
-        for n in range(nodeStartEndSections[i][0], nodeStartEndSections[i][1] + 1):
-            xList.append(xQuarterEllipseAll[n])
-            d2List.append(d2QuarterEllipseAll[n])
-        quarterLengthSection = interp.getCubicHermiteCurvesLength(xList, d2List)
-        ratioArcLengthSections.append(quarterLengthSection / totalQuarterLength)
+        ratioArcLengthSections = []
+        for i in range(len(nodeStartEndSections)):
+            xList = []
+            d2List = []
+            for n in range(nodeStartEndSections[i][0], nodeStartEndSections[i][1] + 1):
+                xList.append(xQuarterEllipseAll[n])
+                d2List.append(d2QuarterEllipseAll[n])
+            quarterLengthSection = interp.getCubicHermiteCurvesLength(xList, d2List)
+            ratioArcLengthSections.append(quarterLengthSection / totalQuarterLength)
 
-    elementsAlongSections = [math.ceil(c / targetLength) for c in ratioArcLengthSections]
+        elementsAlongSections = [math.ceil(c / targetLength) for c in ratioArcLengthSections]
+
     totalElementsAlong = sum(elementsAlongSections)
 
     xSampledAlong = [[] for n1 in range(elementsCountAroundDuod)]
@@ -2190,15 +2154,15 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             else:
                 nodeIdxGC.append(idxMat[n2][n3][0])
 
-    # for n2 in range(1, bodyStartIdx + 1):
-    #     for n3 in range(len(idxMat[n2])):
-    #         nodeIdxGC.append(idxMat[n2][n3][int(0.5 * len(xSampledAroundAlong[n2]))])
-    #
-    # nodeIdxLC = []
-    # for n2 in range(elementsAlongCardiaToDuod + 1):
-    #     for n3 in range(len(idxMat[n2])):
-    #         nodeIdxLC.append(
-    #             idxMat[elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2 + n2][n3][elementsAroundHalfDuod])
+    for n2 in range(1, annulusFundusOpenRingIdx + 1):
+        for n3 in range(len(idxMat[n2])):
+            nodeIdxGC.append(idxMat[n2][n3][int(0.5 * len(xSampledAroundAlong[n2]))])
+
+    nodeIdxLC = []
+    for n2 in range(annulusBodyOpenRingIdx, len(xSampledAroundAlong)):
+        for n3 in range(len(idxMat[n2])):
+            nodeIdxLC.append(
+                idxMat[n2][n3][elementsAroundHalfDuod])
 
     for n2 in range(len(xList)):
         node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -2520,273 +2484,60 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0, fixMinimumStart=True,
         coordinates=coordinates)
 
-    # elementIdxThroughWall = []
-    # n = lastDuodenumElementIdentifier - 1
-    # for n3 in range(elementsCountThroughWall):
-    #     elementIdxAround = []
-    #     for n1 in range(elementsCountAroundEso):
-    #         n += 1
-    #         elementIdxAround.append(n)
-    #     elementIdxThroughWall.append(elementIdxAround)
-    # elementIdxMat.append(elementIdxThroughWall)
-    #
-    # # delete mucosa layer in fundus when there is a limiting ridge
-    # mesh_destroy_elements_and_nodes_by_identifiers(mesh, fundusMucosaElementIdentifiers)
-    #
-    # # Create annotation groups for dorsal and ventral parts of the stomach
-    # dorsalGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("dorsal stomach"))
-    # ventralGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("ventral stomach"))
-    # dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
-    # ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
-    #
-    # for e2 in range(len(elementIdxMat)):
-    #     for e3 in range(len(elementIdxMat[e2])):
-    #         for e1 in range(len(elementIdxMat[e2][e3])):
-    #             elementIdx = elementIdxMat[e2][e3][e1]
-    #             element = mesh.findElementByIdentifier(elementIdx)
-    #             if e1 < 0.5 * len(elementIdxMat[e2][e3]):
-    #                 ventralMeshGroup.addElement(element)
-    #             else:
-    #                 dorsalMeshGroup.addElement(element)
-    # if dorsalGroup not in allAnnotationGroups:
-    #     allAnnotationGroups.append(dorsalGroup)
-    # if ventralGroup not in allAnnotationGroups:
-    #     allAnnotationGroups.append(ventralGroup)
-    #
-    # nodesOnLCMargin = []
-    # for n2 in range(elementsAlongEsophagus + 1):
-    #     for n3 in range(elementsThroughEsophagusWall + 1):
-    #         nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
-    #                             n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
-    #                             n3 * elementsCountAroundEso
-    #         nodesOnLCMargin.append(nodeIdxOnLCMargin)
-    # allNodesOnLC = nodesOnLCMargin + nodeIdxLC
-    #
-    # nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
-    #
-    # elementIter = mesh.createElementiterator()
-    # element = elementIter.next()
-    # while element.isValid():
-    #     eft = element.getElementfieldtemplate(coordinates, -1)
-    #     nodeIdentifiers = get_element_node_identifiers(element, eft)
-    #     for n in range(len(nodeIdentifiers)):
-    #         if nodeIdentifiers[n] in allNodesOnLC:
-    #             nearLCGroup.getMeshGroup(mesh).addElement(element)
-    #             break
-    #     element = elementIter.next()
-    # allAnnotationGroups.append(nearLCGroup)
+    elementIdxThroughWall = []
+    n = lastDuodenumElementIdentifier - 1
+    for n3 in range(elementsCountThroughWall):
+        elementIdxAround = []
+        for n1 in range(elementsCountAroundEso):
+            n += 1
+            elementIdxAround.append(n)
+        elementIdxThroughWall.append(elementIdxAround)
+    elementIdxMat.append(elementIdxThroughWall)
 
-    # # Create split coordinate field
-    # if splitCoordinates:
-    #     nodesOnSplitMargin = []
-    #
-    #     for n2 in range(elementsAlongEsophagus + 1):
-    #         for n3 in range(elementsThroughEsophagusWall + 1):
-    #             nodeIdxOnGCMargin = 1 + n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
-    #                                 n3 * elementsCountAroundEso
-    #             nodesOnSplitMargin.append(nodeIdxOnGCMargin)
-    #             nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
-    #                                 n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
-    #                                 n3 * elementsCountAroundEso
-    #             nodesOnSplitMargin.append(nodeIdxOnLCMargin)
-    #
-    #     nodesOnSplitMargin += nodeIdxGC + nodeIdxLC
-    #
-    #     splitCoordinates = findOrCreateFieldCoordinates(fm, name="split coordinates")
-    #     splitNodetemplate1 = nodes.createNodetemplate()
-    #     splitNodetemplate1.defineField(splitCoordinates)
-    #     splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-    #     splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-    #     splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    #     if useCrossDerivatives:
-    #         splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-    #     if useCubicHermiteThroughWall:
-    #         splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-    #         if useCrossDerivatives:
-    #             splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
-    #             splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
-    #             splitNodetemplate1.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
-    #
-    #     splitNodetemplate2 = nodes.createNodetemplate()
-    #     splitNodetemplate2.defineField(splitCoordinates)
-    #     splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_VALUE, 2)
-    #     splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS1, 2)
-    #     splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS2, 2)
-    #     if useCrossDerivatives:
-    #         splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 2)
-    #     if useCubicHermiteThroughWall:
-    #         splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
-    #         if useCrossDerivatives:
-    #             splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 2)
-    #             splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 2)
-    #             splitNodetemplate2.setValueNumberOfVersions(splitCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 2)
-    #
-    #     nodeIter = nodes.createNodeiterator()
-    #     node = nodeIter.next()
-    #     while node.isValid():
-    #         # if not markerPoints.containsNode(node):
-    #         cache.setNode(node)
-    #         identifier = node.getIdentifier()
-    #         marginNode = identifier in nodesOnSplitMargin
-    #         x = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
-    #         d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)[1]
-    #         d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
-    #         if useCrossDerivatives:
-    #             d1d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)[1]
-    #         if useCubicHermiteThroughWall:
-    #             d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)[1]
-    #             if useCrossDerivatives:
-    #                 d1d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)[1]
-    #                 d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, 1, 3)[1]
-    #                 d1d2d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1, 3)[1]
-    #
-    #         node.merge(splitNodetemplate2 if marginNode else splitNodetemplate1)
-    #         versionCount = 2 if marginNode else 1
-    #         for vn in range(versionCount):
-    #             splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, vn + 1, x)
-    #             splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, vn + 1, d1)
-    #             splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, vn + 1, d2)
-    #             if useCrossDerivatives:
-    #                 splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS2, vn + 1, d1d2)
-    #             if useCubicHermiteThroughWall:
-    #                 splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, vn + 1, d3)
-    #                 if useCrossDerivatives:
-    #                     splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS1DS3, vn + 1, d1d3)
-    #                     splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D2_DS2DS3, vn + 1, d2d3)
-    #                     splitCoordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, vn + 1, d1d2d3)
-    #         node = nodeIter.next()
-    #
-    #     elementIter = mesh.createElementiterator()
-    #     element = elementIter.next()
-    #     splitElementtemplate1 = mesh.createElementtemplate()
-    #     splitElementtemplate2 = mesh.createElementtemplate()
-    #
-    #     count = 0
-    #     elementsInOstium = elementsCountAroundEso * elementsAlongEsophagus * elementsThroughEsophagusWall
-    #     closedLoopElementId = nextElementIdentifier - elementsCountAroundEso * elementsCountAcrossCardia - \
-    #                           elementsCountAroundDuod * elementsCountThroughWall * (elementsAlongCardiaToDuod + 1)
-    #
-    #     allValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-    #                       Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3,
-    #                       Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
-    #
-    #     while element.isValid():
-    #         eft = element.getElementfieldtemplate(coordinates, -1)
-    #         nodeIdentifiers = get_element_node_identifiers(element, eft)
-    #         elementId = element.getIdentifier()
-    #         marginDorsal = False
-    #         for n in range(len(nodeIdentifiers)):
-    #             marginElement = nodeIdentifiers[n] in nodesOnSplitMargin
-    #             if marginElement:
-    #                 count += 1
-    #                 if count < 3 and (elementId <= elementsInOstium or elementId > closedLoopElementId):
-    #                     marginDorsal = True
-    #                 elif count >= 3 and (elementId <= elementsInOstium or elementId > closedLoopElementId):
-    #                     if count == 4:
-    #                         count = 0
-    #                 elif elementsInOstium < elementId < elementsInOstium + len(xOuter[0]) + 1:
-    #                     marginDorsal = True
-    #                     count = 0
-    #                 elif elementsInOstium + len(xOuter[0]) < elementId < elementsInOstium + len(xOuter[0]) * 2 + 1:
-    #                     count = 0
-    #                 elif count < 2 and elementId > elementsInOstium + 2 * (len(xOuter[0])):
-    #                     marginDorsal = True
-    #                 elif count >= 2 and elementId > elementsInOstium + 2 * (len(xOuter[0])):
-    #                     if count == 2:
-    #                         count = 0
-    #                 break
-    #
-    #         if marginDorsal:
-    #             # Find nodes on margin to remap with version 2
-    #             lnRemapV2 = []
-    #             for n in range(len(nodeIdentifiers)):
-    #                 if nodeIdentifiers[n] in nodesOnSplitMargin:
-    #                     lnRemapV2.append(n + 1)
-    #             eft2 = eft
-    #             remapEftNodeValueLabelsVersion(eft2, lnRemapV2, allValueLabels, 2)
-    #
-    #             splitElementtemplate2.defineField(splitCoordinates, -1, eft2)
-    #             element.merge(splitElementtemplate2)
-    #             element.setNodesByIdentifier(eft2, nodeIdentifiers)
-    #             if eft2.getNumberOfLocalScaleFactors() > 0:
-    #                 element.setScaleFactor(eft2, 1, -1.0)
-    #         else:
-    #             splitElementtemplate1.defineField(splitCoordinates, -1, eft)
-    #             element.merge(splitElementtemplate1)
-    #             element.setNodesByIdentifier(eft, nodeIdentifiers)
-    #             if eft.getNumberOfLocalScaleFactors() == 1:
-    #                 element.setScaleFactors(eft, [-1.0])
-    #
-    #         element = elementIter.next()
-    #
-    #     allAnnotationGroups.append(nearLCGroup)
+    # delete mucosa layer in fundus when there is a limiting ridge
+    mesh_destroy_elements_and_nodes_by_identifiers(mesh, fundusMucosaElementIdentifiers)
 
-    nextNodeIdentifier = nodeIdentifier
-    nextElementIdentifier = elementIdentifier
+    # Create annotation groups for dorsal and ventral parts of the stomach
+    dorsalGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("dorsal stomach"))
+    ventralGroup = findOrCreateAnnotationGroupForTerm(allAnnotationGroups, region, get_stomach_term("ventral stomach"))
+    dorsalMeshGroup = dorsalGroup.getMeshGroup(mesh)
+    ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
 
-    # for n2 in range(len(cxGroup)):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cxGroup[n2])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cd2Group[n2])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cd1Group[n2])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cd3Group[n2])
-    #     nodeIdentifier += 1
+    for e2 in range(len(elementIdxMat)):
+        for e3 in range(len(elementIdxMat[e2])):
+            for e1 in range(len(elementIdxMat[e2][e3])):
+                elementIdx = elementIdxMat[e2][e3][e1]
+                element = mesh.findElementByIdentifier(elementIdx)
+                if e1 < 0.5 * len(elementIdxMat[e2][e3]):
+                    ventralMeshGroup.addElement(element)
+                else:
+                    dorsalMeshGroup.addElement(element)
+    if dorsalGroup not in allAnnotationGroups:
+        allAnnotationGroups.append(dorsalGroup)
+    if ventralGroup not in allAnnotationGroups:
+        allAnnotationGroups.append(ventralGroup)
 
-    return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier
+    nodesOnLCMargin = []
+    for n2 in range(elementsAlongEsophagus + 1):
+        for n3 in range(elementsThroughEsophagusWall + 1):
+            nodeIdxOnLCMargin = 1 + elementsAroundHalfEso + \
+                                n2 * (elementsThroughEsophagusWall + 1) * elementsCountAroundEso + \
+                                n3 * elementsCountAroundEso
+            nodesOnLCMargin.append(nodeIdxOnLCMargin)
+    allNodesOnLC = nodesOnLCMargin + nodeIdxLC
 
+    nearLCGroup = AnnotationGroup(region, ("elements adjacent to lesser curvature", "None"))
 
-def findCentreOnCentralPathFromCrossAxisEndPt(xPoint, xCentralPath, dCentralPath):
-    """
-    Find point on central path which intersects with cross axis endpoint.
-    :param xPoint: cross axis endpoint
-    :param xCentralPath: List of points on central path
-    :param dCentralPath: List of cross axis derivatives along central path
-    :return xPtOnCP: intersection point on central path
-    """
-    arcLength = 0.0
-    for n in range(len(xCentralPath) - 1):
-        arcLength += interp.getCubicHermiteArcLength(xCentralPath[n], dCentralPath[n],
-                                                     xCentralPath[n + 1], dCentralPath[n + 1])
-    arcLow = 0.0
-    arcUp = arcLength
+    elementIter = mesh.createElementiterator()
+    element = elementIter.next()
+    while element.isValid():
+        eft = element.getElementfieldtemplate(coordinates, -1)
+        nodeIdentifiers = get_element_node_identifiers(element, eft)
+        for n in range(len(nodeIdentifiers)):
+            if nodeIdentifiers[n] in allNodesOnLC:
+                nearLCGroup.getMeshGroup(mesh).addElement(element)
+                break
+        element = elementIter.next()
+    allAnnotationGroups.append(nearLCGroup)
 
-    for iter in range(100):
-        thetaLow = findThetaFromArcDistance(xPoint, arcLow, xCentralPath, dCentralPath)
-        thetaUp = findThetaFromArcDistance(xPoint, arcUp, xCentralPath, dCentralPath)
-        arcDistance = (arcLow + arcUp) * 0.5
-
-        if abs(thetaLow - thetaUp) < 1e-06:
-            xPtOnCP = interp.getCubicHermiteCurvesPointAtArcDistance(xCentralPath, dCentralPath, arcDistance)[0]
-            break
-        elif thetaLow > thetaUp:
-            arcLow = arcDistance
-        elif thetaLow < thetaUp:
-            arcUp = arcDistance
-
-    if iter > 99:
-        print('Search for findCentreOnCentralPathFromCrossAxisEndPt - Max iters reached:', iter)
-
-    return xPtOnCP
-
-
-def findThetaFromArcDistance(xPt, arcDistance, xCentralPath, dCentralPath):
-    """
-    Find angle between a vector between a guess point on the central path to a cross axis endpoint and the cross-axis
-    of the central path.
-    :param xPt: Cross axis endpoint
-    :param arcDistance: Arclength along central path where guess point sits
-    :param xCentralPath: List of points along central path
-    :param dCentralPath: List of cross axis derivatives along central path
-    :return theta: angle between vectors
-    """
-    xGuess, dGuess = interp.getCubicHermiteCurvesPointAtArcDistance(xCentralPath, dCentralPath, arcDistance)[0:2]
-    if xGuess == xPt:
-        return 0.0
-    else:
-        dxPt = findDerivativeBetweenPoints(xGuess, xPt)
-        cosTheta = vector.dotproduct(dGuess, dxPt) / (vector.magnitude(dGuess) * vector.magnitude(dxPt))
-        if abs(cosTheta) > 1.0:
-            cosTheta = 1.0 if cosTheta > 0.0 else -1.0
-        theta = abs(math.pi * 0.5 - math.acos(cosTheta))
-        return theta
+    return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongSections
