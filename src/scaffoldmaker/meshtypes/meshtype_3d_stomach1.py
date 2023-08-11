@@ -1755,6 +1755,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 aPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[s][n1], startGuessPosition)
             aProportion = trackSurfaceStomach.getProportion(aPosition)
 
+            # endDerivative = d2EllipseAroundAll[s][n1] if i == 1 else None
+
             if i == 0 and n1 in n1IdxAtBodyStartIdxPlusMinusOne:
                 bPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxMinusOne[count]]
                 elementsOut = elementsAlongSections[i] - (elementsAroundQuarterEso - 1)
@@ -1767,6 +1769,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
                 aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsOut,
+                # derivativeEnd=endDerivative,
                 curveMode=TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
 
             nx, nd1, nd2, nd3 = \
@@ -2292,7 +2295,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
                     if e2 == annulusFundusOpenRingIdx - 2:
                         if e1 == elementsAroundHalfDuod - 2:
+                            scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
@@ -2326,6 +2333,42 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
                                                    [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+
+                    if e2 == annulusFundusOpenRingIdx - 1:
+                        if e1 == elementsAroundHalfDuod - 2:
+                            scaleFactors = [-1.0]
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+
+                        elif e1 == elementsAroundHalfDuod - 1:
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+
+                    if e2 == annulusBodyOpenRingIdx:
+                        if e1 == elementsAroundHalfDuod - 2:
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+
+                        elif e1 == elementsAroundHalfDuod - 1:
+                            scaleFactors = [-1.0]
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
@@ -2336,6 +2379,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
                                                    [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
@@ -2362,7 +2407,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             elementtemplate1 = elementtemplateX
 
                         elif e1 == elementsAroundHalfDuod + 1:
+                            scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
