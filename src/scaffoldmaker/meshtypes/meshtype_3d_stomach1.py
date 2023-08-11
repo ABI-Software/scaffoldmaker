@@ -667,7 +667,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements through wall'] = 1
             options['Wall thickness'] = 0.0525 * 101
         elif 'Mouse 1' in parameterSetName:
-            options['Number of elements around duodenum'] = 16
             options['Wall thickness'] = 0.05145
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
@@ -675,7 +674,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Limiting ridge'] = True
         elif 'Pig 1' in parameterSetName:
-            options['Number of elements around duodenum'] = 16
+            options['Target element unit length'] = 0.07
             options['Wall thickness'] = 0.059
             options['Mucosa relative thickness'] = 0.47
             options['Submucosa relative thickness'] = 0.1
@@ -683,7 +682,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.1
             options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
-            options['Number of elements around duodenum'] = 16
             options['Wall thickness'] = 0.0215
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
@@ -691,7 +689,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Limiting ridge'] = True
         elif 'Material' in parameterSetName:
-            options['Number of elements around duodenum'] = 16
             options['Wall thickness'] = 0.05
             options['Mucosa relative thickness'] = 0.25
             options['Submucosa relative thickness'] = 0.25
@@ -1745,35 +1742,81 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             # do a tracksurface sampling to divide the elements into equal sized elements while keeping the start and
             # end derivatives direction at both pts
             elementsOut = elementsAlongSections[i]
+            startDerivative = None
+            startDerivativeMag = None
+            endDerivative = None
+            endDerivativeMag = None
+
             if i == 1 and n1 in n1IdxAtBodyStartIdxPlusMinusOne:
+                # find endDerivative by spacing elements out evenly as though there is no ostium
+                startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod * n1,
+                                                                                  1.0 / len(xEllipseAroundAll) * s)
+                aPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[s][n1], startGuessPosition)
+                aProportion = trackSurfaceStomach.getProportion(aPosition)
+
+                startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod * n1,
+                                                                                  1.0 / len(xEllipseAroundAll) * sNext)
+                bPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[sNext][n1], startGuessPosition)
+                bProportion = trackSurfaceStomach.getProportion(bPosition)
+                nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
+                    aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsOut,
+                    curveMode=TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+                d2Uniform = \
+                    trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions)[1]
+                endDerivative = d2Uniform[-1]
+                endDerivativeMag = vector.magnitude(endDerivative)
+
+                # Sample from apex to annulus
                 aPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxPlusOne[count]]
-                count += 1
+                startDerivative = d2AnnulusOuter[annulusIdxAtBodyStartIdxPlusOne[count]]
                 elementsOut = elementsAlongSections[i] - (elementsAroundQuarterEso - 1)
+                count += 1
             else:
                 startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0/elementsCountAroundDuod * n1,
                                                                                   1.0/len(xEllipseAroundAll) * s)
                 aPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[s][n1], startGuessPosition)
             aProportion = trackSurfaceStomach.getProportion(aPosition)
 
-            # endDerivative = d2EllipseAroundAll[s][n1] if i == 1 else None
-
             if i == 0 and n1 in n1IdxAtBodyStartIdxPlusMinusOne:
+                # find startDerivative by spacing elements out evenly as though there is no ostium
+                startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod * n1,
+                                                                                  1.0 / len(xEllipseAroundAll) * sNext)
+                bPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[sNext][n1], startGuessPosition)
+                bProportion = trackSurfaceStomach.getProportion(bPosition)
+                nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
+                    aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsOut,
+                    curveMode=TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+                d2Uniform = \
+                    trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions)[1]
+                startDerivative = d2Uniform[0]
+                startDerivativeMag = vector.magnitude(startDerivative)
+
+                # Sample from apex to annulus
                 bPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxMinusOne[count]]
+                d = d2AnnulusOuter[annulusIdxAtBodyStartIdxMinusOne[count]]
+                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdxAtBodyStartIdxMinusOne[count]],
+                                                                 math.pi)
+                endDerivative = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2]
+                                 for j in range(3)]
                 elementsOut = elementsAlongSections[i] - (elementsAroundQuarterEso - 1)
                 count += 1
+
             else:
                 startGuessPosition = trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod * n1,
                                                                                   1.0 / len(xEllipseAroundAll) * sNext)
                 bPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[sNext][n1], startGuessPosition)
+
             bProportion = trackSurfaceStomach.getProportion(bPosition)
 
             nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
                 aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsOut,
-                # derivativeEnd=endDerivative,
+                derivativeStart=startDerivative, derivativeEnd=endDerivative,
                 curveMode=TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
 
             nx, nd1, nd2, nd3 = \
-                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions)[:-1]
+                trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions,
+                                                                     derivativeMagnitudeStart=startDerivativeMag,
+                                                                     derivativeMagnitudeEnd=endDerivativeMag)[:-1]
 
             # Rotate nd2
             for m in range(len(nx)):
@@ -2301,7 +2344,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
@@ -2312,7 +2355,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
@@ -2321,7 +2364,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
@@ -2332,7 +2375,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
@@ -2378,7 +2421,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
@@ -2389,7 +2432,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
@@ -2402,7 +2445,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
@@ -2413,7 +2456,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
 
