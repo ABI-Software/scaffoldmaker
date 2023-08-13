@@ -305,7 +305,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout': copy.deepcopy(networkLayoutOption),
             'Target element length': 6.0,
             'Number of elements around': 8,
-            # 'Number of elements across': 3,
+            'Number of elements across': 3,
             'Wall thickness': 2.0,
             'Number of elements through wall': 1,
             'Use linear through wall': True,
@@ -333,7 +333,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout',
             'Target element length',
             'Number of elements around',
-            # 'Number of elements across',
+            'Number of elements across',
             'Wall thickness',
             'Number of elements through wall',
             'Use linear through wall',
@@ -401,13 +401,13 @@ class MeshType_3d_uterus1(Scaffold_base):
         """
         networkLayout = options['Network layout']
         elementsCountAround = options['Number of elements around']
-        # elementsCountAcross = options['Number of elements across']
+        elementsCountAcross = options['Number of elements across']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
         targetElementLength = options['Target element length']
         useCrossDerivatives = options['Use cross derivatives']
 
-        elementsCountAcross = elementsCountAround // 2
+        # elementsCountAcross = elementsCountAround // 2
 
         materialNetworkLayout = cls.parameterSetStructureStrings['Material']
         materialWallThickness = 0.1
@@ -3178,14 +3178,14 @@ def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlon
                     # bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
                     bni7 = bni5 + elementsCountAroundRightTube * 2 + elementsCountAround + elementsCountAcross - 1
                     bni8 = bni6 + elementsCountAroundRightTube * 2 + elementsCountAround + elementsCountAcross - 1
-                elif elementsCountAround // 2 < e1 < elementsCountAround - 1:
+                elif elementsCountAround // 2 < e1 < elementsCountAroundLeftTube - 1:
                     bni5 = csNodeId[e2 * (elementsCountAcross - 1) + e1 - elementsCountAround // 2 - 1]
                     bni6 = bni5 + 1
                     # bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
                     # bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
                     bni7 = bni5 + elementsCountAroundRightTube * 2 + elementsCountAround + elementsCountAcross - 1
                     bni8 = bni6 + elementsCountAroundRightTube * 2 + elementsCountAround + elementsCountAcross - 1
-                elif e1 == elementsCountAround - 1:
+                elif e1 == elementsCountAroundLeftTube - 1:
                     bni5 = csNodeId[e2 * (elementsCountAcross - 1) + elementsCountAcross - 2]
                     bni6 = cotNodeId[e2 * elementsCountAround]
                     # bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
@@ -3225,39 +3225,41 @@ def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlon
             # # print('clicNodeId', clicNodeId)
             # for e1 in range(elementsCountAroundLeftTube):
             #     if 0 <= e1 < elementsCountAcross:
-            #         bni1 = clicNodeId[e2 * elementsCountAround + e1]
-            #         bni2 = clicNodeId[e2 * elementsCountAround + (e1 + 1) % elementsCountAround]
-            #         bni3 = bni1 + elementsCountAround * 3 + elementsCountAcross - 1
-            #         bni4 = bni2 + elementsCountAround * 3 + elementsCountAcross - 1
+            #         bni1 = clicNodeId[e2 * elementsCountAroundLeftTube + e1]
+            #         bni2 = clicNodeId[e2 * elementsCountAroundLeftTube + (e1 + 1) % elementsCountAroundLeftTube]
+            #         # bni3 = bni1 + elementsCountAround * 3 + elementsCountAcross - 1
+            #         # bni4 = bni2 + elementsCountAround * 3 + elementsCountAcross - 1
+            #         bni3 = bni1 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #         bni4 = bni2 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
             #         if e1 == 0:
             #             bni5 = cotNodeId[e2 * elementsCountAround + e1]
             #             bni6 = csNodeId[e2 * (elementsCountAcross - 1) + elementsCountAcross - 2]
             #             # bni6 = bni5 - 1
-            #             bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
-            #             bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
+            #             bni7 = bni5 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #             bni8 = bni6 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
             #         elif e1 == elementsCountAcross - 1:
             #             bni5 = csNodeId[e2 * (elementsCountAcross - 1) + elementsCountAcross - 1 - e1]
             #             bni6 = cotNodeId[e2 * elementsCountAround + elementsCountAround // 2]
-            #             bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
-            #             bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
+            #             bni7 = bni5 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #             bni8 = bni6 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
             #         else:
             #             bni5 = csNodeId[e2 * (elementsCountAcross - 1) + elementsCountAcross - 1 - e1]
             #             bni6 = bni5 - 1
-            #             bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
-            #             bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
+            #             bni7 = bni5 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #             bni8 = bni6 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
             #         nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-            #         # print('nodeIdentifiers', nodeIdentifiers)
-            #     else:
-            #         bni1 = clicNodeId[e2 * elementsCountAround + e1]
-            #         bni2 = clicNodeId[e2 * elementsCountAround + (e1 + 1) % elementsCountAround]
-            #         bni3 = bni1 + elementsCountAround * 3 + elementsCountAcross - 1
-            #         bni4 = bni2 + elementsCountAround * 3 + elementsCountAcross - 1
-            #         bni5 = cotNodeId[e2 * elementsCountAround + e1 - elementsCountAcross + elementsCountAround // 2]
-            #         bni6 = cotNodeId[e2 * elementsCountAround + (e1 + 1) % elementsCountAround - elementsCountAcross + elementsCountAround // 2]
-            #         bni7 = bni5 + elementsCountAround * 3 + elementsCountAcross - 1
-            #         bni8 = bni6 + elementsCountAround * 3 + elementsCountAcross - 1
-            #         nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-            #         # print('nodeIdentifiers', nodeIdentifiers)
+            #         print('nodeIdentifiers', nodeIdentifiers)
+            #     # else:
+            #     #     bni1 = clicNodeId[e2 * elementsCountAroundLeftTube + e1]
+            #     #     bni2 = clicNodeId[e2 * elementsCountAroundLeftTube + (e1 + 1) % elementsCountAroundLeftTube]
+            #     #     bni3 = bni1 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #     #     bni4 = bni2 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #     #     bni5 = cotNodeId[e2 * elementsCountAroundLeftTube + e1 - elementsCountAcross + elementsCountAround // 2]
+            #     #     bni6 = cotNodeId[e2 * elementsCountAroundLeftTube + (e1 + 1) % elementsCountAroundLeftTube - elementsCountAcross + elementsCountAround // 2]
+            #     #     bni7 = bni5 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #     #     bni8 = bni6 + elementsCountAroundLeftTube * 2 + elementsCountAround+ elementsCountAcross - 1
+            #     #     nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+            #     #     print('nodeIdentifiers', nodeIdentifiers)
             #     # Remap derivatives for elements across septum
             #     if e1 == 0:
             #         scalefactors = [-1.0]
@@ -3427,9 +3429,9 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
             elementtemplate = elementtemplateStd
             scalefactors = None
             bni1 = c2NodeId[e3][e1]
-            bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAround]
+            bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAroundLeftTube]
             bni3 = bilNodeId[e1]
-            bni4 = bilNodeId[(e1 + 1) % elementsCountAround]
+            bni4 = bilNodeId[(e1 + 1) % elementsCountAroundLeftTube]
             bni5 = bni1 + elementsCountAroundLeftTube
             bni6 = bni2 + elementsCountAroundLeftTube
             if 0 <= e1 < elementsCountAcross:
@@ -3451,8 +3453,15 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             else:
-                bni7 = roNodeId[e1]
-                bni8 = roNodeId[(e1+1) % elementsCountAround]
+                # if e1 == elementsCountAcross:
+                #     bni7 = roNodeId[elementsCountAround // 2]
+                #     bni8 = bni7 + 1
+                # else:
+                bni7 = roNodeId[elementsCountAround // 2 + e1 - elementsCountAcross]
+                if e1 == elementsCountAroundLeftTube - 1:
+                    bni8 = roNodeId[0]
+                else:
+                    bni8 = bni7 + 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             # Remap the derivatives
@@ -3497,7 +3506,7 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                 elementtemplateMod.defineField(coordinates, -1, eft1)
                 elementtemplate1 = elementtemplateMod
-            elif e1 == elementsCountAround - 1:
+            elif e1 == elementsCountAroundLeftTube - 1:
                 eft1 = eftfactory.createEftBasic()
                 remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft1)
@@ -3606,9 +3615,9 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
             elementtemplate = elementtemplateStd
             scalefactors = None
             bni1 = bilNodeId[e1]  # was [e3][e1]
-            bni2 = bilNodeId[(e1 + 1) % elementsCountAround]
+            bni2 = bilNodeId[(e1 + 1) % elementsCountAroundLeftTube]
             bni3 = clicNodeId[e1]
-            bni4 = clicNodeId[(e1 + 1) % elementsCountAround]
+            bni4 = clicNodeId[(e1 + 1) % elementsCountAroundLeftTube]
             if e1 == 0:
                 # [137, 138, 164, 165, 146, 155, 175, 174]
                 bni5 = roNodeId[0]
@@ -3626,16 +3635,20 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 bni6 = roNodeId[elementsCountAround // 2]
                 bni7 = csNodeId[0]
                 bni8 = cotNodeId[elementsCountAround // 2]
-            elif e1 == elementsCountAround - 1:
-                bni5 = roNodeId[e1 - elementsCountAround // 2 + elementsCountAcross]
-                bni6 = roNodeId[0]
-                bni7 = cotNodeId[e1 - elementsCountAround // 2 + elementsCountAcross ]
-                bni8 = cotNodeId[0]
+            # elif e1 == elementsCountAroundLeftTube - 1:
+            #     bni5 = roNodeId[e1 - elementsCountAround // 2 + elementsCountAcross]
+            #     bni6 = roNodeId[0]
+            #     bni7 = cotNodeId[e1 - elementsCountAround // 2 + elementsCountAcross ]
+            #     bni8 = cotNodeId[0]
             else:
-                bni5 = roNodeId[e1 - elementsCountAround // 2 + elementsCountAcross]
-                bni6 = bni5 + 1
-                bni7 = cotNodeId[e1 - elementsCountAround // 2 + elementsCountAcross ]
-                bni8 = bni7 + 1
+                bni5 = roNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
+                bni7 = cotNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
+                if e1 == elementsCountAroundLeftTube - 1:
+                    bni6 = roNodeId[0]
+                    bni8 = cotNodeId[0]
+                else:
+                    bni6 = bni5 + 1
+                    bni8 = bni7 + 1
             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             # print('nodeIdentifiers', nodeIdentifiers)
             # Remap the derivatives
