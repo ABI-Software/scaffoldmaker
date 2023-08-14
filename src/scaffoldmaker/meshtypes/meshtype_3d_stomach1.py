@@ -650,7 +650,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Central path': copy.deepcopy(centralPathOption),
             'Number of elements around esophagus': 8,
             'Number of elements around duodenum': 16,
-            'Target element unit length': 0.1,
+            'Number of elements along': 14,
             'Number of elements through wall': 4,
             'Wall thickness': 0.0525,
             'Mucosa relative thickness': 0.55,
@@ -669,6 +669,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements through wall'] = 1
             options['Wall thickness'] = 0.0525 * 101
         elif 'Mouse 1' in parameterSetName:
+            options['Number of elements along'] = 12
             options['Wall thickness'] = 0.05145
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
@@ -676,7 +677,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Limiting ridge'] = True
         elif 'Pig 1' in parameterSetName:
-            options['Target element unit length'] = 0.07
             options['Wall thickness'] = 0.059
             options['Mucosa relative thickness'] = 0.47
             options['Submucosa relative thickness'] = 0.1
@@ -707,7 +707,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Central path',
             'Number of elements around esophagus',
             'Number of elements around duodenum',
-            'Target element unit length',
+            'Number of elements along',
             'Number of elements through wall',
             'Wall thickness',
             'Mucosa relative thickness',
@@ -777,6 +777,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'Number of elements around duodenum']:
             if options[key] % 4 > 0:
                 options[key] = options[key] // 4 * 4
+        if options['Number of elements along'] < 10:
+            options['Number of elements along'] = 10
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -1327,7 +1329,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     """
     elementsCountAroundEso = options['Number of elements around esophagus']
     elementsCountAroundDuod = options['Number of elements around duodenum']
-    targetLength = options['Target element unit length']
+    elementsCountAlong = options['Number of elements along']
     elementsCountThroughWall = options['Number of elements through wall']
     mucosaRelThickness = options['Mucosa relative thickness']
     submucosaRelThickness = options['Submucosa relative thickness']
@@ -1743,7 +1745,22 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             quarterLengthSection = interp.getCubicHermiteCurvesLength(xList, d2List)
             ratioArcLengthSections.append(quarterLengthSection / totalQuarterLength)
 
-        elementsAlongSections = [math.ceil(c / targetLength) for c in ratioArcLengthSections]
+        elementsAlongSections = [math.floor(c * elementsCountAlong) for c in ratioArcLengthSections]
+
+        modGroups = []
+        for i in range(len(elementsAlongSections)):
+            if elementsAlongSections[i] < 1:
+                elementsAlongSections[i] == 1
+
+            mod = ratioArcLengthSections[i] * elementsCountAlong - elementsAlongSections[i]
+            modGroups.append(mod)
+
+        excessElements = elementsCountAlong - sum(elementsAlongSections)
+
+        for i in range(excessElements):
+            maxIdx = max(range(len(modGroups)), key=modGroups.__getitem__)
+            elementsAlongSections[maxIdx] += 1
+            modGroups[maxIdx] = ratioArcLengthSections[maxIdx] * elementsCountAlong - elementsAlongSections[maxIdx]
 
     totalElementsAlong = sum(elementsAlongSections)
 
