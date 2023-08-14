@@ -11,7 +11,8 @@ import math
 
 from cmlibs.maths.vectorops import cross, sub
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
-from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_node_identifier
+from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_element_identifier, \
+    get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -661,6 +662,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements surface': 4,
+            'Refine number of elements cardia surface': 2,
             'Refine number of elements through wall': 1
         }
         if 'Human 2' in parameterSetName:
@@ -717,6 +719,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Use linear through wall',
             'Refine',
             'Refine number of elements surface',
+            'Refine number of elements cardia surface',
             'Refine number of elements through wall']
 
     @classmethod
@@ -778,6 +781,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements through wall'] = 4
         for key in [
             'Refine number of elements surface',
+            'Refine number of elements cardia surface',
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
@@ -921,11 +925,32 @@ class MeshType_3d_stomach1(Scaffold_base):
         """
         refineElementsCountAround = options['Refine number of elements surface']
         refineElementsCountAlong = options['Refine number of elements surface']
+        refineElementsCountAlongCardia = options['Refine number of elements cardia surface']
         refineElementsCountThroughWall = options['Refine number of elements through wall']
 
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
-                                                       refineElementsCountThroughWall)
-        return
+        sourceFm = meshrefinement._sourceFm
+        annotationGroups = meshrefinement._sourceAnnotationGroups
+        cardiaGroup = getAnnotationGroupForTerm(annotationGroups, get_stomach_term("cardia of stomach"))
+        cardiaMeshGroup = cardiaGroup.getMeshGroup(meshrefinement._sourceMesh)
+
+        lastElementIdentifier = get_maximum_element_identifier(meshrefinement._sourceMesh)
+
+        cache = sourceFm.createFieldcache()
+        element = meshrefinement._sourceElementiterator.next()
+        while element.isValid():
+            elementIdentifier = element.getIdentifier()
+            refineElements1 = refineElementsCountAround
+            refineElements2 = refineElementsCountAlong
+            refineElements3 = refineElementsCountThroughWall
+            cache.setElement(element)
+            if cardiaMeshGroup.containsElement(element):
+                refineElements2 = refineElementsCountAlongCardia
+
+            meshrefinement.refineElementCubeStandard3d(element, refineElements1, refineElements2, refineElements3)
+            if elementIdentifier == lastElementIdentifier:
+                return  # finish on last so can continue elsewhere
+            element = meshrefinement._sourceElementiterator.next()
+
 
     @classmethod
     def defineFaceAnnotations(cls, region, options, annotationGroups):
