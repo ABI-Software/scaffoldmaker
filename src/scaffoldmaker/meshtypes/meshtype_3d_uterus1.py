@@ -401,7 +401,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         """
         networkLayout = options['Network layout']
         elementsCountAround = options['Number of elements around']
-        elementsCountAcross = options['Number of elements across']
+        # elementsCountAcross = options['Number of elements across']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
         targetElementLength = options['Target element length']
