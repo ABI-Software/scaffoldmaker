@@ -305,7 +305,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout': copy.deepcopy(networkLayoutOption),
             'Target element length': 6.0,
             'Number of elements around': 8,
-            'Number of elements across': 3,
+            # 'Number of elements across': 3,
             'Wall thickness': 2.0,
             'Number of elements through wall': 1,
             'Use linear through wall': True,
@@ -333,7 +333,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout',
             'Target element length',
             'Number of elements around',
-            'Number of elements across',
+            # 'Number of elements across',
             'Wall thickness',
             'Number of elements through wall',
             'Use linear through wall',
@@ -407,7 +407,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         targetElementLength = options['Target element length']
         useCrossDerivatives = options['Use cross derivatives']
 
-        # elementsCountAcross = elementsCountAround // 2
+        elementsCountAcross = elementsCountAround // 2
 
         materialNetworkLayout = cls.parameterSetStructureStrings['Material']
         materialWallThickness = 0.1
