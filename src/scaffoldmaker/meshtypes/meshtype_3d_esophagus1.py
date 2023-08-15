@@ -418,10 +418,10 @@ class MeshType_3d_esophagus1(Scaffold_base):
         # Create coordinates and derivatives
         transitElementList = [0]*elementsCountAround
         xList, d1List, d2List, d3List, curvatureList = \
-            tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
+            tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
                                              [wallThickness]*(elementsCountAlong+1), relativeThicknessList,
                                              elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                                             transitElementList)
+                                             transitElementList, outward=True)
 
         # Create flat coordinates
         xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(xiList, flatWidthList, length, wallThickness,

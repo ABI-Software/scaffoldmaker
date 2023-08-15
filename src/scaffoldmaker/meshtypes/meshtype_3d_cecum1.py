@@ -847,9 +847,10 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
     xList, d1List, d2List, d3List, curvatureList = \
-        tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,d2WarpedList, d3WarpedUnitList,
-                                         wallThicknessList, relativeThicknessList, elementsCountAround,
-                                         elementsCountAlong, elementsCountThroughWall, transitElementList)
+        tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList,d2WarpedList, d3WarpedUnitList,
+                                           wallThicknessList, relativeThicknessList, elementsCountAround,
+                                           elementsCountAlong, elementsCountThroughWall, transitElementList,
+                                           outward=True)
 
     # Deal with multiple nodes at end point for closed proximal end
     xApexInner = xList[0]

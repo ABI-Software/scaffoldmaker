@@ -261,41 +261,47 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 7
+                'Number of elements': 10
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
                 [
-                    (1, [[2.00000, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.11429, 0.00000],
-                         [0.00000, -0.20000, 0.00476], [0.00000, 0.00000, 0.14286], [0.00000, 0.00462, 0.16190]]),
-                    (2, [[1.71429, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.26667, 0.00000],
-                         [0.00000, -0.10476, -0.00476], [0.00000, 0.00000, 0.26667], [0.00000, -0.00462, 0.08572]]),
-                    (3, [[1.42857, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.32381, -0.00952],
-                         [0.00000, -0.03333, 0.00000], [0.00000, -0.00924, 0.31429], [0.00000, 0.00000, 0.03333]]),
-                    (4, [[1.14286, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.33333, 0.00000],
-                         [0.00000, 0.01905, 0.00476], [0.00000, 0.00000, 0.33333], [0.00000, 0.00462, -0.01429]]),
-                    (5, [[0.85714, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.28571, 0.00000],
-                         [0.00000, 0.07143, 0.00000], [0.00000, 0.00000, 0.28571], [0.00000, 0.00000, -0.09048]]),
-                    (6, [[0.57143, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.19048, 0.00000],
-                         [0.00000, 0.10476, 0.00000], [0.00000, 0.00000, 0.15238], [0.00000, 0.00000, -0.10000]]),
-                    (7, [[0.28571, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.07619, 0.00000],
-                         [0.00000, 0.07143, 0.00000], [0.00000, 0.00000, 0.08571], [0.00000, 0.00000, -0.05238]]),
-                    (8, [[0.00000, 0.00000, 0.00000], [-0.28571, 0.00000, 0.00000], [0.00000, -0.04762, 0.00000],
-                         [0.00000, -0.01429, 0.00000], [0.00000, 0.00000, 0.04762], [0.00000, 0.00000, -0.02381]])
+                    (1, [[2.00000, 0.00000, 0.00000], [-0.04772, 0.00000, 0.00000], [0.00000, -0.21530, 0.00000],
+                         [0.00000, 0.04601, 0.00000], [0.00000, 0.00000, 0.21530], [0.00000, 0.00000, -0.04601]]),
+                    (2, [[1.90255, 0.00000, 0.00000], [-0.14718, 0.00000, 0.00000], [0.00000, -0.21530, 0.00000],
+                         [0.00000, -0.04601, 0.00000], [0.00000, 0.00000, 0.21530], [0.00000, 0.00000, 0.04601]]),
+                    (3, [[1.70564, 0.00000, 0.00000], [-0.21176, 0.00000, 0.00000], [0.00000, -0.35428, 0.00000],
+                         [0.00000, -0.11371, 0.00000], [0.00000, 0.00000, 0.35428], [0.00000, 0.00000, 0.11371]]),
+                    (4, [[1.47903, 0.00000, 0.00000], [-0.23206, 0.00000, 0.00000], [0.00000, -0.43890, 0.00000],
+                         [0.00000, -0.06591, 0.00000], [0.00000, 0.00000, 0.43890], [0.00000, 0.00000, 0.06591]]),
+                    (5, [[1.24152, 0.00000, 0.00000], [-0.23952, 0.00000, 0.00000], [0.00000, -0.48520, 0.00000],
+                         [0.00000, -0.03068, 0.00000], [0.00000, 0.00000, 0.48520], [0.00000, 0.00000, 0.03068]]),
+                    (6, [[1.00000, 0.00000, 0.00000], [-0.24157, 0.00000, 0.00000], [0.00000, -0.50000, 0.00000],
+                         [0.00000, 0.00001, 0.00000], [0.00000, 0.00000, 0.50000], [0.00000, 0.00000, -0.00001]]),
+                    (7, [[0.75837, 0.00000, 0.00000], [-0.23957, 0.00000, 0.00000], [0.00000, -0.48518, 0.00000],
+                         [0.00000, 0.03070, 0.00000], [0.00000, 0.00000, 0.48518], [0.00000, 0.00000, -0.03070]]),
+                    (8, [[0.52087, 0.00000, 0.00000], [-0.23198, 0.00000, 0.00000], [0.00000, -0.43887, 0.00000],
+                         [0.00000, 0.06589, 0.00000], [0.00000, 0.00000, 0.43887], [0.00000, 0.00000, -0.06589]]),
+                    (9, [[0.29442, 0.00000, 0.00000], [-0.21169, 0.00000, 0.00000], [0.00000, -0.35431, 0.00000],
+                         [0.00000, 0.11366, 0.00000], [0.00000, 0.00000, 0.35431], [0.00000, 0.00000, -0.11366]]),
+                    (10, [[0.09750, 0.00000, 0.00000], [-0.14721, 0.00000, 0.00000], [0.00000, -0.21534, 0.00000],
+                          [0.00000, 0.11291, 0.00000], [0.00000, 0.00000, 0.21534], [0.00000, 0.00000, -0.11291]]),
+                    (11, [[0.00000, 0.00000, 0.00000], [-0.04779, 0.00000, 0.00000], [0.00000, -0.11534, 0.00000],
+                          [0.00000, 0.08709, 0.00000], [0.00000, 0.00000, 0.11534], [0.00000, 0.00000, -0.08709]])
                 ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-4',
+                    'identifierRanges': '1-6',
                     'name': get_bladder_term('dome of the bladder')[0],
                     'ontId': get_bladder_term('dome of the bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5-7',
+                    'identifierRanges': '7-10',
                     'name': get_bladder_term('neck of urinary bladder')[0],
                     'ontId': get_bladder_term('neck of urinary bladder')[1]
                 }]
@@ -337,8 +343,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements along neck': 4,
             'Number of elements around': 8,
             'Number of elements through wall': 1,
-            'Wall thickness': 0.008,
-            'Ureter position around': 0.67,
+            'Wall thickness': 0.007,
+            'Ureter position around': 0.67,  # should be on the dorsal part (> 0.5). It's a fixed material coordinate and thus not to be edited.
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements along': 4,
@@ -346,26 +352,20 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Cat 1' in parameterSetName:
-            options['Wall thickness'] = 0.008  # was 1.5 / 178.08271473110773
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.007  # was 1.5 * 2.0 / 178.08271473110773
         if 'Human 1' in parameterSetName:
-            options['Wall thickness'] = 0.009  # was 3.0 / 327.63
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.043  # was 3.0 * 2.0 / 327.63
         if 'Mouse 1' in parameterSetName:
-            options['Wall thickness'] = 0.007  # was 0.5 / 72.004931756029
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.008  # was 0.5 * 2.0 / 72.004931756029
         if 'Pig 1' in parameterSetName:
-            options['Wall thickness'] = 0.005  # was 2.5 / 505.2045520616655
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.016  # was 2.5 * 2.0 / 505.2045520616655
         if 'Rat 1' in parameterSetName:
-            options['Wall thickness'] = 0.003  # was 0.3 / 110.40996641878101
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.006  # was 0.3 * 2.0 / 110.40996641878101
         if 'Material' in parameterSetName:
             options['Number of elements along dome'] = 8
             options['Number of elements along neck'] = 4
             options['Number of elements around'] = 8
-            options['Wall thickness'] = 0.01
-            options['Ureter position around'] = 0.67
+            options['Wall thickness'] = 0.02  # an average of the wall thicknesses for above species, rounded.
         return options
 
     @staticmethod
@@ -377,7 +377,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements around',
             'Number of elements through wall',
             'Wall thickness',
-            'Ureter position around',
+            # 'Ureter position around',  # it's a fixed material coordinate and thus not to be edited.
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
@@ -460,7 +460,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
         materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
-        materialWallThickness = 0.01
+        materialWallThickness = 0.02
 
         elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
 
@@ -497,6 +497,38 @@ class MeshType_3d_bladder1(Scaffold_base):
         xOrgan, d1Organ, d2Organ, d3Organ = \
             getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
                                   elementsCountThroughWall, materialWallThickness, materialCentralPath)
+
+        # # Obtain the central path coordinates and derivatives for an ellipsoid to put for the "Material" central path
+        # bladderLength = 2.0
+        # diameter = 1.0
+        # centre = [bladderLength / 2, 0.0, 0.0]
+        # height = bladderLength
+        # poleAxis = [bladderLength / 2, 0.0, 0.0]
+        # sideAxis = [0.0, diameter / 2, 0.0]
+        # xEllipsoid, d1Ellipsoid, d2Ellipsoid = createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround,
+        #                                                              elementsCountAlongBladder, height)
+        #
+        # pathNodesList = []
+        # for n1 in range(elementsCountAlongDome + elementsCountAlongNeck + 1):
+        #     n = n1 * elementsCountAround
+        #     pathNode = [xEllipsoid[n][0], 0.0, 0.0]
+        #     pathNodesList.append(pathNode)
+        # print('pathNodesList', pathNodesList)
+        #
+        # d2path = []
+        # d3path = []
+        # for n1 in range(1, elementsCountAlongDome + elementsCountAlongNeck):
+        #     n = n1 * elementsCountAround
+        #     v1 = xEllipsoid[n]
+        #     v2 = xEllipsoid[n + elementsCountAround // 2]
+        #     v1v2 = [v2[c] - v1[c] for c in range(3)]
+        #     mag = vector.magnitude(v1v2)
+        #     halfMag = mag / 2
+        #     d2path.append([0.0, -halfMag, 0.0])
+        #     d3path.append([0.0, 0.0, halfMag])
+        # print('d2path', d2path)
+        # print('d3path', d3path)
+
         del tmp_region
 
         # Create annotation groups for bladder
@@ -575,8 +607,8 @@ class MeshType_3d_bladder1(Scaffold_base):
         rightUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                               get_bladder_term("right ureter junction with bladder"))
 
-        idx1 = 1
-        xi1 = [0.0, 0.0, 0.0]
+        idx1 = elementsCountAround * elementsCountThroughWall
+        xi1 = [0.0, 0.0, 1.0]
         markerList = []
         markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
         idx2 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
@@ -1296,27 +1328,28 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
             d2Inner.append(d2)
             d3Inner.append(d3)
 
-    # Create outer layers from the inner nodes
+    # Create inner layers from the outer nodes
     wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
     relativeThicknessList = []
     transitElementList = [0] * elementsCountAround
     xList, d1List, d2List, d3List, curvatureList = \
-        tubemesh.getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList, relativeThicknessList,
+        tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList, relativeThicknessList,
                                          elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
-                                         transitElementList)
+                                         transitElementList, outward=False)
 
     # Deal with multiple nodes at the start point for closed proximal end
-    xApexInner = xList[0]
+    n = elementsCountAround * (elementsCountThroughWall + 1)
+    xApexOuter = xList[n - 1]
     # Arclength between apex point and corresponding point on next face
-    mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
-                                          d2List[2 * elementsCountAround])
-    d2ApexInner = vector.setMagnitude(sx_dome_group[2][0], mag)
+    mag = interp.getCubicHermiteArcLength(xList[n - 1], d2List[n - 1], xList[2 * n - 1],
+                                          d2List[2 * n - 1])
+    d2ApexOuter = vector.setMagnitude(sx_dome_group[2][0], mag)
 
-    d1ApexInner = vector.crossproduct3(sx_dome_group[1][0], d2ApexInner)
-    d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
+    d1ApexOuter = vector.crossproduct3(sx_dome_group[1][0], d2ApexOuter)
+    d1ApexOuter = vector.setMagnitude(d1ApexOuter, mag)
     d3ApexUnit = vector.normalise(
-        vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
-    d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
+        vector.crossproduct3(vector.normalise(d1ApexOuter), vector.normalise(d2ApexOuter)))
+    d3ApexOuter = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
 
     # Final nodes on the bladder
     xFinal = []
@@ -1324,12 +1357,12 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     d2Final = []
     d3Final = []
     for n3 in range(elementsCountThroughWall + 1):
-        xApex = [xApexInner[c] +
-                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * n3 for c in range(3)]
+        xApex = [xApexOuter[c] -
+                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * (elementsCountThroughWall - n3) for c in range(3)]
         xFinal.append(xApex)
-        d1Final.append(d1ApexInner)
-        d2Final.append(d2ApexInner)
-        d3Final.append(d3ApexInner)
+        d1Final.append(d1ApexOuter)
+        d2Final.append(d2ApexOuter)
+        d3Final.append(d3ApexOuter)
 
     xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAround:]
     d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]
