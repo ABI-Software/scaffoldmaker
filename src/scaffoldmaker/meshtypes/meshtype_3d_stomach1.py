@@ -181,18 +181,18 @@ class MeshType_3d_stomach1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[0.42,0.72,0.00], [0.04,-0.04,0.00], [0.07,0.03,0.00], [0.14,0.03,0.00], [0.00,0.00,0.04], [0.00,0.00,0.12]]),
-                (2, [[0.46,0.65,0.00], [0.03,-0.10,0.00], [0.19,0.04,0.00], [0.10,-0.01,0.00], [0.00,0.00,0.16], [0.00,0.00,0.12]]),
-                (3, [[0.48,0.53,0.00], [0.01,-0.15,0.00], [0.26,-0.00,0.00], [0.06,-0.07,0.00], [0.00,0.00,0.27], [0.00,0.00,0.10]]),
-                (4, [[0.47,0.36,0.00], [-0.04,-0.17,0.00], [0.30,-0.12,0.00], [0.02,-0.12,0.00], [0.00,0.00,0.35], [0.00,0.00,0.06]]),
+                (1, [[0.54,0.71,0.00], [-0.01,-0.06,0.00], [0.08,-0.01,0.00], [0.10,-0.02,0.00], [0.00,0.00,0.04], [0.00,0.00,0.12]]),
+                (2, [[0.53,0.63,0.00], [-0.01,-0.10,0.00], [0.17,-0.03,0.00], [0.08,-0.02,0.00], [0.00,0.00,0.16], [0.00,0.00,0.12]]),
+                (3, [[0.51,0.52,0.00], [-0.03,-0.14,0.00], [0.24,-0.06,0.00], [0.07,-0.04,0.00], [0.00,0.00,0.27], [0.00,0.00,0.10]]),
+                (4, [[0.47,0.36,0.00], [-0.05,-0.16,0.00], [0.30,-0.12,0.00], [0.03,-0.09,0.00], [0.00,0.00,0.35], [0.00,0.00,0.06]]),
                 (5, [[0.40,0.20,0.00], [-0.11,-0.15,0.00], [0.29,-0.24,0.00], [-0.05,-0.11,0.00], [0.00,0.00,0.38], [0.00,0.00,0.02]]),
                 (6, [[0.26,0.08,0.00], [-0.20,-0.11,0.00], [0.19,-0.34,0.00], [-0.13,-0.08,0.00], [0.00,0.00,0.39], [0.00,0.00,0.00]]),
                 (7, [[0.00,0.00,0.00], [-0.29,-0.01,0.00], [0.01,-0.40,0.00], [-0.19,0.01,0.00], [0.00,0.00,0.38], [0.00,0.00,-0.01]]),
-                (8, [[-0.29,0.07,0.00], [-0.24,0.13,0.00], [-0.20,-0.32,0.00], [-0.11,0.10,0.00], [0.00,0.00,0.36], [0.01,0.00,-0.03]]),
-                (9, [[-0.46,0.24,-0.00], [-0.09,0.19,0.00], [-0.23,-0.21,0.00], [0.02,0.12,0.00], [0.01,0.00,0.32], [-0.00,0.00,-0.08]]),
-                (10, [[-0.48,0.42,0.00], [-0.01,0.16,0.00], [-0.17,-0.08,0.00], [0.07,0.09,0.00], [0.00,0.00,0.21], [-0.00,0.00,-0.09]]),
-                (11, [[-0.48,0.56,0.00], [-0.03,0.14,0.00], [-0.10,-0.02,0.00], [0.03,0.01,0.00], [0.00,0.00,0.13], [0.00,0.00,-0.04]]),
-                (12, [[-0.53,0.69,0.00], [-0.07,0.12,0.00], [-0.10,-0.06,0.00], [-0.03,-0.09,0.00], [0.00,0.00,0.12], [0.00,0.00,0.02]])
+                (8, [[-0.29,0.07,0.00], [-0.24,0.13,0.00], [-0.20,-0.32,0.00], [-0.11,0.10,0.00], [0.00,0.00,0.36], [0.00,0.00,-0.03]]),
+                (9, [[-0.46,0.23,0.00], [-0.10,0.19,0.00], [-0.23,-0.21,0.00], [0.02,0.12,0.00], [0.00,0.00,0.32], [0.00,0.00,-0.08]]),
+                (10, [[-0.48,0.42,0.00], [-0.01,0.17,0.00], [-0.17,-0.08,0.00], [0.07,0.09,0.00], [0.00,0.00,0.21], [0.00,0.00,-0.09]]),
+                (11, [[-0.48,0.56,0.00], [-0.01,0.14,0.00], [-0.10,-0.02,0.00], [0.03,0.02,0.00], [0.00,0.00,0.13], [0.00,0.00,-0.05]]),
+                (12, [[-0.51,0.70,0.00], [-0.04,0.14,0.00], [-0.11,-0.04,0.00], [-0.05,-0.06,0.00], [0.00,0.00,0.12], [0.00,0.00,0.02]])
                 ]),
 
             'userAnnotationGroups': [
@@ -1631,7 +1631,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                        xTrackSurface, d1TrackSurface, d2TrackSurface, loop1=True)
 
     # Visualise track surface
-    # tmpRegion = region.createRegion()
     # nodeIdentifier, elementIdentifier = trackSurfaceStomach.generateMesh(region)
 
     # Set up gastro-esophageal junction with midpoint aligned to fundus-body junction
@@ -1806,9 +1805,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 d2Uniform = \
                     trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions)[1]
                 endDerivative = d2Uniform[-1]
-                endDerivativeMag = vector.magnitude(endDerivative)
 
-                # Sample from apex to annulus
+                # Sample from annulus to body
                 aPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxPlusOne[count]]
                 startDerivative = d2AnnulusOuter[annulusIdxAtBodyStartIdxPlusOne[count]]
                 elementsOut = elementsAlongSections[i] - (elementsAroundQuarterEso - 1)
@@ -1984,6 +1982,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongLC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+
             d2SmoothedAlongLC[0] = vector.setMagnitude(d2SmoothedAlongLC[0],
                                                        0.5*(vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]) +
                                                             (vector.magnitude(d2SmoothedAlongLC[0]))))
@@ -2673,5 +2672,5 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 break
         element = elementIter.next()
     allAnnotationGroups.append(nearLCGroup)
-
+    
     return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongSections
