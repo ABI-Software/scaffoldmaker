@@ -69,8 +69,8 @@ class CecumScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-49.01658984455258, -46.89686037622053, -2.343256155753525], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [42.18085849205387, 54.902119877312636, 180.0], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-49.01658984455258, -46.89686037622053, -2.0], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [42.18085849205387, 54.902107765389445, 180.0], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -82,10 +82,10 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 65960.86557108756, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 65714.89904133523, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 127907.08806524028, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 124844.91039270099, delta=1.0E-6)
 
 
 if __name__ == "__main__":
