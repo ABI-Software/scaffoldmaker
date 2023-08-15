@@ -352,7 +352,7 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
                 curvatureList.append(curvature)
 
                 #dx_ds3
-                d3 = [c * -wallOutwardDisplacement * (relativeThicknessList[n3] if relativeThicknessList else 1.0 / elementsCountThroughWall) for c in norm]
+                d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
                 d3List.append(d3)
 
     return xList, d1List, d2List, d3List, curvatureList
