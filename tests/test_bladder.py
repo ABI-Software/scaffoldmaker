@@ -108,8 +108,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [0.0, 0.0, 0.0], 1.0E-10)
+        self.assertEqual(8, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [0.0, 0.0, 1.0], 1.0E-10)
         apexGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("apex of urinary bladder"))
         self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
 
@@ -177,8 +177,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [0.0, 0.0, 0.0], 1.0E-10)
+        self.assertEqual(497, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [0.0, 0.0, 1.0], 1.0E-10)
 
 
 if __name__ == "__main__":
