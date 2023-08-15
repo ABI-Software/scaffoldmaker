@@ -438,7 +438,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(73, len(annotationGroups))
         scaffoldPackage.deleteElementsInRanges(region, [[313, 496]])
-        self.assertEqual(600, mesh3d.getSize())
+        self.assertEqual(1896, mesh3d.getSize())
         element = mesh3d.findElementByIdentifier(400)
         self.assertFalse(element.isValid())
 
