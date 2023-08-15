@@ -258,6 +258,7 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
     :param elementsCountAlong: Number of elements along tube
     :param elementsCountThroughWall: Number of elements through tube wall
     :param transitElementList: stores true if element around is a transition
+    element that is between a big and a small element.
     :param outward: Set to True to generate coordinates from inner to outer surface.
     return nodes and derivatives for mesh, and curvature along extruded surface.
     """
@@ -280,15 +281,13 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
         relativeThicknessList.append(relativeThicknessList[-1])
 
     for n2 in range(elementsCountAlong + 1):
-        if outward:
-            wallThickness = wallThicknessList[n2]
-        else:
-            wallThickness = -wallThicknessList[n2]
+        wallThickness = wallThicknessList[n2]
+        wallOutwardDisplacement = wallThickness if outward else -wallThickness
         for n1 in range(elementsCountAround):
             n = n2*elementsCountAround + n1
             norm = d3Surf[n]
             # Calculate extruded coordinates
-            x = [xSurf[n][i] + norm[i]*wallThickness for i in range(3)]
+            x = [xSurf[n][i] + norm[i]*wallOutwardDisplacement for i in range(3)]
             xExtrudedSurf.append(x)
             # Calculate curvature along elements around
             prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
@@ -329,19 +328,15 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
                 surfx = xSurf[n]
                 extrudedx = xExtrudedSurf[n]
                 # x
+                dWall = [wallThickness * c for c in norm]
                 if outward:
-                    dWall = [wallThickness * c for c in norm]
                     x = interp.interpolateCubicHermite(surfx, dWall, extrudedx, dWall, xi3)
                 else:
-                    dWall = [-wallThickness * c for c in norm]
                     x = interp.interpolateCubicHermite(extrudedx, dWall, surfx, dWall, xi3)
                 xList.append(x)
 
                 # dx_ds1
-                if outward:
-                    factor = 1.0 + wallThickness*xi3 * curvatureAroundSurf[n]
-                else:
-                    factor = 1.0 - wallThickness * xi3 * curvatureAroundSurf[n]
+                factor = 1.0 - wallOutwardDisplacement * xi3 * curvatureAroundSurf[n]
                 d1 = [factor*c for c in d1Surf[n]]
                 d1List.append(d1)
 
@@ -357,10 +352,7 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
                 curvatureList.append(curvature)
 
                 #dx_ds3
-                if outward:
-                    d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
-                else:
-                    d3 = [c * -wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
+                d3 = [c * -wallOutwardDisplacement * (relativeThicknessList[n3] if relativeThicknessList else 1.0 / elementsCountThroughWall) for c in norm]
                 d3List.append(d3)
 
     return xList, d1List, d2List, d3List, curvatureList
