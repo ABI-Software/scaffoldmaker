@@ -125,13 +125,13 @@ class MeshType_3d_stomach1(Scaffold_base):
                 (4, [[62.470,-113.500,1134.220], [0.315,-6.148,-9.733], [35.400,-3.370,3.270], [4.541,-0.488,0.325], [-5.330,-34.800,21.800], [-0.383,-3.012,1.219]]),
                 (5, [[62.940,-120.610,1122.780], [0.448,-8.598,-13.993], [39.520,-4.010,3.730], [3.189,-0.587,-0.295], [-5.970,-37.560,22.890], [-0.099,-1.218,0.549]]),
                 (6, [[63.320,-130.670,1106.220], [-0.184,-10.489,-16.967], [41.370,-4.520,2.350], [0.495,-2.468,-4.032], [-5.290,-36.560,22.660], [0.257,0.762,0.246]]),
-                (7, [[62.540,-141.560,1088.910], [-4.623,-11.401,-18.639], [40.430,-9.060,-4.490], [-4.947,-4.939,-8.801], [-5.480,-36.050,23.410], [0.770,0.606,1.053]]),
+                (7, [[62.540,-141.560,1088.910], [-4.623,-11.401,-18.639], [40.430,-9.060,-4.490], [-4.947,-4.939,-8.800], [-5.480,-36.050,23.410], [0.770,0.606,1.053]]),
                 (8, [[53.670,-152.880,1069.820], [-15.955,-9.817,-16.265], [30.765,-14.468,-15.598], [-14.187,-3.408,-7.577], [-3.580,-35.330,24.820], [2.031,4.346,-1.238]]),
-                (9, [[32.230,-159.890,1058.560], [-22.295,-4.560,-7.466], [11.809,-15.766,-19.452], [-15.401,0.331,-0.623], [-1.410,-27.160,20.790], [1.197,8.617,-5.083]]),
-                (10, [[10.360,-162.050,1054.830], [-21.091,1.023,-0.270], [-0.460,-14.000,-17.230], [-8.753,2.830,4.765], [-1.070,-18.150,14.780], [-1.004,7.491,-3.259]]),
-                (11, [[-8.740,-158.280,1057.630], [-14.760,6.591,2.223], [-6.110,-10.230,-10.220], [-2.404,4.122,5.111], [-3.260,-12.000,13.950], [-1.432,6.623,-3.360]]),
-                (12, [[-18.830,-150.690,1059.200], [-11.483,11.369,1.057], [-6.410,-5.880,-6.340], [-0.423,3.102,2.580], [-4.200,-5.070,8.950], [-1.380,4.802,-2.401]]),
-                (13, [[-30.740,-135.240,1059.320], [-12.232,19.364,-0.810], [-7.020,-4.680,-5.740], [-0.797,-0.702,-1.380], [-6.250,-3.510,10.510], [-2.720,-1.682,5.521]])
+                (9, [[32.230,-159.890,1058.560], [-22.295,-4.560,-7.466], [11.809,-15.766,-19.452], [-15.401,0.331,-0.624], [-1.410,-27.160,20.790], [1.197,8.617,-5.083]]),
+                (10, [[10.360,-162.050,1054.830], [-21.098,1.023,-0.272], [-0.460,-14.000,-17.230], [-8.754,2.830,4.764], [-1.070,-18.150,14.780], [-1.003,7.491,-3.260]]),
+                (11, [[-8.740,-158.280,1057.630], [-17.280,7.584,3.006], [-6.110,-10.230,-10.220], [-2.634,4.430,6.290], [-3.260,-12.000,13.950], [-1.380,7.085,-2.660]]),
+                (12, [[-23.259,-147.625,1060.642], [-11.148,12.211,0.633], [-5.944,-5.188,-4.599], [-0.696,3.015,1.714], [-3.887,-4.046,9.590], [-2.080,5.832,-2.463]]),
+                (13, [[-30.740,-135.240,1059.320], [-3.618,11.918,-3.109], [-7.329,-3.791,-6.004], [-2.074,-0.221,-4.524], [-7.127,0.091,8.642], [-4.400,2.442,0.567]])
                 ]),
                 
             'userAnnotationGroups': [
@@ -241,7 +241,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of elements': 10
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [                
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                 (1, [[0.44,0.01,0.00], [-0.01,-0.00,0.00], [0.01,-0.05,0.00], [-0.01,-0.09,0.00], [0.00,0.00,0.08], [0.00,0.00,0.06]]),
                 (2, [[0.42,0.01,0.00], [-0.05,-0.01,0.00], [-0.00,-0.15,0.00], [-0.00,-0.10,0.00], [0.00,0.00,0.15], [0.00,0.00,0.08]]),
                 (3, [[0.33,0.00,0.00], [-0.11,-0.00,0.00], [0.00,-0.28,0.00], [-0.00,-0.13,0.00], [0.00,0.00,0.28], [0.00,0.00,0.12]]),
@@ -303,18 +303,18 @@ class MeshType_3d_stomach1(Scaffold_base):
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                 (1, [[0.492,0.623,0.000], [0.003,-0.035,0.000], [0.060,-0.002,0.000], [0.118,0.016,0.000], [0.000,0.000,0.080], [0.000,0.000,0.077]]),
-                (2, [[0.490,0.553,0.000], [-0.008,-0.105,0.000], [0.180,-0.006,0.000], [0.122,-0.024,0.000], [0.000,0.000,0.160], [0.000,0.000,0.083]]),
-                (3, [[0.475,0.414,0.000], [-0.038,-0.151,0.000], [0.308,-0.071,0.000], [0.077,-0.090,0.000], [0.000,0.000,0.250], [0.000,0.000,0.072]]),
-                (4, [[0.409,0.256,0.000], [-0.082,-0.143,0.000], [0.324,-0.191,0.000], [-0.028,-0.116,0.000], [0.000,0.000,0.300], [0.000,0.000,0.040]]),
-                (5, [[0.315,0.129,0.000], [-0.120,-0.114,0.000], [0.256,-0.304,0.000], [-0.090,-0.100,0.000], [0.000,0.000,0.330], [0.000,0.000,0.030]]),
+                (2, [[0.490,0.553,0.000], [-0.007,-0.105,0.000], [0.180,-0.006,0.000], [0.122,-0.024,0.000], [0.000,0.000,0.160], [0.000,0.000,0.083]]),
+                (3, [[0.475,0.414,0.000], [-0.039,-0.151,0.000], [0.308,-0.071,0.000], [0.077,-0.090,0.000], [0.000,0.000,0.250], [0.000,0.000,0.072]]),
+                (4, [[0.409,0.256,0.000], [-0.082,-0.144,0.000], [0.324,-0.191,0.000], [-0.028,-0.116,0.000], [0.000,0.000,0.300], [0.000,0.000,0.040]]),
+                (5, [[0.315,0.129,0.000], [-0.121,-0.114,0.000], [0.256,-0.304,0.000], [-0.090,-0.100,0.000], [0.000,0.000,0.330], [0.000,0.000,0.030]]),
                 (6, [[0.171,0.034,0.000], [-0.161,-0.066,0.000], [0.144,-0.389,0.000], [-0.125,-0.059,0.000], [0.000,0.000,0.360], [0.000,0.000,0.015]]),
                 (7, [[0.000,0.000,0.000], [-0.200,0.002,0.000], [0.005,-0.420,0.000], [-0.156,0.002,0.000], [0.000,0.000,0.360], [0.000,0.000,-0.009]]),
-                (8, [[-0.218,0.048,0.000], [-0.209,0.094,0.000], [-0.173,-0.374,0.000], [-0.152,0.079,0.000], [0.000,0.000,0.340], [0.000,0.000,-0.015]]),
-                (9, [[-0.404,0.184,0.000], [-0.146,0.182,0.000], [-0.299,-0.260,0.000], [-0.056,0.122,0.000], [0.000,0.000,0.330], [0.000,0.000,-0.025]]),
-                (10, [[-0.511,0.392,0.000], [-0.040,0.210,0.000], [-0.259,-0.148,0.000], [0.080,0.105,0.000], [0.000,0.000,0.290], [0.000,0.000,-0.112]]),
-                (11, [[-0.490,0.587,0.000], [-0.014,0.157,0.000], [-0.152,-0.045,0.000], [0.076,0.039,0.000], [0.000,0.000,0.120], [0.000,0.000,-0.067]]),
-                (12, [[-0.516,0.708,0.000], [-0.031,0.116,0.000], [-0.111,-0.036,0.000], [0.009,-0.000,0.000], [0.000,0.000,0.120], [0.000,0.000,0.015]]),
-                (13, [[-0.552,0.820,0.000], [-0.041,0.107,0.000], [-0.132,-0.045,0.000], [-0.050,-0.018,0.000], [0.000,0.000,0.150], [0.000,0.000,0.045]])
+                (8, [[-0.218,0.048,0.000], [-0.208,0.094,0.000], [-0.173,-0.374,0.000], [-0.152,0.079,0.000], [0.000,0.000,0.340], [0.000,0.000,-0.015]]),
+                (9, [[-0.404,0.184,0.000], [-0.152,0.178,0.000], [-0.299,-0.260,0.000], [-0.056,0.122,0.000], [0.000,0.000,0.330], [0.000,0.000,-0.025]]),
+                (10, [[-0.511,0.392,0.000], [-0.040,0.213,0.000], [-0.259,-0.148,0.000], [0.080,0.105,0.000], [0.000,0.000,0.290], [0.000,0.000,-0.112]]),
+                (11, [[-0.490,0.587,0.000], [-0.011,0.172,0.000], [-0.152,-0.045,0.000], [0.076,0.039,0.000], [0.000,0.000,0.120], [0.000,0.000,-0.067]]),
+                (12, [[-0.523,0.730,0.000], [-0.032,0.117,0.000], [-0.111,-0.036,0.000], [0.009,-0.000,0.000], [0.000,0.000,0.120], [0.000,0.000,0.015]]),
+                (13, [[-0.552,0.820,0.000], [-0.025,0.063,0.000], [-0.132,-0.045,0.000], [-0.050,-0.018,0.000], [0.000,0.000,0.150], [0.000,0.000,0.045]])
                 ]),
 
             'userAnnotationGroups': [
@@ -427,7 +427,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 3,
                 'Number of elements through wall': 4,
                 'Unit scale': 0.0105,
                 'Outlet': False,
@@ -458,7 +458,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 3,
                 'Number of elements through wall': 1,
                 'Unit scale': 0.0105 * 101,
                 'Outlet': False,
@@ -489,7 +489,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 3,
                 'Number of elements through wall': 4,
                 'Unit scale': 0.147,
                 'Outlet': False,
@@ -520,7 +520,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 3,
                 'Number of elements through wall': 4,
                 'Unit scale': 0.0118,
                 'Outlet': False,
@@ -551,7 +551,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 3,
                 'Number of elements through wall': 4,
                 'Unit scale': 0.043,
                 'Outlet': False,
@@ -582,7 +582,7 @@ class MeshType_3d_stomach1(Scaffold_base):
                 'Number of vessels': 1,
                 'Number of elements across common': 2,
                 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 3,
                 'Number of elements through wall': 4,
                 'Unit scale': 1.0,
                 'Outlet': False,
@@ -648,9 +648,9 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements around esophagus': 8,
-            'Number of elements around duodenum': 16,
-            'Number of elements along': 14,
+            'Number of elements around esophagus': 12,
+            'Number of elements around duodenum': 20,
+            'Number of elements along': 24,
             'Number of elements through wall': 4,
             'Wall thickness': 0.0525,
             'Mucosa relative thickness': 0.55,
@@ -669,7 +669,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements through wall'] = 1
             options['Wall thickness'] = 0.0525 * 101
         elif 'Mouse 1' in parameterSetName:
-            options['Number of elements along'] = 12
+            options['Number of elements along'] = 20
             options['Wall thickness'] = 0.05145
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
@@ -684,6 +684,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.1
             options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
+            options['Number of elements along'] = 20
             options['Wall thickness'] = 0.0215
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
@@ -691,6 +692,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Limiting ridge'] = True
         elif 'Material' in parameterSetName:
+            options['Number of elements along'] = 20
             options['Wall thickness'] = 0.05
             options['Mucosa relative thickness'] = 0.25
             options['Submucosa relative thickness'] = 0.25
@@ -2672,5 +2674,5 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 break
         element = elementIter.next()
     allAnnotationGroups.append(nearLCGroup)
-    
+
     return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongSections
