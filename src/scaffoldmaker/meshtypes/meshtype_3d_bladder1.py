@@ -607,8 +607,8 @@ class MeshType_3d_bladder1(Scaffold_base):
         rightUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                               get_bladder_term("right ureter junction with bladder"))
 
-        idx1 = 1
-        xi1 = [0.0, 0.0, 0.0]
+        idx1 = elementsCountAround * elementsCountThroughWall
+        xi1 = [0.0, 0.0, 1.0]
         markerList = []
         markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
         idx2 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
