@@ -343,7 +343,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements along neck': 4,
             'Number of elements around': 8,
             'Number of elements through wall': 1,
-            'Wall thickness': 0.016,
+            'Wall thickness': 0.007,
             'Ureter position around': 0.67,  # should be on the dorsal part (> 0.5). It's a fixed material coordinate and thus not to be edited.
             'Use linear through wall': True,
             'Refine': False,
@@ -365,7 +365,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             options['Number of elements along dome'] = 8
             options['Number of elements along neck'] = 4
             options['Number of elements around'] = 8
-            options['Wall thickness'] = 0.016  # an average of the wall thicknesses for above species
+            options['Wall thickness'] = 0.02  # an average of the wall thicknesses for above species, rounded.
         return options
 
     @staticmethod
