@@ -460,7 +460,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
         materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
-        materialWallThickness = 0.016
+        materialWallThickness = 0.02
 
         elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
 
