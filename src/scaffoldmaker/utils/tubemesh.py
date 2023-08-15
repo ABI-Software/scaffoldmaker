@@ -243,16 +243,15 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
 
     return xWarpedList, d1WarpedList, d2WarpedListFinal, d3WarpedUnitList
 
-def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
+def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
     wallThicknessList, relativeThicknessList, elementsCountAround,
-    elementsCountAlong, elementsCountThroughWall, transitElementList):
+    elementsCountAlong, elementsCountThroughWall, transitElementList, outward=True):
     """
-    Generates coordinates from inner to outer surface using coordinates
-    and derivatives of inner surface.
-    :param xInner: Coordinates on inner surface
-    :param d1Inner: Derivatives on inner surface around tube
-    :param d2Inner: Derivatives on inner surface along tube
-    :param d3Inner: Derivatives on inner surface through wall
+    Generates extruded coordinates using coordinates and derivatives of a surface.
+    :param xSurf: Coordinates on surface
+    :param d1Surf: Derivatives on surface around tube
+    :param d2Surf: Derivatives on surface along tube
+    :param d3Surf: Derivatives on surface through wall
     :param wallThicknessList: Wall thickness for each element along tube
     :param relativeThicknessList: Relative wall thickness for each element through wall
     :param elementsCountAround: Number of elements around tube
@@ -260,11 +259,12 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
     :param elementsCountThroughWall: Number of elements through tube wall
     :param transitElementList: stores true if element around is a transition
     element that is between a big and a small element.
-    return nodes and derivatives for mesh, and curvature along inner surface.
+    :param outward: Set to True to generate coordinates from inner to outer surface.
+    return nodes and derivatives for mesh, and curvature along extruded surface.
     """
 
-    xOuter = []
-    curvatureAroundInner = []
+    xExtrudedSurf = []
+    curvatureAroundSurf = []
     curvatureAlong = []
     curvatureList = []
     xList = []
@@ -282,69 +282,76 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
 
     for n2 in range(elementsCountAlong + 1):
         wallThickness = wallThicknessList[n2]
+        wallOutwardDisplacement = wallThickness if outward else -wallThickness
         for n1 in range(elementsCountAround):
             n = n2*elementsCountAround + n1
-            norm = d3Inner[n]
-            # Calculate outer coordinates
-            x = [xInner[n][i] + norm[i]*wallThickness for i in range(3)]
-            xOuter.append(x)
+            norm = d3Surf[n]
+            # Calculate extruded coordinates
+            x = [xSurf[n][i] + norm[i]*wallOutwardDisplacement for i in range(3)]
+            xExtrudedSurf.append(x)
             # Calculate curvature along elements around
             prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
             nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
-            kappam = interp.getCubicHermiteCurvatureSimple(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], 1.0)
-            kappap = interp.getCubicHermiteCurvatureSimple(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], 0.0)
+            kappam = interp.getCubicHermiteCurvatureSimple(xSurf[prevIdx], d1Surf[prevIdx], xSurf[n], d1Surf[n], 1.0)
+            kappap = interp.getCubicHermiteCurvatureSimple(xSurf[n], d1Surf[n], xSurf[nextIdx], d1Surf[nextIdx], 0.0)
             if not transitElementList[n1] and not transitElementList[(n1-1)%elementsCountAround]:
                 curvatureAround = 0.5*(kappam + kappap)
             elif transitElementList[n1]:
                 curvatureAround = kappam
             elif transitElementList[(n1-1)%elementsCountAround]:
                 curvatureAround = kappap
-            curvatureAroundInner.append(curvatureAround)
+            curvatureAroundSurf.append(curvatureAround)
 
             # Calculate curvature along
             if n2 == 0:
-                curvature = interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround],
-                                                            d2Inner[n + elementsCountAround],
-                                                            vector.normalise(d3Inner[n]), 0.0)
+                curvature = interp.getCubicHermiteCurvature(xSurf[n], d2Surf[n], xSurf[n + elementsCountAround],
+                                                            d2Surf[n + elementsCountAround],
+                                                            vector.normalise(d3Surf[n]), 0.0)
             elif n2 == elementsCountAlong:
-                curvature = interp.getCubicHermiteCurvature(xInner[n - elementsCountAround],
-                                                            d2Inner[n - elementsCountAround],
-                                                            xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0)
+                curvature = interp.getCubicHermiteCurvature(xSurf[n - elementsCountAround],
+                                                            d2Surf[n - elementsCountAround],
+                                                            xSurf[n], d2Surf[n], vector.normalise(d3Surf[n]), 1.0)
             else:
                 curvature = 0.5*(
-                    interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround],
-                                                    xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0) +
-                    interp.getCubicHermiteCurvature(xInner[n], d2Inner[n],
-                                                    xInner[n + elementsCountAround], d2Inner[n + elementsCountAround],
-                                                    vector.normalise(d3Inner[n]), 0.0))
+                    interp.getCubicHermiteCurvature(xSurf[n - elementsCountAround], d2Surf[n - elementsCountAround],
+                                                    xSurf[n], d2Surf[n], vector.normalise(d3Surf[n]), 1.0) +
+                    interp.getCubicHermiteCurvature(xSurf[n], d2Surf[n],
+                                                    xSurf[n + elementsCountAround], d2Surf[n + elementsCountAround],
+                                                    vector.normalise(d3Surf[n]), 0.0))
             curvatureAlong.append(curvature)
 
         for n3 in range(elementsCountThroughWall + 1):
             xi3 = xi3List[n3] if relativeThicknessList else 1.0/elementsCountThroughWall * n3
             for n1 in range(elementsCountAround):
                 n = n2*elementsCountAround + n1
-                norm = d3Inner[n]
-                innerx = xInner[n]
-                outerx = xOuter[n]
-                dWall = [wallThickness*c for c in norm]
+                norm = d3Surf[n]
+                surfx = xSurf[n]
+                extrudedx = xExtrudedSurf[n]
                 # x
-                x = interp.interpolateCubicHermite(innerx, dWall, outerx, dWall, xi3)
+                dWall = [wallThickness * c for c in norm]
+                if outward:
+                    x = interp.interpolateCubicHermite(surfx, dWall, extrudedx, dWall, xi3)
+                else:
+                    x = interp.interpolateCubicHermite(extrudedx, dWall, surfx, dWall, xi3)
                 xList.append(x)
 
                 # dx_ds1
-                factor = 1.0 + wallThickness*xi3 * curvatureAroundInner[n]
-                d1 = [ factor*c for c in d1Inner[n]]
+                factor = 1.0 + wallThickness * xi3 * curvatureAroundSurf[n]
+                d1 = [factor*c for c in d1Surf[n]]
                 d1List.append(d1)
 
                 # dx_ds2
                 curvature = curvatureAlong[n]
-                distance = vector.magnitude([x[i] - xInner[n][i] for i in range(3)])
-                factor = 1.0 - curvature*distance
-                d2 = [ factor*c for c in d2Inner[n]]
+                distance = vector.magnitude([x[i] - xSurf[n][i] for i in range(3)])
+                if outward:
+                    factor = 1.0 - curvature * distance
+                else:
+                    factor = 1.0 + curvature * distance
+                d2 = [factor*c for c in d2Surf[n]]
                 d2List.append(d2)
                 curvatureList.append(curvature)
 
-                #dx_ds3
+                # dx_ds3
                 d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
                 d3List.append(d3)
 
@@ -518,6 +525,7 @@ def createNodesAndElements(region,
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
     if useCrossDerivatives:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
     if useCubicHermiteThroughWall:
@@ -601,6 +609,12 @@ def createNodesAndElements(region,
         organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         if useCrossDerivatives:
             organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+        if useCubicHermiteThroughWall:
+            organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
+            if useCrossDerivatives:
+                organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS1DS3, 1)
+                organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D2_DS2DS3, 1)
+                organNodetemplate.setValueNumberOfVersions(organCoordinates, -1, Node.VALUE_LABEL_D3_DS1DS2DS3, 1)
 
         organElementtemplate = mesh.createElementtemplate()
         organElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)

@@ -862,9 +862,10 @@ class MeshType_3d_colon1(Scaffold_base):
         contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
 
         # Create coordinates and derivatives
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
+        xList, d1List, d2List, d3List, curvatureList = tubemesh.extrudeSurfaceCoordinates(xExtrude, d1Extrude,
                                                                                         d2Extrude, d3UnitExtrude, contractedWallThicknessList, relativeThicknessList,
-                                                                                        elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
+                                                                                        elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList,
+                                                                                          outward=True)
 
         relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
 
