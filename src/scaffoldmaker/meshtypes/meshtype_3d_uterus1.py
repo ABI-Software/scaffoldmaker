@@ -1665,31 +1665,30 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
     startRadian = -math.pi / 2
-    xCervix, d1Cervix, d2Cervix, d3Cervix = \
+    xCervix, d1Cervix, d2Cervix, _ = \
         findNodesAlongTubes2D(sx_cervix_group, elementsCountAround, elementsCountInCervix,
                               elementsCountThroughWall, wallThickness, cervixLength, startRadian)
-    cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+    # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
 
     # # Find d3 for cervix outer nodes
     # d3Cervix = []
     # for n2 in range(0, elementsCountInCervix + 1):
     #     d3CervixRaw = []
     #     for n1 in range(elementsCountAround):
-    #         if n1 == 0 or elementsCountAround // 2:
+    #         if n1 == 0:
     #             d3CervixRaw.append([0.0, 0.0, 0.0])
-    #         if 0 < n1 < elementsCountAround // 2:
+    #         elif 0 < n1 <= elementsCountAround // 2:
     #             v1 = cervixInnerRightCoordinates[n2][n1]
     #             v2 = xCervix[n2][n1]
-    #             v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
     #             d3CervixRaw.append(v1v2)
-    #         if n1 > elementsCountAround:
+    #         else:
     #             v1 = cervixInnerLeftCoordinates[n2][n1]
     #             v2 = xCervix[n2][n1]
-    #             v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
     #             d3CervixRaw.append(v1v2)
     #             # d3CervixRaw.append([1.0, 0.0, 0.0])
-    #     d3Cervix.append(d3CervixRaw)
-    #
+    #         d3Cervix.append(d3CervixRaw)
     #
     # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
 
@@ -1806,7 +1805,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     c2Centre = sx_left_horn_group[0][-2]
     paxList = xCervix[1]
     pad2 = d2Cervix[1]
-    pad3 = d3Cervix[1]
+    # pad3 = d3Cervix[1]
     # paxList = cFirstRingNodeCoordinates[0]
     # pad2 = cFirstRingNodeCoordinates[2]
     c1xList = rhLastRingNodeCoordinates[0][1]
@@ -1928,7 +1927,34 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         d3 = findDerivativeBetweenPoints(v1, v2)
         d3SampledBifurcationLeft.append(d3)
 
+    # Find d3 for cervix outer nodes
+    d3Cervix = []
+    for n2 in range(0, elementsCountInCervix + 1):
+        d3CervixRaw = []
+        for n1 in range(elementsCountAround):
+            if n1 == 0:
+                d1 = septumCervixCoordinates[1][n2][n1]
+                d3CervixRaw.append(d1)
+            elif 0 < n1 < elementsCountAround // 2:
+                v1 = cervixInnerRightCoordinates[n2][n1]
+                v2 = xCervix[n2][n1]
+                v1v2 = findDerivativeBetweenPoints(v1, v2)
+                d3CervixRaw.append(v1v2)
+            elif n1 == elementsCountAround // 2:
+                d = [-d1[c] for c in range(3)]
+                d3CervixRaw.append(d)
+            else:
+                v1 = cervixInnerLeftCoordinates[n2][n1]
+                v2 = xCervix[n2][n1]
+                v1v2 = findDerivativeBetweenPoints(v1, v2)
+                d3CervixRaw.append(v1v2)
+                # d3CervixRaw.append([1.0, 0.0, 0.0])
+            d3Cervix.append(d3CervixRaw)
+
+    cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+
     # Get d3 for outer bifurcation (for rox nodes)
+    pad3 = d3Cervix[1] # parent d3 which is d3 for first row of cervix
     rod3 = []
     for n in range(elementsCountAround):
         if n == 0:
