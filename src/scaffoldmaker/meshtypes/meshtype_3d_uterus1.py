@@ -1554,13 +1554,15 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Create annotation groups
     rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
     leftHornGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
+    bodyGroup = AnnotationGroup(region, get_uterus_term("body of uterus"))
     cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
     vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
     uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
-    annotationGroups = [cervixGroup, vaginaGroup, leftHornGroup, rightHornGroup, uterusGroup]
+    annotationGroups = [cervixGroup, bodyGroup, leftHornGroup, rightHornGroup, uterusGroup, vaginaGroup]
 
     rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
     leftHornMeshGroup = leftHornGroup.getMeshGroup(mesh)
+    bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
     cervixMeshGroup = cervixGroup.getMeshGroup(mesh)
     vaginaMeshGroup = vaginaGroup.getMeshGroup(mesh)
     uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
@@ -2039,13 +2041,13 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                                           elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
                                                           c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
                                                           cricNodeId, clicNodeId, cotNodeId, sbNodeId, csNodeId,
-                                                           meshGroups=[cervixMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
+                                                           meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
 
     # Create cervix elements
     elementIdentifier = make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
                                              elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
                                              elementsCountAroundLeftHorn, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
-                                             meshGroups=[cervixMeshGroup, uterusMeshGroup])
+                                             meshGroups=[bodyMeshGroup, cervixMeshGroup, uterusMeshGroup])
 
     # # # Create vagina elements
     # # startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
@@ -3156,7 +3158,7 @@ def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlon
 
     # Cervix elements
     for e3 in range(1):
-        for e2 in range(elementsCountAlongCervix):
+        for e2 in range(elementsCountAlongCervix - 1):
             # Elements around right canal in cervix
             for e1 in range(elementsCountAroundRightTube):
                 bni1 = cricNodeId[e2 * elementsCountAroundRightTube + e1]
@@ -3217,8 +3219,37 @@ def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlon
                     result3 = element.setScaleFactors(eft1, scalefactors)
                 else:
                     result3 = '-'
-                for meshGroup in meshGroups:
-                    meshGroup.addElement(element)
+                if elementsCountAlongCervix == 2:
+                    for meshGroup in meshGroups:
+                        if meshGroups.index(meshGroup) == 1:
+                                meshGroup.addElement(element)
+                        elif meshGroups.index(meshGroup) == 2:
+                            meshGroup.addElement(element)
+                elif elementsCountAlongCervix > 2:
+                    if e2 < elementsCountAlongCervix - 2:
+                        for meshGroup in meshGroups:
+                            if meshGroups.index(meshGroup) == 0:
+                                meshGroup.addElement(element)
+                            elif meshGroups.index(meshGroup) == 2:
+                                meshGroup.addElement(element)
+                    else:
+                        for meshGroup in meshGroups:
+                            if meshGroups.index(meshGroup) == 1:
+                                    meshGroup.addElement(element)
+                            elif meshGroups.index(meshGroup) == 2:
+                                meshGroup.addElement(element)
+                    # else:
+                    #     if meshGroups.index(meshGroup) == 1:
+                    #             meshGroup.addElement(element)
+                    #     elif meshGroups.index(meshGroup) == 2:
+                    #         meshGroup.addElement(element)
+
+                    # meshGroup.addElement(element)
+                # for meshGroup in meshGroups:
+                #     if meshGroups.index(meshGroup) == 0:
+                #         meshGroup.addElement(element)
+                #     elif meshGroups.index(meshGroup) == 3:
+                #         meshGroup.addElement(element)
                 elementIdentifier += 1
 
             # Elements around Left canal in cervix
@@ -3298,8 +3329,27 @@ def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlon
                     result3 = element.setScaleFactors(eft1, scalefactors)
                 else:
                     result3 = '-'
-                for meshGroup in meshGroups:
-                    meshGroup.addElement(element)
+                # for meshGroup in meshGroups:
+                #     meshGroup.addElement(element)
+                if elementsCountAlongCervix == 2:
+                    for meshGroup in meshGroups:
+                        if meshGroups.index(meshGroup) == 1:
+                                meshGroup.addElement(element)
+                        elif meshGroups.index(meshGroup) == 2:
+                            meshGroup.addElement(element)
+                elif elementsCountAlongCervix > 2:
+                    if e2 < elementsCountAlongCervix - 2:
+                        for meshGroup in meshGroups:
+                            if meshGroups.index(meshGroup) == 0:
+                                meshGroup.addElement(element)
+                            elif meshGroups.index(meshGroup) == 2:
+                                meshGroup.addElement(element)
+                    else:
+                        for meshGroup in meshGroups:
+                            if meshGroups.index(meshGroup) == 1:
+                                    meshGroup.addElement(element)
+                            elif meshGroups.index(meshGroup) == 2:
+                                meshGroup.addElement(element)
                 elementIdentifier += 1
     return elementIdentifier
 
