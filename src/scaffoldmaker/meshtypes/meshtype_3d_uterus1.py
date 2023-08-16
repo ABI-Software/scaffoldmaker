@@ -1908,9 +1908,25 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         if n1 <= elementsCountAround // 2:
             v2 = rox[n1]
         else:
-            v2 = xSeptumBifurcation[n1 - elementsCountAround // 2 - 1]
+            # v2 = xSeptumBifurcation[n1 - elementsCountAround // 2 - 1]
+            v2 = cox[n1 - elementsCountAround // 2 - 1]
         d3 = findDerivativeBetweenPoints(v1, v2)
         d3SampledBifurcationRight.append(d3)
+
+    # Get d3 for inner left bifurcation tube
+    d3SampledBifurcationLeft = []
+    for n1 in range(elementsCountAroundRightHorn):
+        v1 = xSampledBifurcationLeft[1][n1]
+        if n1 == 0:
+            v2 = rox[n1]
+        elif 0 < n1 < elementsCountAcross:
+            v2 = cox[elementsCountAcross - n1 - 1]
+        elif n1 == elementsCountAcross:
+            v2 = rox[elementsCountAround // 2]
+        else:
+            v2 = rox[n1]
+        d3 = findDerivativeBetweenPoints(v1, v2)
+        d3SampledBifurcationLeft.append(d3)
 
     # Get d3 for outer bifurcation (for rox nodes)
     rod3 = []
@@ -1981,6 +1997,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationLeft[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationLeft[n2][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationLeft[n2][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationLeft[n1])
                 bilNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
 
