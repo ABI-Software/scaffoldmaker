@@ -1939,8 +1939,8 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
             rod3.append(pad3[n])
         else:
             # should be d3 of the d3SampledBifurcationLeft
-            # rod3.append(d3SampledBifurcationRight[n])
-            rod3.append([0.0, 0.0, 1.0])
+            rod3.append(d3SampledBifurcationLeft[n])
+            # rod3.append([0.0, 0.0, 1.0])
 
     # Get d3 for outer bifurcation (for cox nodes)
     cod3 = []
