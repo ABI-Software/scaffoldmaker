@@ -1863,42 +1863,42 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
 
-    # Add nodes between the two nodes of bifurcation in rox (along septum)
-    # Get coordinates across bifurcation septum, between two inner canals
-    # elementsCountAcross = len(cox) + 1
-    v1 = rox[elementsCountAround // 2]
-    v2 = rox[0]
-    v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
-    v1v2 = [v2[c] - v1[c] for c in range(3)]
-    nx = [v1, v3, v2]
-    nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
-           [d / elementsCountAcross for d in v1v2]]
-    xSeptumBifurcation, d1SeptumBifurcation, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[
-                                                       0:4]
-    xSeptumBifurcation = xSeptumBifurcation[1:-1]
-    d1SeptumBifurcation = d1SeptumBifurcation[1:-1]
-
-    # Find d2 across bifurcation septum
-    d2SeptumBifurcation = []
-    for n2 in range(elementsCountAcross - 1):
-        v1 = xSeptumBifurcation[n2]
-        v2 = xAcrossSeptum[1][n2]
-        d2 = findDerivativeBetweenPoints(v1, v2)
-        d2SeptumBifurcation.append(d2)
-
-    # Find d3 across bifurcation septum
-    d3SeptumBifurcation = []
-    for n2 in range(elementsCountAcross - 1):
-        v1 = d1SeptumBifurcation[n2]
-        v2 = d2AcrossSeptum[1][n2]
-        v3 = vector.crossproduct3(v1, v2)
-        v3Norm = vector.normalise(v3)
-        d1mag = vector.magnitude(v1)
-        d3 = vector.setMagnitude(v3Norm, d1mag)
-        d3SeptumBifurcation.append(d3)
-    # print('len(d3SeptumBifurcation)', len(d3SeptumBifurcation))
-
-    septumBifurCoordinates = [xSeptumBifurcation, d1SeptumBifurcation, d2SeptumBifurcation, d3SeptumBifurcation]
+    # # Add nodes between the two nodes of bifurcation in rox (along septum)
+    # # Get coordinates across bifurcation septum, between two inner canals
+    # # elementsCountAcross = len(cox) + 1
+    # v1 = rox[elementsCountAround // 2]
+    # v2 = rox[0]
+    # v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+    # v1v2 = [v2[c] - v1[c] for c in range(3)]
+    # nx = [v1, v3, v2]
+    # nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+    #        [d / elementsCountAcross for d in v1v2]]
+    # xSeptumBifurcation, d1SeptumBifurcation, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[
+    #                                                    0:4]
+    # xSeptumBifurcation = xSeptumBifurcation[1:-1]
+    # d1SeptumBifurcation = d1SeptumBifurcation[1:-1]
+    #
+    # # Find d2 across bifurcation septum
+    # d2SeptumBifurcation = []
+    # for n2 in range(elementsCountAcross - 1):
+    #     v1 = xSeptumBifurcation[n2]
+    #     v2 = xAcrossSeptum[1][n2]
+    #     d2 = findDerivativeBetweenPoints(v1, v2)
+    #     d2SeptumBifurcation.append(d2)
+    #
+    # # Find d3 across bifurcation septum
+    # d3SeptumBifurcation = []
+    # for n2 in range(elementsCountAcross - 1):
+    #     v1 = d1SeptumBifurcation[n2]
+    #     v2 = d2AcrossSeptum[1][n2]
+    #     v3 = vector.crossproduct3(v1, v2)
+    #     v3Norm = vector.normalise(v3)
+    #     d1mag = vector.magnitude(v1)
+    #     d3 = vector.setMagnitude(v3Norm, d1mag)
+    #     d3SeptumBifurcation.append(d3)
+    # # print('len(d3SeptumBifurcation)', len(d3SeptumBifurcation))
+    #
+    # septumBifurCoordinates = [xSeptumBifurcation, d1SeptumBifurcation, d2SeptumBifurcation, d3SeptumBifurcation]
 
 
     # Get d3 for inner right bifurcation tube
@@ -1945,8 +1945,9 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Get d3 for outer bifurcation (for cox nodes)
     cod3 = []
     for n in range(len(cox)):
-        v1 = cox[n]
-        v2 = xSeptumBifurcation[n]
+        # v1 = xSeptumBifurcation[n]
+        v1 = septumCervixCoordinates[0][0][n + 1]
+        v2 = cox[n]
         d3 = findDerivativeBetweenPoints(v1, v2)
         cod3.append(d3)
 
@@ -2002,6 +2003,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 nodeIdentifier += 1
 
     # Create bifurcation nodes
+    septumBifurCoordinates = []
     nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
         create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
     #old
