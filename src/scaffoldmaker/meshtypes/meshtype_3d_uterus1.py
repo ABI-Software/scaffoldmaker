@@ -1927,6 +1927,36 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         d3 = findDerivativeBetweenPoints(v1, v2)
         d3SampledBifurcationLeft.append(d3)
 
+    # Find d3 for cervix right inner canal nodes
+    d3CervixInnerRight = []
+    for n2 in range(0, elementsCountInCervix + 1):
+        for n1 in range(elementsCountAroundRightHorn):
+            v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
+            if n1 <= elementsCountAround // 2:
+                v2 = xCervix[n2][n1]
+            else:
+                v2 = xAcrossSeptum[n2][n1 - elementsCountAround // 2]
+            d3 = findDerivativeBetweenPoints(v1, v2)
+            d3CervixInnerRight.append(d3)
+    cervixInnerRightCoordinates.append(d3CervixInnerRight)
+
+    # Find d3 for cervix Left inner canal nodes
+    d3CervixInnerLeft = []
+    for n2 in range(0, elementsCountInCervix + 1):
+        for n1 in range(elementsCountAroundLeftHorn):
+            v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
+            if n1 == 0:
+                v2 = xCervix[n2][n1]
+            elif 0 < n1 < elementsCountAcross:
+                v2 = xAcrossSeptum[n2][elementsCountAcross - n1]
+            elif n1 == elementsCountAcross:
+                v2 = xCervix[n2][elementsCountAround // 2]
+            else:
+                v2 = xCervix[n2][n1]
+            d3 = findDerivativeBetweenPoints(v1, v2)
+            d3CervixInnerLeft.append(d3)
+    cervixInnerLeftCoordinates.append(d3CervixInnerLeft)
+
     # Find d3 for cervix outer nodes
     d3Cervix = []
     for n2 in range(0, elementsCountInCervix + 1):
@@ -2395,6 +2425,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerRigh[0][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerRigh[1][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerRigh[2][n])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerRigh[3][n])
             # if n2 == 1:
             cricNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
@@ -2405,6 +2436,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n])
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
             clicNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
         for n1 in range(1, elementsCountAcross):
