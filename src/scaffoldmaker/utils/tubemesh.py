@@ -336,13 +336,16 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
                 xList.append(x)
 
                 # dx_ds1
-                factor = 1.0 + wallThickness * xi3 * curvatureAroundSurf[n]
+                distance = vector.magnitude([x[i] - xSurf[n][i] for i in range(3)])
+                if outward:
+                    factor = 1.0 + distance * curvatureAroundSurf[n]
+                else:
+                    factor = 1.0 - distance * curvatureAroundSurf[n]
                 d1 = [factor*c for c in d1Surf[n]]
                 d1List.append(d1)
 
                 # dx_ds2
                 curvature = curvatureAlong[n]
-                distance = vector.magnitude([x[i] - xSurf[n][i] for i in range(3)])
                 if outward:
                     factor = 1.0 - curvature * distance
                 else:
