@@ -2148,12 +2148,12 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #                              c2xList, c2d2)
 
     # Create cervix nodes
-    nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
+    nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
                                          cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
                                          elementsCountAcross, omitStartRows=1, omitEndRows=1, startNodes=None)
 
     # Create vagina nodes
-    nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = generateCervixNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
+    nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
                                          vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina, elementsCountAround,
                                          elementsCountAcross, omitStartRows=0, omitEndRows=0, startNodes=None)
     # nodeIdentifier = generateTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
@@ -2194,13 +2194,13 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                                            meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
 
     # Create cervix elements
-    elementIdentifier = make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
+    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
                                              elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
                                              elementsCountAroundLeftHorn, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
                                              meshGroups=[bodyMeshGroup, cervixMeshGroup, uterusMeshGroup])
 
     # Create vagina elements
-    elementIdentifier = make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina + 1,
+    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina + 1,
                                              elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
                                              elementsCountAroundLeftHorn, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
                                              meshGroups=[vaginaMeshGroup])
@@ -2477,7 +2477,7 @@ def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube,
     return xSampledTube, d1SampledTube, d2SampledTube, d3Tube
 
 
-def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountInCervix,
+def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountInCervix,
                         elementsCountAround, elementsCountAcross, omitStartRows, omitEndRows, startNodes=None):
 
     cache = fm.createFieldcache()
@@ -3297,7 +3297,7 @@ def make_rat_uterus_bifurcation_elements(fm, coordinates, elementIdentifier, ele
     return elementIdentifier
 
 
-def make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountAlongCervix, elementsCountAround,
+def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountAlongCervix, elementsCountAround,
                          elementsCountAcross, elementsCountAroundRightTube, elementsCountAroundLeftTube,
                          cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives, meshGroups=None):
 
