@@ -1634,7 +1634,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Get cervix nodes
     cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
     cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter, septumCervixCoordinates = \
-        getDoubleCervixNodes(cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
+        getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
                          elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
 
     # # Get right inner cervix nodes
@@ -2070,7 +2070,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Get vagina nodes
     vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
     vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates, vaginaCoordinatesOuter, septumVaginaCoordinates = \
-        getDoubleCervixNodes(cx_vagina_group, vaginaLength, elementsCountInVagina, elementsCountAroundRightHorn,
+        getDoubleTubeNodes(cx_vagina_group, vaginaLength, elementsCountInVagina, elementsCountAroundRightHorn,
                          elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
     # vaginaCoordinates = getCoordinatesAlongTube3D(cx_vagina_group, elementsCountAround, elementsCountInVagina,
     #                                               elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
@@ -3921,9 +3921,11 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
     return elementIdentifier
 
 
-def getDoubleCervixNodes( cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
+def getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
                          elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness):
-
+    '''
+    :return the coordinates and derivatives of the outer tube, inner right and left tubes and the septum nodes
+    '''
 
     # Get cervix right and left path
     cx_cervix_group_right = cx_cervix_group[1:]
@@ -3988,30 +3990,7 @@ def getDoubleCervixNodes( cx_cervix_group, cervixLength, elementsCountInCervix, 
                               elementsCountThroughWall, wallThickness, cervixLength, startRadian)
     cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, _]
 
-    # # Find d3 for cervix outer nodes
-    # d3Cervix = []
-    # for n2 in range(0, elementsCountInCervix + 1):
-    #     d3CervixRaw = []
-    #     for n1 in range(elementsCountAround):
-    #         if n1 == 0:
-    #             d3CervixRaw.append([0.0, 0.0, 0.0])
-    #         elif 0 < n1 <= elementsCountAround // 2:
-    #             v1 = cervixInnerRightCoordinates[n2][n1]
-    #             v2 = xCervix[n2][n1]
-    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
-    #             d3CervixRaw.append(v1v2)
-    #         else:
-    #             v1 = cervixInnerLeftCoordinates[n2][n1]
-    #             v2 = xCervix[n2][n1]
-    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
-    #             d3CervixRaw.append(v1v2)
-    #             # d3CervixRaw.append([1.0, 0.0, 0.0])
-    #         d3Cervix.append(d3CervixRaw)
-    #
-    # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
-
     # Get coordinates across cervix septum, between two inner canals
-    # elementsCountAcross = len(cox) + 1
     xAcrossSeptum = []
     d1AcrossSeptum = []
     for n in range(elementsCountInCervix + 1):
