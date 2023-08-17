@@ -308,6 +308,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             # 'Number of elements across': 3,
             'Wall thickness': 2.0,
             'Number of elements through wall': 1,
+            'Double uterus': False,
             'Use linear through wall': True,
             'Use cross derivatives': False,
             'Refine': False,
@@ -319,6 +320,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             options['Number of elements through wall'] = 1  # only works for 1
             options['Target element length'] = 6.0
             options['Wall thickness'] = 1.5
+            options['Double uterus'] = True
         if 'Sheep' in parameterSetName:
             options['Target element length'] = 11.0
             options['Wall thickness'] = 3.0
@@ -336,6 +338,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             # 'Number of elements across',
             'Wall thickness',
             'Number of elements through wall',
+            'Double uterus',
             'Use linear through wall',
             'Use cross derivatives',
             'Refine',
@@ -404,6 +407,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         # elementsCountAcross = options['Number of elements across']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
+        doubleUterus = options['Double uterus']
         targetElementLength = options['Target element length']
         useCrossDerivatives = options['Use cross derivatives']
 
@@ -428,15 +432,18 @@ class MeshType_3d_uterus1(Scaffold_base):
         elementsCountInCervix = math.ceil(cervixLength / targetElementLength)
         elementsCountInVagina = math.ceil(vaginaLength / targetElementLength)
 
-        # nodeIdentifier, elementIdentifier, annotationGroups = \
-        #     createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
-        #                        elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-        #                        elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
 
-        nodeIdentifier, elementIdentifier, annotationGroups = \
-            createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAcross,
-                               elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-                               elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
+
+        if doubleUterus:
+            nodeIdentifier, elementIdentifier, annotationGroups = \
+                createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAcross,
+                                   elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
+                                   elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
+        else:
+            nodeIdentifier, elementIdentifier, annotationGroups = \
+                createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+                                   elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
+                                   elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
 
         # # Material coordinates
         # tmp_region = region.createRegion()
