@@ -1614,90 +1614,141 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                                          elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
 
 
-    # Get cervix right and left path
-    cx_cervix_group_right = cx_cervix_group[1:]
-    cx_cervix_group_left = cx_cervix_group[1:]
-    distance = wallThickness
-    xrList = []
-    xlList = []
-    for n in range(len(cx_cervix_group[0])):
-        x = cx_cervix_group[0][n]
-        v = vector.normalise(cx_cervix_group[2][n])
-        v_trans = vector.setMagnitude(v, distance)
-        x_right = [x[c] + v_trans[c] for  c in range(3)]
-        x_left = [x[c] - v_trans[c] for  c in range(3)]
-        xrList.append(x_right)
-        xlList.append(x_left)
-    cx_cervix_group_right.insert(0, xrList)
-    cx_cervix_group_left.insert(0, xlList)
+    # # Get cervix right and left path
+    # cx_cervix_group_right = cx_cervix_group[1:]
+    # cx_cervix_group_left = cx_cervix_group[1:]
+    # distance = wallThickness
+    # xrList = []
+    # xlList = []
+    # for n in range(len(cx_cervix_group[0])):
+    #     x = cx_cervix_group[0][n]
+    #     v = vector.normalise(cx_cervix_group[2][n])
+    #     v_trans = vector.setMagnitude(v, distance)
+    #     x_right = [x[c] + v_trans[c] for  c in range(3)]
+    #     x_left = [x[c] - v_trans[c] for  c in range(3)]
+    #     xrList.append(x_right)
+    #     xlList.append(x_left)
+    # cx_cervix_group_right.insert(0, xrList)
+    # cx_cervix_group_left.insert(0, xlList)
 
-    # Get right inner cervix nodes
-    cervixInnerRightCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_right, elementsCountAroundRightHorn,
-                                                            elementsCountInCervix, startRadian=-math.pi / 2)
-
-    # Get left inner cervix nodes
-    cervixInnerLeftCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_left, elementsCountAroundLeftHorn,
-                                                           elementsCountInCervix, startRadian=-math.pi / 2)
-
-    # cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
-    #                                                             elementsCountInCervix, elementsCountThroughWall,
-    #                                                             omitStartRows=1, omitEndRows=0)
-
-    # Find outer nodes along cervix
-    # sx_cervix = []
-    # for n in range(len(sx_right_tube_group_cervix[0])):
-    #     x = [(sx_right_tube_group_cervix[0][n][c] + sx_left_tube_group_cervix[0][n][c]) / 2 for c in range(3)]
-    #     sx_cervix.append(x)
-    cervix_radius1 = []
-    cervix_radius2 = []
-    sx_cervix = cx_cervix_group[0]
-    for n in range(len(cx_cervix_group[0])):
-        v2 = cx_cervix_group_right[0][n]
-        v1 = cx_cervix_group_left[0][n]
-        v1v2 = [v2[c] - v1[c] for c in range(3)]
-        d1Dir = vector.normalise(v1v2)
-        d1Mag = vector.magnitude(v1v2)
-        sd2RMag = vector.magnitude(cx_cervix_group_right[2][n])
-        sd3RMag = vector.magnitude(cx_cervix_group_right[4][n])
-        # sd2LMag = sx_left_tube_group[2][n]
-        radius1 = d1Mag / 2 + sd2RMag + wallThickness
-        radius2 = sd3RMag + wallThickness
-        radius1_v = vector.setMagnitude(vector.normalise(v1v2), radius1)
-        radius2_v = vector.setMagnitude(vector.normalise(cx_cervix_group_right[4][n]), radius2)
-        # radius2_v = vector.setMagnitude(vector.normalise(sx_right_tube_group_cervix[4][n]), radius1)
-        cervix_radius1.append(radius1_v)
-        cervix_radius2.append(radius2_v)
-    sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius2]
-    # sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius1]
-
+    # Get cervix nodes
     cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
-    startRadian = -math.pi / 2
-    xCervix, d1Cervix, d2Cervix, _ = \
-        findNodesAlongTubes2D(sx_cervix_group, elementsCountAround, elementsCountInCervix,
-                              elementsCountThroughWall, wallThickness, cervixLength, startRadian)
-    # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+    cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter, septumCervixCoordinates = \
+        getDoubleCervixNodes(cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
+                         elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
 
-    # # Find d3 for cervix outer nodes
-    # d3Cervix = []
-    # for n2 in range(0, elementsCountInCervix + 1):
-    #     d3CervixRaw = []
-    #     for n1 in range(elementsCountAround):
-    #         if n1 == 0:
-    #             d3CervixRaw.append([0.0, 0.0, 0.0])
-    #         elif 0 < n1 <= elementsCountAround // 2:
-    #             v1 = cervixInnerRightCoordinates[n2][n1]
-    #             v2 = xCervix[n2][n1]
-    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
-    #             d3CervixRaw.append(v1v2)
-    #         else:
-    #             v1 = cervixInnerLeftCoordinates[n2][n1]
-    #             v2 = xCervix[n2][n1]
-    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
-    #             d3CervixRaw.append(v1v2)
-    #             # d3CervixRaw.append([1.0, 0.0, 0.0])
-    #         d3Cervix.append(d3CervixRaw)
+    # # Get right inner cervix nodes
+    # cervixInnerRightCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_right, elementsCountAroundRightHorn,
+    #                                                         elementsCountInCervix, startRadian=-math.pi / 2)
     #
-    # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+    # # Get left inner cervix nodes
+    # cervixInnerLeftCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_left, elementsCountAroundLeftHorn,
+    #                                                        elementsCountInCervix, startRadian=-math.pi / 2)
+    #
+    # # cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
+    # #                                                             elementsCountInCervix, elementsCountThroughWall,
+    # #                                                             omitStartRows=1, omitEndRows=0)
+    #
+    # # Find outer nodes along cervix
+    # # sx_cervix = []
+    # # for n in range(len(sx_right_tube_group_cervix[0])):
+    # #     x = [(sx_right_tube_group_cervix[0][n][c] + sx_left_tube_group_cervix[0][n][c]) / 2 for c in range(3)]
+    # #     sx_cervix.append(x)
+    # cervix_radius1 = []
+    # cervix_radius2 = []
+    # sx_cervix = cx_cervix_group[0]
+    # for n in range(len(cx_cervix_group[0])):
+    #     v2 = cx_cervix_group_right[0][n]
+    #     v1 = cx_cervix_group_left[0][n]
+    #     v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #     d1Dir = vector.normalise(v1v2)
+    #     d1Mag = vector.magnitude(v1v2)
+    #     sd2RMag = vector.magnitude(cx_cervix_group_right[2][n])
+    #     sd3RMag = vector.magnitude(cx_cervix_group_right[4][n])
+    #     # sd2LMag = sx_left_tube_group[2][n]
+    #     radius1 = d1Mag / 2 + sd2RMag + wallThickness
+    #     radius2 = sd3RMag + wallThickness
+    #     radius1_v = vector.setMagnitude(vector.normalise(v1v2), radius1)
+    #     radius2_v = vector.setMagnitude(vector.normalise(cx_cervix_group_right[4][n]), radius2)
+    #     # radius2_v = vector.setMagnitude(vector.normalise(sx_right_tube_group_cervix[4][n]), radius1)
+    #     cervix_radius1.append(radius1_v)
+    #     cervix_radius2.append(radius2_v)
+    # sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius2]
+    # # sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius1]
+    #
+    # cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
+    # startRadian = -math.pi / 2
+    # xCervix, d1Cervix, d2Cervix, _ = \
+    #     findNodesAlongTubes2D(sx_cervix_group, elementsCountAround, elementsCountInCervix,
+    #                           elementsCountThroughWall, wallThickness, cervixLength, startRadian)
+    # # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+    #
+    # # # Find d3 for cervix outer nodes
+    # # d3Cervix = []
+    # # for n2 in range(0, elementsCountInCervix + 1):
+    # #     d3CervixRaw = []
+    # #     for n1 in range(elementsCountAround):
+    # #         if n1 == 0:
+    # #             d3CervixRaw.append([0.0, 0.0, 0.0])
+    # #         elif 0 < n1 <= elementsCountAround // 2:
+    # #             v1 = cervixInnerRightCoordinates[n2][n1]
+    # #             v2 = xCervix[n2][n1]
+    # #             v1v2 = findDerivativeBetweenPoints(v1, v2)
+    # #             d3CervixRaw.append(v1v2)
+    # #         else:
+    # #             v1 = cervixInnerLeftCoordinates[n2][n1]
+    # #             v2 = xCervix[n2][n1]
+    # #             v1v2 = findDerivativeBetweenPoints(v1, v2)
+    # #             d3CervixRaw.append(v1v2)
+    # #             # d3CervixRaw.append([1.0, 0.0, 0.0])
+    # #         d3Cervix.append(d3CervixRaw)
+    # #
+    # # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+    #
+    # # Get coordinates across cervix septum, between two inner canals
+    # # elementsCountAcross = len(cox) + 1
+    # xAcrossSeptum = []
+    # d1AcrossSeptum = []
+    # for n in range(elementsCountInCervix + 1):
+    #     oa = 0
+    #     ob = elementsCountAround // 2
+    #     v1 = xCervix[n][ob]
+    #     v2 = xCervix[n][oa]
+    #     v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+    #     v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #     nx = [xCervix[n][ob], v3, xCervix[n][oa]]
+    #     nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+    #            [d / elementsCountAcross for d in v1v2]]
+    #     px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+    #     xAcrossSeptum.append(px)
+    #     d1AcrossSeptum.append(pd1)
+    #
+    # # Find d2 across cervix septum
+    # d2Raw = []
+    # for n2 in range(elementsCountAcross + 1):
+    #     xAlongSeptum = []
+    #     d2AlongSeptum = []
+    #     for n1 in range(elementsCountInCervix):
+    #         v1 = xAcrossSeptum[n1][n2]
+    #         v2 = xAcrossSeptum[n1 + 1][n2]
+    #         d2 = findDerivativeBetweenPoints(v1, v2)
+    #         xAlongSeptum.append(v1)
+    #         d2AlongSeptum.append(d2)
+    #     xAlongSeptum.append(xAcrossSeptum[-1][n2])
+    #     d2AlongSeptum.append(d2)
+    #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+    #     d2Raw.append(d2Smoothed)
+    #
+    # # Rearrange d2
+    # d2AcrossSeptum = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     d2Across = []
+    #     for n1 in range(elementsCountAcross + 1):
+    #         d2 = d2Raw[n1][n2]
+    #         d2Across.append(d2)
+    #     d2AcrossSeptum.append(d2Across)
+    #
+    # septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
 
     # Sample/create a layer of nodes in bifurcation means between end of inner horns and begining of inner cervix canal
@@ -1810,8 +1861,10 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     paCentre = sx_cervix_group[0][1]
     c1Centre = sx_right_horn_group[0][-2]
     c2Centre = sx_left_horn_group[0][-2]
-    paxList = xCervix[1]
-    pad2 = d2Cervix[1]
+    # paxList = xCervix[1]
+    # pad2 = d2Cervix[1]
+    paxList = cervixCoordinatesOuter[0][1]
+    pad2 = cervixCoordinatesOuter[2][1]
     # pad3 = d3Cervix[1]
     # paxList = cFirstRingNodeCoordinates[0]
     # pad2 = cFirstRingNodeCoordinates[2]
@@ -1823,50 +1876,50 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
     # rod3 = pad3
 
-    # Get coordinates across cervix septum, between two inner canals
-    # elementsCountAcross = len(cox) + 1
-    xAcrossSeptum = []
-    d1AcrossSeptum = []
-    for n in range(elementsCountInCervix + 1):
-        oa = 0
-        ob = elementsCountAround // 2
-        v1 = xCervix[n][ob]
-        v2 = xCervix[n][oa]
-        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
-        v1v2 = [v2[c] - v1[c] for c in range(3)]
-        nx = [xCervix[n][ob], v3, xCervix[n][oa]]
-        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
-               [d / elementsCountAcross for d in v1v2]]
-        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
-        xAcrossSeptum.append(px)
-        d1AcrossSeptum.append(pd1)
-
-    # Find d2 across cervix septum
-    d2Raw = []
-    for n2 in range(elementsCountAcross + 1):
-        xAlongSeptum = []
-        d2AlongSeptum = []
-        for n1 in range(elementsCountInCervix):
-            v1 = xAcrossSeptum[n1][n2]
-            v2 = xAcrossSeptum[n1 + 1][n2]
-            d2 = findDerivativeBetweenPoints(v1, v2)
-            xAlongSeptum.append(v1)
-            d2AlongSeptum.append(d2)
-        xAlongSeptum.append(xAcrossSeptum[-1][n2])
-        d2AlongSeptum.append(d2)
-        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
-        d2Raw.append(d2Smoothed)
-
-    # Rearrange d2
-    d2AcrossSeptum = []
-    for n2 in range(elementsCountInCervix + 1):
-        d2Across = []
-        for n1 in range(elementsCountAcross + 1):
-            d2 = d2Raw[n1][n2]
-            d2Across.append(d2)
-        d2AcrossSeptum.append(d2Across)
-
-    septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
+    # # Get coordinates across cervix septum, between two inner canals
+    # # elementsCountAcross = len(cox) + 1
+    # xAcrossSeptum = []
+    # d1AcrossSeptum = []
+    # for n in range(elementsCountInCervix + 1):
+    #     oa = 0
+    #     ob = elementsCountAround // 2
+    #     v1 = xCervix[n][ob]
+    #     v2 = xCervix[n][oa]
+    #     v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+    #     v1v2 = [v2[c] - v1[c] for c in range(3)]
+    #     nx = [xCervix[n][ob], v3, xCervix[n][oa]]
+    #     nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+    #            [d / elementsCountAcross for d in v1v2]]
+    #     px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+    #     xAcrossSeptum.append(px)
+    #     d1AcrossSeptum.append(pd1)
+    #
+    # # Find d2 across cervix septum
+    # d2Raw = []
+    # for n2 in range(elementsCountAcross + 1):
+    #     xAlongSeptum = []
+    #     d2AlongSeptum = []
+    #     for n1 in range(elementsCountInCervix):
+    #         v1 = xAcrossSeptum[n1][n2]
+    #         v2 = xAcrossSeptum[n1 + 1][n2]
+    #         d2 = findDerivativeBetweenPoints(v1, v2)
+    #         xAlongSeptum.append(v1)
+    #         d2AlongSeptum.append(d2)
+    #     xAlongSeptum.append(xAcrossSeptum[-1][n2])
+    #     d2AlongSeptum.append(d2)
+    #     d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+    #     d2Raw.append(d2Smoothed)
+    #
+    # # Rearrange d2
+    # d2AcrossSeptum = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     d2Across = []
+    #     for n1 in range(elementsCountAcross + 1):
+    #         d2 = d2Raw[n1][n2]
+    #         d2Across.append(d2)
+    #     d2AcrossSeptum.append(d2Across)
+    #
+    # septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
 
     # # Add nodes between the two nodes of bifurcation in rox (along septum)
@@ -1940,9 +1993,9 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         for n1 in range(elementsCountAroundRightHorn):
             v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
             if n1 <= elementsCountAround // 2:
-                v2 = xCervix[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
             else:
-                v2 = xAcrossSeptum[n2][n1 - elementsCountAround // 2]
+                v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
             d3 = findDerivativeBetweenPoints(v1, v2)
             d3CervixInnerRight.append(d3)
     cervixInnerRightCoordinates.append(d3CervixInnerRight)
@@ -1953,13 +2006,13 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         for n1 in range(elementsCountAroundLeftHorn):
             v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
             if n1 == 0:
-                v2 = xCervix[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
             elif 0 < n1 < elementsCountAcross:
-                v2 = xAcrossSeptum[n2][elementsCountAcross - n1]
+                v2 = septumCervixCoordinates[0][n2][elementsCountAcross - n1]
             elif n1 == elementsCountAcross:
-                v2 = xCervix[n2][elementsCountAround // 2]
+                v2 = cervixCoordinatesOuter[0][n2][elementsCountAround // 2]
             else:
-                v2 = xCervix[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
             d3 = findDerivativeBetweenPoints(v1, v2)
             d3CervixInnerLeft.append(d3)
     cervixInnerLeftCoordinates.append(d3CervixInnerLeft)
@@ -1974,7 +2027,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 d3CervixRaw.append(d1)
             elif 0 < n1 < elementsCountAround // 2:
                 v1 = cervixInnerRightCoordinates[n2][n1]
-                v2 = xCervix[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
                 v1v2 = findDerivativeBetweenPoints(v1, v2)
                 d3CervixRaw.append(v1v2)
             elif n1 == elementsCountAround // 2:
@@ -1982,13 +2035,13 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                 d3CervixRaw.append(d)
             else:
                 v1 = cervixInnerLeftCoordinates[n2][n1]
-                v2 = xCervix[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
                 v1v2 = findDerivativeBetweenPoints(v1, v2)
                 d3CervixRaw.append(v1v2)
                 # d3CervixRaw.append([1.0, 0.0, 0.0])
             d3Cervix.append(d3CervixRaw)
 
-    cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+    cervixCoordinatesOuter = [cervixCoordinatesOuter[0], cervixCoordinatesOuter[1], cervixCoordinatesOuter[2], d3Cervix]
 
     # Get d3 for outer bifurcation (for rox nodes)
     pad3 = d3Cervix[1] # parent d3 which is d3 for first row of cervix
@@ -2013,6 +2066,14 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         v2 = cox[n]
         d3 = findDerivativeBetweenPoints(v1, v2)
         cod3.append(d3)
+
+    # Get vagina nodes
+    vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
+    vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates, vaginaCoordinatesOuter, septumVaginaCoordinates = \
+        getDoubleCervixNodes(cx_vagina_group, vaginaLength, elementsCountInVagina, elementsCountAroundRightHorn,
+                         elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
+    # vaginaCoordinates = getCoordinatesAlongTube3D(cx_vagina_group, elementsCountAround, elementsCountInVagina,
+    #                                               elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
 
     # Create nodes
     cache = fm.createFieldcache()
@@ -2089,8 +2150,15 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Create cervix nodes
     nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateCervixNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
                                          cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
-                                         elementsCountAcross, omitStartRows=1, omitEndRows=0, startNodes=None)
+                                         elementsCountAcross, omitStartRows=1, omitEndRows=1, startNodes=None)
 
+    # Create vagina nodes
+    nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = generateCervixNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
+                                         vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina, elementsCountAround,
+                                         elementsCountAcross, omitStartRows=0, omitEndRows=0, startNodes=None)
+    # nodeIdentifier = generateTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
+    #                                    elementsCountAround, elementsCountThroughWall, omitStartRows=1,
+    #                                    omitEndRows=0, startNodes=None)
 
     # Create elements
     # Create right horn elements
@@ -2131,12 +2199,19 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              elementsCountAroundLeftHorn, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
                                              meshGroups=[bodyMeshGroup, cervixMeshGroup, uterusMeshGroup])
 
-    # # # Create vagina elements
-    # # startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
-    # # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
-    # #                                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-    # #                                          omitStartRows=0, omitEndRows=0,
-    # #                                          meshGroups=[vaginaMeshGroup])
+    # Create vagina elements
+    elementIdentifier = make_cervix_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina + 1,
+                                             elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
+                                             elementsCountAroundLeftHorn, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
+                                             meshGroups=[vaginaMeshGroup])
+    print('cricNodeId', cricNodeId)
+    print('vricNodeId', vricNodeId)
+    # startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
+    # startNodeId = 234
+    # elementIdentifier = generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
+    #                                          elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+    #                                          omitStartRows=0, omitEndRows=0,
+    #                                          meshGroups=[vaginaMeshGroup])
     # elementIdentifier = firstElementIdentifier
 
     return nodeIdentifier, elementIdentifier, annotationGroups
@@ -2424,7 +2499,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
     clicNodeId = []  # cervix left inner canal node ids
     cotNodeId = []  # cervix outer tube node id
     csNodeId = []   # cervix septum node Id
-    for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix + 1):
+    for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix if omitEndRows == 1 else elementsCountInCervix + 1):
         for n1 in range(elementsCountAroundRightHorn):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
@@ -2432,7 +2507,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerRigh[0][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerRigh[1][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerRigh[2][n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerRigh[3][n])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerRigh[3][n])
             # if n2 == 1:
             cricNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
@@ -2443,7 +2518,7 @@ def generateCervixNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcr
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
+            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
             clicNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
         for n1 in range(1, elementsCountAcross):
@@ -3844,3 +3919,140 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                     meshGroup.addElement(element)
 
     return elementIdentifier
+
+
+def getDoubleCervixNodes( cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
+                         elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness):
+
+
+    # Get cervix right and left path
+    cx_cervix_group_right = cx_cervix_group[1:]
+    cx_cervix_group_left = cx_cervix_group[1:]
+    distance = wallThickness
+    xrList = []
+    xlList = []
+    for n in range(len(cx_cervix_group[0])):
+        x = cx_cervix_group[0][n]
+        v = vector.normalise(cx_cervix_group[2][n])
+        v_trans = vector.setMagnitude(v, distance)
+        x_right = [x[c] + v_trans[c] for  c in range(3)]
+        x_left = [x[c] - v_trans[c] for  c in range(3)]
+        xrList.append(x_right)
+        xlList.append(x_left)
+    cx_cervix_group_right.insert(0, xrList)
+    cx_cervix_group_left.insert(0, xlList)
+
+    # Get right inner cervix nodes
+    cervixInnerRightCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_right, elementsCountAroundRightHorn,
+                                                            elementsCountInCervix, startRadian=-math.pi / 2)
+
+    # Get left inner cervix nodes
+    cervixInnerLeftCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_left, elementsCountAroundLeftHorn,
+                                                           elementsCountInCervix, startRadian=-math.pi / 2)
+
+    # cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
+    #                                                             elementsCountInCervix, elementsCountThroughWall,
+    #                                                             omitStartRows=1, omitEndRows=0)
+
+    # Find outer nodes along cervix
+    # sx_cervix = []
+    # for n in range(len(sx_right_tube_group_cervix[0])):
+    #     x = [(sx_right_tube_group_cervix[0][n][c] + sx_left_tube_group_cervix[0][n][c]) / 2 for c in range(3)]
+    #     sx_cervix.append(x)
+    cervix_radius1 = []
+    cervix_radius2 = []
+    sx_cervix = cx_cervix_group[0]
+    for n in range(len(cx_cervix_group[0])):
+        v2 = cx_cervix_group_right[0][n]
+        v1 = cx_cervix_group_left[0][n]
+        v1v2 = [v2[c] - v1[c] for c in range(3)]
+        d1Dir = vector.normalise(v1v2)
+        d1Mag = vector.magnitude(v1v2)
+        sd2RMag = vector.magnitude(cx_cervix_group_right[2][n])
+        sd3RMag = vector.magnitude(cx_cervix_group_right[4][n])
+        # sd2LMag = sx_left_tube_group[2][n]
+        radius1 = d1Mag / 2 + sd2RMag + wallThickness
+        radius2 = sd3RMag + wallThickness
+        radius1_v = vector.setMagnitude(vector.normalise(v1v2), radius1)
+        radius2_v = vector.setMagnitude(vector.normalise(cx_cervix_group_right[4][n]), radius2)
+        # radius2_v = vector.setMagnitude(vector.normalise(sx_right_tube_group_cervix[4][n]), radius1)
+        cervix_radius1.append(radius1_v)
+        cervix_radius2.append(radius2_v)
+    sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius2]
+    # sx_cervix_group = [sx_cervix, [], cervix_radius1, [], cervix_radius1]
+
+    # cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
+    startRadian = -math.pi / 2
+    xCervix, d1Cervix, d2Cervix, _ = \
+        findNodesAlongTubes2D(sx_cervix_group, elementsCountAround, elementsCountInCervix,
+                              elementsCountThroughWall, wallThickness, cervixLength, startRadian)
+    cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, _]
+
+    # # Find d3 for cervix outer nodes
+    # d3Cervix = []
+    # for n2 in range(0, elementsCountInCervix + 1):
+    #     d3CervixRaw = []
+    #     for n1 in range(elementsCountAround):
+    #         if n1 == 0:
+    #             d3CervixRaw.append([0.0, 0.0, 0.0])
+    #         elif 0 < n1 <= elementsCountAround // 2:
+    #             v1 = cervixInnerRightCoordinates[n2][n1]
+    #             v2 = xCervix[n2][n1]
+    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
+    #             d3CervixRaw.append(v1v2)
+    #         else:
+    #             v1 = cervixInnerLeftCoordinates[n2][n1]
+    #             v2 = xCervix[n2][n1]
+    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
+    #             d3CervixRaw.append(v1v2)
+    #             # d3CervixRaw.append([1.0, 0.0, 0.0])
+    #         d3Cervix.append(d3CervixRaw)
+    #
+    # cervixCoordinatesOuter = [xCervix, d1Cervix, d2Cervix, d3Cervix]
+
+    # Get coordinates across cervix septum, between two inner canals
+    # elementsCountAcross = len(cox) + 1
+    xAcrossSeptum = []
+    d1AcrossSeptum = []
+    for n in range(elementsCountInCervix + 1):
+        oa = 0
+        ob = elementsCountAround // 2
+        v1 = xCervix[n][ob]
+        v2 = xCervix[n][oa]
+        v3 = [v1[c] / 2 + v2[c] / 2 for c in range(3)]
+        v1v2 = [v2[c] - v1[c] for c in range(3)]
+        nx = [xCervix[n][ob], v3, xCervix[n][oa]]
+        nd1 = [[d / elementsCountAcross for d in v1v2], [d / elementsCountAcross for d in v1v2],
+               [d / elementsCountAcross for d in v1v2]]
+        px, pd1, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAcross)[0:4]
+        xAcrossSeptum.append(px)
+        d1AcrossSeptum.append(pd1)
+
+    # Find d2 across cervix septum
+    d2Raw = []
+    for n2 in range(elementsCountAcross + 1):
+        xAlongSeptum = []
+        d2AlongSeptum = []
+        for n1 in range(elementsCountInCervix):
+            v1 = xAcrossSeptum[n1][n2]
+            v2 = xAcrossSeptum[n1 + 1][n2]
+            d2 = findDerivativeBetweenPoints(v1, v2)
+            xAlongSeptum.append(v1)
+            d2AlongSeptum.append(d2)
+        xAlongSeptum.append(xAcrossSeptum[-1][n2])
+        d2AlongSeptum.append(d2)
+        d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xAlongSeptum, d2AlongSeptum)
+        d2Raw.append(d2Smoothed)
+
+    # Rearrange d2
+    d2AcrossSeptum = []
+    for n2 in range(elementsCountInCervix + 1):
+        d2Across = []
+        for n1 in range(elementsCountAcross + 1):
+            d2 = d2Raw[n1][n2]
+            d2Across.append(d2)
+        d2AcrossSeptum.append(d2Across)
+
+    septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
+
+    return cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter, septumCervixCoordinates
