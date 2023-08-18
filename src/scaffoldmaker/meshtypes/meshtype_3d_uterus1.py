@@ -316,6 +316,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout': copy.deepcopy(networkLayoutOption),
             'Target element length': 6.0,
             'Number of elements around': 8,
+            'Number of elements around horns': 8,
             # 'Number of elements across': 3,
             'Wall thickness': 2.0,
             'Number of elements through wall': 1,
@@ -346,6 +347,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout',
             'Target element length',
             'Number of elements around',
+            'Number of elements around horns',
             # 'Number of elements across',
             'Wall thickness',
             'Number of elements through wall',
@@ -415,6 +417,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         """
         networkLayout = options['Network layout']
         elementsCountAround = options['Number of elements around']
+        elementsCountAroundHorn = options['Number of elements around horns']
         # elementsCountAcross = options['Number of elements across']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
@@ -423,6 +426,9 @@ class MeshType_3d_uterus1(Scaffold_base):
         useCrossDerivatives = options['Use cross derivatives']
 
         elementsCountAcross = elementsCountAround // 2
+
+        elementsCountAroundRightHorn = elementsCountAroundHorn
+        elementsCountAroundLeftHorn = elementsCountAroundHorn
 
         materialNetworkLayout = cls.parameterSetStructureStrings['Material']
         materialWallThickness = 0.1
@@ -449,7 +455,8 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         if doubleUterus:
             nodeIdentifier, elementIdentifier, annotationGroups = \
-                createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAcross,
+                createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
+                                      elementsCountAroundLeftHorn, elementsCountAcross,
                                    elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
                                    elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
         else:
@@ -1552,7 +1559,8 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     return nodeIdentifier, elementIdentifier, annotationGroups
 
 
-def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAcross,
+def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
+                          elementsCountAroundLeftHorn, elementsCountAcross,
                           elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
                           elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives):
 
@@ -1596,17 +1604,28 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # countInner = 2 * (elementsCountAroundMid + elementsCountAcross)
     # countOuter = (elementsCountAround - 2 * elementsCountAroundMid) // 2 + elementsCountAcross
 
-    count = elementsCountAround // 2 + elementsCountAcross
-    elementsCountAroundRightHorn = count
-    elementsCountAroundLeftHorn = count
+    # print('elementsCountAroundRightHorn', elementsCountAroundRightHorn)
+    elementsCountAcross = elementsCountAroundRightHorn - elementsCountAround // 2
+    # if elementsCountAcross % 2 != 0:
+    #     # elementsCountAround -= 2
+    #     elementsCountAroundRightHorn += 2
+    #     elementsCountAroundLeftHorn += 2
+    # elementsCountAcross = elementsCountAroundRightHorn - elementsCountAround // 2
+    #
+    # print('elementsCountAroundRightHorn', elementsCountAroundRightHorn)
+
+    # count = elementsCountAround // 2 + elementsCountAcross
+    # elementsCountAroundRightHorn = count
+    # elementsCountAroundLeftHorn = count
     # print('count', count)
     # print('countInner', countInner)
     # print('countOuter', countOuter)
 
     # Get right horn nodes
+    rightStartRadians = -math.pi * (elementsCountAround / (2 * elementsCountAroundRightHorn))
     rightHornCoordinates = getCoordinatesAlongTube3D(cx_right_horn_group, elementsCountAroundRightHorn,
                                                      elementsCountInRightHorn, elementsCountThroughWall,
-                                                     wallThickness, startRadian=-math.pi / 2)
+                                                     wallThickness, startRadian=rightStartRadians)
 
     rhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(rightHornCoordinates, elementsCountAroundRightHorn,
                                                                 elementsCountInRightHorn, elementsCountThroughWall,
@@ -1617,9 +1636,10 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                                          omitStartRows=0, omitEndRows=1)
 
     # Get left horn nodes
+    leftStartRadians = -math.pi * (elementsCountAcross / elementsCountAroundLeftHorn)
     leftHornCoordinates = getCoordinatesAlongTube3D(cx_left_horn_group, elementsCountAroundLeftHorn,
                                                     elementsCountInLeftHorn, elementsCountThroughWall,
-                                                    wallThickness, startRadian=-math.pi / 2)
+                                                    wallThickness, startRadian=leftStartRadians)
 
     lhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAroundLeftHorn,
                                                                 elementsCountInLeftHorn, elementsCountThroughWall,
@@ -2071,16 +2091,17 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     pad3 = d3Cervix[1] # parent d3 which is d3 for first row of cervix
     rod3 = []
     for n in range(elementsCountAround):
-        if n == 0:
-            rod3.append(pad3[n])
-        elif 0 < n < elementsCountAround // 2:
-            rod3.append(d3SampledBifurcationRight[n])
-        elif n == elementsCountAround // 2:
-            rod3.append(pad3[n])
-        else:
-            # should be d3 of the d3SampledBifurcationLeft
-            rod3.append(d3SampledBifurcationLeft[n])
-            # rod3.append([0.0, 0.0, 1.0])
+        rod3.append(pad3[n])
+        # if n == 0:
+        #     rod3.append(pad3[n])
+        # elif 0 < n < elementsCountAround // 2:
+        #     rod3.append(d3SampledBifurcationRight[n])
+        # elif n == elementsCountAround // 2:
+        #     rod3.append(pad3[n])
+        # else:
+        #     # should be d3 of the d3SampledBifurcationLeft
+        #     rod3.append(d3SampledBifurcationLeft[n])
+        #     # rod3.append([0.0, 0.0, 1.0])
 
     # Get d3 for outer bifurcation (for cox nodes)
     cod3 = []
@@ -3974,12 +3995,14 @@ def getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, ele
     cx_cervix_group_left.insert(0, xlList)
 
     # Get right inner cervix nodes
+    rightStartRadians = -math.pi * (elementsCountAround / (2 * elementsCountAroundRightHorn))
     cervixInnerRightCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_right, elementsCountAroundRightHorn,
-                                                            elementsCountInCervix, startRadian=-math.pi / 2)
+                                                            elementsCountInCervix, startRadian=rightStartRadians)
 
     # Get left inner cervix nodes
+    leftStartRadians = -math.pi * (elementsCountAcross / elementsCountAroundLeftHorn)
     cervixInnerLeftCoordinates = getCoordinatesAlongTube2D(cx_cervix_group_left, elementsCountAroundLeftHorn,
-                                                           elementsCountInCervix, startRadian=-math.pi / 2)
+                                                           elementsCountInCervix, startRadian=leftStartRadians)
 
     # cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
     #                                                             elementsCountInCervix, elementsCountThroughWall,
