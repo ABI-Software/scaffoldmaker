@@ -292,8 +292,10 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
             # Calculate curvature along elements around
             prevIdx = n - 1 if (n1 != 0) else (n2 + 1)*elementsCountAround - 1
             nextIdx = n + 1 if (n1 < elementsCountAround - 1) else n2*elementsCountAround
-            kappam = interp.getCubicHermiteCurvatureSimple(xSurf[prevIdx], d1Surf[prevIdx], xSurf[n], d1Surf[n], 1.0)
-            kappap = interp.getCubicHermiteCurvatureSimple(xSurf[n], d1Surf[n], xSurf[nextIdx], d1Surf[nextIdx], 0.0)
+            kappam = interp.getCubicHermiteCurvature(xSurf[prevIdx], d1Surf[prevIdx], xSurf[n], d1Surf[n],
+                                                     vector.normalise(d3Surf[n]), 1.0)
+            kappap = interp.getCubicHermiteCurvature(xSurf[n], d1Surf[n], xSurf[nextIdx], d1Surf[nextIdx],
+                                                     vector.normalise(d3Surf[n]), 0.0)
             if not transitElementList[n1] and not transitElementList[(n1-1)%elementsCountAround]:
                 curvatureAround = 0.5*(kappam + kappap)
             elif transitElementList[n1]:
@@ -336,23 +338,15 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
                 xList.append(x)
 
                 # dx_ds1
-                distance = vector.magnitude([x[i] - xSurf[n][i] for i in range(3)])
-                if outward:
-                    factor = 1.0 + distance * curvatureAroundSurf[n]
-                else:
-                    factor = 1.0 - distance * curvatureAroundSurf[n]
+                factor = 1.0 - wallOutwardDisplacement * (xi3 if outward else (1.0 - xi3)) * curvatureAroundSurf[n]
                 d1 = [factor*c for c in d1Surf[n]]
                 d1List.append(d1)
 
                 # dx_ds2
-                curvature = curvatureAlong[n]
-                if outward:
-                    factor = 1.0 - curvature * distance
-                else:
-                    factor = 1.0 + curvature * distance
-                d2 = [factor*c for c in d2Surf[n]]
+                factor = 1.0 - wallOutwardDisplacement * (xi3 if outward else (1.0 - xi3)) * curvatureAlong[n]
+                d2 = [factor * c for c in d2Surf[n]]
                 d2List.append(d2)
-                curvatureList.append(curvature)
+                curvatureList.append(curvatureAlong[n])
 
                 # dx_ds3
                 d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
