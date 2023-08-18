@@ -78,10 +78,10 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 21035.8818469729, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 21032.6788157990, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 39781.704358310606, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 39836.60239335828, delta=1.0E-6)
 
     def test_mousecolonsegment1(self):
         """

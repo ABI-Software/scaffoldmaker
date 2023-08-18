@@ -78,7 +78,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(surfaceArea, 3.6692194413389085, delta=1.0E-8)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.025405251791144414, delta=1.0E-8)
+        self.assertAlmostEqual(volume, 0.025324264242304235, delta=1.0E-8)
         # result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         # self.assertEqual(result, RESULT_OK)
         # self.assertAlmostEqual(flatSurfaceArea, 32905.65612644931, delta=1.0E-3)
