@@ -252,7 +252,7 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
     :param d1Surf: Derivatives on surface around tube
     :param d2Surf: Derivatives on surface along tube
     :param d3Surf: Derivatives on surface through wall
-    :param wallThicknessList: Wall thickness for each element along tube
+    :param wallThicknessList: Wall thickness for each node along tube
     :param relativeThicknessList: Relative wall thickness for each element through wall
     :param elementsCountAround: Number of elements around tube
     :param elementsCountAlong: Number of elements along tube
