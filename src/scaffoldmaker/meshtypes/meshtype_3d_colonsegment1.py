@@ -347,9 +347,10 @@ class MeshType_3d_colonsegment1(Scaffold_base):
 
         # Create coordinates and derivatives
         xList, d1List, d2List, d3List, curvatureList = \
-            tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
+            tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
                                              contractedWallThicknessList, relativeThicknessList, elementsCountAround,
-                                             elementsCountAlongSegment, elementsCountThroughWall, transitElementList)
+                                             elementsCountAlongSegment, elementsCountThroughWall, transitElementList,
+                                               outward=True)
 
         xColonSegment = d1ColonSegment = d2ColonSegment = []
 

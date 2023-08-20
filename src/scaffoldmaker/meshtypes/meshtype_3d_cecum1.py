@@ -434,9 +434,9 @@ class MeshType_3d_cecum1(Scaffold_base):
         wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
         relativeThicknessList = []
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList,
+        xList, d1List, d2List, d3List, curvatureList = tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList,
             d2WarpedList, d3WarpedUnitList, wallThicknessList, relativeThicknessList,
-            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
+            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList, outward=True)
 
         # Deal with multiple nodes at end point for closed proximal end
         xApexInner = xList[0]

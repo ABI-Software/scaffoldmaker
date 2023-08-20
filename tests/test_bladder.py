@@ -29,7 +29,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertEqual(12, len(options))
         self.assertEqual(8, options.get("Number of elements around"))
         self.assertEqual(1, options.get("Number of elements through wall"))
-        self.assertEqual(0.008, options.get("Wall thickness"))
+        self.assertEqual(0.007, options.get("Wall thickness"))
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -53,8 +53,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [0.0, -0.5295997032281867, -0.4793792316766545], 1.0E-8)
-        assertAlmostEqualList(self, maximums, [1.9927123919847043, 0.24604893548539403, 0.4793793501110258], 1.0E-8)
+        assertAlmostEqualList(self, minimums, [0.0, -0.5216361595724004, -0.4713831285046287], 1.0E-8)
+        assertAlmostEqualList(self, maximums, [1.98482, 0.23805399844032224, 0.47138323608787697], 1.0E-8)
 
         # flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         # self.assertTrue(flatCoordinates.isValid())
@@ -75,10 +75,10 @@ class BladderScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 3.797478491142333, delta=1.0E-8)
+        self.assertAlmostEqual(surfaceArea, 3.6692194413389085, delta=1.0E-8)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.029998372334072133, delta=1.0E-8)
+        self.assertAlmostEqual(volume, 0.025324264242304235, delta=1.0E-8)
         # result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         # self.assertEqual(result, RESULT_OK)
         # self.assertAlmostEqual(flatSurfaceArea, 32905.65612644931, delta=1.0E-3)
@@ -108,8 +108,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [0.0, 0.0, 0.0], 1.0E-10)
+        self.assertEqual(8, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [0.0, 0.0, 1.0], 1.0E-10)
         apexGroup = getAnnotationGroupForTerm(annotationGroups, get_bladder_term("apex of urinary bladder"))
         self.assertTrue(apexGroup.getNodesetGroup(nodes).containsNode(node))
 
@@ -177,8 +177,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(1, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [0.0, 0.0, 0.0], 1.0E-10)
+        self.assertEqual(497, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [0.0, 0.0, 1.0], 1.0E-10)
 
 
 if __name__ == "__main__":
