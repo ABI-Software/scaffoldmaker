@@ -329,7 +329,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Rat' in parameterSetName:
-            options['Number of elements through wall'] = 1  # only works for 1
+            options['Number of elements through wall'] = 3  # only works for 1
             options['Target element length'] = 6.0
             options['Wall thickness'] = 1.5
             options['Double uterus'] = True
@@ -1674,7 +1674,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     # Get cervix nodes
     cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
-    cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter, septumCervixCoordinates = \
+    rightInnerCervixthroughWall, leftInnerCervixthroughWall, cervixCoordinatesOuter, septumCervixCoordinates = \
         getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, elementsCountAroundRightHorn,
                          elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
 
@@ -1792,133 +1792,133 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
 
-    # Sample/create a layer of nodes in bifurcation means between end of inner horns and begining of inner cervix canal
-    # Right part
-    # firstRingRightInnerCervix = [cervixInnerRightCoordinates[0][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn], cervixInnerRightCoordinates[1][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn],
-    #                              cervixInnerRightCoordinates[2][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn]]
+    # # Sample/create a layer of nodes in bifurcation means between end of inner horns and begining of inner cervix canal
+    # # Right part
+    # # firstRingRightInnerCervix = [cervixInnerRightCoordinates[0][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn], cervixInnerRightCoordinates[1][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn],
+    # #                              cervixInnerRightCoordinates[2][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn]]
+    # # lastRingRightInnerHorn = [rhLastRingNodeCoordinates[0][0], rhLastRingNodeCoordinates[1][0],
+    # #                           rhLastRingNodeCoordinates[2][0]]
+    # firstRingRightInnerBody = [bodyInnerRightCoordinates[0][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn], bodyInnerRightCoordinates[1][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn],
+    #                              bodyInnerRightCoordinates[2][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn]]
     # lastRingRightInnerHorn = [rhLastRingNodeCoordinates[0][0], rhLastRingNodeCoordinates[1][0],
     #                           rhLastRingNodeCoordinates[2][0]]
-    firstRingRightInnerBody = [bodyInnerRightCoordinates[0][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn], bodyInnerRightCoordinates[1][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn],
-                                 bodyInnerRightCoordinates[2][elementsCountAroundRightHorn:2*elementsCountAroundRightHorn]]
-    lastRingRightInnerHorn = [rhLastRingNodeCoordinates[0][0], rhLastRingNodeCoordinates[1][0],
-                              rhLastRingNodeCoordinates[2][0]]
-    xRaw = []
-    d2Raw = []
-    elementsCountAlongBifurcation = 2
-    for n1 in range(elementsCountAroundRightHorn):
-        xAlong = []
-        d2Along = []
-        xAlong.append(lastRingRightInnerHorn[0][n1])
-        xAlong.append(firstRingRightInnerBody[0][n1])
-        d2Along.append(lastRingRightInnerHorn[2][n1])
-        d2Along.append(firstRingRightInnerBody[2][n1])
-        xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongBifurcation,
-                                                                        arcLengthDerivatives=True)[0:2]
-        xRaw.append(xSampledAlong)
-        d2Raw.append(d2SampledAlong)
-
-    # Rearrange x and d2
-    xSampledBifurcationRight = []
-    d1SampledBifurcationRight = []
-    d2SampledBifurcationRight = []
-    for n2 in range(2 + 1):
-        xAround = []
-        d1Around = []
-        d2Around = []
-        for n1 in range(elementsCountAroundRightHorn):
-            x = xRaw[n1][n2]
-            d2 = d2Raw[n1][n2]
-            xAround.append(x)
-            d2Around.append(d2)
-            # Calculate d1
-            v1 = xRaw[n1][n2]
-            v2 = xRaw[n1 + 1 if n1 < elementsCountAroundRightHorn - 1 else 0][n2]
-            d1 = findDerivativeBetweenPoints(v1, v2)
-            d1Around.append(d1)
-        d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        xSampledBifurcationRight.append(xAround)
-        d1SampledBifurcationRight.append(d1Smoothed)
-        d2SampledBifurcationRight.append(d2Around)
-
-    # # should be fixed
-    # d3SampledBifurcationRight = []
+    # xRaw = []
+    # d2Raw = []
+    # elementsCountAlongBifurcation = 2
+    # for n1 in range(elementsCountAroundRightHorn):
+    #     xAlong = []
+    #     d2Along = []
+    #     xAlong.append(lastRingRightInnerHorn[0][n1])
+    #     xAlong.append(firstRingRightInnerBody[0][n1])
+    #     d2Along.append(lastRingRightInnerHorn[2][n1])
+    #     d2Along.append(firstRingRightInnerBody[2][n1])
+    #     xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongBifurcation,
+    #                                                                     arcLengthDerivatives=True)[0:2]
+    #     xRaw.append(xSampledAlong)
+    #     d2Raw.append(d2SampledAlong)
+    #
+    # # Rearrange x and d2
+    # xSampledBifurcationRight = []
+    # d1SampledBifurcationRight = []
+    # d2SampledBifurcationRight = []
     # for n2 in range(2 + 1):
-    #     d3Around = []
-    #     for n1 in range(elementsCountAround):
-    #         v1 = d1SampledBifurcationRight[n2][n1]
-    #         v2 = d2SampledBifurcationRight[n2][n1]
-    #         v3 = vector.crossproduct3(v1, v2)
-    #         d3Around.append(v3)
-    #     d3SampledBifurcationRight.append(d3Around)
-
-    innerBifurcationRight = [xSampledBifurcationRight, d1SampledBifurcationRight, d2SampledBifurcationRight]
-
-    # Left part
-    firstRingLeftInnerBody = [bodyInnerLeftCoordinates[0][elementsCountAroundLeftHorn:2 * elementsCountAroundLeftHorn],
-                                 bodyInnerLeftCoordinates[1][elementsCountAroundLeftHorn:2 * elementsCountAroundLeftHorn],
-                                 bodyInnerLeftCoordinates[2][elementsCountAroundLeftHorn:2 * elementsCountAroundLeftHorn]]
-    lastRingLeftInnerHorn = [lhLastRingNodeCoordinates[0][0], lhLastRingNodeCoordinates[1][0],
-                              lhLastRingNodeCoordinates[2][0]]
-
-    xRaw = []
-    d2Raw = []
-    elementsCountAlongBifurcation = 2
-    for n1 in range(elementsCountAroundLeftHorn):
-        xAlong = []
-        d2Along = []
-        xAlong.append(lastRingLeftInnerHorn[0][n1])
-        xAlong.append(firstRingLeftInnerBody[0][n1])
-        d2Along.append(lastRingLeftInnerHorn[2][n1])
-        d2Along.append(firstRingLeftInnerBody[2][n1])
-        xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along,
-                                                                        elementsCountAlongBifurcation,
-                                                                        arcLengthDerivatives=True)[0:2]
-        xRaw.append(xSampledAlong)
-        d2Raw.append(d2SampledAlong)
-
-    # Rearrange x and d2
-    xSampledBifurcationLeft = []
-    d1SampledBifurcationLeft = []
-    d2SampledBifurcationLeft = []
-    for n2 in range(2 + 1):
-        xAround = []
-        d1Around = []
-        d2Around = []
-        for n1 in range(elementsCountAroundLeftHorn):
-            x = xRaw[n1][n2]
-            d2 = d2Raw[n1][n2]
-            xAround.append(x)
-            d2Around.append(d2)
-            # Calculate d1
-            v1 = xRaw[n1][n2]
-            v2 = xRaw[n1 + 1 if n1 < elementsCountAroundLeftHorn - 1 else 0][n2]
-            d1 = findDerivativeBetweenPoints(v1, v2)
-            d1Around.append(d1)
-        d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-        xSampledBifurcationLeft.append(xAround)
-        d1SampledBifurcationLeft.append(d1Smoothed)
-        d2SampledBifurcationLeft.append(d2Around)
-
-    innerBifurcationLeft = [xSampledBifurcationLeft, d1SampledBifurcationLeft, d2SampledBifurcationLeft]
-
-    # Get bifurcation outer nodes
-    paCentre = sx_body_group[0][1]
-    c1Centre = sx_right_horn_group[0][-2]
-    c2Centre = sx_left_horn_group[0][-2]
-    # paxList = xCervix[1]
-    # pad2 = d2Cervix[1]
-    paxList = bodyCoordinatesOuter[0][1]
-    pad2 = bodyCoordinatesOuter[2][1]
-    # pad3 = d3Cervix[1]
-    # paxList = cFirstRingNodeCoordinates[0]
-    # pad2 = cFirstRingNodeCoordinates[2]
-    c1xList = rhLastRingNodeCoordinates[0][1]
-    c1d2 = rhLastRingNodeCoordinates[2][1]
-    c2xList = lhLastRingNodeCoordinates[0][1]
-    c2d2 = lhLastRingNodeCoordinates[2][1]
-    rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-        make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
-    # rod3 = pad3
+    #     xAround = []
+    #     d1Around = []
+    #     d2Around = []
+    #     for n1 in range(elementsCountAroundRightHorn):
+    #         x = xRaw[n1][n2]
+    #         d2 = d2Raw[n1][n2]
+    #         xAround.append(x)
+    #         d2Around.append(d2)
+    #         # Calculate d1
+    #         v1 = xRaw[n1][n2]
+    #         v2 = xRaw[n1 + 1 if n1 < elementsCountAroundRightHorn - 1 else 0][n2]
+    #         d1 = findDerivativeBetweenPoints(v1, v2)
+    #         d1Around.append(d1)
+    #     d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+    #     xSampledBifurcationRight.append(xAround)
+    #     d1SampledBifurcationRight.append(d1Smoothed)
+    #     d2SampledBifurcationRight.append(d2Around)
+    #
+    # # # should be fixed
+    # # d3SampledBifurcationRight = []
+    # # for n2 in range(2 + 1):
+    # #     d3Around = []
+    # #     for n1 in range(elementsCountAround):
+    # #         v1 = d1SampledBifurcationRight[n2][n1]
+    # #         v2 = d2SampledBifurcationRight[n2][n1]
+    # #         v3 = vector.crossproduct3(v1, v2)
+    # #         d3Around.append(v3)
+    # #     d3SampledBifurcationRight.append(d3Around)
+    #
+    # innerBifurcationRight = [xSampledBifurcationRight, d1SampledBifurcationRight, d2SampledBifurcationRight]
+    #
+    # # Left part
+    # firstRingLeftInnerBody = [bodyInnerLeftCoordinates[0][elementsCountAroundLeftHorn:2 * elementsCountAroundLeftHorn],
+    #                              bodyInnerLeftCoordinates[1][elementsCountAroundLeftHorn:2 * elementsCountAroundLeftHorn],
+    #                              bodyInnerLeftCoordinates[2][elementsCountAroundLeftHorn:2 * elementsCountAroundLeftHorn]]
+    # lastRingLeftInnerHorn = [lhLastRingNodeCoordinates[0][0], lhLastRingNodeCoordinates[1][0],
+    #                           lhLastRingNodeCoordinates[2][0]]
+    #
+    # xRaw = []
+    # d2Raw = []
+    # elementsCountAlongBifurcation = 2
+    # for n1 in range(elementsCountAroundLeftHorn):
+    #     xAlong = []
+    #     d2Along = []
+    #     xAlong.append(lastRingLeftInnerHorn[0][n1])
+    #     xAlong.append(firstRingLeftInnerBody[0][n1])
+    #     d2Along.append(lastRingLeftInnerHorn[2][n1])
+    #     d2Along.append(firstRingLeftInnerBody[2][n1])
+    #     xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along,
+    #                                                                     elementsCountAlongBifurcation,
+    #                                                                     arcLengthDerivatives=True)[0:2]
+    #     xRaw.append(xSampledAlong)
+    #     d2Raw.append(d2SampledAlong)
+    #
+    # # Rearrange x and d2
+    # xSampledBifurcationLeft = []
+    # d1SampledBifurcationLeft = []
+    # d2SampledBifurcationLeft = []
+    # for n2 in range(2 + 1):
+    #     xAround = []
+    #     d1Around = []
+    #     d2Around = []
+    #     for n1 in range(elementsCountAroundLeftHorn):
+    #         x = xRaw[n1][n2]
+    #         d2 = d2Raw[n1][n2]
+    #         xAround.append(x)
+    #         d2Around.append(d2)
+    #         # Calculate d1
+    #         v1 = xRaw[n1][n2]
+    #         v2 = xRaw[n1 + 1 if n1 < elementsCountAroundLeftHorn - 1 else 0][n2]
+    #         d1 = findDerivativeBetweenPoints(v1, v2)
+    #         d1Around.append(d1)
+    #     d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+    #     xSampledBifurcationLeft.append(xAround)
+    #     d1SampledBifurcationLeft.append(d1Smoothed)
+    #     d2SampledBifurcationLeft.append(d2Around)
+    #
+    # innerBifurcationLeft = [xSampledBifurcationLeft, d1SampledBifurcationLeft, d2SampledBifurcationLeft]
+    #
+    # # Get bifurcation outer nodes
+    # paCentre = sx_body_group[0][1]
+    # c1Centre = sx_right_horn_group[0][-2]
+    # c2Centre = sx_left_horn_group[0][-2]
+    # # paxList = xCervix[1]
+    # # pad2 = d2Cervix[1]
+    # paxList = bodyCoordinatesOuter[0][1]
+    # pad2 = bodyCoordinatesOuter[2][1]
+    # # pad3 = d3Cervix[1]
+    # # paxList = cFirstRingNodeCoordinates[0]
+    # # pad2 = cFirstRingNodeCoordinates[2]
+    # c1xList = rhLastRingNodeCoordinates[0][-1]
+    # c1d2 = rhLastRingNodeCoordinates[2][-1]
+    # c2xList = lhLastRingNodeCoordinates[0][-1]
+    # c2d2 = lhLastRingNodeCoordinates[2][-1]
+    # rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
+    #     make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
+    # # rod3 = pad3
 
     # # Get coordinates across cervix septum, between two inner canals
     # # elementsCountAcross = len(cox) + 1
@@ -2004,113 +2004,113 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # septumBifurCoordinates = [xSeptumBifurcation, d1SeptumBifurcation, d2SeptumBifurcation, d3SeptumBifurcation]
 
 
-    # Get d3 for inner right bifurcation tube
-    d3SampledBifurcationRight = []
-    for n1 in range(elementsCountAroundRightHorn):
-        v1 = xSampledBifurcationRight[1][n1]
-        if n1 <= elementsCountAround // 2:
-            v2 = rox[n1]
-        else:
-            # v2 = xSeptumBifurcation[n1 - elementsCountAround // 2 - 1]
-            v2 = cox[n1 - elementsCountAround // 2 - 1]
-        d3 = findDerivativeBetweenPoints(v1, v2)
-        d3SampledBifurcationRight.append(d3)
+    # # Get d3 for inner right bifurcation tube
+    # d3SampledBifurcationRight = []
+    # for n1 in range(elementsCountAroundRightHorn):
+    #     v1 = xSampledBifurcationRight[1][n1]
+    #     if n1 <= elementsCountAround // 2:
+    #         v2 = rox[n1]
+    #     else:
+    #         # v2 = xSeptumBifurcation[n1 - elementsCountAround // 2 - 1]
+    #         v2 = cox[n1 - elementsCountAround // 2 - 1]
+    #     d3 = findDerivativeBetweenPoints(v1, v2)
+    #     d3SampledBifurcationRight.append(d3)
+    #
+    # # Get d3 for inner left bifurcation tube
+    # d3SampledBifurcationLeft = []
+    # for n1 in range(elementsCountAroundRightHorn):
+    #     v1 = xSampledBifurcationLeft[1][n1]
+    #     if n1 == 0:
+    #         v2 = rox[n1]
+    #     elif 0 < n1 < elementsCountAcross:
+    #         v2 = cox[elementsCountAcross - n1 - 1]
+    #     elif n1 == elementsCountAcross:
+    #         v2 = rox[elementsCountAround // 2]
+    #     else:
+    #         v2 = rox[n1]
+    #     d3 = findDerivativeBetweenPoints(v1, v2)
+    #     d3SampledBifurcationLeft.append(d3)
 
-    # Get d3 for inner left bifurcation tube
-    d3SampledBifurcationLeft = []
-    for n1 in range(elementsCountAroundRightHorn):
-        v1 = xSampledBifurcationLeft[1][n1]
-        if n1 == 0:
-            v2 = rox[n1]
-        elif 0 < n1 < elementsCountAcross:
-            v2 = cox[elementsCountAcross - n1 - 1]
-        elif n1 == elementsCountAcross:
-            v2 = rox[elementsCountAround // 2]
-        else:
-            v2 = rox[n1]
-        d3 = findDerivativeBetweenPoints(v1, v2)
-        d3SampledBifurcationLeft.append(d3)
+    # # Find d3 for cervix right inner canal nodes
+    # d3CervixInnerRight = []
+    # for n2 in range(0, elementsCountInCervix + 1):
+    #     for n1 in range(elementsCountAroundRightHorn):
+    #         v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
+    #         if n1 <= elementsCountAround // 2:
+    #             v2 = cervixCoordinatesOuter[0][n2][n1]
+    #         else:
+    #             v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
+    #         d3 = findDerivativeBetweenPoints(v1, v2)
+    #         d3CervixInnerRight.append(d3)
+    # cervixInnerRightCoordinates.append(d3CervixInnerRight)
+    #
+    # # Find d3 for cervix Left inner canal nodes
+    # d3CervixInnerLeft = []
+    # for n2 in range(0, elementsCountInCervix + 1):
+    #     for n1 in range(elementsCountAroundLeftHorn):
+    #         v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
+    #         if n1 == 0:
+    #             v2 = cervixCoordinatesOuter[0][n2][n1]
+    #         elif 0 < n1 < elementsCountAcross:
+    #             v2 = septumCervixCoordinates[0][n2][elementsCountAcross - n1]
+    #         elif n1 == elementsCountAcross:
+    #             v2 = cervixCoordinatesOuter[0][n2][elementsCountAround // 2]
+    #         else:
+    #             v2 = cervixCoordinatesOuter[0][n2][n1]
+    #         d3 = findDerivativeBetweenPoints(v1, v2)
+    #         d3CervixInnerLeft.append(d3)
+    # cervixInnerLeftCoordinates.append(d3CervixInnerLeft)
+    #
+    # # Find d3 for cervix outer nodes
+    # d3Cervix = []
+    # for n2 in range(0, elementsCountInCervix + 1):
+    #     d3CervixRaw = []
+    #     for n1 in range(elementsCountAround):
+    #         if n1 == 0:
+    #             d1 = septumCervixCoordinates[1][n2][n1]
+    #             d3CervixRaw.append(d1)
+    #         elif 0 < n1 < elementsCountAround // 2:
+    #             v1 = cervixInnerRightCoordinates[n2][n1]
+    #             v2 = cervixCoordinatesOuter[0][n2][n1]
+    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
+    #             d3CervixRaw.append(v1v2)
+    #         elif n1 == elementsCountAround // 2:
+    #             d = [-d1[c] for c in range(3)]
+    #             d3CervixRaw.append(d)
+    #         else:
+    #             v1 = cervixInnerLeftCoordinates[n2][n1]
+    #             v2 = cervixCoordinatesOuter[0][n2][n1]
+    #             v1v2 = findDerivativeBetweenPoints(v1, v2)
+    #             d3CervixRaw.append(v1v2)
+    #             # d3CervixRaw.append([1.0, 0.0, 0.0])
+    #         d3Cervix.append(d3CervixRaw)
+    #
+    # cervixCoordinatesOuter = [cervixCoordinatesOuter[0], cervixCoordinatesOuter[1], cervixCoordinatesOuter[2], d3Cervix]
 
-    # Find d3 for cervix right inner canal nodes
-    d3CervixInnerRight = []
-    for n2 in range(0, elementsCountInCervix + 1):
-        for n1 in range(elementsCountAroundRightHorn):
-            v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
-            if n1 <= elementsCountAround // 2:
-                v2 = cervixCoordinatesOuter[0][n2][n1]
-            else:
-                v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
-            d3 = findDerivativeBetweenPoints(v1, v2)
-            d3CervixInnerRight.append(d3)
-    cervixInnerRightCoordinates.append(d3CervixInnerRight)
-
-    # Find d3 for cervix Left inner canal nodes
-    d3CervixInnerLeft = []
-    for n2 in range(0, elementsCountInCervix + 1):
-        for n1 in range(elementsCountAroundLeftHorn):
-            v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
-            if n1 == 0:
-                v2 = cervixCoordinatesOuter[0][n2][n1]
-            elif 0 < n1 < elementsCountAcross:
-                v2 = septumCervixCoordinates[0][n2][elementsCountAcross - n1]
-            elif n1 == elementsCountAcross:
-                v2 = cervixCoordinatesOuter[0][n2][elementsCountAround // 2]
-            else:
-                v2 = cervixCoordinatesOuter[0][n2][n1]
-            d3 = findDerivativeBetweenPoints(v1, v2)
-            d3CervixInnerLeft.append(d3)
-    cervixInnerLeftCoordinates.append(d3CervixInnerLeft)
-
-    # Find d3 for cervix outer nodes
-    d3Cervix = []
-    for n2 in range(0, elementsCountInCervix + 1):
-        d3CervixRaw = []
-        for n1 in range(elementsCountAround):
-            if n1 == 0:
-                d1 = septumCervixCoordinates[1][n2][n1]
-                d3CervixRaw.append(d1)
-            elif 0 < n1 < elementsCountAround // 2:
-                v1 = cervixInnerRightCoordinates[n2][n1]
-                v2 = cervixCoordinatesOuter[0][n2][n1]
-                v1v2 = findDerivativeBetweenPoints(v1, v2)
-                d3CervixRaw.append(v1v2)
-            elif n1 == elementsCountAround // 2:
-                d = [-d1[c] for c in range(3)]
-                d3CervixRaw.append(d)
-            else:
-                v1 = cervixInnerLeftCoordinates[n2][n1]
-                v2 = cervixCoordinatesOuter[0][n2][n1]
-                v1v2 = findDerivativeBetweenPoints(v1, v2)
-                d3CervixRaw.append(v1v2)
-                # d3CervixRaw.append([1.0, 0.0, 0.0])
-            d3Cervix.append(d3CervixRaw)
-
-    cervixCoordinatesOuter = [cervixCoordinatesOuter[0], cervixCoordinatesOuter[1], cervixCoordinatesOuter[2], d3Cervix]
-
-    # Get d3 for outer bifurcation (for rox nodes)
-    pad3 = d3Cervix[1] # parent d3 which is d3 for first row of cervix
-    rod3 = []
-    for n in range(elementsCountAround):
-        rod3.append(pad3[n])
-        # if n == 0:
-        #     rod3.append(pad3[n])
-        # elif 0 < n < elementsCountAround // 2:
-        #     rod3.append(d3SampledBifurcationRight[n])
-        # elif n == elementsCountAround // 2:
-        #     rod3.append(pad3[n])
-        # else:
-        #     # should be d3 of the d3SampledBifurcationLeft
-        #     rod3.append(d3SampledBifurcationLeft[n])
-        #     # rod3.append([0.0, 0.0, 1.0])
-
-    # Get d3 for outer bifurcation (for cox nodes)
-    cod3 = []
-    for n in range(len(cox)):
-        # v1 = xSeptumBifurcation[n]
-        v1 = septumBodyCoordinates[0][0][n + 1]
-        v2 = cox[n]
-        d3 = findDerivativeBetweenPoints(v1, v2)
-        cod3.append(d3)
+    # # Get d3 for outer bifurcation (for rox nodes)
+    # pad3 = d3Cervix[1] # parent d3 which is d3 for first row of cervix
+    # rod3 = []
+    # for n in range(elementsCountAround):
+    #     rod3.append(pad3[n])
+    #     # if n == 0:
+    #     #     rod3.append(pad3[n])
+    #     # elif 0 < n < elementsCountAround // 2:
+    #     #     rod3.append(d3SampledBifurcationRight[n])
+    #     # elif n == elementsCountAround // 2:
+    #     #     rod3.append(pad3[n])
+    #     # else:
+    #     #     # should be d3 of the d3SampledBifurcationLeft
+    #     #     rod3.append(d3SampledBifurcationLeft[n])
+    #     #     # rod3.append([0.0, 0.0, 1.0])
+    #
+    # # Get d3 for outer bifurcation (for cox nodes)
+    # cod3 = []
+    # for n in range(len(cox)):
+    #     # v1 = xSeptumBifurcation[n]
+    #     v1 = septumBodyCoordinates[0][0][n + 1]
+    #     v2 = cox[n]
+    #     d3 = findDerivativeBetweenPoints(v1, v2)
+    #     cod3.append(d3)
 
     # Get vagina nodes
     vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
@@ -2119,6 +2119,150 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                          elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
     # vaginaCoordinates = getCoordinatesAlongTube3D(cx_vagina_group, elementsCountAround, elementsCountInVagina,
     #                                               elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
+
+
+    # # Create nodes through wall for sampled inner right bifurcation nodes
+    # xRaw = []
+    # d3Raw = []
+    # for n1 in range(elementsCountAroundRightHorn):
+    #     xAlong = []
+    #     d3Along = []
+    #     v1 = xSampledBifurcationRight[1][n1]
+    #     v1d1 = d3SampledBifurcationRight[n1]
+    #     if n1 <= elementsCountAround // 2:
+    #         v2 = rox[n1]
+    #         if n1 == 0 or elementsCountAround // 2:
+    #             v2d1 = d3SampledBifurcationRight[n1]
+    #         else:
+    #             v2d1 = rod3[n1]
+    #     else:
+    #         v2 = cox[n1 - elementsCountAround // 2 - 1]
+    #         # v2d1 = cod3[n1 - elementsCountAround // 2 - 1]
+    #         v2d1 = d3SampledBifurcationRight[n1]
+    #     xAlong.append(v1)
+    #     xAlong.append(v2)
+    #     d3Along.append(v1d1)
+    #     d3Along.append(v2d1)
+    #     xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlong, d3Along, elementsCountThroughWall,
+    #                                                                     arcLengthDerivatives=True)[0:2]
+    #     xRaw.append(xSampledWall)
+    #     d3Raw.append(d3SampledWall)
+    # print('len(xRaw)', len(xRaw))
+    # print('len(xRaw[0])', len(xRaw[0]))
+
+
+    # # Get nodes through wall for right cervix part
+    # rightInnerCervixCoordinates = getRightInnerDoubleTubeCoordinates(cervixInnerRightCoordinates, cervixCoordinatesOuter, septumCervixCoordinates,
+    #                                    elementsCountInCervix, elementsCountAround, elementsCountAroundRightHorn,
+    #                                    elementsCountThroughWall)
+
+    # # Get nodes through wall for right cervix part
+    # xRaw = []
+    # d3Raw = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     xt = []
+    #     d3t = []
+    #     for n1 in range(elementsCountAroundRightHorn):
+    #         xAlong = []
+    #         d3Along = []
+    #         v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
+    #         if n1 <= elementsCountAround // 2:
+    #             v2 = cervixCoordinatesOuter[0][n2][n1]
+    #         else:
+    #             v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
+    #         v1v2 = findDerivativeBetweenPoints(v1, v2)
+    #         xAlong.append(v1)
+    #         xAlong.append(v2)
+    #         d3Along.append(v1v2)
+    #         d3Along.append(v1v2)
+    #         xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlong, d3Along, elementsCountThroughWall,
+    #                                                                         arcLengthDerivatives=True)[0:2]
+    #         xt.append(xSampledWall)
+    #         d3t.append(d3SampledWall)
+    #     xRaw.append(xt)
+    #     d3Raw.append(d3t)
+    # print('len(xRaw)', len(xRaw))
+    # print('len(xRaw[0])', len(xRaw[0]))
+    # print('len(xRaw[0][0])', len(xRaw[0][0]))
+    # print('len(xRaw[0][0][0])', len(xRaw[0][0][0]))
+    # print('xRaw[0][0][0]', xRaw[0][0][0])
+    #
+    # # Rearrange the nodes
+    # xWall = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     xAround = []
+    #     for n3 in range(elementsCountThroughWall + 1):
+    #         v1List = []
+    #         for n1 in range(elementsCountAroundRightHorn):
+    #             v1 = xRaw[n2][n1][n3]
+    #             v1List.append(v1)
+    #         xAround.append(v1List)
+    #     xWall.append(xAround)
+    # print('len(xWall)', len(xWall))
+    # print('len(xWall[0])', len(xWall[0]))
+    # print('len(xWall[0][0])', len(xWall[0][0]))
+    # print('len(xWall[0][0][0])', len(xWall[0][0][0]))
+    # print('xWall[0][0][0]', xWall[0][0][0])
+    #
+    # # Find d1 around cervix for all nodes
+    # d1Wall = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     xRaw = []
+    #     d1Raw = []
+    #     for n3 in range(elementsCountThroughWall + 1):
+    #         xAround = []
+    #         d1Around = []
+    #         for n1 in range(elementsCountAroundRightHorn):
+    #             v1 = xWall[n2][n3][n1]
+    #             v2 = xWall[n2][n3][(n1 + 1) % elementsCountAroundRightHorn]
+    #             d1 = findDerivativeBetweenPoints(v1, v2)
+    #             xAround.append(v1)
+    #             d1Around.append(d1)
+    #         d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+    #         xRaw.append(xAround)
+    #         d1Raw.append(d1Smoothed)
+    #     # xWall.append(xRaw)
+    #     d1Wall.append(d1Raw)
+    # print('len(d1Wall)', len(d1Wall))
+    # print('len(d1Wall[0])', len(d1Wall[0]))
+    # print('len(d1Wall[0][0])', len(d1Wall[0][0]))
+    #
+    # # Find d2 along cervix for nodes through wall
+    # d2New = []
+    # for n1 in range(elementsCountAroundRightHorn):
+    #     d2Raw = []
+    #     for n3 in range(elementsCountThroughWall + 1):
+    #         xALong = []
+    #         d2Along = []
+    #         for n2 in range(elementsCountInCervix):
+    #             v1 = xWall[n2][n3][n1]
+    #             v2 = xWall[n2 + 1][n3][n1]
+    #             d2 = findDerivativeBetweenPoints(v1, v2)
+    #             xALong.append(v1)
+    #             d2Along.append(d2)
+    #         xALong.append(v2)
+    #         d2Along.append(d2)
+    #         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xALong, d2Along)
+    #         d2Raw.append(d2Smoothed)
+    #     d2New.append(d2Raw)
+    # print('len(d2New)', len(d2New))
+    # print('len(d2New[0])', len(d2New[0]))
+    # print('len(d2New[0][0])', len(d2New[0][0]))
+    #
+    # # Rearrange d2
+    # d2Wall = []
+    # for n2 in range(elementsCountInCervix + 1):
+    #     d2t = []
+    #     for n3 in range(elementsCountThroughWall + 1):
+    #         d2Around = []
+    #         for n1 in range(elementsCountAroundRightHorn):
+    #             d2 = d2New[n1][n3][n2]
+    #             d2Around.append(d2)
+    #         d2t.append(d2Around)
+    #     d2Wall.append(d2t)
+    # print('len(d2Wall)', len(d2Wall))
+    # print('len(d2Wall[0])', len(d2Wall[0]))
+    # print('len(d2Wall[0][0])', len(d2Wall[0][0]))
 
     # Create nodes
     cache = fm.createFieldcache()
@@ -2143,38 +2287,54 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                        elementsCountAroundLeftHorn, elementsCountThroughWall, omitStartRows=0,
                                        omitEndRows=1, startNodes=None)
 
-    # Create extra right inner nodes in bifurcation
-    birNodeId = []  # bifurcation right inner ring node id
-    for n2 in range(2):
-        for n1 in range(elementsCountAroundRightHorn):
-            if n2 == 1:
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationRight[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationRight[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationRight[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationRight[n1])
-                birNodeId.append(nodeIdentifier)
-                nodeIdentifier += 1
+    # # Create extra right inner nodes in bifurcation
+    # birNodeId = []  # bifurcation right inner ring node id
+    # for n2 in range(2):
+    #     for n1 in range(elementsCountAroundRightHorn):
+    #         if n2 == 1:
+    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #             cache.setNode(node)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationRight[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationRight[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationRight[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationRight[n1])
+    #             birNodeId.append(nodeIdentifier)
+    #             nodeIdentifier += 1
 
-    # Create extra left inner nodes in bifurcation
-    bilNodeId = []  # bifurcation left inner ring node id
-    for n2 in range(2):
-        for n1 in range(elementsCountAroundLeftHorn):
-            if n2 == 1:
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationLeft[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationLeft[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationLeft[n2][n1])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationLeft[n1])
-                bilNodeId.append(nodeIdentifier)
-                nodeIdentifier += 1
+    # # Create right inner nodes through wall in cervix
+    # # birNodeId = []  # bifurcation right inner ring node id
+    # for n2 in range(elementsCountInCervix + 1):
+    #     for n3 in range(elementsCountThroughWall + 1):
+    #         for n1 in range(elementsCountAroundRightHorn):
+    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #             cache.setNode(node)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xWall[n2][n3][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1Wall[n2][n3][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Wall[n2][n3][n1])
+    #             # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3Raw[n2][n3][n1])
+    #             # birNodeId.append(nodeIdentifier)
+    #             nodeIdentifier += 1
 
-    # Create bifurcation nodes
-    septumBifurCoordinates = []
-    nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
-        create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
+    # # Create extra left inner nodes in bifurcation
+    # bilNodeId = []  # bifurcation left inner ring node id
+    # for n2 in range(2):
+    #     for n1 in range(elementsCountAroundLeftHorn):
+    #         if n2 == 1:
+    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #             cache.setNode(node)
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledBifurcationLeft[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledBifurcationLeft[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledBifurcationLeft[n2][n1])
+    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledBifurcationLeft[n1])
+    #             bilNodeId.append(nodeIdentifier)
+    #             nodeIdentifier += 1
+
+    # # Create bifurcation nodes
+    # septumBifurCoordinates = []
+    # rod3 = []
+    # cod3 = []
+    # nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
+    #     create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
     #old
     # paCentre = sx_cervix_group[0][1]
     # c1Centre = sx_right_horn_group[0][-2]
@@ -2195,17 +2355,17 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Create body nodes
     nodeIdentifier, bricNodeId, blicNodeId, botNodeId, bsNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, bodyInnerRightCoordinates, bodyInnerLeftCoordinates,
                                          bodyCoordinatesOuter, septumBodyCoordinates, elementsCountInBody, elementsCountAround,
-                                         elementsCountAcross, omitStartRows=1, omitEndRows=1, startNodes=None)
+                                         elementsCountAcross, elementsCountThroughWall, omitStartRows=1, omitEndRows=1, startNodes=None)
 
     # Create cervix nodes
-    nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, cervixInnerRightCoordinates, cervixInnerLeftCoordinates,
+    nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, rightInnerCervixthroughWall, leftInnerCervixthroughWall,
                                          cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
-                                         elementsCountAcross, omitStartRows=0, omitEndRows=1, startNodes=None)
+                                         elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=1, startNodes=None)
 
     # Create vagina nodes
     nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
                                          vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina, elementsCountAround,
-                                         elementsCountAcross, omitStartRows=0, omitEndRows=0, startNodes=None)
+                                         elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=0, startNodes=None)
     # nodeIdentifier = generateTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
     #                                    elementsCountAround, elementsCountThroughWall, omitStartRows=1,
     #                                    omitEndRows=0, startNodes=None)
@@ -2226,35 +2386,35 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              meshGroups=[leftHornMeshGroup, uterusMeshGroup])
 
 
-    # Create bifurcation elements
-    cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
-                                                         elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
-    paNodeId = cFirstRingNodeId
-    c1NodeId = rhLastRingNodeId
-    c2NodeId = lhLastRingNodeId
-    elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
-                                                          elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
-                                                          c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
-                                                          bricNodeId, blicNodeId, botNodeId, sbNodeId, bsNodeId,
-                                                           meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
+    # # Create bifurcation elements
+    # cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
+    #                                                      elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
+    # paNodeId = cFirstRingNodeId
+    # c1NodeId = rhLastRingNodeId
+    # c2NodeId = lhLastRingNodeId
+    # elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
+    #                                                       elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
+    #                                                       c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
+    #                                                       bricNodeId, blicNodeId, botNodeId, sbNodeId, bsNodeId,
+    #                                                        meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
+    #
+    # # Create body elements
+    # elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
+    #                                          elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
+    #                                          elementsCountAroundLeftHorn, bricNodeId, blicNodeId, botNodeId, bsNodeId, useCrossDerivatives,
+    #                                          meshGroups=[bodyMeshGroup, uterusMeshGroup])
 
-    # Create body elements
-    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
-                                             elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
-                                             elementsCountAroundLeftHorn, bricNodeId, blicNodeId, botNodeId, bsNodeId, useCrossDerivatives,
-                                             meshGroups=[bodyMeshGroup, uterusMeshGroup])
-
-    # Create cervix elements
-    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
-                                             elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
-                                             elementsCountAroundLeftHorn, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
-                                             meshGroups=[cervixMeshGroup, uterusMeshGroup])
-
-    # Create vagina elements
-    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina + 1,
-                                             elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
-                                             elementsCountAroundLeftHorn, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
-                                             meshGroups=[vaginaMeshGroup, uterusMeshGroup])
+    # # Create cervix elements
+    # elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
+    #                                          elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
+    #                                          elementsCountAroundLeftHorn, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
+    #                                          meshGroups=[cervixMeshGroup, uterusMeshGroup])
+    #
+    # # Create vagina elements
+    # elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina + 1,
+    #                                          elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
+    #                                          elementsCountAroundLeftHorn, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
+    #                                          meshGroups=[vaginaMeshGroup, uterusMeshGroup])
     # print('cricNodeId', cricNodeId)
     # print('vricNodeId', vricNodeId)
     # startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
@@ -2529,7 +2689,7 @@ def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube,
 
 
 def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountInCervix,
-                        elementsCountAround, elementsCountAcross, omitStartRows, omitEndRows, startNodes=None):
+                        elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows, omitEndRows, startNodes=None):
 
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -2551,27 +2711,28 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
     cotNodeId = []  # cervix outer tube node id
     csNodeId = []   # cervix septum node Id
     for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix if omitEndRows == 1 else elementsCountInCervix + 1):
-        for n1 in range(elementsCountAroundRightHorn):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            n = n2 * elementsCountAroundRightHorn + n1
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerRigh[0][n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerRigh[1][n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerRigh[2][n])
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerRigh[3][n])
-            # if n2 == 1:
-            cricNodeId.append(nodeIdentifier)
-            nodeIdentifier += 1
-        for n1 in range(elementsCountAroundLeftHorn):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            cache.setNode(node)
-            n = n2 * elementsCountAroundLeftHorn + n1
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n])
-            # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
-            clicNodeId.append(nodeIdentifier)
-            nodeIdentifier += 1
+        for n3 in range(elementsCountThroughWall):
+            for n1 in range(elementsCountAroundRightHorn):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                # n = n2 * elementsCountAroundRightHorn + n1
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerRigh[0][n2][n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerRigh[1][n2][n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerRigh[2][n2][n3][n1])
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerRigh[3][n])
+                # if n2 == 1:
+                cricNodeId.append(nodeIdentifier)
+                nodeIdentifier += 1
+            for n1 in range(elementsCountAroundLeftHorn):
+                node = nodes.createNode(nodeIdentifier, nodetemplate)
+                cache.setNode(node)
+                # n = n2 * elementsCountAroundLeftHorn + n1
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n2][n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n2][n3][n1])
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n2][n3][n1])
+                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
+                clicNodeId.append(nodeIdentifier)
+                nodeIdentifier += 1
         for n1 in range(1, elementsCountAcross):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
@@ -2589,6 +2750,27 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
             cotNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
+
+    # for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix if omitEndRows == 1 else elementsCountInCervix + 1):
+    #     # for n1 in range(elementsCountAroundLeftHorn):
+    #     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #     #     cache.setNode(node)
+    #     #     n = n2 * elementsCountAroundLeftHorn + n1
+    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n])
+    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n])
+    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n])
+    #     #     # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
+    #     #     clicNodeId.append(nodeIdentifier)
+    #     #     nodeIdentifier += 1
+    #     for n1 in range(elementsCountAround):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[0][n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xOuter[1][n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xOuter[2][n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
+    #         cotNodeId.append(nodeIdentifier)
+    #         nodeIdentifier += 1
 
     # # Create tube nodes
     # lastRingsNodeId = []
@@ -2732,7 +2914,7 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rod3[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rod3[n])
         roNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
     coNodeId = []
@@ -2742,7 +2924,7 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cox[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cod1[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cod2[n])
-        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cod3[n])
+        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cod3[n])
         coNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
 
@@ -4086,4 +4268,260 @@ def getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, ele
 
     septumCervixCoordinates = [xAcrossSeptum, d1AcrossSeptum, d2AcrossSeptum]
 
-    return cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter, septumCervixCoordinates
+    # Find d3 for cervix right inner canal nodes
+    d3CervixInnerRight = []
+    for n2 in range(0, elementsCountInCervix + 1):
+        for n1 in range(elementsCountAroundRightHorn):
+            v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
+            if n1 <= elementsCountAround // 2:
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+            else:
+                v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
+            d3 = findDerivativeBetweenPoints(v1, v2)
+            d3CervixInnerRight.append(d3)
+    cervixInnerRightCoordinates.append(d3CervixInnerRight)
+
+    # Find d3 for cervix Left inner canal nodes
+    d3CervixInnerLeft = []
+    for n2 in range(0, elementsCountInCervix + 1):
+        for n1 in range(elementsCountAroundLeftHorn):
+            v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
+            if n1 == 0:
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+            elif 0 < n1 < elementsCountAcross:
+                v2 = septumCervixCoordinates[0][n2][elementsCountAcross - n1]
+            elif n1 == elementsCountAcross:
+                v2 = cervixCoordinatesOuter[0][n2][elementsCountAround // 2]
+            else:
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+            d3 = findDerivativeBetweenPoints(v1, v2)
+            d3CervixInnerLeft.append(d3)
+    cervixInnerLeftCoordinates.append(d3CervixInnerLeft)
+
+    # Find d3 for cervix outer nodes
+    d3Cervix = []
+    for n2 in range(0, elementsCountInCervix + 1):
+        d3CervixRaw = []
+        for n1 in range(elementsCountAround):
+            if n1 == 0:
+                d1 = septumCervixCoordinates[1][n2][n1]
+                d3CervixRaw.append(d1)
+            elif 0 < n1 < elementsCountAround // 2:
+                v1 = cervixInnerRightCoordinates[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+                v1v2 = findDerivativeBetweenPoints(v1, v2)
+                d3CervixRaw.append(v1v2)
+            elif n1 == elementsCountAround // 2:
+                d = [-d1[c] for c in range(3)]
+                d3CervixRaw.append(d)
+            else:
+                v1 = cervixInnerLeftCoordinates[n2][n1]
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+                v1v2 = findDerivativeBetweenPoints(v1, v2)
+                d3CervixRaw.append(v1v2)
+                # d3CervixRaw.append([1.0, 0.0, 0.0])
+            d3Cervix.append(d3CervixRaw)
+
+    cervixCoordinatesOuter = [cervixCoordinatesOuter[0], cervixCoordinatesOuter[1], cervixCoordinatesOuter[2], d3Cervix]
+
+    # Get nodes through wall for right cervix part
+    # rightInnerCervixthroughWall = getRightInnerDoubleTubeCoordinates(cervixInnerRightCoordinates, cervixCoordinatesOuter, septumCervixCoordinates,
+    #                                    elementsCountInCervix, elementsCountAround, elementsCountAroundRightHorn,
+    #                                    elementsCountThroughWall)
+
+    rightInnerCervixthroughWall, leftInnerCervixthroughWall = \
+        getRightInnerDoubleTubeCoordinates(cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter,
+                                           septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
+                                           elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountAcross, elementsCountThroughWall)
+
+    return rightInnerCervixthroughWall, leftInnerCervixthroughWall, cervixCoordinatesOuter, septumCervixCoordinates
+
+
+def getRightInnerDoubleTubeCoordinates(cervixInnerRightCoordinates, cervixInnerLeftCoordinates, cervixCoordinatesOuter, septumCervixCoordinates,
+                                       elementsCountInCervix, elementsCountAround, elementsCountAroundRightHorn,
+                                       elementsCountAroundLeftHorn, elementsCountAcross, elementsCountThroughWall):
+
+    # Get nodes through wall for right cervix part
+    xRawRight = []
+    d3RawRight = []
+    xRawLeft = []
+    d3RawLeft = []
+    for n2 in range(elementsCountInCervix + 1):
+        xtRight = []
+        d3tRight = []
+        for n1 in range(elementsCountAroundRightHorn):
+            xAlong = []
+            d3Along = []
+            v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundRightHorn + n1]
+            if n1 <= elementsCountAround // 2:
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+            else:
+                v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
+            v1v2 = findDerivativeBetweenPoints(v1, v2)
+            xAlong.append(v1)
+            xAlong.append(v2)
+            d3Along.append(v1v2)
+            d3Along.append(v1v2)
+            xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlong, d3Along, elementsCountThroughWall,
+                                                                            arcLengthDerivatives=True)[0:2]
+            xtRight.append(xSampledWall)
+            d3tRight.append(d3SampledWall)
+        xRawRight.append(xtRight)
+        d3RawRight.append(d3tRight)
+        xtLeft = []
+        d3tLeft = []
+        for n1 in range(elementsCountAroundLeftHorn):
+            xAlongLeft = []
+            d3AlongLeft = []
+            v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
+            if n1 == 0:
+                v2 = cervixCoordinatesOuter[0][n2][n1]
+            elif 0 < n1 < elementsCountAcross:
+                v2 = septumCervixCoordinates[0][n2][n1]
+            else:
+                v2 = cervixCoordinatesOuter[0][n2][n1 - elementsCountAcross + elementsCountAround // 2]
+                # v2 = septumCervixCoordinates[0][n2][n1 - elementsCountAround // 2]
+            v1v2 = findDerivativeBetweenPoints(v1, v2)
+            xAlongLeft.append(v1)
+            xAlongLeft.append(v2)
+            d3AlongLeft.append(v1v2)
+            d3AlongLeft.append(v1v2)
+            xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlongLeft, d3AlongLeft, elementsCountThroughWall,
+                                                                            arcLengthDerivatives=True)[0:2]
+            xtLeft.append(xSampledWall)
+            d3tLeft.append(d3SampledWall)
+        xRawLeft.append(xtLeft)
+        d3RawLeft.append(d3tLeft)
+    # print('len(xRaw)', len(xRaw))
+    # print('len(xRaw[0])', len(xRaw[0]))
+    # print('len(xRaw[0][0])', len(xRaw[0][0]))
+    # print('len(xRaw[0][0][0])', len(xRaw[0][0][0]))
+    # print('xRaw[0][0][0]', xRaw[0][0][0])
+
+    # Rearrange the nodes
+    xWallRight = []
+    xWallLeft = []
+    for n2 in range(elementsCountInCervix + 1):
+        xAroundRight = []
+        xAroundLeft = []
+        for n3 in range(elementsCountThroughWall + 1):
+            v1ListRight = []
+            v1ListLeft = []
+            for n1 in range(elementsCountAroundRightHorn):
+                v1 = xRawRight[n2][n1][n3]
+                v1ListRight.append(v1)
+            xAroundRight.append(v1ListRight)
+            for n1 in range(elementsCountAroundLeftHorn):
+                v1 = xRawLeft[n2][n1][n3]
+                v1ListLeft.append(v1)
+            xAroundLeft.append(v1ListLeft)
+        xWallRight.append(xAroundRight)
+        xWallLeft.append(xAroundLeft)
+    # print('len(xWall)', len(xWall))
+    # print('len(xWall[0])', len(xWall[0]))
+    # print('len(xWall[0][0])', len(xWall[0][0]))
+    # print('len(xWall[0][0][0])', len(xWall[0][0][0]))
+    # print('xWall[0][0][0]', xWall[0][0][0])
+
+    # Find d1 around cervix for all nodes
+    d1WallRight = []
+    d1WallLeft = []
+    for n2 in range(elementsCountInCervix + 1):
+        xRawRight = []
+        d1RawRight = []
+        xRawLeft = []
+        d1RawLeft = []
+        for n3 in range(elementsCountThroughWall + 1):
+            xAroundRight = []
+            d1AroundRight = []
+            xAroundLeft = []
+            d1AroundLeft = []
+            for n1 in range(elementsCountAroundRightHorn):
+                v1 = xWallRight[n2][n3][n1]
+                v2 = xWallRight[n2][n3][(n1 + 1) % elementsCountAroundRightHorn]
+                d1 = findDerivativeBetweenPoints(v1, v2)
+                xAroundRight.append(v1)
+                d1AroundRight.append(d1)
+            d1SmoothedRight = interp.smoothCubicHermiteDerivativesLoop(xAroundRight, d1AroundRight)
+            xRawRight.append(d1AroundRight)
+            d1RawRight.append(d1SmoothedRight)
+            for n1 in range(elementsCountAroundRightHorn):
+                v1 = xWallLeft[n2][n3][n1]
+                v2 = xWallLeft[n2][n3][(n1 + 1) % elementsCountAroundLeftHorn]
+                d1 = findDerivativeBetweenPoints(v1, v2)
+                xAroundLeft.append(v1)
+                d1AroundLeft.append(d1)
+            d1SmoothedLeft = interp.smoothCubicHermiteDerivativesLoop(xAroundLeft, d1AroundLeft)
+            xRawLeft.append(xAroundLeft)
+            d1RawLeft.append(d1SmoothedLeft)
+        # xWall.append(xRaw)
+        d1WallRight.append(d1RawRight)
+        d1WallLeft.append(d1RawLeft)
+    print('len(d1WallLeft)', len(d1WallLeft))
+    print('len(d1WallLeft[0])', len(d1WallLeft[0]))
+    print('len(d1WallLeft[0][0])', len(d1WallLeft[0][0]))
+
+    # Find d2 along cervix for nodes through wall
+    d2NewRight = []
+    d2NewLeft = []
+    for n1 in range(elementsCountAroundRightHorn):
+        d2RawRight = []
+        d2RawLeft = []
+        for n3 in range(elementsCountThroughWall + 1):
+            xALongRight = []
+            d2AlongRight = []
+            xALongLeft = []
+            d2AlongLeft = []
+            for n2 in range(elementsCountInCervix):
+                v1 = xWallRight[n2][n3][n1]
+                v2 = xWallRight[n2 + 1][n3][n1]
+                d2 = findDerivativeBetweenPoints(v1, v2)
+                xALongRight.append(v1)
+                d2AlongRight.append(d2)
+            xALongRight.append(v2)
+            d2AlongRight.append(d2)
+            d2SmoothedRight = interp.smoothCubicHermiteDerivativesLine(xALongRight, d2AlongRight)
+            d2RawRight.append(d2SmoothedRight)
+            for n2 in range(elementsCountInCervix):
+                v1 = xWallLeft[n2][n3][n1]
+                v2 = xWallLeft[n2 + 1][n3][n1]
+                d2 = findDerivativeBetweenPoints(v1, v2)
+                xALongLeft.append(v1)
+                d2AlongLeft.append(d2)
+            xALongLeft.append(v2)
+            d2AlongLeft.append(d2)
+            d2SmoothedLeft = interp.smoothCubicHermiteDerivativesLine(xALongLeft, d2AlongLeft)
+            d2RawLeft.append(d2SmoothedLeft)
+        d2NewRight.append(d2RawRight)
+        d2NewLeft.append(d2RawLeft)
+    # print('len(d2New)', len(d2New))
+    # print('len(d2New[0])', len(d2New[0]))
+    # print('len(d2New[0][0])', len(d2New[0][0]))
+
+    # Rearrange d2
+    d2WallRight = []
+    d2WallLeft = []
+    for n2 in range(elementsCountInCervix + 1):
+        d2tRight = []
+        d2tLeft = []
+        for n3 in range(elementsCountThroughWall + 1):
+            d2AroundRight = []
+            d2AroundLeft = []
+            for n1 in range(elementsCountAroundRightHorn):
+                d2 = d2NewRight[n1][n3][n2]
+                d2AroundRight.append(d2)
+            d2tRight.append(d2AroundRight)
+            for n1 in range(elementsCountAroundLeftHorn):
+                d2 = d2NewLeft[n1][n3][n2]
+                d2AroundLeft.append(d2)
+            d2tLeft.append(d2AroundLeft)
+        d2WallRight.append(d2tRight)
+        d2WallLeft.append(d2tLeft)
+    # print('len(d2Wall)', len(d2Wall))
+    # print('len(d2Wall[0])', len(d2Wall[0]))
+    # print('len(d2Wall[0][0])', len(d2Wall[0][0]))
+
+    rightInnerCervixthroughWall = [xWallRight, d1WallRight, d2WallRight]
+    leftInnerCervixthroughWall = [xWallLeft, d1WallLeft, d2WallLeft]
+
+    return rightInnerCervixthroughWall, leftInnerCervixthroughWall
