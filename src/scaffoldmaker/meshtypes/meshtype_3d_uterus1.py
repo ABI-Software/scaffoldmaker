@@ -1978,24 +1978,24 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #
     # innerBifurcationLeft = [xSampledBifurcationLeft, d1SampledBifurcationLeft, d2SampledBifurcationLeft]
     #
-    # # Get bifurcation outer nodes
-    # paCentre = sx_body_group[0][1]
-    # c1Centre = sx_right_horn_group[0][-2]
-    # c2Centre = sx_left_horn_group[0][-2]
-    # # paxList = xCervix[1]
-    # # pad2 = d2Cervix[1]
-    # paxList = bodyCoordinatesOuter[0][1]
-    # pad2 = bodyCoordinatesOuter[2][1]
-    # # pad3 = d3Cervix[1]
-    # # paxList = cFirstRingNodeCoordinates[0]
-    # # pad2 = cFirstRingNodeCoordinates[2]
-    # c1xList = rhLastRingNodeCoordinates[0][-1]
-    # c1d2 = rhLastRingNodeCoordinates[2][-1]
-    # c2xList = lhLastRingNodeCoordinates[0][-1]
-    # c2d2 = lhLastRingNodeCoordinates[2][-1]
-    # rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-    #     make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
-    # # rod3 = pad3
+    # Get bifurcation outer nodes
+    paCentre = sx_body_group[0][1]
+    c1Centre = sx_right_horn_group[0][-2]
+    c2Centre = sx_left_horn_group[0][-2]
+    # paxList = xCervix[1]
+    # pad2 = d2Cervix[1]
+    paxList = bodyCoordinatesOuter[0][1]
+    pad2 = bodyCoordinatesOuter[2][1]
+    # pad3 = d3Cervix[1]
+    # paxList = cFirstRingNodeCoordinates[0]
+    # pad2 = cFirstRingNodeCoordinates[2]
+    c1xList = rhLastRingNodeCoordinates[0][-1]
+    c1d2 = rhLastRingNodeCoordinates[2][-1]
+    c2xList = lhLastRingNodeCoordinates[0][-1]
+    c2d2 = lhLastRingNodeCoordinates[2][-1]
+    rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
+        make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
+    # rod3 = pad3
 
     # # Get coordinates across cervix septum, between two inner canals
     # # elementsCountAcross = len(cox) + 1
@@ -2422,12 +2422,12 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                     birNodeId.append(nodeIdentifier)
                     nodeIdentifier += 1
 
-    # # Create bifurcation nodes
-    # septumBifurCoordinates = []
-    # rod3 = []
-    # cod3 = []
-    # nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
-    #     create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
+    # Create bifurcation nodes
+    septumBifurCoordinates = []
+    rod3 = []
+    cod3 = []
+    nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
+        create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
     #old
     # paCentre = sx_cervix_group[0][1]
     # c1Centre = sx_right_horn_group[0][-2]
@@ -2816,6 +2816,7 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
                 # if n2 == 1:
                 cricNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
+        for n3 in range(elementsCountThroughWall):
             for n1 in range(elementsCountAroundLeftHorn):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
