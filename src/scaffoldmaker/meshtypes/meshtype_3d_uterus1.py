@@ -2479,18 +2479,22 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              meshGroups=[leftHornMeshGroup, uterusMeshGroup])
 
 
-    # # Create bifurcation elements
-    # cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
-    #                                                      elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
+    # Create bifurcation elements
+    cFirstRingNodeId, nodeCount = getTargetedRingNodesId(nodeCount, elementsCountAround, elementsCountInCervix,
+                                                         elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
     # paNodeId = cFirstRingNodeId
-    # c1NodeId = rhLastRingNodeId
-    # c2NodeId = lhLastRingNodeId
-    # elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
-    #                                                       elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
-    #                                                       c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
-    #                                                       bricNodeId, blicNodeId, botNodeId, sbNodeId, bsNodeId,
-    #                                                        meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
-    #
+    paNodeId = botNodeId[:elementsCountAround]
+    c1NodeId = rhLastRingNodeId
+    c2NodeId = lhLastRingNodeId
+    print('paNodeId', paNodeId)
+    print('c1NodeId', c1NodeId)
+    print('c2NodeId', c2NodeId)
+    elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
+                                                          elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
+                                                          c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
+                                                          bricNodeId, blicNodeId, botNodeId, sbNodeId, bsNodeId,
+                                                           meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
+
     # Create body elements
     elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
                                              elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
@@ -3642,8 +3646,8 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
     newl2 = (elementsCountAround + elementsCountAroundRightTube) * (elementsCountAlongCervix + 1)
     newl0 = (elementsCountAround + 2 * elementsCountAroundRightTube) * (elementsCountAlongCervix + 1)
 
-    print('csNodeId', csNodeId)
-    print('cricNodeId', cricNodeId)
+    # print('csNodeId', csNodeId)
+    # print('cricNodeId', cricNodeId)
     # Cervix elements
     for e3 in range(elementsCountThroughWall):
         for e2 in range(elementsCountAlongCervix):
@@ -3799,7 +3803,7 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
                     bni7 = bni5 + 2 * elementsCountAroundLeftTube * elementsCountThroughWall + elementsCountAround+ elementsCountAcross - 1
                     bni8 = bni6 + 2 * elementsCountAroundLeftTube * elementsCountThroughWall + elementsCountAround+ elementsCountAcross - 1
                     nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                    print('nodeIdentifiers', nodeIdentifiers)
+                    # print('nodeIdentifiers', nodeIdentifiers)
                 else:
                     bni1 = clicNodeId[e2 * elementsCountAroundLeftTube * elementsCountThroughWall + e3 * elementsCountAroundLeftTube + e1]
                     bni2 = clicNodeId[e2 * elementsCountAroundLeftTube * elementsCountThroughWall + e3 * elementsCountAroundLeftTube + (e1 + 1) % elementsCountAroundLeftTube]
@@ -3822,7 +3826,7 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
                     bni7 = bni5 + 2 * elementsCountAroundLeftTube * elementsCountThroughWall + elementsCountAround+ elementsCountAcross - 1
                     bni8 = bni6 + 2 * elementsCountAroundLeftTube * elementsCountThroughWall + elementsCountAround+ elementsCountAcross - 1
                     nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                    print('nodeIdentifiers', nodeIdentifiers)
+                    # print('nodeIdentifiers', nodeIdentifiers)
                 # Remap derivatives for elements across septum
                 if e3 == elementsCountThroughWall - 1 and e1 == 0:
                     scalefactors = [-1.0]
@@ -3887,7 +3891,10 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                                       elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
                                       birNodeId, bilNodeId, cricNodeId, clicNodeId, cotNodeId, sbNodeId, csNodeId, meshGroups=None):
 
-    paCount = len(paNodeId[0])
+    # paCount = len(paNodeId[0])
+    # c1Count = len(c1NodeId[0])
+    # c2Count = len(c2NodeId[0])
+    paCount = elementsCountAround
     c1Count = len(c1NodeId[0])
     c2Count = len(c2NodeId[0])
     pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
@@ -3911,6 +3918,7 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
     elementtemplateMod = mesh.createElementtemplate()
     elementtemplateMod.setElementShapeType(Element.SHAPE_TYPE_CUBE)
 
+    print('birNodeId', birNodeId)
     # Right tube part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(elementsCountAroundRightTube):
@@ -3920,38 +3928,52 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
             if e1 < elementsCountAround // 2:
                 bni1 = c1NodeId[e3][e1]
                 bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
-                bni3 = birNodeId[e1]
-                bni4 = birNodeId[(e1 + 1) % c1Count]
+                bni3 = birNodeId[e3 * elementsCountAroundRightTube + e1]
+                bni4 = birNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % c1Count]
                 bni5 = bni1 + elementsCountAroundRightTube
                 bni6 = bni5 + 1
                 # bni7 = bni3 + 2 * elementsCountAround
-                bni7 = roNodeId[e1]
-                bni8 = bni7 + 1
+                if e3 == elementsCountThroughWall - 1:
+                    bni7 = roNodeId[e1]
+                    bni8 = bni7 + 1
+                else:
+                    bni7 = bni3 + elementsCountAroundRightTube
+                    bni8 = bni4 + elementsCountAroundRightTube
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             elif e1 == elementsCountAround // 2:
                 bni1 = c1NodeId[e3][e1]
                 bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
-                bni3 = birNodeId[e1]
-                bni4 = birNodeId[(e1 + 1) % c1Count]
+                bni3 = birNodeId[e3 * elementsCountAroundRightTube + e1]
+                bni4 = birNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % c1Count]
                 bni5 = bni1 + elementsCountAroundRightTube
                 bni6 = bni5 + 1
                 # bni7 = bni3 + 2 * elementsCountAround
                 # bni8 = coNodeId[0]
-                bni7 = bni3 + 2 * elementsCountAroundRightTube
-                bni8 = coNodeId[0]
+                if e3 == elementsCountThroughWall - 1:
+                    bni7 = roNodeId[e1]
+                    bni8 = coNodeId[0]
+                else:
+                    bni7 = bni3 + elementsCountAroundRightTube
+                    bni8 = bni4 + elementsCountAroundRightTube
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             else:
                 bni1 = c1NodeId[e3][e1]
                 bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
-                bni3 = birNodeId[e1]
+                bni3 = birNodeId[e3 * elementsCountAroundRightTube + e1]
                 bni5 = bni1 + elementsCountAroundRightTube
-                bni7 = coNodeId[e1 - elementsCountAround // 2 - 1]
+                if e3 == elementsCountThroughWall - 1:
+                    bni7 = coNodeId[e1 - elementsCountAround // 2 - 1]
+                else:
+                    bni7 = bni3 + elementsCountAroundRightTube
                 if e1 == elementsCountAroundRightTube - 1:
-                    bni4 = birNodeId[0]
+                    bni4 = birNodeId[0 + e3 * elementsCountAroundRightTube]
                     bni6 = bni5 - elementsCountAroundRightTube + 1
-                    bni8 = roNodeId[0]
+                    if e3 == elementsCountThroughWall - 1:
+                        bni8 = roNodeId[0]
+                    else:
+                        bni8 = bni4 + elementsCountAroundRightTube
                 else:
                     bni4 = bni3 + 1
                     bni6 = bni5 + 1
@@ -3959,7 +3981,7 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             # Remap the derivatives
-            if e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
+            if e3 == elementsCountThroughWall - 1 and e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
                 eft1 = eftfactory.createEftBasic()
                 if e1 == 0:
                     scalefactors = [-1.0]
@@ -4004,289 +4026,289 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    # Left tube part
-    for e3 in range(elementsCountThroughWall):
-        for e1 in range(elementsCountAroundLeftTube):
-            eft = eftStd
-            elementtemplate = elementtemplateStd
-            scalefactors = None
-            bni1 = c2NodeId[e3][e1]
-            bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAroundLeftTube]
-            bni3 = bilNodeId[e1]
-            bni4 = bilNodeId[(e1 + 1) % elementsCountAroundLeftTube]
-            bni5 = bni1 + elementsCountAroundLeftTube
-            bni6 = bni2 + elementsCountAroundLeftTube
-            if 0 <= e1 < elementsCountAcross:
-                if e1 == 0:
-                    # bni7 = roNodeId[0]
-                    # bni8 = sbNodeId[-1]
-                    bni7 = roNodeId[0]
-                    bni8 = coNodeId[-1]
-                elif e1 == elementsCountAcross - 1:
-                    # bni7 = sbNodeId[elementsCountAcross - 1 - e1]
-                    # bni8 = roNodeId[elementsCountAround // 2]
-                    bni7 = coNodeId[elementsCountAcross - 1 - e1]
-                    bni8 = roNodeId[elementsCountAround // 2]
-                else:
-                    # bni7 = sbNodeId[elementsCountAcross - 1 - e1]
-                    # bni8 = bni7 - 1
-                    bni7 = coNodeId[elementsCountAcross - 1 - e1]
-                    bni8 = bni7 - 1
-                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                # print('nodeIdentifiers', nodeIdentifiers)
-            else:
-                # if e1 == elementsCountAcross:
-                #     bni7 = roNodeId[elementsCountAround // 2]
-                #     bni8 = bni7 + 1
-                # else:
-                bni7 = roNodeId[elementsCountAround // 2 + e1 - elementsCountAcross]
-                if e1 == elementsCountAroundLeftTube - 1:
-                    bni8 = roNodeId[0]
-                else:
-                    bni8 = bni7 + 1
-                nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-                # print('nodeIdentifiers', nodeIdentifiers)
-            # Remap the derivatives
-            if 0 <= e1 < elementsCountAcross + 1:
-                eft1 = eftfactory.createEftBasic()
-                if e1 == 0:
-                    scalefactors = [-1.0]
-                    # eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
-                    #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
-                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-                elif 0 < e1 < elementsCountAcross - 1:
-                    scalefactors = [-1.0]
-                    # eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-                elif e1 == elementsCountAcross - 1:
-                    scalefactors = [-1.0]
-                    # eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
-                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-                elif e1 == elementsCountAcross:
-                    scalefactors = [-1.0]
-                    # eft = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif e1 == elementsCountAroundLeftTube - 1:
-                eft1 = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            else:
-                scalefactors = None
-                eft1 = eft
-                elementtemplate1 = elementtemplate
-            element = mesh.createElement(elementIdentifier, elementtemplate1)
-            result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-            if scalefactors:
-                result3 = element.setScaleFactors(eft1, scalefactors)
-            else:
-                result3 = '-'
-            elementIdentifier += 1
-            for meshGroup in meshGroups:
-                if meshGroups.index(meshGroup) == 2:
-                    meshGroup.addElement(element)
-                elif meshGroups.index(meshGroup) == 3:
-                    meshGroup.addElement(element)
-
-    # parent right part
-    for e3 in range(elementsCountThroughWall):
-        for e1 in range(elementsCountAroundRightTube): # was paCount
-            eft = eftStd
-            elementtemplate = elementtemplateStd
-            scalefactors = None
-            bni1 = birNodeId[e1] # was [e3][e1]
-            bni2 = birNodeId[(e1 + 1) % elementsCountAroundRightTube]
-            bni3 = cricNodeId[e1]
-            bni4 = cricNodeId[(e1 + 1) % elementsCountAroundRightTube]
-            if e1 < elementsCountAround // 2:
-                bni5 = roNodeId[e1]
-                bni6 = roNodeId[(e1 + 1) % elementsCountAround]
-                bni7 = cotNodeId[e1]
-                bni8 = cotNodeId[(e1 + 1) % elementsCountAround]
-            elif e1 == elementsCountAround // 2:
-                bni5 = roNodeId[e1]
-                bni6 = coNodeId [e1 - elementsCountAround // 2]
-                bni7 = cotNodeId[e1]
-                bni8 = csNodeId[e1 - elementsCountAround // 2]
-            elif elementsCountAround // 2 < e1 < elementsCountAroundRightTube - 1:
-                bni5 = coNodeId[e1 - elementsCountAround // 2 - 1]
-                bni6 = bni5 + 1
-                bni7 = csNodeId[e1 - elementsCountAround // 2 - 1]
-                bni8 = bni7 + 1
-            elif e1 == elementsCountAroundRightTube - 1:
-                bni5 = coNodeId[-1]
-                bni6 = roNodeId[0]
-                bni8 = cotNodeId[0]
-                bni7 = bni8 - 1
-            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-            # print('nodeIdentifiers', nodeIdentifiers)
-            # Remap the derivatives
-            if e1 == 0:
-                eft1 = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif e1 == elementsCountAround // 2:
-                scalefactors = [-1.0]
-                eft1 = eftfactory.createEftBasic()
-                setEftScaleFactorIds(eft1, [1], [])
-                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif elementsCountAround // 2 < e1 < elementsCountAroundRightTube - 1:
-                # scalefactors = [-1.0]
-                eft1 = eftfactory.createEftBasic()
-                # setEftScaleFactorIds(eft1, [1], [])
-                # remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                # remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            elif e1 == elementsCountAroundRightTube - 1:
-                eft1 = eftfactory.createEftBasic()
-                remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-                remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            else:
-                scalefactors = None
-                eft1 = eft
-                elementtemplate1 = elementtemplate
-            element = mesh.createElement(elementIdentifier, elementtemplate1)
-            result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-            if scalefactors:
-                result3 = element.setScaleFactors(eft1, scalefactors)
-            else:
-                result3 = '-'
-            elementIdentifier += 1
-            for meshGroup in meshGroups:
-                if meshGroups.index(meshGroup) == 0:
-                    meshGroup.addElement(element)
-                elif meshGroups.index(meshGroup) == 3:
-                    meshGroup.addElement(element)
-
-    # parent left part
-    for e3 in range(elementsCountThroughWall):
-        for e1 in range(elementsCountAroundLeftTube):  # was paCount
-            eft = eftStd
-            elementtemplate = elementtemplateStd
-            scalefactors = None
-            bni1 = bilNodeId[e1]  # was [e3][e1]
-            bni2 = bilNodeId[(e1 + 1) % elementsCountAroundLeftTube]
-            bni3 = clicNodeId[e1]
-            bni4 = clicNodeId[(e1 + 1) % elementsCountAroundLeftTube]
-            if e1 == 0:
-                # [137, 138, 164, 165, 146, 155, 175, 174]
-                bni5 = roNodeId[0]
-                bni6 = coNodeId[-1]
-                bni7 = cotNodeId[e1]
-                bni8 = csNodeId[e1 + elementsCountAcross -2]
-            elif 0 < e1 < elementsCountAcross - 1:
-                # [170, 171, 200, 201, 190, 189, 209, 208]
-                bni5 = coNodeId[-e1 + elementsCountAcross - 1]
-                bni6 = bni5 - 1
-                bni7 = csNodeId[-e1 + elementsCountAcross - 1]
-                bni8 = bni7 - 1
-            elif e1 == elementsCountAcross - 1:
-                bni5 = coNodeId[0]
-                bni6 = roNodeId[elementsCountAround // 2]
-                bni7 = csNodeId[0]
-                bni8 = cotNodeId[elementsCountAround // 2]
-            # elif e1 == elementsCountAroundLeftTube - 1:
-            #     bni5 = roNodeId[e1 - elementsCountAround // 2 + elementsCountAcross]
-            #     bni6 = roNodeId[0]
-            #     bni7 = cotNodeId[e1 - elementsCountAround // 2 + elementsCountAcross ]
-            #     bni8 = cotNodeId[0]
-            else:
-                bni5 = roNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
-                bni7 = cotNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
-                if e1 == elementsCountAroundLeftTube - 1:
-                    bni6 = roNodeId[0]
-                    bni8 = cotNodeId[0]
-                else:
-                    bni6 = bni5 + 1
-                    bni8 = bni7 + 1
-            nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-            # print('nodeIdentifiers', nodeIdentifiers)
-            # Remap the derivatives
-            if 0 <= e1 < elementsCountAcross + 1:
-                eft1 = eftfactory.createEftBasic()
-                if e1 == 0:
-                    scalefactors = [-1.0]
-                    # eft1 = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                    remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                    remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    # elementtemplateMod.defineField(coordinates, -1, eft1)
-                    # elementtemplate1 = elementtemplateMod
-                elif 0 < e1 < elementsCountAcross - 1:
-                    scalefactors = [-1.0]
-                    # eft1 = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
-                    # elementtemplateMod.defineField(coordinates, -1, eft1)
-                    # elementtemplate1 = elementtemplateMod
-                elif e1 == elementsCountAcross - 1:
-                    scalefactors = [-1.0]
-                    # eft1 = eftfactory.createEftBasic()
-                    setEftScaleFactorIds(eft1, [1], [])
-                    remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-                    remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
-                    # remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    # remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
-                    # elementtemplateMod.defineField(coordinates, -1, eft1)
-                    # elementtemplate1 = elementtemplateMod
-                elif e1 == elementsCountAcross:
-                    # eft1 = eftfactory.createEftBasic()
-                    remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                    # elementtemplateMod.defineField(coordinates, -1, eft1)
-                    # elementtemplate1 = elementtemplateMod
-                elementtemplateMod.defineField(coordinates, -1, eft1)
-                elementtemplate1 = elementtemplateMod
-            else:
-                scalefactors = None
-                eft1 = eft
-                elementtemplate1 = elementtemplate
-            element = mesh.createElement(elementIdentifier, elementtemplate1)
-            result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-            if scalefactors:
-                result3 = element.setScaleFactors(eft1, scalefactors)
-            else:
-                result3 = '-'
-            elementIdentifier += 1
-            for meshGroup in meshGroups:
-                if meshGroups.index(meshGroup) == 0:
-                    meshGroup.addElement(element)
-                elif meshGroups.index(meshGroup) == 3:
-                    meshGroup.addElement(element)
+    # # Left tube part
+    # for e3 in range(elementsCountThroughWall):
+    #     for e1 in range(elementsCountAroundLeftTube):
+    #         eft = eftStd
+    #         elementtemplate = elementtemplateStd
+    #         scalefactors = None
+    #         bni1 = c2NodeId[e3][e1]
+    #         bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAroundLeftTube]
+    #         bni3 = bilNodeId[e1]
+    #         bni4 = bilNodeId[(e1 + 1) % elementsCountAroundLeftTube]
+    #         bni5 = bni1 + elementsCountAroundLeftTube
+    #         bni6 = bni2 + elementsCountAroundLeftTube
+    #         if 0 <= e1 < elementsCountAcross:
+    #             if e1 == 0:
+    #                 # bni7 = roNodeId[0]
+    #                 # bni8 = sbNodeId[-1]
+    #                 bni7 = roNodeId[0]
+    #                 bni8 = coNodeId[-1]
+    #             elif e1 == elementsCountAcross - 1:
+    #                 # bni7 = sbNodeId[elementsCountAcross - 1 - e1]
+    #                 # bni8 = roNodeId[elementsCountAround // 2]
+    #                 bni7 = coNodeId[elementsCountAcross - 1 - e1]
+    #                 bni8 = roNodeId[elementsCountAround // 2]
+    #             else:
+    #                 # bni7 = sbNodeId[elementsCountAcross - 1 - e1]
+    #                 # bni8 = bni7 - 1
+    #                 bni7 = coNodeId[elementsCountAcross - 1 - e1]
+    #                 bni8 = bni7 - 1
+    #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #             # print('nodeIdentifiers', nodeIdentifiers)
+    #         else:
+    #             # if e1 == elementsCountAcross:
+    #             #     bni7 = roNodeId[elementsCountAround // 2]
+    #             #     bni8 = bni7 + 1
+    #             # else:
+    #             bni7 = roNodeId[elementsCountAround // 2 + e1 - elementsCountAcross]
+    #             if e1 == elementsCountAroundLeftTube - 1:
+    #                 bni8 = roNodeId[0]
+    #             else:
+    #                 bni8 = bni7 + 1
+    #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #             # print('nodeIdentifiers', nodeIdentifiers)
+    #         # Remap the derivatives
+    #         if 0 <= e1 < elementsCountAcross + 1:
+    #             eft1 = eftfactory.createEftBasic()
+    #             if e1 == 0:
+    #                 scalefactors = [-1.0]
+    #                 # eft = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+    #                 # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
+    #                 #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #                 # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
+    #                                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #                 remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #             elif 0 < e1 < elementsCountAcross - 1:
+    #                 scalefactors = [-1.0]
+    #                 # eft = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 # remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #             elif e1 == elementsCountAcross - 1:
+    #                 scalefactors = [-1.0]
+    #                 # eft = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+    #                 # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #                 remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+    #             elif e1 == elementsCountAcross:
+    #                 scalefactors = [-1.0]
+    #                 # eft = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         elif e1 == elementsCountAroundLeftTube - 1:
+    #             eft1 = eftfactory.createEftBasic()
+    #             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         else:
+    #             scalefactors = None
+    #             eft1 = eft
+    #             elementtemplate1 = elementtemplate
+    #         element = mesh.createElement(elementIdentifier, elementtemplate1)
+    #         result2 = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+    #         if scalefactors:
+    #             result3 = element.setScaleFactors(eft1, scalefactors)
+    #         else:
+    #             result3 = '-'
+    #         elementIdentifier += 1
+    #         for meshGroup in meshGroups:
+    #             if meshGroups.index(meshGroup) == 2:
+    #                 meshGroup.addElement(element)
+    #             elif meshGroups.index(meshGroup) == 3:
+    #                 meshGroup.addElement(element)
+    #
+    # # parent right part
+    # for e3 in range(elementsCountThroughWall):
+    #     for e1 in range(elementsCountAroundRightTube): # was paCount
+    #         eft = eftStd
+    #         elementtemplate = elementtemplateStd
+    #         scalefactors = None
+    #         bni1 = birNodeId[e1] # was [e3][e1]
+    #         bni2 = birNodeId[(e1 + 1) % elementsCountAroundRightTube]
+    #         bni3 = cricNodeId[e1]
+    #         bni4 = cricNodeId[(e1 + 1) % elementsCountAroundRightTube]
+    #         if e1 < elementsCountAround // 2:
+    #             bni5 = roNodeId[e1]
+    #             bni6 = roNodeId[(e1 + 1) % elementsCountAround]
+    #             bni7 = cotNodeId[e1]
+    #             bni8 = cotNodeId[(e1 + 1) % elementsCountAround]
+    #         elif e1 == elementsCountAround // 2:
+    #             bni5 = roNodeId[e1]
+    #             bni6 = coNodeId [e1 - elementsCountAround // 2]
+    #             bni7 = cotNodeId[e1]
+    #             bni8 = csNodeId[e1 - elementsCountAround // 2]
+    #         elif elementsCountAround // 2 < e1 < elementsCountAroundRightTube - 1:
+    #             bni5 = coNodeId[e1 - elementsCountAround // 2 - 1]
+    #             bni6 = bni5 + 1
+    #             bni7 = csNodeId[e1 - elementsCountAround // 2 - 1]
+    #             bni8 = bni7 + 1
+    #         elif e1 == elementsCountAroundRightTube - 1:
+    #             bni5 = coNodeId[-1]
+    #             bni6 = roNodeId[0]
+    #             bni8 = cotNodeId[0]
+    #             bni7 = bni8 - 1
+    #         nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #         # print('nodeIdentifiers', nodeIdentifiers)
+    #         # Remap the derivatives
+    #         if e1 == 0:
+    #             eft1 = eftfactory.createEftBasic()
+    #             remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         elif e1 == elementsCountAround // 2:
+    #             scalefactors = [-1.0]
+    #             eft1 = eftfactory.createEftBasic()
+    #             setEftScaleFactorIds(eft1, [1], [])
+    #             remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #             remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+    #             remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         elif elementsCountAround // 2 < e1 < elementsCountAroundRightTube - 1:
+    #             # scalefactors = [-1.0]
+    #             eft1 = eftfactory.createEftBasic()
+    #             # setEftScaleFactorIds(eft1, [1], [])
+    #             # remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #             remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+    #             # remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         elif e1 == elementsCountAroundRightTube - 1:
+    #             eft1 = eftfactory.createEftBasic()
+    #             remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+    #             remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+    #             remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         else:
+    #             scalefactors = None
+    #             eft1 = eft
+    #             elementtemplate1 = elementtemplate
+    #         element = mesh.createElement(elementIdentifier, elementtemplate1)
+    #         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+    #         if scalefactors:
+    #             result3 = element.setScaleFactors(eft1, scalefactors)
+    #         else:
+    #             result3 = '-'
+    #         elementIdentifier += 1
+    #         for meshGroup in meshGroups:
+    #             if meshGroups.index(meshGroup) == 0:
+    #                 meshGroup.addElement(element)
+    #             elif meshGroups.index(meshGroup) == 3:
+    #                 meshGroup.addElement(element)
+    #
+    # # parent left part
+    # for e3 in range(elementsCountThroughWall):
+    #     for e1 in range(elementsCountAroundLeftTube):  # was paCount
+    #         eft = eftStd
+    #         elementtemplate = elementtemplateStd
+    #         scalefactors = None
+    #         bni1 = bilNodeId[e1]  # was [e3][e1]
+    #         bni2 = bilNodeId[(e1 + 1) % elementsCountAroundLeftTube]
+    #         bni3 = clicNodeId[e1]
+    #         bni4 = clicNodeId[(e1 + 1) % elementsCountAroundLeftTube]
+    #         if e1 == 0:
+    #             # [137, 138, 164, 165, 146, 155, 175, 174]
+    #             bni5 = roNodeId[0]
+    #             bni6 = coNodeId[-1]
+    #             bni7 = cotNodeId[e1]
+    #             bni8 = csNodeId[e1 + elementsCountAcross -2]
+    #         elif 0 < e1 < elementsCountAcross - 1:
+    #             # [170, 171, 200, 201, 190, 189, 209, 208]
+    #             bni5 = coNodeId[-e1 + elementsCountAcross - 1]
+    #             bni6 = bni5 - 1
+    #             bni7 = csNodeId[-e1 + elementsCountAcross - 1]
+    #             bni8 = bni7 - 1
+    #         elif e1 == elementsCountAcross - 1:
+    #             bni5 = coNodeId[0]
+    #             bni6 = roNodeId[elementsCountAround // 2]
+    #             bni7 = csNodeId[0]
+    #             bni8 = cotNodeId[elementsCountAround // 2]
+    #         # elif e1 == elementsCountAroundLeftTube - 1:
+    #         #     bni5 = roNodeId[e1 - elementsCountAround // 2 + elementsCountAcross]
+    #         #     bni6 = roNodeId[0]
+    #         #     bni7 = cotNodeId[e1 - elementsCountAround // 2 + elementsCountAcross ]
+    #         #     bni8 = cotNodeId[0]
+    #         else:
+    #             bni5 = roNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
+    #             bni7 = cotNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
+    #             if e1 == elementsCountAroundLeftTube - 1:
+    #                 bni6 = roNodeId[0]
+    #                 bni8 = cotNodeId[0]
+    #             else:
+    #                 bni6 = bni5 + 1
+    #                 bni8 = bni7 + 1
+    #         nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
+    #         # print('nodeIdentifiers', nodeIdentifiers)
+    #         # Remap the derivatives
+    #         if 0 <= e1 < elementsCountAcross + 1:
+    #             eft1 = eftfactory.createEftBasic()
+    #             if e1 == 0:
+    #                 scalefactors = [-1.0]
+    #                 # eft1 = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+    #                 remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
+    #                 remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 # elementtemplateMod.defineField(coordinates, -1, eft1)
+    #                 # elementtemplate1 = elementtemplateMod
+    #             elif 0 < e1 < elementsCountAcross - 1:
+    #                 scalefactors = [-1.0]
+    #                 # eft1 = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 remapEftNodeValueLabel(eft1, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [])])
+    #                 # elementtemplateMod.defineField(coordinates, -1, eft1)
+    #                 # elementtemplate1 = elementtemplateMod
+    #             elif e1 == elementsCountAcross - 1:
+    #                 scalefactors = [-1.0]
+    #                 # eft1 = eftfactory.createEftBasic()
+    #                 setEftScaleFactorIds(eft1, [1], [])
+    #                 remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
+    #                 remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+    #                 # remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
+    #                 # remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
+    #                 # elementtemplateMod.defineField(coordinates, -1, eft1)
+    #                 # elementtemplate1 = elementtemplateMod
+    #             elif e1 == elementsCountAcross:
+    #                 # eft1 = eftfactory.createEftBasic()
+    #                 remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+    #                 # elementtemplateMod.defineField(coordinates, -1, eft1)
+    #                 # elementtemplate1 = elementtemplateMod
+    #             elementtemplateMod.defineField(coordinates, -1, eft1)
+    #             elementtemplate1 = elementtemplateMod
+    #         else:
+    #             scalefactors = None
+    #             eft1 = eft
+    #             elementtemplate1 = elementtemplate
+    #         element = mesh.createElement(elementIdentifier, elementtemplate1)
+    #         result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
+    #         if scalefactors:
+    #             result3 = element.setScaleFactors(eft1, scalefactors)
+    #         else:
+    #             result3 = '-'
+    #         elementIdentifier += 1
+    #         for meshGroup in meshGroups:
+    #             if meshGroups.index(meshGroup) == 0:
+    #                 meshGroup.addElement(element)
+    #             elif meshGroups.index(meshGroup) == 3:
+    #                 meshGroup.addElement(element)
 
     return elementIdentifier
 
