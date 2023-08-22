@@ -899,8 +899,8 @@ def generateTubeElements(fm, coordinates, startNodeId, elementIdentifier, elemen
 
     # Create tube elements
     now = elementsCountAround * (elementsCountThroughWall + 1)
-    for e3 in range(elementsCountThroughWall):
-        for e2 in range(elementsCountAlongTube - 1 if omitStartRows or omitEndRows == 1 else elementsCountAlongTube):
+    for e2 in range(elementsCountAlongTube - 1 if omitStartRows or omitEndRows == 1 else elementsCountAlongTube):
+        for e3 in range(elementsCountThroughWall):
             for e1 in range(elementsCountAround):
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 bni11 = e2 * now + e3 * elementsCountAround + e1 + startNodeId
