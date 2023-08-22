@@ -2486,9 +2486,9 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     paNodeId = botNodeId[:elementsCountAround]
     c1NodeId = rhLastRingNodeId
     c2NodeId = lhLastRingNodeId
-    print('paNodeId', paNodeId)
-    print('c1NodeId', c1NodeId)
-    print('c2NodeId', c2NodeId)
+    # print('paNodeId', paNodeId)
+    # print('c1NodeId', c1NodeId)
+    # print('c2NodeId', c2NodeId)
     elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
                                                           elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
                                                           c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
@@ -2508,7 +2508,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              meshGroups=[cervixMeshGroup, uterusMeshGroup])
 
     # Create vagina elements
-    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina + 1,
+    elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina,
                                              elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
                                              elementsCountAroundLeftHorn, elementsCountThroughWall, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
                                              meshGroups=[vaginaMeshGroup, uterusMeshGroup])
@@ -4139,8 +4139,8 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    print('birNodeId', birNodeId)
-    print('cricNodeId', cricNodeId)
+    # print('birNodeId', birNodeId)
+    # print('cricNodeId', cricNodeId)
     # parent right part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(elementsCountAroundRightTube):  # was paCount
