@@ -1776,6 +1776,61 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     annulusIdxAtBodyStartIdxPlusOne = list(range(elementsAroundHalfEso - 1,
                                                  elementsAroundHalfEso + 2))
 
+    # Sample from quarterDuod to annulus at the quadrant points.
+    # 1st Quadrant
+    startGuessPosition = \
+        trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod * elementsAroundQuarterDuod,
+                                                     1.0 / len(xEllipseAroundAll) * sectionIdx[1])
+    aPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod],
+                                                        startGuessPosition)
+    aProportion = trackSurfaceStomach.getProportion(aPosition)
+
+    bPosition = xAnnulusOuterPosition[elementsAroundQuarterEso]
+    bProportion = trackSurfaceStomach.getProportion(bPosition)
+
+    nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
+        aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsAroundQuarterDuod - 1,
+        derivativeStart=d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod],
+        curveMode=TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+
+    nxR, nd1R, nd2R, nd3R = \
+        trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=
+            vector.magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod]))[0:-1]
+
+    # Replace the values in xEllipseAroundAll at quadrants
+    for n in range(len(nxR)):
+        xEllipseAroundAll[sectionIdx[1]][n + elementsAroundQuarterDuod] = nxR[n]
+        d1EllipseAroundAll[sectionIdx[1]][n + elementsAroundQuarterDuod] = nd1R[n]
+        d2EllipseAroundAll[sectionIdx[1]][n + elementsAroundQuarterDuod] = nd2R[n]
+
+    # 2nd quadrant
+    aPosition = xAnnulusOuterPosition[-elementsAroundQuarterEso]
+    aProportion = trackSurfaceStomach.getProportion(aPosition)
+
+    startGuessPosition = \
+        trackSurfaceStomach.createPositionProportion(1.0 / elementsCountAroundDuod *
+                                                     (elementsAroundQuarterDuod + elementsAroundHalfDuod),
+                                                     1.0 / len(xEllipseAroundAll) * sectionIdx[1])
+    bPosition = \
+        trackSurfaceStomach.findNearestPosition(
+            xEllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod + elementsAroundHalfDuod], startGuessPosition)
+    bProportion = trackSurfaceStomach.getProportion(bPosition)
+
+    nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
+        aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsAroundQuarterDuod - 1,
+        derivativeEnd=d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod + elementsAroundHalfDuod],
+        curveMode=TrackSurface.HermiteCurveMode.UNIFORM_SIZE)
+
+    nxR, nd1R, nd2R, nd3R = \
+        trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
+            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=
+            vector.magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod + elementsAroundHalfDuod]))[0:-1]
+
+    for n in range(len(nxR)):
+        xEllipseAroundAll[sectionIdx[1]][elementsAroundHalfDuod + 1 + n] = nxR[n]
+        d1EllipseAroundAll[sectionIdx[1]][elementsAroundHalfDuod + 1 + n] = nd1R[n]
+
     for i in range(len(sectionIdx) - 1):
         s = sectionIdx[i]
         sNext = sectionIdx[i + 1]
@@ -1785,9 +1840,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             # do a tracksurface sampling to divide the elements into equal sized elements while keeping the start and
             # end derivatives direction at both pts
             elementsOut = elementsAlongSections[i]
-            startDerivative = None
+            startDerivative = d2EllipseAroundAll[s][n1]
             startDerivativeMag = None
-            endDerivative = None
+            endDerivative = d2EllipseAroundAll[sNext][n1]
             endDerivativeMag = None
 
             if i == 1 and n1 in n1IdxAtBodyStartIdxPlusMinusOne:
