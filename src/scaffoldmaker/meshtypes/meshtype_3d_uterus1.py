@@ -8,12 +8,10 @@ import math
 
 from cmlibs.maths.vectorops import add, mult
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
-from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, \
-    remapEftLocalNodes
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
     findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.uterus_terms import get_uterus_term
@@ -317,7 +315,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Target element length': 6.0,
             'Number of elements around': 8,
             'Number of elements around horns': 8,
-            # 'Number of elements across': 3,
             'Wall thickness': 2.0,
             'Number of elements through wall': 1,
             'Double uterus': False,
@@ -329,7 +326,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Rat' in parameterSetName:
-            options['Number of elements through wall'] = 3  # only works for 1
             options['Target element length'] = 6.0
             options['Wall thickness'] = 1.5
             options['Double uterus'] = True
@@ -348,11 +344,9 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Target element length',
             'Number of elements around',
             'Number of elements around horns',
-            # 'Number of elements across',
             'Wall thickness',
             'Number of elements through wall',
             'Double uterus',
-            'Use linear through wall',
             'Use cross derivatives',
             'Refine',
             'Refine number of elements along',
@@ -418,7 +412,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         networkLayout = options['Network layout']
         elementsCountAround = options['Number of elements around']
         elementsCountAroundHorn = options['Number of elements around horns']
-        # elementsCountAcross = options['Number of elements across']
         elementsCountThroughWall = options['Number of elements through wall']
         wallThickness = options['Wall thickness']
         doubleUterus = options['Double uterus']
