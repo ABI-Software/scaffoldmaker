@@ -19,6 +19,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
+from scaffoldmaker.utils.tracksurface import TrackSurface
 
 from testutils import assertAlmostEqualList
 
@@ -470,7 +471,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
     def test_utils_ellipsoid(self):
         """
-        Test ellipsoid functions converting between coor
+        Test ellipsoid functions converting between coordinates.
         """
         a = 1.0
         b = 0.75
@@ -618,6 +619,61 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         dir3 = normalize(sub([0.0, y, z], centre))
         assertAlmostEqualList(self, dir1, dir2, delta=TOL)
         assertAlmostEqualList(self, dir1, dir3, delta=TOL)
+
+    def test_track_surface_intersection(self):
+        """
+        Test finding points on intersection between 2 track surfaces.
+        """
+        surf1_x = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]]
+        surf1_d1 = [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+        surf1_d2 = [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
+        surf1 = TrackSurface(1, 1, surf1_x, surf1_d1, surf1_d2)
+
+        surf2_x = [[0.1, 0.0, -0.2], [0.9, 0.0, 0.6], [0.1, 1.0, 0.6], [0.9, 1.0, -0.2]]
+        surf2_d1 = [[0.9, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+        surf2_d2 = [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
+        surf2 = TrackSurface(1, 1, surf2_x, surf2_d1, surf2_d2)
+
+        xi_tol = 1.0E-5
+        p1, p1x = surf1.findIntersectionPoint(
+            surf2, surf1.createPositionProportion(0.25, 0.1), surf2.createPositionProportion(0.5, 0.5))
+        self.assertEqual(p1.e1, 0)
+        self.assertEqual(p1.e2, 0)
+        self.assertEqual(p1.xi1, 0.34801277492351584)
+        self.assertEqual(p1.xi2, 0.12877821314270047)
+
+        p2, p2x = surf1.findIntersectionPoint(
+            surf2, surf1.createPositionProportion(0.5, 0.5), surf2.createPositionProportion(0.5, 0.5))
+        self.assertEqual(p2.e1, 0)
+        self.assertEqual(p2.e2, 0)
+        self.assertEqual(p2.xi1, 0.71452743629564)
+        self.assertEqual(p2.xi2, 0.7304540495036337)
+
+        p3, p3x = surf1.findIntersectionPoint(
+            surf2, surf1.createPositionProportion(0.85, 0.75), surf2.createPositionProportion(0.5, 0.5))
+        self.assertEqual(p3.e1, 0)
+        self.assertEqual(p3.e2, 0)
+        self.assertEqual(p3.xi1, 0.837522778571395)
+        self.assertEqual(p3.xi2, 0.6783464093929652)
+
+        # context = Context("TrackSurface")
+        # region = context.getDefaultRegion()
+        # surf1.generateMesh(region)
+        # surf2.generateMesh(region)
+        # fieldmodule = region.getFieldmodule()
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        # nodetemplate.defineField(coordinates)
+        # fieldcache = fieldmodule.createFieldcache()
+        # pp = [p1, p2, p3]
+        # px = [p1x, p2x, p3x]
+        # for i in range(len(pp)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     coordinates.assignReal(fieldcache, px[i])
+        # fieldmodule.defineAllFaces()
+        # region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
 
 if __name__ == "__main__":

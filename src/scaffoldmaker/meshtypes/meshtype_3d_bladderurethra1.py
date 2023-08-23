@@ -1480,12 +1480,12 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCoun
         startProportions2.append(trackSurfaceUreter2.getProportion(o2_Positions[n]))
 
     endProportions1 = []
-    elementsAroundTrackSurface1 = trackSurfaceUreter1.elementsCount1
-    elementsAlongTrackSurface1 = trackSurfaceUreter1.elementsCount2
+    elementsAroundTrackSurface1 = trackSurfaceUreter1._elementsCount1
+    elementsAlongTrackSurface1 = trackSurfaceUreter1._elementsCount2
 
     endProportions2 = []
-    elementsAroundTrackSurface2 = trackSurfaceUreter2.elementsCount1
-    elementsAlongTrackSurface2 = trackSurfaceUreter2.elementsCount2
+    elementsAroundTrackSurface2 = trackSurfaceUreter2._elementsCount1
+    elementsAlongTrackSurface2 = trackSurfaceUreter2._elementsCount2
 
     firstIdxAround1 = ureterElementPositionAround + (0 if ureter1Position.xi1 > 0.5 else -1)
     firstIdxAlong = ureterElementPositionDown - (0 if ureter1Position.xi2 > 0.5 else 1)

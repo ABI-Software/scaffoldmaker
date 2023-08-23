@@ -956,8 +956,8 @@ def getElementIdxOfOstiumBoundary(centrePosition, trackSurfaceOstium, ostiumDiam
     :return: element indices on the left, right, bottom and top boundaries around tracksurface.
     """
 
-    elementsAroundTrackSurface = trackSurfaceOstium.elementsCount1
-    elementsAlongTrackSurface = trackSurfaceOstium.elementsCount2
+    elementsAroundTrackSurface = trackSurfaceOstium._elementsCount1
+    elementsAlongTrackSurface = trackSurfaceOstium._elementsCount2
     ei1 = centrePosition.e1
     ei2 = centrePosition.e2
     xi1 = centrePosition.xi1

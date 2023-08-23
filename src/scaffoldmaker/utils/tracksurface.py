@@ -6,6 +6,7 @@ from __future__ import division
 
 import copy
 import math
+from cmlibs.maths.vectorops import cross, dot, magnitude, mult, normalize, sub
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
@@ -20,15 +21,15 @@ from scaffoldmaker.utils import vector
 
 
 class TrackSurfacePosition:
-    '''
+    """
     Position on TrackSurface. Create with createPosition~ method of TrackSurface.
-    '''
+    """
 
     def __init__(self, e1, e2, xi1, xi2):
-        '''
+        """
         :param e1, e2: Element index in directions 1 and 2, starting at 0.
         :param xi1, xi2: 2-D element chart coordinates 0.0 <= xiN <= 1.0
-        '''
+        """
         self.e1 = e1
         self.e2 = e2
         self.xi1 = xi1
@@ -39,152 +40,151 @@ class TrackSurfacePosition:
 
 
 class TrackSurface:
-    '''
+    """
     A surface description on which positions can be stored and tracked for
     specified directions and distances for location surface features.
     Currently represented by a lattice of elementsCount1 x elementsCount2
     square elements with bicubic Hermite interpolation but zero cross derivatives.
-    '''
+    """
 
-    def __init__(self, elementsCount1, elementsCount2, nx, nd1, nd2, loop1 = False):
-        '''
+    def __init__(self, elementsCount1, elementsCount2, nx, nd1, nd2, loop1=False):
+        """
         Creates a TrackSurface with a lattice of elementsCount1*elementsCount2
         elements, with nodes and elements varying across direction 1 fastest.
         :param elementsCount1, elementsCount2: Number of elements in directions 1 and 2.
         :param nx, nd1, nd2: List of (elementsCount2 + 1)*(elementsCount1 + 1) node
         coordinates, derivatives 1 and derivatives 2. Cross derivatives are zero.
         All coordinates are 3 component.
-        :param loop1: Set to True if loops back to start in direction 1. Means:
-        - one fewer node supplied around
-        - all nodes added twice plus first node a third time
-        - twice as many elements
-        - valid proportions are from 0.0 to 2.0.
-        '''
-        self.elementsCount1 = elementsCount1
-        self.elementsCount2 = elementsCount2
-        self.nx  = []
-        self.nd1 = []
-        self.nd2 = []
-        if loop1:
-            n = 0
-            for n2 in range(elementsCount2 + 1):
-                nLimit = n + elementsCount1
-                rx  = nx [n:nLimit]
-                rd1 = nd1[n:nLimit]
-                rd2 = nd2[n:nLimit]
-                self.nx  += rx  + rx  + [ rx [0] ]
-                self.nd1 += rd1 + rd1 + [ rd1[0] ]
-                self.nd2 += rd2 + rd2 + [ rd2[0] ]
-                n += elementsCount1
-            self.elementsCount1 *= 2
-        else:
-            self.nx  += nx
-            self.nd1 += nd1
-            self.nd2 += nd2
-        self.loop1 = loop1
+        :param loop1: Set to True if loops back to start in direction 1. Supply
+        one fewer node around direction 1.
+        """
+        self._elementsCount1 = elementsCount1
+        self._elementsCount2 = elementsCount2
+        self._nx  = nx
+        self._nd1 = nd1
+        self._nd2 = nd2
+        self._loop1 = loop1
+        # get max range for tolerances
+        self._xMin = copy.copy(nx[0])
+        self._xMax = copy.copy(nx[0])
+        for x in nx:
+            for c in range(3):
+                s = x[c]
+                if s < self._xMin[c]:
+                    self._xMin[c] = s
+                elif s > self._xMax[c]:
+                    self._xMax[c] = s
+        self._xRange = [self._xMax[c] - self._xMin[c] for c in range(3)]
 
     def createMirrorX(self):
-        '''
+        """
         Mirror track surface about x axis by negating all x coordinates
         and rewind elements by flipping order and derivatives in direction 1.
         :return: TrackSurface
-        '''
+        """
         nx  = []
         nd1 = []
         nd2 = []
-        nodesCount1 = self.elementsCount1 + (0 if self.loop1 else 1)
-        nodesCount2 = self.elementsCount2 + 1
+        nodesCount1 = self._elementsCount1 + (0 if self._loop1 else 1)
+        nodesCount2 = self._elementsCount2 + 1
         for n2 in range(nodesCount2):
             for n1 in range(nodesCount1):
-                oi = n2*nodesCount1 + self.elementsCount1 - n1
-                ox  = copy.deepcopy(self.nx [oi])
-                od1 = copy.deepcopy(self.nd1[oi])
-                od2 = copy.deepcopy(self.nd2[oi])
+                oi = n2*nodesCount1 + self._elementsCount1 - n1
+                ox  = copy.deepcopy(self._nx [oi])
+                od1 = copy.deepcopy(self._nd1[oi])
+                od2 = copy.deepcopy(self._nd2[oi])
                 nx .append([ -ox [0],  ox [1],  ox [2] ])
                 nd1.append([  od1[0], -od1[1], -od1[2] ])
                 nd2.append([ -od2[0],  od2[1],  od2[2] ])
-        return TrackSurface(self.elementsCount1, self.elementsCount2, nx, nd1, nd2, loop1 = self.loop1)
+        return TrackSurface(self._elementsCount1, self._elementsCount2, nx, nd1, nd2, loop1=self._loop1)
 
     def createPositionProportion(self, proportion1, proportion2):
-        '''
+        """
         Return position on surface for proportions across directions 1 and 2.
         :param proportion1, proportion2: Proportions across directions 1 and 2,
-        each varying from 0.0 to 1.0 (or 2.0 if loop), with elements equal sized.
+        each varying from 0.0 to 1.0 (or 2.0 if loop1), with elements equal sized.
         :return: TrackSurfacePosition
-        '''
-        maxProportion1 = 2.0 if self.loop1 else 1.0
-        assert (proportion1 >= 0.0) and (proportion1 <= maxProportion1), 'createPositionProportion:  Proportion 1 (' + str(proportion1) + ') out of range'
-        assert (proportion2 >= 0.0) and (proportion2 <= 1.0), 'createPositionProportion:  Proportion 2 (' + str(proportion2) + ') out of range'
+        """
+        maxProportion1 = 2.0 if self._loop1 else 1.0
+        assert (proportion1 >= 0.0) and (proportion1 <= maxProportion1), \
+            'createPositionProportion:  Proportion 1 (' + str(proportion1) + ') out of range'
+        assert (proportion2 >= 0.0) and (proportion2 <= 1.0), \
+            'createPositionProportion:  Proportion 2 (' + str(proportion2) + ') out of range'
 
-        pe1 = (proportion1/maxProportion1)*self.elementsCount1
-        if pe1 < self.elementsCount1:
+        pe1 = proportion1 * self._elementsCount1
+        max_e1 = 2 * self._elementsCount1 if self._loop1 else self._elementsCount1
+        if pe1 < max_e1:
             e1 = int(pe1)
             xi1 = pe1 - e1
         else:
-            e1 = self.elementsCount1 - 1
+            e1 = max_e1 - 1
             xi1 = 1.0
-        pe2 = proportion2*self.elementsCount2
-        if pe2 < self.elementsCount2:
+        pe2 = proportion2 * self._elementsCount2
+        if pe2 < self._elementsCount2:
             e2 = int(pe2)
             xi2 = pe2 - e2
         else:
-            e2 = self.elementsCount2 - 1
+            e2 = self._elementsCount2 - 1
             xi2 = 1.0
         return TrackSurfacePosition(e1, e2, xi1, xi2)
 
     def getProportion(self, position):
-        '''
+        """
         From a position on this track surface, return proportions.
         :return: proportion1, proportion2
-        '''
-        maxProportion1 = 2.0 if self.loop1 else 1.0
-        return [ maxProportion1*(position.e1 + position.xi1)/self.elementsCount1, (position.e2 + position.xi2)/self.elementsCount2 ]
+        """
+        return [(position.e1 + position.xi1) / self._elementsCount1,
+                (position.e2 + position.xi2) / self._elementsCount2]
 
-    def evaluateCoordinates(self, position: TrackSurfacePosition, derivatives = False):
-        '''
+    def evaluateCoordinates(self, position: TrackSurfacePosition, derivatives=False):
+        """
         Evaluate coordinates on surface at position, and optionally
         derivative w.r.t. xi1 and xi2.
         :param position: A valid TrackSurfacePosition.
+        :param derivatives: Set to True to calculate and return derivatives w.r.t. element xi.
         :return: If derivatives is False: coordinates [ x, y, z].
         If derivatives is True: coordinates, derivative1, derivative2.
-        '''
-        n1 = position.e2*(self.elementsCount1 + 1) + position.e1
-        n2 = n1 + 1
-        n3 = n1 + self.elementsCount1 + 1
-        n4 = n3 + 1
-        ni = [ n1, n2, n3, n4 ]
+        """
+        nodesCount1 = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
+        e1 = position.e1 % self._elementsCount1  # to handle loop1
+        nid0 = position.e2 * nodesCount1
+        n1 = nid0 + e1
+        n2 = nid0 if (self._loop1 and ((e1 + 1) == self._elementsCount1)) else n1 + 1
+        n3 = n1 + nodesCount1
+        n4 = n2 + nodesCount1
+        nid = [n1, n2, n3, n4]
         f1x1, f1d1, f1x2, f1d2 = interp.getCubicHermiteBasis(position.xi1)
         f2x1, f2d1, f2x2, f2d2 = interp.getCubicHermiteBasis(position.xi2)
-        fx  = [ f1x1*f2x1, f1x2*f2x1, f1x1*f2x2, f1x2*f2x2 ]
-        fd1 = [ f1d1*f2x1, f1d2*f2x1, f1d1*f2x2, f1d2*f2x2 ]
-        fd2 = [ f1x1*f2d1, f1x2*f2d1, f1x1*f2d2, f1x2*f2d2 ]
-        nx = self.nx
-        nd1 = self.nd1
-        nd2 = self.nd2
+        fx  = [f1x1*f2x1, f1x2*f2x1, f1x1*f2x2, f1x2*f2x2]
+        fd1 = [f1d1*f2x1, f1d2*f2x1, f1d1*f2x2, f1d2*f2x2]
+        fd2 = [f1x1*f2d1, f1x2*f2d1, f1x1*f2d2, f1x2*f2d2]
+        nx = self._nx
+        nd1 = self._nd1
+        nd2 = self._nd2
         coordinates = []
         for c in range(3):
             x = 0.0
             for ln in range(4):
-                gn = ni[ln]
+                gn = nid[ln]
                 x += fx[ln]*nx[gn][c] + fd1[ln]*nd1[gn][c] + fd2[ln]*nd2[gn][c]
             coordinates.append(x)
         if not derivatives:
             return coordinates
         df1x1, df1d1, df1x2, df1d2 = interp.getCubicHermiteBasisDerivatives(position.xi1)
-        d1fx  = [ df1x1*f2x1, df1x2*f2x1, df1x1*f2x2, df1x2*f2x2 ]
-        d1fd1 = [ df1d1*f2x1, df1d2*f2x1, df1d1*f2x2, df1d2*f2x2 ]
-        d1fd2 = [ df1x1*f2d1, df1x2*f2d1, df1x1*f2d2, df1x2*f2d2 ]
+        d1fx  = [df1x1*f2x1, df1x2*f2x1, df1x1*f2x2, df1x2*f2x2]
+        d1fd1 = [df1d1*f2x1, df1d2*f2x1, df1d1*f2x2, df1d2*f2x2]
+        d1fd2 = [df1x1*f2d1, df1x2*f2d1, df1x1*f2d2, df1x2*f2d2]
         df2x1, df2d1, df2x2, df2d2 = interp.getCubicHermiteBasisDerivatives(position.xi2)
-        d2fx  = [ f1x1*df2x1, f1x2*df2x1, f1x1*df2x2, f1x2*df2x2 ]
-        d2fd1 = [ f1d1*df2x1, f1d2*df2x1, f1d1*df2x2, f1d2*df2x2 ]
-        d2fd2 = [ f1x1*df2d1, f1x2*df2d1, f1x1*df2d2, f1x2*df2d2 ]
+        d2fx  = [f1x1*df2x1, f1x2*df2x1, f1x1*df2x2, f1x2*df2x2]
+        d2fd1 = [f1d1*df2x1, f1d2*df2x1, f1d1*df2x2, f1d2*df2x2]
+        d2fd2 = [f1x1*df2d1, f1x2*df2d1, f1x1*df2d2, f1x2*df2d2]
         derivative1 = []
         derivative2 = []
         for c in range(3):
             d1 = 0.0
             d2 = 0.0
             for ln in range(4):
-                gn = ni[ln]
+                gn = nid[ln]
                 d1 += d1fx[ln]*nx[gn][c] + d1fd1[ln]*nd1[gn][c] + d1fd2[ln]*nd2[gn][c]
                 d2 += d2fx[ln]*nx[gn][c] + d2fd1[ln]*nd1[gn][c] + d2fd2[ln]*nd2[gn][c]
             derivative1.append(d1)
@@ -200,7 +200,7 @@ class TrackSurface:
 
     def createHermiteCurvePoints(self, aProportion1, aProportion2, bProportion1, bProportion2, elementsCount,
             derivativeStart = None, derivativeEnd = None, curveMode = HermiteCurveMode.SMOOTH):
-        '''
+        """
         Create hermite curve points between two points a and b on the surface, each defined
         by their proportions over the surface in directions 1 and 2.
         Also returns cross direction 2 in plane of surface with similar magnitude to curve derivative 1,
@@ -210,16 +210,14 @@ class TrackSurface:
         in a straight line from a to b.
         :param elementsCount:  Number of elements out.
         :return: nx[], nd1[], nd2[], nd3[], nProportions[]
-        '''
+        """
         #print('createHermiteCurvePoints', aProportion1, aProportion2, bProportion1, bProportion2, elementsCount, derivativeStart, derivativeEnd)
         if derivativeStart:
             position = self.createPositionProportion(aProportion1, aProportion2)
             _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
             delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeStart)
-            dp1Start = delta_xi1/self.elementsCount1
-            if self.loop1:
-                dp1Start *= 2.0
-            dp2Start = delta_xi2/self.elementsCount2
+            dp1Start = delta_xi1 / self._elementsCount1
+            dp2Start = delta_xi2 / self._elementsCount2
             derivativeMagnitudeStart = math.sqrt(dp1Start*dp1Start + dp2Start*dp2Start)
             dp1Start *= elementsCount
             dp2Start *= elementsCount
@@ -229,12 +227,10 @@ class TrackSurface:
             position = self.createPositionProportion(bProportion1, bProportion2)
             _, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
             delta_xi1, delta_xi2 = calculate_surface_delta_xi(sd1, sd2, derivativeEnd)
-            dp1End = delta_xi1/self.elementsCount1
-            dp2End = delta_xi2/self.elementsCount2
+            dp1End = delta_xi1 / self._elementsCount1
+            dp2End = delta_xi2 / self._elementsCount2
             derivativeMagnitudeEnd = math.sqrt(dp1End*dp1End + dp2End*dp2End)
             dp1End *= elementsCount
-            if self.loop1:
-                dp1End *= 2.0
             dp2End *= elementsCount
             #print('end delta_xi1', delta_xi1, 'delta_xi2', delta_xi2)
             #print('dp1End', dp1End, 'dp2End', dp2End)
@@ -252,7 +248,6 @@ class TrackSurface:
                 dp1End = bProportion1 - aProportion1
                 dp2End = bProportion2 - aProportion2
             derivativeMagnitudeEnd = math.sqrt(dp1End*dp1End + dp2End*dp2End)/elementsCount
-        maxProportion1 = 2.0 if self.loop1 else 1.0
         #print('derivativeMagnitudeStart', derivativeMagnitudeStart, 'derivativeMagnitudeEnd', derivativeMagnitudeEnd)
         proportions, dproportions = interp.sampleCubicHermiteCurvesSmooth([ [ aProportion1, aProportion2 ], [ bProportion1, bProportion2 ] ], \
             [ [ dp1Start, dp2Start ], [ dp1End, dp2End ] ], elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
@@ -280,8 +275,8 @@ class TrackSurface:
         for n in range(0, elementsCount + 1):
             position = self.createPositionProportion(proportions[n][0], proportions[n][1])
             x, sd1, sd2 = self.evaluateCoordinates(position, derivatives = True)
-            f1 = dproportions[n][0]*self.elementsCount1/maxProportion1
-            f2 = dproportions[n][1]*self.elementsCount2
+            f1 = dproportions[n][0] * self._elementsCount1
+            f2 = dproportions[n][1] * self._elementsCount2
             d1 = [ (f1*sd1[c] + f2*sd2[c]) for c in range(3) ]
             d3 = vector.crossproduct3(sd1, sd2)
             # handle zero magnitude of d3
@@ -297,10 +292,10 @@ class TrackSurface:
         return nx, nd1, nd2, nd3, proportions
 
     def resampleHermiteCurvePointsSmooth(self, nx, nd1, nd2, nd3, nProportions, derivativeMagnitudeStart=None, derivativeMagnitudeEnd=None):
-        '''
+        """
         Call interp.sampleCubicHermiteCurvesSmooth on nx, nd1 and recalculate positions, nd2, nd3 for points.
         :return: nx[], nd1[], nd2[], nd3[], nProportions[]
-        '''
+        """
         elementsCount = len(nx) - 1
         #print(nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)
         nx, nd1 = interp.sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
@@ -319,14 +314,95 @@ class TrackSurface:
             nd2[-1] = vector.setMagnitude(nd2[-1], vector.magnitude(nd1[-1]))
         return nx, nd1, nd2, nd3, nProportions
 
-    def findNearestPosition(self, targetx: list, startPosition: TrackSurfacePosition = None) -> TrackSurfacePosition:
-        '''
+    def findIntersectionPoint(self, otherTrackSurface,
+                              startPosition: TrackSurfacePosition,
+                              otherStartPosition: TrackSurfacePosition):
+        """
+        Find an intersection point on both self and otherTrackSurface from an initial guess.
+        :param otherTrackSurface: Other TrackSurface to find intersection with.
+        :param startPosition: Start position to get intersection point near to.
+        Needs to be a good guess if surface has complex curvature.
+        :param otherStartPosition: Initial estimate of nearest position on other TrackSurface.
+        Use findNearestParameterPosition if a better guess is not available.
+        :return: TrackSurfacePosition, x or None, None if no intersection found
+        """
+        position = copy.deepcopy(startPosition)
+        otherPosition = copy.deepcopy(otherStartPosition)
+        max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
+        xi_tol = 1.0E-6
+        x_tol = 1.0E-6 * max(self._xRange)
+        mag_dxi = 0.0
+        lastOnBoundary = False
+        for iter in range(100):
+            x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
+            otherPosition = otherTrackSurface.findNearestPosition(x, otherPosition)
+            ox = otherTrackSurface.evaluateCoordinates(otherPosition, derivatives=False)
+            r = sub(ox, x)
+            mag_r = magnitude(r)
+            if mag_r < x_tol:
+                print("TrackSurface.findIntersectionPoint found intersection: ", position)
+                return position, x
+            n = normalize(cross(d1, d2))
+            r_dot_n = dot(r, n)
+            if r_dot_n < 0:
+                # flip normal to be towards other x
+                n = [-s for s in n]
+                r_dot_n = -r_dot_n
+            r_out_of_plane = mult(n, r_dot_n)
+            r_in_plane = sub(r, r_out_of_plane)
+            # add out-of-plane slope component
+            factor = 1.0 + r_dot_n / mag_r
+            d = mult(r_in_plane, factor)
+            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, d)
+            mag_dxi = math.sqrt(dxi1 * dxi1 + dxi2 * dxi2)
+            if mag_dxi > max_mag_dxi:
+                dxi1 *= max_mag_dxi / mag_dxi
+                dxi2 *= max_mag_dxi / mag_dxi
+            bxi1, bxi2, proportion, faceNumber = increment_xi_on_square(position.xi1, position.xi2, dxi1, dxi2)
+            position.xi1 = bxi1
+            position.xi2 = bxi2
+            if mag_dxi < xi_tol:
+                print("TrackSurface.findIntersectionPoint failed: parallel surfaces")
+                break
+            if faceNumber:
+                onBoundary = self.updatePositionTofaceNumber(position, faceNumber)
+                if onBoundary and lastOnBoundary:
+                    print("TrackSurface.findIntersectionPoint failed: on boundary")
+                    break
+        else:
+            print('TrackSurface.findIntersectionPoint failed: reached max iterations', iter + 1, 'closeness in xi', mag_dxi)
+        return None, None
+
+    def findNearestParameterPosition(self, targetx: list) -> TrackSurfacePosition:
+        """
+        Get position of x parameter nearest to targetx.
+        Use to set a good starting point for findNearestPosition and findIntersectionPoint.
+        :param targetx: Coordinates of point to find nearest to.
+        :return: nearest TrackSurfacePosition
+        """
+        n1Limit = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
+        p = 0
+        nearest_distance = None
+        nearest_n1 = None
+        nearest_n2 = None
+        for n2 in range(self._elementsCount2 + 1):
+            for n1 in range(n1Limit):
+                distance = magnitude(sub(self._nx[p], targetx))
+                if (not nearest_distance) or (distance <  nearest_distance):
+                    nearest_distance = distance
+                    nearest_n1 = n1
+                    nearest_n2 = n2
+                p += 1
+        return self.createPositionProportion(nearest_n1 / self._elementsCount1, nearest_n2 / self._elementsCount2)
+
+    def findNearestPosition(self, targetx: list, startPosition: TrackSurfacePosition=None) -> TrackSurfacePosition:
+        """
         Find the nearest point to targetx on the track surface, with optional start position.
         Only works if track surface is simply shaped; use a close startPosition if not.
         :param targetx:  Coordinates of point to find nearest to.
-        :param startPosition: Optional initial track surface position
+        :param startPosition: Optional initial track surface position.
         :return: Nearest TrackSurfacePosition
-        '''
+        """
         if not startPosition:
             startPosition = self.createPositionProportion(0.5, 0.5)
         position = copy.deepcopy(startPosition)
@@ -335,7 +411,7 @@ class TrackSurface:
         for iter in range(100):
             xi1 = position.xi1
             xi2 = position.xi2
-            ax, ad1, ad2 = self.evaluateCoordinates(position, derivatives = True)
+            ax, ad1, ad2 = self.evaluateCoordinates(position, derivatives=True)
             deltax = [ (targetx[c] - ax[c]) for c in range(3) ]
             #print('iter', iter + 1, 'position', position, 'deltax', deltax, 'err', vector.magnitude(deltax))
             adelta_xi1, adelta_xi2 = calculate_surface_delta_xi(ad1, ad2, deltax)
@@ -379,14 +455,14 @@ class TrackSurface:
         return position
 
     def trackVector(self, startPosition, direction, trackDistance):
-        '''
+        """
         Track from startPosition the given distance in the vector direction.
         Approximate, uses improved Euler method (mean of original & final gradient).
         :param startPosition: TrackSurfacePosition
         :param direction: 3-D vector (x, y, z) to track along. Projected onto surface.
         :param trackDistance: Distance to track along. Can be negative.
         :return: Final TrackSurfacePosition
-        '''
+        """
         #print('TrackSurface.trackVector  start position', startPosition, 'direction', direction, 'distance', trackDistance)
         useDirection = direction
         useTrackDistance = trackDistance
@@ -456,22 +532,29 @@ class TrackSurface:
         return position
 
     def updatePositionTofaceNumber(self, position, faceNumber):
-        '''
+        """
         Update coordinates of TrackSurfacePosition position to cross
-        the given face number, or clamp to range if reached boundary.
+        the given face number, and either clamp to range if reached boundary,
+        or loop around depending on mode.
         :return: True if reached boundary of track surface, otherwise False.
-        '''
+        """
         onBoundary = False
         if faceNumber == 1:  # xi1 == 0.0
             if position.e1 > 0:
                 position.e1 -= 1
                 position.xi1 = 1.0
+            elif self._loop1:
+                position.e1 = self._elementsCount1 - 1
+                position.xi1 = 1.0
             else:
                 position.xi1 = 0.0
                 onBoundary = True
         elif faceNumber == 2:  # xi1 == 1.0
-            if position.e1 < (self.elementsCount1 - 1):
+            if position.e1 < (self._elementsCount1 - 1):
                 position.e1 += 1
+                position.xi1 = 0.0
+            elif self._loop1:
+                position.e1 = 0
                 position.xi1 = 0.0
             else:
                 position.xi1 = 1.0
@@ -484,7 +567,7 @@ class TrackSurface:
                 position.xi2 = 0.0
                 onBoundary = True
         elif faceNumber == 4:  # xi2 == 1.0
-            if position.e2 < (self.elementsCount2 - 1):
+            if position.e2 < (self._elementsCount2 - 1):
                 position.e2 += 1
                 position.xi2 = 0.0
             else:
@@ -494,10 +577,13 @@ class TrackSurface:
         #    print('!!! Reached boundary of face', faceNumber, 'position', position)
         return onBoundary
 
-    def generateMesh(self, region, serendipity=False):
+    def generateMesh(self, region, startNodeIdentifier: int=None, startElementIdentifier: int=None, serendipity=False):
         """
         Generate nodes and surface elements in region to show track surface.
+        Client is required to define all faces.
         :param region: Zinc Region.
+        :param startNodeIdentifier: Optional first node identifier to use.
+        :param startElementIdentifier: Optional first 2D element identifier to use.
         :param serendipity: Set to True to use Hermite serendipity basis.
         :return: next node identifier, next 2D element identifier
         """
@@ -505,14 +591,21 @@ class TrackSurface:
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        startNodeIdentifier = nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
+        firstNodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
+            max(get_maximum_node_identifier(nodes), 0) + 1
+        nodeIdentifier = firstNodeIdentifier
+
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+        if not serendipity:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
         mesh = fieldmodule.findMeshByDimension(2)
-        elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
+        firstElementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
+            max(get_maximum_element_identifier(mesh), 0) + 1
+        elementIdentifier = firstElementIdentifier
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
         bicubicHermiteBasis = fieldmodule.createElementbasis(
@@ -528,19 +621,23 @@ class TrackSurface:
 
         fieldcache = fieldmodule.createFieldcache()
         with ChangeManager(fieldmodule):
-            for n1 in range(len(self.nx)):
+            for n1 in range(len(self._nx)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, self.nx[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, self.nd1[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, self.nd2[n1])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, self._nx[n1])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, self._nd1[n1])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, self._nd2[n1])
                 nodeIdentifier += 1
             del n1
-            nodesCount1 = self.elementsCount1 + 1
-            for e2 in range(self.elementsCount2):
-                for e1 in range(self.elementsCount1):
-                    nid1 = startNodeIdentifier + e2 * nodesCount1 + e1
-                    nids = [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1]
+            nodesCount1 = self._elementsCount1 + 1
+            for e2 in range(self._elementsCount2):
+                for e1 in range(self._elementsCount1):
+                    nid0 = firstNodeIdentifier + e2 * nodesCount1
+                    n1 = nid0 + e1
+                    n2 = nid0 if (self._loop1 and ((e1 + 1) == self._elementsCount1)) else n1 + 1
+                    n3 = n1 + nodesCount1
+                    n4 = n2 + nodesCount1
+                    nids = [n1, n2, n3, n4]
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     element.setNodesByIdentifier(eft, nids)
                     # print(elementIdentifier, element.isValid(), nids)
@@ -550,12 +647,12 @@ class TrackSurface:
 
 
 def calculate_surface_delta_xi(d1, d2, direction):
-    '''
+    """
     Calculate dxi1, dxi2 in 3-D vector direction.
     :param d1, d2: Derivatives of coordinate w.r.t. xi1, xi2.
     :param direction: 3-D vector.
     :return: delta_xi1, delta_xi2
-    '''
+    """
     # overdetermined system (3-D vector, 2-D surface), solve least squares
     # A transpose A x = A transpose b
     a = [ [ 0.0, 0.0 ], [ 0.0, 0.0 ]]
@@ -590,11 +687,11 @@ def calculate_surface_delta_xi(d1, d2, direction):
 
 
 def calculate_surface_axes(d1, d2, direction):
-    '''
+    """
     :return: Vectors ax1, ax2, ax3: ax1 in-plane in 3-D vector direction,
-    ax2 in-plane normal to a and ax3 normal to the surface plane.
+    ax2 in-plane normal to ax1 and ax3 normal to the surface plane.
     Vectors all have unit magnitude.
-    '''
+    """
     delta_xi1, delta_xi2 = calculate_surface_delta_xi(d1, d2, direction)
     ax1 = vector.normalise([ delta_xi1*d1[c] + delta_xi2*d2[c] for c in range(3) ])
     ax3 = vector.crossproduct3(d1, d2)
@@ -609,7 +706,7 @@ def calculate_surface_axes(d1, d2, direction):
 
 
 def increment_xi_on_square(xi1, xi2, dxi1, dxi2):
-    '''
+    """
     Increment xi1, xi2 by dxi1, dxi2 limited to square element bounds on [0,1].
     Works out face crossed first and limits that xi to 0.0 or 1.0 and other xi
     in proportion.
@@ -618,7 +715,7 @@ def increment_xi_on_square(xi1, xi2, dxi1, dxi2):
     of dxi1, dxi2 incremented to hit the boundary. If so limited to the boundary,
     the face number is returned as an integer:
     1 is xi1==0.0, 2 is xi1==1.0, 3 is xi2==0.0, 4 is xi2==1.0
-    '''
+    """
     onxi1 = nxi1 = xi1 + dxi1
     onxi2 = nxi2 = xi2 + dxi2
     proportion = 1.0
