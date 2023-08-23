@@ -824,7 +824,7 @@ def generateTubeNodes(fm, coordinates, nodeIdentifier, tubeCoordinates, elements
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                         if n2 == elementsCountAlongTube - 1:
                             lastRingNodeIdThroughWall.append(nodeIdentifier)
                             xLastRingThroughWall.append(x)
@@ -841,7 +841,7 @@ def generateTubeNodes(fm, coordinates, nodeIdentifier, tubeCoordinates, elements
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                         if n2 == 1:
                             firstRingNodeIdThroughWall.append(nodeIdentifier)
                             xFirstRingThroughWall.append(x)
@@ -855,7 +855,7 @@ def generateTubeNodes(fm, coordinates, nodeIdentifier, tubeCoordinates, elements
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                     nodeIdentifier += 1
             if omitEndRows == 1:
                 if n2 == elementsCountAlongTube - 1:
@@ -1986,7 +1986,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # pad2 = d2Cervix[1]
     paxList = bodyCoordinatesOuter[0][1]
     pad2 = bodyCoordinatesOuter[2][1]
-    # pad3 = d3Cervix[1]
+    pad3 = bodyCoordinatesOuter[3][1]
     # paxList = cFirstRingNodeCoordinates[0]
     # pad2 = cFirstRingNodeCoordinates[2]
     c1xList = rhLastRingNodeCoordinates[0][-1]
@@ -1995,7 +1995,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     c2d2 = lhLastRingNodeCoordinates[2][-1]
     rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
         make_tube_bifurcation_points_converging_2d(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
-    # rod3 = pad3
+    rod3 = pad3
 
     # # Get coordinates across cervix septum, between two inner canals
     # # elementsCountAcross = len(cox) + 1
@@ -2180,14 +2180,14 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     #     #     rod3.append(d3SampledBifurcationLeft[n])
     #     #     # rod3.append([0.0, 0.0, 1.0])
     #
-    # # Get d3 for outer bifurcation (for cox nodes)
-    # cod3 = []
-    # for n in range(len(cox)):
-    #     # v1 = xSeptumBifurcation[n]
-    #     v1 = septumBodyCoordinates[0][0][n + 1]
-    #     v2 = cox[n]
-    #     d3 = findDerivativeBetweenPoints(v1, v2)
-    #     cod3.append(d3)
+    # Get d3 for outer bifurcation (for cox nodes)
+    cod3 = []
+    for n in range(len(cox)):
+        # v1 = xSeptumBifurcation[n]
+        v1 = septumBodyCoordinates[0][0][n + 1]
+        v2 = cox[n]
+        d3 = findDerivativeBetweenPoints(v1, v2)
+        cod3.append(d3)
 
     # Get vagina nodes
     vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
@@ -2424,8 +2424,8 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     # Create bifurcation nodes
     septumBifurCoordinates = []
-    rod3 = []
-    cod3 = []
+    # rod3 = []
+    # cod3 = []
     nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, nextNodeId = \
         create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3, septumBifurCoordinates)
     #old
@@ -2845,7 +2845,8 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[0][n2][n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xOuter[1][n2][n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xOuter[2][n2][n1])
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
+            if n1 in (0, elementsCountAround // 2):
+                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
             cotNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
 
@@ -3012,7 +3013,8 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, rox[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, rod1[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, rod2[n])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rod3[n])
+        if n in (0, len(rox)//2):
+            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, rod3[n])
         roNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
     coNodeId = []
@@ -3022,7 +3024,7 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, cox[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, cod1[n])
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, cod2[n])
-        # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cod3[n])
+        coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, cod3[n])
         coNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
 
