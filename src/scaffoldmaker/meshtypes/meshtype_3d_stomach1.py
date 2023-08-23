@@ -2006,12 +2006,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         if annulusFundusOpenRingIdx <= n2 <= annulusBodyOpenRingIdx:
             d1SmoothedLeft = \
                 interp.smoothCubicHermiteDerivativesLine(xSampledAroundAlong[n2][0:elementsAroundHalfDuod],
-                                                         d1SampledAroundAlong[n2][0:elementsAroundHalfDuod])
+                                                         d1SampledAroundAlong[n2][0:elementsAroundHalfDuod],
+                                                         fixEndDirection=True)
             d1SmoothedRight = \
                 interp.smoothCubicHermiteDerivativesLine(xSampledAroundAlong[n2][elementsAroundHalfDuod + 1:] +
                                                          [xSampledAroundAlong[n2][0]],
                                                          d1SampledAroundAlong[n2][elementsAroundHalfDuod + 1:] +
-                                                         [d1SampledAroundAlong[n2][0]])
+                                                         [d1SampledAroundAlong[n2][0]], fixStartDirection=True)
             d1Smoothed = d1SmoothedLeft + [[1.0, 0.0, 0.0]] + d1SmoothedRight[:-1]
 
         else:
@@ -2029,9 +2030,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongGC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
-            d2SmoothedAlongGC[-1] = vector.setMagnitude(d2SmoothedAlongGC[-1],
-                                                        0.5*(vector.magnitude(d2AnnulusOuter[0]) +
-                                                             vector.magnitude(d2SmoothedAlongGC[-1])))
+            d2SmoothedAlongGC[-1] = vector.setMagnitude(d2AnnulusOuter[0], vector.magnitude(d2SmoothedAlongGC[-1]))
 
             nx = []
             nd2 = []
@@ -2039,11 +2038,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongLC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
-
-            d2SmoothedAlongLC[0] = vector.setMagnitude(d2SmoothedAlongLC[0],
-                                                       0.5*(vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]) +
-                                                            (vector.magnitude(d2SmoothedAlongLC[0]))))
-
+            d2SmoothedAlongLC[0] = vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso],
+                                                       vector.magnitude(d2SmoothedAlongLC[0]))
             d2Smoothed = d2SmoothedAlongGC + \
                          [[0.0, 1.0, 0.0] for n in range(2 * (elementsAroundQuarterEso - 2) + 1)] + \
                          d2SmoothedAlongLC
@@ -2056,38 +2052,31 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             if n1 == elementsAroundHalfDuod - 1:
                 d2Smoothed[annulusFundusOpenRingIdx - 1] = \
-                    vector.setMagnitude(
-                        d1AnnulusOuter[1],
-                        0.5 * (vector.magnitude(d2Smoothed[annulusFundusOpenRingIdx - 1]) +
-                               vector.magnitude(d1AnnulusOuter[1])))
-                d2Smoothed[bodyStartIdx] = \
-                    vector.setMagnitude(d2Smoothed[bodyStartIdx],
-                                        vector.magnitude(d1AnnulusOuter[elementsAroundQuarterEso]))
+                    vector.setMagnitude(d2AnnulusOuter[1], vector.magnitude(nd2[annulusFundusOpenRingIdx - 1]))
+
+                for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                    annulusIdx = m + 2
+                    d2Smoothed[annulusFundusOpenRingIdx + m] = \
+                        vector.setMagnitude(d2AnnulusOuter[annulusIdx],
+                                            vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
+
                 d2Smoothed[annulusBodyOpenRingIdx + 1] = \
-                    vector.setMagnitude(
-                        d1AnnulusOuter[elementsAroundHalfEso - 1],
-                        0.5 * (vector.magnitude(d2Smoothed[annulusBodyOpenRingIdx + 1]) +
-                               vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso - 1])))
+                    vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso - 1],
+                                        vector.magnitude(nd2[annulusBodyOpenRingIdx + 1]))
 
             if n1 == elementsAroundHalfDuod + 1:
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[-1], math.pi)
-                d1 = d1AnnulusOuter[-1]
-                d2 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
                 d2Smoothed[annulusFundusOpenRingIdx - 1] = \
-                    vector.setMagnitude(
-                        d2, 0.5*(vector.magnitude(d2Smoothed[annulusFundusOpenRingIdx - 1]) +
-                                 vector.magnitude(d1AnnulusOuter[-1])))
+                    vector.setMagnitude(d2AnnulusOuter[-1], vector.magnitude(nd2[annulusFundusOpenRingIdx - 1]))
 
-                d2Smoothed[bodyStartIdx] = \
-                    vector.setMagnitude(d2Smoothed[bodyStartIdx],
-                                        vector.magnitude(d1AnnulusOuter[-elementsAroundQuarterEso]))
+                for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                    annulusIdx = -(m + 2)
+                    d2Smoothed[annulusFundusOpenRingIdx + m] = \
+                        vector.setMagnitude(d2AnnulusOuter[annulusIdx],
+                                            vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
 
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[elementsAroundHalfEso + 1], math.pi)
-                d1 = d1AnnulusOuter[elementsAroundHalfEso + 1]
-                d2 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2] for j in range(3)]
                 d2Smoothed[annulusBodyOpenRingIdx + 1] = \
-                    vector.setMagnitude(d2, 0.5 * (vector.magnitude(d2Smoothed[annulusBodyOpenRingIdx + 1]) +
-                                                   vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso + 1])))
+                    vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso + 1],
+                                        vector.magnitude(nd2[annulusBodyOpenRingIdx + 1]))
 
         for n2 in range(len(d2Smoothed)):
             d2SampledAroundAlong[n2][n1] = d2Smoothed[n2]
@@ -2102,11 +2091,33 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledAroundAlong[n2][n1])
     #         nodeIdentifier += 1
 
+    # Replace derivatives around annulus
+    for n in range(3):
+        d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][n1IdxAtBodyStartIdxPlusMinusOne[n]] = \
+            d1AnnulusOuter[annulusIdxAtBodyStartIdxMinusOne[n]]
+        d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][n1IdxAtBodyStartIdxPlusMinusOne[n]] = \
+            d1AnnulusOuter[annulusIdxAtBodyStartIdxPlusOne[n]]
+
+    for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+        annulusIdx = m + 2
+        d1SampledAroundAlong[annulusFundusOpenRingIdx + m][elementsAroundHalfDuod - 1] = d1AnnulusOuter[annulusIdx]
+        d1SampledAroundAlong[annulusFundusOpenRingIdx + m][elementsAroundHalfDuod + 1] = d1AnnulusOuter[-annulusIdx]
+
     # calculate d3
     for n2 in range(len(xSampledAroundAlong)):
         for n1 in range(len(xSampledAroundAlong[n2])):
             d3SampledAroundAlong[n2][n1] = vector.normalise(vector.crossproduct3(
                 vector.normalise(d1SampledAroundAlong[n2][n1]), vector.normalise(d2SampledAroundAlong[n2][n1])))
+
+    # for n2 in range(len(xSampledAroundAlong)):
+    #     for n1 in range(len(xSampledAroundAlong[n2])):
+    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
+    #         cache.setNode(node)
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xSampledAroundAlong[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1SampledAroundAlong[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2SampledAroundAlong[n2][n1])
+    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, d3SampledAroundAlong[n2][n1])
+    #         nodeIdentifier += 1
 
     # Calculate curvature around
     d1CurvatureAroundAlong = [[0.0 for n in range(elementsCountAroundDuod)]]
@@ -2126,47 +2137,6 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d1Curvature = findCurvatureAroundLoop(xSampledAroundAlong[n2], d1SampledAroundAlong[n2],
                                                   d3SampledAroundAlong[n2])
         d1CurvatureAroundAlong.append(d1Curvature)
-
-    # Replace derivatives around annulus
-    # bodyStartIdx - 1
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[1], math.pi)
-    d2 = d2AnnulusOuter[1]
-    d1 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-    d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod - 1] = \
-        vector.setMagnitude(
-            d1,
-            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod - 1]) +
-                   vector.magnitude(d2AnnulusOuter[1])))
-
-    d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod] = \
-        vector.setMagnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod],
-                            vector.magnitude(d1AnnulusOuter[0]))
-
-    d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod + 1] = \
-        vector.setMagnitude(
-            d2AnnulusOuter[-1],
-            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx - 1][elementsAroundHalfDuod + 1]) +
-                   vector.magnitude(d2AnnulusOuter[-1])))
-
-    # bodyStartIdx + 1
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[elementsAroundHalfEso - 1], math.pi)
-    d2 = d2AnnulusOuter[elementsAroundHalfEso - 1]
-    d1 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
-    d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod - 1] = \
-        vector.setMagnitude(
-            d1,
-            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod - 1]) +
-                   vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso - 1])))
-
-    d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod] = \
-        vector.setMagnitude(d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod],
-                            vector.magnitude(d1AnnulusOuter[elementsAroundHalfEso]))
-
-    d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod + 1] = \
-        vector.setMagnitude(
-            d2AnnulusOuter[elementsAroundHalfEso + 1],
-            0.5 * (vector.magnitude(d1SampledAroundAlong[annulusBodyOpenRingIdx + 1][elementsAroundHalfDuod + 1]) +
-                   vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso + 1])))
 
     # Calculate curvature along
     d2CurvatureAroundAlong = [[[] for n1 in range(len(xSampledAroundAlong[n2]))]
@@ -2440,44 +2410,56 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 145
 
                         elif e1 == elementsAroundHalfDuod - 1:
                             scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print('1', elementIdentifier) # 146
 
                         elif e1 == elementsAroundHalfDuod:
                             scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print('2', elementIdentifier) #147
 
                         elif e1 == elementsAroundHalfDuod + 1:
                             scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) #148
 
                     if e2 == annulusFundusOpenRingIdx - 1:
                         if e1 == elementsAroundHalfDuod - 2:
@@ -2485,45 +2467,49 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
-
-                        elif e1 == elementsAroundHalfDuod - 1:
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
-
-                    if e2 == annulusBodyOpenRingIdx:
-                        if e1 == elementsAroundHalfDuod - 2:
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
-
-                        elif e1 == elementsAroundHalfDuod - 1:
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
-
-                    if e2 == annulusBodyOpenRingIdx + 1:
-                        if e1 == elementsAroundHalfDuod - 2:
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
+                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
-                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 165
+
+                        elif e1 == elementsAroundHalfDuod - 1:
+                            scaleFactors = [-1.0]
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 166
+
+                    elif (elementsAroundQuarterEso - 2) > 0 and annulusFundusOpenRingIdx <= e2 <= annulusFundusOpenRingIdx + 1 + (elementsAroundQuarterEso - 2):
+                        if e1 == elementsAroundHalfDuod - 2:
+                            scaleFactors = [-1.0]
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 183, 201
 
                         elif e1 == elementsAroundHalfDuod - 1:
                             scaleFactors = [-1.0]
@@ -2533,10 +2519,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                    [(Node.VALUE_LABEL_D_DS1, [1])])
                             remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 184, 202
 
-                        elif e1 == elementsAroundHalfDuod:
+                    if e2 == annulusBodyOpenRingIdx:
+                        if e1 == elementsAroundHalfDuod - 2:
                             scaleFactors = [-1.0]
                             eft1 = eftfactory.createEftNoCrossDerivatives()
                             setEftScaleFactorIds(eft1, [1], [])
@@ -2544,19 +2536,48 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                    [(Node.VALUE_LABEL_D_DS2, [1])])
                             remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
                                                    [(Node.VALUE_LABEL_D_DS1, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
-
-                        elif e1 == elementsAroundHalfDuod + 1:
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
                                                    [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
                                                    [(Node.VALUE_LABEL_D_DS1, [])])
                             elementtemplateX.defineField(coordinates, -1, eft1)
                             elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 219
+
+                        elif e1 == elementsAroundHalfDuod - 1:
+                            scaleFactors = [-1.0]
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) # 220
+
+                    if e2 == annulusBodyOpenRingIdx + 1:
+                        if e1 == elementsAroundHalfDuod - 2:
+                            scaleFactors = [-1.0]
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            setEftScaleFactorIds(eft1, [1], [])
+                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+                            # print('1', elementIdentifier) #237
+
+                        elif e1 == elementsAroundHalfDuod + 1:
+                            eft1 = eftfactory.createEftNoCrossDerivatives()
+                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elementtemplateX.defineField(coordinates, -1, eft1)
+                            elementtemplate1 = elementtemplateX
+                            # print(elementIdentifier) #240
 
                     element = mesh.createElement(elementIdentifier, elementtemplate1)
                     element.setNodesByIdentifier(eft1, nodeIdentifiers)
@@ -2624,14 +2645,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     for n3 in range(elementsCountThroughWall + 1):
         for nAround in range(elementsCountAroundEso):
-            if nAround == 0:
-                endDerivativesMap[n3][nAround] = ((-1, 0, 0), (0, -1, 0), None)
-            elif 1 <= nAround < elementsAroundHalfEso:
-                endDerivativesMap[n3][nAround] = ((0, 1, 0), (-1, 0, 0), None)
-            elif nAround == elementsAroundHalfEso:
-                endDerivativesMap[n3][nAround] = (None, None, None)
-            else:
-                endDerivativesMap[n3][nAround] = ((0, -1, 0), (1, 0, 0), None)
+            endDerivativesMap[n3][nAround] = (None, None, None)
 
     startProportions = []
     for n in range(elementsCountAroundEso):
