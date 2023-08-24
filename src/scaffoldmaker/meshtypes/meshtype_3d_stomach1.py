@@ -648,9 +648,9 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements around esophagus': 12,
-            'Number of elements around duodenum': 20,
-            'Number of elements along': 24,
+            'Number of elements around esophagus': 8,
+            'Number of elements around duodenum': 16,
+            'Number of elements along': 14,
             'Number of elements through wall': 4,
             'Wall thickness': 0.0525,
             'Mucosa relative thickness': 0.55,
@@ -669,7 +669,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements through wall'] = 1
             options['Wall thickness'] = 0.0525 * 101
         elif 'Mouse 1' in parameterSetName:
-            options['Number of elements along'] = 20
             options['Wall thickness'] = 0.05145
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
@@ -684,7 +683,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.1
             options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
-            options['Number of elements along'] = 20
             options['Wall thickness'] = 0.0215
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
@@ -692,7 +690,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.05
             options['Limiting ridge'] = True
         elif 'Material' in parameterSetName:
-            options['Number of elements along'] = 20
             options['Wall thickness'] = 0.05
             options['Mucosa relative thickness'] = 0.25
             options['Submucosa relative thickness'] = 0.25
@@ -779,8 +776,8 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'Number of elements around duodenum']:
             if options[key] % 4 > 0:
                 options[key] = options[key] // 4 * 4
-        if options['Number of elements along'] < 10:
-            options['Number of elements along'] = 10
+        if options['Number of elements along'] < 12:
+            options['Number of elements along'] = 12
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -1736,32 +1733,25 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             d2QuarterEllipseAll.append(d2EllipseAroundAll[n2][elementsAroundQuarterDuod])
         totalQuarterLength = interp.getCubicHermiteCurvesLength(xQuarterEllipseAll, d2QuarterEllipseAll)
 
-        ratioArcLengthSections = []
+        quarterLengthSections = []
         for i in range(len(nodeStartEndSections)):
             xList = []
             d2List = []
             for n in range(nodeStartEndSections[i][0], nodeStartEndSections[i][1] + 1):
                 xList.append(xQuarterEllipseAll[n])
                 d2List.append(d2QuarterEllipseAll[n])
-            quarterLengthSection = interp.getCubicHermiteCurvesLength(xList, d2List)
-            ratioArcLengthSections.append(quarterLengthSection / totalQuarterLength)
+            quarterLengthSections.append(interp.getCubicHermiteCurvesLength(xList, d2List))
 
-        elementsAlongSections = [math.floor(c * elementsCountAlong) for c in ratioArcLengthSections]
+        targetLengthPerElement = totalQuarterLength/elementsCountAlong
+        minElementsInSections = [4, 3, 2, 2, 1]
 
-        modGroups = []
-        for i in range(len(elementsAlongSections)):
-            if elementsAlongSections[i] < 1:
-                elementsAlongSections[i] == 1
-
-            mod = ratioArcLengthSections[i] * elementsCountAlong - elementsAlongSections[i]
-            modGroups.append(mod)
-
-        excessElements = elementsCountAlong - sum(elementsAlongSections)
-
+        excessElements = elementsCountAlong - sum(minElementsInSections)
+        diff = [quarterLengthSections[c] - targetLengthPerElement * minElementsInSections[c] for c in range(len(minElementsInSections))]
         for i in range(excessElements):
-            maxIdx = max(range(len(modGroups)), key=modGroups.__getitem__)
-            elementsAlongSections[maxIdx] += 1
-            modGroups[maxIdx] = ratioArcLengthSections[maxIdx] * elementsCountAlong - elementsAlongSections[maxIdx]
+            maxIdx = max(range(len(diff)), key=diff.__getitem__)
+            minElementsInSections[maxIdx] += 1
+            diff[maxIdx] -= targetLengthPerElement
+        elementsAlongSections = minElementsInSections
 
     totalElementsAlong = sum(elementsAlongSections)
 
