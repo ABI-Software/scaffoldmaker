@@ -60,9 +60,15 @@ which is intended to be fitted to actual data for a specimen.
 
 The material coordinates field ``stomach coordinates`` defines a highly idealized coordinate system to give permanent
 locations for embedding structures in the stomach. It is defined by a capsule-shaped structure with an inlet cylindrical
-tube representing the esophagus and another outlet tube representing the duodenum. This can be viewed by
-visualising this field in the *Display* tab of **Scaffold Creator** or by switching to the special ``Material``
-parameter set.
+tube representing the esophagus and another outlet tube representing the duodenum. In this coordinate field, the stomach
+has a unit length of 2.0. The length of the fundus region is 0.7 unit. It is represented by a hemisphere with
+unit length diameter along the first 0.5 unit length and a cylindrical tube with a uniform unit diameter along the next
+0.2 unit along its length. The body continues as a cylindrical tube with a uniform unit diameter along its 0.6 unit
+length. The antrum is a cylindrical tube of 0.3 unit length and the rate of change of its diameter along its length is
+described by a cubic hermite function, decreasing at a rate of 0.75 unit/unit length. The pylorus and duodenum are both
+described by cylindrical tube with a uniform diameter of 0.4 unit and a length of 0.2 unit. The material coordinates
+field can be viewed by visualising this field in the *Display* tab of **Scaffold Creator** or by switching to the
+special ``Material`` parameter set.
 
 The stomach scaffold supports limited refinement/resampling by checking *Refine* (set parameter to ``true``) with chosen
 *Refine number of elements* parameters. Be aware that only the ``coordinates`` field is currently defined on the refined
