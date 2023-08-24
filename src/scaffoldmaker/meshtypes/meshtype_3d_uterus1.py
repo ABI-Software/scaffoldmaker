@@ -8,6 +8,7 @@ import math
 
 from cmlibs.maths.vectorops import add, mult
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -37,58 +38,6 @@ class MeshType_3d_uterus1(Scaffold_base):
     """
     parameterSetStructureStrings = {
         'Mouse 1': ScaffoldPackage(MeshType_1d_network_layout1, {
-            'scaffoldSettings': {
-                "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11, 11-12-13-14"
-            },
-            'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24], [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
-                    (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22], [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
-                    (3, [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22], [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]]),
-                    (4, [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20], [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]]),
-                    (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]],
-                         [[0.66, 0.01, -0.76], [0.66, -0.01, 0.76], [1.00, 0.00, 0.00]], [-0.10, 0.09, 0.10],
-                         [[0.05, -1.00, 0.03], [0.05, -1.00, 0.03], [0.05, -1.00, 0.03]], [-0.01, 0.01, -0.10]]),
-                    (6, [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40], [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
-                    (7, [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22], [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
-                    (8, [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22], [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
-                    (9, [[-5.97, 0.24, 3.53], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20], [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]]),
-                    (10, [[0.00, 0.00, -2.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15], [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]]),
-                    (11, [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (12, [[0.00, 0.00, -6.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (13, [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -10.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
-            'userAnnotationGroups': [
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-4',
-                    'name': get_uterus_term('right uterine horn')[0],
-                    'ontId': get_uterus_term('right uterine horn')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '5-8',
-                    'name': get_uterus_term('left uterine horn')[0],
-                    'ontId': get_uterus_term('left uterine horn')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '9-10',
-                    'name': get_uterus_term('uterine cervix')[0],
-                    'ontId': get_uterus_term('uterine cervix')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '11-13',
-                    'name': get_uterus_term('vagina')[0],
-                    'ontId': get_uterus_term('vagina')[1]
-                }]
-        }),
-        'Mouse 2': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11, 11-12-13, 13-14"
             },
@@ -302,7 +251,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         }),
         'Sheep 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                "Structure": "1-2-3-4-5-6, 7-8-9-10-11-6.2, 6.3-12-13, 13-14-15-16"
+                "Structure": "1-2-3-4-5-6, 7-8-9-10-11-6.2, 6.3-12-13, 13-14, 14-15-16"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
@@ -360,20 +309,27 @@ class MeshType_3d_uterus1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '11-12',
+                    'name': get_uterus_term('body of uterus')[0],
+                    'ontId': get_uterus_term('body of uterus')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '13',
                     'name': get_uterus_term('uterine cervix')[0],
                     'ontId': get_uterus_term('uterine cervix')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '13-15',
+                    'identifierRanges': '14-15',
                     'name': get_uterus_term('vagina')[0],
                     'ontId': get_uterus_term('vagina')[1]
                 }]
         }),
         'Material': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                "Structure": "1-2-3, 4-5-3.2, 3.3-6, 6-7-8-9"
+                "Structure": "1-2-3, 4-5-3.2, 3.3-6, 6-7, 7-8-9"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
@@ -407,13 +363,20 @@ class MeshType_3d_uterus1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '5',
+                    'name': get_uterus_term('body of uterus')[0],
+                    'ontId': get_uterus_term('body of uterus')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6',
                     'name': get_uterus_term('uterine cervix')[0],
                     'ontId': get_uterus_term('uterine cervix')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '6-8',
+                    'identifierRanges': '7-8',
                     'name': get_uterus_term('vagina')[0],
                     'ontId': get_uterus_term('vagina')[1]
                 }]
@@ -429,7 +392,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         return [
             'Default',
             'Mouse 1',
-            'Mouse 2',
             'Rat 1',
             'Sheep 1',
             'Material']
@@ -438,8 +400,6 @@ class MeshType_3d_uterus1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Mouse 1' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
-        elif 'Mouse 2' in parameterSetName:
-            networkLayoutOption = cls.parameterSetStructureStrings['Mouse 2']
         elif 'Rat 1' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Rat 1']
         elif 'Sheep 1' in parameterSetName:
@@ -453,8 +413,8 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Target element length': 6.0,
             'Number of elements around': 8,
             'Number of elements around horns': 8,
-            'Wall thickness': 2.0,
             'Number of elements through wall': 1,
+            'Wall thickness': 1.4,
             'Double uterus': False,
             'Use linear through wall': True,
             'Use cross derivatives': False,
@@ -482,10 +442,10 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Target element length',
             'Number of elements around',
             'Number of elements around horns',
-            'Wall thickness',
             'Number of elements through wall',
+            'Wall thickness',
             'Double uterus',
-            'Use cross derivatives',
+            # 'Use cross derivatives',
             'Refine',
             'Refine number of elements along',
             'Refine number of elements around',
@@ -625,12 +585,19 @@ class MeshType_3d_uterus1(Scaffold_base):
         #     tmp_uterus_coordinates = findOrCreateFieldCoordinates(tmp_fm, name="uterus coordinates")
         #     materialNetworkLayout = UterusNetworkLayout(tmp_region, materialNetworkLayout, materialTargetElementLength)
         #
-        #     nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
-        #         createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
-        #                            elementsCountAround, elementsCountThroughWall, elementsCountInRightHorn,
-        #                            elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
-        #                            materialWallThickness, useCrossDerivatives)
+        #     # nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
+        #     #     createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
+        #     #                        elementsCountAround, elementsCountThroughWall, elementsCountInRightHorn,
+        #     #                        elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
+        #     #                        materialWallThickness, useCrossDerivatives)
         #
+        #     nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
+        #         createUterusMesh3DRat(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout, elementsCountAround,
+        #                               elementsCountAroundRightHorn,
+        #                               elementsCountAroundLeftHorn, elementsCountAcross,
+        #                               elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
+        #                               elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness,
+        #                               doubleUterus, useCrossDerivatives)
         #     # Write two coordinates
         #     sir = tmp_region.createStreaminformationRegion()
         #     srm = sir.createStreamresourceMemory()
