@@ -1714,6 +1714,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     for n in range(elementsCountAroundEso):
         d3 = vector.normalise(vector.crossproduct3(vector.normalise(d1AnnulusOuter[n]), d2AnnulusNorm[n]))
         d3Annulus.append(d3)
+    d1AnnulusCurvatureOuter = findCurvatureAroundLoop(xAnnulusOuter, d1AnnulusOuter, d3Annulus)
 
     # for m in range(len(xAnnulusOuter)):
     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1969,21 +1970,25 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xSampledAroundAlong = []
     d1SampledAroundAlong = []
     d2SampledAroundAlong = []
+    d2SmoothB4ChangeAroundAlong = []
     d3SampledAroundAlong = []
 
     for n2 in range(totalElementsAlong + 1):
         xSampledAround = []
         d1SampledAround = []
         d2SampledAround = []
+        d2SmoothB4ChangeAround = []
         d3SampledAround = []
         for n1 in range(elementsCountAroundDuod):
             xSampledAround.append(xSampledAlong[n1][n2])
             d1SampledAround.append(d1SampledAlong[n1][n2])
             d2SampledAround.append(d2SampledAlong[n1][n2])
+            d2SmoothB4ChangeAround.append([])
             d3SampledAround.append(d3SampledAlong[n1][n2])
         xSampledAroundAlong.append(xSampledAround)
         d1SampledAroundAlong.append(d1SampledAround)
         d2SampledAroundAlong.append(d2SampledAround)
+        d2SmoothB4ChangeAroundAlong.append(d2SmoothB4ChangeAround)
         d3SampledAroundAlong.append(d3SampledAround)
 
     bodyStartIdx = elementsAlongSections[0]
@@ -2002,7 +2007,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 interp.smoothCubicHermiteDerivativesLine(xSampledAroundAlong[n2][elementsAroundHalfDuod + 1:] +
                                                          [xSampledAroundAlong[n2][0]],
                                                          d1SampledAroundAlong[n2][elementsAroundHalfDuod + 1:] +
-                                                         [d1SampledAroundAlong[n2][0]], fixStartDirection=True)
+                                                         [d1SampledAroundAlong[n2][0]],
+                                                         fixStartDirection=True)
+
             d1Smoothed = d1SmoothedLeft + [[1.0, 0.0, 0.0]] + d1SmoothedRight[:-1]
 
         else:
@@ -2012,6 +2019,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d1SampledAroundAlong = d1SmoothedAroundAlong
 
     # Smooth d2 along
+    d2AnnulusNew = [[] for n in range(elementsCountAroundEso)]
     for n1 in range(elementsCountAroundDuod):
         nx = []
         nd2 = []
@@ -2020,7 +2028,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongGC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+            d2SmoothedAlongGCB4Change = copy.deepcopy(d2SmoothedAlongGC)
             d2SmoothedAlongGC[-1] = vector.setMagnitude(d2AnnulusOuter[0], vector.magnitude(d2SmoothedAlongGC[-1]))
+            d2AnnulusNew[0] = d2SmoothedAlongGC[-1]
 
             nx = []
             nd2 = []
@@ -2028,48 +2038,61 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongLC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+            d2SmoothedAlongLCB4Change = copy.deepcopy(d2SmoothedAlongLC)
             d2SmoothedAlongLC[0] = vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso],
                                                        vector.magnitude(d2SmoothedAlongLC[0]))
+            d2AnnulusNew[elementsAroundHalfEso] = d2SmoothedAlongLC[0]
             d2Smoothed = d2SmoothedAlongGC + \
                          [[0.0, 1.0, 0.0] for n in range(2 * (elementsAroundQuarterEso - 2) + 1)] + \
                          d2SmoothedAlongLC
+            d2SmoothedB4Change = d2SmoothedAlongGCB4Change + \
+                         [[0.0, 1.0, 0.0] for n in range(2 * (elementsAroundQuarterEso - 2) + 1)] + \
+                         d2SmoothedAlongLCB4Change
 
         else:
             for n2 in range(len(xSampledAroundAlong)):
                 nx.append(xSampledAroundAlong[n2][n1])
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2Smoothed = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
+            d2SmoothedB4Change = copy.deepcopy(d2Smoothed)
 
             if n1 == elementsAroundHalfDuod - 1:
                 d2Smoothed[annulusFundusOpenRingIdx - 1] = \
                     vector.setMagnitude(d2AnnulusOuter[1], vector.magnitude(nd2[annulusFundusOpenRingIdx - 1]))
+                d2AnnulusNew[1] = d2Smoothed[annulusFundusOpenRingIdx - 1]
 
                 for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                     annulusIdx = m + 2
                     d2Smoothed[annulusFundusOpenRingIdx + m] = \
                         vector.setMagnitude(d2AnnulusOuter[annulusIdx],
                                             vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
+                    d2AnnulusNew[annulusIdx] = d2Smoothed[annulusFundusOpenRingIdx + m]
 
                 d2Smoothed[annulusBodyOpenRingIdx + 1] = \
                     vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso - 1],
                                         vector.magnitude(nd2[annulusBodyOpenRingIdx + 1]))
+                d2AnnulusNew[elementsAroundHalfEso - 1] = d2Smoothed[annulusBodyOpenRingIdx + 1]
 
             if n1 == elementsAroundHalfDuod + 1:
                 d2Smoothed[annulusFundusOpenRingIdx - 1] = \
                     vector.setMagnitude(d2AnnulusOuter[-1], vector.magnitude(nd2[annulusFundusOpenRingIdx - 1]))
+                d2AnnulusNew[-1] = d2Smoothed[annulusFundusOpenRingIdx - 1]
 
                 for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                     annulusIdx = -(m + 2)
                     d2Smoothed[annulusFundusOpenRingIdx + m] = \
                         vector.setMagnitude(d2AnnulusOuter[annulusIdx],
                                             vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
+                    d2AnnulusNew[annulusIdx] = d2Smoothed[annulusFundusOpenRingIdx + m]
 
                 d2Smoothed[annulusBodyOpenRingIdx + 1] = \
                     vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso + 1],
                                         vector.magnitude(nd2[annulusBodyOpenRingIdx + 1]))
+                d2AnnulusNew[elementsAroundHalfEso + 1] = d2Smoothed[annulusBodyOpenRingIdx + 1]
 
         for n2 in range(len(d2Smoothed)):
             d2SampledAroundAlong[n2][n1] = d2Smoothed[n2]
+            d2SmoothB4ChangeAroundAlong[n2][n1] = d2SmoothedB4Change[n2]
 
     # for n2 in range(len(xSampledAroundAlong)):
     #     for n1 in range(len(xSampledAroundAlong[n2])):
@@ -2128,7 +2151,26 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                   d3SampledAroundAlong[n2])
         d1CurvatureAroundAlong.append(d1Curvature)
 
+    # Replace curvatures around annulus
+    for n in range(3):
+        d1CurvatureAroundAlong[annulusFundusOpenRingIdx - 1][n1IdxAtBodyStartIdxPlusMinusOne[n]] = \
+            d1AnnulusCurvatureOuter[annulusIdxAtBodyStartIdxMinusOne[n]]
+        d1CurvatureAroundAlong[annulusBodyOpenRingIdx + 1][n1IdxAtBodyStartIdxPlusMinusOne[n]] = \
+            d1AnnulusCurvatureOuter[annulusIdxAtBodyStartIdxPlusOne[n]]
+
+    for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+        annulusIdx = m + 2
+        d1CurvatureAroundAlong[annulusFundusOpenRingIdx + m][elementsAroundHalfDuod - 1] = \
+            d1AnnulusCurvatureOuter[annulusIdx]
+        d1CurvatureAroundAlong[annulusFundusOpenRingIdx + m][elementsAroundHalfDuod + 1] = \
+            d1AnnulusCurvatureOuter[-annulusIdx]
+
     # Calculate curvature along
+    d2AnnulusCurvature = []
+    for n in range(elementsCountAroundEso):
+        d2AnnulusCurvature.append(interp.getCubicHermiteCurvature(o1_x[-1][n], vector.setMagnitude(o1_d2[-1][n], sf),
+                                                                  xAnnulusOuter[n], d2AnnulusNew[n], d3Annulus[n], 1.0))
+
     d2CurvatureAroundAlong = [[[] for n1 in range(len(xSampledAroundAlong[n2]))]
                               for n2 in range(len(xSampledAroundAlong))]
 
@@ -2139,7 +2181,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         if n1 == elementsAroundHalfDuod:
             for n2 in range(annulusFundusOpenRingIdx):
                 nx.append(xSampledAroundAlong[n2][n1])
-                nd2.append(d2SampledAroundAlong[n2][n1])
+                nd2.append(d2SmoothB4ChangeAroundAlong[n2][n1])
                 nd3.append(d3SampledAroundAlong[n2][n1])
             d2CurvatureAlongGC = findCurvatureAlongLine(nx, nd2, nd3)
 
@@ -2148,7 +2190,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             nd3 = []
             for n2 in range(annulusBodyOpenRingIdx + 1, len(xSampledAroundAlong)):
                 nx.append(xSampledAroundAlong[n2][n1])
-                nd2.append(d2SampledAroundAlong[n2][n1])
+                nd2.append(d2SmoothB4ChangeAroundAlong[n2][n1])
                 nd3.append(d3SampledAroundAlong[n2][n1])
             d2CurvatureAlongLC = findCurvatureAlongLine(nx, nd2, nd3)
             d2CurvatureAlong = d2CurvatureAlongGC + \
@@ -2158,9 +2200,41 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         else:
             for n2 in range(len(xSampledAroundAlong)):
                 nx.append(xSampledAroundAlong[n2][n1])
-                nd2.append(d2SampledAroundAlong[n2][n1])
+                nd2.append(d2SmoothB4ChangeAroundAlong[n2][n1])
                 nd3.append(d3SampledAroundAlong[n2][n1])
             d2CurvatureAlong = findCurvatureAlongLine(nx, nd2, nd3)
+
+            if n1 == elementsAroundHalfDuod - 1:
+                d2CurvatureAlong[annulusFundusOpenRingIdx - 1] = \
+                    0.5 * (d2CurvatureAlong[annulusFundusOpenRingIdx - 1] + d2AnnulusCurvature[1])
+                d2CurvatureAlong[annulusBodyOpenRingIdx + 1] = \
+                    0.5 * (d2AnnulusCurvature[elementsAroundHalfEso - 1] +
+                           interp.getCubicHermiteCurvature(xAnnulusOuter[elementsAroundHalfEso - 1],
+                                                           d2AnnulusNew[elementsAroundHalfEso - 1],
+                                                           xSampledAroundAlong[annulusBodyOpenRingIdx + 2][n1],
+                                                           d2SampledAroundAlong[annulusBodyOpenRingIdx + 2][n1],
+                                                           d3SampledAroundAlong[annulusBodyOpenRingIdx + 1][n1], 0.0))
+                for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                    annulusIdx = m + 2
+                    d2CurvatureAlong[annulusFundusOpenRingIdx + m] = \
+                        0.5 * (d2AnnulusCurvature[annulusIdx] +
+                               d1CurvatureAroundAlong[annulusFundusOpenRingIdx + m][n1])
+
+            if n1 == elementsAroundHalfDuod + 1:
+                d2CurvatureAlong[annulusFundusOpenRingIdx - 1] = \
+                    0.5 * (d2CurvatureAlong[annulusFundusOpenRingIdx - 1] + d2AnnulusCurvature[-1])
+                d2CurvatureAlong[annulusBodyOpenRingIdx + 1] = \
+                    0.5 * (d2AnnulusCurvature[elementsAroundHalfEso + 1] +
+                           interp.getCubicHermiteCurvature(xAnnulusOuter[elementsAroundHalfEso + 1],
+                                                           d2AnnulusNew[elementsAroundHalfEso + 1],
+                                                           xSampledAroundAlong[annulusBodyOpenRingIdx + 2][n1],
+                                                           d2SampledAroundAlong[annulusBodyOpenRingIdx + 2][n1],
+                                                           d3SampledAroundAlong[annulusBodyOpenRingIdx + 1][n1], 0.0))
+                for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
+                    annulusIdx = m + 2
+                    d2CurvatureAlong[annulusFundusOpenRingIdx + m] = \
+                        0.5 * (d2AnnulusCurvature[-annulusIdx] +
+                               d1CurvatureAroundAlong[annulusFundusOpenRingIdx + m][n1])
 
         for n2 in range(len(d2CurvatureAlong)):
             d2CurvatureAroundAlong[n2][n1] = d2CurvatureAlong[n2]
