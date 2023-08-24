@@ -163,44 +163,77 @@ class MeshType_3d_uterus1(Scaffold_base):
         }),
         'Rat 1': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11-12, 12-13-14, 14-15-16"
+                "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10, 10-11, 11-12-13-14-15-16"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
-                         [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
-                    (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22],
-                         [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
-                    (3, [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22],
-                         [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]]),
-                    (4, [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20],
-                         [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]]),
-                    (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]],
-                         [[0.66, 0.01, -0.76], [0.66, -0.01, 0.76], [1.00, 0.00, 0.00]], [-0.10, 0.09, 0.10],
-                         [[0.05, -1.00, 0.03], [0.05, -1.00, 0.03], [0.05, -1.00, 0.03]], [-0.01, 0.01, -0.10]]),
-                    (6, [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40],
-                         [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
-                    (7, [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22],
-                         [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
-                    (8, [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22],
-                         [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
-                    (9, [[-5.97, 0.24, 3.53], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20],
-                         [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]]),
-                    (10, [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15],
-                          [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]]),
-                    (11, [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    (1, [[24.24, 2.02, 43.53], [-2.37, -0.70, -18.99], [1.00, 0.07, -0.13], [0.00, -0.05, -0.06],
+                         [0.07, -1.00, 0.03], [-0.05, -0.00, 0.02]]),
+                    (2, [[21.40, 1.32, 27.41], [-3.31, -0.70, -13.21], [0.97, 0.03, -0.24], [-0.07, -0.03, -0.18],
+                         [0.04, -1.00, 0.04], [-0.02, -0.00, 0.01]]),
+                    (3, [[18.03, 0.68, 17.12], [-5.13, -0.59, -9.85], [0.88, 0.01, -0.46], [-0.13, -0.01, -0.24],
+                         [0.03, -1.00, 0.04], [-0.01, 0.00, -0.01]]),
+                    (4, [[11.24, 0.17, 8.09], [-9.02, -0.37, -8.83], [0.70, 0.01, -0.72], [-0.20, -0.00, -0.21],
+                         [0.03, -1.00, 0.01], [-0.01, 0.00, -0.03]]),
+                    (5, [[0.00, 0.00, 0.00], [[-13.31, 0.03, -7.27], [13.31, 0.03, -7.27], [0.00, 0.00, -4.00]],
+                         [[0.48, 0.01, -0.88], [0.48, -0.01, 0.89], [1.00, 0.00, 0.00]], [-0.06, -0.01, 0.09],
+                         [[0.00, -1.00, -0.01], [-0.00, -1.00, -0.01], [0.00, -1.00, 0.00]], [-0.03, 0.00, -0.01]]),
+                    (6, [[-24.24, 2.02, 43.53], [2.37, -0.70, -18.99], [1.00, -0.04, 0.13], [0.12, -0.01, 0.34],
+                         [-0.04, -0.99, 0.03], [-0.01, 0.00, 0.02]]),
+                    (7, [[-21.40, 1.32, 27.41], [3.31, -0.70, -13.21], [0.98, -0.03, 0.25], [-0.06, 0.01, 0.18],
+                         [-0.04, -0.99, 0.04], [-0.00, -0.01, 0.00]]),
+                    (8, [[-18.03, 0.68, 17.12], [5.13, -0.59, -9.85], [0.89, -0.02, 0.46], [-0.14, 0.01, 0.24],
+                         [-0.05, -1.00, 0.04], [0.01, -0.00, -0.01]]),
+                    (9, [[-11.24, 0.17, 8.09], [9.02, -0.37, -8.83], [0.70, -0.01, 0.72], [0.01, 0.01, -0.14],
+                         [-0.03, -1.00, 0.01], [0.02, 0.00, -0.02]]),
+                    (10, [[0.00, 0.00, -4.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.06, 0.00, -0.14],
+                          [0.00, -1.00, 0.00], [0.01, 0.00, -0.00]]),
+                    (11, [[0.00, 0.00, -8.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
                           [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (12, [[0.00, 0.00, -12.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    (12, [[0.00, 0.00, -12.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
                           [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
                           [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
                           [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
                           [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
                           [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
+                    # (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
+                    #      [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
+                    # (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22],
+                    #      [0.06, -1.00, 0.09], [-0.01, -0.00, -0.01]]),
+                    # (3, [[9.85, 0.78, 8.39], [-3.33, -0.59, -5.33], [0.84, 0.01, -0.53], [-0.15, -0.01, -0.22],
+                    #      [0.06, -1.00, 0.07], [-0.00, -0.00, -0.03]]),
+                    # (4, [[5.97, 0.24, 3.53], [-4.99, -0.41, -4.33], [0.66, 0.01, -0.76], [-0.24, 0.08, -0.20],
+                    #      [0.05, -1.00, 0.03], [0.01, 0.01, -0.11]]),
+                    # (5, [[0.00, 0.00, 0.00], [[-6.82, -0.07, -2.67], [6.82, -0.07, -2.67], [0.00, 0.00, -2.00]],
+                    #      [[0.66, 0.01, -0.76], [0.66, -0.01, 0.76], [1.00, 0.00, 0.00]], [-0.10, 0.09, 0.10],
+                    #      [[0.05, -1.00, 0.03], [0.05, -1.00, 0.03], [0.05, -1.00, 0.03]], [-0.01, 0.01, -0.10]]),
+                    # (6, [[-13.84, 2.07, 20.50], [0.53, -0.68, -6.63], [1.00, -0.04, 0.08], [0.10, -0.04, 0.40],
+                    #      [-0.05, -0.99, 0.10], [-0.03, -0.00, 0.04]]),
+                    # (7, [[-12.56, 1.40, 14.10], [2.03, -0.65, -6.11], [0.96, -0.03, 0.32], [-0.08, 0.01, 0.22],
+                    #      [-0.06, -0.99, 0.09], [-0.01, -0.01, -0.01]]),
+                    # (8, [[-9.85, 0.78, 8.39], [3.33, -0.59, -5.33], [0.85, -0.02, 0.53], [-0.15, 0.01, 0.22],
+                    #      [-0.07, -1.00, 0.07], [0.00, -0.01, -0.03]]),
+                    # (9, [[-5.97, 0.24, 3.53], [4.99, -0.41, -4.33], [0.66, -0.01, 0.76], [0.04, 0.01, -0.20],
+                    #      [-0.05, -1.00, 0.03], [0.03, 0.00, -0.03]]),
+                    # (10, [[0.00, 0.00, -4.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.07, 0.00, -0.15],
+                    #       [0.00, -1.00, 0.00], [0.01, -0.00, -0.01]]),
+                    # (11, [[0.00, 0.00, -8.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    #       [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    # (12, [[0.00, 0.00, -12.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    #       [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    # (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    #       [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    # (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    #       [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    # (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    #       [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    # (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -2.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
+                    #       [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -219,21 +252,21 @@ class MeshType_3d_uterus1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '9-11',
+                    'identifierRanges': '9-10',
                     'name': get_uterus_term('body of uterus')[0],
                     'ontId': get_uterus_term('body of uterus')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '12-13',
+                    'identifierRanges': '11',
                     'name': get_uterus_term('uterine cervix')[0],
                     'ontId': get_uterus_term('uterine cervix')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '14-15',
+                    'identifierRanges': '12-15',
                     'name': get_uterus_term('vagina')[0],
                     'ontId': get_uterus_term('vagina')[1]
                 }]
@@ -1889,7 +1922,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
             cod3.append(d3)
 
         # Get vagina nodes
-        vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
+        vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[4]
         vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates, vaginaCoordinatesOuter, septumVaginaCoordinates = \
             getDoubleTubeNodes(cx_vagina_group, vaginaLength, elementsCountInVagina, elementsCountAroundRightHorn,
                              elementsCountAroundLeftHorn, elementsCountAround, elementsCountAcross, elementsCountThroughWall, wallThickness)
@@ -2027,6 +2060,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         paNodeId = botNodeId[:elementsCountAround]
         c1NodeId = rhLastRingNodeId
         c2NodeId = lhLastRingNodeId
+        if elementsCountInBody < 2:
+            bricNodeId = cricNodeId
+            blicNodeId = clicNodeId
+            botNodeId = cotNodeId
+            bsNodeId = csNodeId
         elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
                                                               elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
                                                               c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
@@ -2034,10 +2072,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                                                meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
 
         # Create body elements
-        elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
-                                                 elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
-                                                 elementsCountAroundLeftHorn, elementsCountThroughWall, bricNodeId, blicNodeId, botNodeId, bsNodeId, useCrossDerivatives,
-                                                 meshGroups=[bodyMeshGroup, uterusMeshGroup])
+        if elementsCountInBody >= 2:
+            elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
+                                                     elementsCountAround, elementsCountAcross, elementsCountAroundRightHorn,
+                                                     elementsCountAroundLeftHorn, elementsCountThroughWall, bricNodeId, blicNodeId, botNodeId, bsNodeId, useCrossDerivatives,
+                                                     meshGroups=[bodyMeshGroup, uterusMeshGroup])
 
         # Create cervix elements
         elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
@@ -4104,7 +4143,7 @@ def getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, ele
                 d1 = septumCervixCoordinates[1][n2][n1]
                 d3CervixRaw.append(d1)
             elif 0 < n1 < elementsCountAround // 2:
-                v1 = cervixInnerRightCoordinates[n2][n1]
+                v1 = cervixInnerRightCoordinates[0][n2 * elementsCountAroundLeftHorn + n1]
                 v2 = cervixCoordinatesOuter[0][n2][n1]
                 v1v2 = findDerivativeBetweenPoints(v1, v2)
                 d3CervixRaw.append(v1v2)
@@ -4112,7 +4151,7 @@ def getDoubleTubeNodes(cx_cervix_group, cervixLength, elementsCountInCervix, ele
                 d = [-d1[c] for c in range(3)]
                 d3CervixRaw.append(d)
             else:
-                v1 = cervixInnerLeftCoordinates[n2][n1]
+                v1 = cervixInnerLeftCoordinates[0][n2 * elementsCountAroundLeftHorn + elementsCountAcross + n1 - elementsCountAround // 2]
                 v2 = cervixCoordinatesOuter[0][n2][n1]
                 v1v2 = findDerivativeBetweenPoints(v1, v2)
                 d3CervixRaw.append(v1v2)
