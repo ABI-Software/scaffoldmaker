@@ -28,12 +28,12 @@ class StomachScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Mouse 1", "Pig 1", "Rat 1", "Material"])
         options = scaffold.getDefaultOptions("Rat 1")
-        self.assertEqual(16, len(options))
+        self.assertEqual(17, len(options))
         self.assertEqual(16, options.get("Number of elements around duodenum"))
-        self.assertEqual(6, options.get("Number of elements between cardia and duodenum"))
+        self.assertEqual(14, options.get("Number of elements along"))
         self.assertEqual(0.0215, options.get("Wall thickness"))
         self.assertEqual(True, options.get("Limiting ridge"))
-        ostiumOptions = options['Gastro-esophagal junction']
+        ostiumOptions = options['Gastro-esophageal junction']
         ostiumSettings = ostiumOptions.getScaffoldSettings()
         self.assertEqual(1, ostiumSettings.get("Number of vessels"))
         self.assertEqual(8, ostiumSettings.get("Number of elements around ostium"))
@@ -56,26 +56,26 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(810, mesh3d.getSize())
+        self.assertEqual(906, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(2695, mesh2d.getSize())
+        self.assertEqual(3007, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(2964, mesh1d.getSize())
+        self.assertEqual(3300, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(1099, nodes.getSize())
+        self.assertEqual(1219, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [0.475, -0.4440296937068191, -0.37800000000001466], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [1.9665783603056544, 0.867, 0.37800000000001466], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-0.752, -0.42, -0.36], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [0.7735083767257301, 0.8700275257183235, 0.36], 1.0E-6)
 
         stomachCoordinates = fieldmodule.findFieldByName("stomach coordinates").castFiniteElement()
         minimums, maximums = evaluateFieldNodesetRange(stomachCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [0.0, -0.509814453125, -0.509814453125], 1.0E-4)
-        assertAlmostEqualList(self, maximums, [2.0, 0.8001543944920241, 0.509814453125], 1.0E-4)
+        assertAlmostEqualList(self, minimums, [-1.3, -0.5009809736137905, -0.5009809735605149], 1.0E-4)
+        assertAlmostEqualList(self, maximums, [0.7, 0.8, 0.5009809736137903], 1.0E-4)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -87,21 +87,21 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 4.2162907021158285, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 4.090555416482455, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.05913279323188687, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 0.05785162434759533, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
-            "body of stomach": 248,
-            "esophagus": 64,
+            "body of stomach": 184,
+            "esophagus": 96,
             "cardia of stomach": 24,
             "fundus of stomach": 282,
-            "pyloric antrum": 64,
-            "pyloric canal": 64,
+            "pyloric antrum": 128,
+            "pyloric canal": 128,
             "duodenum": 64,
-            "stomach": 810
+            "stomach": 906
             }
 
         for name in expectedSizes3d:
@@ -130,6 +130,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
         options['Refine number of elements surface'] = 4
+        options['Refine number of elements cardia surface'] = 4
         options['Refine number of elements through wall'] = 4
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
@@ -146,13 +147,13 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertEqual(75, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(51840, mesh3d.getSize())
+        self.assertEqual(57984, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(159760, mesh2d.getSize())
+        self.assertEqual(178576, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(164016, mesh1d.getSize())
+        self.assertEqual(183216, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(56116, nodes.getSize())
+        self.assertEqual(62644, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -166,7 +167,12 @@ class StomachScaffoldTestCase(unittest.TestCase):
                 term = get_stomach_term(name)
             group = getAnnotationGroupForTerm(annotationGroups, term)
             size = group.getMeshGroup(mesh3d).getSize()
-            self.assertEqual(expectedSizes3d[name]*64, size, name)
+            if name == "cardia of stomach":
+                self.assertEqual(expectedSizes3d[name] * 64, size, name)
+            elif name == "stomach":
+                self.assertEqual(expectedSizes3d[name] * 64, size, name)
+            else:
+                self.assertEqual(expectedSizes3d[name]*64, size, name)
 
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()
@@ -183,8 +189,8 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(3840, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [1.0, 0.9996922150576828, 0.786908054385139], 1.0E-06)
+        self.assertEqual(5888, element.getIdentifier())
+        assertAlmostEqualList(self, xi, [1.0, 1.0, 1.0], 1.0E-06)
 
 
 if __name__ == "__main__":

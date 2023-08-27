@@ -417,7 +417,7 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     :param nd1: Derivatives of nodes along curves.
     :param derivativeMagnitudeStart, derivativeMagnitudeEnd: Optional magnitudes of start and end
     derivatives appropriate for elementsCountOut. If unspecified these are calculated from the other
-    end or set to be equal for even spaced elements.
+    end or set to be equal for even spaced elements. 0.0 is a valid derivative magnitude.
     :return: px[], pd1[], pe[], pxi[], psf[], where pe[] and pxi[] are lists of element indices and
     and xi locations in the 'in' elements to pass to partner interpolateSample functions. psf[] is
     a list of scale factors for converting derivatives from old to new xi coordinates: dxi(old)/dxi(new).
@@ -430,11 +430,13 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     for e in range(elementsCountIn):
         length += getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1])
         lengths.append(length)
-    if derivativeMagnitudeStart and derivativeMagnitudeEnd:
+    hasStartDerivative = derivativeMagnitudeStart is not None
+    hasEndDerivative = derivativeMagnitudeEnd is not None
+    if hasStartDerivative and hasEndDerivative:
         pass
-    elif derivativeMagnitudeEnd:
+    elif hasEndDerivative:
         derivativeMagnitudeStart = (2.0*length - elementsCountOut*derivativeMagnitudeEnd)/elementsCountOut
-    elif derivativeMagnitudeStart:
+    elif hasStartDerivative:
         derivativeMagnitudeEnd = (2.0*length - elementsCountOut*derivativeMagnitudeStart)/elementsCountOut
     else:
         derivativeMagnitudeStart = derivativeMagnitudeEnd = length/elementsCountOut
