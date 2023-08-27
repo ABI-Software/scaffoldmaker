@@ -2327,7 +2327,6 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     """
     :return: the coordinates and derivatives of the outer tube, inner right and left tubes and the septum nodes
     """
-
     elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
     # Get tube right and left paths
@@ -2501,7 +2500,6 @@ def findNodesAlongTube2D(sx_group, elementsCountAround, elementsCountAlongTube, 
     Gets the central path nodes and return the coordinates and derivatives of a 2D tube.
     :return: tube2dCoordinates; 2D tube coordinates and derivatives.
     """
-
     # Create ellipses along tube around the central path
     xEllipsesAlong = []
     d1EllipsesAlong = []
@@ -2581,12 +2579,10 @@ def findNodesAlongTube2D(sx_group, elementsCountAround, elementsCountAlongTube, 
 def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, outerCoordinates, septumCoordinates,
                                   elementsCountAlong, elementsCountAround, elementsCountAroundRightTube,
                                   elementsCountAroundLeftTube, elementsCountThroughWall):
-
     """
     Gets the outer layer, inner left and right layers and septum coordinates.
     :return: the coordinates and derivatives of all nodes through wall for left and right inner tubes.
     """
-
     elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
     # Get nodes through wall for right inner tube
@@ -2762,7 +2758,6 @@ def createDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xA
     Gets coordinates and derivatives of inner canals and outer of a tube and generate the nodes.
     :return: nodeIdentifier, tricNodeId, tlicNodeId, toNodeId, tsNodeId
     """
-
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
 
@@ -2868,12 +2863,10 @@ def createDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xA
 def createDoubleTubeBifurcationNodes(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3,
                                      innerBifurcationRight, innerBifurcationLeft, elementsCountAroundRightHorn,
                                      elementsCountAroundLeftHorn, elementsCountThroughWall):
-
     """
     Gets coordinates and derivatives of bifurcation inner and outer and generate the nodes.
     :return: nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId
     """
-
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
 
@@ -2952,7 +2945,6 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
     tsNodeId: Tube's septum node Ids.
     :return: elements of tube with double inner canals.
     """
-
     eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
     eft = eftfactory.createEftBasic()
 
@@ -3133,7 +3125,6 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
 def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, c1NodeId,
                                          c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, pricNodeId, plicNodeId,
                                          poNodeId, psNodeId, meshGroups=None):
-
     """
     Gets child1, child2, parent, and inner bifurcation node Ids.
     c1NodeId, c2NodeId: Child1 and child2 node Ids.
@@ -3144,7 +3135,6 @@ def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, el
     psNodeId: parent's septum node Ids.
     :return: elements of bifurcation with double inner tube.
     """
-
     paCount = len(poNodeId)
     # paCount = elementsCountAround
     c1Count = len(c1NodeId[0])
