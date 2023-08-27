@@ -1,13 +1,10 @@
 """
-Generates a 3-D bladder mesh along the central line, with variable
-numbers of elements around , along and through wall.
+Generates a 3-D bladder mesh along the central line, with variable numbers of elements around , along and through wall.
 """
 
 import copy
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
-     findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -42,15 +39,26 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[163.52, -70.16, 0.00], [-22.71, 11.06, 0.00], [-7.79, -16.00, 0.00], [-7.18, -15.15, 0.00], [0.00, 0.00, 28.30], [0.00, 0.00, 19.67]]),
-                (2, [[140.19, -58.93, 0.00], [-23.95, 11.40, 0.00], [-12.93, -27.16, 0.00], [-3.10, -7.17, 0.00], [0.00, 0.00, 41.33], [0.00, 0.00, 6.40]]),
-                (3, [[115.62, -47.36, 0.00], [-24.13, 11.12, 0.00], [-13.89, -30.15, 0.00], [0.26, -0.17, 0.00], [0.00, 0.00, 40.77], [0.00, 0.00, -4.40]]),
-                (4, [[91.93, -36.69, 0.00], [-23.87, 10.77, 0.00], [-12.46, -27.62, 0.00], [2.71, 5.15, 0.00], [0.00, 0.00, 32.69], [0.00, 0.00, -8.50]]),
-                (5, [[67.89, -25.83, 0.00], [-24.55, 10.46, 0.00], [-9.10, -21.35, 0.00], [3.43, 6.83, 0.00], [0.00, 0.00, 23.77], [0.00, 0.00, -9.22]]),
-                (6, [[42.83, -15.79, 0.00], [-23.65, 9.48, 0.00], [-5.21, -12.99, 0.00], [2.97, 6.53, 0.00], [0.00, 0.00, 14.25], [0.00, 0.00, -7.47]]),
-                (7, [[20.60, -6.87, 0.00], [-21.44, 7.87, 0.00], [-2.46, -6.71, 0.00], [1.91, 4.18, 0.00], [0.00, 0.00, 8.60], [0.00, 0.00, -3.79]]),
-                (8, [[0.00, 0.00, 0.00], [-19.75, 5.87, 0.00], [-1.32, -4.43, 0.00], [0.00, 0.00, 0.00], [0.00, 0.00, 6.50], [0.00, 0.00, 0.00]])]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[1.98482, -0.23213, 0.00000], [-0.27986, 0.04637, 0.00000], [-0.03267, -0.19717, 0.00000],
+                         [-0.02887, -0.18604, 0.00000], [0.00000, 0.00000, 0.31783], [0.00000, 0.00000, 0.22083]]),
+                    (2, [[1.69774, -0.18588, 0.00000], [-0.29430, 0.04613, 0.00000], [-0.05231, -0.33376, 0.00000],
+                         [-0.01041, -0.08714, 0.00000], [0.00000, 0.00000, 0.46417], [0.00000, 0.00000, 0.07185]]),
+                    (3, [[1.39622, -0.13993, 0.00000], [-0.29537, 0.04245, 0.00000], [-0.05304, -0.36902, 0.00000],
+                         [0.00337, -0.00098, 0.00000], [0.00000, 0.00000, 0.45788], [0.00000, 0.00000, -0.04945]]),
+                    (4, [[1.10705, -0.10086, 0.00000], [-0.29137, 0.03953, 0.00000], [-0.04575, -0.33720, 0.00000],
+                         [0.01169, 0.05485, 0.00000], [0.00000, 0.00000, 0.36713], [0.00000, 0.00000, -0.09543]]),
+                    (5, [[0.81350, -0.06086, 0.00000], [-0.29780, 0.03404, 0.00000], [-0.02960, -0.25897, 0.00000],
+                         [0.01563, 0.09020, 0.00000], [0.00000, 0.00000, 0.26695], [0.00000, 0.00000, -0.10351]]),
+                    (6, [[0.51160, -0.03295, 0.00000], [-0.28489, 0.02641, 0.00000], [-0.01451, -0.15651, 0.00000],
+                         [0.01211, 0.08865, 0.00000], [0.00000, 0.00000, 0.16004], [0.00000, 0.00000, -0.08389]]),
+                    (7, [[0.24374, -0.00806, 0.00000], [-0.25596, 0.01611, 0.00000], [-0.00504, -0.08011, 0.00000],
+                         [0.00715, 0.05112, 0.00000], [0.00000, 0.00000, 0.09658], [0.00000, 0.00000, -0.04254]]),
+                    (8, [[0.00000, 0.00000, 0.00000], [-0.23137, 0.00000, 0.00000], [-0.00000, -0.05191, 0.00000],
+                         [0.00294, 0.00527, 0.00000], [0.00000, 0.00000, 0.07300], [0.00000, 0.00000, -0.00462]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -76,15 +84,26 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[327.63, 0.00, 0.00], [-47.88, 0.00, 0.00], [0.00, -83.19, 0.00], [0.00, -57.84, 0.00], [0.00, 0.00, 47.36], [0.00, 0.00, 91.53]]),
-                    (2, [[278.67, 0.00, 0.00], [-50.03, 0.00, 0.00], [0.00, -132.92, 0.00], [0.00, -41.62, 0.00], [0.00, 0.00, 114.86], [0.00, 0.00, 43.47]]),
-                    (3, [[227.59, 0.00, 0.00], [-51.46, 0.00, 0.00], [0.00, -166.08, 0.00], [0.00, -21.12, 0.00], [0.00, 0.00, 133.26], [0.00, 0.00, 14.47]]),
-                    (4, [[175.76, 0.00, 0.00], [-50.07, 0.00, 0.00], [0.00, -174.99, 0.00], [0.00, 0.12, 0.00], [0.00, 0.00, 143.75], [0.00, 0.00, 0.19]]),
-                    (5, [[127.45, 0.00, 0.00], [-47.88, 0.00, 0.00], [0.00, -166.45, 0.00], [0.00, 19.22, 0.00], [0.00, 0.00, 134.33], [0.00, 0.00, -16.37]]),
-                    (6, [[80.00, 0.00, 0.00], [-43.73, 0.00, 0.00], [0.00, -136.75, 0.00], [0.00, 35.76, 0.00], [0.00, 0.00, 111.14], [0.00, 0.00, -30.61]]),
-                    (7, [[40.00, 0.00, 0.00], [-40.00, 0.00, 0.00], [0.00, -95.89, 0.00], [0.00, 62.54, 0.00], [0.00, 0.00, 74.28], [0.00, 0.00, -51.30]]),
-                    (8, [[0.00, 0.00, 0.00], [-40.00, 0.00, 0.00], [0.00, -11.68, 0.00], [0.00, 0.00, 0.00], [0.00, 0.00, 8.54], [0.00, 0.00, 0.00]])]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[2.00000, 0.00000, 0.00000], [-0.29240, 0.00000, 0.00000], [0.00000, -0.27079, 0.00000],
+                         [0.00000, -0.26496, 0.00000], [0.00000, 0.00000, 0.53835], [0.00000, 0.00000, 0.14344]]),
+                    (2, [[1.70113, 0.00000, 0.00000], [-0.30534, 0.00000, 0.00000], [0.00000, -0.46797, 0.00000],
+                         [0.00000, -0.12939, 0.00000], [0.00000, 0.00000, 0.67711], [0.00000, 0.00000, 0.13406]]),
+                    (3, [[1.38931, 0.00000, 0.00000], [-0.31410, 0.00000, 0.00000], [0.00000, -0.52663, 0.00000],
+                         [0.00000, -0.00331, 0.00000], [0.00000, 0.00000, 0.80628], [0.00000, 0.00000, 0.00115]]),
+                    (4, [[1.07292, 0.00000, 0.00000], [-0.30565, 0.00000, 0.00000], [0.00000, -0.47377, 0.00000],
+                         [0.00000, 0.08253, -0.00000], [0.00000, 0.00000, 0.67753], [0.00000, -0.00000, -0.13332]]),
+                    (5, [[0.77801, 0.00000, 0.00000], [-0.29228, 0.00000, 0.00000], [0.00000, -0.36358, 0.00000],
+                         [0.00000, 0.10935, -0.00000], [0.00000, 0.00000, 0.53994], [0.00000, -0.00000, -0.15490]]),
+                    (6, [[0.48836, 0.00000, 0.00000], [-0.26692, 0.00000, 0.00000], [0.00000, -0.25504, 0.00000],
+                         [0.00000, 0.09572, -0.00000], [0.00000, 0.00000, 0.36804], [0.00000, -0.00000, -0.16276]]),
+                    (7, [[0.24418, 0.00000, 0.00000], [-0.24418, 0.00000, 0.00000], [0.00000, -0.17013, 0.00000],
+                         [0.00000, 0.07176, -0.00000], [0.00000, 0.00000, 0.21298], [0.00000, -0.00000, -0.13616]]),
+                    (8, [[0.00000, 0.00000, 0.00000], [-0.24418, 0.00000, 0.00000], [0.00000, -0.11153, 0.00000],
+                         [0.00000, 0.04545, -0.00000], [0.00000, 0.00000, 0.09572], [0.00000, -0.00000, -0.09837]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -110,15 +129,26 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[65.00, -28.00, 0.00], [-10.45, 9.02, 0.00], [-4.60, -5.33, 0.00], [-2.54, -3.38, 0.00], [0.00, 0.00, 6.72], [0.00, 0.00, 8.69]]),
-                (2, [[55.00, -20.00, 0.00], [-9.54, 6.98, 0.00], [-6.37, -8.71, 0.00], [-1.00, -3.38, 0.00], [0.00, 0.00, 13.28], [0.00, 0.00, 4.44]]),
-                (3, [[46.00, -14.00, 0.00], [-10.01, 5.57, 0.00], [-6.72, -12.09, 0.00], [0.54, -2.06, 0.00], [0.00, 0.00, 15.93], [0.00, 0.00, 1.17]]),
-                (4, [[35.00, -9.00, 0.00], [-11.02, 4.50, 0.00], [-5.18, -12.68, 0.00], [1.79, 1.21, 0.00], [0.00, 0.00, 15.44], [0.00, 0.00, -2.32]]),
-                (5, [[24.00, -5.00, 0.00], [-9.03, 2.93, 0.00], [-3.15, -9.72, 0.00], [1.91, 3.14, 0.00], [0.00, 0.00, 11.35], [0.00, 0.00, -3.68]]),
-                (6, [[17.00, -3.00, 0.00], [-7.52, 1.53, 0.00], [-1.32, -6.47, 0.00], [1.34, 3.34, 0.00], [0.00, 0.00, 7.93], [0.00, 0.00, -3.51]]),
-                (7, [[9.00, -2.00, 0.00], [-8.52, 1.48, 0.00], [-0.52, -3.02, 0.00], [0.48, 2.55, 0.00], [0.00, 0.00, 4.33], [0.00, 0.00, -3.07]]),
-                (8, [[0.00, 0.00, 0.00], [-9.47, 2.52, 0.00], [-0.40, -1.49, 0.00], [0.00, 0.00, 0.00], [0.00, 0.00, 1.88], [0.00, 0.00, 0.00]])]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[1.94475, -0.28705, 0.00000], [-0.34493, 0.16731, 0.00000], [-0.08535, -0.17595, 0.00000],
+                         [-0.04402, -0.10886, 0.00000], [0.00000, 0.00000, 0.18665], [0.00000, 0.00000, 0.24107]]),
+                    (2, [[1.61917, -0.14378, 0.00000], [-0.30588, 0.11906, 0.00000], [-0.10871, -0.27931, 0.00000],
+                         [-0.00271, -0.09786, 0.00000], [0.00000, 0.00000, 0.36886], [0.00000, 0.00000, 0.12335]]),
+                    (3, [[1.33473, -0.04705, 0.00000], [-0.30858, 0.07784, 0.00000], [-0.09397, -0.37253, 0.00000],
+                         [0.02932, -0.05147, 0.00000], [0.00000, 0.00000, 0.44247], [0.00000, 0.00000, 0.03241]]),
+                    (4, [[1.00375, 0.00854, 0.00000], [-0.32781, 0.04202, 0.00000], [-0.04837, -0.37737, 0.00000],
+                         [0.03932, 0.04536, 0.00000], [0.00000, 0.00000, 0.42886], [0.00000, 0.00000, -0.06441]]),
+                    (5, [[0.67991, 0.03730, 0.00000], [-0.26339, 0.01406, 0.00000], [-0.01513, -0.28340, 0.00000],
+                         [0.02873, 0.09787, 0.00000], [0.00000, 0.00000, 0.31526], [0.00000, 0.00000, -0.10213]]),
+                    (6, [[0.47773, 0.04096, 0.00000], [-0.21282, -0.01255, 0.00000], [0.01079, -0.18309, 0.00000],
+                         [0.01208, 0.09936, 0.00000], [0.00000, 0.00000, 0.22026], [0.00000, 0.00000, -0.09737]]),
+                    (7, [[0.25586, 0.01063, 0.00000], [-0.23915, -0.02127, 0.00000], [0.00754, -0.08478, 0.00000],
+                         [-0.00525, 0.07201, 0.00000], [0.00000, 0.00000, 0.12027], [0.00000, 0.00000, -0.08509]]),
+                    (8, [[0.00000, 0.00000, 0.00000], [-0.27223, 0.00000, 0.00000], [-0.00000, -0.04285, 0.00000],
+                         [-0.00982, 0.01186, 0.00000], [0.00000, 0.00000, 0.05222], [0.00000, 0.00000, -0.05101]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -144,15 +174,26 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[417.00, 272.00, 0.00], [-39.04, -53.00, 0.00], [30.11, -22.18, 0.00], [51.78, -52.35, 0.00], [0.00, 0.00, 28.30], [0.00, 0.00, 120.97]]),
-                (2, [[373.00, 220.00, 0.00], [-49.17, -50.77, 0.00], [66.66, -64.55, 0.00], [21.32, -32.41, 0.00], [0.00, 0.00, 116.43], [0.00, 0.00, 55.28]]),
-                (3, [[319.00, 171.00, 0.00], [-55.84, -46.38, 0.00], [71.67, -86.29, 0.00], [-0.38, -15.50, 0.00], [0.00, 0.00, 136.57], [0.00, 0.00, 6.69]]),
-                (4, [[261.00, 127.00, 0.00], [-62.26, -42.93, 0.00], [65.90, -95.57, 0.00], [-9.30, -3.61, 0.00], [0.00, 0.00, 129.83], [0.00, 0.00, -12.43]]),
-                (5, [[195.00, 86.00, 0.00], [-67.15, -38.10, 0.00], [52.84, -93.13, 0.00], [-16.53, 14.22, 0.00], [0.00, 0.00, 111.31], [0.00, 0.00, -22.57]]),
-                (6, [[128.00, 52.00, 0.00], [-64.44, -31.46, 0.00], [32.96, -67.51, 0.00], [-19.77, 30.24, 0.00], [0.00, 0.00, 84.81], [0.00, 0.00, -32.42]]),
-                (7, [[66.00, 23.00, 0.00], [-63.30, -25.43, 0.00], [13.28, -33.06, 0.00], [-14.97, 28.37, 0.00], [0.00, 0.00, 47.01], [0.00, 0.00, -35.97]]),
-                (8, [[0.00, 0.00, 0.00], [-65.62, -18.77, 0.00], [3.12, -10.89, 0.00], [0.00, 0.00, 0.00], [0.00, 0.00, 12.91], [0.00, 0.00, 0.00]])]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[1.88718, 0.56852, 0.00000], [-0.20674, -0.15833, 0.00000], [0.09002, -0.11754, 0.00000],
+                         [0.13867, -0.25647, 0.00000], [0.00000, 0.00000, 0.11203], [0.00000, 0.00000, 0.47891]]),
+                    (2, [[1.66209, 0.42003, 0.00000], [-0.24279, -0.13815, 0.00000], [0.18168, -0.31927, 0.00000],
+                         [0.04465, -0.14700, 0.00000], [0.00000, 0.00000, 0.46092], [0.00000, 0.00000, 0.21887]]),
+                    (3, [[1.40235, 0.29407, 0.00000], [-0.26492, -0.11438, 0.00000], [0.17602, -0.40769, 0.00000],
+                         [-0.01921, -0.05867, 0.00000], [0.00000, 0.00000, 0.54065], [0.00000, 0.00000, 0.02648]]),
+                    (4, [[1.13299, 0.19156, 0.00000], [-0.28314, -0.09291, 0.00000], [0.14328, -0.43666, 0.00000],
+                         [-0.03999, -0.00350, 0.00000], [0.00000, 0.00000, 0.51397], [0.00000, 0.00000, -0.04924]]),
+                    (5, [[0.83659, 0.10937, 0.00000], [-0.29480, -0.06821, 0.00000], [0.09555, -0.41298, 0.00000],
+                         [-0.04673, 0.07253, 0.00000], [0.00000, 0.00000, 0.44065], [0.00000, 0.00000, -0.08938]]),
+                    (6, [[0.54418, 0.05488, 0.00000], [-0.28025, -0.04758, 0.00000], [0.04979, -0.29321, 0.00000],
+                         [-0.04042, 0.13710, 0.00000], [0.00000, 0.00000, 0.33575], [0.00000, 0.00000, -0.12832]]),
+                    (7, [[0.27635, 0.01382, 0.00000], [-0.27252, -0.02763, 0.00000], [0.01423, -0.14032, 0.00000],
+                         [-0.02501, 0.12449, 0.00000], [0.00000, 0.00000, 0.18610], [0.00000, 0.00000, -0.14240]]),
+                    (8, [[0.00000, 0.00000, 0.00000], [-0.27970, -0.00000, 0.00000], [0.00000, -0.04485, 0.00000],
+                         [-0.00345, 0.06647, 0.00000], [0.00000, 0.00000, 0.05111], [0.00000, 0.00000, -0.12759]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -178,15 +219,26 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[96.01, -55.94, 0.00], [-8.06, 8.25, 0.00], [-4.81, -4.69, 0.00], [-7.40, -7.96, 0.001], [0.00, 0.00, 2.34], [0.00, 0.00, 7.40]]),
-                (2, [[86.69, -47.04, 0.00], [-10.56, 9.55, 0.00], [-10.53, -11.65, 0.00], [-4.05, -5.96, 0.00], [0.00, 0.00, 8.59], [0.00, 0.00, 5.12]]),
-                (3, [[74.85, -36.92, 0.00], [-13.81, 10.54, 0.00], [-12.55, -16.40, 0.00], [-0.83, -3.94, 0.00], [0.00, 0.00, 12.34], [0.00, 0.00, 2.79]]),
-                (4, [[59.01, -26.15, 0.00], [-15.77, 9.72, 0.00], [-11.93, -19.35, 0.00], [1.31, -1.82, 0.00], [0.00, 0.00, 13.96], [0.00, 0.00, 0.30]]),
-                (5, [[43.39, -17.45, 0.00], [-15.66, 7.77, 0.00], [-9.98, -20.11, 0.00], [2.59, 1.78, 0.00], [0.00, 0.00, 13.03], [0.00, 0.00, -1.94]]),
-                (6, [[27.76, -10.60, 0.00], [-14.32, 6.11, 0.00], [-6.79, -15.92, 0.00], [3.53, 6.37, 0.00], [0.00, 0.00, 10.13], [0.00, 0.00, -3.58]]),
-                (7, [[14.77, -5.22, 0.00], [-13.89, 5.33, 0.00], [-2.98, -7.76, 0.00], [3.01, 6.71, 0.00], [0.00, 0.00, 5.99], [0.00, 0.00, -3.81]]),
-                (8, [[0.00, 0.00, 0.00], [-15.64, 5.10, 0.00], [-0.87, -2.66, 0.00], [0.00, 0.00, 0.00], [0.00, 0.00, 2.55], [0.00, 0.00, 0.00]])]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[1.98605, -0.21791, 0.00000], [-0.20755, 0.03159, 0.00000], [-0.00760, -0.04989, 0.00000],
+                         [-0.02445, -0.15319, 0.00000], [0.00000, 0.00000, 0.12825], [0.00000, 0.00000, 0.29326]]),
+                    (2, [[1.75787, -0.18270, 0.00000], [-0.24882, 0.03881, 0.00000], [-0.02816, -0.18050, 0.00000],
+                         [-0.01667, -0.10802, 0.00000], [0.00000, 0.00000, 0.36645], [0.00000, 0.00000, 0.18315]]),
+                    (3, [[1.48843, -0.14021, 0.00000], [-0.29410, 0.04520, 0.00000], [-0.04024, -0.26183, 0.00000],
+                         [-0.00647, -0.06475, 0.00000], [0.00000, 0.00000, 0.48456], [0.00000, 0.00000, 0.09179]]),
+                    (4, [[1.16964, -0.09250, 0.00000], [-0.32163, 0.04199, 0.00000], [-0.04008, -0.30698, 0.00000],
+                         [0.00483, -0.01528, 0.00000], [0.00000, 0.00000, 0.54524], [0.00000, 0.00000, -0.00502]]),
+                    (5, [[0.84529, -0.05632, 0.00000], [-0.31603, 0.03303, 0.00000], [-0.03052, -0.29202, 0.00000],
+                         [0.01097, 0.05004, 0.00000], [0.00000, 0.00000, 0.47369], [0.00000, 0.00000, -0.10225]]),
+                    (6, [[0.53762, -0.02632, 0.00000], [-0.28085, 0.02450, 0.00000], [-0.01821, -0.20876, 0.00000],
+                         [0.01263, 0.09417, 0.00000], [0.00000, 0.00000, 0.34236], [0.00000, 0.00000, -0.13848]]),
+                    (7, [[0.28368, -0.00678, 0.00000], [-0.26891, 0.01355, 0.00000], [-0.00532, -0.10560, 0.00000],
+                         [0.00931, 0.08494, 0.00000], [0.00000, 0.00000, 0.19799], [0.00000, 0.00000, -0.12929]]),
+                    (8, [[0.00000, 0.00000, 0.00000], [-0.29834, 0.00000, 0.00000], [0.00000, -0.04096, 0.00000],
+                         [0.00133, 0.04434, 0.00000], [0.00000, 0.00000, 0.08550], [0.00000, 0.00000, -0.09569]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -209,30 +261,47 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'D2 derivatives': True,
                 'D3 derivatives': True,
                 'Length': 1.0,
-                'Number of elements': 7
+                'Number of elements': 10
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[2.10, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.12, 0.00], [0.00, -0.21, -0.00], [0.00, 0.00, 0.15], [0.00, -0.01, 0.17]]),
-                (2, [[1.80, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.28, -0.00], [0.00, -0.11, -0.00], [0.00, -0.00, 0.28], [0.00, -0.00, 0.09]]),
-                (3, [[1.50, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.34, -0.01], [0.00, -0.04, 0.00], [0.00, -0.01, 0.33], [0.00, 0.00, 0.03]]),
-                (4, [[1.20, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.35, 0.00], [0.00, 0.02, 0.00], [0.00, 0.00, 0.35], [0.00, 0.00, -0.01]]),
-                (5, [[0.90, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.07, 0.00], [0.00, 0.00, 0.30], [0.00, 0.00, -0.10]]),
-                (6, [[0.60, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.20, 0.00], [0.00, 0.11, 0.00], [0.00, 0.00, 0.16], [0.00, 0.00, -0.11]]),
-                (7, [[0.30, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.08, 0.00], [0.00, 0.07, -0.00], [0.00, 0.00, 0.09], [0.00, -0.00, -0.05]]),
-                (8, [[0.00, 0.00, 0.00], [-0.30, 0.00, 0.00], [0.00, -0.05, 0.00], [0.00, 0.00, 0.00], [0.00, 0.00, 0.05], [0.00, 0.00, 0.00]])]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+                [
+                    (1, [[2.00000, 0.00000, 0.00000], [-0.04772, 0.00000, 0.00000], [0.00000, -0.21530, 0.00000],
+                         [0.00000, 0.04601, 0.00000], [0.00000, 0.00000, 0.21530], [0.00000, 0.00000, -0.04601]]),
+                    (2, [[1.90255, 0.00000, 0.00000], [-0.14718, 0.00000, 0.00000], [0.00000, -0.21530, 0.00000],
+                         [0.00000, -0.04601, 0.00000], [0.00000, 0.00000, 0.21530], [0.00000, 0.00000, 0.04601]]),
+                    (3, [[1.70564, 0.00000, 0.00000], [-0.21176, 0.00000, 0.00000], [0.00000, -0.35428, 0.00000],
+                         [0.00000, -0.11371, 0.00000], [0.00000, 0.00000, 0.35428], [0.00000, 0.00000, 0.11371]]),
+                    (4, [[1.47903, 0.00000, 0.00000], [-0.23206, 0.00000, 0.00000], [0.00000, -0.43890, 0.00000],
+                         [0.00000, -0.06591, 0.00000], [0.00000, 0.00000, 0.43890], [0.00000, 0.00000, 0.06591]]),
+                    (5, [[1.24152, 0.00000, 0.00000], [-0.23952, 0.00000, 0.00000], [0.00000, -0.48520, 0.00000],
+                         [0.00000, -0.03068, 0.00000], [0.00000, 0.00000, 0.48520], [0.00000, 0.00000, 0.03068]]),
+                    (6, [[1.00000, 0.00000, 0.00000], [-0.24157, 0.00000, 0.00000], [0.00000, -0.50000, 0.00000],
+                         [0.00000, 0.00001, 0.00000], [0.00000, 0.00000, 0.50000], [0.00000, 0.00000, -0.00001]]),
+                    (7, [[0.75837, 0.00000, 0.00000], [-0.23957, 0.00000, 0.00000], [0.00000, -0.48518, 0.00000],
+                         [0.00000, 0.03070, 0.00000], [0.00000, 0.00000, 0.48518], [0.00000, 0.00000, -0.03070]]),
+                    (8, [[0.52087, 0.00000, 0.00000], [-0.23198, 0.00000, 0.00000], [0.00000, -0.43887, 0.00000],
+                         [0.00000, 0.06589, 0.00000], [0.00000, 0.00000, 0.43887], [0.00000, 0.00000, -0.06589]]),
+                    (9, [[0.29442, 0.00000, 0.00000], [-0.21169, 0.00000, 0.00000], [0.00000, -0.35431, 0.00000],
+                         [0.00000, 0.11366, 0.00000], [0.00000, 0.00000, 0.35431], [0.00000, 0.00000, -0.11366]]),
+                    (10, [[0.09750, 0.00000, 0.00000], [-0.14721, 0.00000, 0.00000], [0.00000, -0.21534, 0.00000],
+                          [0.00000, 0.11291, 0.00000], [0.00000, 0.00000, 0.21534], [0.00000, 0.00000, -0.11291]]),
+                    (11, [[0.00000, 0.00000, 0.00000], [-0.04779, 0.00000, 0.00000], [0.00000, -0.11534, 0.00000],
+                          [0.00000, 0.08709, 0.00000], [0.00000, 0.00000, 0.11534], [0.00000, 0.00000, -0.08709]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-4',
+                    'identifierRanges': '1-6',
                     'name': get_bladder_term('dome of the bladder')[0],
                     'ontId': get_bladder_term('dome of the bladder')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '5-7',
+                    'identifierRanges': '7-10',
                     'name': get_bladder_term('neck of urinary bladder')[0],
                     'ontId': get_bladder_term('neck of urinary bladder')[1]
                 }]
@@ -274,39 +343,29 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements along neck': 4,
             'Number of elements around': 8,
             'Number of elements through wall': 1,
-            'Wall thickness': 1.5,
-            'Ureter position around': 0.67,
+            'Wall thickness': 0.007,
+            'Ureter position around': 0.67,  # should be on the dorsal part (> 0.5). It's a fixed material coordinate and thus not to be edited.
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements along': 4,
             'Refine number of elements around': 4,
             'Refine number of elements through wall': 1
         }
+        if 'Cat 1' in parameterSetName:
+            options['Wall thickness'] = 0.007  # was 1.5 * 2.0 / 178.08271473110773
         if 'Human 1' in parameterSetName:
-            # options['Number of elements along dome'] = 10
-            # options['Number of elements along neck'] = 6
-            # options['Number of elements around'] = 12
-            options['Wall thickness'] = 3.0
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.043  # was 3.0 * 2.0 / 327.63
         if 'Mouse 1' in parameterSetName:
-            # options['Number of elements along neck'] = 6
-            options['Wall thickness'] = 0.5
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.008  # was 0.5 * 2.0 / 72.004931756029
         if 'Pig 1' in parameterSetName:
-            # options['Number of elements along dome'] = 10
-            # options['Number of elements along neck'] = 5
-            # options['Number of elements around'] = 12
-            options['Wall thickness'] = 2.5
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.016  # was 2.5 * 2.0 / 505.2045520616655
         if 'Rat 1' in parameterSetName:
-            options['Wall thickness'] = 0.3
-            options['Ureter position around'] = 0.67  # should be on the dorsal part (> 0.5)
+            options['Wall thickness'] = 0.006  # was 0.3 * 2.0 / 110.40996641878101
         if 'Material' in parameterSetName:
             options['Number of elements along dome'] = 8
             options['Number of elements along neck'] = 4
             options['Number of elements around'] = 8
-            options['Wall thickness'] = 0.01
-            options['Ureter position around'] = 0.67
+            options['Wall thickness'] = 0.02  # an average of the wall thicknesses for above species, rounded.
         return options
 
     @staticmethod
@@ -318,7 +377,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements around',
             'Number of elements through wall',
             'Wall thickness',
-            'Ureter position around',
+            # 'Ureter position around',  # it's a fixed material coordinate and thus not to be edited.
             'Use linear through wall',
             'Refine',
             'Refine number of elements around',
@@ -368,7 +427,8 @@ class MeshType_3d_bladder1(Scaffold_base):
             'Number of elements through wall',
             'Refine number of elements along',
             'Refine number of elements around',
-            'Refine number of elements through wall']:
+            'Refine number of elements through wall'
+        ]:
             if options[key] < 1:
                 options[key] = 1
         if options['Number of elements around'] % 2 != 0:
@@ -389,7 +449,6 @@ class MeshType_3d_bladder1(Scaffold_base):
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
-        :return: None
         """
         centralPath = options['Central path']
         elementsCountAlongDome = options['Number of elements along dome']
@@ -401,7 +460,7 @@ class MeshType_3d_bladder1(Scaffold_base):
         useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
         materialCentralPath = cls.centralPathDefaultScaffoldPackages_Bladder['Material']
-        materialWallThickness = 0.01
+        materialWallThickness = 0.02
 
         elementsCountAlongBladder = elementsCountAlongDome + elementsCountAlongNeck
 
@@ -414,8 +473,17 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         # Geometric coordinates
         geometricCentralPath = BladderCentralPath(region, centralPath, elementsCountAlongDome, elementsCountAlongNeck)
-        xFinal, d1Final, d2Final, d3Final = getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
-                                            elementsCountThroughWall, wallThickness, geometricCentralPath)
+        xFinal, d1Final, d2Final, d3Final = \
+            getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
+                                  elementsCountThroughWall, wallThickness, geometricCentralPath)
+
+        # # find biunit scale and rotation data
+        # pathLength = geometricCentralPath.bladderCentralPathLength
+        # print("path arcLength =", pathLength)
+        # print("biunit scale =", 2.0 / pathLength)
+        # urethra_d1 = geometricCentralPath.sx_neck_group[1][-1]
+        # y_angle = math.degrees(math.atan2(urethra_d1[1], -urethra_d1[0]))
+        # print("path y_angle (", urethra_d1[1], ",", -urethra_d1[0], " ) =", y_angle)
 
         sx_dome_group = geometricCentralPath.sx_dome_group
         sx_neck_group = geometricCentralPath.sx_neck_group
@@ -424,9 +492,43 @@ class MeshType_3d_bladder1(Scaffold_base):
 
         # Material coordinates
         tmp_region = region.createRegion()
-        materialCentralPath = BladderCentralPath(tmp_region, materialCentralPath, elementsCountAlongDome, elementsCountAlongNeck)
-        xOrgan, d1Organ, d2Organ, d3Organ = getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
-                                            elementsCountThroughWall, materialWallThickness, materialCentralPath)
+        materialCentralPath = BladderCentralPath(tmp_region, materialCentralPath, elementsCountAlongDome,
+                                                 elementsCountAlongNeck)
+        xOrgan, d1Organ, d2Organ, d3Organ = \
+            getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround,
+                                  elementsCountThroughWall, materialWallThickness, materialCentralPath)
+
+        # # Obtain the central path coordinates and derivatives for an ellipsoid to put for the "Material" central path
+        # bladderLength = 2.0
+        # diameter = 1.0
+        # centre = [bladderLength / 2, 0.0, 0.0]
+        # height = bladderLength
+        # poleAxis = [bladderLength / 2, 0.0, 0.0]
+        # sideAxis = [0.0, diameter / 2, 0.0]
+        # xEllipsoid, d1Ellipsoid, d2Ellipsoid = createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround,
+        #                                                              elementsCountAlongBladder, height)
+        #
+        # pathNodesList = []
+        # for n1 in range(elementsCountAlongDome + elementsCountAlongNeck + 1):
+        #     n = n1 * elementsCountAround
+        #     pathNode = [xEllipsoid[n][0], 0.0, 0.0]
+        #     pathNodesList.append(pathNode)
+        # print('pathNodesList', pathNodesList)
+        #
+        # d2path = []
+        # d3path = []
+        # for n1 in range(1, elementsCountAlongDome + elementsCountAlongNeck):
+        #     n = n1 * elementsCountAround
+        #     v1 = xEllipsoid[n]
+        #     v2 = xEllipsoid[n + elementsCountAround // 2]
+        #     v1v2 = [v2[c] - v1[c] for c in range(3)]
+        #     mag = vector.magnitude(v1v2)
+        #     halfMag = mag / 2
+        #     d2path.append([0.0, -halfMag, 0.0])
+        #     d3path.append([0.0, 0.0, halfMag])
+        # print('d2path', d2path)
+        # print('d3path', d3path)
+
         del tmp_region
 
         # Create annotation groups for bladder
@@ -445,7 +547,8 @@ class MeshType_3d_bladder1(Scaffold_base):
                 annotationGroupsAlong.append(annotationGroupAlong[i])
 
         elementsCountAroundGroups = [elementsCountAround // 4, elementsCountAround // 2, elementsCountAround // 4]
-        annotationGroupAround = [[bladderGroup, bladderVentralGroup], [bladderGroup, bladderDorsalGroup], [bladderGroup, bladderVentralGroup]]
+        annotationGroupAround = [[bladderGroup, bladderVentralGroup], [bladderGroup, bladderDorsalGroup],
+                                 [bladderGroup, bladderVentralGroup]]
         annotationGroupsAround = []
         for i in range(len(elementsCountAroundGroups)):
             elementsCount = elementsCountAroundGroups[i]
@@ -457,9 +560,11 @@ class MeshType_3d_bladder1(Scaffold_base):
             annotationGroupsThroughWall.append([])
 
         # Flat coordinates
-        urethraOpeningRadius = vector.magnitude(sx_neck_group[2][-1])
-        xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
-                                                       xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
+        xFlat = d1Flat = d2Flat = []
+        # urethraOpeningRadius = vector.magnitude(sx_neck_group[2][-1])
+        # xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround,
+        #                                                elementsCountThroughWall, xFinal, d1Final, d2Final,
+        #                                                bladderCentralPathLength, urethraOpeningRadius, wallThickness)
 
         # Create nodes and elements
         bladderCoordinatesFieldName = "bladder coordinates"
@@ -488,20 +593,22 @@ class MeshType_3d_bladder1(Scaffold_base):
         # Ureter position
         neckStartPositionAlongFactor = domeLength / bladderCentralPathLength
         ureterPositionAroundFactor = options['Ureter position around'] / 2
-        ureter1Position = trackSurfaceBladder.createPositionProportion(ureterPositionAroundFactor, neckStartPositionAlongFactor)
+        ureter1Position = trackSurfaceBladder.createPositionProportion(ureterPositionAroundFactor,
+                                                                       neckStartPositionAlongFactor)
         ureterElementPositionAround = ureter1Position.e1
 
-        # Annotation fiducial points
-
+        # Define markers for apex and ureter junctions with bladder
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
-        # Define markers for apex and ureter junctions with bladder
-        apexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("apex of urinary bladder"))
-        leftUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("left ureter junction with bladder"))
-        rightUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_bladder_term("right ureter junction with bladder"))
+        apexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                       get_bladder_term("apex of urinary bladder"))
+        leftUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                             get_bladder_term("left ureter junction with bladder"))
+        rightUreterGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_bladder_term("right ureter junction with bladder"))
 
-        idx1 = 1
-        xi1 = [0.0, 0.0, 0.0]
+        idx1 = elementsCountAround * elementsCountThroughWall
+        xi1 = [0.0, 0.0, 1.0]
         markerList = []
         markerList.append({"group": apexGroup, "elementId": idx1, "xi": xi1})
         idx2 = elementsCountAlongDome * elementsCountAround * elementsCountThroughWall + ureterElementPositionAround + 1
@@ -674,6 +781,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                                                get_bladder_term("ventral part of lumen of neck of urinary bladder"))
         lumenOfNeck_ventral.getMeshGroup(mesh2d).addElementsConditional(is_neck_lumen_ventral)
 
+
 def findDerivativeBetweenPoints(v1, v2):
     """
     Find vector difference between two points and rescale vector difference using cubic hermite arclength
@@ -688,6 +796,7 @@ def findDerivativeBetweenPoints(v1, v2):
 
     return d
 
+
 def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome):
 
     # Find apex nodes d2
@@ -695,7 +804,8 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
     d2 = sx_dome_group[2][0]
     for n1 in range(elementsCountAround):
         rotAngle = n1 * 2.0 * math.pi / elementsCountAround
-        rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(sx_dome_group[2][0]), vector.normalise(sx_dome_group[4][0])))
+        rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(sx_dome_group[2][0]),
+                                                        vector.normalise(sx_dome_group[4][0])))
         rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
         d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
         d2Apex.append(d2Rot)
@@ -704,8 +814,8 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
     xEllipses_dome = []
     d1Ellipses_dome = []
     for n in range(1, len(sx_dome_group[0])):
-        px, pd1 = createEllipsePoints(sx_dome_group[0][n], 2 * math.pi, sx_dome_group[2][n], sx_dome_group[4][n], elementsCountAround,
-                                      startRadians=0.0)
+        px, pd1 = createEllipsePoints(sx_dome_group[0][n], 2 * math.pi, sx_dome_group[2][n], sx_dome_group[4][n],
+                                      elementsCountAround, startRadians=0.0)
         xEllipses_dome.append(px)
         d1Ellipses_dome.append(pd1)
 
@@ -751,8 +861,7 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
         for n2 in range(len(domeNodes_x)):
             xAlong.append(domeNodes_x[n2][n1])
             d2Along.append(domeNodes_d2[n2][n1])
-        xSampledAlongDome, d2SampledAlongDome = interp.sampleCubicHermiteCurves(xAlong, d2Along,
-                                                                                elementsCountAlongDome,
+        xSampledAlongDome, d2SampledAlongDome = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongDome,
                                                                                 arcLengthDerivatives=True)[0:2]
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongDome, d2SampledAlongDome)
         xRaw.append(xSampledAlongDome)
@@ -789,7 +898,9 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
 
     return xSampledDome, d1SampledDome, d2SampledDome
 
-def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeSegmentLength, neckSegmentLength, elementsCountAround, elementsCountAlongNeck):
+
+def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeSegmentLength, neckSegmentLength,
+                              elementsCountAround, elementsCountAlongNeck):
 
     # Transition
     transitLength = (domeSegmentLength + neckSegmentLength) / 2
@@ -811,8 +922,8 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeS
     xEllipses_neck = []
     d1Ellipses_neck = []
     for n in range(0, len(sx_neck_group[0])):
-        px, pd1 = createEllipsePoints(sx_neck_group[0][n], 2 * math.pi, sx_neck_group[2][n], sx_neck_group[4][n], elementsCountAround,
-                                      startRadians=0.0)
+        px, pd1 = createEllipsePoints(sx_neck_group[0][n], 2 * math.pi, sx_neck_group[2][n], sx_neck_group[4][n],
+                                      elementsCountAround, startRadians=0.0)
         xEllipses_neck.append(px)
         d1Ellipses_neck.append(pd1)
 
@@ -859,8 +970,8 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeS
         for n2 in range(len(xEllipses_neck)):
             xAlong.append(xEllipses_neck[n2][n1])
             d2Along.append(d2Ellipses_neck[n2][n1])
-        xSampledAlongNeck, d2SampledAlongNeck = interp.sampleCubicHermiteCurves(xAlong, d2Along,
-                                                                                elementsCountAlongNeck, addLengthStart=addingLength,
+        xSampledAlongNeck, d2SampledAlongNeck = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongNeck,
+                                                                                addLengthStart=addingLength,
                                                                                 arcLengthDerivatives=True)[0:2]
         d2Smoothed = interp.smoothCubicHermiteDerivativesLine(xSampledAlongNeck, d2SampledAlongNeck)
         xRawNeck.append(xSampledAlongNeck)
@@ -894,8 +1005,9 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeS
 
     return xSampledNeck, d1SampledNeck, d2SampledNeck, px_transit
 
-def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
-                           xFinal, d1Final, d2Final, bladderLength, urethraOpeningRadius, bladderWallThickness):
+
+def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall, xFinal, d1Final,
+                           d2Final, bladderLength, urethraOpeningRadius, bladderWallThickness):
     """
     Calculates flat coordinates for the bladder when it is opened into a flat preparation.
     :param elementsCountAlongBladder: Number of elements along bladder.
@@ -991,8 +1103,8 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
             xLineSmoothing.append(xfnListRearranged[n2 * (elementsCountAround + 1) + n1])
             d1LineSmoothing.append(d1fnListRearranged[n2 * (elementsCountAround + 1) + n1])
         smd1 = interp.smoothCubicHermiteDerivativesLine(xLineSmoothing, d1LineSmoothing, fixAllDirections=False,
-                                                 fixStartDerivative=True, fixEndDerivative=True,
-                                                 fixStartDirection=False, fixEndDirection=False)
+                                                        fixStartDerivative=True, fixEndDerivative=True,
+                                                        fixStartDirection=False, fixEndDirection=False)
         smoothed_d1 += smd1
 
     # Define d2 for flat nodes
@@ -1018,9 +1130,10 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
         for n2 in range(elementsCountAlongBladder):
             lineSmoothingNodes.append(xNodesToDown[n1 * elementsCountAlongBladder + n2])
             lineSmoothingNodes_d2.append(d2NodesToDown[n1 * elementsCountAlongBladder + n2])
-        smd2 = interp.smoothCubicHermiteDerivativesLine(lineSmoothingNodes, lineSmoothingNodes_d2, fixAllDirections=False,
-                                                 fixStartDerivative=False, fixEndDerivative=True,
-                                                 fixStartDirection=False, fixEndDirection=False)
+        smd2 = interp.smoothCubicHermiteDerivativesLine(lineSmoothingNodes, lineSmoothingNodes_d2,
+                                                        fixAllDirections=False, fixStartDerivative=False,
+                                                        fixEndDerivative=True, fixStartDirection=False,
+                                                        fixEndDirection=False)
         smoothed_d2 += smd2
     # Re-arrange the derivatives order
     d2fnListRearranged = []
@@ -1072,6 +1185,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
 
     return xFlat, d1Flat, d2Flat
 
+
 class BladderCentralPath:
     """
     Generates sampled central path for bladder scaffold.
@@ -1091,36 +1205,34 @@ class BladderCentralPath:
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpDomeGroup = tmpFieldmodule.findFieldByName('dome of the bladder').castGroup()
         tmpDomeNodesetGroup = tmpDomeGroup.getNodesetGroup(tmpNodes)
-        cx_dome, cd1_dome, cd2_dome, cd3_dome, cd12_dome, cd13_dome =  get_nodeset_path_field_parameters(
-            tmpDomeNodesetGroup, tmpCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-             Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+        cx_dome, cd1_dome, cd2_dome, cd3_dome, cd12_dome, cd13_dome = get_nodeset_path_field_parameters(
+            tmpDomeNodesetGroup, tmpCoordinates, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                  Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                                                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
         tmpNeckGroup = tmpFieldmodule.findFieldByName('neck of urinary bladder').castGroup()
         tmpNeckNodesetGroup = tmpNeckGroup.getNodesetGroup(tmpNodes)
         cx_neck, cd1_neck, cd2_neck, cd3_neck, cd12_neck, cd13_neck = get_nodeset_path_field_parameters(
-            tmpNeckNodesetGroup, tmpCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-             Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+            tmpNeckNodesetGroup, tmpCoordinates, [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                                  Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                                                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
         # Find arcLength
         # Dome
-        domeLength = 0.0
+        self.domeLength = 0.0
         elementsCountInDome = len(cx_dome) - 1
         for e in range(elementsCountInDome):
             arcLength = interp.getCubicHermiteArcLength(cx_dome[e], cd1_dome[e],
                                                         cx_dome[e + 1], cd1_dome[e + 1])
-            domeLength += arcLength
-        domeSegmentLength = domeLength / elementsCountAlongDome
+            self.domeLength += arcLength
+        self.domeSegmentLength = self.domeLength / elementsCountAlongDome
         # Neck
-        neckLength = 0.0
+        self.neckLength = 0.0
         elementsCountInNeck = len(cx_neck) - 1
         for e in range(elementsCountInNeck):
             arcLength = interp.getCubicHermiteArcLength(cx_neck[e], cd1_neck[e],
                                                         cx_neck[e + 1], cd1_neck[e + 1])
-            neckLength += arcLength
-        neckSegmentLength = neckLength / elementsCountAlongNeck
-        bladderCentralPathLength = domeLength + neckLength
+            self.neckLength += arcLength
+        self.neckSegmentLength = self.neckLength / elementsCountAlongNeck
+        self.bladderCentralPathLength = self.domeLength + self.neckLength
         del tmpRegion
 
         # Sample central path
@@ -1139,13 +1251,9 @@ class BladderCentralPath:
         self.sx_dome_group = [cx_dome, cd1_dome, cd2_dome, cd12_dome, cd3_dome, cd13_dome]
         self.sx_neck_group = [cx_neck, cd1_neck, cd2_neck, cd12_neck, cd3_neck, cd13_neck]
 
-        self.domeSegmentLength = domeSegmentLength
-        self.neckSegmentLength = neckSegmentLength
-        self.bladderCentralPathLength = bladderCentralPathLength
-        self.domeLength = domeLength
 
 def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elementsCountAround, elementsCountThroughWall,
-                             wallThickness, centralPath):
+                          wallThickness, centralPath):
 
     sx_dome_group = centralPath.sx_dome_group
     sx_neck_group = centralPath.sx_neck_group
@@ -1156,8 +1264,9 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
 
     xDome, d1Dome, d2Dome = findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountAlongDome)
 
-    xNeck, d1Neck, d2Neck, px_transit = findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2Dome, domeSegmentLength,
-                                                                  neckSegmentLength, elementsCountAround, elementsCountAlongNeck)
+    xNeck, d1Neck, d2Neck, px_transit = \
+        findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2Dome, domeSegmentLength, neckSegmentLength,
+                                  elementsCountAround, elementsCountAlongNeck)
 
     # Replace d2 for the last layer of the dome based on the transition nodes
     d2Around = []
@@ -1219,31 +1328,28 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
             d2Inner.append(d2)
             d3Inner.append(d3)
 
-    # Create outer layers from the inner nodes
+    # Create inner layers from the outer nodes
     wallThicknessList = [wallThickness] * (elementsCountAlongBladder + 1)
     relativeThicknessList = []
     transitElementList = [0] * elementsCountAround
-    xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xInner, d1Inner,
-                                                                                    d2Inner, d3Inner,
-                                                                                    wallThicknessList,
-                                                                                    relativeThicknessList,
-                                                                                    elementsCountAround,
-                                                                                    elementsCountAlongBladder,
-                                                                                    elementsCountThroughWall,
-                                                                                    transitElementList)
+    xList, d1List, d2List, d3List, curvatureList = \
+        tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList, relativeThicknessList,
+                                         elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
+                                         transitElementList, outward=False)
 
     # Deal with multiple nodes at the start point for closed proximal end
-    xApexInner = xList[0]
+    n = elementsCountAround * (elementsCountThroughWall + 1)
+    xApexOuter = xList[n - 1]
     # Arclength between apex point and corresponding point on next face
-    mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
-                                          d2List[2 * elementsCountAround])
-    d2ApexInner = vector.setMagnitude(sx_dome_group[2][0], mag)
+    mag = interp.getCubicHermiteArcLength(xList[n - 1], d2List[n - 1], xList[2 * n - 1],
+                                          d2List[2 * n - 1])
+    d2ApexOuter = vector.setMagnitude(sx_dome_group[2][0], mag)
 
-    d1ApexInner = vector.crossproduct3(sx_dome_group[1][0], d2ApexInner)
-    d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
+    d1ApexOuter = vector.crossproduct3(sx_dome_group[1][0], d2ApexOuter)
+    d1ApexOuter = vector.setMagnitude(d1ApexOuter, mag)
     d3ApexUnit = vector.normalise(
-        vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
-    d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
+        vector.crossproduct3(vector.normalise(d1ApexOuter), vector.normalise(d2ApexOuter)))
+    d3ApexOuter = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
 
     # Final nodes on the bladder
     xFinal = []
@@ -1251,12 +1357,12 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     d2Final = []
     d3Final = []
     for n3 in range(elementsCountThroughWall + 1):
-        xApex = [xApexInner[c] +
-                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * n3 for c in range(3)]
+        xApex = [xApexOuter[c] -
+                 d3ApexUnit[c] * wallThickness / elementsCountThroughWall * (elementsCountThroughWall - n3) for c in range(3)]
         xFinal.append(xApex)
-        d1Final.append(d1ApexInner)
-        d2Final.append(d2ApexInner)
-        d3Final.append(d3ApexInner)
+        d1Final.append(d1ApexOuter)
+        d2Final.append(d2ApexOuter)
+        d3Final.append(d3ApexOuter)
 
     xFinal += xList[(elementsCountThroughWall + 1) * elementsCountAround:]
     d1Final += d1List[(elementsCountThroughWall + 1) * elementsCountAround:]

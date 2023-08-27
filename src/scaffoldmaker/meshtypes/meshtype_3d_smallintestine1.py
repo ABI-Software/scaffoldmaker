@@ -1214,9 +1214,9 @@ class MeshType_3d_smallintestine1(Scaffold_base):
             d2LastTwoFaces = d2WarpedList[-elementsCountAround*2:]
 
         # Create coordinates and derivatives
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.getCoordinatesFromInner(xExtrude, d1Extrude,
+        xList, d1List, d2List, d3List, curvatureList = tubemesh.extrudeSurfaceCoordinates(xExtrude, d1Extrude,
             d2Extrude, d3UnitExtrude, [wallThickness]*(elementsCountAlong+1), relativeThicknessList,
-            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList)
+            elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList, outward=True)
 
         flatWidthList, xiList = smallIntestineSegmentTubeMeshInnerPoints.getFlatWidthAndXiList()
 
