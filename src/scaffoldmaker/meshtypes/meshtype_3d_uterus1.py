@@ -1444,7 +1444,7 @@ def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
     """
     Gets first ring of coordinates and derivatives between parent pa and
     children c1, c2, and over the crotch between c1 and c2.
-    :return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
+    :return: rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
     """
     paCount = len(pax)
     c1Count = len(c1x)
@@ -1982,9 +1982,10 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     if doubleUterus:
         # Create bifurcation nodes
-        nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, birNodeId, bilNodeId, nextNodeId = \
-            create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3,
-                                         innerBifurcationRight, innerBifurcationLeft, elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall)
+        nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId= \
+            createDoubleTubeBifurcationNodes(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3,
+                                             innerBifurcationRight, innerBifurcationLeft, elementsCountAroundRightHorn,
+                                             elementsCountAroundLeftHorn, elementsCountThroughWall)
 
         # Create body nodes
         nodeIdentifier, bricNodeId, blicNodeId, botNodeId, bsNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, bodyInnerRightCoordinates, bodyInnerLeftCoordinates,
@@ -2588,8 +2589,15 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
 #     nextNodeId = nodeIdentifier
 #     return nodeIdentifier, rox, cox, roNodeId, coNodeId, nextNodeId, paStartIndex, c1StartIndex, c2StartIndex
 
-def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3,
-                                 innerBifurcationRight, innerBifurcationLeft, elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall):
+
+def createDoubleTubeBifurcationNodes(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3,
+                                     innerBifurcationRight, innerBifurcationLeft, elementsCountAroundRightHorn,
+                                     elementsCountAroundLeftHorn, elementsCountThroughWall):
+
+    """
+    Gets coordinates and derivatives of bifurcation inner and outer
+    :return: nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId
+    """
 
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -2602,13 +2610,8 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
-    # rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-    #     make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
-    #
-    # rod3 = pad3
-
     # Create extra right inner nodes in bifurcation
-    birNodeId = []  # bifurcation right inner ring node id
+    birNodeId = []  # bifurcation right inner ring node ids
     for n2 in range(2):
         for n3 in range(elementsCountThroughWall):
             for n1 in range(elementsCountAroundRightHorn):
@@ -2623,7 +2626,7 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
                     nodeIdentifier += 1
 
     # Create extra left inner nodes in bifurcation
-    bilNodeId = []  # bifurcation left inner ring node id
+    bilNodeId = []  # bifurcation left inner ring node ids
     for n2 in range(2):
         for n3 in range(elementsCountThroughWall):
             for n1 in range(elementsCountAroundLeftHorn):
@@ -2660,68 +2663,14 @@ def create2DBifurcationNodes_mod(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox,
         coNodeId.append(nodeIdentifier)
         nodeIdentifier = nodeIdentifier + 1
 
-    # Create septum nodes in bifurcation
-    sbNodeId = []
-    # for n in range(len(septumBifurCoordinates[0])):
-    #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, septumBifurCoordinates[0][n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, septumBifurCoordinates[1][n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, septumBifurCoordinates[2][n])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, septumBifurCoordinates[3][n])
-    #     sbNodeId.append(nodeIdentifier)
-    #     nodeIdentifier += 1
-
-    nextNodeId = nodeIdentifier
-    return nodeIdentifier, rox, cox, roNodeId, coNodeId, sbNodeId, birNodeId, bilNodeId, nextNodeId
-
-# def getTargetedRingNodesCoordinates2D(tubeCoordinates, elementsCountAround, elementsCountAlongTube, omitStartRows,
-#                                       omitEndRows):
-#
-#     xLastRing = []
-#     d1LastRing = []
-#     d2LastRing = []
-#     xFirstRing = []
-#     d1FirstRing = []
-#     d2FirstRing = []
-#     for n2 in range(elementsCountAlongTube + 1):
-#         for n1 in range(elementsCountAround):
-#             n = n2 * elementsCountAround + n1
-#             x = tubeCoordinates[0][n]
-#             d1 = tubeCoordinates[1][n]
-#             d2 = tubeCoordinates[2][n]
-#             if omitEndRows == 1:  # merging to the bifurcation
-#                 if n2 == elementsCountAlongTube:
-#                     pass
-#                 else:
-#                     if n2 == elementsCountAlongTube - 1:
-#                         xLastRing.append(x)
-#                         d1LastRing.append(d1)
-#                         d2LastRing.append(d2)
-#             elif omitStartRows == 1:  # diverging from bifurcation
-#                 if n2 == 0:
-#                     pass
-#                 else:
-#                     if n2 == 1:
-#                         xFirstRing.append(x)
-#                         d1FirstRing.append(d1)
-#                         d2FirstRing.append(d2)
-#
-#     if omitStartRows == 1:
-#         targetedRingCoordinates = [xFirstRing, d1FirstRing, d2FirstRing]
-#     elif omitEndRows == 1:
-#         targetedRingCoordinates = [xLastRing, d1LastRing, d2LastRing]
-#     else:
-#         targetedRingCoordinates = []
-#
-#     return targetedRingCoordinates
+    return nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId
 
 
 def make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
     """
     Gets first ring of coordinates and derivatives between parent pa and
     children c1, c2, and over the crotch between c1 and c2.
-    :return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
+    :return: rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
     """
     paCount = len(pax)
     c1Count = len(c1x)
@@ -2804,13 +2753,13 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
                               elementsCountAroundRightTube, elementsCountAroundLeftTube, elementsCountThroughWall,
                               tricNodeId, tlicNodeId, toNodeId, tsNodeId, useCrossDerivatives, meshGroups=None):
 
-    '''
-    Take tube two inner canals' nodes ides and outer nodes ids and create the elements.
+    """
+    Gets tube two inner canals' node ides and outer node ids and creates the elements.
     tricNodeId, tlicNodeId: Tube's right and left inner canals node Ids.
     toNodeId: Tube's outer node Ids.
     tsNodeId: Tube's septum node Ids.
-    return: elements of tube with double inner canals.
-    '''
+    :return: elements of tube with double inner canals.
+    """
 
     eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
     eft = eftfactory.createEftBasic()
@@ -2993,16 +2942,17 @@ def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, el
                                          c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, pricNodeId, plicNodeId,
                                          poNodeId, psNodeId, meshGroups=None):
 
-    '''
-    Take child1, child2, parent, and inner bifurcation node Ids.
+    """
+    Gets child1, child2, parent, and inner bifurcation node Ids.
     c1NodeId, c2NodeId: Child1 and child2 node Ids.
     roNodeId, coNodeId: 2D bifurcation node Ids which are in outer bifurcation surface.
     birNodeId, bilNodeId: Right and left bifurcation inner node Ids.
     pricNodeId, plicNodeId: Parent's right and left inner canals node Ids.
     poNodeId: Parent's outer node Ids.
     psNodeId: parent's septum node Ids.
-    return: elements of bifurcation with double inner tube.
-    '''
+    :return: elements of bifurcation with double inner tube.
+    """
+
     paCount = len(poNodeId)
     # paCount = elementsCountAround
     c1Count = len(c1NodeId[0])
@@ -3425,9 +3375,9 @@ def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, el
 
 def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, elementsCountAroundRightTube,
                        elementsCountAroundLeftTube, elementsCountThroughWall, wallThickness):
-    '''
-    :return the coordinates and derivatives of the outer tube, inner right and left tubes and the septum nodes
-    '''
+    """
+    :return: the coordinates and derivatives of the outer tube, inner right and left tubes and the septum nodes
+    """
 
     elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
@@ -3602,10 +3552,10 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
                                   elementsCountAlong, elementsCountAround, elementsCountAroundRightTube,
                                   elementsCountAroundLeftTube, elementsCountThroughWall):
 
-    '''
-    Take the outer layer, inner left and right layers and septum coordinates.
-    return: the coordinates and derivatives of all nodes through wall for left and right inner tubes.
-    '''
+    """
+    Gets the outer layer, inner left and right layers and septum coordinates.
+    :return: the coordinates and derivatives of all nodes through wall for left and right inner tubes.
+    """
 
     elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
