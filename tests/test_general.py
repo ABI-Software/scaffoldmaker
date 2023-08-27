@@ -409,11 +409,11 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertTrue(scaffoldPackage.isUserAnnotationGroup(bobGroup))
         self.assertFalse(bobGroup.isMarker())
         nextNodeIdentifier = scaffoldPackage.getNextNodeIdentifier()
-        node = bobGroup.createMarkerNode(nextNodeIdentifier, stomachCoordinatesField, [0.900712, 0.291771, 0.391829])
+        node = bobGroup.createMarkerNode(nextNodeIdentifier, stomachCoordinatesField, [-0.165034, 0.12313, 0.484541])
         bobNodeIdentifier = node.getIdentifier()
         self.assertEqual(nextNodeIdentifier, bobNodeIdentifier)
         stomachCoordinatesFieldOut, stomachCoordinatesValueOut = bobGroup.getMarkerMaterialCoordinates()
-        self.assertEqual([0.900712, 0.291771, 0.391829], stomachCoordinatesValueOut)
+        self.assertEqual([-0.165034, 0.12313, 0.484541], stomachCoordinatesValueOut)
 
         # check bob is made before deletion
         bob = scaffoldPackage.findAnnotationGroupByName('bob')
@@ -439,7 +439,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(73, len(annotationGroups))
         scaffoldPackage.deleteElementsInRanges(region, [[313, 496]])
-        self.assertEqual(600, mesh3d.getSize())
+        self.assertEqual(824, mesh3d.getSize())
         element = mesh3d.findElementByIdentifier(400)
         self.assertFalse(element.isValid())
 
@@ -458,7 +458,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # check that bob is deleted
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(72, len(annotationGroups))
+        self.assertEqual(70, len(annotationGroups))
         bob = scaffoldPackage.findAnnotationGroupByName('bob')
         self.assertNotIn(bob, annotationGroups)
         node = nodes.findNodeByIdentifier(bobNodeIdentifier)
