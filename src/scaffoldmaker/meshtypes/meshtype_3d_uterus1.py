@@ -2061,11 +2061,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
             blicNodeId = clicNodeId
             botNodeId = cotNodeId
             bsNodeId = csNodeId
-        elementIdentifier = make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier,
-                                                              elementsCountAround, elementsCountAcross, elementsCountThroughWall, paNodeId,
-                                                              c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
-                                                              bricNodeId, blicNodeId, botNodeId, sbNodeId, bsNodeId,
-                                                               meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
+        elementIdentifier = \
+            make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, c1NodeId,
+                                                 c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, bricNodeId,
+                                                 blicNodeId, botNodeId, bsNodeId,
+                                                 meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
 
         # Create body elements
         if elementsCountInBody >= 2:
@@ -3521,26 +3521,32 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
     return elementIdentifier
 
 
-def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdentifier, elementsCountAround, elementsCountAcross,
-                                      elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                      birNodeId, bilNodeId, cricNodeId, clicNodeId, cotNodeId, sbNodeId, csNodeId, meshGroups=None):
+def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, c1NodeId,
+                                         c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, pricNodeId, plicNodeId,
+                                         poNodeId, psNodeId, meshGroups=None):
 
-    # paCount = len(paNodeId[0])
-    # c1Count = len(c1NodeId[0])
-    # c2Count = len(c2NodeId[0])
-    paCount = elementsCountAround
+    '''
+    Take child1, child2, parent, and inner bifurcation node Ids.
+    c1NodeId, c2NodeId: Child1 and child2 node Ids.
+    roNodeId, coNodeId: 2D bifurcation node Ids which are in outer bifurcation surface.
+    birNodeId, bilNodeId: Right and left bifurcation inner node Ids.
+    pricNodeId, plicNodeId: Parent's right and left inner canals node Ids.
+    poNodeId: Parent's outer node Ids.
+    psNodeId: parent's septum node Ids.
+    return: elements of bifurcation with double inner tube.
+    '''
+    paCount = len(poNodeId)
+    # paCount = elementsCountAround
     c1Count = len(c1NodeId[0])
     c2Count = len(c2NodeId[0])
     pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
 
-    # elementsCountAcross = len((sbNodeId)) + 1
+    elementsCountAround = len(poNodeId)
+    elementsCountAroundRightTube = c1Count
+    elementsCountAroundLeftTube = c2Count
 
-    # elementsCountAcross = 3
-    count = elementsCountAround // 2 + elementsCountAcross
-    elementsCountAroundRightTube = count
-    elementsCountAroundLeftTube = count
+    elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
-    # fm = region.getFieldmodule()
     mesh = fm.findMeshByDimension(3)
     eftfactory = eftfactory_bicubichermitelinear(mesh, None)
     eftStd = eftfactory.createEftBasic()
@@ -3565,7 +3571,6 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 bni4 = birNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % c1Count]
                 bni5 = bni1 + elementsCountAroundRightTube
                 bni6 = bni5 + 1
-                # bni7 = bni3 + 2 * elementsCountAround
                 if e3 == elementsCountThroughWall - 1:
                     bni7 = roNodeId[e1]
                     bni8 = bni7 + 1
@@ -3581,8 +3586,6 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 bni4 = birNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % c1Count]
                 bni5 = bni1 + elementsCountAroundRightTube
                 bni6 = bni5 + 1
-                # bni7 = bni3 + 2 * elementsCountAround
-                # bni8 = coNodeId[0]
                 if e3 == elementsCountThroughWall - 1:
                     bni7 = roNodeId[e1]
                     bni8 = coNodeId[0]
@@ -3677,27 +3680,17 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                     bni8 = bni4 + elementsCountAroundLeftTube
                 else:
                     if e1 == 0:
-                        # bni7 = roNodeId[0]
-                        # bni8 = sbNodeId[-1]
                         bni7 = roNodeId[0]
                         bni8 = coNodeId[-1]
                     elif e1 == elementsCountAcross - 1:
-                        # bni7 = sbNodeId[elementsCountAcross - 1 - e1]
-                        # bni8 = roNodeId[elementsCountAround // 2]
                         bni7 = coNodeId[elementsCountAcross - 1 - e1]
                         bni8 = roNodeId[elementsCountAround // 2]
                     else:
-                        # bni7 = sbNodeId[elementsCountAcross - 1 - e1]
-                        # bni8 = bni7 - 1
                         bni7 = coNodeId[elementsCountAcross - 1 - e1]
                         bni8 = bni7 - 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
                 # print('nodeIdentifiers', nodeIdentifiers)
             else:
-                # if e1 == elementsCountAcross:
-                #     bni7 = roNodeId[elementsCountAround // 2]
-                #     bni8 = bni7 + 1
-                # else:
                 if e3 == elementsCountThroughWall - 1:
                     bni7 = roNodeId[elementsCountAround // 2 + e1 - elementsCountAcross]
                     if e1 == elementsCountAroundLeftTube - 1:
@@ -3716,10 +3709,6 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                     scalefactors = [-1.0]
                     # eft = eftfactory.createEftBasic()
                     setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS2,
-                    #                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2,
                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
@@ -3729,16 +3718,12 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                     scalefactors = [-1.0]
                     # eft = eftfactory.createEftBasic()
                     setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
                     remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
                     remapEftNodeValueLabel(eft1, [7, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
                 elif e1 == elementsCountAcross - 1:
                     scalefactors = [-1.0]
                     # eft = eftfactory.createEftBasic()
                     setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
-                    # remapEftNodeValueLabel(eft, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
                     remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS2, [1])])
                     remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
@@ -3773,46 +3758,37 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                 elif meshGroups.index(meshGroup) == 3:
                     meshGroup.addElement(element)
 
-    # print('birNodeId', birNodeId)
-    # print('cricNodeId', cricNodeId)
     # parent right part
     for e3 in range(elementsCountThroughWall):
         for e1 in range(elementsCountAroundRightTube):  # was paCount
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
-            bni1 = birNodeId[e3 * elementsCountAroundRightTube + e1]  # was [e3][e1]
+            bni1 = birNodeId[e3 * elementsCountAroundRightTube + e1]
             bni2 = birNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % elementsCountAroundRightTube]
-            bni3 = cricNodeId[e3 * elementsCountAroundRightTube + e1]
-            bni4 = cricNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % elementsCountAroundRightTube]
+            bni3 = pricNodeId[e3 * elementsCountAroundRightTube + e1]
+            bni4 = pricNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % elementsCountAroundRightTube]
             if e3 == elementsCountThroughWall - 1:
                 if e1 < elementsCountAround // 2:
                     # if e3 == elementsCountThroughWall - 1:
                         bni5 = roNodeId[e1]
                         bni6 = roNodeId[(e1 + 1) % elementsCountAround]
-                        bni7 = cotNodeId[e1]
-                        bni8 = cotNodeId[(e1 + 1) % elementsCountAround]
-                    # else:
-                    #     bni5 = bni1 + elementsCountAroundRightTube
-                    #     bni6 = bni2 + elementsCountAroundRightTube
-                    #     bni7 = bni3 + elementsCountAroundRightTube
-                    #     bni8 = bni4 + elementsCountAroundRightTube
-                    # bni7 = cotNodeId[e1]
-                    # bni8 = cotNodeId[(e1 + 1) % elementsCountAround]
+                        bni7 = poNodeId[e1]
+                        bni8 = poNodeId[(e1 + 1) % elementsCountAround]
                 elif e1 == elementsCountAround // 2:
                     bni5 = roNodeId[e1]
-                    bni6 = coNodeId [e1 - elementsCountAround // 2]
-                    bni7 = cotNodeId[e1]
-                    bni8 = csNodeId[e1 - elementsCountAround // 2]
+                    bni6 = coNodeId[e1 - elementsCountAround // 2]
+                    bni7 = poNodeId[e1]
+                    bni8 = psNodeId[e1 - elementsCountAround // 2]
                 elif elementsCountAround // 2 < e1 < elementsCountAroundRightTube - 1:
                     bni5 = coNodeId[e1 - elementsCountAround // 2 - 1]
                     bni6 = bni5 + 1
-                    bni7 = csNodeId[e1 - elementsCountAround // 2 - 1]
+                    bni7 = psNodeId[e1 - elementsCountAround // 2 - 1]
                     bni8 = bni7 + 1
                 elif e1 == elementsCountAroundRightTube - 1:
                     bni5 = coNodeId[-1]
                     bni6 = roNodeId[0]
-                    bni8 = cotNodeId[0]
+                    bni8 = poNodeId[0]
                     bni7 = bni8 - 1
             else:
                 bni5 = bni1 + elementsCountAroundRightTube
@@ -3841,9 +3817,7 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                     scalefactors = [-1.0]
                     eft1 = eftfactory.createEftBasic()
                     setEftScaleFactorIds(eft1, [1], [])
-                    # remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
                     remapEftNodeValueLabel(eft1, [5, 6], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
-                    # remapEftNodeValueLabel(eft1, [7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [1])])
                     elementtemplateMod.defineField(coordinates, -1, eft1)
                     elementtemplate1 = elementtemplateMod
                 elif e1 == elementsCountAroundRightTube - 1:
@@ -3882,39 +3856,32 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
-            bni1 = bilNodeId[e3 * elementsCountAroundRightTube + e1]  # was [e3][e1]
+            bni1 = bilNodeId[e3 * elementsCountAroundRightTube + e1]
             bni2 = bilNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % elementsCountAroundLeftTube]
-            bni3 = clicNodeId[e3 * elementsCountAroundRightTube + e1]
-            bni4 = clicNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % elementsCountAroundLeftTube]
+            bni3 = plicNodeId[e3 * elementsCountAroundRightTube + e1]
+            bni4 = plicNodeId[e3 * elementsCountAroundRightTube + (e1 + 1) % elementsCountAroundLeftTube]
             if e3 == elementsCountThroughWall - 1:
                 if e1 == 0:
-                    # [137, 138, 164, 165, 146, 155, 175, 174]
                     bni5 = roNodeId[0]
                     bni6 = coNodeId[-1]
-                    bni7 = cotNodeId[e1]
-                    bni8 = csNodeId[e1 + elementsCountAcross -2]
+                    bni7 = poNodeId[e1]
+                    bni8 = psNodeId[e1 + elementsCountAcross -2]
                 elif 0 < e1 < elementsCountAcross - 1:
-                    # [170, 171, 200, 201, 190, 189, 209, 208]
                     bni5 = coNodeId[-e1 + elementsCountAcross - 1]
                     bni6 = bni5 - 1
-                    bni7 = csNodeId[-e1 + elementsCountAcross - 1]
+                    bni7 = psNodeId[-e1 + elementsCountAcross - 1]
                     bni8 = bni7 - 1
                 elif e1 == elementsCountAcross - 1:
                     bni5 = coNodeId[0]
                     bni6 = roNodeId[elementsCountAround // 2]
-                    bni7 = csNodeId[0]
-                    bni8 = cotNodeId[elementsCountAround // 2]
-                # elif e1 == elementsCountAroundLeftTube - 1:
-                #     bni5 = roNodeId[e1 - elementsCountAround // 2 + elementsCountAcross]
-                #     bni6 = roNodeId[0]
-                #     bni7 = cotNodeId[e1 - elementsCountAround // 2 + elementsCountAcross ]
-                #     bni8 = cotNodeId[0]
+                    bni7 = psNodeId[0]
+                    bni8 = poNodeId[elementsCountAround // 2]
                 else:
                     bni5 = roNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
-                    bni7 = cotNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
+                    bni7 = poNodeId[elementsCountAround // 2 - elementsCountAcross + e1]
                     if e1 == elementsCountAroundLeftTube - 1:
                         bni6 = roNodeId[0]
-                        bni8 = cotNodeId[0]
+                        bni8 = poNodeId[0]
                     else:
                         bni6 = bni5 + 1
                         bni8 = bni7 + 1
@@ -3955,8 +3922,6 @@ def make_rat_uterus_bifurcation_elements_modified(fm, coordinates, elementIdenti
                         remapEftNodeValueLabel(eft1, [5], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS3, [1])])
                         remapEftNodeValueLabel(eft1, [6], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
                         remapEftNodeValueLabel(eft1, [8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
-                        # remapEftNodeValueLabel(eft1, [5, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS1, [1])])
-                        # remapEftNodeValueLabel(eft1, [6, 8], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS3, [])])
                         # elementtemplateMod.defineField(coordinates, -1, eft1)
                         # elementtemplate1 = elementtemplateMod
                     elif e1 == elementsCountAcross:
@@ -4160,14 +4125,21 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     rightInnerTubethroughWall, leftInnerTubethroughWall = \
         getInnerDoubleTubeCoordinates(tubeInnerRightCoordinates, tubeInnerLeftCoordinates, outerCoordinates,
                                            septumCoordinates, elementsCountAlong, elementsCountAround,
-                                           elementsCountAroundRightTube, elementsCountAroundLeftTube, elementsCountAcross, elementsCountThroughWall)
+                                           elementsCountAroundRightTube, elementsCountAroundLeftTube, elementsCountThroughWall)
 
     return rightInnerTubethroughWall, leftInnerTubethroughWall, outerCoordinates, septumCoordinates
 
 
 def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, outerCoordinates, septumCoordinates,
-                                       elementsCountAlong, elementsCountAround, elementsCountAroundRightTube,
-                                       elementsCountAroundLeftTube, elementsCountAcross, elementsCountThroughWall):
+                                  elementsCountAlong, elementsCountAround, elementsCountAroundRightTube,
+                                  elementsCountAroundLeftTube, elementsCountThroughWall):
+
+    '''
+    Take the outer layer, inner left and right layers and septum coordinates.
+    return: the coordinates and derivatives of all nodes through wall for left and right inner tubes.
+    '''
+
+    elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
     # Get nodes through wall for right inner tube
     xRawRight = []
@@ -4220,11 +4192,6 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             d3tLeft.append(d3SampledWall)
         xRawLeft.append(xtLeft)
         d3RawLeft.append(d3tLeft)
-    # print('len(xRaw)', len(xRaw))
-    # print('len(xRaw[0])', len(xRaw[0]))
-    # print('len(xRaw[0][0])', len(xRaw[0][0]))
-    # print('len(xRaw[0][0][0])', len(xRaw[0][0][0]))
-    # print('xRaw[0][0][0]', xRaw[0][0][0])
 
     # Rearrange the nodes
     xWallRight = []
@@ -4245,11 +4212,6 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             xAroundLeft.append(v1ListLeft)
         xWallRight.append(xAroundRight)
         xWallLeft.append(xAroundLeft)
-    # print('len(xWall)', len(xWall))
-    # print('len(xWall[0])', len(xWall[0]))
-    # print('len(xWall[0][0])', len(xWall[0][0]))
-    # print('len(xWall[0][0][0])', len(xWall[0][0][0]))
-    # print('xWall[0][0][0]', xWall[0][0][0])
 
     # Find d1 around tube for all nodes
     d1WallRight = []
@@ -4282,12 +4244,8 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             d1SmoothedLeft = interp.smoothCubicHermiteDerivativesLoop(xAroundLeft, d1AroundLeft)
             xRawLeft.append(xAroundLeft)
             d1RawLeft.append(d1SmoothedLeft)
-        # xWall.append(xRaw)
         d1WallRight.append(d1RawRight)
         d1WallLeft.append(d1RawLeft)
-    # print('len(d1WallLeft)', len(d1WallLeft))
-    # print('len(d1WallLeft[0])', len(d1WallLeft[0]))
-    # print('len(d1WallLeft[0][0])', len(d1WallLeft[0][0]))
 
     # Find d2 along tube for nodes through wall
     d2NewRight = []
@@ -4322,9 +4280,6 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             d2RawLeft.append(d2SmoothedLeft)
         d2NewRight.append(d2RawRight)
         d2NewLeft.append(d2RawLeft)
-    # print('len(d2New)', len(d2New))
-    # print('len(d2New[0])', len(d2New[0]))
-    # print('len(d2New[0][0])', len(d2New[0][0]))
 
     # Rearrange d2
     d2WallRight = []
@@ -4345,9 +4300,6 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             d2tLeft.append(d2AroundLeft)
         d2WallRight.append(d2tRight)
         d2WallLeft.append(d2tLeft)
-    # print('len(d2Wall)', len(d2Wall))
-    # print('len(d2Wall[0])', len(d2Wall[0]))
-    # print('len(d2Wall[0][0])', len(d2Wall[0][0]))
 
     rightInnerTubethroughWall = [xWallRight, d1WallRight, d2WallRight]
     leftInnerTubethroughWall = [xWallLeft, d1WallLeft, d2WallLeft]
