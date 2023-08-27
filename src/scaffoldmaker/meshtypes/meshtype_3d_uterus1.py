@@ -2300,7 +2300,12 @@ def generateTubeNodes2D(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongT
     return nodeIdentifier
 
 
-def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube, startRadian):
+def findNodesAlongTube2D(sx_group, elementsCountAround, elementsCountAlongTube, startRadian):
+
+    """
+    Gets the central path nodes and return the coordinates and derivatives of a 2D tube.
+    :return: tube2dCoordinates; 2D tube coordinates and derivatives.
+    """
 
     # Create ellipses along tube around the central path
     xEllipsesAlong = []
@@ -2374,16 +2379,8 @@ def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube,
         d1SampledTube.append(d1Smoothed)
         d2SampledTube.append(d2Around)
 
-    d3Tube = []
-    for n2 in range(elementsCountAlongTube + 1):
-        d3Around = []
-        for n1 in range(elementsCountAround):
-            d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledTube[n2][n1]), vector.normalise(d2SampledTube[n2][n1]))))
-        d3Tube.append(d3Around)
-
-    tubeCoordinates = [xSampledTube, d1SampledTube, d2SampledTube, d3Tube]
-    return tubeCoordinates
+    tube2dCoordinates = [xSampledTube, d1SampledTube, d2SampledTube]
+    return tube2dCoordinates
 
 
 def createDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountAlong,
@@ -3306,13 +3303,13 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
 
     # Get right inner tube nodes
     rightStartRadians = -math.pi * (elementsCountAround / (2 * elementsCountAroundRightTube))
-    tubeInnerRightCoordinates = findNodesAlongTubes2D(cx_tube_group_right, elementsCountAroundRightTube,
-                                                            elementsCountAlong, startRadian=rightStartRadians)
+    tubeInnerRightCoordinates = findNodesAlongTube2D(cx_tube_group_right, elementsCountAroundRightTube,
+                                                     elementsCountAlong, startRadian=rightStartRadians)
 
     # Get left inner tube nodes
     leftStartRadians = -math.pi * (elementsCountAcross / elementsCountAroundLeftTube)
-    tubeInnerLeftCoordinates = findNodesAlongTubes2D(cx_tube_group_left, elementsCountAroundLeftTube,
-                                                           elementsCountAlong, startRadian=leftStartRadians)
+    tubeInnerLeftCoordinates = findNodesAlongTube2D(cx_tube_group_left, elementsCountAroundLeftTube,
+                                                    elementsCountAlong, startRadian=leftStartRadians)
 
     # Get outer nodes along tube
     tube_radius1 = []
@@ -3338,9 +3335,8 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     # sx_tube_group = [sx_tube, [], tube_radius1, [], tube_radius1]
 
     startRadian = -math.pi / 2
-    xOuter, d1Outer, d2Outer, _ = \
-        findNodesAlongTubes2D(sx_tube_group, elementsCountAround, elementsCountAlong, startRadian)
-    outerCoordinates = [xOuter, d1Outer, d2Outer, _]
+    xOuter, d1Outer, d2Outer = findNodesAlongTube2D(sx_tube_group, elementsCountAround, elementsCountAlong, startRadian)
+    outerCoordinates = [xOuter, d1Outer, d2Outer]
 
     # Get coordinates across tube septum, between two inner canals
     xAcrossSeptum = []
