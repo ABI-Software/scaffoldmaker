@@ -1370,7 +1370,7 @@ def getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountAlongTu
     return targetedRingNodeId, nodeCount
 
 
-def create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2,
+def createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2,
                              c2Centre, c2xList, c2d2, elementsCountThroughWall):
 
     cache = fm.createFieldcache()
@@ -1392,7 +1392,7 @@ def create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
     cod2List = []
     for n3 in range(elementsCountThroughWall + 1):
         roxOuter, rod1Outer, rod2Outer, coxOuter, cod1Outer, cod2Outer, paStartIndex, c1StartIndex, c2StartIndex = \
-            make_tube_bifurcation_points_converging(paCentre, paxList[n3], pad2[n3], c1Centre, c1xList[n3], c1d2[n3],
+            find_tube_bifurcation_points_converging(paCentre, paxList[n3], pad2[n3], c1Centre, c1xList[n3], c1d2[n3],
                                                     c2Centre, c2xList[n3], c2d2[n3])
         roxList.append(roxOuter)
         rod1List.append(rod1Outer)
@@ -1429,7 +1429,7 @@ def create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
     return nodeIdentifier, roNodeId, coNodeId
 
 
-def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
+def find_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
     """
     Gets first ring of coordinates and derivatives between parent pa and
     children c1, c2, and over the crotch between c1 and c2.
@@ -1512,7 +1512,7 @@ def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
 
-# def make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
+# def find_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
 #     """
 #     Gets first ring of coordinates and derivatives between parent pa and
 #     children c1, c2, and over the crotch between c1 and c2.
@@ -1692,7 +1692,7 @@ def make_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
 #     c1d2 = rhLastRingNodeCoordinates[2]
 #     c2xList = lhLastRingNodeCoordinates[0]
 #     c2d2 = lhLastRingNodeCoordinates[2]
-#     nodeIdentifier, roNodeId, coNodeId = create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
+#     nodeIdentifier, roNodeId, coNodeId = createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
 #                                                                   pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
 #                                                                   c2d2, elementsCountThroughWall)
 #
@@ -1977,7 +1977,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         c2xList = lhLastRingNodeCoordinates[0][-1]
         c2d2 = lhLastRingNodeCoordinates[2][-1]
         rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-            make_tube_bifurcation_points_converging(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
+            find_tube_bifurcation_points_converging(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
         rod3 = pad3
 
         # Get d3 for outer bifurcation (for cox nodes)
@@ -2087,7 +2087,7 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         c1d2 = rhLastRingNodeCoordinates[2]
         c2xList = lhLastRingNodeCoordinates[0]
         c2d2 = lhLastRingNodeCoordinates[2]
-        nodeIdentifier, roNodeId, coNodeId = create3dBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre,
+        nodeIdentifier, roNodeId, coNodeId = createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre,
                                                                       paxList,
                                                                       pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
                                                                       c2d2, elementsCountThroughWall)
@@ -2537,7 +2537,7 @@ def createDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xA
 #     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 #
 #     rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-#         make_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
+#         find_tube_bifurcation_points_converging_2d(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2)
 #
 #     rod3 = pad3
 #     # Create bifurcation nodes
