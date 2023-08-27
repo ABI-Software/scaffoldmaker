@@ -44,35 +44,22 @@ class MeshType_3d_uterus1(Scaffold_base):
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[24.20, 3.98, 36.56], [-2.53, -1.44, -14.75], [0.99, 0.06, -0.18], [-0.02, -0.04, -0.14],
-                         [0.08, -0.99, 0.08], [0.00, -0.01, 0.06]]),
-                    (2, [[20.88, 2.45, 23.34], [-4.10, -1.61, -11.62], [0.94, 0.03, -0.34], [-0.08, -0.02, -0.18],
-                         [0.07, -1.00, 0.11], [-0.01, -0.00, -0.01]]),
-                    (3, [[16.28, 0.82, 13.37], [-5.78, -1.08, -8.95], [0.83, 0.01, -0.54], [-0.15, -0.01, -0.22],
-                         [0.06, -1.00, 0.08], [-0.02, -0.00, -0.05]]),
-                    (4, [[9.59, 0.29, 5.63], [-8.24, -0.42, -6.86], [0.64, 0.01, -0.77], [-0.23, -0.00, -0.20],
-                         [0.04, -1.00, 0.02], [-0.02, -0.00, -0.04]]),
+                    (1, [[24.20, 3.98, 36.56], [-2.53, -1.44, -14.75], [0.99, 0.06, -0.18], [-0.02, -0.04, -0.14], [0.08, -0.99, 0.08], [0.00, -0.01, 0.06]]),
+                    (2, [[20.88, 2.45, 23.34], [-4.10, -1.61, -11.62], [0.94, 0.03, -0.34], [-0.08, -0.02, -0.18], [0.07, -1.00, 0.11], [-0.01, -0.00, -0.01]]),
+                    (3, [[16.28, 0.82, 13.37], [-5.78, -1.08, -8.95], [0.83, 0.01, -0.54], [-0.15, -0.01, -0.22], [0.06, -1.00, 0.08], [-0.02, -0.00, -0.05]]),
+                    (4, [[9.59, 0.29, 5.63], [-8.24, -0.42, -6.86], [0.64, 0.01, -0.77], [-0.23, -0.00, -0.20], [0.04, -1.00, 0.02], [-0.02, -0.00, -0.04]]),
                     (5, [[0.00, 0.00, 0.00], [[-10.77, -0.15, -4.33], [10.77, -0.15, -4.33], [-0.05, 0.21, -4.41]],
                          [[0.37, 0.01, -0.93], [0.38, -0.01, 0.94], [1.00, 0.00, -0.01]], [-0.09, -0.01, 0.09],
                          [[0.02, -1.00, -0.00], [-0.02, -1.00, -0.00], [-0.00, -1.00, -0.05]], [-0.03, 0.00, 0.00]]),
-                    (6, [[-24.20, 3.98, 36.56], [2.53, -1.44, -14.75], [0.99, -0.03, 0.17], [0.12, -0.01, 0.39],
-                         [-0.05, -0.99, 0.09], [-0.03, 0.01, 0.04]]),
-                    (7, [[-20.88, 2.45, 23.34], [4.10, -1.61, -11.62], [0.95, -0.03, 0.34], [-0.08, 0.01, 0.19],
-                         [-0.07, -0.99, 0.11], [-0.01, -0.01, -0.01]]),
-                    (8, [[-16.28, 0.82, 13.37], [5.78, -1.08, -8.95], [0.84, -0.02, 0.54], [-0.16, 0.01, 0.22],
-                         [-0.07, -1.00, 0.07], [0.02, -0.01, -0.05]]),
-                    (9, [[-9.59, 0.29, 5.63], [8.24, -0.42, -6.86], [0.64, -0.01, 0.77], [0.04, 0.01, -0.20],
-                         [-0.04, -1.00, 0.02], [0.03, -0.00, -0.04]]),
-                    (10, [[-0.01, 0.09, -4.05], [0.03, -0.03, -3.69], [1.00, -0.00, 0.01], [0.07, 0.00, -0.15],
-                          [-0.00, -1.00, 0.01], [0.01, 0.00, -0.00]]),
-                    (11, [[0.06, -0.04, -7.37], [0.03, -0.03, -3.47], [1.00, -0.00, 0.01], [0.00, 0.00, -0.01],
-                          [-0.00, -1.00, 0.01], [0.00, 0.00, -0.01]]),
-                    (12, [[0.04, 0.04, -10.98], [-0.03, 0.01, -3.32], [1.00, -0.00, -0.01], [0.00, 0.00, -0.01],
-                          [-0.00, -1.00, -0.00], [0.00, -0.00, 0.00]]),
-                    (13, [[0.00, 0.00, -14.00], [-0.02, -0.02, -3.51], [1.00, 0.00, -0.01], [-0.00, -0.00, 0.01],
-                          [0.00, -1.00, 0.01], [0.00, -0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -18.00], [0.02, 0.02, -4.49], [1.00, -0.00, 0.01], [-0.00, -0.00, 0.02],
-                          [0.00, -1.00, -0.01], [-0.00, 0.00, -0.02]])]),
+                    (6, [[-24.20, 3.98, 36.56], [2.53, -1.44, -14.75], [0.99, -0.03, 0.17], [0.12, -0.01, 0.39], [-0.05, -0.99, 0.09], [-0.03, 0.01, 0.04]]),
+                    (7, [[-20.88, 2.45, 23.34], [4.10, -1.61, -11.62], [0.95, -0.03, 0.34], [-0.08, 0.01, 0.19], [-0.07, -0.99, 0.11], [-0.01, -0.01, -0.01]]),
+                    (8, [[-16.28, 0.82, 13.37], [5.78, -1.08, -8.95], [0.84, -0.02, 0.54], [-0.16, 0.01, 0.22], [-0.07, -1.00, 0.07], [0.02, -0.01, -0.05]]),
+                    (9, [[-9.59, 0.29, 5.63], [8.24, -0.42, -6.86], [0.64, -0.01, 0.77], [0.04, 0.01, -0.20], [-0.04, -1.00, 0.02], [0.03, -0.00, -0.04]]),
+                    (10, [[-0.01, 0.09, -4.05], [0.03, -0.03, -3.69], [1.00, -0.00, 0.01], [0.07, 0.00, -0.15], [-0.00, -1.00, 0.01], [0.01, 0.00, -0.00]]),
+                    (11, [[0.06, -0.04, -7.37], [0.03, -0.03, -3.47], [1.00, -0.00, 0.01], [0.00, 0.00, -0.01], [-0.00, -1.00, 0.01], [0.00, 0.00, -0.01]]),
+                    (12, [[0.04, 0.04, -10.98], [-0.03, 0.01, -3.32], [1.00, -0.00, -0.01], [0.00, 0.00, -0.01], [-0.00, -1.00, -0.00], [0.00, -0.00, 0.00]]),
+                    (13, [[0.00, 0.00, -14.00], [-0.02, -0.02, -3.51], [1.00, 0.00, -0.01], [-0.00, -0.00, 0.01], [0.00, -1.00, 0.01], [0.00, -0.00, 0.00]]),
+                    (14, [[0.00, 0.00, -18.00], [0.02, 0.02, -4.49], [1.00, -0.00, 0.01], [-0.00, -0.00, 0.02], [0.00, -1.00, -0.01], [-0.00, 0.00, -0.02]])]),
                     # (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
                     #      [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
                     # (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22],
@@ -146,39 +133,24 @@ class MeshType_3d_uterus1(Scaffold_base):
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[24.24, 2.02, 43.53], [-2.37, -0.70, -18.99], [1.00, 0.07, -0.13], [0.00, -0.05, -0.06],
-                         [0.07, -1.00, 0.03], [-0.05, -0.00, 0.02]]),
-                    (2, [[21.40, 1.32, 27.41], [-3.31, -0.70, -13.21], [0.97, 0.03, -0.24], [-0.07, -0.03, -0.18],
-                         [0.04, -1.00, 0.04], [-0.02, -0.00, 0.01]]),
-                    (3, [[18.03, 0.68, 17.12], [-5.13, -0.59, -9.85], [0.88, 0.01, -0.46], [-0.13, -0.01, -0.24],
-                         [0.03, -1.00, 0.04], [-0.01, 0.00, -0.01]]),
-                    (4, [[11.24, 0.17, 8.09], [-9.02, -0.37, -8.83], [0.70, 0.01, -0.72], [-0.20, -0.00, -0.21],
-                         [0.03, -1.00, 0.01], [-0.01, 0.00, -0.03]]),
+                    (1, [[24.24, 2.02, 43.53], [-2.37, -0.70, -18.99], [1.00, 0.07, -0.13], [0.00, -0.05, -0.06], [0.07, -1.00, 0.03], [-0.05, -0.00, 0.02]]),
+                    (2, [[21.40, 1.32, 27.41], [-3.31, -0.70, -13.21], [0.97, 0.03, -0.24], [-0.07, -0.03, -0.18], [0.04, -1.00, 0.04], [-0.02, -0.00, 0.01]]),
+                    (3, [[18.03, 0.68, 17.12], [-5.13, -0.59, -9.85], [0.88, 0.01, -0.46], [-0.13, -0.01, -0.24], [0.03, -1.00, 0.04], [-0.01, 0.00, -0.01]]),
+                    (4, [[11.24, 0.17, 8.09], [-9.02, -0.37, -8.83], [0.70, 0.01, -0.72], [-0.20, -0.00, -0.21], [0.03, -1.00, 0.01], [-0.01, 0.00, -0.03]]),
                     (5, [[0.00, 0.00, 0.00], [[-13.31, 0.03, -7.27], [13.31, 0.03, -7.27], [0.00, 0.00, -4.00]],
                          [[0.48, 0.01, -0.88], [0.48, -0.01, 0.89], [1.00, 0.00, 0.00]], [-0.06, -0.01, 0.09],
                          [[0.00, -1.00, -0.01], [-0.00, -1.00, -0.01], [0.00, -1.00, 0.00]], [-0.03, 0.00, -0.01]]),
-                    (6, [[-24.24, 2.02, 43.53], [2.37, -0.70, -18.99], [1.00, -0.04, 0.13], [0.12, -0.01, 0.34],
-                         [-0.04, -0.99, 0.03], [-0.01, 0.00, 0.02]]),
-                    (7, [[-21.40, 1.32, 27.41], [3.31, -0.70, -13.21], [0.98, -0.03, 0.25], [-0.06, 0.01, 0.18],
-                         [-0.04, -0.99, 0.04], [-0.00, -0.01, 0.00]]),
-                    (8, [[-18.03, 0.68, 17.12], [5.13, -0.59, -9.85], [0.89, -0.02, 0.46], [-0.14, 0.01, 0.24],
-                         [-0.05, -1.00, 0.04], [0.01, -0.00, -0.01]]),
-                    (9, [[-11.24, 0.17, 8.09], [9.02, -0.37, -8.83], [0.70, -0.01, 0.72], [0.01, 0.01, -0.14],
-                         [-0.03, -1.00, 0.01], [0.02, 0.00, -0.02]]),
-                    (10, [[0.00, 0.00, -4.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.06, 0.00, -0.14],
-                          [0.00, -1.00, 0.00], [0.01, 0.00, -0.00]]),
-                    (11, [[0.00, 0.00, -8.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (12, [[0.00, 0.00, -12.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00],
-                          [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
+                    (6, [[-24.24, 2.02, 43.53], [2.37, -0.70, -18.99], [1.00, -0.04, 0.13], [0.12, -0.01, 0.34], [-0.04, -0.99, 0.03], [-0.01, 0.00, 0.02]]),
+                    (7, [[-21.40, 1.32, 27.41], [3.31, -0.70, -13.21], [0.98, -0.03, 0.25], [-0.06, 0.01, 0.18], [-0.04, -0.99, 0.04], [-0.00, -0.01, 0.00]]),
+                    (8, [[-18.03, 0.68, 17.12], [5.13, -0.59, -9.85], [0.89, -0.02, 0.46], [-0.14, 0.01, 0.24], [-0.05, -1.00, 0.04], [0.01, -0.00, -0.01]]),
+                    (9, [[-11.24, 0.17, 8.09], [9.02, -0.37, -8.83], [0.70, -0.01, 0.72], [0.01, 0.01, -0.14], [-0.03, -1.00, 0.01], [0.02, 0.00, -0.02]]),
+                    (10, [[0.00, 0.00, -4.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.06, 0.00, -0.14], [0.00, -1.00, 0.00], [0.01, 0.00, -0.00]]),
+                    (11, [[0.00, 0.00, -8.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (12, [[0.00, 0.00, -12.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -1.00, 0.00], [0.00, 0.00, 0.00]])]),
                     # (1, [[13.84, 2.07, 20.50], [-0.53, -0.68, -6.63], [1.00, 0.07, -0.09], [-0.02, -0.05, -0.24],
                     #      [0.08, -0.99, 0.10], [-0.02, -0.01, -0.01]]),
                     # (2, [[12.56, 1.40, 14.10], [-2.03, -0.65, -6.11], [0.95, 0.03, -0.32], [-0.08, -0.03, -0.22],
@@ -445,7 +417,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Number of elements through wall',
             'Wall thickness',
             'Double uterus',
-            # 'Use cross derivatives',
             'Refine',
             'Refine number of elements along',
             'Refine number of elements around',
@@ -498,6 +469,8 @@ class MeshType_3d_uterus1(Scaffold_base):
                 options[key] = 1
         if options['Number of elements around'] % 2 != 0:
             options['Number of elements around'] += 1
+        if options['Number of elements around'] < options['Number of elements around horns']:
+            options['Number of elements around'] = options['Number of elements around horns']
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -536,28 +509,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
         vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[4]
 
-        # lengthGroup = geometricNetworkLayout.arcLengthOfGroupsAlong
-        # for length in lengthGroup:
-        #     if targetElementLength > length:
-        #         targetElementLength = length
-
         elementsCountInRightHorn = math.ceil(rightHornLength / targetElementLength)
         elementsCountInLeftHorn = math.ceil(leftHornLength / targetElementLength)
         elementsCountInBody = math.ceil(bodyLength / targetElementLength)
         elementsCountInCervix = math.ceil(cervixLength / targetElementLength)
         elementsCountInVagina = math.ceil(vaginaLength / targetElementLength)
-        elementsGroup = [elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInBody, elementsCountInCervix, elementsCountInVagina]
-
-
-        # for n in range(len(elementsGroup)):
-        #     if elementsGroup[2] < 2:
-        #         elementsGroup[2] == 2
-        #     element = elementsGroup[n]
-        #     if element < 1.0:
-        #         element == 1.0
-        #         elementsGroup[n] = element
-        # print('elementsGroup', elementsGroup)
-
 
 
         # if doubleUterus:
@@ -805,7 +761,6 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
     sx_body_group = geometricNetworkLayout.sxGroups[2]
     sx_cervix_group = geometricNetworkLayout.sxGroups[3]
-    # sx_vagina_group = geometricNetworkLayout.sxGroups[3]
 
     # Create annotation groups
     rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
@@ -854,13 +809,11 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
 
     if doubleUterus:
         # Get body nodes
-        bodyLength = geometricNetworkLayout.arcLengthOfGroupsAlong[2]
         bodyInnerRightCoordinates, bodyInnerLeftCoordinates, bodyCoordinatesOuter, septumBodyCoordinates = \
             getDoubleTubeNodes(cx_body_group, elementsCountInBody, elementsCountAround, elementsCountAroundRightHorn,
                              elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
 
         # Get cervix nodes
-        cervixLength = geometricNetworkLayout.arcLengthOfGroupsAlong[3]
         rightInnerCervixthroughWall, leftInnerCervixthroughWall, cervixCoordinatesOuter, septumCervixCoordinates = \
             getDoubleTubeNodes(cx_cervix_group, elementsCountInCervix, elementsCountAround, elementsCountAroundRightHorn,
                              elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
@@ -999,13 +952,9 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         paCentre = sx_body_group[0][1]
         c1Centre = sx_right_horn_group[0][-2]
         c2Centre = sx_left_horn_group[0][-2]
-        # paxList = xCervix[1]
-        # pad2 = d2Cervix[1]
         paxList = bodyCoordinatesOuter[0][1]
         pad2 = bodyCoordinatesOuter[2][1]
         pad3 = bodyCoordinatesOuter[3][1]
-        # paxList = cFirstRingNodeCoordinates[0]
-        # pad2 = cFirstRingNodeCoordinates[2]
         c1xList = rhLastRingNodeCoordinates[0][-1]
         c1d2 = rhLastRingNodeCoordinates[2][-1]
         c2xList = lhLastRingNodeCoordinates[0][-1]
@@ -1017,14 +966,12 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         # Get d3 for outer bifurcation (for cox nodes)
         cod3 = []
         for n in range(len(cox)):
-            # v1 = xSeptumBifurcation[n]
             v1 = septumBodyCoordinates[0][0][n + 1]
             v2 = cox[n]
             d3 = findDerivativeBetweenPoints(v1, v2)
             cod3.append(d3)
 
         # Get vagina nodes
-        vaginaLength = geometricNetworkLayout.arcLengthOfGroupsAlong[4]
         vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates, vaginaCoordinatesOuter, septumVaginaCoordinates = \
             getDoubleTubeNodes(cx_vagina_group, elementsCountInVagina, elementsCountAround, elementsCountAroundRightHorn,
                              elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
@@ -1079,12 +1026,12 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
     # Create right horn nodes
     nodeIdentifier = createTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
                                        elementsCountInRightHorn, elementsCountAroundRightHorn, elementsCountThroughWall,
-                                       omitStartRows=0, omitEndRows=1, startNodes=None)
+                                       omitStartRows=0, omitEndRows=1)
 
     # Create left horn nodes
     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
                                        elementsCountAroundLeftHorn, elementsCountThroughWall, omitStartRows=0,
-                                       omitEndRows=1, startNodes=None)
+                                       omitEndRows=1)
 
     if doubleUterus:
         # Create bifurcation nodes
@@ -1094,19 +1041,24 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              elementsCountAroundLeftHorn, elementsCountThroughWall)
 
         # Create body nodes
-        nodeIdentifier, bricNodeId, blicNodeId, botNodeId, bsNodeId = createDoubleTubeNodes(fm, nodeIdentifier, bodyInnerRightCoordinates, bodyInnerLeftCoordinates,
-                                             bodyCoordinatesOuter, septumBodyCoordinates, elementsCountInBody, elementsCountAround,
-                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=1, omitEndRows=1)
+        nodeIdentifier, bricNodeId, blicNodeId, botNodeId, bsNodeId = \
+            createDoubleTubeNodes(fm, nodeIdentifier, bodyInnerRightCoordinates, bodyInnerLeftCoordinates,
+                                  bodyCoordinatesOuter, septumBodyCoordinates, elementsCountInBody, elementsCountAround,
+                                  elementsCountAcross, elementsCountThroughWall, omitStartRows=1, omitEndRows=1)
 
         # Create cervix nodes
-        nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = createDoubleTubeNodes(fm, nodeIdentifier, rightInnerCervixthroughWall, leftInnerCervixthroughWall,
-                                             cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
-                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
+        nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = \
+            createDoubleTubeNodes(fm, nodeIdentifier, rightInnerCervixthroughWall, leftInnerCervixthroughWall,
+                                  cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix,
+                                  elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows=0,
+                                  omitEndRows=1)
 
         # Create vagina nodes
-        nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = createDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
-                                             vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina, elementsCountAround,
-                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=0)
+        nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = \
+            createDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
+                                  vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina,
+                                  elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows=0,
+                                  omitEndRows=0)
 
     else:
         # Create bifurcation nodes
@@ -1114,53 +1066,47 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
         c1Centre = sx_right_horn_group[0][-2]
         c2Centre = sx_left_horn_group[0][-2]
         paxList = bFirstRingNodeCoordinates[0]
-        # pad1List = cFirstRingNodeCoordinates[1]
-        # pad2List = cFirstRingNodeCoordinates[2]
         pad2 = bFirstRingNodeCoordinates[2]
         c1xList = rhLastRingNodeCoordinates[0]
         c1d2 = rhLastRingNodeCoordinates[2]
         c2xList = lhLastRingNodeCoordinates[0]
         c2d2 = lhLastRingNodeCoordinates[2]
-        nodeIdentifier, roNodeId, coNodeId = createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre,
-                                                                      paxList,
-                                                                      pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
-                                                                      c2d2, elementsCountThroughWall)
+        nodeIdentifier, roNodeId, coNodeId = \
+            createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList,
+                                       c1d2, c2Centre, c2xList, c2d2, elementsCountThroughWall)
 
         # Create body nodes
         nodeCount = nodeIdentifier
         nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, bodyCoordinates, elementsCountInBody,
-                                           elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-                                           omitEndRows=0, startNodes=None)
+                                         elementsCountAround, elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
 
         # Create cervix nodes
         nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, cervixCoordinates, elementsCountInCervix,
-                                           elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-                                           omitEndRows=0, startNodes=None)
+                                         elementsCountAround, elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
 
         # Create vagina nodes
         nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
-                                           elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-                                           omitEndRows=0, startNodes=None)
+                                         elementsCountAround, elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
 
     # Create elements
     # Create right horn elements
     startNodeId = firstNodeIdentifier
     elementIdentifier = \
         make_tube_elements(fm, coordinates, startNodeId, firstElementIdentifier, elementsCountInRightHorn,
-                             elementsCountAroundRightHorn, elementsCountThroughWall, useCrossDerivatives, omitStartRows=0,
-                             omitEndRows=1, meshGroups=[rightHornMeshGroup, uterusMeshGroup])
+                           elementsCountAroundRightHorn, elementsCountThroughWall, useCrossDerivatives, omitStartRows=0,
+                           omitEndRows=1, meshGroups=[rightHornMeshGroup, uterusMeshGroup])
 
     # Create left horn elements
     startNodeId = rhLastRingNodeId[-1][-1] + 1
     elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInLeftHorn,
-                                             elementsCountAroundLeftHorn, elementsCountThroughWall, useCrossDerivatives,
-                                             omitStartRows=0, omitEndRows=1,
-                                             meshGroups=[leftHornMeshGroup, uterusMeshGroup])
+                                           elementsCountAroundLeftHorn, elementsCountThroughWall, useCrossDerivatives,
+                                           omitStartRows=0, omitEndRows=1,
+                                           meshGroups=[leftHornMeshGroup, uterusMeshGroup])
 
 
     if doubleUterus:
         # Create bifurcation elements
-        paNodeId = botNodeId[:elementsCountAround]
+        # paNodeId = botNodeId[:elementsCountAround]
         c1NodeId = rhLastRingNodeId
         c2NodeId = lhLastRingNodeId
         if elementsCountInBody < 2:
@@ -1458,7 +1404,7 @@ def getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountAlongTu
 
 
 def createTubeNodes(fm, coordinates, nodeIdentifier, tubeCoordinates, elementsCountAlongTube, elementsCountAround,
-                      elementsCountThroughWall, omitStartRows, omitEndRows, startNodes=None):
+                      elementsCountThroughWall, omitStartRows, omitEndRows):
 
     cache = fm.createFieldcache()
 
@@ -2122,12 +2068,12 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 #     # Create right horn nodes
 #     nodeIdentifier = createTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
 #                                        elementsCountInRightHorn, elementsCountAround, elementsCountThroughWall,
-#                                        omitStartRows=0, omitEndRows=1, startNodes=None)
+#                                        omitStartRows=0, omitEndRows=1)
 #
 #     # Create left horn nodes
 #     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
 #                                        elementsCountAround, elementsCountThroughWall, omitStartRows=0,
-#                                        omitEndRows=1, startNodes=None)
+#                                        omitEndRows=1)
 #
 #     # Create bifurcation nodes
 #     paCentre = sx_cervix_group[0][1]
@@ -2149,12 +2095,12 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 #     nodeCount = nodeIdentifier
 #     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, cervixCoordinates, elementsCountInCervix,
 #                                        elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-#                                        omitEndRows=0, startNodes=None)
+#                                        omitEndRows=0)
 #
 #     # Create vagina nodes
 #     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
 #                                        elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-#                                        omitEndRows=0, startNodes=None)
+#                                        omitEndRows=0)
 #
 #     # Create elements
 #     # Create right horn elements
@@ -2288,7 +2234,7 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 #     return coordinatesList
 
 # def createTubeNodes2D(fm, nodeIdentifier, tubeCoordinates, elementsCountAlongTube, elementsCountAround,
-#                         omitStartRows, omitEndRows, startNodes=None):
+#                         omitStartRows, omitEndRows):
 #
 #     cache = fm.createFieldcache()
 #     coordinates = findOrCreateFieldCoordinates(fm)
