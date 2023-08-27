@@ -1988,19 +1988,19 @@ def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, eleme
                                              elementsCountAroundLeftHorn, elementsCountThroughWall)
 
         # Create body nodes
-        nodeIdentifier, bricNodeId, blicNodeId, botNodeId, bsNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, bodyInnerRightCoordinates, bodyInnerLeftCoordinates,
+        nodeIdentifier, bricNodeId, blicNodeId, botNodeId, bsNodeId = createDoubleTubeNodes(fm, nodeIdentifier, bodyInnerRightCoordinates, bodyInnerLeftCoordinates,
                                              bodyCoordinatesOuter, septumBodyCoordinates, elementsCountInBody, elementsCountAround,
-                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=1, omitEndRows=1, startNodes=None)
+                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=1, omitEndRows=1)
 
         # Create cervix nodes
-        nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, rightInnerCervixthroughWall, leftInnerCervixthroughWall,
+        nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId = createDoubleTubeNodes(fm, nodeIdentifier, rightInnerCervixthroughWall, leftInnerCervixthroughWall,
                                              cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix, elementsCountAround,
-                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=1, startNodes=None)
+                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
 
         # Create vagina nodes
-        nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = generateDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
+        nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = createDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
                                              vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina, elementsCountAround,
-                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=0, startNodes=None)
+                                             elementsCountAcross, elementsCountThroughWall, omitStartRows=0, omitEndRows=0)
 
     else:
         # Create bifurcation nodes
@@ -2386,8 +2386,13 @@ def findNodesAlongTubes2D(sx_group, elementsCountAround, elementsCountAlongTube,
     return tubeCoordinates
 
 
-def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountInCervix,
-                        elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows, omitEndRows, startNodes=None):
+def createDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountAlong,
+                          elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows, omitEndRows):
+
+    """
+    Gets coordinates and derivatives of inner canals and outer of a tube and generate the nodes.
+    :return: nodeIdentifier, tricNodeId, tlicNodeId, toNodeId, tsNodeId
+    """
 
     cache = fm.createFieldcache()
     coordinates = findOrCreateFieldCoordinates(fm)
@@ -2404,33 +2409,28 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
     elementsCountAroundRightHorn = count
     elementsCountAroundLeftHorn = count
 
-    cricNodeId = []  # cervix right inner canal node ids
-    clicNodeId = []  # cervix left inner canal node ids
-    cotNodeId = []  # cervix outer tube node id
-    csNodeId = []   # cervix septum node Id
-    for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix if omitEndRows == 1 else elementsCountInCervix + 1):
+    tricNodeId = []  # tube right inner canal node ids
+    tlicNodeId = []  # tube left inner canal node ids
+    toNodeId = []  # tube outer node ids
+    tsNodeId = []   # tube septum node ids
+    for n2 in range(1 if omitStartRows == 1 else 0, elementsCountAlong if omitEndRows == 1 else elementsCountAlong + 1):
         for n3 in range(elementsCountThroughWall):
             for n1 in range(elementsCountAroundRightHorn):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
-                # n = n2 * elementsCountAroundRightHorn + n1
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerRigh[0][n2][n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerRigh[1][n2][n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerRigh[2][n2][n3][n1])
-                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerRigh[3][n])
-                # if n2 == 1:
-                cricNodeId.append(nodeIdentifier)
+                tricNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
         for n3 in range(elementsCountThroughWall):
             for n1 in range(elementsCountAroundLeftHorn):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 cache.setNode(node)
-                # n = n2 * elementsCountAroundLeftHorn + n1
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n2][n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n2][n3][n1])
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n2][n3][n1])
-                # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
-                clicNodeId.append(nodeIdentifier)
+                tlicNodeId.append(nodeIdentifier)
                 nodeIdentifier += 1
         for n1 in range(1, elementsCountAcross):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -2438,7 +2438,7 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAcross[0][n2][n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xAcross[1][n2][n1])
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xAcross[2][n2][n1])
-            csNodeId.append(nodeIdentifier)
+            tsNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
         for n1 in range(elementsCountAround):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -2448,104 +2448,10 @@ def generateDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, 
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xOuter[2][n2][n1])
             if n1 in (0, elementsCountAround // 2):
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
-            cotNodeId.append(nodeIdentifier)
+            toNodeId.append(nodeIdentifier)
             nodeIdentifier += 1
 
-    # for n2 in range(1 if omitStartRows == 1 else 0, elementsCountInCervix if omitEndRows == 1 else elementsCountInCervix + 1):
-    #     # for n1 in range(elementsCountAroundLeftHorn):
-    #     #     node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #     #     cache.setNode(node)
-    #     #     n = n2 * elementsCountAroundLeftHorn + n1
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xInnerLeft[0][n])
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xInnerLeft[1][n])
-    #     #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xInnerLeft[2][n])
-    #     #     # coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xInnerLeft[3][n])
-    #     #     clicNodeId.append(nodeIdentifier)
-    #     #     nodeIdentifier += 1
-    #     for n1 in range(elementsCountAround):
-    #         node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #         cache.setNode(node)
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xOuter[0][n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, xOuter[1][n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, xOuter[2][n2][n1])
-    #         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, xOuter[3][n2][n1])
-    #         cotNodeId.append(nodeIdentifier)
-    #         nodeIdentifier += 1
-
-    # # Create tube nodes
-    # lastRingsNodeId = []
-    # xLastRing = []
-    # d1LastRing = []
-    # d2LastRing = []
-    # firstRingsNodeId = []
-    # xFirstRing = []
-    # d1FirstRing = []
-    # d2FirstRing = []
-    # for n2 in range(elementsCountAlongTube + 1):
-    #     lastRingNodeIdThroughWall = []
-    #     xLastRingThroughWall = []
-    #     d1LastRingThroughWall = []
-    #     d2LastRingThroughWall = []
-    #     firstRingNodeIdThroughWall = []
-    #     xFirstRingThroughWall = []
-    #     d1FirstRingThroughWall = []
-    #     d2FirstRingThroughWall = []
-    #     for n1 in range(elementsCountAround):
-    #         n = n2 * elementsCountAround + n1
-    #         x = tubeCoordinates[0][n]
-    #         d1 = tubeCoordinates[1][n]
-    #         d2 = tubeCoordinates[2][n]
-    #         if omitEndRows == 1:  # merging to the bifurcation
-    #             if n2 == elementsCountAlongTube:
-    #                 pass
-    #             else:
-    #                 node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #                 cache.setNode(node)
-    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-    #                 if n2 == elementsCountAlongTube - 1:
-    #                     lastRingNodeIdThroughWall.append(nodeIdentifier)
-    #                     xLastRingThroughWall.append(x)
-    #                     d1LastRingThroughWall.append(d1)
-    #                     d2LastRingThroughWall.append(d2)
-    #                 nodeIdentifier += 1
-    #         elif omitStartRows == 1:  # diverging from bifurcation
-    #             if n2 == 0:
-    #                 pass
-    #             else:
-    #                 node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #                 cache.setNode(node)
-    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-    #                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-    #                 if n2 == 1:
-    #                     firstRingNodeIdThroughWall.append(nodeIdentifier)
-    #                     xFirstRingThroughWall.append(x)
-    #                     d1FirstRingThroughWall.append(d1)
-    #                     d2FirstRingThroughWall.append(d2)
-    #                 nodeIdentifier += 1
-    #         else:
-    #             node = nodes.createNode(nodeIdentifier, nodetemplate)
-    #             cache.setNode(node)
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-    #             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-    #             nodeIdentifier += 1
-    #     if omitEndRows == 1:
-    #         if n2 == elementsCountAlongTube - 1:
-    #             lastRingsNodeId.append(lastRingNodeIdThroughWall)
-    #             xLastRing.append(xLastRingThroughWall)
-    #             d1LastRing.append(d1LastRingThroughWall)
-    #             d2LastRing.append(d2LastRingThroughWall)
-    #     elif omitStartRows == 1:
-    #         if n2 == 1:
-    #             firstRingsNodeId.append(firstRingNodeIdThroughWall)
-    #             xFirstRing.append(xFirstRingThroughWall)
-    #             d1FirstRing.append(d1FirstRingThroughWall)
-    #             d2FirstRing.append(d2FirstRingThroughWall)
-
-    return nodeIdentifier, cricNodeId, clicNodeId, cotNodeId, csNodeId
+    return nodeIdentifier, tricNodeId, tlicNodeId, toNodeId, tsNodeId
 
 
 # def create2DBifurcationNodes(fm, nodeIdentifier, paCentre, pax, pad2, pad3, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
@@ -2595,7 +2501,7 @@ def createDoubleTubeBifurcationNodes(fm, nodeIdentifier, rox, rod1, rod2, rod3, 
                                      elementsCountAroundLeftHorn, elementsCountThroughWall):
 
     """
-    Gets coordinates and derivatives of bifurcation inner and outer
+    Gets coordinates and derivatives of bifurcation inner and outer and generate the nodes.
     :return: nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId
     """
 
