@@ -518,21 +518,22 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         # if doubleUterus:
         #     nodeIdentifier, elementIdentifier, annotationGroups = \
-        #         createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
+        #         createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
         #                               elementsCountAroundLeftHorn, elementsCountAcross,
         #                            elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
         #                            elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
         # else:
         #     nodeIdentifier, elementIdentifier, annotationGroups = \
-        #         createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+        #         createUterusMesh3D_mouse(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
         #                            elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
         #                            elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
 
         nodeIdentifier, elementIdentifier, annotationGroups = \
-            createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
-                                  elementsCountAroundLeftHorn, elementsCountAcross,
+            createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+                               elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountAcross,
                                elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-                               elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, doubleUterus, useCrossDerivatives)
+                               elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness,
+                               doubleUterus, useCrossDerivatives)
 
         # # Material coordinates
         # tmp_region = region.createRegion()
@@ -542,13 +543,13 @@ class MeshType_3d_uterus1(Scaffold_base):
         #     materialNetworkLayout = UterusNetworkLayout(tmp_region, materialNetworkLayout, materialTargetElementLength)
         #
         #     # nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
-        #     #     createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
+        #     #     createUterusMesh3D_mouse(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
         #     #                        elementsCountAround, elementsCountThroughWall, elementsCountInRightHorn,
         #     #                        elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
         #     #                        materialWallThickness, useCrossDerivatives)
         #
         #     nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
-        #         createUterusMesh3DRat(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout, elementsCountAround,
+        #         createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout, elementsCountAround,
         #                               elementsCountAroundRightHorn,
         #                               elementsCountAroundLeftHorn, elementsCountAcross,
         #                               elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
@@ -741,7 +742,7 @@ class UterusNetworkLayout:
         self.elementsCountAlongList = elementsCountAlongList
 
 
-def createUterusMesh3DRat(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
+def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
                           elementsCountAroundLeftHorn, elementsCountAcross,
                           elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
                           elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, doubleUterus, useCrossDerivatives):
@@ -1990,7 +1991,7 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 #     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
 
-# def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountThroughWall,
+# def createUterusMesh3D_mouse(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountThroughWall,
 #                        elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
 #                        wallThickness, useCrossDerivatives):
 #
