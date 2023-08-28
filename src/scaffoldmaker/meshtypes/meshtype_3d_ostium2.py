@@ -397,10 +397,10 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
     ostiumWallThicknessProportions.append(ostiumWallThicknessProportions[-1])
     vesselWallThicknessProportions.append(vesselWallThicknessProportions[-1])
 
-    xOstiumInner, d1OstiumInner =  sampleEllipsePoints(centralPath.cxPath[-1], centralPath.cd2Path[-1],
+    xOstiumOuter, d1OstiumOuter = sampleEllipsePoints(centralPath.cxPath[-1], centralPath.cd2Path[-1],
                                                        centralPath.cd3Path[-1], 0.0, 2.0*math.pi,
                                                        elementsCountAroundOstium)
-    del xOstiumInner[-1], d1OstiumInner[-1]
+    del xOstiumOuter[-1], d1OstiumOuter[-1]
 
     for n1 in range(elementsCountAroundOstium):
         elementLength = elementLengthAroundOstiumEnd
@@ -440,7 +440,7 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
         #     sideDirection = trackDirection2reverse
         #     print('5')
 
-        position = trackSurface.findNearestPosition(xOstiumInner[n1])
+        position = trackSurface.findNearestPosition(xOstiumOuter[n1])
         oPositions.append(position)
         px, d1, d2 = trackSurface.evaluateCoordinates(position, True)
         angleRadians = 2.0 * math.pi / elementsCountAroundOstium * n1
@@ -457,7 +457,7 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
         sideDirection = [(w1 * trackDirection1[c] + w2 * trackDirection2[c]) for c in range(3)]
         pd2, pd1, pd3 = calculate_surface_axes(d1, d2, sideDirection)
 
-        # get outer coordinates
+        # get inner coordinates
         opx = px
         opd1 = vector.setMagnitude([-d for d in pd1], elementLengthAroundOstiumEnd)
         opd2 = vector.setMagnitude(pd2, vector.magnitude(centralPath.cd2Path[0]))  # smoothed later
@@ -610,9 +610,10 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
         vod1.append([])
         vod2.append([])
         vod3.append([])
+
         for n3 in range(elementsCountThroughWall + 1):
-            radius1 = vector.magnitude(centralPath.cd2Path[0]) + vesselWallThicknessXi3List[n3] * vesselWallThickness
-            radius2 = vector.magnitude(centralPath.cd3Path[0]) + vesselWallThicknessXi3List[n3] * vesselWallThickness
+            radius1 = vector.magnitude(centralPath.cd2Path[0]) - (1.0 - vesselWallThicknessXi3List[n3]) * vesselWallThickness
+            radius2 = vector.magnitude(centralPath.cd3Path[0]) - (1.0 - vesselWallThicknessXi3List[n3]) * vesselWallThickness
             vAxis1 = vector.setMagnitude(centralPath.cd2Path[0], radius1)
             vAxis2 = vector.setMagnitude(centralPath.cd3Path[0], radius2)
             # print(centralPath.cd2Path[0], centralPath.cd3Path[0])
