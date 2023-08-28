@@ -1276,9 +1276,9 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
     transitElementList = [0] * elementsCountAround
     relativeThicknessList = []
     xList, d1List, d2List, d3List, curvatureList = \
-        tubemesh.getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1),
+        tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1),
                                          relativeThicknessList, elementsCountAround, elementsCountAlongTube,
-                                         elementsCountThroughWall, transitElementList)
+                                         elementsCountThroughWall, transitElementList, outward=True)
 
     coordinatesList = [xList, d1List, d2List, d3List]
 
