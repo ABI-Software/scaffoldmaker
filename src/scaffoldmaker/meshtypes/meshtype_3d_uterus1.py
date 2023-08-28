@@ -518,10 +518,11 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         # if doubleUterus:
         #     nodeIdentifier, elementIdentifier, annotationGroups = \
-        #         createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
-        #                               elementsCountAroundLeftHorn, elementsCountAcross,
-        #                            elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-        #                            elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, useCrossDerivatives)
+        #         createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+        #                            elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall,
+        #                            elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInBody,
+        #                            elementsCountInCervix, elementsCountInVagina, wallThickness, doubleUterus,
+        #                            useCrossDerivatives)
         # else:
         #     nodeIdentifier, elementIdentifier, annotationGroups = \
         #         createUterusMesh3D_mouse(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
@@ -530,10 +531,10 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         nodeIdentifier, elementIdentifier, annotationGroups = \
             createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
-                               elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountAcross,
-                               elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-                               elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness,
-                               doubleUterus, useCrossDerivatives)
+                               elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall,
+                               elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInBody,
+                               elementsCountInCervix, elementsCountInVagina, wallThickness, doubleUterus,
+                               useCrossDerivatives)
 
         # # Material coordinates
         # tmp_region = region.createRegion()
@@ -551,7 +552,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         #     nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
         #         createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout, elementsCountAround,
         #                               elementsCountAroundRightHorn,
-        #                               elementsCountAroundLeftHorn, elementsCountAcross,
+        #                               elementsCountAroundLeftHorn,
         #                               elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
         #                               elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness,
         #                               doubleUterus, useCrossDerivatives)
@@ -743,9 +744,9 @@ class UterusNetworkLayout:
 
 
 def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
-                          elementsCountAroundLeftHorn, elementsCountAcross,
-                          elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-                          elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness, doubleUterus, useCrossDerivatives):
+                       elementsCountAroundLeftHorn, elementsCountThroughWall, elementsCountInRightHorn,
+                       elementsCountInLeftHorn, elementsCountInBody, elementsCountInCervix, elementsCountInVagina,
+                       wallThickness, doubleUterus, useCrossDerivatives):
 
     mesh = fm.findMeshByDimension(3)
 
@@ -1991,160 +1992,160 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 #     return rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex
 
 
-# def createUterusMesh3D_mouse(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountThroughWall,
-#                        elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
-#                        wallThickness, useCrossDerivatives):
-#
-#     mesh = fm.findMeshByDimension(3)
-#
-#     firstNodeIdentifier = 1
-#     firstElementIdentifier = 1
-#
-#     cx_right_horn_group = geometricNetworkLayout.cxGroups[0]
-#     cx_left_horn_group = geometricNetworkLayout.cxGroups[1]
-#     cx_cervix_group = geometricNetworkLayout.cxGroups[2]
-#     cx_vagina_group = geometricNetworkLayout.cxGroups[3]
-#
-#     sx_right_horn_group = geometricNetworkLayout.sxGroups[0]
-#     sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
-#     sx_cervix_group = geometricNetworkLayout.sxGroups[2]
-#     # sx_vagina_group = geometricNetworkLayout.sxGroups[3]
-#
-#     # Create annotation groups
-#     rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
-#     leftHornGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
-#     cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
-#     vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
-#     uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
-#     annotationGroups = [cervixGroup, vaginaGroup, leftHornGroup, rightHornGroup, uterusGroup]
-#
-#     rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
-#     leftHornMeshGroup = leftHornGroup.getMeshGroup(mesh)
-#     cervixMeshGroup = cervixGroup.getMeshGroup(mesh)
-#     vaginaMeshGroup = vaginaGroup.getMeshGroup(mesh)
-#     uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
-#
-#     # Get right horn nodes
-#     rightHornCoordinates = getTubeNodes(cx_right_horn_group, elementsCountAround,
-#                                                      elementsCountInRightHorn, elementsCountThroughWall,
-#                                                      wallThickness, startRadian=-math.pi / 2)
-#
-#     rhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(rightHornCoordinates, elementsCountAround,
-#                                                                 elementsCountInRightHorn, elementsCountThroughWall,
-#                                                                 omitStartRows=0, omitEndRows=1)
-#
-#     rhLastRingNodeId, nodeCount = getTargetedRingNodesIds(firstNodeIdentifier, elementsCountAround,
-#                                                          elementsCountInRightHorn, elementsCountThroughWall,
-#                                                          omitStartRows=0, omitEndRows=1)
-#
-#     # Get left horn nodes
-#     leftHornCoordinates = getTubeNodes(cx_left_horn_group, elementsCountAround,
-#                                                     elementsCountInLeftHorn, elementsCountThroughWall,
-#                                                     wallThickness, startRadian=-math.pi / 2)
-#
-#     lhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAround,
-#                                                                 elementsCountInLeftHorn, elementsCountThroughWall,
-#                                                                 omitStartRows=0, omitEndRows=1)
-#
-#     lhLastRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountInLeftHorn,
-#                                                          elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
-#
-#     # Get cervix nodes
-#     cervixCoordinates = getTubeNodes(cx_cervix_group, elementsCountAround, elementsCountInCervix,
-#                                                   elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
-#
-#     cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
-#                                                                 elementsCountInCervix, elementsCountThroughWall,
-#                                                                 omitStartRows=1, omitEndRows=0)
-#
-#     # Get vagina nodes
-#     vaginaCoordinates = getTubeNodes(cx_vagina_group, elementsCountAround, elementsCountInVagina,
-#                                                   elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
-#
-#     # vFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(vaginaCoordinates, elementsCountAround,
-#     #                                                             elementsCountInVagina, elementsCountThroughWall,
-#     #                                                             omitStartRows=0, omitEndRows=0)
-#
-#     # Create nodes
-#     # Create right horn nodes
-#     nodeIdentifier = createTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
-#                                        elementsCountInRightHorn, elementsCountAround, elementsCountThroughWall,
-#                                        omitStartRows=0, omitEndRows=1)
-#
-#     # Create left horn nodes
-#     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
-#                                        elementsCountAround, elementsCountThroughWall, omitStartRows=0,
-#                                        omitEndRows=1)
-#
-#     # Create bifurcation nodes
-#     paCentre = sx_cervix_group[0][1]
-#     c1Centre = sx_right_horn_group[0][-2]
-#     c2Centre = sx_left_horn_group[0][-2]
-#     paxList = cFirstRingNodeCoordinates[0]
-#     # pad1List = cFirstRingNodeCoordinates[1]
-#     # pad2List = cFirstRingNodeCoordinates[2]
-#     pad2 = cFirstRingNodeCoordinates[2]
-#     c1xList = rhLastRingNodeCoordinates[0]
-#     c1d2 = rhLastRingNodeCoordinates[2]
-#     c2xList = lhLastRingNodeCoordinates[0]
-#     c2d2 = lhLastRingNodeCoordinates[2]
-#     nodeIdentifier, roNodeId, coNodeId = createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
-#                                                                   pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
-#                                                                   c2d2, elementsCountThroughWall)
-#
-#     # Create cervix nodes
-#     nodeCount = nodeIdentifier
-#     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, cervixCoordinates, elementsCountInCervix,
-#                                        elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-#                                        omitEndRows=0)
-#
-#     # Create vagina nodes
-#     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
-#                                        elementsCountAround, elementsCountThroughWall, omitStartRows=1,
-#                                        omitEndRows=0)
-#
-#     # Create elements
-#     # Create right horn elements
-#     startNodeId = firstNodeIdentifier
-#     elementIdentifier = \
-#         make_tube_elements(fm, coordinates, startNodeId, firstElementIdentifier, elementsCountInRightHorn,
-#                              elementsCountAround, elementsCountThroughWall, useCrossDerivatives, omitStartRows=0,
-#                              omitEndRows=1, meshGroups=[rightHornMeshGroup, uterusMeshGroup])
-#
-#     # Create left horn elements
-#     startNodeId = rhLastRingNodeId[-1][-1] + 1
-#     elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInLeftHorn,
-#                                              elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-#                                              omitStartRows=0, omitEndRows=1,
-#                                              meshGroups=[leftHornMeshGroup, uterusMeshGroup])
-#
-#     # Create bifurcation elements
-#     cFirstRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountInCervix,
-#                                                          elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
-#     paNodeId = cFirstRingNodeId
-#     c1NodeId = rhLastRingNodeId
-#     c2NodeId = lhLastRingNodeId
-#     elementIdentifier = make_tube_bifurcation_elements(fm, coordinates, elementIdentifier,
-#                                                           elementsCountAround, elementsCountThroughWall, paNodeId,
-#                                                           c1NodeId, c2NodeId, roNodeId, coNodeId,
-#                                                           meshGroups=[cervixMeshGroup, rightHornMeshGroup,
-#                                                                       leftHornMeshGroup, uterusMeshGroup])
-#
-#     # Create cervix elements
-#     startNodeId = paNodeId[0][0]
-#     elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInCervix,
-#                                              elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-#                                              omitStartRows=1, omitEndRows=0,
-#                                              meshGroups=[cervixMeshGroup, uterusMeshGroup])
-#
-#     # Create vagina elements
-#     startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
-#     elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
-#                                              elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-#                                              omitStartRows=0, omitEndRows=0,
-#                                              meshGroups=[vaginaMeshGroup])
-#
-#     return nodeIdentifier, elementIdentifier, annotationGroups
+def createUterusMesh3D_mouse(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountThroughWall,
+                       elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInCervix, elementsCountInVagina,
+                       wallThickness, useCrossDerivatives):
+
+    mesh = fm.findMeshByDimension(3)
+
+    firstNodeIdentifier = 1
+    firstElementIdentifier = 1
+
+    cx_right_horn_group = geometricNetworkLayout.cxGroups[0]
+    cx_left_horn_group = geometricNetworkLayout.cxGroups[1]
+    cx_cervix_group = geometricNetworkLayout.cxGroups[2]
+    cx_vagina_group = geometricNetworkLayout.cxGroups[3]
+
+    sx_right_horn_group = geometricNetworkLayout.sxGroups[0]
+    sx_left_horn_group = geometricNetworkLayout.sxGroups[1]
+    sx_cervix_group = geometricNetworkLayout.sxGroups[2]
+    # sx_vagina_group = geometricNetworkLayout.sxGroups[3]
+
+    # Create annotation groups
+    rightHornGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
+    leftHornGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
+    cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
+    vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
+    uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
+    annotationGroups = [cervixGroup, vaginaGroup, leftHornGroup, rightHornGroup, uterusGroup]
+
+    rightHornMeshGroup = rightHornGroup.getMeshGroup(mesh)
+    leftHornMeshGroup = leftHornGroup.getMeshGroup(mesh)
+    cervixMeshGroup = cervixGroup.getMeshGroup(mesh)
+    vaginaMeshGroup = vaginaGroup.getMeshGroup(mesh)
+    uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
+
+    # Get right horn nodes
+    rightHornCoordinates = getTubeNodes(cx_right_horn_group, elementsCountAround,
+                                                     elementsCountInRightHorn, elementsCountThroughWall,
+                                                     wallThickness, startRadian=-math.pi / 2)
+
+    rhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(rightHornCoordinates, elementsCountAround,
+                                                                elementsCountInRightHorn, elementsCountThroughWall,
+                                                                omitStartRows=0, omitEndRows=1)
+
+    rhLastRingNodeId, nodeCount = getTargetedRingNodesIds(firstNodeIdentifier, elementsCountAround,
+                                                         elementsCountInRightHorn, elementsCountThroughWall,
+                                                         omitStartRows=0, omitEndRows=1)
+
+    # Get left horn nodes
+    leftHornCoordinates = getTubeNodes(cx_left_horn_group, elementsCountAround,
+                                                    elementsCountInLeftHorn, elementsCountThroughWall,
+                                                    wallThickness, startRadian=-math.pi / 2)
+
+    lhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAround,
+                                                                elementsCountInLeftHorn, elementsCountThroughWall,
+                                                                omitStartRows=0, omitEndRows=1)
+
+    lhLastRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountInLeftHorn,
+                                                         elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
+
+    # Get cervix nodes
+    cervixCoordinates = getTubeNodes(cx_cervix_group, elementsCountAround, elementsCountInCervix,
+                                                  elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
+
+    cFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(cervixCoordinates, elementsCountAround,
+                                                                elementsCountInCervix, elementsCountThroughWall,
+                                                                omitStartRows=1, omitEndRows=0)
+
+    # Get vagina nodes
+    vaginaCoordinates = getTubeNodes(cx_vagina_group, elementsCountAround, elementsCountInVagina,
+                                                  elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
+
+    # vFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(vaginaCoordinates, elementsCountAround,
+    #                                                             elementsCountInVagina, elementsCountThroughWall,
+    #                                                             omitStartRows=0, omitEndRows=0)
+
+    # Create nodes
+    # Create right horn nodes
+    nodeIdentifier = createTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
+                                       elementsCountInRightHorn, elementsCountAround, elementsCountThroughWall,
+                                       omitStartRows=0, omitEndRows=1)
+
+    # Create left horn nodes
+    nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
+                                       elementsCountAround, elementsCountThroughWall, omitStartRows=0,
+                                       omitEndRows=1)
+
+    # Create bifurcation nodes
+    paCentre = sx_cervix_group[0][1]
+    c1Centre = sx_right_horn_group[0][-2]
+    c2Centre = sx_left_horn_group[0][-2]
+    paxList = cFirstRingNodeCoordinates[0]
+    # pad1List = cFirstRingNodeCoordinates[1]
+    # pad2List = cFirstRingNodeCoordinates[2]
+    pad2 = cFirstRingNodeCoordinates[2]
+    c1xList = rhLastRingNodeCoordinates[0]
+    c1d2 = rhLastRingNodeCoordinates[2]
+    c2xList = lhLastRingNodeCoordinates[0]
+    c2d2 = lhLastRingNodeCoordinates[2]
+    nodeIdentifier, roNodeId, coNodeId = createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList,
+                                                                  pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
+                                                                  c2d2, elementsCountThroughWall)
+
+    # Create cervix nodes
+    nodeCount = nodeIdentifier
+    nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, cervixCoordinates, elementsCountInCervix,
+                                       elementsCountAround, elementsCountThroughWall, omitStartRows=1,
+                                       omitEndRows=0)
+
+    # Create vagina nodes
+    nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, vaginaCoordinates, elementsCountInVagina,
+                                       elementsCountAround, elementsCountThroughWall, omitStartRows=1,
+                                       omitEndRows=0)
+
+    # Create elements
+    # Create right horn elements
+    startNodeId = firstNodeIdentifier
+    elementIdentifier = \
+        make_tube_elements(fm, coordinates, startNodeId, firstElementIdentifier, elementsCountInRightHorn,
+                             elementsCountAround, elementsCountThroughWall, useCrossDerivatives, omitStartRows=0,
+                             omitEndRows=1, meshGroups=[rightHornMeshGroup, uterusMeshGroup])
+
+    # Create left horn elements
+    startNodeId = rhLastRingNodeId[-1][-1] + 1
+    elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInLeftHorn,
+                                             elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+                                             omitStartRows=0, omitEndRows=1,
+                                             meshGroups=[leftHornMeshGroup, uterusMeshGroup])
+
+    # Create bifurcation elements
+    cFirstRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountInCervix,
+                                                         elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
+    paNodeId = cFirstRingNodeId
+    c1NodeId = rhLastRingNodeId
+    c2NodeId = lhLastRingNodeId
+    elementIdentifier = make_tube_bifurcation_elements(fm, coordinates, elementIdentifier,
+                                                          elementsCountAround, elementsCountThroughWall, paNodeId,
+                                                          c1NodeId, c2NodeId, roNodeId, coNodeId,
+                                                          meshGroups=[cervixMeshGroup, rightHornMeshGroup,
+                                                                      leftHornMeshGroup, uterusMeshGroup])
+
+    # Create cervix elements
+    startNodeId = paNodeId[0][0]
+    elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInCervix,
+                                             elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+                                             omitStartRows=1, omitEndRows=0,
+                                             meshGroups=[cervixMeshGroup, uterusMeshGroup])
+
+    # Create vagina elements
+    startNodeId = paNodeId[0][0] + (elementsCountInCervix - 1) * elementsCountAround * (elementsCountThroughWall + 1)
+    elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
+                                             elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+                                             omitStartRows=0, omitEndRows=0,
+                                             meshGroups=[vaginaMeshGroup])
+
+    return nodeIdentifier, elementIdentifier, annotationGroups
 
 
 # def getCoordinatesAlongTube2D(cx_group, elementsCountAround, elementsCountAlongTube, startRadian):
@@ -3660,4 +3661,49 @@ def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, el
     #     #     # should be d3 of the d3SampledBifurcationLeft
     #     #     rod3.append(d3SampledBifurcationLeft[n])
     #     #     # rod3.append([0.0, 0.0, 1.0])
+
+
+
+
+
+
+
+
+
+    # # cx_tube_group_right = cx_tube_group[1:]
+    # # cx_tube_group_left = cx_tube_group[1:]
+    # distance = wallThickness
+    # xrList = []
+    # d2rList = []
+    # d3rList = []
+    # xlList = []
+    # d2lList = []
+    # d3lList = []
+    # for n in range(len(cx_tube_group[0])):
+    #     x = cx_tube_group[0][n]
+    #     v2r = vector.normalise(cx_tube_group[2][n])
+    #     v3r = vector.normalise(cx_tube_group[4][n])
+    #     d2Mag = vector.magnitude(cx_tube_group[2][n])
+    #     d3Mag = vector.magnitude(cx_tube_group[4][n])
+    #     r2 = (d2Mag - distance - wallThickness) / 2
+    #     # r3 = (d3Mag - wallThickness)
+    #     v_trans = vector.setMagnitude(v2r, distance + r2)
     #
+    #     x_right = [x[c] + v_trans[c] for c in range(3)]
+    #     xrList.append(x_right)
+    #     d2rList.append(vector.setMagnitude(v2r, r2))
+    #     d3rList.append(vector.setMagnitude(v3r, r2))
+    #
+    #     x_left = [x[c] - v_trans[c] for c in range(3)]
+    #     v2l = [-v2r[c] for c in range(3)]
+    #     v3l = [-v3r[c] for c in range(3)]
+    #     xlList.append(x_left)
+    #     d2lList.append(vector.setMagnitude(v2l, r2))
+    #     d3lList.append(vector.setMagnitude(v3l, r2))
+    # # cx_tube_group_right.insert(0, xrList)
+    # # cx_tube_group_left.insert(0, xlList)
+    # cx_tube_group_right = [xrList, cx_tube_group[1], d2rList, [], d3rList]
+    # cx_tube_group_left = [xlList, cx_tube_group[1], d2lList, [], d3lList]
+
+
+    # sx_tube_group = cx_tube_group
