@@ -162,19 +162,34 @@ def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
     d2m = [ d*xi for d in d2m ]
     return getCubicHermiteArcLength(v1, d1m, v2m, d2m)
 
-def getCubicHermiteCurvesLength(cx, sd1):
+def getCubicHermiteCurvesLength(cx, cd1):
     """
-    Calculate total length of a curve
-    :param cx: coordinates along the path.
-    :param sd1: d1 derivatives.
-    :return:
+    Calculate total length of a curve.
+    :param cx: coordinates along the curve.
+    :param cd1: d1 derivatives.
+    :return: Length
     """
     totalLength = 0.0
-    elementsCountIn = len(cx) - 1
-    for e in range(elementsCountIn):
-        arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+    elementsCount = len(cx) - 1
+    for e in range(elementsCount):
+        ep = e + 1
+        arcLength = getCubicHermiteArcLength(cx[e], cd1[e], cx[ep], cd1[ep])
         totalLength += arcLength
+    return totalLength
 
+def getCubicHermiteCurvesLengthLoop(cx, cd1):
+    """
+    Calculate total length of a loop curve, which repeats back to first point.
+    :param cx: coordinates along the curve.
+    :param cd1: d1 derivatives.
+    :return: Length
+    """
+    totalLength = 0.0
+    elementsCount = len(cx)
+    for e in range(elementsCount):
+        ep = e - elementsCount + 1
+        arcLength = getCubicHermiteArcLength(cx[e], cd1[e], cx[ep], cd1[ep])
+        totalLength += arcLength
     return totalLength
 
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):

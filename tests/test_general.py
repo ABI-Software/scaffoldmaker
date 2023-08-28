@@ -1,8 +1,8 @@
 import math
 import unittest
 
-from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
-from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+from cmlibs.maths.vectorops import magnitude, normalize, sub
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
     nodeset_group_add_identifier_ranges, nodeset_group_to_identifier_ranges
@@ -19,6 +19,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
+from scaffoldmaker.utils.interpolation import getCubicHermiteCurvesLength
 from scaffoldmaker.utils.tracksurface import TrackSurface
 
 from testutils import assertAlmostEqualList
@@ -34,26 +35,26 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         tmpScale = scaffoldPackage.getScale()
         TOL = 1.0E-7
-        FINETOL = 1.0E-12
-        assertAlmostEqualList(self, tmpScale, [ 1.0, 1.0, 1.0 ], delta=FINETOL)
-        newScale = [ 2.0, 1.5, 0.5 ]
+        FINE_TOL = 1.0E-12
+        assertAlmostEqualList(self, tmpScale, [1.0, 1.0, 1.0], delta=FINE_TOL)
+        newScale = [2.0, 1.5, 0.5]
         scaffoldPackage.setScale(newScale)
         tmpScale = scaffoldPackage.getScale()
-        assertAlmostEqualList(self, tmpScale, newScale, delta=FINETOL)
+        assertAlmostEqualList(self, tmpScale, newScale, delta=FINE_TOL)
 
         tmpRotation = scaffoldPackage.getRotation()
-        assertAlmostEqualList(self, tmpRotation, [ 0.0, 0.0, 0.0 ], delta=FINETOL)
-        newRotation = [ 30.0, -10.0, 90.0 ]
+        assertAlmostEqualList(self, tmpRotation, [0.0, 0.0, 0.0], delta=FINE_TOL)
+        newRotation = [30.0, -10.0, 90.0]
         scaffoldPackage.setRotation(newRotation)
         tmpRotation = scaffoldPackage.getRotation()
-        assertAlmostEqualList(self, tmpRotation, newRotation, delta=FINETOL)
+        assertAlmostEqualList(self, tmpRotation, newRotation, delta=FINE_TOL)
 
         tmpTranslation = scaffoldPackage.getTranslation()
-        assertAlmostEqualList(self, tmpTranslation, [ 0.0, 0.0, 0.0 ], delta=FINETOL)
-        newTranslation = [ 0.5, 1.2, -0.1 ]
+        assertAlmostEqualList(self, tmpTranslation, [0.0, 0.0, 0.0], delta=FINE_TOL)
+        newTranslation = [0.5, 1.2, -0.1]
         scaffoldPackage.setTranslation(newTranslation)
         tmpTranslation = scaffoldPackage.getTranslation()
-        assertAlmostEqualList(self, tmpTranslation, newTranslation, delta=FINETOL)
+        assertAlmostEqualList(self, tmpTranslation, newTranslation, delta=FINE_TOL)
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -68,8 +69,10 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [  2.744244002293470e-01,  6.367511648575830e-01, -1.000000000000000e-01 ], delta=TOL)
-        assertAlmostEqualList(self, maximums, [  2.455737063904887e+00,  2.184807753012208e+00,  1.724507984852172e+00 ], delta=TOL)
+        assertAlmostEqualList(
+            self, minimums, [2.744244002293470e-01, 6.367511648575830e-01, -1.000000000000000e-01], delta=TOL)
+        assertAlmostEqualList(
+            self, maximums, [2.455737063904887e+00, 2.184807753012208e+00,  1.724507984852172e+00], delta=TOL)
 
         node = nodes.findNodeByIdentifier(8)
         self.assertTrue(node.isValid())
@@ -77,19 +80,23 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         fieldcache.setNode(node)
         result, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         self.assertEqual(RESULT_OK, result)
-        assertAlmostEqualList(self, x , [  2.230161464134234e+00,  1.621558917869791e+00,  1.724507984852172e+00 ], delta=TOL)
+        assertAlmostEqualList(
+            self, x, [2.230161464134234e+00,  1.621558917869791e+00,  1.724507984852172e+00], delta=TOL)
         # derivative magnitudes must also equal scale
         result, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
         self.assertEqual(RESULT_OK, result)
-        assertAlmostEqualList(self, d1, [  1.705737064039425e+00,  9.848077530127952e-01,  3.472963553408093e-01 ], delta=TOL)
+        assertAlmostEqualList(
+            self, d1, [1.705737064039425e+00,  9.848077530127952e-01,  3.472963553408093e-01], delta=TOL)
         self.assertAlmostEqual(newScale[0], magnitude(d1), delta=TOL)
         result, d2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
         self.assertEqual(RESULT_OK, result)
-        assertAlmostEqualList(self, d2, [ -2.255755995328457e-01, -1.302361332111701e-01,  1.477211629352659e+00 ], delta=TOL)
+        assertAlmostEqualList(
+            self, d2, [-2.255755995328457e-01, -1.302361332111701e-01,  1.477211629352659e+00], delta=TOL)
         self.assertAlmostEqual(newScale[1], magnitude(d2), delta=TOL)
         result, d3 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
         self.assertEqual(RESULT_OK, result)
-        assertAlmostEqualList(self, d3, [  2.499999998128999e-01, -4.330127019169794e-01,  0.000000000000000e+00 ], delta=TOL)
+        assertAlmostEqualList(
+            self, d3, [2.499999998128999e-01, -4.330127019169794e-01,  0.000000000000000e+00], delta=TOL)
         self.assertAlmostEqual(newScale[2], magnitude(d3), delta=TOL)
 
     def test_user_annotation_groups(self):
@@ -98,11 +105,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         """
         scaffoldPackage = ScaffoldPackage(MeshType_3d_heartatria1)
         # can't add user annotation groups until generate is called()
-        try:
-            annotationGroup = scaffoldPackage.createUserAnnotationGroup()
-            self.assertTrue(False)  # should never get here as above raises expection
-        except:
-            pass
+        self.assertRaises(AssertionError, lambda: scaffoldPackage.createUserAnnotationGroup())
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -117,7 +120,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         endocardium_of_la = scaffoldPackage.findAnnotationGroupByName('left atrium endocardium')
         self.assertTrue(isinstance(endocardium_of_la, AnnotationGroup))
         self.assertFalse(scaffoldPackage.isUserAnnotationGroup(endocardium_of_la))
-        self.assertFalse(scaffoldPackage.deleteAnnotationGroup(endocardium_of_la))  # can't delete auto annotation groups
+        self.assertFalse(scaffoldPackage.deleteAnnotationGroup(endocardium_of_la))  # can't delete auto annotation group
 
         annotationGroup1 = scaffoldPackage.createUserAnnotationGroup()
         self.assertEqual('group1', annotationGroup1.getName())  # default name
@@ -128,7 +131,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertTrue(group.isValid())
         mesh2d = fieldmodule.findMeshByDimension(2)
         meshGroup = group.createMeshGroup(mesh2d)
-        mesh_group_add_identifier_ranges(meshGroup, [[1,2],[4,4]])
+        mesh_group_add_identifier_ranges(meshGroup, [[1, 2], [4, 4]])
         self.assertEqual(3, meshGroup.getSize())
         self.assertEqual(2, annotationGroup1.getDimension())
         identifier_ranges_string = identifier_ranges_to_string(mesh_group_to_identifier_ranges(meshGroup))
@@ -242,7 +245,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         elementOut, xiOut = brainstemVentralCranialPointGroup.getMarkerLocation()
         self.assertEqual(235, elementOut.getIdentifier())
         assertAlmostEqualList(self, [1.0, 1.0, 0.0], xiOut, delta=TOL)
-        self.assertRaises(AssertionError, lambda: brainstemVentralCranialPointGroup.createMarkerNode(nextNodeIdentifier))
+        self.assertRaises(
+            AssertionError, lambda: brainstemVentralCranialPointGroup.createMarkerNode(nextNodeIdentifier))
 
         # check a non-existant annotation group
         bobGroup = scaffoldPackage.findAnnotationGroupByName("bob")
@@ -634,45 +638,81 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         surf2_d2 = [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
         surf2 = TrackSurface(1, 1, surf2_x, surf2_d1, surf2_d2)
 
-        xi_tol = 1.0E-5
-        p1, p1x = surf1.findIntersectionPoint(
+        XI_TOL = 1.0E-5
+        X_TOL = 1.0E-6
+        p1, op1, p1x, p1t, p1bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.25, 0.1), surf2.createPositionProportion(0.5, 0.5))
         self.assertEqual(p1.e1, 0)
         self.assertEqual(p1.e2, 0)
-        self.assertEqual(p1.xi1, 0.34801277492351584)
-        self.assertEqual(p1.xi2, 0.12877821314270047)
+        self.assertAlmostEqual(p1.xi1, 0.34801277492351584, delta=XI_TOL)
+        self.assertAlmostEqual(p1.xi2, 0.12877821314270047, delta=XI_TOL)
+        self.assertEqual(op1.e1, 0)
+        self.assertEqual(op1.e2, 0)
+        self.assertAlmostEqual(op1.xi1, 0.3070832523015961, delta=XI_TOL)
+        self.assertAlmostEqual(op1.xi2, 0.12877822763955452, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.220427358162636, -0.9754033933575591, 0.0], p1t, delta=X_TOL)
 
-        p2, p2x = surf1.findIntersectionPoint(
+        p2, op2, p2x, p2t, p2bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.5, 0.5), surf2.createPositionProportion(0.5, 0.5))
         self.assertEqual(p2.e1, 0)
         self.assertEqual(p2.e2, 0)
-        self.assertEqual(p2.xi1, 0.71452743629564)
-        self.assertEqual(p2.xi2, 0.7304540495036337)
+        self.assertAlmostEqual(p2.xi1, 0.71452743629564, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi2, 0.7304540495036337, delta=XI_TOL)
+        self.assertEqual(op2.e1, 0)
+        self.assertEqual(op2.e2, 0)
+        self.assertAlmostEqual(op2.xi1, 0.7929676338552167, delta=XI_TOL)
+        self.assertAlmostEqual(op2.xi2, 0.7304544857230851, delta=XI_TOL)
+        assertAlmostEqualList(self, [-0.7602265711050383, 0.649658033572953, 0.0], p2t, delta=X_TOL)
 
-        p3, p3x = surf1.findIntersectionPoint(
+        p3, op3, p3x, p3t, p3bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.85, 0.75), surf2.createPositionProportion(0.5, 0.5))
         self.assertEqual(p3.e1, 0)
         self.assertEqual(p3.e2, 0)
-        self.assertEqual(p3.xi1, 0.837522778571395)
-        self.assertEqual(p3.xi2, 0.6783464093929652)
+        self.assertAlmostEqual(p3.xi1, 0.837522778571395, delta=XI_TOL)
+        self.assertAlmostEqual(p3.xi2, 0.6783464093929652, delta=XI_TOL)
+        self.assertEqual(op3.e1, 0)
+        self.assertEqual(op3.e2, 0)
+        self.assertAlmostEqual(op3.xi1, 0.9352085111624574, delta=XI_TOL)
+        self.assertAlmostEqual(op3.xi2, 0.6783462419588139, delta=XI_TOL)
+        assertAlmostEqualList(self, [-0.9879352207875475, 0.15486768393522202, 0.0], p3t, delta=X_TOL)
+
+        cx, cd1, cprops, loop = surf1.findIntersectionCurve(surf2, surf1.createPositionProportion(0.25, 0.1), 0.2)
+        self.assertEqual(len(cx), 9)
+        clength = getCubicHermiteCurvesLength(cx, cd1)
+        self.assertAlmostEqual(clength, 0.4786237725753775, delta=X_TOL)
+        assertAlmostEqualList(self, [0.1, 0.32635248661524957, 0.0], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.36154256041896005, 0.0, 0.0], cx[-1], delta=X_TOL)
+        assertAlmostEqualList(self, [0.1, 0.32635248661524957], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.36154256041896005, 0.0], cprops[-1], delta=XI_TOL)
+        dx, dd1, dprops, loop = surf1.findIntersectionCurve(surf2, surf1.createPositionProportion(0.85, 0.75), 0.2)
+        self.assertEqual(len(dx), 9)
+        dlength = getCubicHermiteCurvesLength(cx, cd1)
+        self.assertAlmostEqual(dlength, 0.4786237725753775, delta=X_TOL)
+        assertAlmostEqualList(self, [0.9, 0.6736489290126292, 0.0], dx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.6236472927974349, 1.0, 0.0], dx[-1], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9, 0.6736489290126292], dprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.6236472927974349, 1.0], dprops[-1], delta=XI_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
         # surf1.generateMesh(region)
         # surf2.generateMesh(region)
         # fieldmodule = region.getFieldmodule()
+        # fieldmodule.defineAllFaces()
         # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         # nodetemplate = nodes.createNodetemplate()
-        # coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
-        # nodetemplate.defineField(coordinates)
+        # curveCoordinates = create_field_coordinates(fieldmodule, "curve_coordinates", managed=True)
+        # nodetemplate.defineField(curveCoordinates)
+        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         # fieldcache = fieldmodule.createFieldcache()
-        # pp = [p1, p2, p3]
-        # px = [p1x, p2x, p3x]
-        # for i in range(len(pp)):
+        # #px = [p1x, p2x, p3x] + cx + dx
+        # px = cx + dx
+        # pd1 = cd1 + dd1
+        # for n in range(len(px)):
         #     node = nodes.createNode(-1, nodetemplate)
         #     fieldcache.setNode(node)
-        #     coordinates.assignReal(fieldcache, px[i])
-        # fieldmodule.defineAllFaces()
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
         # region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
 
