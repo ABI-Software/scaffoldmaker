@@ -489,7 +489,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Number of elements around': 8,
             'Number of elements around horns': 8,
             'Number of elements through wall': 1,
-            'Wall thickness': 1.4,
+            'Wall thickness': 1.0,
             'Double uterus': False,
             'Use linear through wall': True,
             'Use cross derivatives': False,
@@ -499,12 +499,12 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Rat' in parameterSetName:
-            options['Target element length'] = 6.0
-            options['Wall thickness'] = 1.5
+            options['Target element length'] = 5.0
+            options['Wall thickness'] = 1.2
             options['Double uterus'] = True
         if 'Sheep' in parameterSetName:
             options['Target element length'] = 11.0
-            options['Wall thickness'] = 3.0
+            options['Wall thickness'] = 1.8
         if 'Material' in parameterSetName:
             options['Target element length'] = 0.5
             options['Wall thickness'] = 0.1
