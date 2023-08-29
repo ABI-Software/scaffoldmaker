@@ -1250,11 +1250,10 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
         paNodeId = bFirstRingNodeId
         c1NodeId = rhLastRingNodeId
         c2NodeId = lhLastRingNodeId
-        elementIdentifier = make_tube_bifurcation_elements(fm, coordinates, elementIdentifier,
-                                                              elementsCountAround, elementsCountThroughWall, paNodeId,
-                                                              c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                                              meshGroups=[bodyMeshGroup, rightHornMeshGroup,
-                                                                          leftHornMeshGroup, uterusMeshGroup])
+        elementIdentifier = make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall,
+                                                           paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
+                                                           meshGroups=[bodyMeshGroup, rightHornMeshGroup,
+                                                                       leftHornMeshGroup, uterusMeshGroup])
 
         # Create body elements
         startNodeId = paNodeId[0][0]
@@ -1798,14 +1797,15 @@ def make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elements
     return elementIdentifier
 
 
-def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountAround,
-                                      elementsCountThroughWall, paNodeId, c1NodeId, c2NodeId, roNodeId, coNodeId,
-                                      meshGroups=None):
+def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, paNodeId, c1NodeId,
+                                   c2NodeId, roNodeId, coNodeId, meshGroups=None):
 
-    paCount = len(paNodeId[0])
-    c1Count = len(c1NodeId[0])
-    c2Count = len(c2NodeId[0])
-    pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+    elementsCountAround = len(paNodeId[0])
+    elementsCountAroundRightTube = len(c1NodeId[0])
+    elementsCountAroundLeftTube = len(c2NodeId[0])
+    pac1Count, pac2Count, c1c2Count = \
+        get_tube_bifurcation_connection_elements_counts(elementsCountAround, elementsCountAroundRightTube,
+                                                        elementsCountAroundLeftTube)
 
     # fm = region.getFieldmodule()
     mesh = fm.findMeshByDimension(3)
@@ -1821,45 +1821,45 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 
     # Right tube part
     for e3 in range(elementsCountThroughWall):
-        for e1 in range(c1Count):
+        for e1 in range(elementsCountAroundRightTube):
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
             if e1 < elementsCountAround // 2:
                 bni1 = c1NodeId[e3][e1]
-                bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
+                bni2 = c1NodeId[e3][(e1 + 1) % elementsCountAroundRightTube]
                 bni3 = roNodeId[e3][e1]
-                bni4 = roNodeId[e3][(e1 + 1) % c1Count]
-                bni5 = bni1 + elementsCountAround
+                bni4 = roNodeId[e3][(e1 + 1) % elementsCountAroundRightTube]
+                bni5 = bni1 + elementsCountAroundRightTube
                 bni6 = bni5 + 1
                 bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
                 bni8 = bni7 + 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             elif e1 == elementsCountAround // 2:
                 bni1 = c1NodeId[e3][e1]
-                bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
+                bni2 = c1NodeId[e3][(e1 + 1) % elementsCountAroundRightTube]
                 bni3 = roNodeId[e3][e1]
                 bni4 = coNodeId[e3][e1 - elementsCountAround // 2]
-                bni5 = bni1 + elementsCountAround
+                bni5 = bni1 + elementsCountAroundRightTube
                 bni6 = bni5 + 1
                 bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
                 bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             else:
                 bni1 = c1NodeId[e3][e1]
-                bni2 = c1NodeId[e3][(e1 + 1) % c1Count]
+                bni2 = c1NodeId[e3][(e1 + 1) % elementsCountAroundRightTube]
                 bni3 = coNodeId[e3][e1 - elementsCountAround // 2 - 1]
-                bni5 = bni1 + elementsCountAround
-                if e1 == c1Count - 1:
+                bni5 = bni1 + elementsCountAroundRightTube
+                if e1 == elementsCountAroundRightTube - 1:
                     bni4 = roNodeId[e3][0]
-                    bni6 = bni5 - elementsCountAround + 1
+                    bni6 = bni5 - elementsCountAroundRightTube + 1
                 else:
                     bni4 = bni3 + 1
                     bni6 = bni5 + 1
                 bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
                 bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-            if e1 in (0, pac1Count - 1, pac1Count, c1Count - 1):
+            if e1 in (0, pac1Count - 1, pac1Count, elementsCountAroundRightTube - 1):
                 eft = eftfactory.createEftBasic()
                 if e1 == 0:
                     scalefactors = [-1.0]
@@ -1876,7 +1876,7 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
                     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS2,
                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                     remapEftNodeValueLabel(eft, [3, 7], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                elif e1 == c1Count - 1:
+                elif e1 == elementsCountAroundRightTube - 1:
                     scalefactors = [-1.0]
                     setEftScaleFactorIds(eft, [1], [])
                     remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
@@ -1898,34 +1898,34 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 
     # Left tube part
     for e3 in range(elementsCountThroughWall):
-        for e1 in range(c2Count):
+        for e1 in range(elementsCountAroundLeftTube):
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
-            if e1 < elementsCountAround//2:
+            if e1 < c1c2Count:
                 bni1 = c2NodeId[e3][e1]
-                bni2 = c2NodeId[e3][(e1 + 1) % c1Count]
+                bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAroundLeftTube]
                 if e1 == 0:
                     bni3 = roNodeId[e3][e1]
                     bni4 = coNodeId[e3][-1 - e1]
                 else:
                     bni3 = coNodeId[e3][-e1]
-                    if e1 == elementsCountAround//2 - 1:
+                    if e1 == c1c2Count - 1:
                         bni4 = roNodeId[e3][0] + pac1Count
                     else:
                         bni4 = bni3 - 1
-                bni5 = bni1 + elementsCountAround
-                bni6 = bni2 + elementsCountAround
+                bni5 = bni1 + elementsCountAroundLeftTube
+                bni6 = bni2 + elementsCountAroundLeftTube
                 bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
                 bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
             else:
                 bni1 = c2NodeId[e3][e1]
-                bni2 = c2NodeId[e3][(e1 + 1) % c1Count]
-                bni3 = roNodeId[e3][e1]
-                bni4 = roNodeId[e3][(e1 + 1) % c2Count]
-                bni5 = bni1 + elementsCountAround
-                bni6 = bni2 + elementsCountAround
+                bni2 = c2NodeId[e3][(e1 + 1) % elementsCountAroundLeftTube]
+                bni3 = roNodeId[e3][e1 - c1c2Count + elementsCountAround // 2]
+                bni4 = roNodeId[e3][(e1 - c1c2Count + elementsCountAround // 2 + 1) % elementsCountAround]
+                bni5 = bni1 + elementsCountAroundLeftTube
+                bni6 = bni2 + elementsCountAroundLeftTube
                 bni7 = bni3 + len(roNodeId[0]) + len(coNodeId[0])
                 bni8 = bni4 + len(roNodeId[0]) + len(coNodeId[0])
                 nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
@@ -1950,7 +1950,7 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elementtemplateMod.defineField(coordinates, -1, eft)
                 elementtemplate = elementtemplateMod
-            elif e1 == c2Count - 1:
+            elif e1 == elementsCountAroundLeftTube - 1:
                 eft = eftfactory.createEftBasic()
                 remapEftNodeValueLabel(eft, [4, 8], Node.VALUE_LABEL_D_DS2,
                                        [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
@@ -1971,7 +1971,7 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
 
     # parent part
     for e3 in range(elementsCountThroughWall):
-        for e1 in range(paCount):
+        for e1 in range(elementsCountAround):
             eft = eftStd
             elementtemplate = elementtemplateStd
             scalefactors = None
