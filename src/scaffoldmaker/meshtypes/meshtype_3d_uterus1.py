@@ -2052,7 +2052,7 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
     """
     elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
-    # Get nodes through wall for right inner tube
+    # Get nodes through wall for right and left inner tubes
     xRawRight = []
     d3RawRight = []
     xRawLeft = []
