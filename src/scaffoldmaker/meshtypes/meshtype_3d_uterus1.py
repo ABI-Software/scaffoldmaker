@@ -305,21 +305,21 @@ class MeshType_3d_uterus1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '9-10',
+                    'identifierRanges': '9',
                     'name': get_uterus_term('body of uterus')[0],
                     'ontId': get_uterus_term('body of uterus')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '11',
+                    'identifierRanges': '10',
                     'name': get_uterus_term('uterine cervix')[0],
                     'ontId': get_uterus_term('uterine cervix')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '12-15',
+                    'identifierRanges': '11-15',
                     'name': get_uterus_term('vagina')[0],
                     'ontId': get_uterus_term('vagina')[1]
                 }]
@@ -1156,14 +1156,14 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
             createDoubleTubeNodes(fm, nodeIdentifier, rightInnerCervixthroughWall, leftInnerCervixthroughWall,
                                   cervixCoordinatesOuter, septumCervixCoordinates, elementsCountInCervix,
                                   elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows=0,
-                                  omitEndRows=1)
+                                  omitEndRows=0) # omitEndRows should be 1 when we add vagina
 
-        # Create vagina nodes
-        nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = \
-            createDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
-                                  vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina,
-                                  elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows=0,
-                                  omitEndRows=0)
+        # # Create vagina nodes
+        # nodeIdentifier, vricNodeId, vlicNodeId, votNodeId, vsNodeId = \
+        #     createDoubleTubeNodes(fm, nodeIdentifier, vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates,
+        #                           vaginaCoordinatesOuter, septumVaginaCoordinates, elementsCountInVagina,
+        #                           elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows=0,
+        #                           omitEndRows=0)
 
     else:
         # Create bifurcation nodes
@@ -1215,10 +1215,10 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
         c1NodeId = rhLastRingNodeId
         c2NodeId = lhLastRingNodeId
         if elementsCountInBody < 2:
-            bricNodeId = cricNodeId
-            blicNodeId = clicNodeId
-            botNodeId = cotNodeId
-            bsNodeId = csNodeId
+            bricNodeId = cricNodeId[:elementsCountAroundRightHorn]
+            blicNodeId = clicNodeId[:elementsCountAroundLeftHorn]
+            botNodeId = cotNodeId[:elementsCountAround]
+            bsNodeId = csNodeId[:elementsCountAcross - 1]
         elementIdentifier = \
             make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, c1NodeId,
                                                  c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, bricNodeId,
@@ -1238,11 +1238,11 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
                                                  elementsCountAroundLeftHorn, elementsCountThroughWall, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
                                                  meshGroups=[cervixMeshGroup, uterusMeshGroup])
 
-        # Create vagina elements
-        elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina,
-                                                 elementsCountAround, elementsCountAroundRightHorn,
-                                                 elementsCountAroundLeftHorn, elementsCountThroughWall, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
-                                                 meshGroups=[vaginaMeshGroup])
+        # # Create vagina elements
+        # elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina,
+        #                                          elementsCountAround, elementsCountAroundRightHorn,
+        #                                          elementsCountAroundLeftHorn, elementsCountThroughWall, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
+        #                                          meshGroups=[vaginaMeshGroup])
     else:
         # Create bifurcation elements
         bFirstRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountInBody,
