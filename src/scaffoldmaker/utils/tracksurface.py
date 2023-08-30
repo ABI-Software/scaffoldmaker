@@ -480,13 +480,14 @@ class TrackSurface:
             if (boundaryCount == 0) and (pointCount > 2):
                 x1, d1 = px[-2], pd1[-2]
                 x2, d2 = px[-1], pd1[-1]
-                dscale = interp.computeCubicHermiteDerivativeScaling(x1, d1, x2, d2)
+                dscale = interp.computeCubicHermiteArcLength(x1, d1, x2, d2, rescaleDerivatives=True)
                 d1 = mult(d1, dscale)
                 d2 = mult(d2, dscale)
                 xi = 0.0
                 for xi in xiLoopSamples:
                     tx = interp.interpolateCubicHermite(x1, d1, x2, d2, xi)
-                    distance = magnitude(sub(tx, startX))
+                    delta = sub(tx, px[0])
+                    distance = magnitude(delta)
                     if distance < (0.2 * dscale):
                         loop = True
                         break
@@ -558,7 +559,9 @@ class TrackSurface:
             startPosition = self.createPositionProportion(0.5, 0.5)
         position = copy.deepcopy(startPosition)
         max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
-        xi_tol = 1.0E-6
+        xi_tol = 1.0E-7
+        old_dxi = None
+        mag_old_dxi = 0
         for iter in range(100):
             xi1 = position.xi1
             xi2 = position.xi2
@@ -566,9 +569,18 @@ class TrackSurface:
             deltax = [ (targetx[c] - ax[c]) for c in range(3) ]
             #print('iter', iter + 1, 'position', position, 'deltax', deltax, 'err', vector.magnitude(deltax))
             adelta_xi1, adelta_xi2 = calculate_surface_delta_xi(ad1, ad2, deltax)
-            mag_dxi = math.sqrt(adelta_xi1*adelta_xi1 + adelta_xi2*adelta_xi2)
             dxi1 = adelta_xi1
             dxi2 = adelta_xi2
+            dxi = [dxi1, dxi2]
+            mag_dxi = magnitude(dxi)
+            # control oscillations
+            if old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi ** 2.0)):
+                factor = mag_dxi / (mag_dxi + mag_old_dxi)
+                dxi = mult(dxi, factor)
+                dxi1 = dxi[0]
+                dxi2 = dxi[1]
+            old_dxi = dxi
+            mag_old_dxi = magnitude(old_dxi)
             if mag_dxi > max_mag_dxi:
                 dxi1 *= max_mag_dxi/mag_dxi
                 dxi2 *= max_mag_dxi/mag_dxi
@@ -577,7 +589,7 @@ class TrackSurface:
             position.xi1 = bxi1
             position.xi2 = bxi2
             if mag_dxi < xi_tol:
-                #print('converged mag_dxi', mag_dxi)
+                # print("converged in", iter + 1, "iterations, mag_dxi", mag_dxi)
                 break
             if faceNumber:
                 onBoundary = self.updatePositionTofaceNumber(position, faceNumber)
@@ -780,7 +792,7 @@ class TrackSurface:
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, self._nd2[n1])
                 nodeIdentifier += 1
             del n1
-            nodesCount1 = self._elementsCount1 + 1
+            nodesCount1 = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
             for e2 in range(self._elementsCount2):
                 for e1 in range(self._elementsCount1):
                     nid0 = firstNodeIdentifier + e2 * nodesCount1
