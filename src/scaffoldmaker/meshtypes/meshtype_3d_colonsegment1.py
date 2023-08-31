@@ -62,20 +62,20 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements along segment': 4,
             'Number of elements through wall': 4,
             'Start phase': 0.0,
-            'Start inner radius': 43.5,
-            'Start inner radius derivative': 0.0,
-            'End inner radius': 33.0,
-            'End inner radius derivative': 0.0,
-            'Corner inner radius factor': 0.5,
-            'Haustrum inner radius factor': 0.5,
+            'Start outer radius': 45.4,
+            'Start outer radius derivative': 0.0,
+            'End outer radius': 35.3,
+            'End outer radius derivative': 0.0,
+            'Corner outer radius factor': 0.536,
+            'Haustrum outer radius factor': 0.464,
             'Segment length end derivative factor': 0.5,
             'Segment length mid derivative factor': 3.0,
             'Segment length': 50.0,
             'Number of tenia coli': 3,
-            'Start tenia coli width': 10.0,
-            'Start tenia coli width derivative': 0.0,
-            'End tenia coli width': 10.0,
-            'End tenia coli width derivative': 0.0,
+            'Start tenia coli width': 11.1,
+            'Start tenia coli width derivative': 0.4,
+            'End tenia coli width': 11.5,
+            'End tenia coli width derivative': 0.4,
             'Tenia coli thickness': 0.6,
             'Wall thickness': 1.6,
             'Mucosa relative thickness': 0.18,
@@ -90,30 +90,30 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Refine number of elements through wall': 1
         }
         if 'Cattle' in parameterSetName:
-            options['Start inner radius'] = 10.5
-            options['End inner radius'] = 10.5
-            options['Corner inner radius factor'] = 0.0
-            options['Haustrum inner radius factor'] = 0.0
+            options['Start outer radius'] = 13.52
+            options['End outer radius'] = 13.52
+            options['Corner outer radius factor'] = 0.0
+            options['Haustrum outer radius factor'] = 0.0
             options['Segment length end derivative factor'] = 0.0
             options['Segment length mid derivative factor'] = 0.0
             options['Number of tenia coli'] = 1
-            options['Start tenia coli width'] = 3.0
-            options['End tenia coli width'] = 3.0
+            options['Start tenia coli width'] = 3.85
+            options['End tenia coli width'] = 3.85
             options['Tenia coli thickness'] = 0.0
             options['Wall thickness'] = 3.02
         elif 'Human 2' in parameterSetName:
-            options['Haustrum inner radius factor'] = 0.4
+            options['Haustrum outer radius factor'] = 0.364
             options['Tenia coli thickness'] = 1.6
         elif 'Mouse' in parameterSetName:
-            options['Start inner radius'] = 0.94
-            options['End inner radius'] = 0.94
-            options['Corner inner radius factor'] = 0.0
-            options['Haustrum inner radius factor'] = 0.0
+            options['Start outer radius'] = 1.49
+            options['End outer radius'] = 1.49
+            options['Corner outer radius factor'] = 0.0
+            options['Haustrum outer radius factor'] = 0.0
             options['Segment length end derivative factor'] = 0.0
             options['Segment length mid derivative factor'] = 0.0
             options['Number of tenia coli'] = 1
-            options['Start tenia coli width'] = 0.8
-            options['End tenia coli width'] = 0.8
+            options['Start tenia coli width'] = 1.29
+            options['End tenia coli width'] = 1.29
             options['Tenia coli thickness'] = 0.0
             options['Wall thickness'] = 0.55
             options['Mucosa relative thickness'] = 0.4
@@ -121,16 +121,16 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['Circular muscle layer relative thickness'] = 0.3
             options['Longitudinal muscle layer relative thickness'] = 0.2
         elif 'Pig' in parameterSetName:
-            options['Start inner radius'] = 20.0
-            options['End inner radius'] = 20.0
-            options['Corner inner radius factor'] = 0.0
-            options['Haustrum inner radius factor'] = 0.2
+            options['Start outer radius'] = 22.23
+            options['End outer radius'] = 22.23
+            options['Corner outer radius factor'] = 0.0
+            options['Haustrum outer radius factor'] = 0.17
             options['Segment length end derivative factor'] = 0.8
             options['Segment length mid derivative factor'] = 2.0
             options['Segment length'] = 25.0
             options['Number of tenia coli'] = 2
-            options['Start tenia coli width'] = 5.0
-            options['End tenia coli width'] = 5.0
+            options['Start tenia coli width'] = 5.5
+            options['End tenia coli width'] = 5.5
             options['Tenia coli thickness'] = 0.5
             options['Wall thickness'] = 2.0
             options['Mucosa relative thickness'] = 0.34
@@ -148,12 +148,12 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Number of elements along segment',
             'Number of elements through wall',
             'Start phase',
-            'Start inner radius',
-            'Start inner radius derivative',
-            'End inner radius',
-            'End inner radius derivative',
-            'Corner inner radius factor',
-            'Haustrum inner radius factor',
+            'Start outer radius',
+            'Start outer radius derivative',
+            'End outer radius',
+            'End outer radius derivative',
+            'Corner outer radius factor',
+            'Haustrum outer radius factor',
             'Segment length end derivative factor',
             'Segment length mid derivative factor',
             'Segment length',
@@ -199,9 +199,9 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             if options[key] % 2 > 0:
                 options[key] = options[key] + 1
         for key in [
-            'Start inner radius',
-            'End inner radius',
-            'Haustrum inner radius factor',
+            'Start outer radius',
+            'End outer radius',
+            'Haustrum outer radius factor',
             'Segment length end derivative factor',
             'Segment length mid derivative factor',
             'Segment length',
@@ -213,10 +213,10 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             'Longitudinal muscle layer relative thickness']:
             if options[key] < 0.0:
                 options[key] = 0.0
-        if options['Corner inner radius factor'] < 0.1:
-            options['Corner inner radius factor'] = 0.1
+        if options['Corner outer radius factor'] < 0.1:
+            options['Corner outer radius factor'] = 0.1
         for key in [
-            'Corner inner radius factor',
+            'Corner outer radius factor',
             'Segment length end derivative factor']:
             if options[key] > 1.0:
                 options[key] = 1.0
@@ -227,12 +227,12 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         for key in [
             'Start tenia coli width',
             'End tenia coli width']:
-            if options[key] < 0.2 * min(options['Start inner radius'], options['End inner radius']):
-                options[key] = round(0.2 * min(options['Start inner radius'], options['End inner radius']), 2)
-        if options['Start tenia coli width'] > round(math.sqrt(3) * 0.5 * options['Start inner radius'], 2):
-            options['Start tenia coli width'] = round(math.sqrt(3) * 0.5 * options['Start inner radius'], 2)
-        if options['End tenia coli width'] > round(math.sqrt(3) * 0.5 * options['End inner radius'], 2):
-            options['End tenia coli width'] = round(math.sqrt(3) * 0.5 * options['End inner radius'], 2)
+            if options[key] < 0.2 * min(options['Start outer radius'], options['End outer radius']):
+                options[key] = round(0.2 * min(options['Start outer radius'], options['End outer radius']), 2)
+        if options['Start tenia coli width'] > round(math.sqrt(3) * 0.5 * options['Start outer radius'], 2):
+            options['Start tenia coli width'] = round(math.sqrt(3) * 0.5 * options['Start outer radius'], 2)
+        if options['End tenia coli width'] > round(math.sqrt(3) * 0.5 * options['End outer radius'], 2):
+            options['End tenia coli width'] = round(math.sqrt(3) * 0.5 * options['End outer radius'], 2)
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -247,12 +247,12 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         elementsCountAlongSegment = options['Number of elements along segment']
         elementsCountThroughWall = options['Number of elements through wall']
         startPhase = options['Start phase'] % 360.0
-        startRadius = options['Start inner radius']
-        startRadiusDerivative = options['Start inner radius derivative']
-        endRadius = options['End inner radius']
-        endRadiusDerivative = options['End inner radius derivative']
-        cornerInnerRadiusFactor = options['Corner inner radius factor']
-        haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
+        startRadius = options['Start outer radius']
+        startRadiusDerivative = options['Start outer radius derivative']
+        endRadius = options['End outer radius']
+        endRadiusDerivative = options['End outer radius derivative']
+        cornerOuterRadiusFactor = options['Corner outer radius factor']
+        haustrumOuterRadiusFactor = options['Haustrum outer radius factor']
         segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
         segmentLengthMidDerivativeFactor = options['Segment length mid derivative factor']
         segmentLength = options['Segment length']
@@ -300,12 +300,12 @@ class MeshType_3d_colonsegment1(Scaffold_base):
                                                      [endTCWidth], [endTCWidthDerivative], xi)[0]
             tcWidthAlongSegment.append(tcWidth)
 
-        haustrumInnerRadiusFactorAlongSegment = [haustrumInnerRadiusFactor] * (elementsCountAlongSegment + 1)
+        haustrumOuterRadiusFactorAlongSegment = [haustrumOuterRadiusFactor] * (elementsCountAlongSegment + 1)
 
-        colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
+        colonSegmentTubeMeshOuterPoints = ColonSegmentTubeMeshOuterPoints(
             region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
             tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongSegment,
+            segmentLength, wallThickness, cornerOuterRadiusFactor, haustrumOuterRadiusFactorAlongSegment,
             radiusAlongSegment, dRadiusAlongSegment, tcWidthAlongSegment, startPhase)
 
         # Create annotation
@@ -314,24 +314,24 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         for i in range(elementsCountAlongSegment):
             annotationGroupsAlong.append([colonGroup])
 
-        # Create inner points
+        # Create outer points
         nSegment = 0
         closedProximalEnd = False
 
-        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround = \
-            colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+        xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround = \
+            colonSegmentTubeMeshOuterPoints.getColonSegmentTubeMeshOuterPoints(nSegment)
 
         # Project reference point for warping onto central path
         sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
-            tubemesh.getPlaneProjectionOnCentralPath(xInner, elementsCountAround, elementsCountAlongSegment,
+            tubemesh.getPlaneProjectionOnCentralPath(xOuter, elementsCountAround, elementsCountAlongSegment,
                                                      segmentLength, sx, sd1, sd2, sd12)
 
         # Warp segment points
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-            xInner, d1Inner, d2Inner, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
+            xOuter, d1Outer, d2Outer, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
             elementsCountAround, elementsCountAlongSegment, zRefList)
 
-        contractedWallThicknessList = colonSegmentTubeMeshInnerPoints.getContractedWallThicknessList()
+        contractedWallThicknessList = colonSegmentTubeMeshOuterPoints.getContractedWallThicknessList()
 
         if elementsCountThroughWall == 1:
             relativeThicknessList = [1.0]
@@ -351,14 +351,14 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
                                              contractedWallThicknessList, relativeThicknessList, elementsCountAround,
                                              elementsCountAlongSegment, elementsCountThroughWall, transitElementList,
-                                               outward=True)
+                                               outward=False)
 
         xColonSegment = d1ColonSegment = d2ColonSegment = []
 
-        relaxedLengthList, xiList = colonSegmentTubeMeshInnerPoints.getRelaxedLengthAndXiList()
+        relaxedLengthList, xiList = colonSegmentTubeMeshOuterPoints.getRelaxedLengthAndXiList()
 
         if tcThickness > 0:
-            tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
+            tubeTCWidthList = colonSegmentTubeMeshOuterPoints.getTubeTCWidthList()
             xList, d1List, d2List, d3List, annotationGroupsAround = getTeniaColi(
                 region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
                 elementsCountAroundHaustrum, elementsCountAlongSegment, elementsCountThroughWall,
@@ -436,16 +436,16 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
 
 
-class ColonSegmentTubeMeshInnerPoints:
+class ColonSegmentTubeMeshOuterPoints:
     """
-    Generates inner profile of a colon segment for use by tubemesh.
+    Generates outer profile of a colon segment for use by tubemesh.
     """
 
     def __init__(self, region, elementsCountAroundTC, elementsCountAroundHaustrum,
                  elementsCountAlongSegment, tcCount, segmentLengthEndDerivativeFactor,
                  segmentLengthMidDerivativeFactor, segmentLength, wallThickness,
-                 cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongElementList, innerRadiusAlongElementList,
-                 dInnerRadiusAlongElementList, tcWidthAlongElementList, startPhase):
+                 cornerOuterRadiusFactor, haustrumOuterRadiusFactorAlongElementList, outerRadiusAlongElementList,
+                 dOuterRadiusAlongElementList, tcWidthAlongElementList, startPhase):
         self._region = region
         self._elementsCountAroundTC = elementsCountAroundTC
         self._elementsCountAroundHaustrum = elementsCountAroundHaustrum
@@ -455,10 +455,10 @@ class ColonSegmentTubeMeshInnerPoints:
         self._segmentLengthMidDerivativeFactor = segmentLengthMidDerivativeFactor
         self._segmentLength = segmentLength
         self._wallThickness = wallThickness
-        self._cornerInnerRadiusFactor = cornerInnerRadiusFactor
-        self._haustrumInnerRadiusFactorAlongElementList = haustrumInnerRadiusFactorAlongElementList
-        self._innerRadiusAlongElementList = innerRadiusAlongElementList
-        self._dInnerRadiusAlongElementList = dInnerRadiusAlongElementList
+        self._cornerOuterRadiusFactor = cornerOuterRadiusFactor
+        self._haustrumOuterRadiusFactorAlongElementList = haustrumOuterRadiusFactorAlongElementList
+        self._outerRadiusAlongElementList = outerRadiusAlongElementList
+        self._dOuterRadiusAlongElementList = dOuterRadiusAlongElementList
         self._tcWidthAlongElementList = tcWidthAlongElementList
         self._tubeTCWidthList = []
         self._xiList = []
@@ -466,27 +466,27 @@ class ColonSegmentTubeMeshInnerPoints:
         self._contractedWallThicknessList = []
         self._startPhase = startPhase
 
-    def getColonSegmentTubeMeshInnerPoints(self, nSegment):
+    def getColonSegmentTubeMeshOuterPoints(self, nSegment):
         # Unpack parameter variation along elements
-        radiusSegmentList = self._innerRadiusAlongElementList[nSegment * self._elementsCountAlongSegment:
+        radiusSegmentList = self._outerRadiusAlongElementList[nSegment * self._elementsCountAlongSegment:
                                                               (nSegment + 1) * self._elementsCountAlongSegment + 1]
-        dRadiusSegmentList = self._dInnerRadiusAlongElementList[nSegment * self._elementsCountAlongSegment:
+        dRadiusSegmentList = self._dOuterRadiusAlongElementList[nSegment * self._elementsCountAlongSegment:
                                                                 (nSegment + 1) * self._elementsCountAlongSegment + 1]
         tcWidthSegmentList = self._tcWidthAlongElementList[nSegment * self._elementsCountAlongSegment:
                                                            (nSegment + 1) * self._elementsCountAlongSegment + 1]
 
-        haustrumInnerRadiusFactorSegmentList = self._haustrumInnerRadiusFactorAlongElementList[
+        haustrumOuterRadiusFactorSegmentList = self._haustrumOuterRadiusFactorAlongElementList[
                                                nSegment * self._elementsCountAlongSegment:
                                                (nSegment + 1) * self._elementsCountAlongSegment + 1]
 
-        xInner, d1Inner, d2Inner, transitElementList, xiSegment, relaxedLengthSegment, contractedWallThicknessSegment, \
+        xOuter, d1Outer, d2Outer, transitElementList, xiSegment, relaxedLengthSegment, contractedWallThicknessSegment, \
         segmentAxis, annotationGroupsAround = \
-            getColonSegmentInnerPoints(self._region,
+            getColonSegmentOuterPoints(self._region,
                                        self._elementsCountAroundTC, self._elementsCountAroundHaustrum,
                                        self._elementsCountAlongSegment, self._tcCount,
                                        self._segmentLengthEndDerivativeFactor, self._segmentLengthMidDerivativeFactor,
                                        self._segmentLength, self._wallThickness,
-                                       self._cornerInnerRadiusFactor, haustrumInnerRadiusFactorSegmentList,
+                                       self._cornerOuterRadiusFactor, haustrumOuterRadiusFactorSegmentList,
                                        radiusSegmentList, dRadiusSegmentList, tcWidthSegmentList,
                                        self._startPhase)
 
@@ -503,7 +503,7 @@ class ColonSegmentTubeMeshInnerPoints:
         contractedWallThickness = contractedWallThicknessSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._contractedWallThicknessList += contractedWallThickness
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround
+        return xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround
 
     def getTubeTCWidthList(self):
         return self._tubeTCWidthList
@@ -515,10 +515,10 @@ class ColonSegmentTubeMeshInnerPoints:
         return self._contractedWallThicknessList
 
 
-def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
+def getColonSegmentOuterPoints(region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
                                tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-                               segmentLength, wallThickness, cornerInnerRadiusFactor,
-                               haustrumInnerRadiusFactorSegmentList, radiusSegmentList, dRadiusSegmentList,
+                               segmentLength, wallThickness, cornerOuterRadiusFactor,
+                               haustrumOuterRadiusFactorSegmentList, radiusSegmentList, dRadiusSegmentList,
                                tcWidthSegmentList, startPhase):
     """
     Generates a 3-D colon segment mesh with variable numbers of tenia coli,
@@ -539,22 +539,22 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
     length to scale derivative along the mid length of the segment.
     :param segmentLength: Length of a colon segment.
     :param wallThickness: Thickness of wall.
-    :param cornerInnerRadiusFactor: Roundness of triangular corners of
-    inter-haustral septa. Factor is multiplied by inner radius
+    :param cornerOuterRadiusFactor: Roundness of triangular corners of
+    inter-haustral septa. Factor is multiplied by outer radius
     to get a radius of curvature at the corners. Only applicable for three tenia
     coli. Set to zero for two tenia coli.
-    :param haustrumInnerRadiusFactorSegmentList: Factor is multiplied by inner
+    :param haustrumOuterRadiusFactorSegmentList: Factor is multiplied by inner
     radius to obtain radius of intersecting circles in the middle cross-section
     along a haustra segment.
     :param radiusSegmentList: List of inner radius defined from center of triangular
     profile to vertex of the triangle at proximal end of the colon segment for each
     element along.
-    :param dRadiusSegmentList: List of rate of change of inner radius at proximal end
+    :param dRadiusSegmentList: List of rate of change of outer radius at proximal end
     for each element along.
     :param tcWidthSegmentList: List of tenia coli width at proximal end of the colon segment
     for each element along.
     :param startPhase: Phase at start.
-    :return coordinates, derivatives on inner surface of a colon segment.
+    :return coordinates, derivatives on outer surface of a colon segment.
     :return transitElementList: stores true if element around is an element that
     transits from tenia coli / mesenteric zone to haustrum / non-mesenteric zone.
     :return xiList: List of xi for each node around. xi refers to node position
@@ -580,8 +580,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
 
     d2HalfSet = []
     d2Raw = []
-    xInnerRaw = []
-    dx_ds2InnerRaw = []
+    xOuterRaw = []
+    dx_ds2OuterRaw = []
     xFinal = []
     d1Final = []
     d2Final = []
@@ -600,7 +600,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
 
             xHalfSet, d1HalfSet = \
                 createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum, tcCount, tcWidth,
-                                                  radius, cornerInnerRadiusFactor, sampleElementOut)
+                                                  radius, cornerOuterRadiusFactor, sampleElementOut)
 
             for i in range(len(xHalfSet)):
                 d2HalfSet.append([0.0, 0.0, 0.0])
@@ -611,8 +611,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
             for n1 in range(elementsCountAroundTC + elementsCountAroundHaustrum):
                 xFinal.append([x[n1][0], x[n1][1], z])
                 xFace.append([x[n1][0], x[n1][1], z])
-            xiFace, lengthAroundFace = getXiListFromOuterLengthProfile(xFace, d1, segmentAxis,
-                                                                       wallThickness, transitElementList)
+            xiFace, lengthAroundFace = getXiListFromOuterLengthProfile(xFace, d1)
             xiList.append(xiFace)
             relaxedLengthList.append(lengthAroundFace)
             contractedWallThicknessList.append(wallThickness)
@@ -658,13 +657,13 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
             radius = radiusSegmentList[n2]
             sdRadius = dRadiusSegmentList[n2]
             tcWidth = tcWidthSegmentList[n2]
-            haustrumInnerRadiusFactor = haustrumInnerRadiusFactorSegmentList[n2]
+            haustrumOuterRadiusFactor = haustrumOuterRadiusFactorSegmentList[n2]
 
             # Create segment of inner radius
             # Calculate x and d1 at the start, mid, and end faces
             xHalfSetStart, d1HalfSetStart = createHalfSetInterHaustralSegment(
                 elementsCountAroundTC, elementsCountAroundHaustrum, tcCount, tcWidth, radius,
-                cornerInnerRadiusFactor, sampleElementOut)
+                cornerOuterRadiusFactor, sampleElementOut)
 
             if startPhase == 0.0:
                 if n2 == 0:
@@ -678,7 +677,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
 
             xHalfSetMid, d1HalfSetMid = createHalfSetIntraHaustralSegment(
                 elementsCountAroundTC, elementsCountAroundHaustrum, tcCount, tcWidth, radius,
-                cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
+                cornerOuterRadiusFactor, sampleElementOut, haustrumOuterRadiusFactor)
 
             d1AtStartOfEachMidFace.append(d1HalfSetMid[0])
 
@@ -760,8 +759,8 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
             xResampled, d1Resampled, se, sxi, _ = interp.sampleCubicHermiteCurves(xForSamplingAlong, d1ForSamplingAlong,
                                                                                   elementsCountAlongSegment,
                                                                                   arcLengthDerivatives=True)
-            xInnerRaw.append(xResampled)
-            dx_ds2InnerRaw.append(d1Resampled)
+            xOuterRaw.append(xResampled)
+            dx_ds2OuterRaw.append(d1Resampled)
 
         # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
         for n2 in range(elementsCountAlongSegment + 1):
@@ -771,26 +770,26 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
             d2Around = []
 
             for n1 in range(elementsCountAroundHalfHaustrum + 1):
-                x = xInnerRaw[n1][n2]
+                x = xOuterRaw[n1][n2]
                 # Bring first face back to origin
                 x = [x[0], x[1], x[2] - lengthToFirstPhase]
-                dx_ds2 = dx_ds2InnerRaw[n1][n2]
+                dx_ds2 = dx_ds2OuterRaw[n1][n2]
                 xAround.append(x)
                 d2Around.append(dx_ds2)
 
-            dx_ds1InnerAroundList = []
+            dx_ds1OuterAroundList = []
             if startPhase == 0.0 and n2 == 0:
                 d1Corrected = d1Phase0FirstFace
             elif startPhase == 0.0 and elementsCountAlongSegment % 2 == 0 and \
                     n2 == int(elementsCountAlongSegment * 0.5):
-                dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1Phase0MidFace
+                dx_ds1OuterAroundList = dx_ds1OuterAroundList + d1Phase0MidFace
             elif startPhase == 0.0 and n2 > elementsCountAlongSegment - 1:
                 d1Corrected = d1Phase0LastFace
 
             elif startPhase == 180.0 and n2 == 0:
-                dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1180FirstFace
+                dx_ds1OuterAroundList = dx_ds1OuterAroundList + d1180FirstFace
             elif startPhase == 180.0 and n2 > elementsCountAlongSegment - 1:
-                dx_ds1InnerAroundList = dx_ds1InnerAroundList + d1180LastFace
+                dx_ds1OuterAroundList = dx_ds1OuterAroundList + d1180LastFace
             elif startPhase == 180.0 and elementsCountAlongSegment % 2 == 0 and \
                     n2 == int(elementsCountAlongSegment * 0.5):
                 d1Corrected = d1180MidFace
@@ -803,15 +802,15 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
                     d2 = [v2[c] - v1[c] for c in range(3)]
                     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
                     dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
-                    dx_ds1InnerAroundList.append(dx_ds1)
+                    dx_ds1OuterAroundList.append(dx_ds1)
                 # Account for d1 of node sitting on half haustrum
                 d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] -
                                        xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
                 dx_ds1 = [c * arcLengthAround for c in d1]
-                dx_ds1InnerAroundList.append(dx_ds1)
+                dx_ds1OuterAroundList.append(dx_ds1)
 
-            if dx_ds1InnerAroundList:
-                d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList,
+            if dx_ds1OuterAroundList:
+                d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1OuterAroundList,
                                                                       fixStartDerivative=True)
                 d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
                                                vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
@@ -830,16 +829,14 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
             xHalfSetRelaxed, d1HalfSetRelaxed = \
                 createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum, tcCount,
                                                   tcWidthSegmentList[n2], radiusSegmentList[n2],
-                                                  cornerInnerRadiusFactor, sampleElementOut, haustrumInnerRadiusFactor)
+                                                  cornerOuterRadiusFactor, sampleElementOut, haustrumOuterRadiusFactor)
             xRelaxed, d1Relaxed, _ = getFullProfileFromHalfHaustrum(xHalfSetRelaxed, d1HalfSetRelaxed, d2Around,
                                                                     tcCount)
-            xiFace, relaxedLengthAroundFace = getXiListFromOuterLengthProfile(xRelaxed, d1Relaxed, segmentAxis,
-                                                                              wallThickness, transitElementList)
+            xiFace, relaxedLengthAroundFace = getXiListFromOuterLengthProfile(xRelaxed, d1Relaxed)
             xiList.append(xiFace)
             relaxedLengthList.append(relaxedLengthAroundFace)
 
-            contractedLengthAroundFace = getXiListFromOuterLengthProfile(xAlongList, d1AlongList, segmentAxis,
-                                                                         wallThickness, transitElementList)[1]
+            contractedLengthAroundFace = getXiListFromOuterLengthProfile(xAlongList, d1AlongList)[1]
             contractedWallThickness = relaxedLengthAroundFace * wallThickness / contractedLengthAroundFace
             contractedWallThicknessList.append(contractedWallThickness)
 
@@ -857,7 +854,7 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
 
 
 def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-                                      tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut):
+                                      tcCount, tcWidth, radius, cornerOuterRadiusFactor, sampleElementOut):
     """
     Find locations and derivative of nodes in half of an
     inter-haustral segment. Circular profile for segment
@@ -867,10 +864,10 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :param tcCount: Number of tenia coli.
     :param tcWidth: Width of tenia coli.
-    :param radius: Inner radius of circular profile with two tenia coli,
+    :param radius: Outer radius of circular profile with two tenia coli,
     radius of circle enclosing triangle for profile with three tenia coli.
-    :param cornerInnerRadiusFactor: Roundness of triangular corners of
-    inter-haustral septa. Factor is multiplied by inner radius
+    :param cornerOuterRadiusFactor: Roundness of triangular corners of
+    inter-haustral septa. Factor is multiplied by outer radius
     to get a radius of curvature at the corners. Only applicable for three tenia
     coli. Set to zero for two tenia coli.
     :param sampleElementOut: Number of sample points used to set up profile
@@ -888,7 +885,7 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
                                            sampleElementOut, startRadians=0.0)
 
     else:  # tcCount == 3, Triangular profile
-        cornerRC = cornerInnerRadiusFactor * radius
+        cornerRC = cornerOuterRadiusFactor * radius
         radiansRangeRC = [7 * math.pi / 4, 0.0, math.pi / 4]
 
         for n1 in range(3):
@@ -937,8 +934,8 @@ def createHalfSetInterHaustralSegment(elementsCountAroundTC, elementsCountAround
 
 
 def createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAroundHaustrum,
-                                      tcCount, tcWidth, radius, cornerInnerRadiusFactor, sampleElementOut,
-                                      haustrumInnerRadiusFactor):
+                                      tcCount, tcWidth, radius, cornerOuterRadiusFactor, sampleElementOut,
+                                      haustrumOuterRadiusFactor):
     """
     Find locations and derivative of nodes in half of an intra-haustral
     segment. Bow-tie profile for segment with two tenia coli and
@@ -947,15 +944,15 @@ def createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAround
     :param elementsCountAroundHaustrum: Number of elements around haustrum.
     :param tcCount: Number of tenia coli.
     :param tcWidth: Width of tenia coli.
-    :param radius: Inner radius of circular inter-haustral profile with two
+    :param radius: Outer radius of circular inter-haustral profile with two
     tenia coli, radius of circle enclosing triangle for inter-haustral profile
     with three tenia coli.
-    :param cornerInnerRadiusFactor: Roundness of triangular corners of
-    inter-haustral septa. Factor is multiplied by inner radius
+    :param cornerOuterRadiusFactor: Roundness of triangular corners of
+    inter-haustral septa. Factor is multiplied by outer radius
     to get a radius of curvature at the corners. Only applicable for three tenia
     coli. Set to zero for two tenia coli.
     :param sampleElementOut: Number of sample points used to set up profile
-    :param haustrumInnerRadiusFactor: Factor is multiplied by inner
+    :param haustrumOuterRadiusFactor: Factor is multiplied by outer
     radius to obtain radius of intersecting circles in the middle cross-section
     along a haustra segment.
     :return: Node location and derivative on half of a haustrum segment.
@@ -967,8 +964,8 @@ def createHalfSetIntraHaustralSegment(elementsCountAroundTC, elementsCountAround
     d1HalfSetIntraHaustra = []
 
     # Set up profile
-    cornerRC = cornerInnerRadiusFactor * radius
-    haustrumRadius = (haustrumInnerRadiusFactor + 1) * radius
+    cornerRC = cornerOuterRadiusFactor * radius
+    haustrumRadius = (haustrumOuterRadiusFactor + 1) * radius
     if tcCount == 2:  # Bow-tie profile
         originRC = (radius * radius - haustrumRadius * haustrumRadius) / (-2.0 * haustrumRadius)
         RC = haustrumRadius - originRC
@@ -1253,13 +1250,12 @@ def getFullProfileFromHalfHaustrum(xHaustrumHalfSet, d1HaustrumHalfSet,
     return xHaustra, d1Haustra, d2Haustra
 
 
-def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
-                                    wallThickness, transitElementList):
+def getXiListFromOuterLengthProfile(xOuter, d1Outer):
     """
     Gets a list of xi for flat coordinates calculated
     from outer arclength of elements around a segment (most relaxed state).
-    :param xInner: Coordinates of points on inner surface around segment.
-    :param d1Inner: Derivatives of points on inner surface around segment.
+    :param xOuter: Coordinates of points on outer surface around segment.
+    :param d1Outer: Derivatives of points on outer surface around segment.
     :param segmentAxis: Axis of segment.
     :param wallThickness: Thickness of wall.
     :param transitElementList: stores true if element around is an element that
@@ -1268,36 +1264,6 @@ def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
     wall thickness from inner points.
     :return totalArcLengthOuter: Total arclength around outer surface of elements.
     """
-    unitNormList = []
-    xOuter = []
-    curvatureInner = []
-    d1Outer = []
-
-    for n in range(len(xInner)):
-        unitNormList.append(vector.normalise(vector.crossproduct3(d1Inner[n], segmentAxis)))
-
-    for n in range(len(xInner)):
-        norm = unitNormList[n]
-        # Calculate outer coordinates
-        x = [xInner[n][i] + norm[i] * wallThickness for i in range(3)]
-        xOuter.append(x)
-        # Calculate curvature along elements around
-        prevIdx = n - 1 if (n != 0) else len(xInner) - 1
-        nextIdx = n + 1 if (n < (len(xInner) - 1)) else 0
-        kappam = interp.getCubicHermiteCurvatureSimple(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], 1.0)
-        kappap = interp.getCubicHermiteCurvatureSimple(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], 0.0)
-        if not transitElementList[n] and not transitElementList[(n - 1) % (len(xInner))]:
-            curvatureAround = 0.5 * (kappam + kappap)
-        elif transitElementList[n]:
-            curvatureAround = kappam
-        elif transitElementList[(n - 1) % (len(xInner))]:
-            curvatureAround = kappap
-        curvatureInner.append(curvatureAround)
-
-    for n in range(len(xOuter)):
-        factor = 1.0 + wallThickness * curvatureInner[n]
-        dx_ds1 = [factor * c for c in d1Inner[n]]
-        d1Outer.append(dx_ds1)
 
     arcLengthList = []
     for n1 in range(len(xOuter)):

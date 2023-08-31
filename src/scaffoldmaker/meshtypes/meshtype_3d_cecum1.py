@@ -15,7 +15,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, mergeAnnot
 from scaffoldmaker.annotation.cecum_terms import get_cecum_term
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
-from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshInnerPoints, \
+from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshOuterPoints, \
     getFullProfileFromHalfHaustrum, getTeniaColi, createNodesAndElementsTeniaColi
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2, generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -50,9 +50,10 @@ class MeshType_3d_cecum1(Scaffold_base):
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                 (1, [[7.50,-20.00,0.00], [0.00,8.28,0.00], [-1.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,1.50], [0.00,0.00,0.00]]),
                 (2, [[7.50,-10.86,0.00], [0.00,10.00,0.00], [-4.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,4.50], [0.00,0.00,0.00]]),
-                (3, [[7.50,0.00,0.00], [[7.50,0.00,0.00],[0.00,11.72,0.00]], [[0.00,10.00,0.00],[-4.50,0.00,0.00]], [[1.02,6.79,0.00],[0.00,0.00,0.00]], [[0.00,0.00,10.00],[0.00,-0.00,4.50]], [[0.00,0.00,5.77],[0.00,0.00,0.00]]]),
-                (4, [[0.00,0.00,0.00], [7.50,0.00,0.00], [0.00,10.00,0.00], [0.00,0.00,0.00], [0.00,0.00,10.00], [0.00,0.00,0.00]]),
-                (5, [[15.00,0.00,0.00], [7.50,0.00,0.00], [0.00,10.00,0.00], [0.00,0.00,0.00], [0.00,0.00,10.00], [0.00,0.00,0.00]])]),
+                (3, [[7.50,0.00,0.00], [[8.44,0.00,0.04],[0.00,11.72,0.00]], [[0.00,11.60,0.00],[-4.50,0.00,0.00]], [[1.02,6.79,0.00],[0.00,0.00,0.00]], [[0.00,0.00,11.60],[0.00,-0.00,4.50]], [[0.00,0.00,5.77],[0.00,0.00,0.00]]]),
+                (4, [[-1.88,0.00,-0.08], [10.32,0.00,0.12], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]]),
+                (5, [[15.00,0.00,0.00], [6.56,0.00,-0.04], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]])
+                ]),
 
             'userAnnotationGroups': [
                 {
@@ -78,10 +79,10 @@ class MeshType_3d_cecum1(Scaffold_base):
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                 (1, [[-60.63,-80.53,895.25], [-6.17,-10.10,-5.87], [2.66,0.73,-4.05], [2.38,0.99,-1.14], [3.31,-2.97,1.64], [2.38,0.99,-1.14]]),
                 (2, [[-68.64,-93.29,888.06], [-9.85,-15.42,-8.51], [3.88,1.20,-6.66], [2.38,0.99,-1.14], [2.82,-2.46,1.20], [2.38,0.99,-1.14]]),
-                (3, [[-80.39,-111.37,878.29], [[-7.24,-1.01,11.64],[-13.65,-20.74,-11.03]], [[19.37,-3.78,11.72],[5.59,1.31,-9.38]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]], [[2.31,22.26,3.37],[1.51,-1.37,0.71]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]]]),
-                (4, [[-72.87,-109.11,867.41], [-7.88,-3.47,10.51], [16.11,-4.49,10.60], [3.73,0.68,4.20], [0.76,18.44,6.66], [3.74,0.69,4.20]]),
-                (5, [[-87.21,-111.06,890.54], [-4.75,0.41,12.39], [20.72,-2.80,8.04], [2.46,-0.39,-2.95], [2.85,22.11,0.36], [1.83,0.46,-4.31]])]),
- 
+                (3, [[-80.39,-111.37,878.29], [[-7.79,-0.98,12.36],[-13.65,-20.74,-11.03]], [[20.72,-4.04,12.54],[5.59,1.31,-9.38]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]], [[2.47,23.83,3.61],[1.51,-1.37,0.71]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]]]),
+                (4, [[-71.69,-109.00,866.04], [-9.55,-3.73,12.06], [17.41,-4.85,11.46], [3.73,0.68,4.20], [0.82,19.94,7.20], [3.74,0.69,4.20]]),
+                (5, [[-87.21,-111.06,890.54], [-5.80,1.59,12.04], [22.20,-3.00,8.61], [2.46,-0.39,-2.95], [3.05,23.70,0.39], [1.83,0.46,-4.31]])
+                ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -104,13 +105,14 @@ class MeshType_3d_cecum1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[167.00,29.75,51.53], [0.00,-9.63,-16.67], [-4.00,-0.00,0.00], [0.00,0.00,0.00], [0.00,6.64,-3.83], [0.00,0.00,0.00]]),
-                (2, [[167.00,17.50,30.31], [0.00,-14.87,-25.77], [-15.00,-0.00,0.00], [0.00,0.00,0.00], [0.00,10.49,-6.05], [0.00,0.00,0.00]]),
-                (3, [[167.00,0.00,0.00], [[30.00,0.00,0.00],[0.00,-20.13,-34.85]], [[0.00,35.00,0.00],[-15.00,0.00,0.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]], [[0.00,0.00,35.00],[0.00,8.49,-4.90]], [[0.00,0.00,0.00],[0.00,0.00,0.00]]]),
-                (4, [[0.00,0.00,0.00], [60.00,0.00,0.00], [0.00,35.00,0.00], [0.00,0.00,0.00], [0.00,0.00,35.00], [0.00,0.00,0.00]]),
-                (5, [[60.00,0.00,0.00], [60.00,0.00,0.00], [0.00,35.00,0.00], [0.00,0.00,0.00], [0.00,0.00,35.00], [0.00,0.00,0.00]]),
-                (6, [[120.00,0.00,0.00], [53.50,0.00,0.00], [0.00,35.00,0.00], [0.00,0.00,0.00], [0.00,0.00,35.00], [0.00,0.00,0.00]]),
-                (7, [[180.00,0.00,0.00], [4.00,-0.00,-0.00], [0.00,35.00,0.00], [0.00,0.00,0.00], [0.00,0.00,35.00], [0.00,0.00,0.00]])]),
+                (1, [[164.00,29.75,51.53], [0.00,-9.63,-16.67], [-6.00,0.00,0.00], [0.00,0.00,0.00], [0.00,5.20,-3.00], [0.00,0.00,0.00]]),
+                (2, [[164.00,17.50,30.31], [0.00,-14.87,-25.77], [-12.00,0.00,0.00], [0.00,0.00,0.00], [0.00,10.39,-6.00], [0.00,0.00,0.00]]),
+                (3, [[164.00,0.00,0.00], [[30.00,0.00,0.00],[0.00,-20.13,-34.85]], [[0.00,37.00,0.00],[-12.00,0.00,0.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]], [[0.00,0.00,37.00],[0.00,10.39,-6.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]]]),
+                (4, [[0.00,0.00,0.00], [60.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]]),
+                (5, [[60.00,0.00,0.00], [60.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]]),
+                (6, [[120.00,0.00,0.00], [52.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]]),
+                (7, [[180.00,0.00,0.00], [2.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]])
+                ]),
 
             'userAnnotationGroups': [
                 {
@@ -202,15 +204,15 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Number of elements around haustrum': 8,
             'Number of elements along segment': 8,
             'Number of elements through wall': 1,
-            'Corner inner radius factor': 0.5,
-            'Haustrum inner radius factor': 0.4,
+            'Corner outer radius factor': 0.536,
+            'Haustrum outer radius factor': 0.464,
             'Segment length end derivative factor': 0.5,
             'Segment length mid derivative factor': 1.0,
             'Number of tenia coli': 3,
             'Start tenia coli width': 2.0,
-            'Start tenia coli width derivative': 2.0,
-            'End tenia coli width': 4.0,
-            'End tenia coli width derivative': 2.0,
+            'Start tenia coli width derivative': 3.3,
+            'End tenia coli width': 5.3,
+            'End tenia coli width derivative': 3.3,
             'Tenia coli thickness': 0.5,
             'Wall thickness': 1.6,
             'Mucosa relative thickness': 0.55,
@@ -236,8 +238,8 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 5
-            options['Haustrum inner radius factor'] = 0.25
-            options['Segment length end derivative factor'] = 1.0
+            options['Haustrum outer radius factor'] = 0.25
+            options['Segment length end derivative factor'] = 0.5
             options['Segment length mid derivative factor'] = 4.0
             options['Start tenia coli width'] = 5.0
             options['Start tenia coli width derivative'] = 0.0
@@ -257,8 +259,8 @@ class MeshType_3d_cecum1(Scaffold_base):
             'Number of elements around haustrum',
             'Number of elements along segment',
             'Number of elements through wall',
-            'Corner inner radius factor',
-            'Haustrum inner radius factor',
+            'Corner outer radius factor',
+            'Haustrum outer radius factor',
             'Segment length end derivative factor',
             'Segment length mid derivative factor',
             'Number of tenia coli',
@@ -333,8 +335,8 @@ class MeshType_3d_cecum1(Scaffold_base):
         for key in [
             'Number of elements around tenia coli',
             'Number of elements around haustrum',
-            'Corner inner radius factor',
-            'Haustrum inner radius factor',
+            'Corner outer radius factor',
+            'Haustrum outer radius factor',
             'Segment length end derivative factor',
             'Segment length mid derivative factor',
             'Number of tenia coli',
@@ -413,10 +415,10 @@ class MeshType_3d_cecum1(Scaffold_base):
                                                        refineElementsCountThroughWall)
         return
 
-def getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaustrum,
+def getApexSegmentForCecum(xOuter, d1Outer, d2Outer, elementsCountAroundHalfHaustrum,
                            elementsCountAroundTC, elementsCountAround, elementsCountAlongSegment, tcCount):
     """
-    Generates the inner coordinates and derivatives for a cecum segment on the closed end.
+    Generates the outer coordinates and derivatives for a cecum segment on the closed end.
     The closed end is a single node and segment is created by sampling curves between the
     point on closed end with nodes on the length along second half of a colon segment.
     :param xInner: coordinates of a colon segment.
@@ -435,15 +437,15 @@ def getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaus
     xFirstSegment = [[0.0, 0.0, 0.0] for c in range(elementsCountAround)]
 
     # Compile nodes and d2 for sampling
-    xFirstSegment += xInner[elementsCountAround * int(elementsCountAlongSegment * 0.5):] # second half of first regular segment
-    d1FirstDirectionVector = vector.normalise(d1Inner[elementsCountAround]) # Store direction vector of first d1 intra-haustral for later
-    d2Vector = xInner[elementsCountAround * int(elementsCountAlongSegment * 0.5):
+    xFirstSegment += xOuter[elementsCountAround * int(elementsCountAlongSegment * 0.5):] # second half of first regular segment
+    d1FirstDirectionVector = vector.normalise(d1Outer[elementsCountAround]) # Store direction vector of first d1 intra-haustral for later
+    d2Vector = xOuter[elementsCountAround * int(elementsCountAlongSegment * 0.5):
                       elementsCountAround * (int(elementsCountAlongSegment * 0.5) + 1)] # half face of segment - apex
     d2FirstSegment = []
     for c in range(elementsCountAround):
         d2 = [d2Vector[c][0], d2Vector[c][1], 0.0 ]  # project onto x-y plane to get d2 pointing vertically
         d2FirstSegment.append(d2)
-    d2FirstSegment += d2Inner[elementsCountAround * int(elementsCountAlongSegment*0.5):]
+    d2FirstSegment += d2Outer[elementsCountAround * int(elementsCountAlongSegment*0.5):]
 
     # Sample along first segment
     xFirstSegmentSampledRaw = []
@@ -565,8 +567,8 @@ def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVe
     :return: nodes and derivatives for equally spaced points.
     """
 
-    xInnerRaw = []
-    d2InnerRaw = []
+    xOuterRaw = []
+    d2OuterRaw = []
     xSampledAlongLength = []
     d1SampledAlongLength = []
     d2SampledAlongLength = []
@@ -581,8 +583,8 @@ def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVe
         xSampled, d2Sampled, se, sxi, _ = interp.sampleCubicHermiteCurves(xForSamplingAlong, d2ForSamplingAlong,
                                                                           elementsCountAlong,
                                                                           arcLengthDerivatives=True)
-        xInnerRaw.append(xSampled)
-        d2InnerRaw.append(d2Sampled)
+        xOuterRaw.append(xSampled)
+        d2OuterRaw.append(d2Sampled)
 
     # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
     for n2 in range(elementsCountAlong + 1):
@@ -590,12 +592,12 @@ def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVe
         d2Around = []
 
         for n1 in range(elementsCountAroundHalfHaustrum + 1):
-            x = xInnerRaw[n1][n2]
-            d2 = d2InnerRaw[n1][n2]
+            x = xOuterRaw[n1][n2]
+            d2 = d2OuterRaw[n1][n2]
             xAround.append(x)
             d2Around.append(d2)
 
-        d1InnerAroundList = []
+        d1OuterAroundList = []
         if n2 == 0:
             d1Corrected = d1ToSample[:elementsCountAroundHalfHaustrum + 1]
 
@@ -607,15 +609,15 @@ def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVe
                 d2 = [v2[c] - v1[c] for c in range(3)]
                 arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
                 dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
-                d1InnerAroundList.append(dx_ds1)
+                d1OuterAroundList.append(dx_ds1)
             # Account for d1 of node sitting on half haustrum
             d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] -
                                    xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
             dx_ds1 = [c * arcLengthAround for c in d1]
-            d1InnerAroundList.append(dx_ds1)
+            d1OuterAroundList.append(dx_ds1)
 
-        if d1InnerAroundList:
-            d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1InnerAroundList, fixStartDerivative=True)
+        if d1OuterAroundList:
+            d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1OuterAroundList, fixStartDerivative=True)
             d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
                                            vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
             d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
@@ -664,8 +666,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     elementsCountAroundHaustrum = options['Number of elements around haustrum']
     elementsCountAlongSegment = options['Number of elements along segment']
     elementsCountThroughWall = options['Number of elements through wall']
-    cornerInnerRadiusFactor = options['Corner inner radius factor']
-    haustrumInnerRadiusFactor = options['Haustrum inner radius factor']
+    cornerOuterRadiusFactor = options['Corner outer radius factor']
+    haustrumOuterRadiusFactor = options['Haustrum outer radius factor']
     segmentLengthEndDerivativeFactor = options['Segment length end derivative factor']
     segmentLengthMidDerivativeFactor = options['Segment length mid derivative factor']
     tcCount = options['Number of tenia coli']
@@ -750,31 +752,31 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     segmentLength = cecumLength / segmentCount
 
     # Generate variation of radius & tc width along length
-    innerRadiusAlongCecum = []
-    dInnerRadiusAlongCecum = []
+    outerRadiusAlongCecum = []
+    dOuterRadiusAlongCecum = []
     tcWidthAlongCecum = []
 
     closedProximalEnd = True
-    innerRadiusListCP = [vector.magnitude(c) for c in cd2]
-    dInnerRadiusListCP = []
-    for n in range(len(innerRadiusListCP) - 1):
-        dInnerRadiusListCP.append(innerRadiusListCP[n + 1] - innerRadiusListCP[n])
-    dInnerRadiusListCP.append(innerRadiusListCP[-1] - innerRadiusListCP[-2])
-    innerRadiusAlongElementList, dInnerRadiusAlongElementList = \
-        interp.interpolateSampleCubicHermite(innerRadiusListCP, dInnerRadiusListCP, se, sxi, ssf)
+    outerRadiusListCP = [vector.magnitude(c) for c in cd2]
+    dOuterRadiusListCP = []
+    for n in range(len(outerRadiusListCP) - 1):
+        dOuterRadiusListCP.append(outerRadiusListCP[n + 1] - outerRadiusListCP[n])
+    dOuterRadiusListCP.append(outerRadiusListCP[-1] - outerRadiusListCP[-2])
+    outerRadiusAlongElementList, dOuterRadiusAlongElementList = \
+        interp.interpolateSampleCubicHermite(outerRadiusListCP, dOuterRadiusListCP, se, sxi, ssf)
 
     for n2 in range(elementsCountAlongSegment * segmentCount + 1):
         xi = 1 / (elementsCountAlongSegment * segmentCount) * n2
 
-        radius = innerRadiusAlongElementList[n2]
-        innerRadiusAlongCecum.append(radius)
-        dRadius = dInnerRadiusAlongElementList[n2]
-        dInnerRadiusAlongCecum.append(dRadius)
+        radius = outerRadiusAlongElementList[n2]
+        outerRadiusAlongCecum.append(radius)
+        dRadius = dOuterRadiusAlongElementList[n2]
+        dOuterRadiusAlongCecum.append(dRadius)
         tcWidth = interp.interpolateCubicHermite([startTCWidth], [startTCWidthDerivative],
                                                  [endTCWidth], [endTCWidthDerivative], xi)[0]
         tcWidthAlongCecum.append(tcWidth)
 
-    haustrumInnerRadiusFactorAlongCecum = [haustrumInnerRadiusFactor] * (elementsCountAlong + 1)
+    haustrumOuterRadiusFactorAlongCecum = [haustrumOuterRadiusFactor] * (elementsCountAlong + 1)
 
     xToSample = []
     d1ToSample = []
@@ -783,11 +785,11 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     elementsCountAroundHalfHaustrum = int((elementsCountAroundTC + elementsCountAroundHaustrum) * 0.5)
 
     # Create object
-    colonSegmentTubeMeshInnerPoints = ColonSegmentTubeMeshInnerPoints(
+    colonSegmentTubeMeshOuterPoints = ColonSegmentTubeMeshOuterPoints(
         region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
         tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-        segmentLength, wallThickness, cornerInnerRadiusFactor, haustrumInnerRadiusFactorAlongCecum,
-        innerRadiusAlongCecum, dInnerRadiusAlongCecum, tcWidthAlongCecum, startPhase)
+        segmentLength, wallThickness, cornerOuterRadiusFactor, haustrumOuterRadiusFactorAlongCecum,
+        outerRadiusAlongCecum, dOuterRadiusAlongCecum, tcWidthAlongCecum, startPhase)
 
     # Create annotation
     cecumGroup = AnnotationGroup(region, get_cecum_term("caecum"))
@@ -797,13 +799,13 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     for nSegment in range(segmentCount):
         # Make regular segments
-        xInner, d1Inner, d2Inner, transitElementList, segmentAxis, annotationGroupsAround \
-            = colonSegmentTubeMeshInnerPoints.getColonSegmentTubeMeshInnerPoints(nSegment)
+        xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround \
+            = colonSegmentTubeMeshOuterPoints.getColonSegmentTubeMeshOuterPoints(nSegment)
 
         # Replace first half of first segment with apex and sample along apex and second half of segment
         if nSegment == 0:
             xFirstSegmentSampled, d1FirstSegmentSampled, d2FirstSegmentSampled, d1FirstDirectionVector = \
-                getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaustrum,
+                getApexSegmentForCecum(xOuter, d1Outer, d2Outer, elementsCountAroundHalfHaustrum,
                                        elementsCountAroundTC, elementsCountAround, elementsCountAlongSegment,
                                        tcCount)
 
@@ -811,12 +813,12 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
             d1ToSample += d1FirstSegmentSampled
             d2ToSample += d2FirstSegmentSampled
         else:
-            xInnerExtrude = []
-            for n in range(len(xInner)):
-                xInnerExtrude.append([xInner[n][0], xInner[n][1], xInner[n][2] + segmentLength * nSegment])
-            xToSample += xInnerExtrude[elementsCountAround:]
-            d1ToSample += d1Inner[elementsCountAround:]
-            d2ToSample += d2Inner[elementsCountAround:]
+            xOuterExtrude = []
+            for n in range(len(xOuter)):
+                xOuterExtrude.append([xOuter[n][0], xOuter[n][1], xOuter[n][2] + segmentLength * nSegment])
+            xToSample += xOuterExtrude[elementsCountAround:]
+            d1ToSample += d1Outer[elementsCountAround:]
+            d2ToSample += d2Outer[elementsCountAround:]
 
     # Sample along length
     xToWarp, d1ToWarp, d2ToWarp = sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVector,
@@ -850,7 +852,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
         tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList,d2WarpedList, d3WarpedUnitList,
                                            wallThicknessList, relativeThicknessList, elementsCountAround,
                                            elementsCountAlong, elementsCountThroughWall, transitElementList,
-                                           outward=True)
+                                           outward=False)
 
     # Deal with multiple nodes at end point for closed proximal end
     xApexInner = xList[0]
@@ -887,7 +889,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     # Create nodes and elements
     if tcThickness > 0:
-        tubeTCWidthList = colonSegmentTubeMeshInnerPoints.getTubeTCWidthList()
+        tubeTCWidthList = colonSegmentTubeMeshOuterPoints.getTubeTCWidthList()
         xCecum, d1Cecum, d2Cecum, d3Cecum, annotationArrayAround = getTeniaColi(
             region, xCecum, d1Cecum, d2Cecum, d3Cecum, curvatureList, tcCount, elementsCountAroundTC,
             elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,

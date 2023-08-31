@@ -40,11 +40,12 @@ class MeshType_3d_esophagus1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [ [ -0.42, -100.50, 1401.88 ], [  0.74,  14.22, -46.12 ], [ 7.85, -0.56, -0.05 ], [  0.69,  0.03, 0.02 ], [ -0.22, -2.98, -0.92 ], [  0.19, 1.51, 0.43 ] ] ),
-                (2, [ [  0.52,  -84.95, 1340.25 ], [  1.15,  16.87, -77.08 ], [ 7.08, -0.66, -0.04 ], [ -0.25, -0.13, 0.05 ], [ -0.19, -2.04, -0.45 ], [ -0.03, 0.34, 0.51 ] ] ),
-                (3, [ [  1.85,  -67.80, 1247.93 ], [ -0.05,  -4.17, -89.62 ], [ 6.13, -0.92,  0.04 ], [ -0.56,  0.20, 0.44 ], [ -0.38, -2.56,  0.12 ], [  0.00, 0.08, 0.61 ] ] ),
-                (4, [ [  0.55,  -90.99, 1166.45 ], [  6.95, -24.56, -60.26 ], [ 4.15,  1.65, -0.20 ], [ -1.22,  1.08, 1.18 ], [  0.88, -2.09,  0.95 ], [ -0.02, 0.46, 0.61 ] ] ),
-                (5, [ [  9.34, -111.30, 1127.62 ], [  3.74,  -1.54,  -6.85 ], [ 1.93,  1.69,  0.67 ], [ -2.29,  1.59, 1.62 ], [  1.32, -1.98,  1.17 ], [ -0.24, 0.29, 0.57 ] ] )] ),
+                (1, [[0.394,-100.872,1402.818], [-0.035,12.367,-48.020], [8.730,-0.526,-0.142], [0.613,-0.153,-0.037], [-0.272,-4.224,-1.088], [-0.169,-1.491,-0.564]]),
+                (2, [[0.520,-86.043,1340.066], [0.501,16.682,-77.602], [9.142,-0.799,-0.113], [0.212,-0.392,0.096], [-0.465,-5.159,-1.112], [-0.215,-0.377,0.515]]),
+                (3, [[1.368,-67.733,1247.932], [0.235,-3.685,-89.672], [9.061,-1.366,0.080], [-0.833,-0.231,0.187], [-0.714,-4.722,0.192], [-0.167,0.445,1.659]]),
+                (4, [[0.361,-91.057,1165.531], [-2.499,-24.560,-49.102], [7.540,-1.290,0.261], [-0.809,1.514,2.095], [-0.806,-4.269,2.176], [0.001,0.896,0.910]]),
+                (5, [[11.471,-112.192,1126.439], [9.994,-15.550,-16.424], [7.114,0.998,3.385], [-0.043,3.060,4.152], [-0.754,-3.134,2.509], [0.102,1.373,-0.245]])
+            ]),
 
             'userAnnotationGroups': [
                 {
@@ -89,7 +90,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
             'Number of elements around': 8,
             'Number of elements along': 20,
             'Number of elements through wall': 4,
-            'Wall thickness': 3.2,
+            'Wall thickness': 1.2,
             'Mucosa relative thickness': 0.35,
             'Submucosa relative thickness': 0.15,
             'Circular muscle layer relative thickness': 0.25,
@@ -421,7 +422,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
             tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
                                              [wallThickness]*(elementsCountAlong+1), relativeThicknessList,
                                              elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                                             transitElementList, outward=True)
+                                             transitElementList, outward=False)
 
         # Create flat coordinates
         xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(xiList, flatWidthList, length, wallThickness,
