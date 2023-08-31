@@ -159,79 +159,17 @@ class MeshType_3d_uterus1(Scaffold_base):
                     'ontId': get_uterus_term('vagina')[1]
                 }]
         }),
-        'Sheep 1': ScaffoldPackage(MeshType_1d_network_layout1, {
-            'scaffoldSettings': {
-                "Structure": "1-2-3-4-5-6, 7-8-9-10-11-6.2, 6.3-12-13, 13-14, 14-15-16"
-            },
-            'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[52.49, 0.00, -18.84], [-2.73, 0.00, 11.28], [-2.77, 0.00, -0.67], [0.02, 0.00, -0.43], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (2, [[48.29, 0.00, -7.35], [-5.65, 0.00, 11.61], [-2.57, 0.00, -1.25], [0.38, 0.00, -0.73], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (3, [[41.18, 0.00, 4.10], [-9.81, 0.00, 9.08], [-2.00, 0.00, -2.15], [0.95, 0.00, -0.92], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (4, [[29.62, 0.00, 10.08], [-12.84, 0.00, 2.79], [-0.67, 0.00, -3.09], [1.45, 0.00, -0.46], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (5, [[16.68, 0.00, 9.44], [-15.56, 0.00, -4.52], [0.89, 0.00, -3.08], [1.50, 0.00, 0.09], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (6, [[0.00, 0.00, 0.00], [[-17.41, 0.00, -14.04], [17.41, 0.00, -14.04], [0.00, 0.00, -5.00]],
-                         [[2.31, 0.00, -2.86], [2.87, 0.00, 3.56], [4.89, 0.00, 0.00]], [-0.24, 0.00, 1.06],
-                         [[0.00, -2.43, 0.00], [0.00, -2.43, 0.00], [0.00, -3.50, 0.00]], [0.00, 0.00, 0.00]]),
-                    (7, [[-52.49, 0.00, -18.84], [2.73, 0.00, 11.28], [-2.77, 0.00, 0.67], [-0.74, 0.00, 1.11], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (8, [[-48.29, 0.00, -7.35], [5.65, 0.00, 11.61], [-2.57, 0.00, 1.25], [0.38, 0.00, 0.73], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (9, [[-41.18, 0.00, 4.10], [9.81, 0.00, 9.08], [-2.00, 0.00, 2.15], [0.95, 0.00, 0.92], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (10, [[-29.62, 0.00, 10.08], [12.84, 0.00, 2.79], [-0.67, 0.00, 3.09], [1.45, 0.00, 0.46], [0.00, -2.43, 0.00], [0.00, 0.00, 0.00]]),
-                    (11, [[-16.68, 0.00, 9.44], [15.56, 0.00, -4.52], [0.89, 0.00, 3.08], [1.91, 0.00, -1.03], [0.00, -2.43, 0.00], [0.00, -0.36, 0.00]]),
-                    (12, [[0.00, 0.00, -10.00], [0.00, 0.00, -15.00], [3.50, 0.00, 0.00], [1.12, 0.00, -1.33], [0.00, -3.50, 0.00], [0.00, -0.46, 0.00]]),
-                    (13, [[0.00, 0.00, -30.00], [0.00, 0.00, -15.00], [3.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -3.50, 0.00], [0.00, 0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -40.00], [0.00, 0.00, -10.00], [3.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -3.50, 0.00], [0.00, 0.00, 0.00]]),
-                    (15, [[0.00, 0.00, -50.00], [0.00, 0.00, -10.00], [3.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -3.50, 0.00], [0.00, 0.00, 0.00]]),
-                    (16, [[0.00, 0.00, -60.00], [0.00, 0.00, -10.00], [3.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -3.50, 0.00], [0.00, 0.00, 0.00]])]),
-            'userAnnotationGroups': [
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-5',
-                    'name': get_uterus_term('right uterine horn')[0],
-                    'ontId': get_uterus_term('right uterine horn')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '6-10',
-                    'name': get_uterus_term('left uterine horn')[0],
-                    'ontId': get_uterus_term('left uterine horn')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '11-12',
-                    'name': get_uterus_term('body of uterus')[0],
-                    'ontId': get_uterus_term('body of uterus')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '13',
-                    'name': get_uterus_term('uterine cervix')[0],
-                    'ontId': get_uterus_term('uterine cervix')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '14-15',
-                    'name': get_uterus_term('vagina')[0],
-                    'ontId': get_uterus_term('vagina')[1]
-                }]
-        }),
         'Material': ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3, 4-5-3.2, 3.3-6, 6-7, 7-8-9"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [[2.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [-0.00, -0.30, -0.00], [0.00, 0.00, 0.00]]),
-                    (2, [[1.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [-0.00, -0.30, -0.00], [0.00, 0.00, 0.00]]),
+                    (1, [[2.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
+                    (2, [[1.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (3, [[0.00, 0.00, 0.00], [[-1.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, -1.00]],
                          [[0.00, 0.00, -0.30], [0.00, 0.00, 0.30], [0.30, 0.00, 0.00]], [0.00, 0.00, 0.20],
-                         [[-0.00, -0.30, -0.00], [0.00, -0.30, 0.00], [0.00, -0.30, 0.00]], [0.00, 0.00, 0.00]]),
+                         [[0.00, -0.30, 0.00], [0.00, -0.30, 0.00], [0.00, -0.30, 0.00]], [0.00, 0.00, 0.00]]),
                     (4, [[-2.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.30], [0.00, 0.00, 0.20], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (5, [[-1.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.30], [0.12, 0.00, -0.12], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (6, [[0.00, 0.00, -1.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.12, 0.00, -0.12], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
@@ -287,7 +225,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Default',
             'Mouse 1',
             'Rat 1',
-            'Sheep 1',
             'Material']
 
     @classmethod
@@ -296,8 +233,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             networkLayoutOption = cls.parameterSetStructureStrings['Mouse 1']
         elif 'Rat 1' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Rat 1']
-        elif 'Sheep 1' in parameterSetName:
-            networkLayoutOption = cls.parameterSetStructureStrings['Sheep 1']
         elif 'Material' in parameterSetName:
             networkLayoutOption = cls.parameterSetStructureStrings['Material']
         else:
@@ -321,9 +256,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             options['Target element length'] = 5.0
             options['Wall thickness'] = 1.2
             options['Double uterus'] = True
-        if 'Sheep' in parameterSetName:
-            options['Target element length'] = 11.0
-            options['Wall thickness'] = 1.8
         if 'Material' in parameterSetName:
             options['Target element length'] = 1.0
             options['Wall thickness'] = 0.1
@@ -338,6 +270,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Number of elements around horns',
             'Number of elements through wall',
             'Wall thickness',
+            'Double uterus',
             'Refine',
             'Refine number of elements along',
             'Refine number of elements around',
@@ -449,12 +382,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         #     materialNetworkLayout = UterusNetworkLayout(tmp_region, materialNetworkLayout, materialTargetElementLength)
         #
         #     nodeIdentifier, elementIdentifier, materialAnnotationGroups = \
-        #         createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout, elementsCountAround,
-        #                               elementsCountAroundRightHorn,
-        #                               elementsCountAroundLeftHorn,
-        #                               elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
-        #                               elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness,
-        #                               doubleUterus, useCrossDerivatives)
+        #         createUterusMesh3D(tmp_region, tmp_fm, tmp_uterus_coordinates, materialNetworkLayout,
+        #                            elementsCountAround, elementsCountAroundRightHorn, elementsCountAroundLeftHorn,
+        #                            elementsCountThroughWall, elementsCountInRightHorn, elementsCountInLeftHorn,
+        #                            elementsCountInBody, elementsCountInCervix, elementsCountInVagina, wallThickness,
+        #                            doubleUterus, useCrossDerivatives)
         #     # Write two coordinates
         #     sir = tmp_region.createStreaminformationRegion()
         #     srm = sir.createStreamresourceMemory()
@@ -642,10 +574,10 @@ class UterusNetworkLayout:
         self.elementsCountAlongList = elementsCountAlongList
 
 
-def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround, elementsCountAroundRightHorn,
-                       elementsCountAroundLeftHorn, elementsCountThroughWall, elementsCountInRightHorn,
-                       elementsCountInLeftHorn, elementsCountInBody, elementsCountInCervix, elementsCountInVagina,
-                       wallThickness, doubleUterus, useCrossDerivatives):
+def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elementsCountAround,
+                       elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall,
+                       elementsCountInRightHorn, elementsCountInLeftHorn, elementsCountInBody, elementsCountInCervix,
+                       elementsCountInVagina, wallThickness, doubleUterus, useCrossDerivatives):
 
     mesh = fm.findMeshByDimension(3)
 
@@ -684,40 +616,41 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     # Get right horn nodes
     rightStartRadians = -math.pi * (elementsCountAround / (2 * elementsCountAroundRightHorn))
     rightHornCoordinates = getTubeNodes(cx_right_horn_group, elementsCountAroundRightHorn,
-                                                     elementsCountInRightHorn, elementsCountThroughWall,
-                                                     wallThickness, startRadian=rightStartRadians)
+                                        elementsCountInRightHorn, elementsCountThroughWall, wallThickness,
+                                        startRadian=rightStartRadians)
 
     rhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(rightHornCoordinates, elementsCountAroundRightHorn,
                                                                 elementsCountInRightHorn, elementsCountThroughWall,
                                                                 omitStartRows=0, omitEndRows=1)
 
     rhLastRingNodeId, nodeCount = getTargetedRingNodesIds(firstNodeIdentifier, elementsCountAroundRightHorn,
-                                                         elementsCountInRightHorn, elementsCountThroughWall,
-                                                         omitStartRows=0, omitEndRows=1)
+                                                          elementsCountInRightHorn, elementsCountThroughWall,
+                                                          omitStartRows=0, omitEndRows=1)
 
     # Get left horn nodes
     leftStartRadians = -math.pi * (elementsCountAcross / elementsCountAroundLeftHorn)
-    leftHornCoordinates = getTubeNodes(cx_left_horn_group, elementsCountAroundLeftHorn,
-                                                    elementsCountInLeftHorn, elementsCountThroughWall,
-                                                    wallThickness, startRadian=leftStartRadians)
+    leftHornCoordinates = getTubeNodes(cx_left_horn_group, elementsCountAroundLeftHorn, elementsCountInLeftHorn,
+                                       elementsCountThroughWall, wallThickness, startRadian=leftStartRadians)
 
     lhLastRingNodeCoordinates = getTargetedRingNodesCoordinates(leftHornCoordinates, elementsCountAroundLeftHorn,
                                                                 elementsCountInLeftHorn, elementsCountThroughWall,
                                                                 omitStartRows=0, omitEndRows=1)
 
-    lhLastRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAroundLeftHorn, elementsCountInLeftHorn,
-                                                         elementsCountThroughWall, omitStartRows=0, omitEndRows=1)
+    lhLastRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAroundLeftHorn,
+                                                          elementsCountInLeftHorn, elementsCountThroughWall,
+                                                          omitStartRows=0, omitEndRows=1)
 
     if doubleUterus:
         # Get body nodes
         bodyInnerRightCoordinates, bodyInnerLeftCoordinates, bodyCoordinatesOuter, septumBodyCoordinates = \
             getDoubleTubeNodes(cx_body_group, elementsCountInBody, elementsCountAround, elementsCountAroundRightHorn,
-                             elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
+                               elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
 
         # Get cervix nodes
         rightInnerCervixthroughWall, leftInnerCervixthroughWall, cervixCoordinatesOuter, septumCervixCoordinates = \
-            getDoubleTubeNodes(cx_cervix_group, elementsCountInCervix, elementsCountAround, elementsCountAroundRightHorn,
-                             elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
+            getDoubleTubeNodes(cx_cervix_group, elementsCountInCervix, elementsCountAround,
+                               elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall,
+                               wallThickness)
 
         # Get the first layer of inner right and left body coordinates for sampling with the last layer of horns
         xrList = []
@@ -745,12 +678,14 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
         newbodyInnerRightCoordinates = [xrList, d1rList, d2rList]
         newbodyInnerLeftCoordinates = [xlList, d1lList, d2lList]
 
-        brFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(newbodyInnerRightCoordinates, elementsCountAroundRightHorn,
-                                                                    elementsCountInBody, elementsCountThroughWall,
-                                                                    omitStartRows=1, omitEndRows=0)
-        blFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(newbodyInnerLeftCoordinates, elementsCountAroundLeftHorn,
-                                                                    elementsCountInBody, elementsCountThroughWall,
-                                                                    omitStartRows=1, omitEndRows=0)
+        brFirstRingNodeCoordinates = \
+            getTargetedRingNodesCoordinates(newbodyInnerRightCoordinates, elementsCountAroundRightHorn,
+                                            elementsCountInBody, elementsCountThroughWall, omitStartRows=1,
+                                            omitEndRows=0)
+        blFirstRingNodeCoordinates = \
+            getTargetedRingNodesCoordinates(newbodyInnerLeftCoordinates, elementsCountAroundLeftHorn,
+                                            elementsCountInBody, elementsCountThroughWall, omitStartRows=1,
+                                            omitEndRows=0)
 
         # Sample the curve between last horn rings and first body rings to get the inner bifurcation nodes
         xLayersRight = []
@@ -768,7 +703,8 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
                 xAlong.append(brFirstRingNodeCoordinates[0][n3][n1])
                 d2Along.append(rhLastRingNodeCoordinates[2][n3][n1])
                 d2Along.append(brFirstRingNodeCoordinates[2][n3][n1])
-                xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongBifurcation,
+                xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along,
+                                                                                elementsCountAlongBifurcation,
                                                                                 arcLengthDerivatives=True)[0:2]
                 xRawRight.append(xSampledAlong)
                 d2RawRight.append(d2SampledAlong)
@@ -783,7 +719,8 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
                 xAlong.append(blFirstRingNodeCoordinates[0][n3][n1])
                 d2Along.append(lhLastRingNodeCoordinates[2][n3][n1])
                 d2Along.append(blFirstRingNodeCoordinates[2][n3][n1])
-                xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along, elementsCountAlongBifurcation,
+                xSampledAlong, d2SampledAlong = interp.sampleCubicHermiteCurves(xAlong, d2Along,
+                                                                                elementsCountAlongBifurcation,
                                                                                 arcLengthDerivatives=True)[0:2]
                 xRawLeft.append(xSampledAlong)
                 d2RawLeft.append(d2SampledAlong)
@@ -861,7 +798,8 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
         c2xList = lhLastRingNodeCoordinates[0][-1]
         c2d2 = lhLastRingNodeCoordinates[2][-1]
         rox, rod1, rod2, cox, cod1, cod2, paStartIndex, c1StartIndex, c2StartIndex = \
-            find_tube_bifurcation_points_converging(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList, c2d2)
+            find_tube_bifurcation_points_converging(paCentre, paxList, pad2, c1Centre, c1xList, c1d2, c2Centre, c2xList,
+                                                    c2d2)
         rod3 = pad3
 
         # Get d3 for outer bifurcation (for cox nodes)
@@ -874,8 +812,9 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
 
         # # Get vagina nodes
         # vaginaInnerRightCoordinates, vaginaInnerLeftCoordinates, vaginaCoordinatesOuter, septumVaginaCoordinates = \
-        #     getDoubleTubeNodes(cx_vagina_group, elementsCountInVagina, elementsCountAround, elementsCountAroundRightHorn,
-        #                      elementsCountAroundLeftHorn, elementsCountThroughWall, wallThickness)
+        #     getDoubleTubeNodes(cx_vagina_group, elementsCountInVagina, elementsCountAround,
+        #                        elementsCountAroundRightHorn, elementsCountAroundLeftHorn, elementsCountThroughWall,
+        #                        wallThickness)
 
 
         # # Create nodes through wall for sampled inner right bifurcation nodes
@@ -910,33 +849,33 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
     else:
         # Get body nodes
         bodyCoordinates = getTubeNodes(cx_body_group, elementsCountAround, elementsCountInBody,
-                                                      elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
+                                       elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
 
         bFirstRingNodeCoordinates = getTargetedRingNodesCoordinates(bodyCoordinates, elementsCountAround,
                                                                     elementsCountInBody, elementsCountThroughWall,
                                                                     omitStartRows=1, omitEndRows=0)
         # Get cervix nodes
         cervixCoordinates = getTubeNodes(cx_cervix_group, elementsCountAround, elementsCountInCervix,
-                                                      elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
+                                         elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
 
         # Get vagina nodes
         vaginaCoordinates = getTubeNodes(cx_vagina_group, elementsCountAround, elementsCountInVagina,
-                                                      elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
+                                         elementsCountThroughWall, wallThickness, startRadian=-math.pi / 2)
 
     # Create nodes
     # Create right horn nodes
     nodeIdentifier = createTubeNodes(fm, coordinates, firstNodeIdentifier, rightHornCoordinates,
-                                       elementsCountInRightHorn, elementsCountAroundRightHorn, elementsCountThroughWall,
-                                       omitStartRows=0, omitEndRows=1)
+                                     elementsCountInRightHorn, elementsCountAroundRightHorn, elementsCountThroughWall,
+                                     omitStartRows=0, omitEndRows=1)
 
     # Create left horn nodes
     nodeIdentifier = createTubeNodes(fm, coordinates, nodeIdentifier, leftHornCoordinates, elementsCountInLeftHorn,
-                                       elementsCountAroundLeftHorn, elementsCountThroughWall, omitStartRows=0,
-                                       omitEndRows=1)
+                                     elementsCountAroundLeftHorn, elementsCountThroughWall, omitStartRows=0,
+                                     omitEndRows=1)
 
     if doubleUterus:
         # Create bifurcation nodes
-        nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId= \
+        nodeIdentifier, roNodeId, coNodeId, birNodeId, bilNodeId = \
             createDoubleTubeBifurcationNodes(fm, nodeIdentifier, rox, rod1, rod2, rod3, cox, cod1, cod2, cod3,
                                              innerBifurcationRight, innerBifurcationLeft, elementsCountAroundRightHorn,
                                              elementsCountAroundLeftHorn, elementsCountThroughWall)
@@ -1004,7 +943,6 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
                                            omitStartRows=0, omitEndRows=1,
                                            meshGroups=[leftHornMeshGroup, uterusMeshGroup])
 
-
     if doubleUterus:
         # Create bifurcation elements
         c1NodeId = rhLastRingNodeId
@@ -1016,33 +954,38 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
             bsNodeId = csNodeId[:elementsCountAcross - 1]
 
         elementIdentifier = \
-            make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, c1NodeId,
-                                                 c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, bricNodeId,
-                                                 blicNodeId, botNodeId, bsNodeId,
-                                                 meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup, uterusMeshGroup])
+            make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall,
+                                                  c1NodeId, c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId,
+                                                  bricNodeId, blicNodeId, botNodeId, bsNodeId,
+                                                  meshGroups=[bodyMeshGroup, rightHornMeshGroup, leftHornMeshGroup,
+                                                              uterusMeshGroup])
 
         # Create body elements
         if elementsCountInBody >= 2:
-            elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
-                                                     elementsCountAround, elementsCountAroundRightHorn,
-                                                     elementsCountAroundLeftHorn, elementsCountThroughWall, bricNodeId, blicNodeId, botNodeId, bsNodeId, useCrossDerivatives,
-                                                     meshGroups=[bodyMeshGroup, uterusMeshGroup])
+            elementIdentifier = \
+                make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInBody - 1,
+                                          elementsCountAround, elementsCountAroundRightHorn,
+                                          elementsCountAroundLeftHorn, elementsCountThroughWall, bricNodeId, blicNodeId,
+                                          botNodeId, bsNodeId, useCrossDerivatives,
+                                          meshGroups=[bodyMeshGroup, uterusMeshGroup])
 
         # Create cervix elements
-        elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix,
-                                                 elementsCountAround, elementsCountAroundRightHorn,
-                                                 elementsCountAroundLeftHorn, elementsCountThroughWall, cricNodeId, clicNodeId, cotNodeId, csNodeId, useCrossDerivatives,
-                                                 meshGroups=[cervixMeshGroup, uterusMeshGroup])
+        elementIdentifier = \
+            make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInCervix, elementsCountAround,
+                                      elementsCountAroundRightHorn, elementsCountAroundLeftHorn,
+                                      elementsCountThroughWall, cricNodeId, clicNodeId, cotNodeId, csNodeId,
+                                      useCrossDerivatives, meshGroups=[cervixMeshGroup, uterusMeshGroup])
 
         # # Create vagina elements
-        # elementIdentifier = make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina,
-        #                                          elementsCountAround, elementsCountAroundRightHorn,
-        #                                          elementsCountAroundLeftHorn, elementsCountThroughWall, vricNodeId, vlicNodeId, votNodeId, vsNodeId, useCrossDerivatives,
-        #                                          meshGroups=[vaginaMeshGroup])
+        # elementIdentifier = \
+        #     make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCountInVagina, elementsCountAround,
+        #                               elementsCountAroundRightHorn, elementsCountAroundLeftHorn,
+        #                               elementsCountThroughWall, vricNodeId, vlicNodeId, votNodeId, vsNodeId,
+        #                               useCrossDerivatives, meshGroups=[vaginaMeshGroup])
     else:
         # Create bifurcation elements
         bFirstRingNodeId, nodeCount = getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountInBody,
-                                                             elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
+                                                              elementsCountThroughWall, omitStartRows=1, omitEndRows=0)
         paNodeId = bFirstRingNodeId
         c1NodeId = rhLastRingNodeId
         c2NodeId = lhLastRingNodeId
@@ -1054,25 +997,22 @@ def createUterusMesh3D(region, fm, coordinates, geometricNetworkLayout, elements
         # Create body elements
         startNodeId = paNodeId[0][0]
         elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInBody,
-                                                 elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-                                                 omitStartRows=1, omitEndRows=0,
-                                                 meshGroups=[bodyMeshGroup, uterusMeshGroup])
+                                               elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+                                               omitStartRows=1, omitEndRows=0,
+                                               meshGroups=[bodyMeshGroup, uterusMeshGroup])
 
         # Create cervix elements
-        startNodeId = paNodeId[0][0] + (elementsCountInBody - 1) * elementsCountAround * (
-                    elementsCountThroughWall + 1)
+        startNodeId = paNodeId[0][0] + (elementsCountInBody - 1) * elementsCountAround * (elementsCountThroughWall + 1)
         elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInCervix,
-                                                 elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-                                                 omitStartRows=0, omitEndRows=0,
-                                                 meshGroups=[cervixMeshGroup, uterusMeshGroup])
+                                               elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+                                               omitStartRows=0, omitEndRows=0,
+                                               meshGroups=[cervixMeshGroup, uterusMeshGroup])
 
         # Create vagina elements
-        startNodeId = startNodeId + (elementsCountInCervix) * elementsCountAround * (
-                    elementsCountThroughWall + 1)
+        startNodeId = startNodeId + elementsCountInCervix * elementsCountAround * (elementsCountThroughWall + 1)
         elementIdentifier = make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountInVagina,
-                                                 elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
-                                                 omitStartRows=0, omitEndRows=0,
-                                                 meshGroups=[vaginaMeshGroup])
+                                               elementsCountAround, elementsCountThroughWall, useCrossDerivatives,
+                                               omitStartRows=0, omitEndRows=0, meshGroups=[vaginaMeshGroup])
 
     return nodeIdentifier, elementIdentifier, annotationGroups
 
@@ -1175,9 +1115,10 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
     transitElementList = [0] * elementsCountAround
     relativeThicknessList = []
     xList, d1List, d2List, d3List, curvatureList = \
-        tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner, [wallThickness]*(elementsCountAlongTube+1),
-                                         relativeThicknessList, elementsCountAround, elementsCountAlongTube,
-                                         elementsCountThroughWall, transitElementList, outward=False)
+        tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner,
+                                           [wallThickness] * (elementsCountAlongTube + 1), relativeThicknessList,
+                                           elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
+                                           transitElementList, outward=False)
 
     coordinatesList = [xList, d1List, d2List, d3List]
 
@@ -1260,7 +1201,7 @@ def getTargetedRingNodesCoordinates(tubeCoordinates, elementsCountAround, elemen
 
 
 def getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
-                           omitStartRows, omitEndRows):
+                            omitStartRows, omitEndRows):
 
     # Create tube nodes
     lastRingsNodeId = []
@@ -1304,7 +1245,7 @@ def getTargetedRingNodesIds(nodeCount, elementsCountAround, elementsCountAlongTu
 
 
 def createTubeNodes(fm, coordinates, nodeIdentifier, tubeCoordinates, elementsCountAlongTube, elementsCountAround,
-                      elementsCountThroughWall, omitStartRows, omitEndRows):
+                    elementsCountThroughWall, omitStartRows, omitEndRows):
 
     cache = fm.createFieldcache()
 
@@ -1489,7 +1430,7 @@ def find_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
 
 
 def createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxList, pad2, c1Centre, c1xList, c1d2,
-                             c2Centre, c2xList, c2d2, elementsCountThroughWall):
+                               c2Centre, c2xList, c2d2, elementsCountThroughWall):
 
     cache = fm.createFieldcache()
 
@@ -1547,8 +1488,8 @@ def createTubeBifurcationNodes(fm, coordinates, nodeIdentifier, paCentre, paxLis
 
 
 def make_tube_elements(fm, coordinates, startNodeId, elementIdentifier, elementsCountAlongTube, elementsCountAround,
-                         elementsCountThroughWall, useCrossDerivatives, omitStartRows, omitEndRows, startNodes=None,
-                         meshGroups=None):
+                       elementsCountThroughWall, useCrossDerivatives, omitStartRows, omitEndRows, startNodes=None,
+                       meshGroups=None):
 
     mesh = fm.findMeshByDimension(3)
 
@@ -1957,8 +1898,9 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     # Get all nodes through wall for right and left inner parts
     rightInnerTubethroughWall, leftInnerTubethroughWall = \
         getInnerDoubleTubeCoordinates(tubeInnerRightCoordinates, tubeInnerLeftCoordinates, outerCoordinates,
-                                           septumCoordinates, elementsCountAlong, elementsCountAround,
-                                           elementsCountAroundRightTube, elementsCountAroundLeftTube, elementsCountThroughWall)
+                                      septumCoordinates, elementsCountAlong, elementsCountAround,
+                                      elementsCountAroundRightTube, elementsCountAroundLeftTube,
+                                      elementsCountThroughWall)
 
     return rightInnerTubethroughWall, leftInnerTubethroughWall, outerCoordinates, septumCoordinates
 
@@ -2075,7 +2017,7 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             d3Along.append(v1v2)
             d3Along.append(v1v2)
             xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlong, d3Along, elementsCountThroughWall,
-                                                                            arcLengthDerivatives=True)[0:2]
+                                                                          arcLengthDerivatives=True)[0:2]
             xtRight.append(xSampledWall)
             d3tRight.append(d3SampledWall)
         xRawRight.append(xtRight)
@@ -2097,8 +2039,9 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
             xAlongLeft.append(v2)
             d3AlongLeft.append(v1v2)
             d3AlongLeft.append(v1v2)
-            xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlongLeft, d3AlongLeft, elementsCountThroughWall,
-                                                                            arcLengthDerivatives=True)[0:2]
+            xSampledWall, d3SampledWall = interp.sampleCubicHermiteCurves(xAlongLeft, d3AlongLeft,
+                                                                          elementsCountThroughWall,
+                                                                          arcLengthDerivatives=True)[0:2]
             xtLeft.append(xSampledWall)
             d3tLeft.append(d3SampledWall)
         xRawLeft.append(xtLeft)
@@ -2219,7 +2162,8 @@ def getInnerDoubleTubeCoordinates(innerRightCoordinates, innerLeftCoordinates, o
 
 
 def createDoubleTubeNodes(fm, nodeIdentifier, xInnerRigh, xInnerLeft, xOuter, xAcross, elementsCountAlong,
-                          elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows, omitEndRows):
+                          elementsCountAround, elementsCountAcross, elementsCountThroughWall, omitStartRows,
+                          omitEndRows):
 
     """
     Gets coordinates and derivatives of inner canals and outer of a tube and generate the nodes.
@@ -2548,8 +2492,8 @@ def make_double_tube_elements(mesh, coordinates, elementIdentifier, elementsCoun
 
 
 def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsCountThroughWall, c1NodeId,
-                                         c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, pricNodeId, plicNodeId,
-                                         poNodeId, psNodeId, meshGroups=None):
+                                          c2NodeId, roNodeId, coNodeId, birNodeId, bilNodeId, pricNodeId, plicNodeId,
+                                          poNodeId, psNodeId, meshGroups=None):
     """
     Gets child1, child2, parent, and inner bifurcation node Ids.
     c1NodeId, c2NodeId: Child1 and child2 node Ids.
@@ -2878,7 +2822,7 @@ def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, el
                     bni5 = roNodeId[0]
                     bni6 = coNodeId[-1]
                     bni7 = poNodeId[e1]
-                    bni8 = psNodeId[e1 + elementsCountAcross -2]
+                    bni8 = psNodeId[e1 + elementsCountAcross - 2]
                 elif 0 < e1 < elementsCountAcross - 1:
                     bni5 = coNodeId[-e1 + elementsCountAcross - 1]
                     bni6 = bni5 - 1
