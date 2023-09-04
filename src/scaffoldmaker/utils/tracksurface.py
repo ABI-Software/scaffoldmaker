@@ -142,7 +142,7 @@ class TrackSurface:
         derivative w.r.t. xi1 and xi2.
         :param position: A valid TrackSurfacePosition.
         :param derivatives: Set to True to calculate and return derivatives w.r.t. element xi.
-        :return: If derivatives is False: coordinates [ x, y, z].
+        :return: If derivatives is False: coordinates [x, y, z].
         If derivatives is True: coordinates, derivative1, derivative2.
         """
         nodesCount1 = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
@@ -318,11 +318,10 @@ class TrackSurface:
 
     def _positionOnBoundary(self, position: TrackSurfacePosition):
         """
-
         :param position:
         :return: True if position is on boundary
         """
-        LOWER_P_LIMIT = 1.0E-6
+        LOWER_P_LIMIT = 1.0E-7
         UPPER_P_LIMIT = 1.0 - LOWER_P_LIMIT
         if not self._loop1:
             proportion1 = (position.e1 + position.xi1) / self._elementsCount1
@@ -353,7 +352,6 @@ class TrackSurface:
         xi_tol = 1.0E-7
         x_tol = 1.0E-6 * max(self._xRange)
         mag_dxi = 0.0
-        onBoundary = False
         for iter in range(100):
             onBoundary = self._positionOnBoundary(position)
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
@@ -379,12 +377,12 @@ class TrackSurface:
             r_out_of_plane = mult(n, r_dot_n)
             r_in_plane = sub(r, r_out_of_plane)
             if onOtherBoundary:
-                d = r_in_plane
+                u = r_in_plane
             else:
                 # add out-of-plane slope component
                 factor = 1.0 + r_dot_n / mag_r
-                d = mult(r_in_plane, factor)
-            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, d)
+                u = mult(r_in_plane, factor)
+            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, u)
             mag_dxi = math.sqrt(dxi1 * dxi1 + dxi2 * dxi2)
             if mag_dxi > max_mag_dxi:
                 dxi1 *= max_mag_dxi / mag_dxi
@@ -395,10 +393,10 @@ class TrackSurface:
             if faceNumber:
                 onBoundary = self.updatePositionTofaceNumber(position, faceNumber)
             if mag_dxi < xi_tol:
-                print("TrackSurface.findIntersectionPoint failed: Insufficient increment, no intersection found")
+                print("TrackSurface.findIntersectionPoint failed:  Insufficient increment, no intersection found")
                 break
         else:
-            print('TrackSurface.findIntersectionPoint failed: reached max iterations', iter + 1,
+            print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', iter + 1,
                   'closeness in xi', mag_dxi)
         return None, None, None, None, False
 
@@ -540,7 +538,7 @@ class TrackSurface:
         for n2 in range(self._elementsCount2 + 1):
             for n1 in range(n1Limit):
                 distance = magnitude(sub(self._nx[p], targetx))
-                if (not nearest_distance) or (distance <  nearest_distance):
+                if (not nearest_distance) or (distance < nearest_distance):
                     nearest_distance = distance
                     nearest_n1 = n1
                     nearest_n2 = n2
@@ -574,16 +572,19 @@ class TrackSurface:
             dxi = [dxi1, dxi2]
             mag_dxi = magnitude(dxi)
             # control oscillations
-            if old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi ** 2.0)):
+            if old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi * mag_old_dxi)):
                 factor = mag_dxi / (mag_dxi + mag_old_dxi)
                 dxi = mult(dxi, factor)
                 dxi1 = dxi[0]
                 dxi2 = dxi[1]
-            old_dxi = dxi
-            mag_old_dxi = magnitude(old_dxi)
+                mag_dxi *= factor
             if mag_dxi > max_mag_dxi:
                 dxi1 *= max_mag_dxi/mag_dxi
                 dxi2 *= max_mag_dxi/mag_dxi
+                dxi = [dxi1, dxi2]
+                mag_dxi = max_mag_dxi
+            old_dxi = dxi
+            mag_old_dxi = mag_dxi
             #print('    dxi', dxi1, dxi2)
             bxi1, bxi2, proportion, faceNumber = increment_xi_on_square(xi1, xi2, dxi1, dxi2)
             position.xi1 = bxi1

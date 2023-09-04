@@ -1,8 +1,8 @@
 import math
 import unittest
 
-from cmlibs.maths.vectorops import magnitude, normalize, sub
-# from cmlibs.utils.zinc.field import create_field_coordinates
+from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
+from cmlibs.utils.zinc.field import create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
@@ -20,9 +20,11 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
-from scaffoldmaker.utils.interpolation import getCubicHermiteCurvesLength
+from scaffoldmaker.utils.interpolation import evaluateCoordinatesOnCurve, getCubicHermiteCurvesLength, \
+    getNearestLocationBetweenCurves, getNearestLocationOnCurve
 from scaffoldmaker.utils.networkmesh import getPathTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
+from scaffoldmaker.utils.zinc_utils import generateCurveMesh
 
 from testutils import assertAlmostEqualList
 
@@ -626,6 +628,114 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, dir1, dir2, delta=TOL)
         assertAlmostEqualList(self, dir1, dir3, delta=TOL)
 
+    def test_curve_nearest_intersections(self):
+        """
+        Test finding nearest points and intersections for curves.
+        """
+        curve1_x = [[0.0, 0.0, 0.0], [1.0, 0.0, 1.0]]
+        curve1_d1 = [[1.0, 0.0, 1.0], [1.0, 0.0, 1.0]]
+        curve2_x = [[0.0, -0.2, 0.7], [1.0, -0.3, 0.3]]
+        curve2_d1 = [[1.0, -0.1, -0.6], [1.0, -0.1, 0.0]]
+        curve3_x = [[0.0, 0.3, 0.5], [1.0, 0.7, 0.5]]
+        curve3_d1 = [[1.0, -0.2, 0.0], [1.0, -0.2, 0.0]]
+        curve4_x = [[0.4, 0.4, 0.0], [0.3, 0.3, 0.4]]
+        curve4_d1 = [[0.0, 0.0, 0.5], [0.0, 0.0, 0.5]]
+        loop1_x = [[0.1, 0.5, 0.5], [0.9, 0.5, 0.5]]
+        loop1_d1 = [[0.0, -1.5, 0.0], [0.0, 1.5, 0.0]]
+
+        XI_TOL = 1.0E-6
+        X_TOL = 1.0E-6
+
+        t1x = [0.1, 0.2, 0.3]
+        p1, p1x = getNearestLocationOnCurve(curve1_x, curve1_d1, t1x)
+        self.assertEqual(p1[0], 0)
+        self.assertAlmostEqual(p1[1], 0.2, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.2, 0.0, 0.2], p1x, delta=X_TOL)
+        p1t = evaluateCoordinatesOnCurve(curve1_x, curve1_d1, p1, derivative=True)[1]
+        # nearest projection is normal to curve
+        self.assertAlmostEqual(dot(sub(t1x, p1x), p1t), 0.0, delta=X_TOL)
+
+        t2x = [0.1, 0.2, 0.7]
+        p2, p2x = getNearestLocationOnCurve(loop1_x, loop1_d1, t2x, loop=True)
+        self.assertEqual(p2[0], 0)
+        self.assertAlmostEqual(p2[1], 0.19457868521558017, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.1790790431027201, 0.26492322619542114, 0.5], p2x, delta=X_TOL)
+        p2t = evaluateCoordinatesOnCurve(loop1_x, loop1_d1, p2, loop=True, derivative=True)[1]
+        # nearest projection is normal to curve
+        self.assertAlmostEqual(dot(sub(t2x, p2x), p2t), 0.0, delta=X_TOL)
+
+        t3x = [-0.1, 0.2, 0.4]
+        p3, p3x = getNearestLocationOnCurve(curve3_x, curve3_d1, t3x, startLocation=(0, 0.7))
+        self.assertEqual(p3[0], 0)
+        self.assertAlmostEqual(p3[1], 0.0, delta=XI_TOL)
+        assertAlmostEqualList(self, curve3_x[0], p3x, delta=X_TOL)
+
+        p4, op4, p4intersects = getNearestLocationBetweenCurves(curve1_x, curve1_d1, curve2_x, curve2_d1)
+        p4x, p4t = evaluateCoordinatesOnCurve(curve1_x, curve1_d1, p4, derivative=True)
+        op4x = evaluateCoordinatesOnCurve(curve2_x, curve2_d1, op4)
+        self.assertFalse(p4intersects)
+        self.assertEqual(p4[0], 0)
+        self.assertAlmostEqual(p4[1], 0.44315296477065264, delta=XI_TOL)
+        # nearest projection is normal to curve
+        self.assertAlmostEqual(dot(sub(op4x, p4x), p4t), 0.0, delta=X_TOL)
+
+        p5, op5, p5intersects = getNearestLocationBetweenCurves(
+            loop1_x, loop1_d1, curve1_x, curve1_d1, startLocation=(1, 0.9), nLoop=True)
+        p5x, p5t = evaluateCoordinatesOnCurve(loop1_x, loop1_d1, p5, loop=True, derivative=True)
+        op5x = evaluateCoordinatesOnCurve(curve1_x, curve1_d1, op5)
+        self.assertFalse(p5intersects)
+        self.assertEqual(p5[0], 0)
+        self.assertAlmostEqual(p5[1], 0.5, delta=XI_TOL)
+        # nearest projection is normal to curve
+        self.assertAlmostEqual(dot(sub(op5x, p5x), p5t), 0.0, delta=X_TOL)
+
+        p6, op6, p6intersects = getNearestLocationBetweenCurves(
+            curve3_x, curve3_d1, loop1_x, loop1_d1, startLocation=(0, 0.0), oLoop=True)
+        p6x = evaluateCoordinatesOnCurve(curve3_x, curve3_d1, p6)
+        op6x = evaluateCoordinatesOnCurve(loop1_x, loop1_d1, op6, loop=True)
+        self.assertTrue(p6intersects)
+        self.assertEqual(p6[0], 0)
+        self.assertAlmostEqual(p6[1], 0.14995988970099794, delta=XI_TOL)
+        assertAlmostEqualList(self, p6x, op6x, delta=X_TOL)
+
+        p7, op7, p7intersects = getNearestLocationBetweenCurves(
+            loop1_x, loop1_d1, curve3_x, curve3_d1, startLocation=(0, 0.9), nLoop=True)
+        p7x = evaluateCoordinatesOnCurve(loop1_x, loop1_d1, p7, loop=True)
+        op7x = evaluateCoordinatesOnCurve(curve3_x, curve3_d1, op7)
+        self.assertTrue(p7intersects)
+        self.assertEqual(p7[0], 1)
+        self.assertAlmostEqual(p7[1], 0.152207831857098, delta=XI_TOL)
+        assertAlmostEqualList(self, p7x, op7x, delta=X_TOL)
+
+        p8, op8, p8intersects = getNearestLocationBetweenCurves(
+            curve4_x, curve4_d1, loop1_x, loop1_d1, startLocation=(0, 0.5), oLoop=True)
+        p8x = evaluateCoordinatesOnCurve(curve4_x, curve4_d1, p8, loop=True)
+        op8x, op8t = evaluateCoordinatesOnCurve(loop1_x, loop1_d1, op8, derivative=True)
+        self.assertFalse(p8intersects)
+        self.assertEqual(p8[0], 0)
+        self.assertAlmostEqual(p8[1], 1.0, delta=XI_TOL)
+        # nearest projection is normal to loop1
+        self.assertAlmostEqual(dot(sub(p8x, op8x), op8t), 0.0, delta=X_TOL)
+
+        # context = Context("Curve nearest and intersection")
+        # region = context.getDefaultRegion()
+        # generateCurveMesh(region, curve1_x, curve1_d1)
+        # generateCurveMesh(region, curve2_x, curve2_d1)
+        # generateCurveMesh(region, curve3_x, curve3_d1)
+        # generateCurveMesh(region, curve4_x, curve4_d1)
+        # generateCurveMesh(region, loop1_x, loop1_d1, loop=True)
+        # fieldmodule = region.getFieldmodule()
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # pointCoordinates = create_field_coordinates(fieldmodule, "point_coordinates", managed=True)
+        # nodetemplate.defineField(pointCoordinates)
+        # fieldcache = fieldmodule.createFieldcache()
+        # px = [t1x, p1x, t2x, p2x, t3x, p3x, p4x, op4x, p5x, op5x, p6x, p7x, p8x, op8x]
+        # for n in range(len(px)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     pointCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+
     def test_track_surface_intersection(self):
         """
         Test finding points on intersection between 2 track surfaces.
@@ -706,7 +816,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     fieldcache.setNode(node)
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        # region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
     def test_tube_intersections(self):
         elementsCountAround = 8
@@ -778,7 +887,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     fieldcache.setNode(node)
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        # region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
 
 if __name__ == "__main__":

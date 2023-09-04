@@ -3,9 +3,10 @@ Utility functions for easing use of Zinc API.
 """
 
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
+from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
-from cmlibs.zinc.element import MeshGroup
+from cmlibs.zinc.element import Element, Elementbasis, MeshGroup
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, Nodeset
@@ -606,3 +607,58 @@ def clearRegion(region):
         while field.isValid():
             field.setManaged(False)
             field = fieldIter.next()
+
+
+def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, startElementIdentifier=None):
+    """
+    Generate a set of 1-D elements with Hermite basis
+    :param region: Zinc Region.
+    :param nx: Coordinates along curve.
+    :param nd1: Derivatives along curve.
+    :param loop: True if loop (loops back to first point), False if not.
+    :param startNodeIdentifier: Optional first node identifier to use.
+    :param startElementIdentifier: Optional first 1D element identifier to use.
+    :return: next node identifier, next 2D element identifier
+    """
+    fieldmodule = region.getFieldmodule()
+    coordinates = find_or_create_field_coordinates(fieldmodule)
+
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
+        max(get_maximum_node_identifier(nodes), 0) + 1
+
+    nodetemplate = nodes.createNodetemplate()
+    nodetemplate.defineField(coordinates)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+
+    mesh = fieldmodule.findMeshByDimension(1)
+    elementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
+        max(get_maximum_element_identifier(mesh), 0) + 1
+    elementtemplate = mesh.createElementtemplate()
+    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
+    cubicHermiteBasis = fieldmodule.createElementbasis(
+        1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+    eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
+    elementtemplate.defineField(coordinates, -1, eft)
+
+    fieldcache = fieldmodule.createFieldcache()
+    with ChangeManager(fieldmodule):
+        nids = []
+        nCount = len(nx)
+        for n in range(nCount):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            nids.append(nodeIdentifier)
+            fieldcache.setNode(node)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n])
+            nodeIdentifier += 1
+        eCount = nCount if loop else nCount - 1
+        if loop:
+            nids.append(nids[0])
+        for e in range(eCount):
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            element.setNodesByIdentifier(eft, nids[e:e + 2])
+            elementIdentifier += 1
+
+    return nodeIdentifier, elementIdentifier
+
