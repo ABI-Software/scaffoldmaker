@@ -615,7 +615,7 @@ def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, sta
     :param region: Zinc Region.
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
-    :param loop: True if loop (loops back to first point), False if not.
+    :param loop: True if curve loops back to first point, False if not.
     :param startNodeIdentifier: Optional first node identifier to use.
     :param startElementIdentifier: Optional first 1D element identifier to use.
     :return: next node identifier, next 2D element identifier

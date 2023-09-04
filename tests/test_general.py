@@ -736,6 +736,59 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     fieldcache.setNode(node)
         #     pointCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
 
+    def test_curve_track_surface_nearest_intersection(self):
+        """
+        Test finding nearest/intersection points a curve and a track surface.
+        """
+        curve3_x = [[0.0, 0.3, 0.5], [1.0, 0.7, 0.5]]
+        curve3_d1 = [[1.0, -0.2, 0.0], [1.0, -0.2, 0.0]]
+        curve4_x = [[0.4, 0.4, 0.0], [0.3, 0.3, 0.4]]
+        curve4_d1 = [[0.0, 0.0, 0.5], [0.0, 0.0, 0.5]]
+        surf2_x = [[0.1, 0.0, -0.2], [0.9, 0.0, 0.5], [0.1, 1.0, 0.6], [0.9, 1.0, -0.3]]
+        surf2_d1 = [[0.9, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+        surf2_d2 = [[0.0, 1.0, 0.0], [0.0, 1.0, -0.8], [0.0, 1.0, 0.0], [0.0, 1.0, -0.8]]
+        surf2 = TrackSurface(1, 1, surf2_x, surf2_d1, surf2_d2)
+
+        XI_TOL = 1.0E-6
+        X_TOL = 1.0E-6
+
+        p1, cp1, p1intersects = surf2.findNearestPositionOnCurve(curve3_x, curve3_d1)
+        self.assertFalse(p1intersects)
+        self.assertEqual(cp1[0], 0)
+        self.assertAlmostEqual(cp1[1], 0.44322719281670936, XI_TOL)
+        p1x, p1d1, p1d2 = surf2.evaluateCoordinates(p1, derivatives=True)
+        cp1x = evaluateCoordinatesOnCurve(curve3_x, curve3_d1, cp1)
+        # nearest projection is normal to surf2
+        delta = sub(cp1x, p1x)
+        self.assertAlmostEqual(dot(delta, p1d1), 0.0, delta=X_TOL)
+        self.assertAlmostEqual(dot(delta, p1d2), 0.0, delta=X_TOL)
+
+        p2, cp2, p2intersects = surf2.findNearestPositionOnCurve(curve4_x, curve4_d1)
+        self.assertTrue(p2intersects)
+        self.assertEqual(cp2[0], 0)
+        self.assertAlmostEqual(cp2[1], 0.23080350957955792, XI_TOL)
+        p2x = surf2.evaluateCoordinates(p2)
+        cp2x = evaluateCoordinatesOnCurve(curve4_x, curve4_d1, cp2)
+        assertAlmostEqualList(self, p2x, cp2x, delta=X_TOL)
+
+        context = Context("TrackSurface")
+        region = context.getDefaultRegion()
+        generateCurveMesh(region, curve3_x, curve3_d1)
+        generateCurveMesh(region, curve4_x, curve4_d1)
+        surf2.generateMesh(region)
+        fieldmodule = region.getFieldmodule()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodetemplate = nodes.createNodetemplate()
+        pointCoordinates = create_field_coordinates(fieldmodule, "point_coordinates", managed=True)
+        nodetemplate.defineField(pointCoordinates)
+        fieldcache = fieldmodule.createFieldcache()
+        px = [p1x, cp1x, cp2x]
+        for n in range(len(px)):
+            node = nodes.createNode(-1, nodetemplate)
+            fieldcache.setNode(node)
+            pointCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        region.writeFile("C:\\Users\\gchr006\\tmp\\curve_surface_nearest.exf")
+
     def test_track_surface_intersection(self):
         """
         Test finding points on intersection between 2 track surfaces.

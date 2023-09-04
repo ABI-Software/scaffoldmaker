@@ -2,8 +2,6 @@
 Interpolation functions shared by mesh generators.
 '''
 
-from __future__ import division
-
 from cmlibs.maths.vectorops import cross, dot, eldiv, magnitude, mult, normalize, sub
 import copy
 import math
@@ -1030,7 +1028,7 @@ def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
     :param location: Location (element index, xi) to get coordinates for.
-    :param loop: True if loop (loops back to first point), False if not.
+    :param loop: True if curve loops back to first point, False if not.
     :param derivative: Set to True to calculate and return derivative w.r.t. element xi.
     :return: If derivative is False: coordinates.
     If derivatives is True: coordinates, derivative.
@@ -1058,14 +1056,14 @@ def isLocationOnCurveBoundary(location, elementsCount):
     return ((e == 0) and (xi < XI_TOL)) or ((e == (elementsCount - 1)) and (xi > (1.0 - XI_TOL)))
 
 
-def updateLocationTofaceNumber(location, faceNumber, elementsCount, loop=False):
+def updateCurveLocationTofaceNumber(location, faceNumber, elementsCount, loop=False):
     """
     Determine curve location after crossing given face number, and either clamp to range if reached boundary,
     or loop around depending on mode.
     :param location: Location tuple (element index, xi).
     :param faceNumber: Face number 1 (xi==0.0) or 2 (xi==1.0).
     :param elementsCount: Number of elements in curve.
-    :param loop: True if curve loops back to start.
+    :param loop: True if curve loops back to first point.
     :return: New location, onBoundary (True or False).
     """
     e = location[0]
@@ -1099,7 +1097,7 @@ def getNearestParameterLocationOnCurve(nx, targetx, loop=False):
     Get location of nx parameter nearest to targetx.
     :param nx: Coordinates along curve.
     :param targetx: Coordinates of point to find nearest to.
-    :param loop: True if loop (loops back to first point), False if not.
+    :param loop: True if curve loops back to first point, False if not.
     :return: nearest parameter location tuple (element index, xi), nearest distance, or None, None if not found.
     """
     nCount = len(nx)
@@ -1124,7 +1122,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
     :param targetx: Coordinates to get nearest point on curve to.
-    :param loop: True if loop (loops back to first point), False if not.
+    :param loop: True if curve loops back to first point, False if not.
     :param startLocation: Optional initial location (element index, xi) to search from.
     If not supplied, uses element location at the nearest node coordinates.
     :return: nearest location tuple (element index, xi), nearest x.
@@ -1162,7 +1160,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
             # print("getNearestLocationOnCurve:  Converged in", iter + 1, "iterations, mag_dxi", mag_dxi)
             break
         if faceNumber:
-            location, onBoundary = updateLocationTofaceNumber(location, faceNumber, eCount, loop)
+            location, onBoundary = updateCurveLocationTofaceNumber(location, faceNumber, eCount, loop)
             if onBoundary and lastOnBoundary:
                 # print("getNearestLocationOnCurve:  Converged on boundary in", iter + 1, "iterations")
                 break
@@ -1174,18 +1172,18 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
     return location, x
 
 
-def getNearestLocationBetweenCurves(nx, nd1, ox, od1, startLocation=None, nLoop=False, oLoop=False):
+def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, startLocation=None):
     """
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
     :param ox: Coordinates along other curve.
     :param od1: Derivatives along other curve.
+    :param nLoop: True if curve loops back to first point, False if not.
+    :param oLoop: True if other curve loops back to first point, False if not.
     :param startLocation: Optional initial location (element index, xi) to search from.
     If not supplied, uses element location at the nearest parameter location to any parameter location on other curve.
-    :param nLoop: True if curve is a loop (loops back to first point), False if not.
-    :param oLoop: True if other curve is a loop (loops back to first point), False if not.
     :return: Nearest/intersection location (element index, xi), other curve location (element index, xi),
-    isIntersection (True/False), or None, None, False if failed.
+    isIntersection (True/False).
     """
     nnCount = len(nx)
     assert nnCount > 1
@@ -1212,7 +1210,6 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, startLocation=None, nLoop=
     lastOnBoundary = False
     last_dxi = None
     for iter in range(100):
-        onBoundary = not nLoop and isLocationOnCurveBoundary(location, neCount)
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, nLoop, derivative=True)
         otherLocation = getNearestLocationOnCurve(ox, od1, x, oLoop, otherLocation)[0]
         onOtherBoundary = not oLoop and isLocationOnCurveBoundary(otherLocation, oeCount)
@@ -1251,7 +1248,7 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, startLocation=None, nLoop=
         bxi, faceNumber = incrementXiOnLine(location[1], dxi)
         location = (location[0], bxi)
         if faceNumber:
-            location, onBoundary = updateLocationTofaceNumber(location, faceNumber, neCount, nLoop)
+            location, onBoundary = updateCurveLocationTofaceNumber(location, faceNumber, neCount, nLoop)
             if onBoundary and lastOnBoundary:
                 # print("getNearestLocationBetweenCurves:  Found nearest on boundary in", iter + 1, "iterations")
                 break
