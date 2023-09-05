@@ -9,6 +9,7 @@ from cmlibs.zinc.node import Node
 from cmlibs.maths.vectorops import cross, magnitude, normalize, sub
 from scaffoldmaker.utils.interpolation import interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,\
     smoothCubicHermiteDerivativesLoop
+from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.vector import vectorRejection
 
 import math
@@ -393,7 +394,8 @@ class NetworkMesh:
                 elementIdentifier += 1
 
 
-def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlong, radius=1.0):
+def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlong, radius=1.0,
+                           startSurface: TrackSurface=None, endSurface: TrackSurface=None):
     """
     Generate coordinates around and along a tube in parametric space around the path parameters,
     at xi2^2 + xi3^2 = radius, resampled to be evenly spaced around and along the final surface.
@@ -403,6 +405,8 @@ def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlo
     Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
     :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
     :param elementsCountAlong: Number of elements to create along tube.
+    :param startSurface: Optional TrackSurface specifying start of tube on intersection with it.
+    :param endSurface: Optional TrackSurface specifying end of tube on intersection with it.
     :param radius: Redius of tube in xi space.
     :return: x[][], d1[][], d2[][] with first index in range(elementsCountAlong + 1),
     second inner index in range(elementsCountAround)
@@ -412,7 +416,7 @@ def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlo
     assert pointsCountAlong > 1
     assert len(pathParameters[0][0]) == 3
 
-    # sample around circle in xi splace, later smooth and re-sample to get even spacing in geometric space
+    # sample around circle in xi space, later smooth and re-sample to get even spacing in geometric space
     ellipsePointCount = 16
     aroundScale = 2.0 * math.pi / ellipsePointCount
     sxi = []
@@ -434,8 +438,6 @@ def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlo
         cx, cd1, cd2, cd12, cd3, cd13 = [cp[p] for cp in pathParameters]
         tx = []
         td1 = []
-        txi = []
-        tdxi = []
         for q in range(ellipsePointCount):
             xi2 = sxi[q][0]
             xi3 = sxi[q][1]
@@ -490,14 +492,19 @@ def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlo
     rd1 = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
     rd2 = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
     for q in range(elementsCountAround):
+        cx = [px[p][q] for p in range(pointsCountAlong)]
+        cd1 = [pd1[p][q] for p in range(pointsCountAlong)]
+        cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
+        cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
+        startSurfacePosition, startCurveLocation, startIntersects = \
+            startSurface.findNearestPositionOnCurve(cx, cd1) if startSurface else None, None, True
+        assert(startIntersects)
+        endSurfacePosition, endCurveLocation, endIntersects = \
+            endSurface.findNearestPositionOnCurve(cx, cd1) if endSurface else None, None, True
+        assert(endIntersects)
         qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
-            [px[p][q] for p in range(pointsCountAlong)],
-            [pd2[p][q] for p in range(pointsCountAlong)],
-            elementsCountAlong)
-        qd1, _ = interpolateSampleCubicHermite(
-            [pd1[p][q] for p in range(pointsCountAlong)],
-            [pd12[p][q] for p in range(pointsCountAlong)],
-            pe, pxi, psf)
+            cx, cd2, elementsCountAlong, startLocation=startCurveLocation, endLocation=endCurveLocation)
+        qd1, _ = interpolateSampleCubicHermite(cd1, cd12, pe, pxi, psf)
         # swizzle
         for p in range(elementsCountAlong + 1):
             rx[p][q] = qx[p]
@@ -505,7 +512,7 @@ def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlo
             rd2[p][q] = qd2[p]
 
     # recalculate d1 around intermediate rings, but still in plane
-    # normally looks fine, but d1 derivatives are wavy when very distorred
+    # normally looks fine, but d1 derivatives are wavy when very distorted
     for p in range(1, elementsCountAlong):
         # first smooth to get d1 with new directions not tangential to surface
         td1 = smoothCubicHermiteDerivativesLoop(rx[p], rd1[p])
