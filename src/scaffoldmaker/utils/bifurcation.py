@@ -463,6 +463,8 @@ def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, n
     nodetemplate.defineField(coordinates)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if td12 and not serendipity:
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
     mesh = fieldmodule.findMeshByDimension(2)
     elementtemplate = mesh.createElementtemplate()
@@ -471,7 +473,7 @@ def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, n
         2, (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
             else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
     eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-    if not serendipity and not td12:
+    if (not serendipity) and (not td12):
         # remove cross derivative terms for regular Hermite
         for n in range(4):
             eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
@@ -522,7 +524,8 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
                               tNodeIds, serendipity=False):
     """
     Generate a 2D tube bifurcation as elements connecting 3 rings of coordinates, optionally using existing nodes.
-    :param tCoords: List over 3 tubes (starting with "in" tubes) of [tx, td1, td2] for last/first tube ring in/out.
+    :param tCoords: List over 3 tubes (starting with "in" tubes) of [tx, td1, td2, td12] for
+    last/first tube ring in/out.
     :param inCount: Number of tubes which are directed in to the junction.
     :param region: Zinc region to create model in.
     :param fieldcache: Field evaluation cache.
@@ -537,6 +540,7 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
     tCount = len(tCoords)
     assert tCount == 3
     taCounts = [len(v[0]) for v in tCoords]
+    useCrossDerivatives = (len(tCoords[0]) == 4) and not serendipity
     # get numbers of elements directly connecting t0-t1, t1-t2, t2-t1
     teCounts = [(taCounts[i] + taCounts[i - tCount + 1] - taCounts[i - 1]) // 2 for i in range(tCount)]
 
@@ -547,6 +551,8 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    if useCrossDerivatives:
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
     mCoords = getTubeBifurcationCoordinates2D(tCoords, inCount)
 
@@ -555,13 +561,16 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
         for it in range(inCount):
             if not tNodeIds[it]:
                 tNodeIds[it] = []
-                tx, td1, td2 = tCoords[it]
+                tx, td1, td2 = tCoords[it][:3]
+                td12 = tCoords[it][-1] if useCrossDerivatives else None
                 for n in range(taCounts[it]):
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     fieldcache.setNode(node)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
+                    if td12:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, td12[n])
                     tNodeIds[it].append(nodeIdentifier)
                     nodeIdentifier = nodeIdentifier + 1
 
@@ -590,13 +599,16 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
         for it in range(inCount, tCount):
             if not tNodeIds[it]:
                 tNodeIds[it] = []
-                tx, td1, td2 = tCoords[it]
+                tx, td1, td2 = tCoords[it][:3]
+                td12 = tCoords[it][-1] if useCrossDerivatives else None
                 for n in range(taCounts[it]):
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     fieldcache.setNode(node)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
+                    if td12:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, td12[n])
                     tNodeIds[it].append(nodeIdentifier)
                     nodeIdentifier = nodeIdentifier + 1
 
@@ -730,12 +742,12 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                 tCoords = []
                 tNodeIds = []
                 # diverging bifurcation
-                tCoords.append((sx[-2], sd1[-2], sd2[-2]))  # inlet
+                tCoords.append((sx[-2], sd1[-2], sd2[-2], sd12[-2]))  # inlet
                 tNodeIds.append(endNodeIds)
                 for outSegment in endOutSegments:
                     outTubeData = segmentTubeData[outSegment]
                     coords = outTubeData.getSampledTubeCoordinates()
-                    tCoords.append((coords[0][1], coords[1][1], coords[2][1]))
+                    tCoords.append((coords[0][1], coords[1][1], coords[2][1], coords[3][1]))
                     tNodeIds.append(outTubeData.getStartNodeIds())
                 nodeIdentifier, elementIdentifier = generateTubeBifurcation2D(
                     tCoords, 1, region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
