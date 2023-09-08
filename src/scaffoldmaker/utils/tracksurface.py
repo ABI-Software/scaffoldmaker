@@ -12,10 +12,12 @@ from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, evaluateCoordinatesOnCurve, getCubicHermiteArcLength, \
-    getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getNearestParameterLocationOnCurve, incrementXiOnLine, interpolateCubicHermite, \
-    interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative, isLocationOnCurveBoundary, sampleCubicHermiteCurves, \
-    sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, updateCurveLocationTofaceNumber
+from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, evaluateCoordinatesOnCurve, \
+    getCubicHermiteArcLength, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, \
+    getNearestParameterLocationOnCurve, incrementXiOnLine, interpolateCubicHermite, \
+    interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurves, \
+    sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, \
+    updateCurveLocationTofaceNumber
 from scaffoldmaker.utils import vector
 
 
@@ -46,12 +48,15 @@ class TrackSurface:
     square elements with bicubic Hermite interpolation but zero cross derivatives.
     """
 
-    def __init__(self, elementsCount1, elementsCount2, nx, nd1, nd2, loop1=False):
+    def __init__(self, elementsCount1, elementsCount2, nx, nd1, nd2, nd12=None, loop1=False):
         """
         Creates a TrackSurface with a lattice of elementsCount1*elementsCount2
         elements, with nodes and elements varying across direction 1 fastest.
         :param elementsCount1, elementsCount2: Number of elements in directions 1 and 2.
-        :param nx, nd1, nd2: List of (elementsCount2 + 1)*(elementsCount1 + 1) node
+        :param nx: List of (elementsCount2 + 1)*(elementsCount1 + 1) node coordinates, 3 component.
+        :param nd1: List of node derivatives in direction 1.
+        :param nd2: List of node derivatives in direction 2.
+        :param nd12: Optional list of node cross derivatives in directions 1, 2.
         coordinates, derivatives 1 and derivatives 2. Cross derivatives are zero.
         All coordinates are 3 component.
         :param loop1: Set to True if loops back to start in direction 1. Supply
@@ -62,6 +67,7 @@ class TrackSurface:
         self._nx = nx
         self._nd1 = nd1
         self._nd2 = nd2
+        self._nd12 = nd12
         self._loop1 = loop1
         # get max range for tolerances
         self._xMin = copy.copy(nx[0])
@@ -84,6 +90,9 @@ class TrackSurface:
         nx = []
         nd1 = []
         nd2 = []
+        if self._nd12:
+            print("TrackSurface.createMirrorX.  Implementation for cross derivatives not checked")
+        nd12 = [] if self._nd12 else None
         nodesCount1 = self._elementsCount1 + (0 if self._loop1 else 1)
         nodesCount2 = self._elementsCount2 + 1
         for n2 in range(nodesCount2):
@@ -95,7 +104,10 @@ class TrackSurface:
                 nx.append([-ox[0],  ox[1],  ox[2]])
                 nd1.append([od1[0], -od1[1], -od1[2]])
                 nd2.append([-od2[0], od2[1], od2[2]])
-        return TrackSurface(self._elementsCount1, self._elementsCount2, nx, nd1, nd2, loop1=self._loop1)
+                if nd12:
+                    od12 = copy.deepcopy(self._nd12[oi])
+                    nd12.append([od12[0], od12[1], od12[2]])  # need to check
+        return TrackSurface(self._elementsCount1, self._elementsCount2, nx, nd1, nd2, nd12, loop1=self._loop1)
 
     def createPositionProportion(self, proportion1, proportion2):
         """
@@ -146,6 +158,10 @@ class TrackSurface:
         """
         nodesCount1 = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
         e1 = position.e1 % self._elementsCount1  # to handle loop1
+        nx = self._nx
+        nd1 = self._nd1
+        nd2 = self._nd2
+        nd12 = self._nd12
         nid0 = position.e2 * nodesCount1
         n1 = nid0 + e1
         n2 = nid0 if (self._loop1 and ((e1 + 1) == self._elementsCount1)) else n1 + 1
@@ -157,15 +173,15 @@ class TrackSurface:
         fx  = [f1x1*f2x1, f1x2*f2x1, f1x1*f2x2, f1x2*f2x2]
         fd1 = [f1d1*f2x1, f1d2*f2x1, f1d1*f2x2, f1d2*f2x2]
         fd2 = [f1x1*f2d1, f1x2*f2d1, f1x1*f2d2, f1x2*f2d2]
-        nx = self._nx
-        nd1 = self._nd1
-        nd2 = self._nd2
+        fd12 = [f1d1*f2d1, f1d2*f2d1, f1d1*f2d2, f1d2*f2d2] if nd12 else None
         coordinates = []
         for c in range(3):
             x = 0.0
             for ln in range(4):
                 gn = nid[ln]
                 x += fx[ln]*nx[gn][c] + fd1[ln]*nd1[gn][c] + fd2[ln]*nd2[gn][c]
+                if nd12:
+                    x += fd12[ln] * nd12[gn][c]
             coordinates.append(x)
         if not derivatives:
             return coordinates
@@ -173,10 +189,12 @@ class TrackSurface:
         d1fx  = [df1x1*f2x1, df1x2*f2x1, df1x1*f2x2, df1x2*f2x2]
         d1fd1 = [df1d1*f2x1, df1d2*f2x1, df1d1*f2x2, df1d2*f2x2]
         d1fd2 = [df1x1*f2d1, df1x2*f2d1, df1x1*f2d2, df1x2*f2d2]
+        d1fd12 = [df1d1*f2d1, df1d2*f2d1, df1d1*f2d2, df1d2*f2d2] if nd12 else None
         df2x1, df2d1, df2x2, df2d2 = getCubicHermiteBasisDerivatives(position.xi2)
         d2fx  = [f1x1*df2x1, f1x2*df2x1, f1x1*df2x2, f1x2*df2x2]
         d2fd1 = [f1d1*df2x1, f1d2*df2x1, f1d1*df2x2, f1d2*df2x2]
         d2fd2 = [f1x1*df2d1, f1x2*df2d1, f1x1*df2d2, f1x2*df2d2]
+        d2fd12 = [f1d1*df2d1, f1d2*df2d1, f1d1*df2d2, f1d2*df2d2] if nd12 else None
         derivative1 = []
         derivative2 = []
         for c in range(3):
@@ -186,6 +204,9 @@ class TrackSurface:
                 gn = nid[ln]
                 d1 += d1fx[ln]*nx[gn][c] + d1fd1[ln]*nd1[gn][c] + d1fd2[ln]*nd2[gn][c]
                 d2 += d2fx[ln]*nx[gn][c] + d2fd1[ln]*nd1[gn][c] + d2fd2[ln]*nd2[gn][c]
+                if nd12:
+                    d1 += d1fd12[ln]*nd12[gn][c]
+                    d2 += d2fd12[ln]*nd12[gn][c]
             derivative1.append(d1)
             derivative2.append(d2)
         return coordinates, derivative1, derivative2
@@ -447,7 +468,7 @@ class TrackSurface:
         # print("findIntersectionCurve", startPosition)
         nextPosition = startPosition
         startX = self.evaluateCoordinates(startPosition, derivatives=False)
-        otherPosition = otherStartPosition = self.findNearestParameterPosition(startX)
+        otherPosition = otherStartPosition = self.findNearestParameterPosition(startX)[0]
         px = []
         pd1 = []
         boundaryCount = 0
@@ -523,12 +544,12 @@ class TrackSurface:
             cd1 = smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True)
         return cx, cd1, c_proportions, loop
 
-    def findNearestParameterPosition(self, targetx: list) -> TrackSurfacePosition:
+    def findNearestParameterPosition(self, targetx: list):
         """
         Get position of x parameter nearest to targetx.
         Use to set a good starting point for findNearestPosition and findIntersectionPoint.
         :param targetx: Coordinates of point to find nearest to.
-        :return: nearest TrackSurfacePosition
+        :return: nearest TrackSurfacePosition, nearest distance
         """
         n1Limit = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
         p = 0
@@ -543,7 +564,8 @@ class TrackSurface:
                     nearest_n1 = n1
                     nearest_n2 = n2
                 p += 1
-        return self.createPositionProportion(nearest_n1 / self._elementsCount1, nearest_n2 / self._elementsCount2)
+        return self.createPositionProportion(nearest_n1 / self._elementsCount1, nearest_n2 / self._elementsCount2), \
+            nearest_distance
 
     def findNearestPosition(self, targetx: list, startPosition: TrackSurfacePosition=None) -> TrackSurfacePosition:
         """
@@ -618,37 +640,48 @@ class TrackSurface:
         #print('final position', position)
         return position
 
-    def findNearestPositionOnCurve(self, nx, nd1, loop=False, startLocation=None):
+    def findNearestPositionOnCurve(self, cx, cd1, loop=False, startCurveLocation=None, curveSamples: int=4):
         """
         Find nearest/intersection point on curve to this surface.
-        :param nx: Coordinates along curve.
-        :param nd1: Derivatives along curve.
+        :param cx: Coordinates along curve.
+        :param cd1: Derivatives along curve.
         :param loop: True if curve loops back to first point, False if not.
-        :param startLocation: Optional initial location (element index, xi) to search from.
+        :param startCurveLocation: Optional initial location (element index, xi) to search from.
         If not supplied, uses element location at the nearest node coordinates.
+        :param curveSamples: If startLocation not supplied, sets number of curve xi locations to evaluate when finding
+        nearest initial curve location.
         :return: Nearest TrackSurfacePosition on self, nearest/intersection point on curve (element index, xi),
         isIntersection (True/False).
         """
-        nCount = len(nx)
+        nCount = len(cx)
         assert nCount > 1
         eCount = nCount if loop else nCount - 1
-        curveLocation = copy.copy(startLocation) if startLocation else None
-        if not curveLocation:
+        curveLocation = copy.copy(startCurveLocation) if startCurveLocation else None
+        surfacePosition = None
+        if curveLocation:
+            targetx = evaluateCoordinatesOnCurve(cx, cd1, curveLocation, loop)
+            surfacePosition = self.findNearestParameterPosition(targetx)
+        else:
             nearestDistance = None
-            for targetx in self._nx:
-                tmpLocation, tmpDistance = getNearestParameterLocationOnCurve(nx, targetx, loop)
-                if not curveLocation or (tmpDistance < nearestDistance):
+            sCount = eCount * curveSamples
+            sLimit = sCount if loop else sCount + 1
+            for s in range(sLimit):
+                tmpCurveLocation = (s // curveSamples, (s % curveSamples) / curveSamples)
+                if not loop and (s == sCount):
+                    tmpCurveLocation = (tmpCurveLocation[0] - 1, 1.0)
+                targetx = evaluateCoordinatesOnCurve(cx, cd1, tmpCurveLocation, loop)
+                tmpSurfacePosition, tmpDistance = self.findNearestParameterPosition(targetx)
+                if not nearestDistance or (tmpDistance < nearestDistance):
                     nearestDistance = tmpDistance
-                    curveLocation = tmpLocation
-        targetx = evaluateCoordinatesOnCurve(nx, nd1, curveLocation, loop)
-        surfacePosition = self.findNearestParameterPosition(targetx)
+                    curveLocation = tmpCurveLocation
+                    surfacePosition = tmpSurfacePosition
         max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
         xi_tol = 1.0E-7
         x_tol = 1.0E-6 * max(self._xRange)
         lastOnBoundary = False
         last_dxi = None
         for iter in range(100):
-            x, d = evaluateCoordinatesOnCurve(nx, nd1, curveLocation, loop, derivative=True)
+            x, d = evaluateCoordinatesOnCurve(cx, cd1, curveLocation, loop, derivative=True)
             surfacePosition = self.findNearestPosition(x, surfacePosition)
             onOtherBoundary = self._positionOnBoundary(surfacePosition)
             other_x = self.evaluateCoordinates(surfacePosition)
@@ -856,7 +889,7 @@ class TrackSurface:
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
         bicubicHermiteBasis = fieldmodule.createElementbasis(
-            2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
+            2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if (serendipity and not self._nd12)
                else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
         eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
         # keep cross derivatives so can experiment with effect
@@ -874,6 +907,8 @@ class TrackSurface:
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, self._nx[n1])
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, self._nd1[n1])
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, self._nd2[n1])
+                if self._nd12:
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, self._nd12[n1])
                 nodeIdentifier += 1
             del n1
             nodesCount1 = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1

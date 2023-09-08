@@ -161,17 +161,22 @@ def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
     d2m = [d * xi for d in d2m]
     return getCubicHermiteArcLength(v1, d1m, v2m, d2m)
 
-def getCubicHermiteCurvesLength(cx, cd1):
+def getCubicHermiteCurvesLength(cx, cd1, loop=False):
     """
     Calculate total length of a curve.
     :param cx: coordinates along the curve.
     :param cd1: d1 derivatives.
+    :param loop: True if curve loops back to first point, False if not.
     :return: Length
     """
     totalLength = 0.0
-    elementsCount = len(cx) - 1
+    elementsCount = len(cx)
+    if not loop:
+        elementsCount -= 1
     for e in range(elementsCount):
         ep = e + 1
+        if loop and (ep == elementsCount):
+            ep = 0
         arcLength = getCubicHermiteArcLength(cx[e], cd1[e], cx[ep], cd1[ep])
         totalLength += arcLength
     return totalLength
@@ -280,13 +285,14 @@ def getNearestPointIndex(nx, x):
             index = n
     return index
 
-def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop = False):
+def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop=False):
     """
     From Hermite curve nx, nd1 with cross direction nd2, project normal to wall
     by wall thickness to get coordinates, d1 affected by curvature etc.
     Assumes 3 components.
     :param n: Index into nx, nd1, nd2 of where to project.
     :param wallThickness: Use positive from in to out, negative from outside to in.
+    :param loop: True if curve loops back to first point, False if not.
     :return: x, d1, d2, d3
     """
     maxPointIndex = len(nx) - 1

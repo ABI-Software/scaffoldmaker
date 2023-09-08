@@ -394,21 +394,17 @@ class NetworkMesh:
                 elementIdentifier += 1
 
 
-def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlong, radius=1.0,
-                           startSurface: TrackSurface=None, endSurface: TrackSurface=None):
+def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0):
     """
     Generate coordinates around and along a tube in parametric space around the path parameters,
-    at xi2^2 + xi3^2 = radius, resampled to be evenly spaced around and along the final surface.
+    at xi2^2 + xi3^2 = radius at the same density as path parameters.
     :param pathParameters: List over nodes of 6 parameters vectors [cx, cd1, cd2, cd12, cd3, cd13] giving
     coordinates cx along path centre, derivatives cd1 along path, cd2 and cd3 giving side vectors,
     and cd12, cd13 giving rate of change of side vectors. Parameters have 3 components.
     Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
     :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
-    :param elementsCountAlong: Number of elements to create along tube.
-    :param startSurface: Optional TrackSurface specifying start of tube on intersection with it.
-    :param endSurface: Optional TrackSurface specifying end of tube on intersection with it.
     :param radius: Redius of tube in xi space.
-    :return: x[][], d1[][], d2[][] with first index in range(elementsCountAlong + 1),
+    :return: px[][], pd1[][], pd2[][], pd12[][] with first index in range(pointsCountAlong),
     second inner index in range(elementsCountAround)
     """
     assert len(pathParameters) == 6
@@ -487,38 +483,64 @@ def getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlo
         pd2.append(ed2)
         pd12.append(ed12)
 
+    return px, pd1, pd2, pd12
+
+
+def resampleTubeCoordinates(rawTubeCoordinates, elementsCountAlong,
+                            startSurface: TrackSurface=None, endSurface: TrackSurface=None):
+    """
+    Generate new tube coordinates evenly spaced along raw tube coordinates, optionally
+    starting or ending at intersections at start/end track surfaces.
+    :param rawTubeCoordinates: (px, pd1, pd2, pd12) returned by getPathRawTubeCoordinates().
+    :param elementsCountAlong: Number of elements in resampled coordinates.
+    :param startSurface: Optional TrackSurface specifying start of tube at intersection with it.
+    :param endSurface: Optional TrackSurface specifying end of tube at intersection with it.
+    :return: sx[][], sd1[][], sd2[][], sd12[][] with first index in range(elementsCountAlong + 1),
+    second inner index in range(elementsCountAround)
+    """
+    px, pd1, pd2, pd12 = rawTubeCoordinates
+    pointsCountAlong = len(px)
+    elementsCountAround = len(px[0])
     # resample at even spacing along
-    rx = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
-    rd1 = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
-    rd2 = [[None]*elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sx = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd1 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd2 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd12 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
     for q in range(elementsCountAround):
         cx = [px[p][q] for p in range(pointsCountAlong)]
         cd1 = [pd1[p][q] for p in range(pointsCountAlong)]
         cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
         cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
-        startSurfacePosition, startCurveLocation, startIntersects = \
-            startSurface.findNearestPositionOnCurve(cx, cd1) if startSurface else None, None, True
-        assert(startIntersects)
-        endSurfacePosition, endCurveLocation, endIntersects = \
-            endSurface.findNearestPositionOnCurve(cx, cd1) if endSurface else None, None, True
-        assert(endIntersects)
+        startCurveLocation = None
+        if startSurface:
+            startSurfacePosition, startCurveLocation, startIntersects = startSurface.findNearestPositionOnCurve(cx, cd2)
+            if not startIntersects:
+                startCurveLocation = None
+        endCurveLocation = None
+        if endSurface:
+            endSurfacePosition, endCurveLocation, endIntersects = endSurface.findNearestPositionOnCurve(cx, cd2)
+            if not endIntersects:
+                endCurveLocation = None
         qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
             cx, cd2, elementsCountAlong, startLocation=startCurveLocation, endLocation=endCurveLocation)
-        qd1, _ = interpolateSampleCubicHermite(cd1, cd12, pe, pxi, psf)
+        qd1, qd12 = interpolateSampleCubicHermite(cd1, cd12, pe, pxi, psf)
         # swizzle
         for p in range(elementsCountAlong + 1):
-            rx[p][q] = qx[p]
-            rd1[p][q] = qd1[p]
-            rd2[p][q] = qd2[p]
+            sx[p][q] = qx[p]
+            sd1[p][q] = qd1[p]
+            sd2[p][q] = qd2[p]
+            sd12[p][q] = qd12[p]
 
     # recalculate d1 around intermediate rings, but still in plane
     # normally looks fine, but d1 derivatives are wavy when very distorted
-    for p in range(1, elementsCountAlong):
+    pStart = 0 if startSurface else 1
+    pLimit = elementsCountAlong + 1 if endSurface else elementsCountAlong
+    for p in range(pStart, pLimit):
         # first smooth to get d1 with new directions not tangential to surface
-        td1 = smoothCubicHermiteDerivativesLoop(rx[p], rd1[p])
+        td1 = smoothCubicHermiteDerivativesLoop(sx[p], sd1[p])
         # constraint to be tangential to surface
-        td1 = [vectorRejection(td1[q], normalize(cross(rd1[p][q], rd2[p][q]))) for q in range(elementsCountAround)]
+        td1 = [vectorRejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
         # smooth magnitudes only
-        rd1[p] = smoothCubicHermiteDerivativesLoop(rx[p], td1, fixAllDirections=True)
+        sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
 
-    return rx, rd1, rd2
+    return sx, sd1, sd2, sd12

@@ -15,8 +15,7 @@ from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteCurvesLength, \
     interpolateCubicHermite, interpolateCubicHermiteDerivative, \
     interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
-from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathTubeCoordinates
-from scaffoldmaker.utils.tracksurface import TrackSurface
+from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
 import math
 
@@ -436,13 +435,14 @@ def getTubeBifurcationCoordinates2D(tCoords, inCount):
     return mCoords
 
 
-def generateTube2D(tx, td1, td2, region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier,
+def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier,
                    startSkipCount: int=0, endSkipCount:int=0, startNodeIds: list=None, endNodeIds: list=None,
                    serendipity=False):
     """
     :param tx: tube coordinates x[along][around]
     :param td1: tube derivatives around d1[along][around]
-    :param td2: tube derivatives along d1[along][around]
+    :param td2: tube derivatives along d2[along][around]
+    :param td12: tube cross derivative d12[along][around]
     :param region: Zinc region to create model in.
     :param fieldcache: Field evaluation cache.
     :param coordinates: Finite element coordinate field to define.
@@ -471,7 +471,7 @@ def generateTube2D(tx, td1, td2, region, fieldcache, coordinates: Field, nodeIde
         2, (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
             else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
     eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-    if not serendipity:
+    if not serendipity and not td12:
         # remove cross derivative terms for regular Hermite
         for n in range(4):
             eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
@@ -493,12 +493,15 @@ def generateTube2D(tx, td1, td2, region, fieldcache, coordinates: Field, nodeIde
             rx = tx[n2]
             rd1 = td1[n2]
             rd2 = td2[n2]
+            rd12 = td12[n2] if (td12 and not serendipity) else None
             for n1 in range(elementsCountAround):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 fieldcache.setNode(node)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[n1])
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[n1])
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[n1])
+                if rd12:
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12[n1])
                 rowNodeIds.append(nodeIdentifier)
                 nodeIdentifier += 1
             tNodeIds.append(rowNodeIds)
@@ -599,6 +602,54 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
 
     return nodeIdentifier, elementIdentifier
 
+class SegmentTubeData:
+
+    def __init__(self, pathParameters):
+        self._pathParameters = pathParameters
+        self._rawTubeCoordinates = None
+        self._sampledTubeCoordinates = None
+        self._startNodeIds = None
+        self._endNodeIds = None
+
+    def getPathParameters(self):
+        return self._pathParameters
+
+    def getRawTubeCoordinates(self):
+        return self._rawTubeCoordinates
+
+    def setRawTubeCoordinates(self, rawTubeCoordinates):
+        """
+        :param rawTubeCoordinates: px, pd1, pd2, pd12
+        """
+        self._rawTubeCoordinates = rawTubeCoordinates
+
+    def getSampledTubeCoordinates(self):
+        return self._sampledTubeCoordinates
+
+    def setSampledTubeCoordinates(self, sampledTubeCoordinates):
+        """
+        :param sampledTubeCoordinates: sx, sd1, sd2, sd12
+        """
+        self._sampledTubeCoordinates = sampledTubeCoordinates
+
+    def getStartNodeIds(self):
+        return self._startNodeIds
+
+    def setStartNodeIds(self, startNodeIds):
+        """
+        :param startNodeIds: list of node IDs around tube start row.
+        """
+        self._startNodeIds = startNodeIds
+
+    def getEndNodeIds(self):
+        return self._endNodeIds
+
+    def setEndNodeIds(self, endNodeIds):
+        """
+        :param endNodeIds: list of node IDs around tube end row.
+        """
+        self._endNodeIds = endNodeIds
+
 
 def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                   elementsCountAround: float, targetElementAspectRatio: float,
@@ -622,9 +673,9 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
     fieldmodule = region.getFieldmodule()
     fieldcache = fieldmodule.createFieldcache()
 
-    segmentMap = {}  # map from NetworkSegment to [tube coordinates (tx, td1, td1), startNodeIds, endNodeIds]
-
     networkSegments = networkMesh.getNetworkSegments()
+    # map from NetworkSegment to SegmentTubeData
+    segmentTubeData = {}
     for networkSegment in networkSegments:
         pathParameters = get_nodeset_path_ordered_field_parameters(
             layoutNodes, layoutCoordinates,
@@ -632,12 +683,18 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
              Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
             networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
+        segmentTubeData[networkSegment] = tubeData = SegmentTubeData(pathParameters)
+        px, pd1, pd2, pd12 = getPathRawTubeCoordinates(pathParameters, elementsCountAround)
+        tubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
 
-        segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
+    for networkSegment in networkSegments:
+        tubeData = segmentTubeData[networkSegment]
+        # pathParameters = tubeData.getPathParameters()
+        # segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
         elementsCountAlong = 4  # max(2, math.ceil(segmentLength / targetElementLength))
-
-        tx, td1, td2 = getPathTubeCoordinates(pathParameters, elementsCountAround, elementsCountAlong)
-        segmentMap[networkSegment] = [(tx, td1, td2), None, None]
+        rawTubeCoordinates = tubeData.getRawTubeCoordinates()
+        sx, sd1, sd2, sd12 = resampleTubeCoordinates(rawTubeCoordinates, elementsCountAlong)
+        tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
 
     with ChangeManager(fieldmodule):
         for networkSegment in networkSegments:
@@ -649,44 +706,44 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
             endOutSegments = segmentNodes[-1].getOutSegments()
             endSkipCount = 1 if ((len(endInSegments) > 1) or (len(endOutSegments) > 1)) else 0
 
-            segmentData = segmentMap[networkSegment]
-            tx, td1, td2 = segmentData[0]
-            startNodeIds = segmentData[1]
-            endNodeIds = segmentData[2]
+            tubeData = segmentTubeData[networkSegment]
+            sx, sd1, sd2, sd12 = tubeData.getSampledTubeCoordinates()
+            startNodeIds = tubeData.getStartNodeIds()
+            endNodeIds = tubeData.getEndNodeIds()
             nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube2D(
-                tx, td1, td2, region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
+                sx, sd1, sd2, sd12, region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
                 startSkipCount=startSkipCount, endSkipCount=endSkipCount,
                 startNodeIds=startNodeIds, endNodeIds=endNodeIds,
                 serendipity=serendipity)
-            segmentData[1] = startNodeIds
-            segmentData[2] = endNodeIds
+            tubeData.setStartNodeIds(startNodeIds)
+            tubeData.setEndNodeIds(endNodeIds)
 
             if (len(startInSegments) == 1) and (startSkipCount == 0):
                 # copy startNodeIds to end of last segment
-                inSegmentData = segmentMap[startInSegments[0]]
-                inSegmentData[2] = startNodeIds
+                inTubeData = segmentTubeData[startInSegments[0]]
+                inTubeData.setStartNodeIds(startNodeIds)
             if (len(endOutSegments) == 1) and (endSkipCount == 0):
                 # copy endNodesIds to start of next segment
-                outSegmentData = segmentMap[endOutSegments[0]]
-                outSegmentData[1] = endNodeIds
+                outTubeData = segmentTubeData[endOutSegments[0]]
+                outTubeData.setEndNodeIds(endNodeIds)
             if (len(endInSegments) == 1) and (len(endOutSegments) == 2):
                 tCoords = []
                 tNodeIds = []
                 # diverging bifurcation
-                tCoords.append((tx[-2], td1[-2], td2[-2]))  # inlet
+                tCoords.append((sx[-2], sd1[-2], sd2[-2]))  # inlet
                 tNodeIds.append(endNodeIds)
                 for outSegment in endOutSegments:
-                    outSegmentData = segmentMap[outSegment]
-                    coords = outSegmentData[0]
+                    outTubeData = segmentTubeData[outSegment]
+                    coords = outTubeData.getSampledTubeCoordinates()
                     tCoords.append((coords[0][1], coords[1][1], coords[2][1]))
-                    tNodeIds.append(outSegmentData[1])
+                    tNodeIds.append(outTubeData.getStartNodeIds())
                 nodeIdentifier, elementIdentifier = generateTubeBifurcation2D(
                     tCoords, 1, region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
                     tNodeIds, serendipity)
                 it = 1
                 for outSegment in endOutSegments:
-                    outSegmentData = segmentMap[outSegment]
-                    outSegmentData[1] = tNodeIds[it]
+                    outTubeData = segmentTubeData[outSegment]
+                    outTubeData.setStartNodeIds(tNodeIds[it])
                     it += 1
 
     return nodeIdentifier, elementIdentifier

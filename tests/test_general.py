@@ -22,7 +22,7 @@ from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCo
     getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.interpolation import evaluateCoordinatesOnCurve, getCubicHermiteCurvesLength, \
     getNearestLocationBetweenCurves, getNearestLocationOnCurve
-from scaffoldmaker.utils.networkmesh import getPathTubeCoordinates
+from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh
 
@@ -755,7 +755,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         p1, cp1, p1intersects = surf2.findNearestPositionOnCurve(curve3_x, curve3_d1)
         self.assertFalse(p1intersects)
         self.assertEqual(cp1[0], 0)
-        self.assertAlmostEqual(cp1[1], 0.44322719281670936, XI_TOL)
+        self.assertAlmostEqual(cp1[1], 0.4432272731754388, delta=XI_TOL)
         p1x, p1d1, p1d2 = surf2.evaluateCoordinates(p1, derivatives=True)
         cp1x = evaluateCoordinatesOnCurve(curve3_x, curve3_d1, cp1)
         # nearest projection is normal to surf2
@@ -766,7 +766,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         p2, cp2, p2intersects = surf2.findNearestPositionOnCurve(curve4_x, curve4_d1)
         self.assertTrue(p2intersects)
         self.assertEqual(cp2[0], 0)
-        self.assertAlmostEqual(cp2[1], 0.23080350957955792, XI_TOL)
+        self.assertAlmostEqual(cp2[1], 0.23080350957955792, delta=XI_TOL)
         p2x = surf2.evaluateCoordinates(p2)
         cp2x = evaluateCoordinatesOnCurve(curve4_x, curve4_d1, cp2)
         assertAlmostEqualList(self, p2x, cp2x, delta=X_TOL)
@@ -872,23 +872,26 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
     def test_tube_intersections(self):
         elementsCountAround = 8
-        elementsCountAlong = 4
+        elementsCountAlong = 6
         path1Params = [
             [[0.000, 0.000, 0.000], [1.000, 0.000, 0.000]],
             [[0.979, 0.123, 0.000], [1.010, -0.124, 0.000]],
-            [[-0.031, 0.248, 0.000], [0.031, 0.248, 0.000]],
-            [[0.063, 0.007, 0.000], [0.060, -0.007, 0.000]],
-            [[0.000, 0.000, 0.250], [0.000, 0.000, 0.313]],
-            [[0.000, 0.000, 0.126], [0.000, 0.000, 0.001]]]
-        rx, rd1, rd2 = getPathTubeCoordinates(path1Params, elementsCountAround, elementsCountAlong)
+            [[-0.031, 0.248, 0.000], [0.031, 0.348, 0.000]],
+            [[0.063, 0.007, 0.000], [0.060, 0.307, 0.000]],
+            [[0.000, 0.000, 0.250], [0.000, 0.000, 0.413]],
+            [[0.000, 0.000, 0.126], [0.000, 0.000, 0.601]]]
+        px, pd1, pd2, pd12 = getPathRawTubeCoordinates(path1Params, elementsCountAround)
+        sx, sd1, sd2, sd12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong)
         nx = []
         nd1 = []
         nd2 = []
-        for i in range(len(rx)):
-            nx += rx[i]
-            nd1 += rd1[i]
-            nd2 += rd2[i]
-        tube1Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, loop1=True)
+        nd12 = []
+        for i in range(len(sx)):
+            nx += sx[i]
+            nd1 += sd1[i]
+            nd2 += sd2[i]
+            nd12 += sd12[i]
+        tube1Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
         path3Params = [
             [[1.000, 0.000, 0.000], [0.488, 0.731, 0.107]],
@@ -897,15 +900,18 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             [[0.000, 0.000, 0.000], [-0.053, -0.053, -0.046]],
             [[-0.068, -0.056, 0.057], [-0.065, -0.054, 0.053]],
             [[0.000, 0.000, 0.000], [-0.086, -0.042, -0.109]]]
-        rx, rd1, rd2 = getPathTubeCoordinates(path3Params, elementsCountAround, elementsCountAlong)
+        px, pd1, pd2, pd12 = getPathRawTubeCoordinates(path3Params, elementsCountAround)
+        sx, sd1, sd2, sd12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong)
         nx = []
         nd1 = []
         nd2 = []
-        for i in range(len(rx)):
-            nx += rx[i]
-            nd1 += rd1[i]
-            nd2 += rd2[i]
-        tube3Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, loop1=True)
+        nd12 = []
+        for i in range(len(sx)):
+            nx += sx[i]
+            nd1 += sd1[i]
+            nd2 += sd2[i]
+            nd12 += sd12[i]
+        tube3Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
         XI_TOL = 1.0E-5
         X_TOL = 1.0E-6
@@ -914,17 +920,37 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             tube3Surface, tube1Surface.createPositionProportion(0.1, 0.7))
         self.assertEqual(len(cx), 8)
         self.assertTrue(loop)
-        clength = getCubicHermiteCurvesLength(cx, cd1)
-        self.assertAlmostEqual(clength, 0.5482506943792745, delta=X_TOL)
-        assertAlmostEqualList(self, [0.7381185448150687, 0.2537744309781078, 0.12083298939663466], cx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.8985194774340326, 0.2593768631272644, -0.046715719131793676], cx[4], delta=X_TOL)
-        assertAlmostEqualList(self, [0.0692913129641207, 0.7246701950678512], cprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.9736526700421815, 0.8750853255370823], cprops[4], delta=XI_TOL)
+        cCircumference = getCubicHermiteCurvesLength(cx, cd1, loop=True)
+        self.assertAlmostEqual(cCircumference, 0.5878589195857662, delta=X_TOL)
+        assertAlmostEqualList(self, [0.7319656171294613, 0.28114905364638343, 0.13242150748131362], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.8408211373554277, 0.3182195051233381, -0.04550972731385178], cx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.07625303032507409, 0.7159158176234063], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.9766040857065028, 0.8198148840936965], cprops[4], delta=XI_TOL)
+
+        # make trimmed tube3 starting at intersection with tube1
+        tx, td1, td2, td12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong,
+                                                     startSurface=tube1Surface)
+        nx = []
+        nd1 = []
+        nd2 = []
+        nd12 = []
+        for i in range(len(tx)):
+            nx += tx[i]
+            nd1 += td1[i]
+            nd2 += td2[i]
+            nd12 += td12[i]
+        tube3TrimmedSurface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
+        tCircumference = getCubicHermiteCurvesLength(tx[0], td1[0], loop=True)
+        self.assertAlmostEqual(tCircumference, 0.589158910546622, delta=X_TOL)
+        tLength = getCubicHermiteCurvesLength([tx[n][0] for n in range(elementsCountAlong + 1)],
+                                              [td2[n][0] for n in range(elementsCountAlong + 1)])
+        self.assertAlmostEqual(tLength, 0.500415420066418, delta=X_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
         # tube1Surface.generateMesh(region)
-        # tube3Surface.generateMesh(region)
+        # # tube3Surface.generateMesh(region)
+        # tube3TrimmedSurface.generateMesh(region)
         # fieldmodule = region.getFieldmodule()
         # fieldmodule.defineAllFaces()
         # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
