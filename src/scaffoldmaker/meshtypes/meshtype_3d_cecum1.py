@@ -106,8 +106,8 @@ class MeshType_3d_cecum1(Scaffold_base):
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
                 (1, [[164.00,29.75,51.53], [0.00,-9.63,-16.67], [-6.00,0.00,0.00], [0.00,0.00,0.00], [0.00,5.20,-3.00], [0.00,0.00,0.00]]),
-                (2, [[164.00,17.50,30.31], [0.00,-14.87,-25.77], [-12.00,0.00,0.00], [0.00,0.00,0.00], [0.00,10.39,-6.00], [0.00,0.00,0.00]]),
-                (3, [[164.00,0.00,0.00], [[30.00,0.00,0.00],[0.00,-20.13,-34.85]], [[0.00,37.00,0.00],[-12.00,0.00,0.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]], [[0.00,0.00,37.00],[0.00,10.39,-6.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]]]),
+                (2, [[164.00,17.50,30.31], [0.00,-14.87,-25.77], [-10.00,0.00,0.00], [0.00,0.00,0.00], [0.00,8.66,-5.00], [0.00,0.00,0.00]]),
+                (3, [[164.00,0.00,0.00], [[30.00,0.00,0.00],[0.00,-20.13,-34.85]], [[0.00,37.00,0.00],[-10.00,0.00,0.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]], [[0.00,0.00,37.00],[0.00,8.66,-5.00]], [[0.00,0.00,0.00],[0.00,0.00,0.00]]]),
                 (4, [[0.00,0.00,0.00], [60.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]]),
                 (5, [[60.00,0.00,0.00], [60.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]]),
                 (6, [[120.00,0.00,0.00], [52.00,0.00,0.00], [0.00,37.00,0.00], [0.00,0.00,0.00], [0.00,0.00,37.00], [0.00,0.00,0.00]]),
@@ -238,6 +238,7 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         elif 'Pig 1' in parameterSetName:
             options['Number of segments'] = 5
+            options['Number of elements around haustrum'] = 12
             options['Haustrum outer radius factor'] = 0.25
             options['Segment length end derivative factor'] = 0.5
             options['Segment length mid derivative factor'] = 4.0
@@ -857,12 +858,19 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     # Deal with multiple nodes at end point for closed proximal end
     xApexInner = xList[0]
     # arclength between apex point and corresponding point on next face
-    mag = interp.getCubicHermiteArcLength(xList[0], d2List[0],
-                                          xList[elementsCountAround * (elementsCountThroughWall + 1)],
-                                          d2List[elementsCountAround * (elementsCountThroughWall + 1)])
-    d2ApexInner = vector.setMagnitude(sd2Cecum[0], mag * 0.5)
+    magMin = interp.computeCubicHermiteArcLength(xList[0], d2List[0],
+                                              xList[elementsCountAround * (elementsCountThroughWall + 1)],
+                                              d2List[elementsCountAround * (elementsCountThroughWall + 1)],
+                                              rescaleDerivatives=True)
+    magMax = interp.computeCubicHermiteArcLength(xList[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum))],
+                                                 d2List[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum))],
+                                                 xList[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum)) + elementsCountAround * (elementsCountThroughWall + 1)],
+                                                 d2List[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum)) + elementsCountAround * (elementsCountThroughWall + 1)],
+                                                 rescaleDerivatives=True)
+    mag = 0.5*(magMin + magMax)
+    d2ApexInner = vector.setMagnitude(sd2Cecum[0], mag)
     d1ApexInner = vector.crossproduct3(sd1Cecum[0], d2ApexInner)
-    d1ApexInner = vector.setMagnitude(d1ApexInner, mag * 0.5)
+    d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
     d3ApexUnit = vector.normalise(vector.crossproduct3(vector.normalise(d1ApexInner),
                                                        vector.normalise(d2ApexInner)))
     d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
@@ -1062,18 +1070,11 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                     else:
                         sideNodes.append(nodesOnRHS[n2 + (0 if segmentIdx else -1)][n3])
 
-    # # Visualise track surface
-    # for n1 in range(len(xTrackSurface)):
-    #     node = nodes.createNode(nextNodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xTrackSurface[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d2TrackSurface[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d1TrackSurface[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [0.0, 0.0, 0.0])
-    #     nextNodeIdentifier += 1
-
     trackSurfaceOstium = TrackSurface(elementsAroundTrackSurface, elementsAlongTrackSurface,
                                       xTrackSurface, d1TrackSurface, d2TrackSurface)
+
+    # # Visualise track surface
+    # nodeIdentifier, elementIdentifier = trackSurfaceOstium.generateMesh(region)
 
     # Find centre position
     # track along ileum path and since cxIleum[1] could be above or below the track surface, we check both side to
@@ -1178,7 +1179,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     e1Right = 0
     e2Top = 0
     e2Bottom = elementsAlongTrackSurface
-    sf = vector.magnitude(centralPathIleum.cd2Path[-1]) * 0.25
+    sf = vector.magnitude(centralPathIleum.cd2Path[-1]) * 0.35
     for n1 in range(elementsCountAroundOstium):
         normD2 = vector.normalise(o1_d2[-1][n1])
         d1AnnulusNorm.append(normD2)
@@ -1250,6 +1251,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     xPositionA = trackSurfaceOstium.findNearestPosition(xStart)
     xProportionA = trackSurfaceOstium.getProportion(xPositionA)
     derivativeA = trackSurfaceOstium.evaluateCoordinates(xPositionA, derivatives=True)[2]
+    derivativeA = vector.setMagnitude(derivativeA, vector.magnitude(d2ApexInner))
+    derivativeMagnitudeA = vector.magnitude(derivativeA)
 
     xPositionB = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[0])
     xProportionB = trackSurfaceOstium.getProportion(xPositionB)
@@ -1259,12 +1262,13 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     nx, nd1, nd2, nd3, proportions = \
         trackSurfaceOstium.createHermiteCurvePoints(
             xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
-            rowsBelow + 1, derivativeStart=derivativeA, derivativeEnd=derivativeB)
+            rowsBelow + 1, derivativeStart=derivativeA, derivativeEnd=None)
 
     pxAlongMidLine, pd2AlongMidLine, pd1AlongMidLine = \
         trackSurfaceOstium.resampleHermiteCurvePointsSmooth(
-            nx, nd1, nd2, nd3, proportions,
-            derivativeMagnitudeEnd=derivativeMagnitudeB)[0:3]
+            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=derivativeMagnitudeA)[0:3]
+
+    annulusD2ZeroMag = vector.magnitude(pd2AlongMidLine[-1])
 
     for n in range(len(pd1AlongMidLine)):
         pd1AlongMidLine[n] = [-d for d in pd1AlongMidLine[n]]
@@ -1278,16 +1282,19 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     xPositionB = trackSurfaceOstium.findNearestPosition(xB)
     xProportionB = trackSurfaceOstium.getProportion(xPositionB)
     derivativeB = d2TrackSurface[-elementsCountAroundHalfHaustrum]
+    derivativeMagnitudeB = vector.magnitude(d2TrackSurface[-elementsCountAroundHalfHaustrum])
 
     nx, nd1, nd2, nd3, proportions = \
         trackSurfaceOstium.createHermiteCurvePoints(
             xProportionA[0], xProportionA[1], xProportionB[0], xProportionB[1],
-            rowsAbove + 1, derivativeStart=derivativeA, derivativeEnd=derivativeB)
+            rowsAbove + 1, derivativeStart=None, derivativeEnd=derivativeB)
 
     pxAlongMidLineBottom, pd2AlongMidLineBottom, pd1AlongMidLineBottom = \
         trackSurfaceOstium.resampleHermiteCurvePointsSmooth(
-            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=derivativeMagnitudeA,
-            derivativeMagnitudeEnd=derivativeMagnitudeA)[0:3]
+            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=None,
+            derivativeMagnitudeEnd=derivativeMagnitudeB)[0:3]
+
+    annulusD2HalfOstiumMag = vector.magnitude(pd2AlongMidLineBottom[0])
 
     for n in range(len(pd1AlongMidLineBottom)):
         pd1AlongMidLineBottom[n] = [-d for d in pd1AlongMidLineBottom[n]]
@@ -1313,24 +1320,23 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                         xTrackSurface[n2 * (elementsCountAroundHaustrum + 1)])
                     xProportionA = trackSurfaceOstium.getProportion(xPositionA)
                     derivativeA = d1TrackSurface[n2 * (elementsCountAroundHaustrum + 1)]
+                    derivativeMagnitudeA = vector.magnitude(derivativeA)
 
                     if n2 < rowsBelow + 1:
                         xPositionB = trackSurfaceOstium.findNearestPosition(pxAlongMidLine[n2])
                         derivativeB = None
+                        derivativeMagnitudeB = None
 
                     elif n2 >= rowsBelow + rowsOstium:
                         idx = n2 - (rowsBelow + rowsOstium) + 1
                         xPositionB = trackSurfaceOstium.findNearestPosition(pxAlongMidLineBottom[idx])
                         derivativeB = None
+                        derivativeMagnitudeB = None
 
                     else:
                         xPositionB = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[annulusIdx])
-                        rotAngle = math.pi
-                        rotFrame = matrix.getRotationMatrixFromAxisAngle(vector.normalise(d3Annulus[annulusIdx]),
-                                                                         rotAngle)
-                        derivativeB = [rotFrame[j][0] * d1AnnulusOuter[annulusIdx][0] +
-                                       rotFrame[j][1] * d1AnnulusOuter[annulusIdx][1] +
-                                       rotFrame[j][2] * d1AnnulusOuter[annulusIdx][2] for j in range(3)]
+                        derivativeB = None
+                        derivativeMagnitudeB = None
 
                     xProportionB = trackSurfaceOstium.getProportion(xPositionB)
 
@@ -1338,21 +1344,25 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                     if n2 < rowsBelow + 1:
                         xPositionA = trackSurfaceOstium.findNearestPosition(pxAlongMidLine[n2])
                         derivativeA = None
+                        derivativeMagnitudeA = None
 
                     elif n2 >= rowsBelow + rowsOstium:
                         idx = n2 - (rowsBelow + rowsOstium) + 1
                         xPositionA = trackSurfaceOstium.findNearestPosition(pxAlongMidLineBottom[idx])
                         derivativeA = None
+                        derivativeMagnitudeA = None
 
                     else:
                         xPositionA = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[-annulusIdx])
-                        derivativeA = d1AnnulusOuter[-annulusIdx]
-                    xProportionA = trackSurfaceOstium.getProportion(xPositionA)
+                        derivativeA = None
+                        derivativeMagnitudeA = None
 
+                    xProportionA = trackSurfaceOstium.getProportion(xPositionA)
                     xPositionB = trackSurfaceOstium.findNearestPosition(
                         xTrackSurface[n2 * (elementsCountAroundHaustrum + 1) + elementsCountAroundHaustrum])
                     xProportionB = trackSurfaceOstium.getProportion(xPositionB)
                     derivativeB = d1TrackSurface[n2 * (elementsCountAroundHaustrum + 1) + elementsCountAroundHaustrum]
+                    derivativeMagnitudeB = vector.magnitude(derivativeB)
 
                 nx, nd1, nd2, nd3, proportions = \
                     trackSurfaceOstium.createHermiteCurvePoints(
@@ -1362,15 +1372,9 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
                 nx, nd1 = \
                     trackSurfaceOstium.resampleHermiteCurvePointsSmooth(
-                        nx, nd1, nd2, nd3, proportions)[0:2]
+                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=derivativeMagnitudeA,
+                        derivativeMagnitudeEnd=derivativeMagnitudeB)[0:2]
 
-                if n2 == rowsBelow + 1 or n2 == rowsBelow + rowsOstium - 1:
-                    mag = 0.5 * (vector.magnitude(d1AnnulusOuter[0]) + vector.magnitude(
-                        d2AnnulusOuter[0])) if n2 == startRowIdx else vector.magnitude(d1AnnulusOuter[0])
-                    if n == 0:
-                        nd1[-1] = vector.setMagnitude(nd1[-1], mag)
-                    else:
-                        nd1[0] = vector.setMagnitude(nd1[0], mag)
                 if n == 0:
                     xAround += nx
                     d1Around += nd1
@@ -1380,7 +1384,6 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                 if n2 < rowsBelow + 1 or n2 >= rowsBelow + rowsOstium:
                     d1Around = interp.smoothCubicHermiteDerivativesLine(xAround, d1Around, fixStartDerivative=True,
                                                                         fixEndDerivative=True)
-
             if n2 >= rowsBelow + 1 and n2 < rowsBelow + rowsOstium:
                 annulusIdx += 1
 
@@ -1394,6 +1397,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
         d1Around.append(d1TrackSurface[n1 + (elementsCountAroundHaustrum + 1) * elementsCountAlongSegment])
     xAroundAlong.append(xAround)
     d1AroundAlong.append(d1Around)
+    d1AroundAlongOriginal = copy.deepcopy(d1AroundAlong)
 
     # Calculate d2 along segment
     d2AroundAlong = []
@@ -1409,7 +1413,10 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     for n1 in range(elementsCountAroundHaustrum + 1):
         nxAlong = []
         nd2Along = []
-        if n1 < elementsCountAroundHalfHaustrum - 1:
+        nxTop = []
+        nd2Top = []
+        annulusIdx = 1
+        if n1 < elementsCountAroundHalfHaustrum - 2:
             for n2 in range(elementsCountAlongSegment):
                 nxAlong.append(xAroundAlong[n2][n1])
                 nd2Along.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1], xAroundAlong[n2 + 1][n1]))
@@ -1418,16 +1425,54 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
             nd2Along = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True,
                                                                 fixEndDerivative=True)
 
-            # Replace d2 on node along annulus LHS with d2Annulus
-            if n1 == elementsCountAroundHalfHaustrum - 2:
-                nd2Along[startRowIdx] = d2AnnulusOuter[1]
-                nd2Along[endRowIdx] = d2AnnulusOuter[int(elementsCountAroundOstium * 0.5) - 1]
+            xAlongAll.append(nxAlong)
+            d2AlongAll.append(nd2Along)
+
+            for n2 in range(len(nd2Along)):
+                d2AroundAlong[n2][n1] = nd2Along[n2]
+
+        # Deal with annulus
+        elif n1 == elementsCountAroundHalfHaustrum - 2:
+            # Smooth from apex to annulus
+            for n2 in range(startRowIdx + 1):
+                nxAlong.append(xAroundAlong[n2][n1])
+                nd2Along.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1], xAroundAlong[n2 + 1][n1]))
+            nd2Along = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
+            nd2AlongBottomLHS = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
+
+            # Make sure d2 at annulus is length of element below
+            nd2Along[-1] = vector.setMagnitude(d1AnnulusOuter[1], vector.magnitude(nd2Along[-1]))
+
+            # Make magnitude of annulus d2 between start and end row equivalent to arclength of element on its left
+            for m in range(endRowIdx - startRowIdx - 1):
+                nxAlong.append(xAnnulusOuter[2 + m])
+                n2Idx = m + startRowIdx + 1
+                nd2Along.append(vector.setMagnitude(d1AnnulusOuter[2+m], vector.magnitude(d1AroundAlong[n2Idx][n1])))
+
+            # Smooth from annulus to end of cecum
+            for n2 in range(endRowIdx, elementsCountAlongSegment):
+                nxTop.append(xAroundAlong[n2][n1])
+                nd2Top.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1], xAroundAlong[n2 + 1][n1]))
+            nxTop.append(xAroundAlong[elementsCountAlongSegment][n1])
+            nd2Top.append(d2TrackSurface[(elementsCountAroundHaustrum + 1) * elementsCountAlongSegment + n1])
+            nd2Top = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
+            nd2AlongTopLHS = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
+
+            # Make sure d2 at annulus is length of element above
+            nd2Top[0] = vector.setMagnitude(d1AnnulusOuter[int(elementsCountAroundOstium * 0.5) - 1],
+                                            vector.magnitude(nd2Top[0]))
+
+            nxAlong += nxTop
+            nd2Along += nd2Top
 
             xAlongAll.append(nxAlong)
             d2AlongAll.append(nd2Along)
 
             for n2 in range(len(nd2Along)):
                 d2AroundAlong[n2][n1] = nd2Along[n2]
+                if n1 == elementsCountAroundHalfHaustrum - 2 and startRowIdx -1 < n2 < endRowIdx + 1:
+                    d1AroundAlong[n2][n1] = d2AnnulusOuter[annulusIdx]
+                    annulusIdx += 1
 
         elif n1 == elementsCountAroundHalfHaustrum - 1:
             for n2 in range(len(pxAlongMidLine)):
@@ -1438,6 +1483,57 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
             xAlongAll.append(nxAlong)
             d2AlongAll.append(pd2AlongMidLine + pd2AlongMidLineBottom)
 
+        elif n1 == elementsCountAroundHalfHaustrum:
+            # Smooth from apex to annulus
+            for n2 in range(startRowIdx + 1):
+                 nxAlong.append(xAroundAlong[n2][n1 + (0 if n2 < startRowIdx else -1)])
+                 nd2Along.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1], xAroundAlong[n2 + 1][n1]))
+            nd2Along = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
+            nd2AlongBottomRHS = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
+
+            # Make sure d2 at annulus is length of element below
+            nd2Along[-1] = vector.setMagnitude(d1AnnulusOuter[-1], vector.magnitude(nd2Along[-1]))
+
+            # Make magnitude of annulus d2 between start and end row equivalent to arclength of element on its right
+            for m in range(endRowIdx - startRowIdx - 1):
+                nxAlong.append(xAnnulusOuter[-(2 + m)])
+                n2Idx = m + startRowIdx + 1
+                nd2Along.append(vector.setMagnitude(d1AnnulusOuter[-(2 + m)], vector.magnitude(d1AroundAlong[n2Idx][n1 - 1])))
+
+            # Smooth from annulus to end of cecum
+            for n2 in range(endRowIdx, elementsCountAlongSegment):
+                nxTop.append(xAroundAlong[n2][n1 + (0 if n2 > endRowIdx else -1)])
+                if n2 > endRowIdx - 1:
+                    nxAlongNext = xAroundAlong[n2 + 1][n1]
+                else:
+                    nxAlongNext = xAroundAlong[n2 + 1][n1 - 1]
+                nd2Top.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1 + (0 if n2 > endRowIdx else -1)],
+                                                          nxAlongNext))
+            nxTop.append(xAroundAlong[elementsCountAlongSegment][n1])
+            nd2Top.append(d2TrackSurface[(elementsCountAroundHaustrum + 1) * elementsCountAlongSegment + n1])
+            nd2Top = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
+            nd2AlongTopRHS = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
+
+            # Make sure d2 at annulus is length of element above
+            nd2Top[0] = vector.setMagnitude(d1AnnulusOuter[int(elementsCountAroundOstium * 0.5) + 1],
+                                            vector.magnitude(nd2Top[0]))
+
+            nxAlong += nxTop
+            nd2Along += nd2Top
+
+            xAlongAll.append(nxAlong)
+            d2AlongAll.append(nd2Along)
+
+            for n2 in range(len(nd2Along)):
+                if n2 < startRowIdx or n2 > endRowIdx:
+                    n1Idx = n1
+                else:
+                    n1Idx = n1 - 1
+                    if n1 == elementsCountAroundHalfHaustrum:
+                        d1AroundAlong[n2][n1Idx] = d2AnnulusOuter[-annulusIdx]
+                        annulusIdx += 1
+                d2AroundAlong[n2][n1Idx] = nd2Along[n2]
+
         else:
             for n2 in range(elementsCountAlongSegment):
                 nxAlong.append(xAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)])
@@ -1445,18 +1541,12 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                     nxAlongNext = xAroundAlong[n2 + 1][n1]
                 else:
                     nxAlongNext = xAroundAlong[n2 + 1][n1 - 1]
-                nd2Along.append(findDerivativeBetweenPoints(
-                    xAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)], nxAlongNext))
+                nd2Along.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)], nxAlongNext))
 
             nxAlong.append(xAroundAlong[n2 + 1][n1])
             nd2Along.append(d2TrackSurface[(elementsCountAroundHaustrum + 1) * elementsCountAlongSegment + n1])
             nd2Along = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True,
                                                                 fixEndDirection=True)
-
-            # Replace d2 on node along annulus RHS with d2Annulus
-            if n1 == elementsCountAroundHalfHaustrum:
-                nd2Along[startRowIdx] = [-d for d in d2AnnulusOuter[-1]]
-                nd2Along[endRowIdx] = [-d for d in d2AnnulusOuter[int(elementsCountAroundOstium * 0.5) + 1]]
 
             xAlongAll.append(nxAlong)
             d2AlongAll.append(nd2Along)
@@ -1484,18 +1574,17 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
         d1Curvature.append([0.0])
 
     for n2 in range(1 if segmentIdx == 0 else 0, elementsCountAlongSegment + 1):
-        if n2 < startRowIdx or n2 == elementsCountAlongSegment:
-            d1Curvature.append(interp.findCurvatureAlongLine(xAroundAlong[n2], d1AroundAlong[n2],
+        if n2 < startRowIdx or n2 > endRowIdx: #== elementsCountAlongSegment:
+            d1Curvature.append(interp.findCurvatureAlongLine(xAroundAlong[n2], d1AroundAlongOriginal[n2],
                                                              d3UnitAroundAlong[n2]))
         else:
             d1CurvatureLeft = interp.findCurvatureAlongLine(xAroundAlong[n2][:int(0.5 * len(xAroundAlong[n2]))],
-                                                     d1AroundAlong[n2][:int(0.5 * len(xAroundAlong[n2]))],
+                                                     d1AroundAlongOriginal[n2][:int(0.5 * len(xAroundAlong[n2]))],
                                                      d3UnitAroundAlong[n2][:int(0.5 * len(xAroundAlong[n2]))])
 
             d1CurvatureRight = interp.findCurvatureAlongLine(xAroundAlong[n2][int(0.5 * len(xAroundAlong[n2])):],
-                                                      d1AroundAlong[n2][int(0.5 * len(xAroundAlong[n2])):],
+                                                      d1AroundAlongOriginal[n2][int(0.5 * len(xAroundAlong[n2])):],
                                                       d3UnitAroundAlong[n2][int(0.5 * len(xAroundAlong[n2])):])
-
             d1Curvature.append(d1CurvatureLeft + d1CurvatureRight)
 
     # Curvatures along
@@ -1510,43 +1599,84 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
         xAlong = xAlongAll[n1]
         d2Along = d2AlongAll[n1]
         d3UnitAlong = []
+        annulusIdx = 1
 
-        if n1 < elementsCountAroundHalfHaustrum - 1:
+        if n1 < elementsCountAroundHalfHaustrum - 2:
             for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1])
             d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
             d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong, d2Along, d3UnitAlong)
-            # Adjust for corners
-            if n1 == elementsCountAroundHalfHaustrum - 2:
-                d2CurvatureAlong[endRowIdx] = annulusD2Curvature[int(elementsCountAlongSegment * 0.5) - 1]
             for n2 in range(len(d2CurvatureAlong)):
                 d2Curvature[n2][n1] = d2CurvatureAlong[n2]
 
-        elif n1 == elementsCountAroundHalfHaustrum - 1:
-            xAlong = []
-            d2Along = []
-            d3UnitAlong = []
-            for n2 in range(len(pd2AlongMidLine)):
-                xAlong.append(xAroundAlong[n2][n1])
-                d2Along.append(d2AroundAlong[n2][n1])
+        elif n1 == elementsCountAroundHalfHaustrum - 2:
+            # From apex to annulus
+            for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong, d2Along, d3UnitAlong)
-            for n2 in range(len(pd2AlongMidLine)):
+            d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
+            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong[:startRowIdx + 1], nd2AlongBottomLHS,
+                                                                   d3UnitAlong[:startRowIdx + 1])
+
+            # Curvature of nodes along LHS annulus
+            for m in range(endRowIdx - startRowIdx - 1):
+                d2CurvatureAlong.append(d1Curvature[m + startRowIdx + 1][n1])
+
+            # From annulus to distal end
+            d2CurvatureAlong += interp.findCurvatureAlongLine(xAlong[endRowIdx:], nd2AlongTopLHS,
+                                                             d3UnitAlong[endRowIdx:])
+
+            for n2 in range(len(d2CurvatureAlong)):
                 d2Curvature[n2][n1] = d2CurvatureAlong[n2]
 
-            # Calculate curvature for node on edge
-            xAlong = []
-            d2Along = []
+            for n2 in range(startRowIdx, endRowIdx + 1):
+                d1Curvature[n2][n1] = annulusD2Curvature[annulusIdx]
+                annulusIdx += 1
+
+        elif n1 == elementsCountAroundHalfHaustrum - 1:
+            # From apex to annulus
+            for n2 in range(len(pxAlongMidLine)):
+                d3UnitAlong.append(d3UnitAroundAlong[n2][n1])
+            d2CurvatureAlong = interp.findCurvatureAlongLine(pxAlongMidLine, pd2AlongMidLine, d3UnitAlong)
+            d2CurvatureAnnulusZero = d2CurvatureAlong[-1]
+            for n2 in range(len(d2CurvatureAlong) - 1):
+                d2Curvature[n2][n1] = d2CurvatureAlong[n2]
+
             d3UnitAlong = []
+            for n in range(len(pxAlongMidLineBottom)):
+                d3UnitAlong.append(d3UnitAroundAlong[n + endRowIdx][n1])
+            d2CurvatureAlong = interp.findCurvatureAlongLine(pxAlongMidLineBottom, pd2AlongMidLineBottom, d3UnitAlong)
+            d2CurvatureAlongHalfOstium = d2CurvatureAlong[0]
             for n in range(1, len(pd2AlongMidLineBottom)):
                 nIdx = n + endRowIdx
-                xAlong.append(xAroundAlong[nIdx][n1])
-                d2Along.append(d2AroundAlong[nIdx][n1])
-                d3UnitAlong.append(d3UnitAroundAlong[nIdx][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong, d2Along, d3UnitAlong)
-            for n in range(len(pd2AlongMidLineBottom) - 1):
-                nIdx = n + endRowIdx + 1
                 d2Curvature[nIdx][n1] = d2CurvatureAlong[n]
+
+        elif n1 == elementsCountAroundHalfHaustrum:
+            # From apex to annulus
+            for n2 in range(elementsCountAlongSegment):
+                d3UnitAlong.append(d3UnitAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)])
+            d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
+            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong[:startRowIdx + 1], nd2AlongBottomRHS,
+                                                             d3UnitAlong[:startRowIdx + 1])
+
+            # Curvature of nodes along LHS annulus
+            for m in range(endRowIdx - startRowIdx - 1):
+                d2CurvatureAlong.append(d1Curvature[m + startRowIdx + 1][n1 - 1])
+
+            # From annulus to distal end
+            d2CurvatureAlong += interp.findCurvatureAlongLine(xAlong[endRowIdx:], nd2AlongTopRHS,
+                                                              d3UnitAlong[endRowIdx:])
+
+            for n2 in range(len(d2CurvatureAlong)):
+                if n2 < startRowIdx or n2 > endRowIdx:
+                    n1Idx = n1
+                else:
+                    n1Idx = n1 - 1
+                d2Curvature[n2][n1Idx] = d2CurvatureAlong[n2]
+
+            for n2 in range(startRowIdx, endRowIdx + 1):
+                d1Curvature[n2][n1] = annulusD2Curvature[-annulusIdx]
+                annulusIdx += 1
+
         else:
             for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)])
@@ -1564,24 +1694,21 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                     n1Idx = n1 - 1
                 d2Curvature[n2][n1Idx] = d2CurvatureAlong[n2]
 
-    # Slot in annulus points along the midline
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[0], math.pi)
-    rotD2 = [rotFrame[j][0] * d2AnnulusOuter[0][0] + rotFrame[j][1] * d2AnnulusOuter[0][1] +
-             rotFrame[j][2] * d2AnnulusOuter[0][2] for j in range(3)]
+    # Adjust annulus points
     xAroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), xAnnulusOuter[0])
-    d1AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), rotD2)
-    d2AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d1AnnulusOuter[0])
+    d1AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2AnnulusOuter[0])
+    d2AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), vector.setMagnitude(d1AnnulusOuter[0], annulusD2ZeroMag))
     d3UnitAroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d3Annulus[0])
     d1Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[0])
-    d2Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[0])
+    d2Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2CurvatureAnnulusZero)
 
     idx = int(elementsCountAlongSegment * 0.5)
     xAroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), xAnnulusOuter[idx])
     d1AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2AnnulusOuter[idx])
-    d2AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d1AnnulusOuter[idx])
+    d2AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), vector.setMagnitude(d1AnnulusOuter[idx], annulusD2HalfOstiumMag))
     d3UnitAroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d3Annulus[idx])
     d1Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[idx])
-    d2Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[idx])
+    d2Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2CurvatureAlongHalfOstium)
 
     # Create inner nodes
     sideNodesToDelete = []
@@ -1763,86 +1890,180 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                         nodeIdentifiers = [bni111, bni211, bni121, bni221,
                                            bni112, bni212, bni122, bni222]
 
-                        if e2 == startRowIdx - 1 and e1 == elementsCountAroundHalfHaustrum - 2:  # LHS bottom
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                        if e2 == startRowIdx - 1:
+                            if e1 == elementsCountAroundHalfHaustrum - 3:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 331
 
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                            elif e1 == elementsCountAroundHalfHaustrum - 2:  # LHS bottom
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                # print(elementIdentifier) # 332
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
 
-                        elif e2 == startRowIdx - 1 and e1 == elementsCountAroundHalfHaustrum - 1:  # RHS bottom
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                            elif e1 == elementsCountAroundHalfHaustrum - 1:  # RHS bottom
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                # print(elementIdentifier)  # 333
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
 
-                        elif e2 == startRowIdx - 1 and e1 == elementsCountAroundHalfHaustrum:  # RHS bottom + 1
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                            elif e1 == elementsCountAroundHalfHaustrum:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) #334
 
-                        elif e2 == startRowIdx - 1 and e1 == elementsCountAroundHalfHaustrum - 3:  # LHS Bottom Left - 1
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                        elif e2 == startRowIdx:
+                            if e1 == elementsCountAroundHalfHaustrum - 3:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 339
 
-                        elif e2 == endRowIdx and e1 == elementsCountAroundHalfHaustrum - 2:  # end LHS
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                            elif e1 == elementsCountAroundHalfHaustrum:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 340
 
-                        elif e2 == endRowIdx and e1 == elementsCountAroundHalfHaustrum - 3:  # end LHS -1
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                        elif int(elementsCountAroundOstium*0.25) - 2 > 0 and startRowIdx + 1 <= e2 < startRowIdx + 1 + 2.0 * (int(elementsCountAroundOstium*0.25) - 2):
+                            if e1 == elementsCountAroundHalfHaustrum - 3:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 183, 201
 
-                        elif e2 == endRowIdx and e1 == elementsCountAroundHalfHaustrum - 1:  # end RHS
-                            scaleFactors = [-1.0]
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            setEftScaleFactorIds(eft1, [1], [])
-                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
-                            remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                            elif e1 == elementsCountAroundHalfHaustrum - 1:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 184, 202
 
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                        elif e2 == endRowIdx - 1:
+                            if e1 == elementsCountAroundHalfHaustrum - 3:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 345
 
-                        elif e2 == endRowIdx and e1 == elementsCountAroundHalfHaustrum:  # end RHS + 1
-                            eft1 = eftfactory.createEftNoCrossDerivatives()
-                            remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-                                                   [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-                            elementtemplateX.defineField(coordinates, -1, eft1)
-                            elementtemplate1 = elementtemplateX
+                            elif e1 == elementsCountAroundHalfHaustrum - 1:
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS2, [])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
+                                                       [(Node.VALUE_LABEL_D_DS1, [1])])
+                                remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) # 346
+
+                        elif e2 == endRowIdx:
+                            if e1 == elementsCountAroundHalfHaustrum - 3:  # end LHS -1
+                                scaleFactors = [-1.0]
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                setEftScaleFactorIds(eft1, [1], [])
+                                remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [1])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print('1', elementIdentifier) #351
+
+                            elif e1 == elementsCountAroundHalfHaustrum:  # end RHS + 1
+                                eft1 = eftfactory.createEftNoCrossDerivatives()
+                                remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
+                                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                                elementtemplateX.defineField(coordinates, -1, eft1)
+                                elementtemplate1 = elementtemplateX
+                                # print(elementIdentifier) #354
 
                         element = mesh.createElement(elementIdentifier, elementtemplate1)
                         element.setNodesByIdentifier(eft1, nodeIdentifiers)
@@ -1896,14 +2117,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     for n3 in range(elementsCountThroughWall + 1):
         for nAround in range(elementsCountAroundOstium):
-            if nAround == 0:
-                endDerivativesMap[n3][nAround] = ((-1, 0, 0), (0, 1, 0), None)
-            elif 1 <= nAround < int(elementsCountAroundOstium * 0.5):
-                endDerivativesMap[n3][nAround] = ((0, 1, 0), (-1, 0, 0), None)
-            elif nAround == int(elementsCountAroundOstium * 0.5):
-                endDerivativesMap[n3][nAround] = (None, None, None)
-            else:
-                endDerivativesMap[n3][nAround] = ((0, -1, 0), (1, 0, 0), None)
+            endDerivativesMap[n3][nAround] = (None, None, None)
 
     startProportions = []
     for n in range(elementsCountAroundOstium):
