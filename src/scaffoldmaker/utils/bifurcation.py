@@ -664,7 +664,7 @@ class SegmentTubeData:
 
 
 def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-                                  elementsCountAround: float, targetElementAspectRatio: float,
+                                  elementsCountAround: int, targetElementAspectRatio: float,
                                   serendipity=False):
     """
     :param networkMesh: Specification of network path and lateral sizes.
@@ -701,9 +701,17 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
 
     for networkSegment in networkSegments:
         tubeData = segmentTubeData[networkSegment]
-        # pathParameters = tubeData.getPathParameters()
-        # segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
-        elementsCountAlong = 4  # max(2, math.ceil(segmentLength / targetElementLength))
+        pathParameters = tubeData.getPathParameters()
+        segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
+        rawTubeCoordinates = tubeData.getRawTubeCoordinates()
+        ringCount = len(rawTubeCoordinates[0])
+        sumRingLength = 0.0
+        for n in range(ringCount):
+            ringLength = getCubicHermiteCurvesLength(rawTubeCoordinates[0][n], rawTubeCoordinates[1][n], loop=True)
+            sumRingLength += ringLength
+        meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
+        targetElementLength = targetElementAspectRatio * meanElementLengthAround
+        elementsCountAlong = max(2, math.ceil(segmentLength / targetElementLength))
         rawTubeCoordinates = tubeData.getRawTubeCoordinates()
         sx, sd1, sd2, sd12 = resampleTubeCoordinates(rawTubeCoordinates, elementsCountAlong)
         tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
