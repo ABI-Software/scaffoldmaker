@@ -14,7 +14,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, evaluateCoordinatesOnCurve, \
     getCubicHermiteArcLength, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, \
-    getNearestParameterLocationOnCurve, incrementXiOnLine, interpolateCubicHermite, \
+    incrementXiOnLine, interpolateCubicHermite, \
     interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurves, \
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, \
     updateCurveLocationTofaceNumber
@@ -340,18 +340,18 @@ class TrackSurface:
     def _positionOnBoundary(self, position: TrackSurfacePosition):
         """
         :param position:
-        :return: True if position is on boundary
+        :return: 1 if on xi1 boundary, 2 if on xi2 boundary, 0 if not on a boundary.
         """
         LOWER_P_LIMIT = 1.0E-7
         UPPER_P_LIMIT = 1.0 - LOWER_P_LIMIT
         if not self._loop1:
             proportion1 = (position.e1 + position.xi1) / self._elementsCount1
             if (proportion1 < LOWER_P_LIMIT) or (proportion1 > UPPER_P_LIMIT):
-                return True
+                return 1
         proportion2 = (position.e2 + position.xi2) / self._elementsCount2
         if (proportion2 < LOWER_P_LIMIT) or (proportion2 > UPPER_P_LIMIT):
-            return True
-        return False
+            return 2
+        return 0
 
     def findIntersectionPoint(self, otherTrackSurface,
                               startPosition: TrackSurfacePosition,
@@ -363,17 +363,20 @@ class TrackSurface:
         Needs to be a good guess if surface has complex curvature.
         :param otherStartPosition: Initial estimate of nearest position on other TrackSurface.
         Use findNearestParameterPosition if a better guess is not available.
-        :return: TrackSurfacePosition, OtherTrackSurfacePosition, x, tangent, onBoundary or None, None, None, None, None
-        if no intersection found. The tangent is normalized n1 x n2, a unit vector along the intersection curve.
+        :return: TrackSurfacePosition, OtherTrackSurfacePosition, x, tangent, onBoundary (0/1=xi1/2=xi2)
+        or None, None, None, None, 0  if no intersection found.
+        The tangent is normalized n1 x n2, a unit vector along the intersection curve.
         """
         # print("findIntersectionPoint", startPosition)
         position = copy.deepcopy(startPosition)
         otherPosition = copy.deepcopy(otherStartPosition)
-        max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
-        xi_tol = 1.0E-7
-        x_tol = 1.0E-6 * max(self._xRange)
+        MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
+        XI_TOL = 1.0E-7
+        X_TOL = 1.0E-5 * max(self._xRange)
         mag_dxi = 0.0
-        for iter in range(100):
+        old_dxi = None
+        mag_old_dxi = 0
+        for it in range(100):
             onBoundary = self._positionOnBoundary(position)
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
             otherPosition = otherTrackSurface.findNearestPosition(x, otherPosition)
@@ -381,15 +384,22 @@ class TrackSurface:
             ox, od1, od2 = otherTrackSurface.evaluateCoordinates(otherPosition, derivatives=True)
             r = sub(ox, x)
             mag_r = magnitude(r)
-            # print("    pos", position, onBoundary, "other", otherPosition, onOtherBoundary, "mag_r", mag_r)
             n1 = cross(d1, d2)
-            if mag_r < x_tol:
+            if (mag_r < X_TOL) or (onBoundary and (mag_r < 10.0 * X_TOL)):
                 n2 = cross(od1, od2)
-                tangent = normalize(cross(n1, n2))
-                # print("TrackSurface.findIntersectionPoint found intersection: ", position, "on iter", iter + 1)
-                # could be on boundary of either surface
-                return position, otherPosition, x, tangent, onBoundary or onOtherBoundary
-            n = normalize(n1)
+                tangent = cross(n1, n2)
+                if magnitude(tangent) < 1E-6 * X_TOL:
+                    tangent = d2 if (onBoundary == 1) else d1
+                tangent = normalize(tangent)
+                # print("TrackSurface.findIntersectionPoint found intersection: ", position, "on iter", it + 1)
+                return position, otherPosition, x, tangent, onBoundary
+            if onBoundary and onOtherBoundary:
+                d = d1 if (onBoundary == 2) else d2
+                n = normalize(cross(cross(d, r), d))
+            else:
+                d = None
+                n = normalize(n1)
+            # print("iter", it + 1, "pos", position, onBoundary, "other", otherPosition, onOtherBoundary, "mag_r", mag_r, "n", n)
             r_dot_n = dot(r, n)
             if r_dot_n < 0:
                 # flip normal to be towards other x
@@ -401,74 +411,119 @@ class TrackSurface:
                 u = r_in_plane
             else:
                 # add out-of-plane slope component
-                factor = 1.0 + r_dot_n / mag_r
-                u = mult(r_in_plane, factor)
+                mag_ri = magnitude(r_in_plane)
+                # factor = 1.0 + r_dot_n / mag_r
+                slope_factor = mag_r / mag_ri  # mag_r * mag_r / (mag_ri * mag_ri)
+                # print("slope_factor", slope_factor)
+                # if slope_factor > 10.0:
+                #     slope_factor = 10.0
+                u = mult(r_in_plane, slope_factor)
             dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, u)
-            mag_dxi = math.sqrt(dxi1 * dxi1 + dxi2 * dxi2)
-            if mag_dxi > max_mag_dxi:
-                dxi1 *= max_mag_dxi / mag_dxi
-                dxi2 *= max_mag_dxi / mag_dxi
-            bxi1, bxi2, proportion, faceNumber = increment_xi_on_square(position.xi1, position.xi2, dxi1, dxi2)
-            position.xi1 = bxi1
-            position.xi2 = bxi2
-            if faceNumber:
-                onBoundary = self.updatePositionTofaceNumber(position, faceNumber)
-            if mag_dxi < xi_tol:
+            dxi = [dxi1, dxi2]
+            mag_dxi = magnitude(dxi)
+            # print("     dxi", dxi1, dxi2)
+            # control oscillations
+            if old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi * mag_old_dxi)):
+                osc_factor = mag_dxi / (mag_dxi + mag_old_dxi)
+                # print("osc", osc_factor)
+                dxi1 *= osc_factor
+                dxi2 *= osc_factor
+                dxi = [dxi1, dxi2]
+                mag_dxi *= osc_factor
+            position, onBoundary, dxi1, dxi2 = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)
+            old_dxi = dxi
+            mag_old_dxi = mag_dxi
+            # print("    adxi", dxi1, dxi2)
+            mag_dxi = magnitude([dxi1, dxi2])
+            if mag_dxi < XI_TOL:
                 print("TrackSurface.findIntersectionPoint failed:  Insufficient increment, no intersection found")
                 break
         else:
-            print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', iter + 1,
+            print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', it + 1,
                   'closeness in xi', mag_dxi)
-        return None, None, None, None, False
+        return None, None, None, None, 0
 
-    def _advancePosition(self, startPosition, direction, maxDxi=0.5):
+    def _advancePosition(self, startPosition, dxi1, dxi2, MAX_MAG_DXI=0.5):
         """
-        Advance position in physical direction limiting to maximum change of xi coordinates or boundary.
-        Increment dxi is calculated at the start position.
+        Advance position by element delta xi to maximum change of xi coordinates or boundary.
         :param startPosition: Start position.
-        :param direction: Direction in physical space.
-        :param maxDxi: Maximum magnitude of dxi to keep increments reasonable for a cubic curve.
-        :return: Advanced position, onBoundary
+        :param dxi1: Increment in xi1.
+        :param dxi2: Increment in xi2.
+        :param MAX_MAG_DXI: Maximum magnitude of dxi to keep increments reasonable for a cubic curve.
+        :return: Advanced position, onBoundary (0/1=xi1/2=xi2), actual dxi1, actual dxi2
         """
-        position = copy.copy(startPosition)
-        x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
-        dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, direction)
-        startDxiMag = magnitude([dxi1, dxi2])
-        scale = maxDxi / startDxiMag
-        dxi1 *= scale
-        dxi2 *= scale
-        onBoundary = False
-        while True:
-            bxi1, bxi2, proportion, faceNumber = increment_xi_on_square(position.xi1, position.xi2, dxi1, dxi2)
-            dxi1 -= (bxi1 - position.xi1)
-            dxi2 -= (bxi2 - position.xi2)
-            position.xi1 = bxi1
-            position.xi2 = bxi2
-            if faceNumber:
-                onBoundary = self.updatePositionTofaceNumber(position, faceNumber)
-                if onBoundary:
-                    break
-            if abs(magnitude([dxi1, dxi2]) / startDxiMag) < 1.0E-5:
-                break
-        return position, onBoundary
+        startProportion1, startProportion2 = self.getProportion(startPosition)
+        magDxi = magnitude([dxi1, dxi2])
+        if magDxi > MAX_MAG_DXI:
+            factor = MAX_MAG_DXI / magDxi
+            dxi1 *= factor
+            dxi2 *= factor
+        proportion1 = startProportion1 + dxi1 / self._elementsCount1
+        proportion2 = startProportion2 + dxi2 / self._elementsCount2
+        onBoundary = 0
+        if self._loop1:
+            if proportion1 < 0.0:
+                proportion1 += 1.0
+            elif proportion1 > 2.0:
+                proportion1 -= 2.0
+        else:
+            if proportion1 < 0.0:
+                proportion1 = 0.0
+                onBoundary = 1
+            elif proportion1 > 1.0:
+                proportion1 = 1.0
+                onBoundary = 1
+        if proportion2 < 0.0:
+            proportion2 = 0.0
+            onBoundary = 2
+        elif proportion2 > 1.0:
+            proportion2 = 1.0
+            onBoundary = 2
+        if onBoundary:
+            if not self._loop1:
+                dxi1 = (proportion1 - startProportion1) / self._elementsCount1
+            dxi2 = (proportion2 - startProportion2) / self._elementsCount2
+        return self.createPositionProportion(proportion1, proportion2), onBoundary, dxi1, dxi2
 
-    def findIntersectionCurve(self, otherTrackSurface, startPosition: TrackSurfacePosition,
-                              maxDxi=0.5, curveElementsCount: int=8):
+    def findIntersectionCurve(self, otherTrackSurface, startPosition: TrackSurfacePosition=None,
+                              MAX_MAG_DXI=0.5, curveElementsCount: int=8):
         """
         Find curve on intersection of self and otherTrackSurface nearest to start position.
         an intersection point on both self and otherTrackSurface from an initial guess.
         The curve is resampled to have equal sized elements along/around it.
         :param otherTrackSurface: Other TrackSurface to find intersection with.
-        :param startPosition: Start position to get intersection point near to.
-        Needs to be a good guess if surface has complex curvature.
+        :param startPosition: Optional start position to get intersection point near to.
+        Needs to be a good guess if surface has complex curvature. If not supplied, gets nearest parameter position.
         :param curveElementsCount: Number of elements to return in resampled curve.
-        :return: cx[], cd1[], c_proportions (on this surface), loop (True if curve is a closed loop),
+        :return: cx[], cd1[], cProportions (on this surface), loop (True if curve is a closed loop),
         or None, None, None, False if no intersection.
         """
         # print("findIntersectionCurve", startPosition)
-        nextPosition = startPosition
-        startX = self.evaluateCoordinates(startPosition, derivatives=False)
-        otherPosition = otherStartPosition = self.findNearestParameterPosition(startX)[0]
+        if startPosition:
+            nextPosition = startPosition
+            startX = self.evaluateCoordinates(startPosition, derivatives=False)
+            otherPosition = otherStartPosition = self.findNearestParameterPosition(startX)[0]
+        else:
+            n1Limit = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
+            nearest_distance = None
+            nearest_n1 = None
+            nearest_n2 = None
+            nearestOtherPosition = None
+            p = 0
+            for n2 in range(self._elementsCount2 + 1):
+                for n1 in range(n1Limit):
+                    targetx = self._nx[n2 * n1Limit + n1]
+                    otherPosition, distance = otherTrackSurface.findNearestParameterPosition(targetx)
+                    if (nearest_distance is None) or (distance < nearest_distance):
+                        nearest_distance = distance
+                        nearest_n1 = n1
+                        nearest_n2 = n2
+                        nearestOtherPosition = otherPosition
+                    p += 1
+            nextPosition = startPosition = self.createPositionProportion(
+                nearest_n1 / self._elementsCount1, nearest_n2 / self._elementsCount2)
+            otherPosition = otherStartPosition = nearestOtherPosition
+
         px = []
         pd1 = []
         boundaryCount = 0
@@ -476,16 +531,21 @@ class TrackSurface:
         xiLoopSamples = [0.25, 0.5, 0.75, 1.0]
         pointCount = 0
         while True:
-            position, otherPosition, x, t, onBoundary =\
+            position, otherPosition, x, t, onBoundary = \
                 self.findIntersectionPoint(otherTrackSurface, nextPosition, otherPosition)
             # print("  curve pos", position, "boundary", onBoundary)
-            if boundaryCount == 0:
-                px.append(x)
-                pd1.append(t)
+            if not position:
+                assert pointCount == 0
+                print("TrackSurface.findIntersectionCurve.  No intersection")
+                return None, None, None, False
             else:
-                px.insert(0, x)
-                pd1.insert(0, t)
-            pointCount += 1
+                if boundaryCount == 0:
+                    px.append(x)
+                    pd1.append(t)
+                else:
+                    px.insert(0, x)
+                    pd1.insert(0, t)
+                pointCount += 1
             if onBoundary:
                 boundaryCount += 1
                 # print("=== Boundary", boundaryCount, startPosition)
@@ -516,8 +576,9 @@ class TrackSurface:
                     pd1.pop()
                     pointCount -= 1
                     break
-            nextPosition, onBoundary = self._advancePosition(
-                position, mult(t, -1.0) if (boundaryCount == 1) else t, maxDxi)
+            x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
+            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, mult(t, -1.0) if (boundaryCount == 1) else t)
+            nextPosition = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)[0]
             # print("  t", t, "next", nextPosition)
 
         # resample and re-find positions and tangents
@@ -530,19 +591,19 @@ class TrackSurface:
             nd1.pop()
         cx = []
         cd1 = []
-        c_proportions = []
+        cProportions = []
         for n in range(len(nx)):
             position = self.findNearestPosition(nx[n], position)
             position, otherPosition, x, t, onBoundary =\
                 self.findIntersectionPoint(otherTrackSurface, position, otherPosition)
             cx.append(x)
             cd1.append(t)
-            c_proportions.append(self.getProportion(position))
+            cProportions.append(self.getProportion(position))
         if loop:
             cd1 = smoothCubicHermiteDerivativesLoop(cx, cd1, fixAllDirections=True)
         else:
             cd1 = smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True)
-        return cx, cd1, c_proportions, loop
+        return cx, cd1, cProportions, loop
 
     def findNearestParameterPosition(self, targetx: list):
         """
@@ -559,7 +620,7 @@ class TrackSurface:
         for n2 in range(self._elementsCount2 + 1):
             for n1 in range(n1Limit):
                 distance = magnitude(sub(self._nx[p], targetx))
-                if (not nearest_distance) or (distance < nearest_distance):
+                if (nearest_distance is None) or (distance < nearest_distance):
                     nearest_distance = distance
                     nearest_n1 = n1
                     nearest_n2 = n2
@@ -578,65 +639,36 @@ class TrackSurface:
         if not startPosition:
             startPosition = self.createPositionProportion(0.5, 0.5)
         position = copy.deepcopy(startPosition)
-        max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
-        xi_tol = 1.0E-7
+        MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
+        XI_TOL = 1.0E-7
         old_dxi = None
         mag_old_dxi = 0
-        for iter in range(100):
+        mag_adxi = 0
+        for it in range(100):
             xi1 = position.xi1
             xi2 = position.xi2
-            ax, ad1, ad2 = self.evaluateCoordinates(position, derivatives=True)
-            deltax = [ (targetx[c] - ax[c]) for c in range(3) ]
-            #print('iter', iter + 1, 'position', position, 'deltax', deltax, 'err', vector.magnitude(deltax))
-            adelta_xi1, adelta_xi2 = calculate_surface_delta_xi(ad1, ad2, deltax)
-            dxi1 = adelta_xi1
-            dxi2 = adelta_xi2
+            x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
+            deltax = [(targetx[c] - x[c]) for c in range(3)]
+            # print('iter', it + 1, 'position', position, 'deltax', deltax, 'err', vector.magnitude(deltax))
+            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, deltax)
             dxi = [dxi1, dxi2]
             mag_dxi = magnitude(dxi)
             # control oscillations
             if old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi * mag_old_dxi)):
                 factor = mag_dxi / (mag_dxi + mag_old_dxi)
-                dxi = mult(dxi, factor)
-                dxi1 = dxi[0]
-                dxi2 = dxi[1]
-                mag_dxi *= factor
-            if mag_dxi > max_mag_dxi:
-                dxi1 *= max_mag_dxi/mag_dxi
-                dxi2 *= max_mag_dxi/mag_dxi
+                dxi1 *= factor
+                dxi2 *= factor
                 dxi = [dxi1, dxi2]
-                mag_dxi = max_mag_dxi
+                mag_dxi *= factor
+            position, onBoundary, adxi1, adxi2 = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)
             old_dxi = dxi
             mag_old_dxi = mag_dxi
-            #print('    dxi', dxi1, dxi2)
-            bxi1, bxi2, proportion, faceNumber = increment_xi_on_square(xi1, xi2, dxi1, dxi2)
-            position.xi1 = bxi1
-            position.xi2 = bxi2
-            if mag_dxi < xi_tol:
-                # print("converged in", iter + 1, "iterations, mag_dxi", mag_dxi)
+            mag_adxi = magnitude([adxi1, adxi2])
+            if mag_adxi < XI_TOL:
+                # print("TrackSurface.findNearestPosition:  converged in", it + 1, "iterations, mag_dxi", mag_adxi)
                 break
-            if faceNumber:
-                onBoundary = self.updatePositionTofaceNumber(position, faceNumber)
-                if onBoundary and (proportion < xi_tol):
-                    # slide along boundary to nearest point; may cross other sides
-                    if faceNumber in [1, 2]:
-                        bdxi1 = 0.0
-                        cmag_dxi = bdxi2 = dxi2*(1.0 - proportion)
-                    else:
-                        cmag_dxi = bdxi1 = dxi1*(1.0 - proportion)
-                        bdxi2 = 0.0
-                    cxi1, cxi2, cproportion, cFaceNumber = increment_xi_on_square(bxi1, bxi2, bdxi1, bdxi2)
-                    position.xi1 = cxi1
-                    position.xi2 = cxi2
-                    if math.fabs(cmag_dxi) < xi_tol:
-                        #print('converged on boundary cmag_dxi', cmag_dxi)
-                        break
-                    if cFaceNumber:
-                        cOnBoundary = self.updatePositionTofaceNumber(position, cFaceNumber)
-                        if cOnBoundary:
-                            #print('TrackSurface.findNearestPosition:  End on corner boundary at', position)
-                            break
         else:
-            print('TrackSurface.findNearestPosition:  Reach max iterations', iter + 1, 'closeness in xi', mag_dxi)
+            print('TrackSurface.findNearestPosition:  Reach max iterations', it + 1, 'closeness in xi', mag_adxi)
         #print('final position', position)
         return position
 
@@ -671,16 +703,16 @@ class TrackSurface:
                     tmpCurveLocation = (tmpCurveLocation[0] - 1, 1.0)
                 targetx = evaluateCoordinatesOnCurve(cx, cd1, tmpCurveLocation, loop)
                 tmpSurfacePosition, tmpDistance = self.findNearestParameterPosition(targetx)
-                if not nearestDistance or (tmpDistance < nearestDistance):
+                if (nearestDistance is None) or (tmpDistance < nearestDistance):
                     nearestDistance = tmpDistance
                     curveLocation = tmpCurveLocation
                     surfacePosition = tmpSurfacePosition
-        max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
-        xi_tol = 1.0E-7
-        x_tol = 1.0E-6 * max(self._xRange)
+        MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
+        XI_TOL = 1.0E-7
+        X_TOL = 1.0E-6 * max(self._xRange)
         lastOnBoundary = False
         last_dxi = None
-        for iter in range(100):
+        for it in range(100):
             x, d = evaluateCoordinatesOnCurve(cx, cd1, curveLocation, loop, derivative=True)
             surfacePosition = self.findNearestPosition(x, surfacePosition)
             onOtherBoundary = self._positionOnBoundary(surfacePosition)
@@ -688,8 +720,8 @@ class TrackSurface:
             r = sub(other_x, x)
             mag_r = magnitude(r)
             # print("    pos", curveLocation, onBoundary, "other", otherLocation, onOtherBoundary, "mag_r", mag_r)
-            if mag_r < x_tol:
-                # print("TrackSurface.findNearestPositionOnCurve:  Found intersection: ", curveLocation, "on iter", iter + 1)
+            if mag_r < X_TOL:
+                # print("TrackSurface.findNearestPositionOnCurve:  Found intersection: ", curveLocation, "on iter", it + 1)
                 return surfacePosition, curveLocation, True
             n = normalize(cross(cross(d, r), d))
             r_dot_n = dot(r, n)
@@ -707,11 +739,11 @@ class TrackSurface:
                 factor = 1.0 + r_dot_n / mag_r
                 u = mult(r_in_plane, factor)
             mag_dxi = dxi = magnitude(u) / magnitude(d)
-            dxi = mag_dxi if (mag_dxi < max_mag_dxi) else max_mag_dxi
+            dxi = mag_dxi if (mag_dxi < MAX_MAG_DXI) else MAX_MAG_DXI
             if dot(u, d) < 0.0:
                 dxi = -dxi
             # control oscillations
-            if (iter > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
+            if (it > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
                 factor = mag_dxi / (mag_dxi + abs(last_dxi))
                 dxi *= factor
                 mag_dxi *= factor
@@ -721,16 +753,16 @@ class TrackSurface:
             if faceNumber:
                 curveLocation, onBoundary = updateCurveLocationTofaceNumber(curveLocation, faceNumber, eCount, loop)
                 if onBoundary and lastOnBoundary:
-                    # print("TrackSurface.findNearestPositionOnCurve:  Found nearest on boundary in", iter + 1, "iterations")
+                    # print("TrackSurface.findNearestPositionOnCurve:  Found nearest on boundary in", it + 1, "iterations")
                     break
                 lastOnBoundary = onBoundary
             else:
                 lastOnBoundary = False
-            if mag_dxi < xi_tol:
-                # print("TrackSurface.findNearestPositionOnCurve:  Found nearest in", iter + 1, "iterations, dxi", mag_dxi)
+            if mag_dxi < XI_TOL:
+                # print("TrackSurface.findNearestPositionOnCurve:  Found nearest in", it + 1, "iterations, dxi", mag_dxi)
                 break
         else:
-            print('TrackSurface.findNearestPositionOnCurve did not converge:  Reached max iterations', iter + 1,
+            print('TrackSurface.findNearestPositionOnCurve did not converge:  Reached max iterations', it + 1,
                   'closeness in xi', mag_dxi)
         return surfacePosition, curveLocation, False
 
@@ -752,7 +784,7 @@ class TrackSurface:
         position = copy.deepcopy(startPosition)
         distance = 0.0
         distanceLimit = 0.9999*useTrackDistance
-        max_mag_dxi = 0.02  # target/maximum magnitude of xi increment
+        MAX_MAG_DXI = 0.02  # target/maximum magnitude of xi increment
 
         while distance < useTrackDistance:
             xi1 = position.xi1
@@ -760,7 +792,7 @@ class TrackSurface:
             ax, ad1, ad2 = self.evaluateCoordinates(position, derivatives = True)
             adelta_xi1, adelta_xi2 = calculate_surface_delta_xi(ad1, ad2, useDirection)
             #print('adelta_xi', adelta_xi1, adelta_xi2)
-            scale = max_mag_dxi/math.sqrt(adelta_xi1*adelta_xi1 + adelta_xi2*adelta_xi2)
+            scale = MAX_MAG_DXI/math.sqrt(adelta_xi1*adelta_xi1 + adelta_xi2*adelta_xi2)
             adxi1 = dxi1 = scale*adelta_xi1
             adxi2 = dxi2 = scale*adelta_xi2
             #print('adxi', adxi1, adxi2)
@@ -773,7 +805,7 @@ class TrackSurface:
                 # use mean of start and end derivatives
                 delta_xi1 = 0.5*(adelta_xi1 + bdelta_xi1)
                 delta_xi2 = 0.5*(adelta_xi2 + bdelta_xi2)
-                scale = max_mag_dxi/math.sqrt(delta_xi1*delta_xi1 + delta_xi2*delta_xi2)
+                scale = MAX_MAG_DXI/math.sqrt(delta_xi1*delta_xi1 + delta_xi2*delta_xi2)
                 dxi1 = scale*delta_xi1
                 dxi2 = scale*delta_xi2
             bxi1, bxi2, proportion, faceNumber = increment_xi_on_square(xi1, xi2, dxi1, dxi2)
@@ -782,7 +814,7 @@ class TrackSurface:
             #print(distance, '-->', position)
             bx, bd1, bd2 = self.evaluateCoordinates(position, derivatives = True)
             bdelta_xi1, bdelta_xi2 = calculate_surface_delta_xi(bd1, bd2, useDirection)
-            scale = max_mag_dxi/math.sqrt(bdelta_xi1*bdelta_xi1 + bdelta_xi2*bdelta_xi2)
+            scale = MAX_MAG_DXI/math.sqrt(bdelta_xi1*bdelta_xi1 + bdelta_xi2*bdelta_xi2)
             bdxi1 = scale*bdelta_xi1
             bdxi2 = scale*bdelta_xi2
             #print('bdxi', bdxi1, bdxi2)
@@ -816,9 +848,9 @@ class TrackSurface:
         Update coordinates of TrackSurfacePosition position to cross
         the given face number, and either clamp to range if reached boundary,
         or loop around depending on mode.
-        :return: True if reached boundary of track surface, otherwise False.
+        :return: 1 if on xi1 boundary, 2 if on xi2 boundary, 0 if not on a boundary.
         """
-        onBoundary = False
+        onBoundary = 0
         if faceNumber == 1:  # xi1 == 0.0
             if position.e1 > 0:
                 position.e1 -= 1
@@ -828,7 +860,7 @@ class TrackSurface:
                 position.xi1 = 1.0
             else:
                 position.xi1 = 0.0
-                onBoundary = True
+                onBoundary = 1
         elif faceNumber == 2:  # xi1 == 1.0
             if position.e1 < (self._elementsCount1 - 1):
                 position.e1 += 1
@@ -838,21 +870,21 @@ class TrackSurface:
                 position.xi1 = 0.0
             else:
                 position.xi1 = 1.0
-                onBoundary = True
+                onBoundary = 1
         elif faceNumber == 3:  # xi2 == 0.0
             if position.e2 > 0:
                 position.e2 -= 1
                 position.xi2 = 1.0
             else:
                 position.xi2 = 0.0
-                onBoundary = True
+                onBoundary = 2
         elif faceNumber == 4:  # xi2 == 1.0
             if position.e2 < (self._elementsCount2 - 1):
                 position.e2 += 1
                 position.xi2 = 0.0
             else:
                 position.xi2 = 1.0
-                onBoundary = True
+                onBoundary = 2
         #if onBoundary:
         #    print('!!! Reached boundary of face', faceNumber, 'position', position)
         return onBoundary

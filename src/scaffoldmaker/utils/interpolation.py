@@ -1120,7 +1120,7 @@ def getNearestParameterLocationOnCurve(nx, targetx, loop=False):
     nearest_n = None
     for n in range(nCount):
         distance = magnitude(sub(nx[n], targetx))
-        if (not nearest_distance) or (distance < nearest_distance):
+        if (nearest_distance is None) or (distance < nearest_distance):
             nearest_distance = distance
             nearest_n = n
     nearest_e = nearest_n
@@ -1210,7 +1210,7 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
         nearestDistance = None
         for targetx in ox:
             tmpLocation, tmpDistance = getNearestParameterLocationOnCurve(nx, targetx, nLoop)
-            if not location or (tmpDistance < nearestDistance):
+            if (nearestDistance is None) or (tmpDistance < nearestDistance):
                 nearestDistance = tmpDistance
                 location = tmpLocation
     targetx = evaluateCoordinatesOnCurve(nx, nd1, location, nLoop)
