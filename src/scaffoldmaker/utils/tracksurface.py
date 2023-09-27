@@ -113,6 +113,10 @@ class TrackSurface:
         :return: TrackSurfacePosition
         '''
         maxProportion1 = 2.0 if self.loop1 else 1.0
+        if abs(proportion1) < 1e-12:
+            proportion1 = 0.0
+        if abs(proportion2) < 1e-12:
+            proportion2 = 0.0
         assert (proportion1 >= 0.0) and (proportion1 <= maxProportion1), 'createPositionProportion:  Proportion 1 (' + str(proportion1) + ') out of range'
         assert (proportion2 >= 0.0) and (proportion2 <= 1.0), 'createPositionProportion:  Proportion 2 (' + str(proportion2) + ') out of range'
 

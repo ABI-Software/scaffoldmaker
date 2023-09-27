@@ -272,8 +272,18 @@ def getOstiumElementsCountsAroundVessels(elementsCountAroundOstium, elementsCoun
 
 
 def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIdentifier=1, startElementIdentifier=1,
+                       nodeIdProximal=[], xProximal=[], d1Proximal=[], d2Proximal=[], d3Proximal=[],
                        vesselMeshGroups=None, ostiumMeshGroups=None, wallAnnotationGroups=None, coordinates=None):
     """
+    Generates an ostium mesh in the region using a central path and parameter options.
+    :param region: Region to create elements in.
+    :param options: Parameter options for ostium scaffold.
+    :param trackSurface: Track surface for building ostium scaffold.
+    :param centralPath: Central path through the axis of the ostium scaffold.
+    :param startNodeIdentifier: First node identifier to use.
+    :param startElementIdentifier: First element identifier to use.
+    :param nodeIdProximal, xProximal, d1Proximal, d2Proximal, d3Proximal: Identifier, coordinates and derivatives of
+    nodes to use on proximal end of vessel.
     :param vesselMeshGroups: List (over number of vessels) of list of mesh groups to add vessel elements to.
     :param ostiumMeshGroups: List of mesh groups to add only row of elements at ostium end to.
     :param wallAnnotationGroups: list of annotation groups to add to wall elements.
@@ -612,28 +622,34 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
         vod3.append([])
 
         for n3 in range(elementsCountThroughWall + 1):
-            radius1 = vector.magnitude(centralPath.cd2Path[0]) - (1.0 - vesselWallThicknessXi3List[n3]) * vesselWallThickness
-            radius2 = vector.magnitude(centralPath.cd3Path[0]) - (1.0 - vesselWallThicknessXi3List[n3]) * vesselWallThickness
-            vAxis1 = vector.setMagnitude(centralPath.cd2Path[0], radius1)
-            vAxis2 = vector.setMagnitude(centralPath.cd3Path[0], radius2)
-            # print(centralPath.cd2Path[0], centralPath.cd3Path[0])
-            # if vesselsCount == 1:
-            startRadians = 0.0 # 0.5 * math.pi
-            # else:
-            #     startRadians = 0.5 * radiansPerElementVessel * elementsCountAcross
-            #     if v == (vesselsCount - 1):
-            #         startRadians -= math.pi
-            px, pd1 = sampleEllipsePoints(centralPath.cxPath[0], vAxis1, vAxis2, 0.0, 2.0 * math.pi, elementsCountAroundVessel)
-            del px[-1], pd1[-1]
+            if xProximal:
+                vox[-1].append(xProximal[n3])
+                vod1[-1].append(d1Proximal[n3])
+                vod2[-1].append(d2Proximal[n3])
+                vod3[-1].append(d3Proximal[n3])
+            else:
+                radius1 = vector.magnitude(centralPath.cd2Path[0]) - (1.0 - vesselWallThicknessXi3List[n3]) * vesselWallThickness
+                radius2 = vector.magnitude(centralPath.cd3Path[0]) - (1.0 - vesselWallThicknessXi3List[n3]) * vesselWallThickness
+                vAxis1 = vector.setMagnitude(centralPath.cd2Path[0], radius1)
+                vAxis2 = vector.setMagnitude(centralPath.cd3Path[0], radius2)
+                # print(centralPath.cd2Path[0], centralPath.cd3Path[0])
+                # if vesselsCount == 1:
+                startRadians = 0.0 # 0.5 * math.pi
+                # else:
+                #     startRadians = 0.5 * radiansPerElementVessel * elementsCountAcross
+                #     if v == (vesselsCount - 1):
+                #         startRadians -= math.pi
+                px, pd1 = sampleEllipsePoints(centralPath.cxPath[0], vAxis1, vAxis2, 0.0, 2.0 * math.pi, elementsCountAroundVessel)
+                del px[-1], pd1[-1]
 
-            vox[-1].append(px)
-            vod1[-1].append(pd1)
-            vesselEndDerivative = vector.setMagnitude(centralPath.cd1Path[0], arcLength/elementsCountAlong)
-            vod2[-1].append([vesselEndDerivative] * elementsCountAroundVessel) # need to scale with bending?
-            if useCubicHermiteThroughVesselWall:
-                vod3[-1].append([vector.setMagnitude(vector.crossproduct3(d1, vesselEndDerivative), #cd1Path[-1]),
-                                                     vesselWallThickness * vesselWallThicknessProportions[n3])
-                                 for d1 in pd1])
+                vox[-1].append(px)
+                vod1[-1].append(pd1)
+                vesselEndDerivative = vector.setMagnitude(centralPath.cd1Path[0], arcLength/elementsCountAlong)
+                vod2[-1].append([vesselEndDerivative] * elementsCountAroundVessel) # need to scale with bending?
+                if useCubicHermiteThroughVesselWall:
+                    vod3[-1].append([vector.setMagnitude(vector.crossproduct3(d1, vesselEndDerivative), #cd1Path[-1]),
+                                                         vesselWallThickness * vesselWallThicknessProportions[n3])
+                                     for d1 in pd1])
 
     # for v in range(len(vox)):
     #     for n3 in range(len(vox[v])):
@@ -946,7 +962,8 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
                 mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
-                vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
+                vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, \
+                nodeIdProximal if xProximal else None, None
             # reverse order of nodes around:
             for px in [startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap,
                         endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap]:
@@ -965,7 +982,8 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
                 rowMeshGroups[0] += ostiumMeshGroups
         else:
             startPointsx, startPointsd1, startPointsd2, startPointsd3, startNodeId, startDerivativesMap = \
-                vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, None, None
+                vox[v], vod1[v], vod2[v], vod3[v] if useCubicHermiteThroughVesselWall else None, \
+                nodeIdProximal if xProximal else None, None
             endPointsx, endPointsd1, endPointsd2, endPointsd3, endNodeId, endDerivativesMap = \
                 mvPointsx[v], mvPointsd1[v], mvPointsd2[v], mvPointsd3[v], mvNodeId[v], mvDerivativesMap[v]
             if ostiumMeshGroups:

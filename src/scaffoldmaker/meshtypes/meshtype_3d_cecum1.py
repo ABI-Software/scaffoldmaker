@@ -48,7 +48,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[7.50,-20.00,0.00], [0.00,8.28,0.00], [-1.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,1.50], [0.00,0.00,0.00]]),
+                (1, [[7.50,-20.00,0.00], [0.00,8.28,0.00], [-2.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,2.50], [0.00,0.00,0.00]]),
                 (2, [[7.50,-10.86,0.00], [0.00,10.00,0.00], [-4.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,4.50], [0.00,0.00,0.00]]),
                 (3, [[7.50,0.00,0.00], [[8.44,0.00,0.04],[0.00,11.72,0.00]], [[0.00,11.60,0.00],[-4.50,0.00,0.00]], [[1.02,6.79,0.00],[0.00,0.00,0.00]], [[0.00,0.00,11.60],[0.00,-0.00,4.50]], [[0.00,0.00,5.77],[0.00,0.00,0.00]]]),
                 (4, [[-1.88,0.00,-0.08], [10.32,0.00,0.12], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]]),
@@ -59,7 +59,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '3-4',
+                    'identifierRanges': '1-4',
                     'name': get_cecum_term('caecum')[0],
                     'ontId': get_cecum_term('caecum')[1]
                 },
@@ -67,8 +67,8 @@ class MeshType_3d_cecum1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '1-2',
-                    'name': get_smallintestine_term('ileum')[0],
-                    'ontId': get_smallintestine_term('ileum')[1]
+                    'name': get_cecum_term('ileum part of cecum')[0],
+                    'ontId': get_cecum_term('ileum part of cecum')[1]
                 }]
         }),
         'Human 2': ScaffoldPackage(MeshType_1d_network_layout1, {
@@ -77,17 +77,17 @@ class MeshType_3d_cecum1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[-60.63,-80.53,895.25], [-6.17,-10.10,-5.87], [2.66,0.73,-4.05], [2.38,0.99,-1.14], [3.31,-2.97,1.64], [2.38,0.99,-1.14]]),
-                (2, [[-68.64,-93.29,888.06], [-9.85,-15.42,-8.51], [3.88,1.20,-6.66], [2.38,0.99,-1.14], [2.82,-2.46,1.20], [2.38,0.99,-1.14]]),
-                (3, [[-80.39,-111.37,878.29], [[-7.79,-0.98,12.36],[-13.65,-20.74,-11.03]], [[20.72,-4.04,12.54],[5.59,1.31,-9.38]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]], [[2.47,23.83,3.61],[1.51,-1.37,0.71]], [[2.38,0.99,-1.14],[2.38,0.99,-1.14]]]),
-                (4, [[-71.69,-109.00,866.04], [-9.55,-3.73,12.06], [17.41,-4.85,11.46], [3.73,0.68,4.20], [0.82,19.94,7.20], [3.74,0.69,4.20]]),
-                (5, [[-87.21,-111.06,890.54], [-5.80,1.59,12.04], [22.20,-3.00,8.61], [2.46,-0.39,-2.95], [3.05,23.70,0.39], [1.83,0.46,-4.31]])
+                (1, [[-60.630,-80.530,895.250], [-6.170,-10.100,-5.870], [2.660,0.730,-4.050], [2.380,0.990,-1.140], [3.310,-2.970,1.640], [2.380,0.990,-1.140]]),
+                (2, [[-68.640,-93.290,888.060], [-9.850,-15.420,-8.510], [3.880,1.200,-6.660], [2.380,0.990,-1.140], [2.820,-2.460,1.200], [2.380,0.990,-1.140]]),
+                (3, [[-80.390,-111.370,878.290], [[-7.790,-0.980,12.360],[-13.650,-20.740,-11.030]], [[20.720,-4.040,12.540],[5.590,1.310,-9.380]], [[2.380,0.990,-1.140],[2.380,0.990,-1.140]], [[2.470,23.830,3.610],[1.510,-1.370,0.710]], [[2.380,0.990,-1.140],[2.380,0.990,-1.140]]]),
+                (4, [[-71.690,-109.000,866.040], [-9.550,-3.730,12.060], [17.410,-4.850,11.460], [3.730,0.680,4.200], [0.820,19.940,7.200], [3.740,0.690,4.200]]),
+                (5, [[-87.210,-111.060,890.540], [-4.750,0.410,12.390], [23.270,-3.130,7.880], [2.460,-0.390,-2.950], [3.090,24.460,0.450], [1.830,0.460,-4.310]])
                 ]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '3-4',
+                    'identifierRanges': '1-4',
                     'name': get_cecum_term('caecum')[0],
                     'ontId': get_cecum_term('caecum')[1]
                 },
@@ -95,8 +95,8 @@ class MeshType_3d_cecum1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '1-2',
-                    'name': get_smallintestine_term('ileum')[0],
-                    'ontId': get_smallintestine_term('ileum')[1]
+                    'name': get_cecum_term('ileum part of cecum')[0],
+                    'ontId': get_cecum_term('ileum part of cecum')[1]
                 }]
         }),
         'Pig 1': ScaffoldPackage(MeshType_1d_network_layout1, {
@@ -118,7 +118,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '3-6',
+                    'identifierRanges': '1-6',
                     'name': get_cecum_term('caecum')[0],
                     'ontId': get_cecum_term('caecum')[1]
                 },
@@ -126,8 +126,8 @@ class MeshType_3d_cecum1(Scaffold_base):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '1-2',
-                    'name': get_smallintestine_term('ileum')[0],
-                    'ontId': get_smallintestine_term('ileum')[1]
+                    'name': get_cecum_term('ileum part of cecum')[0],
+                    'ontId': get_cecum_term('ileum part of cecum')[1]
                 }]
         }),
     }
@@ -143,7 +143,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 'Ostium wall thickness': 1.6,
                 'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
                 'Use linear through ostium wall': True,
-                'Vessel wall thickness': 0.45,
+                'Vessel wall thickness': 1.6,
                 'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
                 'Use linear through vessel wall': True,
                 'Use cross derivatives': False,
@@ -229,6 +229,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         }
 
         if 'Human 2' in parameterSetName:
+            options['Number of elements along segment'] = 12
             options['Segment length mid derivative factor'] = 3.0
             options['Start tenia coli width'] = 10.0
             options['Start tenia coli width derivative'] = 0.0
@@ -248,6 +249,7 @@ class MeshType_3d_cecum1(Scaffold_base):
             options['End tenia coli width derivative'] = 0.0
             options['Wall thickness'] = 2.0
 
+        options['Base parameter set'] = parameterSetName
         cls.updateSubScaffoldOptions(options)
         return options
 
@@ -368,6 +370,8 @@ class MeshType_3d_cecum1(Scaffold_base):
         ostiumSettings['Ostium wall thickness'] = wallThickness
         elementsCountThroughWall = options['Number of elements through wall']
         ostiumSettings['Number of elements through wall'] = elementsCountThroughWall
+        ostiumSettings['Use linear through ostium wall'] = options['Use linear through wall']
+        ostiumSettings['Use linear through vessel wall'] = options['Use linear through wall']
         if elementsCountThroughWall == 1:
             ostiumSettings['Ostium wall relative thicknesses'] = [1.0]
             ostiumSettings['Vessel wall relative thicknesses'] = [1.0]
@@ -393,11 +397,11 @@ class MeshType_3d_cecum1(Scaffold_base):
         nextElementIdentifier = 1
         cls.updateSubScaffoldOptions(options)
         geometricCentralPath = options['Central path']
-        cecumTermsAlong = ['caecum', 'ileum']
+        cecumTermsAlong = ['caecum', 'ileum part of cecum']
         geometricCentralPath = CecumCentralPath(region, geometricCentralPath, cecumTermsAlong)
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
             createCecumMesh3d(region, options, geometricCentralPath, nextNodeIdentifier,
-                              nextElementIdentifier)
+                              nextElementIdentifier)[0:3]
 
         return annotationGroups, None
 
@@ -651,7 +655,8 @@ def findDerivativeBetweenPoints(v1, v2):
 
     return d
 
-def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdentifier):
+def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdentifier, nodeIdProximalIleum=[],
+                      xProximalIleum=[], d1ProximalIleum=[], d2ProximalIleum=[], d3ProximalIleum=[]):
     """
     Generates a cecum scaffold in the region using a network layout and parameter options.
     :param region: Region to create elements in.
@@ -659,8 +664,14 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     :param centralPath: Central path through the axis of the cecum scaffold.
     :param nodeIdentifier: First node identifier.
     :param elementIdentifier: First element identifier.
+    :param nodeIdProximalIleum: Node identifiers of nodes around starting nodes for ileum.
+    :param xProximalIleum, d1ProximalIleum, d2ProximalIleum, d3ProximalIleum: coordinates and derivatives of nodes
+    around starting nodes for ileum.
     :return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier.
     """
+    parameterSetName = options['Base parameter set']
+    isHuman = 'Human' in parameterSetName
+
     segmentCount = options['Number of segments']
     startPhase = 0.0
     elementsCountAroundTC = options['Number of elements around tenia coli']
@@ -849,7 +860,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     # Create coordinates and derivatives
     wallThicknessList = [wallThickness] * (elementsCountAlong + 1)
 
-    xList, d1List, d2List, d3List, curvatureList = \
+    xList, d1List, d2List, d3List, curvatureList, localIdxDistal, xDistal, d1Distal, d2Distal, d3Distal = \
         tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList,d2WarpedList, d3WarpedUnitList,
                                            wallThicknessList, relativeThicknessList, elementsCountAround,
                                            elementsCountAlong, elementsCountThroughWall, transitElementList,
@@ -864,8 +875,10 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                                               rescaleDerivatives=True)
     magMax = interp.computeCubicHermiteArcLength(xList[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum))],
                                                  d2List[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum))],
-                                                 xList[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum)) + elementsCountAround * (elementsCountThroughWall + 1)],
-                                                 d2List[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum)) + elementsCountAround * (elementsCountThroughWall + 1)],
+                                                 xList[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum)) +
+                                                       elementsCountAround * (elementsCountThroughWall + 1)],
+                                                 d2List[int(0.5*(elementsCountAroundTC + elementsCountAroundHaustrum)) +
+                                                        elementsCountAround * (elementsCountThroughWall + 1)],
                                                  rescaleDerivatives=True)
     mag = 0.5*(magMin + magMax)
     d2ApexInner = vector.setMagnitude(sd2Cecum[0], mag)
@@ -898,20 +911,21 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     # Create nodes and elements
     if tcThickness > 0:
         tubeTCWidthList = colonSegmentTubeMeshOuterPoints.getTubeTCWidthList()
-        xCecum, d1Cecum, d2Cecum, d3Cecum, annotationArrayAround = getTeniaColi(
-            region, xCecum, d1Cecum, d2Cecum, d3Cecum, curvatureList, tcCount, elementsCountAroundTC,
-            elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-            tubeTCWidthList, tcThickness, sxRefList, annotationGroupsAround, closedProximalEnd)
+        xCecum, d1Cecum, d2Cecum, d3Cecum, annotationArrayAround, localIdxDistal, xDistal, d1Distal, d2Distal, \
+        d3Distal = \
+            getTeniaColi(region, xCecum, d1Cecum, d2Cecum, d3Cecum, curvatureList, tcCount, elementsCountAroundTC,
+                         elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
+                         tubeTCWidthList, tcThickness, annotationGroupsAround, closedProximalEnd, isHuman)
 
-        nextNodeIdentifier, nextElementIdentifier, allAnnotationGroups = createNodesAndElementsTeniaColi(
+        nextNodeIdentifier, nextElementIdentifier, allAnnotationGroups, nodesIdDistal = createNodesAndElementsTeniaColi(
             region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
             elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
             tcCount, annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
-            closedProximalEnd)
+            closedProximalEnd, localIdxDistal)
 
     else:
-        nextNodeIdentifier, nextElementIdentifier, allAnnotationGroups = tubemesh.createNodesAndElements(
+        nextNodeIdentifier, nextElementIdentifier, allAnnotationGroups, nodesIdDistal = tubemesh.createNodesAndElements(
             region, xCecum, d1Cecum, d2Cecum, d3Cecum, xFlat, d1Flat, d2Flat, xOrgan, d1Organ, d2Organ, None,
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
@@ -1124,6 +1138,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     ostiumSettings['Number of elements around ostium'] = elementsCountAlongSegment
     elementsCountAroundOstium = ostiumSettings['Number of elements around ostium']
+    ostiumSettings['Use linear through ostium wall'] = options['Use linear through wall']
+    ostiumSettings['Use linear through vessel wall'] = options['Use linear through wall']
 
     ileumGroup = AnnotationGroup(region, get_smallintestine_term("ileum"))
     ileumMeshGroup = ileumGroup.getMeshGroup(mesh)
@@ -1163,6 +1179,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, centralPathIleum,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
+                           nodeIdProximal=nodeIdProximalIleum, xProximal=xProximalIleum, d1Proximal=d1ProximalIleum,
+                           d2Proximal=d2ProximalIleum, d3Proximal=d3ProximalIleum,
                            vesselMeshGroups=[[cecumMeshGroup, smallIntestineMeshGroup, ileumMeshGroup]],
                            ostiumMeshGroups=[cecumMeshGroup, ileocecalJunctionMeshGroup],
                            wallAnnotationGroups=ostiumWallAnnotationGroups, coordinates=None)
@@ -1256,8 +1274,6 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     xPositionB = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[0])
     xProportionB = trackSurfaceOstium.getProportion(xPositionB)
-    derivativeB = d2B
-    derivativeMagnitudeB = vector.magnitude(derivativeB)
 
     nx, nd1, nd2, nd3, proportions = \
         trackSurfaceOstium.createHermiteCurvePoints(
@@ -1275,8 +1291,6 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     xPositionA = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[int(elementsCountAlongSegment * 0.5)])
     xProportionA = trackSurfaceOstium.getProportion(xPositionA)
-    xA, derivative2A, derivativeA = trackSurfaceOstium.evaluateCoordinates(xPositionA, derivatives=True)
-    derivativeMagnitudeA = vector.magnitude(d2AnnulusOuter[int(elementsCountAlongSegment * 0.5)])
 
     xB = xTrackSurface[-elementsCountAroundHalfHaustrum]
     xPositionB = trackSurfaceOstium.findNearestPosition(xB)
@@ -1498,7 +1512,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
             for m in range(endRowIdx - startRowIdx - 1):
                 nxAlong.append(xAnnulusOuter[-(2 + m)])
                 n2Idx = m + startRowIdx + 1
-                nd2Along.append(vector.setMagnitude(d1AnnulusOuter[-(2 + m)], vector.magnitude(d1AroundAlong[n2Idx][n1 - 1])))
+                nd2Along.append(vector.setMagnitude(d1AnnulusOuter[-(2 + m)],
+                                                    vector.magnitude(d1AroundAlong[n2Idx][n1 - 1])))
 
             # Smooth from annulus to end of cecum
             for n2 in range(endRowIdx, elementsCountAlongSegment):
@@ -1541,7 +1556,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                     nxAlongNext = xAroundAlong[n2 + 1][n1]
                 else:
                     nxAlongNext = xAroundAlong[n2 + 1][n1 - 1]
-                nd2Along.append(findDerivativeBetweenPoints(xAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)], nxAlongNext))
+                nd2Along.append(findDerivativeBetweenPoints(
+                    xAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)], nxAlongNext))
 
             nxAlong.append(xAroundAlong[n2 + 1][n1])
             nd2Along.append(d2TrackSurface[(elementsCountAroundHaustrum + 1) * elementsCountAlongSegment + n1])
@@ -1697,7 +1713,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     # Adjust annulus points
     xAroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), xAnnulusOuter[0])
     d1AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2AnnulusOuter[0])
-    d2AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), vector.setMagnitude(d1AnnulusOuter[0], annulusD2ZeroMag))
+    d2AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), vector.setMagnitude(d1AnnulusOuter[0],
+                                                                                                  annulusD2ZeroMag))
     d3UnitAroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d3Annulus[0])
     d1Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[0])
     d2Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2CurvatureAnnulusZero)
@@ -1705,7 +1722,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     idx = int(elementsCountAlongSegment * 0.5)
     xAroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), xAnnulusOuter[idx])
     d1AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2AnnulusOuter[idx])
-    d2AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), vector.setMagnitude(d1AnnulusOuter[idx], annulusD2HalfOstiumMag))
+    d2AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), vector.setMagnitude(d1AnnulusOuter[idx],
+                                                                                                annulusD2HalfOstiumMag))
     d3UnitAroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d3Annulus[idx])
     d1Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[idx])
     d2Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2CurvatureAlongHalfOstium)
@@ -1980,7 +1998,9 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
                                 elementtemplate1 = elementtemplateX
                                 # print(elementIdentifier) # 340
 
-                        elif int(elementsCountAroundOstium*0.25) - 2 > 0 and startRowIdx + 1 <= e2 < startRowIdx + 1 + 2.0 * (int(elementsCountAroundOstium*0.25) - 2):
+                        elif int(elementsCountAroundOstium*0.25) - 2 > 0 and \
+                                startRowIdx + 1 <= e2 < startRowIdx + 1 + \
+                                2.0 * (int(elementsCountAroundOstium*0.25) - 2):
                             if e1 == elementsCountAroundHalfHaustrum - 3:
                                 scaleFactors = [-1.0]
                                 eft1 = eftfactory.createEftNoCrossDerivatives()
@@ -2142,20 +2162,23 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     # Delete elements in new haustrum
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, deleteElementIdentifier)
 
-    return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier #, nodeIdDistal, xDistal, d1Distal, \
-           # d2Distal, d3Distal
+    return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, \
+           d2Distal, d3Distal
 
 
 class CecumCentralPath:
     """
     Generates sampled central path for cecum scaffold.
     """
-    def __init__(self, region, centralPath, termsAlong=[None]):
+    def __init__(self, region, centralPath, termsAlong=[None], ileumSegmentIdx=0, cecumSegmentIdx=[1,2]):
         """
         :param region: Zinc region to define model in.
         :param centralPath: Central path subscaffold from meshtype_1d_path1
         :param termsAlong: Annotation terms along length of central path
+        :param ileumSegmentIdx: Segment index of ileum branch.
+        :param cecumSegmentIdx: Segment index of body of cecum.
         """
+
         # Extract length of each group along cecum from central path
         arcLengthOfGroupsAlong = []
         cxGroups = []
@@ -2179,19 +2202,36 @@ class CecumCentralPath:
         cd3Group = []
         cd12Group = []
         cd13Group = []
+        cecumNodes = []
+        lowerCecumNodes = []
+        lowerCecumVersions = []
+        ileumNodes = []
+        ileumVersions = []
 
         for termName in termsAlong:
             tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
             tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
 
             if termName == "caecum":
+                nodeiterator = tmpNodeset.createNodeiterator()
+                node = nodeiterator.next()
+                while node.isValid():
+                    cecumNodes.append(node.getIdentifier())
+                    node = nodeiterator.next()
+
+                for i in range(len(networkSegments[cecumSegmentIdx[1]].getNodeIdentifiers())):
+                    if networkSegments[cecumSegmentIdx[1]].getNodeIdentifiers()[i] in cecumNodes:
+                        lowerCecumNodes.append(networkSegments[cecumSegmentIdx[1]].getNodeIdentifiers()[i])
+                        lowerCecumVersions.append(networkSegments[cecumSegmentIdx[1]].getNodeVersions()[i])
+
                 for i in range(2):
                     cx, cd1, cd2, cd3, cd12, cd13 = get_nodeset_path_ordered_field_parameters(
                         tmpNodeset, tmpCoordinates,
                         [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
                          Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
                          Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                        networkSegments[i + 1].getNodeIdentifiers(), networkSegments[i + 1].getNodeVersions())
+                        (lowerCecumNodes if i else networkSegments[cecumSegmentIdx[0]].getNodeIdentifiers()),
+                        (lowerCecumVersions if i else networkSegments[cecumSegmentIdx[0]].getNodeVersions()))
 
                     cxGroup += cx[(1 if i else 0):]
                     cd1Group += cd1[(1 if i else 0):]
@@ -2208,14 +2248,18 @@ class CecumCentralPath:
                         for n in range(len(cx) - 1):
                             arcLengthToBranchPt += interp.getCubicHermiteArcLength(cx[n], cd1[n], cx[n + 1], cd1[n + 1])
 
-            elif termName == "ileum":
+            elif termName == "ileum part of cecum":
+                for i in range(len(networkSegments[ileumSegmentIdx].getNodeIdentifiers())):
+                    if networkSegments[ileumSegmentIdx].getNodeIdentifiers()[i] in cecumNodes:
+                        ileumNodes.append(networkSegments[ileumSegmentIdx].getNodeIdentifiers()[i])
+                        ileumVersions.append(networkSegments[ileumSegmentIdx].getNodeVersions()[i])
+
                 cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = \
                     get_nodeset_path_ordered_field_parameters(tmpNodes, tmpCoordinates,
                                                               [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
                                                                Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
                                                                Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3],
-                                                              networkSegments[0].getNodeIdentifiers(),
-                                                              networkSegments[0].getNodeVersions())
+                                                              ileumNodes, ileumVersions)
 
             arcLength = 0.0
             for e in range(len(cxGroup) - 1):

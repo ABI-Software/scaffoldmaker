@@ -101,6 +101,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
+                    'identifierRanges': '1-52',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
                     'identifierRanges': '1-8',
                     'name': get_colon_term('right colon')[0],
                     'ontId': get_colon_term('right colon')[1]
@@ -138,6 +145,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 ]),
 
             'userAnnotationGroups': [
+            {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-8',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
             {
                 '_AnnotationGroup': True,
                 'dimension': 1,
@@ -181,6 +195,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
+                    'identifierRanges': '1-8',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
                     'identifierRanges': '1-2',
                     'name': get_colon_term('ascending colon')[0],
                     'ontId': get_colon_term('ascending colon')[1]
@@ -207,55 +228,55 @@ class MeshType_3d_colon1(Scaffold_base):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[-87.21,-111.06,890.54], [-4.75,0.41,12.39], [23.27,-3.13,7.88], [2.46,-0.39,-2.95], [3.09,24.46,0.45], [1.83,0.46,-4.31]]),
-                (2, [[-89.99,-110.57,902.65], [-2.05,0.53,12.72], [24.71,-3.28,4.13], [0.07,0.14,-2.81], [3.42,25.00,-0.64], [0.43,0.10,-3.97]]),
-                (3, [[-91.25,-110.01,915.92], [-0.55,0.53,13.39], [23.61,-2.82,1.08], [-1.46,0.55,-1.92], [2.85,23.61,-0.91], [-1.42,0.54,-2.13]]),
-                (4, [[-91.08,-109.52,929.39], [0.13,0.65,13.47], [21.83,-2.10,-0.10], [-0.53,0.22,-1.06], [2.08,21.81,-1.18], [-0.53,0.21,-1.17]]),
-                (5, [[-91.00,-108.72,942.85], [0.83,0.67,13.37], [22.56,-2.35,-1.28], [-0.88,0.27,-1.85], [2.29,22.56,-1.42], [-0.92,0.27,-2.03]]),
-                (6, [[-89.43,-108.18,956.08], [2.81,0.32,13.11], [20.05,-1.51,-4.27], [-1.96,0.62,-1.35], [1.38,20.44,-0.86], [-2.00,0.62,-1.49]]),
-                (7, [[-85.39,-108.09,968.92], [3.10,0.44,13.08], [18.60,-0.99,-4.38], [-0.76,0.32,0.66], [0.82,19.04,-0.91], [-0.73,0.31,0.71]]),
-                (8, [[-83.24,-107.30,982.14], [2.05,0.85,13.23], [18.55,-0.80,-2.82], [-0.24,0.09,0.57], [0.62,18.71,-1.44], [-0.21,0.08,0.63]]),
-                (9, [[-81.29,-106.40,995.37], [2.32,1.34,13.29], [18.15,-0.79,-3.10], [0.14,0.24,-0.11], [0.47,18.29,-2.13], [0.05,0.31,-0.57]]),
-                (10, [[-78.60,-104.62,1008.65], [2.14,-1.50,13.27], [18.84,-0.25,-3.07], [-0.91,1.85,-0.22], [0.84,18.75,3.43], [-0.95,1.98,-0.15]]),
-                (11, [[-77.17,-109.18,1020.82], [4.07,-9.07,9.68], [16.31,3.44,-3.63], [-2.15,4.06,0.80], [-0.01,12.03,12.60], [-1.97,3.89,1.43]]),
-                (12, [[-71.19,-121.03,1025.58], [7.48,-11.42,0.49], [14.20,9.26,-1.14], [-1.27,2.69,3.17], [0.00,1.98,17.64], [-1.27,2.72,3.23]]),
-                (13, [[-63.35,-130.56,1022.18], [7.99,-9.44,-3.40], [13.31,9.97,3.60], [-0.81,0.70,2.42], [0.00,-5.47,16.79], [-0.91,0.85,2.43]]),
-                (14, [[-55.27,-139.84,1018.80], [8.88,-8.59,-3.55], [12.32,10.87,4.49], [-1.07,0.87,0.81], [0.00,-6.18,16.54], [-1.09,0.87,0.81]]),
-                (15, [[-45.66,-147.66,1015.10], [9.90,-7.39,-3.36], [10.81,11.99,5.47], [-1.63,1.38,0.03], [-0.01,-6.69,16.29], [-1.62,1.36,0.02]]),
-                (16, [[-35.52,-154.60,1012.08], [11.08,-6.08,-1.98], [8.54,14.06,4.58], [-1.99,1.15,0.25], [-0.01,-5.00,17.00], [-1.97,1.13,0.24]]),
-                (17, [[-23.71,-159.68,1011.20], [11.97,-4.32,-1.79], [6.20,14.65,6.07], [-1.74,-0.44,2.51], [0.01,-6.17,16.49], [-1.79,-0.44,2.52]]),
-                (18, [[-11.72,-163.20,1008.53], [12.26,-2.58,-2.06], [4.48,13.03,10.39], [-2.16,-0.11,1.44], [-0.01,-10.22,14.20], [-2.14,-0.12,1.43]]),
-                (19, [[0.67,-164.82,1007.10], [12.71,-0.73,-0.48], [1.18,14.35,9.43], [-2.67,0.76,-0.81], [-0.01,-8.95,15.09], [-2.58,0.75,-0.81]]),
-                (20, [[13.53,-164.63,1007.59], [12.75,0.98,0.85], [-1.70,14.80,8.53], [-1.75,0.42,-1.04], [-0.32,-8.14,15.58], [-1.71,0.43,-1.04]]),
-                (21, [[26.09,-162.88,1008.79], [12.63,1.81,1.23], [-2.89,15.32,7.02], [-2.26,-0.16,-1.14], [-0.45,-6.81,16.27], [-2.23,-0.14,-1.14]]),
-                (22, [[38.73,-161.01,1010.04], [11.76,4.53,2.77], [-6.96,14.45,5.88], [-3.08,-0.42,-3.34], [-0.98,-6.49,16.38], [-3.12,-0.44,-3.35]]),
-                (23, [[48.79,-154.12,1014.15], [9.86,7.10,4.16], [-10.00,14.30,-0.72], [-1.93,-0.52,-2.09], [-4.77,-2.54,17.36], [-1.97,-0.53,-2.09]]),
-                (24, [[58.41,-146.84,1018.34], [9.34,7.75,4.35], [-11.40,13.19,0.98], [-1.82,-1.10,1.29], [-3.67,-4.33,17.26], [-1.80,-1.06,1.30]]),
-                (25, [[67.43,-138.64,1022.84], [7.99,8.77,4.67], [-14.11,11.66,2.24], [-2.50,-1.97,-0.34], [-2.61,-6.25,17.94], [-2.59,-2.16,-0.41]]),
-                (26, [[74.34,-129.42,1027.61], [5.08,9.97,3.83], [-16.98,8.56,0.25], [0.03,-2.06,0.33], [-2.65,-5.79,18.73], [-1.53,-1.17,0.49]]),
-                (27, [[77.56,-119.25,1030.43], [5.04,10.78,-0.51], [-14.63,6.98,2.78], [0.10,1.23,-1.77], [4.28,1.14,20.24], [0.40,1.97,-2.97]]),
-                (28, [[83.86,-109.53,1026.21], [6.93,6.51,-9.45], [-16.87,11.64,-4.35], [-2.81,1.30,-3.77], [7.22,14.78,13.52], [-1.24,0.30,-4.60]]),
-                (29, [[89.55,-108.42,1013.56], [3.91,0.86,-13.16], [-20.29,9.17,-5.43], [-1.85,-1.68,0.87], [8.38,20.86,4.28], [-2.14,-1.95,1.17]]),
-                (30, [[91.64,-107.83,1000.37], [1.78,0.55,-13.27], [-20.93,7.77,-2.48], [-0.80,-1.12,1.76], [7.59,21.03,2.07], [-0.86,-1.12,1.92]]),
-                (31, [[93.10,-107.33,987.04], [1.01,0.30,-13.42], [-22.05,6.68,-1.51], [-0.56,-0.65,1.35], [6.63,22.10,1.09], [-0.58,-0.66,1.49]]),
-                (32, [[93.66,-107.24,973.55], [-0.02,1.05,-13.41], [-22.12,6.28,0.52], [0.93,-2.25,1.33], [6.31,22.05,1.91], [0.92,-2.27,1.47]]),
-                (33, [[93.06,-105.25,960.32], [-0.77,2.25,-13.20], [-20.31,1.70,1.47], [0.92,-2.34,0.15], [1.92,20.03,3.65], [0.93,-2.36,0.17]]),
-                (34, [[92.12,-102.74,947.16], [-0.42,2.82,-13.16], [-20.35,1.10,0.88], [0.74,-0.11,-0.85], [1.25,19.86,4.69], [0.73,-0.09,-0.94]]),
-                (35, [[92.23,-99.62,934.04], [0.47,1.78,-13.24], [-18.82,1.46,-0.47], [1.01,0.01,-1.14], [1.39,18.64,2.85], [1.03,0.02,-1.27]]),
-                (36, [[93.04,-99.17,920.86], [1.21,-0.74,-13.33], [-18.31,1.15,-1.73], [0.28,-0.61,0.54], [1.23,18.35,-1.00], [0.28,-0.69,-0.02]]),
-                (37, [[94.65,-101.12,907.56], [-0.61,-1.62,-13.47], [-18.27,0.06,0.82], [-0.21,-1.55,3.28], [-0.05,18.16,-2.30], [-0.49,-1.71,2.07]]),
-                (38, [[91.84,-102.35,894.35], [-3.47,-1.64,-11.95], [-18.62,-2.39,5.74], [0.91,-2.20,3.65], [-3.00,19.30,-1.81], [-0.73,-2.58,3.87]]),
-                (39, [[87.88,-104.31,883.75], [-5.21,-2.13,-10.32], [-16.28,-4.94,9.25], [2.73,-2.87,2.50], [-6.69,20.72,-1.11], [0.46,-3.19,4.53]]),
-                (40, [[81.45,-106.59,873.90], [-6.99,-2.14,-9.27], [-12.43,-8.97,11.45], [0.33,-3.15,2.69], [-10.29,21.20,2.18], [2.23,-2.67,3.37]]),
-                (41, [[73.98,-108.57,865.27], [-8.31,-0.22,-8.52], [-14.99,-11.80,14.92], [-1.28,-1.76,1.51], [-8.89,20.57,8.15], [3.18,-1.46,2.05]]),
-                (42, [[65.06,-106.92,857.15], [-8.97,1.81,-7.69], [-14.84,-12.55,14.36], [1.28,0.43,-0.09], [-4.45,19.47,13.19], [2.48,0.16,0.52]]),
-                (43, [[56.07,-104.97,849.91], [-10.00,1.92,-6.88], [-12.33,-11.02,14.85], [2.49,5.00,1.79], [-2.27,18.06,12.29], [2.28,4.69,1.10]]),
-                (44, [[45.11,-103.12,843.53], [-11.00,4.81,-5.26], [-9.46,-1.10,18.78], [2.56,4.66,2.88], [6.93,18.41,4.84], [2.42,4.35,0.87]]),
-                (45, [[34.86,-95.59,839.81], [-9.59,8.68,-2.67], [-6.61,-0.76,21.27], [0.94,-0.41,0.56], [12.62,13.25,3.92], [0.00,0.16,-0.54]]),
-                (46, [[26.14,-85.99,838.23], [-8.26,10.16,-2.00], [-7.29,-2.00,20.04], [-0.32,-0.12,-0.85], [14.71,10.71,6.32], [-1.05,-0.47,0.41]]),
-                (47, [[18.39,-75.31,835.82], [-8.42,10.08,-2.66], [-7.37,-0.99,19.53], [-0.56,0.61,0.80], [16.03,10.17,6.78], [-0.36,-0.28,1.59]]),
-                (48, [[9.35,-65.88,832.92], [-11.90,13.24,-4.28], [-8.47,-0.62,21.63], [-0.85,0.48,1.28], [17.76,11.50,7.33], [-1.39,-0.78,1.04]]),
-                (49, [[-5.12,-48.68,827.11], [-17.03,21.16,-7.34], [-8.98,0.20,21.43], [-0.08,1.01,-1.64], [17.76,11.50,7.33], [-1.39,-0.78,1.04]])
+                (1, [[-87.210,-111.060,890.540], [-4.750,0.410,12.390], [23.270,-3.130,7.880], [2.460,-0.390,-2.950], [3.090,24.460,0.450], [1.830,0.460,-4.310]]),
+                (2, [[-89.990,-110.570,902.650], [-2.050,0.530,12.720], [24.710,-3.280,4.130], [0.070,0.140,-2.810], [3.420,25.000,-0.640], [0.430,0.100,-3.970]]),
+                (3, [[-91.250,-110.010,915.920], [-0.550,0.530,13.390], [23.610,-2.820,1.080], [-1.460,0.550,-1.920], [2.850,23.610,-0.910], [-1.420,0.540,-2.130]]),
+                (4, [[-91.080,-109.520,929.390], [0.130,0.650,13.470], [21.830,-2.100,-0.100], [-0.530,0.220,-1.060], [2.080,21.810,-1.180], [-0.530,0.210,-1.170]]),
+                (5, [[-91.000,-108.720,942.850], [0.830,0.670,13.370], [22.560,-2.350,-1.280], [-0.880,0.270,-1.850], [2.290,22.560,-1.420], [-0.920,0.270,-2.030]]),
+                (6, [[-89.430,-108.180,956.080], [2.810,0.320,13.110], [20.050,-1.510,-4.270], [-1.960,0.620,-1.350], [1.380,20.440,-0.860], [-2.000,0.620,-1.490]]),
+                (7, [[-85.390,-108.090,968.920], [3.100,0.440,13.080], [18.600,-0.990,-4.380], [-0.760,0.320,0.660], [0.820,19.040,-0.910], [-0.730,0.310,0.710]]),
+                (8, [[-83.240,-107.300,982.140], [2.050,0.850,13.230], [18.550,-0.800,-2.820], [-0.240,0.090,0.570], [0.620,18.710,-1.440], [-0.210,0.080,0.630]]),
+                (9, [[-81.290,-106.400,995.370], [2.320,1.340,13.290], [18.150,-0.790,-3.100], [0.140,0.240,-0.110], [0.470,18.290,-2.130], [0.050,0.310,-0.570]]),
+                (10, [[-78.600,-104.620,1008.650], [2.140,-1.500,13.270], [18.840,-0.250,-3.070], [-0.910,1.850,-0.220], [0.840,18.750,3.430], [-0.950,1.980,-0.150]]),
+                (11, [[-77.170,-109.180,1020.820], [4.070,-9.070,9.680], [16.310,3.440,-3.630], [-2.150,4.060,0.800], [-0.010,12.030,12.600], [-1.970,3.890,1.430]]),
+                (12, [[-71.190,-121.030,1025.580], [7.480,-11.420,0.490], [14.200,9.260,-1.140], [-1.270,2.690,3.170], [0.000,1.980,17.640], [-1.270,2.720,3.230]]),
+                (13, [[-63.350,-130.560,1022.180], [7.990,-9.440,-3.400], [13.310,9.970,3.600], [-0.810,0.700,2.420], [0.000,-5.470,16.790], [-0.910,0.850,2.430]]),
+                (14, [[-55.270,-139.840,1018.800], [8.880,-8.590,-3.550], [12.320,10.870,4.490], [-1.070,0.870,0.810], [0.000,-6.180,16.540], [-1.090,0.870,0.810]]),
+                (15, [[-45.660,-147.660,1015.100], [9.900,-7.390,-3.360], [10.810,11.990,5.470], [-1.630,1.380,0.030], [-0.010,-6.690,16.290], [-1.620,1.360,0.020]]),
+                (16, [[-35.520,-154.600,1012.080], [11.080,-6.080,-1.980], [8.540,14.060,4.580], [-1.990,1.150,0.250], [-0.010,-5.000,17.000], [-1.970,1.130,0.240]]),
+                (17, [[-23.710,-159.680,1011.200], [11.970,-4.320,-1.790], [6.200,14.650,6.070], [-1.740,-0.440,2.510], [0.010,-6.170,16.490], [-1.790,-0.440,2.520]]),
+                (18, [[-11.720,-163.200,1008.530], [12.260,-2.580,-2.060], [4.480,13.030,10.390], [-2.160,-0.110,1.440], [-0.010,-10.220,14.200], [-2.140,-0.120,1.430]]),
+                (19, [[0.670,-164.820,1007.100], [12.710,-0.730,-0.480], [1.180,14.350,9.430], [-2.670,0.760,-0.810], [-0.010,-8.950,15.090], [-2.580,0.750,-0.810]]),
+                (20, [[13.556,-164.739,1007.051], [12.750,0.980,0.850], [-1.700,14.800,8.530], [-1.750,0.420,-1.040], [-0.320,-8.140,15.580], [-1.710,0.430,-1.040]]),
+                (21, [[26.116,-162.906,1008.217], [12.630,1.810,1.230], [-2.890,15.320,7.020], [-2.260,-0.160,-1.140], [-0.450,-6.810,16.270], [-2.230,-0.140,-1.140]]),
+                (22, [[38.730,-161.010,1010.040], [11.760,4.530,2.770], [-6.960,14.450,5.880], [-3.080,-0.420,-3.340], [-0.980,-6.490,16.380], [-3.120,-0.440,-3.350]]),
+                (23, [[50.563,-154.087,1013.645], [9.860,7.100,4.160], [-9.105,10.240,0.863], [-1.930,-0.520,-2.090], [-4.770,-2.540,17.360], [-1.970,-0.530,-2.090]]),
+                (24, [[58.745,-146.870,1017.469], [9.340,7.750,4.350], [-9.097,10.778,0.486], [-1.820,-1.100,1.290], [-3.670,-4.330,17.260], [-1.800,-1.060,1.300]]),
+                (25, [[67.501,-138.309,1022.249], [7.990,8.770,4.670], [-10.568,9.341,0.117], [-2.500,-1.970,-0.340], [-2.610,-6.250,17.940], [-2.590,-2.160,-0.410]]),
+                (26, [[74.433,-129.298,1027.145], [5.080,9.970,3.830], [-13.880,7.949,-1.165], [0.030,-2.060,0.330], [-2.126,-4.930,16.625], [-1.530,-1.170,0.490]]),
+                (27, [[77.560,-119.250,1030.430], [5.040,10.780,-0.510], [-14.630,6.980,2.780], [0.100,1.230,-1.770], [4.280,1.140,20.240], [0.400,1.970,-2.970]]),
+                (28, [[83.860,-109.530,1026.210], [6.930,6.510,-9.450], [-16.870,11.640,-4.350], [-2.810,1.300,-3.770], [7.220,14.780,13.520], [-1.240,0.300,-4.600]]),
+                (29, [[89.550,-108.420,1013.560], [3.910,0.860,-13.160], [-20.290,9.170,-5.430], [-1.850,-1.680,0.870], [8.380,20.860,4.280], [-2.140,-1.950,1.170]]),
+                (30, [[91.640,-107.830,1000.370], [1.780,0.550,-13.270], [-20.930,7.770,-2.480], [-0.800,-1.120,1.760], [7.590,21.030,2.070], [-0.860,-1.120,1.920]]),
+                (31, [[93.100,-107.330,987.040], [1.010,0.300,-13.420], [-22.050,6.680,-1.510], [-0.560,-0.650,1.350], [6.630,22.100,1.090], [-0.580,-0.660,1.490]]),
+                (32, [[93.660,-107.240,973.550], [-0.020,1.050,-13.410], [-22.120,6.280,0.520], [0.930,-2.250,1.330], [6.310,22.050,1.910], [0.920,-2.270,1.470]]),
+                (33, [[93.060,-105.250,960.320], [-0.770,2.250,-13.200], [-20.310,1.700,1.470], [0.920,-2.340,0.150], [1.920,20.030,3.650], [0.930,-2.360,0.170]]),
+                (34, [[92.120,-102.740,947.160], [-0.420,2.820,-13.160], [-20.350,1.100,0.880], [0.740,-0.110,-0.850], [1.250,19.860,4.690], [0.730,-0.090,-0.940]]),
+                (35, [[92.230,-99.620,934.040], [0.470,1.780,-13.240], [-18.820,1.460,-0.470], [1.010,0.010,-1.140], [1.390,18.640,2.850], [1.030,0.020,-1.270]]),
+                (36, [[93.040,-99.170,920.860], [1.210,-0.740,-13.330], [-18.310,1.150,-1.730], [0.280,-0.610,0.540], [1.230,18.350,-1.000], [0.280,-0.690,-0.020]]),
+                (37, [[94.650,-101.120,907.560], [-0.610,-1.620,-13.470], [-18.270,0.060,0.820], [-0.210,-1.550,3.280], [-0.050,18.160,-2.300], [-0.490,-1.710,2.070]]),
+                (38, [[91.840,-102.350,894.350], [-3.470,-1.640,-11.950], [-18.620,-2.390,5.740], [0.910,-2.200,3.650], [-3.000,19.300,-1.810], [-0.730,-2.580,3.870]]),
+                (39, [[87.880,-104.310,883.750], [-5.210,-2.130,-10.320], [-16.280,-4.940,9.250], [2.730,-2.870,2.500], [-6.690,20.720,-1.110], [0.460,-3.190,4.530]]),
+                (40, [[81.450,-106.590,873.900], [-6.990,-2.140,-9.270], [-12.430,-8.970,11.450], [0.330,-3.150,2.690], [-6.303,19.245,1.555], [2.230,-2.670,3.370]]),
+                (41, [[73.980,-108.570,865.270], [-8.310,-0.220,-8.520], [-12.268,-8.435,13.125], [-1.280,-1.760,1.510], [-6.633,18.953,4.087], [3.180,-1.460,2.050]]),
+                (42, [[65.060,-106.920,857.150], [-8.970,1.810,-7.690], [-14.794,-6.343,11.919], [1.280,0.430,-0.090], [-4.396,19.311,7.084], [2.480,0.160,0.520]]),
+                (43, [[56.070,-104.970,849.910], [-10.000,1.920,-6.880], [-14.078,-6.138,12.772], [2.490,5.000,1.790], [0.172,16.517,6.181], [2.280,4.690,1.100]]),
+                (44, [[45.110,-103.120,843.530], [-11.000,4.810,-5.260], [-9.460,-1.100,18.780], [2.560,4.660,2.880], [6.930,18.410,4.840], [2.420,4.350,0.870]]),
+                (45, [[34.860,-95.590,839.810], [-9.590,8.680,-2.670], [-6.610,-0.760,21.270], [0.940,-0.410,0.560], [12.620,13.250,3.920], [0.000,0.160,-0.540]]),
+                (46, [[26.140,-85.990,838.230], [-8.260,10.160,-2.000], [-7.290,-2.000,20.040], [-0.320,-0.120,-0.850], [14.710,10.710,6.320], [-1.050,-0.470,0.410]]),
+                (47, [[18.390,-75.310,835.820], [-8.420,10.080,-2.660], [-7.370,-0.990,19.530], [-0.560,0.610,0.800], [16.030,10.170,6.780], [-0.360,-0.280,1.590]]),
+                (48, [[9.350,-65.880,832.920], [-11.900,13.240,-4.280], [-8.470,-0.620,21.630], [-0.850,0.480,1.280], [17.760,11.500,7.330], [-1.390,-0.780,1.040]]),
+                (49, [[-5.120,-48.680,827.110], [-17.030,21.160,-7.340], [-8.980,0.200,21.430], [-0.080,1.010,-1.640], [17.760,11.500,7.330], [-1.390,-0.780,1.040]])
                 ] ),
 
             'userAnnotationGroups': [
@@ -308,6 +329,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
+                    'identifierRanges': '1-7',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
                     'identifierRanges': '1-2',
                     'name': get_colon_term('right colon')[0],
                     'ontId': get_colon_term('right colon')[1]
@@ -341,6 +369,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 ] ),
                 
             'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-4',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
@@ -413,6 +448,13 @@ class MeshType_3d_colon1(Scaffold_base):
                 ] ),
                 
             'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-39',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
@@ -489,6 +531,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Proximal-transverse tenia coli width': 10.0,
             'Transverse-distal tenia coli width': 10.0,
             'Distal tenia coli width': 10.0,
+            'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements around': 1,
             'Refine number of elements along': 1,
@@ -514,6 +557,7 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Proximal-transverse tenia coli width'] = 4.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal tenia coli width'] = 1.5
+        options['Base parameter set'] = parameterSetName
         return options
 
     @staticmethod
@@ -527,6 +571,7 @@ class MeshType_3d_colon1(Scaffold_base):
             'Proximal-transverse tenia coli width',
             'Transverse-distal tenia coli width',
             'Distal tenia coli width',
+            'Use linear through wall',
             'Refine',
             'Refine number of elements around',
             'Refine number of elements along',
@@ -598,315 +643,26 @@ class MeshType_3d_colon1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        centralPath = options['Central path']
+        nextNodeIdentifier = 1
+        nextElementIdentifier = 1
+
         segmentProfile = options['Segment profile']
-        segmentCount = options['Number of segments']
-        startPhase = options['Start phase'] % 360.0
-        proximalTCWidth = options['Proximal tenia coli width']
-        proximalTransverseTCWidth = options['Proximal-transverse tenia coli width']
-        transverseDistalTCWidth = options['Transverse-distal tenia coli width']
-        distalTCWidth = options['Distal tenia coli width']
         segmentSettings = segmentProfile.getScaffoldSettings()
-
-        elementsCountAroundTC = segmentSettings['Number of elements around tenia coli']
-        elementsCountAroundHaustrum = segmentSettings['Number of elements around haustrum']
-        cornerOuterRadiusFactor = segmentSettings['Corner outer radius factor']
-        haustrumOuterRadiusFactor = segmentSettings['Haustrum outer radius factor']
-        segmentLengthEndDerivativeFactor = segmentSettings['Segment length end derivative factor']
-        segmentLengthMidDerivativeFactor = segmentSettings['Segment length mid derivative factor']
         tcCount = segmentSettings['Number of tenia coli']
-        tcThickness = segmentSettings['Tenia coli thickness']
-        elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum) * tcCount
 
-        elementsCountAlongSegment = segmentSettings['Number of elements along segment']
-        elementsCountThroughWall = segmentSettings['Number of elements through wall']
-        wallThickness = segmentSettings['Wall thickness']
-        mucosaRelThickness = segmentSettings['Mucosa relative thickness']
-        submucosaRelThickness = segmentSettings['Submucosa relative thickness']
-        circularRelThickness = segmentSettings['Circular muscle layer relative thickness']
-        longitudinalRelThickness = segmentSettings['Longitudinal muscle layer relative thickness']
-        useCrossDerivatives = segmentSettings['Use cross derivatives']
-        useCubicHermiteThroughWall = not (segmentSettings['Use linear through wall'])
-        elementsCountAlong = int(elementsCountAlongSegment * segmentCount)
-
-        # Colon coordinates
-        lengthToDiameterRatio = 24
-        wallThicknessToDiameterRatio = 0.1
-        teniaColiThicknessToDiameterRatio = 0.25 * wallThicknessToDiameterRatio
-        relativeThicknessListColonCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
-
-        firstNodeIdentifier = 1
-        firstElementIdentifier = 1
-
-        # Central path
+        geometricCentralPath = options['Central path']
         if tcCount == 1:
-            colonTermsAlong = [None, 'right colon', 'transverse colon', 'left colon']
+            colonTermsAlong = ['colon', 'right colon', 'transverse colon', 'left colon']
         elif tcCount == 2:
-            colonTermsAlong = [None, 'spiral colon', 'transverse colon', 'descending colon']
+            colonTermsAlong = ['colon', 'spiral colon', 'transverse colon', 'descending colon']
         elif tcCount == 3:
-            colonTermsAlong = [None, 'ascending colon', 'transverse colon', 'descending colon']
+            colonTermsAlong = ['colon', 'ascending colon', 'transverse colon', 'descending colon']
 
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        tmpFieldmodule = tmpRegion.getFieldmodule()
-        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
-        arcLengthOfGroupsAlong = []
+        geometricCentralPath = ColonCentralPath(region, geometricCentralPath, colonTermsAlong)
 
-        for termName in colonTermsAlong:
-            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
-            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
-
-            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
-                tmpNodeset, tmpCoordinates,
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
-            arcLength = 0.0
-            for e in range(len(cxGroup) - 1):
-                arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
-                                                             cxGroup[e + 1], cd1Group[e + 1])
-            arcLengthOfGroupsAlong.append(arcLength)
-
-            if not termName:
-                cx = cxGroup
-                cd1 = cd1Group
-                cd2 = cd2Group
-                cd3 = cd3Group
-                cd12 = cd12Group
-                cd13 = cd13Group
-
-            del tmpNodeset
-            del tmpGroup
-
-        del tmpCoordinates
-        del tmpNodes
-        del tmpFieldmodule
-        del tmpRegion
-
-        # find arclength of colon
-        length = 0.0
-        elementsCountIn = len(cx) - 1
-        sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True,
-                                                       magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
-        for e in range(elementsCountIn):
-            arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
-            # print(e+1, arcLength)
-            length += arcLength
-        segmentLength = length / segmentCount
-
-        # Sample central path
-        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-
-        centralPathLength = arcLengthOfGroupsAlong[0]
-        elementAlongLength = centralPathLength / elementsCountAlong
-
-        elementsCountAlongGroups = []
-        groupLength = 0.0
-        e = 0
-        elementsCount = 1
-        length = elementAlongLength
-        for i in range(1, len(colonTermsAlong)):
-            groupLength += arcLengthOfGroupsAlong[i]
-            if e == elementsCountAlong - 2:
-                elementsCount += 1
-                elementsCountAlongGroups.append(elementsCount)
-            else:
-                while length < groupLength:
-                    elementsCount += 1
-                    e += 1
-                    length += elementAlongLength
-
-                # check which end is grouplength closer to
-                distToUpperEnd = abs(length - groupLength)
-                distToLowerEnd = abs(groupLength - (length - elementsCountAlong))
-                if distToLowerEnd < distToUpperEnd:
-                    elementsCount -= 1
-                    elementsCountAlongGroups.append(elementsCount)
-                    e -= 1
-                    length -= elementAlongLength
-                else:
-                    elementsCountAlongGroups.append(elementsCount)
-            elementsCount = 0
-
-        # Generate variation of radius & tc width along length
-        lengthList = [0.0, arcLengthOfGroupsAlong[1], arcLengthOfGroupsAlong[1] + arcLengthOfGroupsAlong[2],
-                      arcLengthOfGroupsAlong[0]]
-
-        outerRadiusListCP = [vector.magnitude(c) for c in cd2]
-        dOuterRadiusListCP = []
-        for n in range(len(outerRadiusListCP) - 1):
-            dOuterRadiusListCP.append(outerRadiusListCP[n + 1] - outerRadiusListCP[n])
-        dOuterRadiusListCP.append(outerRadiusListCP[-1] - outerRadiusListCP[-2])
-        outerRadiusAlongElementList, dOuterRadiusAlongElementList = interp.interpolateSampleCubicHermite(
-            outerRadiusListCP, dOuterRadiusListCP, se, sxi, ssf)
-
-        tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
-        tcWidthAlongElementList, dTCWidthAlongElementList = interp.sampleParameterAlongLine(lengthList,
-                                                                                            tcWidthList,
-                                                                                            elementsCountAlong)
-
-        # Account for reduced haustrum appearance in transverse and distal pig colon
-        if tcCount == 2:
-            haustrumOuterRadiusFactorList = [haustrumOuterRadiusFactor, haustrumOuterRadiusFactor * 0.75,
-                                             haustrumOuterRadiusFactor * 0.5, haustrumOuterRadiusFactor * 0.2]
-            haustrumOuterRadiusFactorAlongElementList = \
-                interp.sampleParameterAlongLine(lengthList, haustrumOuterRadiusFactorList, elementsCountAlong)[0]
-        else:
-            haustrumOuterRadiusFactorAlongElementList = [haustrumOuterRadiusFactor] * (elementsCountAlong + 1)
-
-        # Create annotation groups for colon sections
-        colonGroup = AnnotationGroup(region, get_colon_term("colon"))
-
-        if tcCount == 1:
-            proximalGroup = AnnotationGroup(region, get_colon_term("right colon"))
-            transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
-            distalGroup = AnnotationGroup(region, get_colon_term("left colon"))
-            annotationGroupAlong = [[colonGroup, proximalGroup],
-                                    [colonGroup, transverseGroup],
-                                    [colonGroup, distalGroup]]
-
-        elif tcCount == 2:
-            spiralGroup = AnnotationGroup(region, get_colon_term("spiral colon"))
-            transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
-            distalGroup = AnnotationGroup(region, get_colon_term("descending colon"))
-            annotationGroupAlong = [[colonGroup, spiralGroup],
-                                    [colonGroup, transverseGroup],
-                                    [colonGroup, distalGroup]]
-
-        elif tcCount == 3:
-            ascendingGroup = AnnotationGroup(region, get_colon_term("ascending colon"))
-            transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
-            descendingGroup = AnnotationGroup(region, get_colon_term("descending colon"))
-            annotationGroupAlong = [[colonGroup, ascendingGroup],
-                                    [colonGroup, transverseGroup],
-                                    [colonGroup, descendingGroup]]
-
-        annotationGroupsAlong = []
-        for i in range(len(elementsCountAlongGroups)):
-            elementsCount = elementsCountAlongGroups[i]
-            for n in range(elementsCount):
-                annotationGroupsAlong.append(annotationGroupAlong[i])
-
-        xExtrude = []
-        d1Extrude = []
-        d2Extrude = []
-        d3UnitExtrude = []
-        sxRefExtrudeList = []
-
-        if elementsCountThroughWall == 1:
-            relativeThicknessList = [1.0]
-            annotationGroupsThroughWall = [[]]
-        else:
-            relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
-                                     circularRelThickness, longitudinalRelThickness]
-            mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
-            submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
-            circularMuscleGroup = AnnotationGroup(region, get_colon_term("circular muscle layer of colon"))
-            longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
-            annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup],
-                                           [circularMuscleGroup], [longitudinalMuscleGroup]]
-
-        # Create object
-        colonSegmentTubeMeshOuterPoints = ColonSegmentTubeMeshOuterPoints(
-            region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
-            tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
-            segmentLength, wallThickness, cornerOuterRadiusFactor, haustrumOuterRadiusFactorAlongElementList,
-            outerRadiusAlongElementList, dOuterRadiusAlongElementList, tcWidthAlongElementList,
-            startPhase)
-
-        for nSegment in range(segmentCount):
-            # Create inner points
-            xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround \
-                = colonSegmentTubeMeshOuterPoints.getColonSegmentTubeMeshOuterPoints(nSegment)
-
-            # Project reference point for warping onto central path
-            start = nSegment * elementsCountAlongSegment
-            end = (nSegment + 1) * elementsCountAlongSegment + 1
-            sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
-                tubemesh.getPlaneProjectionOnCentralPath(xOuter, elementsCountAround, elementsCountAlongSegment,
-                                                         segmentLength, sx[start:end], sd1[start:end], sd2[start:end],
-                                                         sd12[start:end])
-
-            # Warp segment points
-            xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
-                xOuter, d1Outer, d2Outer, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
-                elementsCountAround, elementsCountAlongSegment, zRefList)
-
-            # Store points along length
-            xExtrude += xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:]
-            d1Extrude += d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:]
-            d2Extrude += d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:]
-            d3UnitExtrude += d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:]
-            sxRefExtrudeList += sxRefList if nSegment == 0 else sxRefList[elementsCountAround:]
-
-        contractedWallThicknessList = colonSegmentTubeMeshOuterPoints.getContractedWallThicknessList()
-
-        # Create coordinates and derivatives
-        xList, d1List, d2List, d3List, curvatureList = \
-            tubemesh.extrudeSurfaceCoordinates(xExtrude, d1Extrude, d2Extrude, d3UnitExtrude,
-                                               contractedWallThicknessList, relativeThicknessList,
-                                               elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                                               transitElementList, outward=False)
-
-        relaxedLengthList, xiList = colonSegmentTubeMeshOuterPoints.getRelaxedLengthAndXiList()
-
-        closedProximalEnd = False
-
-        if tcThickness > 0:
-            tubeTCWidthList = colonSegmentTubeMeshOuterPoints.getTubeTCWidthList()
-            xList, d1List, d2List, d3List, annotationArrayAround = getTeniaColi(
-                region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
-                elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
-                tubeTCWidthList, tcThickness, sxRefExtrudeList, annotationGroupsAround,
-                closedProximalEnd)
-
-            # Create flat coordinates
-            xFlat, d1Flat, d2Flat = createFlatCoordinatesTeniaColi(
-                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, tcCount, tcThickness,
-                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
-                elementsCountThroughWall, transitElementList, closedProximalEnd)
-
-            # Create colon coordinates
-            xColon, d1Colon, d2Colon = createColonCoordinatesTeniaColi(xiList, relativeThicknessListColonCoordinates,
-                                                                       lengthToDiameterRatio,
-                                                                       wallThicknessToDiameterRatio,
-                                                                       teniaColiThicknessToDiameterRatio, tcCount,
-                                                                       elementsCountAroundTC,
-                                                                       elementsCountAroundHaustrum,
-                                                                       elementsCountAlong, elementsCountThroughWall,
-                                                                       transitElementList, closedProximalEnd)
-
-            # Create nodes and elements
-            nextNodeIdentifier, nextElementIdentifier, annotationGroups = createNodesAndElementsTeniaColi(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
-                "colon coordinates", elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
-                elementsCountThroughWall, tcCount, annotationGroupsAround, annotationGroupsAlong,
-                annotationGroupsThroughWall, firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall,
-                useCrossDerivatives, closedProximalEnd)
-
-        else:
-            # Create flat coordinates
-            xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
-                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, elementsCountAround,
-                elementsCountAlong, elementsCountThroughWall, transitElementList)
-
-            # Create colon coordinates
-            xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessListColonCoordinates,
-                                                                       lengthToDiameterRatio,
-                                                                       wallThicknessToDiameterRatio,
-                                                                       elementsCountAround,
-                                                                       elementsCountAlong, elementsCountThroughWall,
-                                                                       transitElementList)
-
-            # Create nodes and elements
-            nextNodeIdentifier, nextElementIdentifier, annotationGroups = tubemesh.createNodesAndElements(
-                region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
-                "colon coordinates", elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
-                firstNodeIdentifier, firstElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
-                closedProximalEnd)
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
+            createColonMesh3d(region, options, geometricCentralPath, nextNodeIdentifier,
+                              nextElementIdentifier, flatCoordinates=True, materialCoordinates=True)[0:3]
 
         return annotationGroups, None
 
@@ -951,3 +707,371 @@ class MeshType_3d_colon1(Scaffold_base):
         mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                 get_colon_term("luminal surface of the colonic mucosa"))
         mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
+
+def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElementIdentifier,
+                      flatCoordinates=False, materialCoordinates=False,
+                      nodeIdProximal=[], xProximal=[], d1Proximal=[], d2Proximal=[], d3Proximal=[]):
+    """
+    Generates a colon scaffold in the region using a central path and parameter options.
+    :param region: Region to create elements in.
+    :param options: Parameter options for creating scaffold.
+    :param centralPath: Central path through the path of the colon.
+    :param nextNodeIdentifier: Next node identifier to use.
+    :param nextElementIdentifier: Next element identifier to use.
+    :param flatCoordinates: Generate flat coordinates if True.
+    :param materialCoordinates: Create material coordinates if True.
+    :param nodeIdProximal, xProximal, d1Proximal, d2Proximal, d3Proximal: Node identifier, coordinates and derivatives
+    of nodes to use at proximal end of scaffold.
+    :return annotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, d2Distal,
+    d3Distal
+    """
+    parameterSetName = options['Base parameter set']
+    isHuman = 'Human' in parameterSetName
+    segmentProfile = options['Segment profile']
+    segmentCount = options['Number of segments']
+    startPhase = options['Start phase'] % 360.0
+    proximalTCWidth = options['Proximal tenia coli width']
+    proximalTransverseTCWidth = options['Proximal-transverse tenia coli width']
+    transverseDistalTCWidth = options['Transverse-distal tenia coli width']
+    distalTCWidth = options['Distal tenia coli width']
+    useCubicHermiteThroughWall = not (options['Use linear through wall'])
+    segmentSettings = segmentProfile.getScaffoldSettings()
+
+    elementsCountAroundTC = segmentSettings['Number of elements around tenia coli']
+    elementsCountAroundHaustrum = segmentSettings['Number of elements around haustrum']
+    cornerOuterRadiusFactor = segmentSettings['Corner outer radius factor']
+    haustrumOuterRadiusFactor = segmentSettings['Haustrum outer radius factor']
+    segmentLengthEndDerivativeFactor = segmentSettings['Segment length end derivative factor']
+    segmentLengthMidDerivativeFactor = segmentSettings['Segment length mid derivative factor']
+    tcCount = segmentSettings['Number of tenia coli']
+    tcThickness = segmentSettings['Tenia coli thickness']
+    elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum) * tcCount
+
+    elementsCountAlongSegment = segmentSettings['Number of elements along segment']
+    elementsCountThroughWall = segmentSettings['Number of elements through wall']
+    wallThickness = segmentSettings['Wall thickness']
+    mucosaRelThickness = segmentSettings['Mucosa relative thickness']
+    submucosaRelThickness = segmentSettings['Submucosa relative thickness']
+    circularRelThickness = segmentSettings['Circular muscle layer relative thickness']
+    longitudinalRelThickness = segmentSettings['Longitudinal muscle layer relative thickness']
+    useCrossDerivatives = segmentSettings['Use cross derivatives']
+
+    elementsCountAlong = int(elementsCountAlongSegment * segmentCount)
+
+    # Colon coordinates
+    lengthToDiameterRatio = 24
+    wallThicknessToDiameterRatio = 0.1
+    teniaColiThicknessToDiameterRatio = 0.25 * wallThicknessToDiameterRatio
+    relativeThicknessListColonCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
+
+    # Central path
+    if tcCount == 1:
+        colonTermsAlong = [None, 'right colon', 'transverse colon', 'left colon']
+    elif tcCount == 2:
+        colonTermsAlong = [None, 'spiral colon', 'transverse colon', 'descending colon']
+    elif tcCount == 3:
+        colonTermsAlong = [None, 'ascending colon', 'transverse colon', 'descending colon']
+
+    centralPathLength = centralPath.arcLengthOfGroupsAlong[0]
+    cx = centralPath.cxGroups[0]
+    cd1 = centralPath.cd1Groups[0]
+    cd2 = centralPath.cd2Groups[0]
+    cd12 = centralPath.cd12Groups[0]
+    arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
+
+    # find arclength of colon
+    length = 0.0
+    elementsCountIn = len(cx) - 1
+    sd1 = interp.smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True,
+                                                   magnitudeScalingMode=interp.DerivativeScalingMode.HARMONIC_MEAN)
+    for e in range(elementsCountIn):
+        arcLength = interp.getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+        # print(e+1, arcLength)
+        length += arcLength
+    segmentLength = length / segmentCount
+
+    # Sample central path
+    sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+    sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+
+    elementAlongLength = centralPathLength / elementsCountAlong
+
+    elementsCountAlongGroups = []
+    groupLength = 0.0
+    e = 0
+    elementsCount = 1
+    length = elementAlongLength
+    for i in range(1, len(colonTermsAlong)):
+        groupLength += arcLengthOfGroupsAlong[i]
+        if e == elementsCountAlong - 2:
+            elementsCount += 1
+            elementsCountAlongGroups.append(elementsCount)
+        else:
+            while length < groupLength:
+                elementsCount += 1
+                e += 1
+                length += elementAlongLength
+
+            # check which end is grouplength closer to
+            distToUpperEnd = abs(length - groupLength)
+            distToLowerEnd = abs(groupLength - (length - elementsCountAlong))
+            if distToLowerEnd < distToUpperEnd:
+                elementsCount -= 1
+                elementsCountAlongGroups.append(elementsCount)
+                e -= 1
+                length -= elementAlongLength
+            else:
+                elementsCountAlongGroups.append(elementsCount)
+        elementsCount = 0
+
+    # Generate variation of radius & tc width along length
+    lengthList = [0.0, arcLengthOfGroupsAlong[1],
+                  arcLengthOfGroupsAlong[1] + arcLengthOfGroupsAlong[2],
+                  arcLengthOfGroupsAlong[0]]
+
+    outerRadiusListCP = [vector.magnitude(c) for c in cd2]
+    dOuterRadiusListCP = []
+    for n in range(len(outerRadiusListCP) - 1):
+        dOuterRadiusListCP.append(outerRadiusListCP[n + 1] - outerRadiusListCP[n])
+    dOuterRadiusListCP.append(outerRadiusListCP[-1] - outerRadiusListCP[-2])
+    outerRadiusAlongElementList, dOuterRadiusAlongElementList = interp.interpolateSampleCubicHermite(
+        outerRadiusListCP, dOuterRadiusListCP, se, sxi, ssf)
+
+    tcWidthList = [proximalTCWidth, proximalTransverseTCWidth, transverseDistalTCWidth, distalTCWidth]
+    tcWidthAlongElementList, dTCWidthAlongElementList = interp.sampleParameterAlongLine(lengthList,
+                                                                                        tcWidthList,
+                                                                                        elementsCountAlong)
+
+    # Account for reduced haustrum appearance in transverse and distal pig colon
+    if tcCount == 2:
+        haustrumOuterRadiusFactorList = [haustrumOuterRadiusFactor, haustrumOuterRadiusFactor * 0.75,
+                                         haustrumOuterRadiusFactor * 0.5, haustrumOuterRadiusFactor * 0.2]
+        haustrumOuterRadiusFactorAlongElementList = \
+            interp.sampleParameterAlongLine(lengthList, haustrumOuterRadiusFactorList, elementsCountAlong)[0]
+    else:
+        haustrumOuterRadiusFactorAlongElementList = [haustrumOuterRadiusFactor] * (elementsCountAlong + 1)
+
+    # Create annotation groups for colon sections
+    colonGroup = AnnotationGroup(region, get_colon_term("colon"))
+
+    if tcCount == 1:
+        proximalGroup = AnnotationGroup(region, get_colon_term("right colon"))
+        transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
+        distalGroup = AnnotationGroup(region, get_colon_term("left colon"))
+        annotationGroupAlong = [[colonGroup, proximalGroup],
+                                [colonGroup, transverseGroup],
+                                [colonGroup, distalGroup]]
+
+    elif tcCount == 2:
+        spiralGroup = AnnotationGroup(region, get_colon_term("spiral colon"))
+        transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
+        distalGroup = AnnotationGroup(region, get_colon_term("descending colon"))
+        annotationGroupAlong = [[colonGroup, spiralGroup],
+                                [colonGroup, transverseGroup],
+                                [colonGroup, distalGroup]]
+
+    elif tcCount == 3:
+        ascendingGroup = AnnotationGroup(region, get_colon_term("ascending colon"))
+        transverseGroup = AnnotationGroup(region, get_colon_term("transverse colon"))
+        descendingGroup = AnnotationGroup(region, get_colon_term("descending colon"))
+        annotationGroupAlong = [[colonGroup, ascendingGroup],
+                                [colonGroup, transverseGroup],
+                                [colonGroup, descendingGroup]]
+
+    annotationGroupsAlong = []
+    for i in range(len(elementsCountAlongGroups)):
+        elementsCount = elementsCountAlongGroups[i]
+        for n in range(elementsCount):
+            annotationGroupsAlong.append(annotationGroupAlong[i])
+
+    xExtrude = []
+    d1Extrude = []
+    d2Extrude = []
+    d3UnitExtrude = []
+    sxRefExtrudeList = []
+
+    if elementsCountThroughWall == 1:
+        relativeThicknessList = [1.0]
+        annotationGroupsThroughWall = [[]]
+    else:
+        relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
+                                 circularRelThickness, longitudinalRelThickness]
+        mucosaGroup = AnnotationGroup(region, get_colon_term("colonic mucosa"))
+        submucosaGroup = AnnotationGroup(region, get_colon_term("submucosa of colon"))
+        circularMuscleGroup = AnnotationGroup(region, get_colon_term("circular muscle layer of colon"))
+        longitudinalMuscleGroup = AnnotationGroup(region, get_colon_term("longitudinal muscle layer of colon"))
+        annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup],
+                                       [circularMuscleGroup], [longitudinalMuscleGroup]]
+
+    # Create object
+    colonSegmentTubeMeshOuterPoints = ColonSegmentTubeMeshOuterPoints(
+        region, elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlongSegment,
+        tcCount, segmentLengthEndDerivativeFactor, segmentLengthMidDerivativeFactor,
+        segmentLength, wallThickness, cornerOuterRadiusFactor, haustrumOuterRadiusFactorAlongElementList,
+        outerRadiusAlongElementList, dOuterRadiusAlongElementList, tcWidthAlongElementList,
+        startPhase)
+
+    for nSegment in range(segmentCount):
+        # Create inner points
+        xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround \
+            = colonSegmentTubeMeshOuterPoints.getColonSegmentTubeMeshOuterPoints(nSegment)
+
+        # Project reference point for warping onto central path
+        start = nSegment * elementsCountAlongSegment
+        end = (nSegment + 1) * elementsCountAlongSegment + 1
+        sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
+            tubemesh.getPlaneProjectionOnCentralPath(xOuter, elementsCountAround, elementsCountAlongSegment,
+                                                     segmentLength, sx[start:end], sd1[start:end], sd2[start:end],
+                                                     sd12[start:end])
+
+        # Warp segment points
+        xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = tubemesh.warpSegmentPoints(
+            xOuter, d1Outer, d2Outer, segmentAxis, sxRefList, sd1RefList, sd2ProjectedListRef,
+            elementsCountAround, elementsCountAlongSegment, zRefList)
+
+        # Store points along length
+        xExtrude += xWarpedList if nSegment == 0 else xWarpedList[elementsCountAround:]
+        d1Extrude += d1WarpedList if nSegment == 0 else d1WarpedList[elementsCountAround:]
+        d2Extrude += d2WarpedList if nSegment == 0 else d2WarpedList[elementsCountAround:]
+        d3UnitExtrude += d3WarpedUnitList if nSegment == 0 else d3WarpedUnitList[elementsCountAround:]
+        sxRefExtrudeList += sxRefList if nSegment == 0 else sxRefList[elementsCountAround:]
+
+    contractedWallThicknessList = colonSegmentTubeMeshOuterPoints.getContractedWallThicknessList()
+
+    # Create coordinates and derivatives
+    xList, d1List, d2List, d3List, curvatureList, localIdxDistal, xDistal, d1Distal, d2Distal, d3Distal = \
+        tubemesh.extrudeSurfaceCoordinates(xExtrude, d1Extrude, d2Extrude, d3UnitExtrude,
+                                           contractedWallThicknessList, relativeThicknessList,
+                                           elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                                           transitElementList, outward=False, xProximal=xProximal,
+                                           d1Proximal=d1Proximal, d2Proximal=d2Proximal, d3Proximal=d3Proximal)
+
+    relaxedLengthList, xiList = colonSegmentTubeMeshOuterPoints.getRelaxedLengthAndXiList()
+
+    closedProximalEnd = False
+
+    if tcThickness > 0:
+        tubeTCWidthList = colonSegmentTubeMeshOuterPoints.getTubeTCWidthList()
+        xList, d1List, d2List, d3List, annotationArrayAround, localIdxDistal, xDistal, d1Distal, d2Distal, \
+        d3Distal = \
+            getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList, tcCount, elementsCountAroundTC,
+                         elementsCountAroundHaustrum, elementsCountAlong, elementsCountThroughWall,
+                         tubeTCWidthList, tcThickness, annotationGroupsAround, closedProximalEnd,
+                         isHuman, xProximal=xProximal, d1Proximal=d1Proximal, d2Proximal=d2Proximal,
+                         d3Proximal=d3Proximal)
+
+        # Create flat coordinates
+        if flatCoordinates:
+            xFlat, d1Flat, d2Flat = createFlatCoordinatesTeniaColi(
+                xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, tcCount, tcThickness,
+                elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
+                elementsCountThroughWall, transitElementList, closedProximalEnd)
+        else:
+            xFlat = d1Flat = d2Flat = []
+
+        # Create colon coordinates
+        if materialCoordinates:
+            xColon, d1Colon, d2Colon = \
+                createColonCoordinatesTeniaColi(xiList, relativeThicknessListColonCoordinates, lengthToDiameterRatio,
+                                                wallThicknessToDiameterRatio, teniaColiThicknessToDiameterRatio,
+                                                tcCount, elementsCountAroundTC, elementsCountAroundHaustrum,
+                                                elementsCountAlong, elementsCountThroughWall, transitElementList,
+                                                closedProximalEnd)
+        else:
+            xColon = d1Colon = d2Colon = []
+
+        # Create nodes and elements
+        nextNodeIdentifier, nextElementIdentifier, annotationGroups, nodesIdDistal = createNodesAndElementsTeniaColi(
+            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
+            "colon coordinates", elementsCountAroundTC, elementsCountAroundHaustrum, elementsCountAlong,
+            elementsCountThroughWall, tcCount, annotationGroupsAround, annotationGroupsAlong,
+            annotationGroupsThroughWall, nextNodeIdentifier, nextElementIdentifier, useCubicHermiteThroughWall,
+            useCrossDerivatives, closedProximalEnd, localIdxDistal=localIdxDistal, nodeIdProximal=nodeIdProximal)
+
+    else:
+        # Create flat coordinates
+        xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(
+            xiList, relaxedLengthList, length, wallThickness, relativeThicknessList, elementsCountAround,
+            elementsCountAlong, elementsCountThroughWall, transitElementList)
+
+        # Create colon coordinates
+        xColon, d1Colon, d2Colon = tubemesh.createOrganCoordinates(xiList, relativeThicknessListColonCoordinates,
+                                                                   lengthToDiameterRatio,
+                                                                   wallThicknessToDiameterRatio,
+                                                                   elementsCountAround,
+                                                                   elementsCountAlong, elementsCountThroughWall,
+                                                                   transitElementList)
+
+        # Create nodes and elements
+        nextNodeIdentifier, nextElementIdentifier, annotationGroups, nodesIdDistal = tubemesh.createNodesAndElements(
+            region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat, xColon, d1Colon, d2Colon,
+            "colon coordinates", elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+            annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
+            nextNodeIdentifier, nextElementIdentifier, useCubicHermiteThroughWall, useCrossDerivatives,
+            closedProximalEnd, localIdxDistal=localIdxDistal, nodeIdProximal=nodeIdProximal)
+
+    return annotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, d2Distal, \
+           d3Distal
+
+class ColonCentralPath:
+
+    def __init__(self, region, centralPath, termsAlong=[None]):
+        """
+        :param region: Zinc region to define model in.
+        :param centralPath: Central path subscaffold from meshtype_1d_network_layout1
+        :param termsAlong: Annotation terms along length of colon
+        """
+        # Extract length of each group along colon from central path
+        cxGroups = []
+        cd1Groups = []
+        cd2Groups = []
+        cd3Groups = []
+        cd12Groups = []
+        cd13Groups = []
+
+        tmpRegion = region.createRegion()
+        centralPath.generate(tmpRegion)
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
+        arcLengthOfGroupsAlong = []
+
+        for termName in termsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+
+            arcLength = 0.0
+            for e in range(len(cxGroup) - 1):
+                arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
+                                                             cxGroup[e + 1], cd1Group[e + 1])
+            arcLengthOfGroupsAlong.append(arcLength)
+
+            if termName == "colon":
+                cxGroups.append(cxGroup)
+                cd1Groups.append(cd1Group)
+                cd2Groups.append(cd2Group)
+                cd3Groups.append(cd3Group)
+                cd12Groups.append(cd12Group)
+                cd13Groups.append(cd13Group)
+
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
+        del tmpRegion
+
+        self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
+        self.cxGroups = cxGroups
+        self.cd1Groups = cd1Groups
+        self.cd2Groups = cd2Groups
+        self.cd3Groups = cd3Groups
+        self.cd12Groups = cd12Groups
+        self.cd13Groups = cd13Groups
