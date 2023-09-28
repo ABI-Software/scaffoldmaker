@@ -45,6 +45,13 @@ class ColonScaffoldTestCase(unittest.TestCase):
                     {
                         '_AnnotationGroup': True,
                         'dimension': 1,
+                        'identifierRanges': '1-3',
+                        'name': get_colon_term('colon')[0],
+                        'ontId': get_colon_term('colon')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
                         'identifierRanges': '1',
                         'name': get_colon_term('ascending colon')[0],
                         'ontId': get_colon_term('ascending colon')[1]
@@ -68,6 +75,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         centralPathOption = parameterSetStructureStrings['Test line']
         segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 1')
         options = {
+            'Base parameter set': 'Human 1',
             'Central path': copy.deepcopy(centralPathOption),
             'Segment profile': segmentProfileOption,
             'Number of segments': 3,
@@ -76,18 +84,19 @@ class ColonScaffoldTestCase(unittest.TestCase):
             'Proximal-transverse tenia coli width': 6.0,
             'Transverse-distal tenia coli width': 5.0,
             'Distal tenia coli width': 5.0,
+            'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements around': 1,
             'Refine number of elements along': 1,
             'Refine number of elements through wall': 1
         }
-        self.assertEqual(12, len(options))
+        self.assertEqual(14, len(options))
         centralPath = options['Central path']
         segmentProfile = options.get("Segment profile")
         segmentSettings = segmentProfile.getScaffoldSettings()
         self.assertEqual(8, segmentSettings.get("Number of elements around haustrum"))
-        self.assertEqual(0.5, segmentSettings.get("Corner inner radius factor"))
-        self.assertEqual(0.5, segmentSettings.get("Haustrum inner radius factor"))
+        self.assertEqual(0.536, segmentSettings.get("Corner outer radius factor"))
+        self.assertEqual(0.464, segmentSettings.get("Haustrum outer radius factor"))
         self.assertEqual(0.5, segmentSettings.get("Segment length end derivative factor"))
         self.assertEqual(3, segmentSettings.get("Number of tenia coli"))
         self.assertEqual(0.6, segmentSettings.get("Tenia coli thickness"))
@@ -136,19 +145,20 @@ class ColonScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-102.55487309988112, -11.951736893846785, -63.16829934203756], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [139.2604050120047, 450.61008758758777, 52.71048326055835], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-100.08668914502144, -11.342531039430702, -60.09737764484168], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [138.56897619597683, 447.93686761958236, 50.13111447364834], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
+        print(minimums, maximums)
         assertAlmostEqualList(self, minimums, [0.0, 0.0, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [397.9905020852475, 561.3383898388232, 2.2], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [377.06179507784395, 561.3383898388232, 2.2], 1.0E-6)
 
         colonCoordinates = fieldmodule.findFieldByName("colon coordinates").castFiniteElement()
         minimums, maximums = evaluateFieldNodesetRange(colonCoordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.599793206103745, 0.0, -0.6], 1.0E-4)
-        assertAlmostEqualList(self, maximums, [0.599793206103745, 24.0, 0.625], 1.0E-4)
+        assertAlmostEqualList(self, minimums, [-0.599920500334689, 0.0, -0.6], 1.0E-4)
+        assertAlmostEqualList(self, maximums, [0.599920500334689, 24.0, 0.625], 1.0E-4)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -160,10 +170,10 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 174749.05868939584, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 164285.41543554227, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 314670.65237072564, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 294925.4567043401, delta=1.0E-6)
 
     def test_mousecolon1(self):
         """
@@ -199,13 +209,13 @@ class ColonScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, 651.2624843023726, delta=1.0E-6)
+        self.assertAlmostEqual(flatSurfaceArea, 650.8919830877059, delta=1.0E-6)
         result, colonSurfaceArea = colonSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(colonSurfaceArea, 90.45789313556386, delta=1.0E-6)
+        self.assertAlmostEqual(colonSurfaceArea, 90.45785287687968, delta=1.0E-6)
         result, colonVolume = colonVolumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(colonVolume, 8.290058800222006, delta=1.0E-6)
+        self.assertAlmostEqual(colonVolume, 8.290050554292705, delta=1.0E-6)
 
 
 if __name__ == "__main__":

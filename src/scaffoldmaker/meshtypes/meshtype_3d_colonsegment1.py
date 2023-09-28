@@ -57,6 +57,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
     @staticmethod
     def getDefaultOptions(parameterSetName='Default'):
         options = {
+            'Base parameter set': parameterSetName,
             'Number of elements around tenia coli': 2,
             'Number of elements around haustrum': 8,
             'Number of elements along segment': 4,
@@ -138,7 +139,6 @@ class MeshType_3d_colonsegment1(Scaffold_base):
             options['Submucosa relative thickness'] = 0.25
             options['Circular muscle layer relative thickness'] = 0.25
             options['Longitudinal muscle layer relative thickness'] = 0.16
-        options['Base parameter set'] = parameterSetName
 
         return options
 

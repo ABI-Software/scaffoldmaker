@@ -41,6 +41,13 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                     {
                         '_AnnotationGroup': True,
                         'dimension': 1,
+                        'identifierRanges': '1-3',
+                        'name': get_smallintestine_term('small intestine')[0],
+                        'ontId': get_smallintestine_term('small intestine')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
                         'identifierRanges': '1',
                         'name': get_smallintestine_term('duodenum')[0],
                         'ontId': get_smallintestine_term('duodenum')[1]
@@ -70,7 +77,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         self.assertEqual(3, options.get("Number of segments"))
         self.assertEqual(8, options.get("Number of elements around"))
         self.assertEqual(3, options.get("Number of elements along segment"))
-        self.assertEqual(4, options.get("Number of elements through wall"))
+        self.assertEqual(1, options.get("Number of elements through wall"))
         self.assertEqual(None, options.get("Duodenum length"))
         self.assertEqual(None, options.get("Jejunum-ileum inner radius"))
         self.assertEqual(0.1, options.get("Wall thickness"))
@@ -93,26 +100,26 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         del tmpRegion
 
         annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)[0]
-        self.assertEqual(8, len(annotationGroups))
+        self.assertEqual(4, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(288, mesh3d.getSize())
+        self.assertEqual(72, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(968, mesh2d.getSize())
+        self.assertEqual(296, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1080, mesh1d.getSize())
+        self.assertEqual(384, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(400, nodes.getSize())
+        self.assertEqual(160, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-20.053209723800897, 11.40926084082289, -7.165067989112036], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [-1.8359517172713313, 19.193196743341623, 0.7249488391024033], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-19.956658197690174, 11.509153871441058, -7.068492932596849], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [-1.9033816741586018, 19.093964008729433, 0.6249529551386831], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
@@ -138,10 +145,10 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 143.8501823770281, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 127.90324495617577, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 13.608455265457282, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 12.011251644596864, delta=1.0E-6)
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(flatSurfaceArea, 144.42091907104523, delta=1.0E-3)

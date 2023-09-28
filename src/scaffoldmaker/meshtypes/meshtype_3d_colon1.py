@@ -476,7 +476,7 @@ class MeshType_3d_colon1(Scaffold_base):
                     'name': get_colon_term('descending colon')[0],
                     'ontId': get_colon_term('descending colon')[1]
                 }]
-        }),
+        })
     }
 
     @staticmethod
@@ -523,6 +523,7 @@ class MeshType_3d_colon1(Scaffold_base):
         else:
             segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 1')
         options = {
+            'Base parameter set': parameterSetName,
             'Central path': copy.deepcopy(centralPathOption),
             'Segment profile': segmentProfileOption,
             'Number of segments': 30,
@@ -557,7 +558,7 @@ class MeshType_3d_colon1(Scaffold_base):
             options['Proximal-transverse tenia coli width'] = 4.0
             options['Transverse-distal tenia coli width'] = 3.0
             options['Distal tenia coli width'] = 1.5
-        options['Base parameter set'] = parameterSetName
+
         return options
 
     @staticmethod
@@ -766,11 +767,11 @@ def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
 
     # Central path
     if tcCount == 1:
-        colonTermsAlong = [None, 'right colon', 'transverse colon', 'left colon']
+        colonTermsAlong = ['colon', 'right colon', 'transverse colon', 'left colon']
     elif tcCount == 2:
-        colonTermsAlong = [None, 'spiral colon', 'transverse colon', 'descending colon']
+        colonTermsAlong = ['colon', 'spiral colon', 'transverse colon', 'descending colon']
     elif tcCount == 3:
-        colonTermsAlong = [None, 'ascending colon', 'transverse colon', 'descending colon']
+        colonTermsAlong = ['colon', 'ascending colon', 'transverse colon', 'descending colon']
 
     centralPathLength = centralPath.arcLengthOfGroupsAlong[0]
     cx = centralPath.cxGroups[0]
