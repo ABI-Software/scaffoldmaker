@@ -51,6 +51,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
+from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
@@ -107,6 +108,7 @@ class Scaffolds(object):
             MeshType_3d_stomachhuman1,
             MeshType_3d_tube1,
             MeshType_3d_tubeseptum1,
+            MeshType_3d_uterus1,
             MeshType_3d_wholebody1
             ]
 
