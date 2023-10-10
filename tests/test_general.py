@@ -939,14 +939,16 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # get loop intersection of fully connected tube1 and tube2
         bx, bd1, bprops, bloop = tube1Surface.findIntersectionCurve(tube2Surface, curveElementsCount=12)
-        # self.assertEqual(len(bx), 8)
-        # self.assertTrue(bloop)
-        # bCircumference = getCubicHermiteCurvesLength(bx, bd1, loop=True)
-        # self.assertAlmostEqual(bCircumference, 0.5878589195857662, delta=X_TOL)
-        # assertAlmostEqualList(self, [0.7319656171294613, 0.28114905364638343, 0.13242150748131362], bx[0], delta=X_TOL)
-        # assertAlmostEqualList(self, [0.8408211373554277, 0.3182195051233381, -0.04550972731385178], bx[4], delta=X_TOL)
-        # assertAlmostEqualList(self, [0.07625303032507409, 0.7159158176234063], bprops[0], delta=XI_TOL)
-        # assertAlmostEqualList(self, [0.9766040857065028, 0.8198148840936965], bprops[4], delta=XI_TOL)
+        self.assertEqual(len(bx), 12)
+        self.assertTrue(bloop)
+        bCircumference = getCubicHermiteCurvesLength(bx, bd1, loop=True)
+        self.assertAlmostEqual(bCircumference, 2.3974539769708887, delta=X_TOL)
+        assertAlmostEqualList(self, [1.031, 0.348, 0.0], bx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9835148692327162, -0.18505888732305587, 0.3490118118443725], bx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9835148692326544, -0.18505888732375267, -0.3490118118458629], bx[8], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0, 1.0], bprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.3335632443577428, 1.0], bprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.666436755637046, 1.0], bprops[8], delta=XI_TOL)
 
         # get loop intersection of large tube1 and small tube3
         cx, cd1, cprops, cloop = tube1Surface.findIntersectionCurve(
@@ -979,28 +981,27 @@ class GeneralScaffoldTestCase(unittest.TestCase):
                                               [td2[n][0] for n in range(elementsCountAlong + 1)])
         self.assertAlmostEqual(tLength, 0.5004154200664181, delta=X_TOL)
 
-        context = Context("TrackSurface")
-        region = context.getDefaultRegion()
-        tube1Surface.generateMesh(region)
-        tube2Surface.generateMesh(region)
-        # tube3Surface.generateMesh(region)
-        tube3TrimmedSurface.generateMesh(region)
-        fieldmodule = region.getFieldmodule()
-        fieldmodule.defineAllFaces()
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        curveCoordinates = create_field_coordinates(fieldmodule, "curve_coordinates", managed=True)
-        nodetemplate.defineField(curveCoordinates)
-        nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        fieldcache = fieldmodule.createFieldcache()
-        px = bx + cx
-        pd1 = bd1 + cd1
-        for n in range(len(px)):
-            node = nodes.createNode(-1, nodetemplate)
-            fieldcache.setNode(node)
-            curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-            curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
+        # context = Context("TrackSurface")
+        # region = context.getDefaultRegion()
+        # tube1Surface.generateMesh(region)
+        # tube2Surface.generateMesh(region)
+        # # tube3Surface.generateMesh(region)
+        # tube3TrimmedSurface.generateMesh(region)
+        # fieldmodule = region.getFieldmodule()
+        # fieldmodule.defineAllFaces()
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # curveCoordinates = create_field_coordinates(fieldmodule, "curve_coordinates", managed=True)
+        # nodetemplate.defineField(curveCoordinates)
+        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        # fieldcache = fieldmodule.createFieldcache()
+        # px = bx + cx
+        # pd1 = bd1 + cd1
+        # for n in range(len(px)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
 
     def test_tube_intersections2(self):
         elementsCountAround = 8

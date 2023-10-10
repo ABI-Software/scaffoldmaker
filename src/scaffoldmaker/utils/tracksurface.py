@@ -390,7 +390,8 @@ class TrackSurface:
             if mag_r < X_TOL:
                 n2 = cross(od1, od2)
                 tangent = cross(n1, n2)
-                if magnitude(tangent) < 1.0E-6 * X_TOL:
+                if (magnitude(tangent) < 1.0E-6 * X_TOL) or (
+                        (onBoundary == 2) and (onOtherBoundary == 2) and (dot(normalize(d1), normalize(od1)) > 0.9999)):
                     tangent = d1 if (onBoundary == 2) else d2
                 tangent = normalize(tangent)
                 # print("TrackSurface.findIntersectionPoint found intersection: ", position, "on iter", it + 1)
@@ -595,6 +596,7 @@ class TrackSurface:
         loop = False
         xiLoopSamples = [0.25, 0.5, 0.75, 1.0]
         pointCount = 0
+        crossBoundary = 0
         while True:
             position, otherPosition, x, t, onBoundary = \
                 self.findIntersectionPoint(otherTrackSurface, nextPosition, otherPosition)
@@ -611,7 +613,7 @@ class TrackSurface:
                     px.insert(0, x)
                     pd1.insert(0, t)
                 pointCount += 1
-            if onBoundary:
+            if onBoundary and crossBoundary:
                 boundaryCount += 1
                 # print("=== Boundary", boundaryCount, startPosition)
                 if boundaryCount == 2:
@@ -643,7 +645,7 @@ class TrackSurface:
                     break
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
             dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, mult(t, -1.0) if (boundaryCount == 1) else t)
-            nextPosition = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)[0]
+            nextPosition, crossBoundary = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)[0:2]
             # print("  t", t, "next", nextPosition)
 
         # resample and re-find positions and tangents
