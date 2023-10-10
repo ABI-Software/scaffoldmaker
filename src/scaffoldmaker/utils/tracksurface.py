@@ -372,10 +372,12 @@ class TrackSurface:
         otherPosition = copy.deepcopy(otherStartPosition)
         MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
         XI_TOL = 1.0E-7
-        X_TOL = 1.0E-5 * max(self._xRange)
+        X_TOL = 1.0E-6 * max(self._xRange)
+        MAG_JOLT_DXI = 0.1  # magnitude of xi change when jolting out of local minimum
         mag_dxi = 0.0
         old_dxi = None
-        mag_old_dxi = 0
+        mag_old_dxi = 0.0
+        jolt_index = 0
         for it in range(100):
             onBoundary = self._positionOnBoundary(position)
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
@@ -385,47 +387,110 @@ class TrackSurface:
             r = sub(ox, x)
             mag_r = magnitude(r)
             n1 = cross(d1, d2)
-            if (mag_r < X_TOL) or (onBoundary and (mag_r < 10.0 * X_TOL)):
+            if mag_r < X_TOL:
                 n2 = cross(od1, od2)
                 tangent = cross(n1, n2)
-                if magnitude(tangent) < 1E-6 * X_TOL:
-                    tangent = d2 if (onBoundary == 1) else d1
+                if magnitude(tangent) < 1.0E-6 * X_TOL:
+                    tangent = d1 if (onBoundary == 2) else d2
                 tangent = normalize(tangent)
                 # print("TrackSurface.findIntersectionPoint found intersection: ", position, "on iter", it + 1)
                 return position, otherPosition, x, tangent, onBoundary
-            if onBoundary and onOtherBoundary:
+            if onBoundary:
                 d = d1 if (onBoundary == 2) else d2
                 n = normalize(cross(cross(d, r), d))
+                if dot(n, n1) < 0.0:
+                    n = [-s for s in n]
             else:
                 d = None
                 n = normalize(n1)
-            # print("iter", it + 1, "pos", position, onBoundary, "other", otherPosition, onOtherBoundary, "mag_r", mag_r, "n", n)
             r_dot_n = dot(r, n)
+            # print("iter", it + 1, "pos", position, onBoundary, "other", otherPosition, onOtherBoundary, "dr", r_dot_n)
             if r_dot_n < 0:
                 # flip normal to be towards other x
                 n = [-s for s in n]
                 r_dot_n = -r_dot_n
             r_out_of_plane = mult(n, r_dot_n)
             r_in_plane = sub(r, r_out_of_plane)
-            if onOtherBoundary:
+            if onOtherBoundary:  # projection will not generally be normal to other surface or edge
                 u = r_in_plane
             else:
                 # add out-of-plane slope component
                 mag_ri = magnitude(r_in_plane)
-                # factor = 1.0 + r_dot_n / mag_r
-                slope_factor = mag_r / mag_ri  # mag_r * mag_r / (mag_ri * mag_ri)
-                # print("slope_factor", slope_factor)
-                # if slope_factor > 10.0:
-                #     slope_factor = 10.0
-                u = mult(r_in_plane, slope_factor)
+                if mag_ri == 0.0:
+                    u = [0.0, 0.0, 0.0]
+                else:
+                    # slope_factor = mag_r / mag_ri
+                    slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+                    # print("    slope_factor", slope_factor)
+                    # if slope_factor > 1000.0:
+                    #     slope_factor = 1000.0
+                    u = mult(r_in_plane, slope_factor)
             dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, u)
             dxi = [dxi1, dxi2]
             mag_dxi = magnitude(dxi)
             # print("     dxi", dxi1, dxi2)
-            # control oscillations
-            if old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi * mag_old_dxi)):
+            if mag_dxi < (100.0 * XI_TOL):
+                # slow progress: may be a local minimum; jolt along boundary edge or cardinal direction
+                if onBoundary:
+                    jolt_case = jolt_index % 2
+                    jolt_dxi1 = 0.0 if (onBoundary == 1) else -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI
+                    jolt_dxi2 = 0.0 if (onBoundary == 2) else -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI
+                    jolt_position, _, jolt_dxi1, jolt_dxi2 = self._advancePosition(position, jolt_dxi1, jolt_dxi2)
+                elif onOtherBoundary:
+                    jolt_case = jolt_index % 2
+                    jolt_other_dxi1 = 0.0 if (onOtherBoundary == 1) else \
+                        -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI
+                    jolt_other_dxi2 = 0.0 if (onOtherBoundary == 2) else \
+                        -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI
+                    jolt_otherPosition, _, jolt_other_dxi1, jolt_other_dxi2 = self._advancePosition(
+                        otherPosition, jolt_other_dxi1, jolt_other_dxi2)
+                    if (jolt_other_dxi1 != 0.0) or (jolt_other_dxi2 != 0.0):
+                        jolt_other_x = otherTrackSurface.evaluateCoordinates(jolt_otherPosition)
+                        jolt_position = self.findNearestPosition(jolt_other_x, position)
+                        proportion = self.getProportion(position)
+                        jolt_proportion = self.getProportion(jolt_position)
+                        jolt_dxi1 = (jolt_proportion[0] - proportion[0]) * self._elementsCount1
+                        jolt_dxi2 = (jolt_proportion[1] - proportion[1]) * self._elementsCount2
+                    else:
+                        jolt_position = position
+                        jolt_dxi1 = 0.0
+                        jolt_dxi2 = 0.0
+                else:
+                    jolt_case = jolt_index % 4
+                    jolt_dxi1 = -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI if (jolt_case == 2) else 0.0
+                    jolt_dxi2 = -MAG_JOLT_DXI if (jolt_case == 1) else MAG_JOLT_DXI if (jolt_case == 3) else 0.0
+                    jolt_position, _, jolt_dxi1, jolt_dxi2 = \
+                        self._advancePosition(position, jolt_dxi1, jolt_dxi2, MAX_MAG_DXI=MAX_MAG_DXI)
+                if (jolt_dxi1 != 0.0) or (jolt_dxi2 != 0.0):
+                    jolt_x, jolt_d1, jolt_d2 = self.evaluateCoordinates(jolt_position, derivatives=True)
+                    jolt_otherPosition = otherTrackSurface.findNearestPosition(jolt_x, otherPosition)
+                    jolt_ox = otherTrackSurface.evaluateCoordinates(jolt_otherPosition)
+                    jolt_r = sub(jolt_ox, jolt_x)
+                    jolt_n1 = normalize(cross(jolt_d1, jolt_d2))
+                    r_dot_n_signed = dot(r, normalize(n1))
+                    jolt_r_dot_n_signed = dot(jolt_r, jolt_n1)
+                    if r_dot_n_signed * jolt_r_dot_n_signed <= 0.0:
+                        # get linear crossing point
+                        jolt_factor = abs(r_dot_n_signed) / (abs(r_dot_n_signed) + abs(jolt_r_dot_n_signed))
+                        dxi1 = jolt_dxi1 * jolt_factor
+                        dxi2 = jolt_dxi2 * jolt_factor
+                        dxi = [dxi1, dxi2]
+                        mag_dxi = magnitude(dxi)
+                        # print("JOLT CROSS", jolt_case, "factor", jolt_factor, "dxi", dxi1, dxi2)
+                    elif abs(jolt_r_dot_n_signed) < abs(r_dot_n_signed):
+                        dxi1 = jolt_dxi1
+                        dxi2 = jolt_dxi2
+                        dxi = [dxi1, dxi2]
+                        mag_dxi = magnitude(dxi)
+                        # print("JOLT LOWER", jolt_case, "dxi", dxi1, dxi2)
+                    else:
+                        # print("JOLT IGNORE", jolt_case)
+                        pass  # jolt did not help
+                    jolt_index += 1
+            elif old_dxi and (dot(dxi, old_dxi) < -0.5 * (mag_old_dxi * mag_old_dxi)):
+                # control oscillations
                 osc_factor = mag_dxi / (mag_dxi + mag_old_dxi)
-                # print("osc", osc_factor)
+                # print("    osc_factor", osc_factor)
                 dxi1 *= osc_factor
                 dxi2 *= osc_factor
                 dxi = [dxi1, dxi2]

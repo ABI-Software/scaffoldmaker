@@ -954,11 +954,11 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(len(cx), 8)
         self.assertTrue(cloop)
         cCircumference = getCubicHermiteCurvesLength(cx, cd1, loop=True)
-        # self.assertAlmostEqual(cCircumference, 0.5878589195857662, delta=X_TOL)
-        # assertAlmostEqualList(self, [0.7319656171294613, 0.28114905364638343, 0.13242150748131362], cx[0], delta=X_TOL)
-        # assertAlmostEqualList(self, [0.8408211373554277, 0.3182195051233381, -0.04550972731385178], cx[4], delta=X_TOL)
-        # assertAlmostEqualList(self, [0.07625303032507409, 0.7159158176234063], cprops[0], delta=XI_TOL)
-        # assertAlmostEqualList(self, [0.9766040857065028, 0.8198148840936965], cprops[4], delta=XI_TOL)
+        self.assertAlmostEqual(cCircumference, 0.5878579659947212, delta=X_TOL)
+        assertAlmostEqualList(self, [0.7318795557933627, 0.28115372437396596, 0.13238827675372755], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.8408756825081185, 0.31822791967684666, -0.04549462829045712], cx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0762371065410046, 0.7158349700466852], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.9766130691654743, 0.819866522694973], cprops[4], delta=XI_TOL)
 
         # make trimmed tube3 starting at intersection with tube1
         tx, td1, td2, td12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong,
@@ -1071,35 +1071,50 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         p1, op1, p1x, p1t, p1bdy = tube1Surface.findIntersectionPoint(
             tube2Surface, tube1Surface.createPositionProportion(0.25, 1.0),
             tube2Surface.createPositionProportion(0.25, 0.0))
-        # self.assertEqual(p1.e1, 0)
-        # self.assertEqual(p1.e2, 0)
-        # self.assertAlmostEqual(p1.xi1, 0.3833692358109723, delta=XI_TOL)
-        # self.assertAlmostEqual(p1.xi2, 0.1393524055495626, delta=XI_TOL)
-        # self.assertEqual(op1.e1, 0)
-        # self.assertEqual(op1.e2, 0)
-        # self.assertAlmostEqual(op1.xi1, 0.3551061709004786, delta=XI_TOL)
-        # self.assertAlmostEqual(op1.xi2, 0.13935245588660966, delta=XI_TOL)
-        # assertAlmostEqualList(self, [0.16063908945420835, -0.9870132131533614, 0.0], p1t, delta=X_TOL)
-
+        op1x = tube2Surface.evaluateCoordinates(op1)
+        self.assertEqual(p1.e1, 2)
+        self.assertEqual(p1.e2, 5)
+        self.assertAlmostEqual(p1.xi1, 0.5512499454583937, delta=XI_TOL)
+        self.assertAlmostEqual(p1.xi2, 1.0, delta=XI_TOL)
+        self.assertEqual(op1.e1, 2)
+        self.assertEqual(op1.e2, 0)
+        self.assertAlmostEqual(op1.xi1, 0.5566348414292048, delta=XI_TOL)
+        self.assertAlmostEqual(op1.xi2, 0.05275706199088565, delta=XI_TOL)
+        assertAlmostEqualList(self, [-0.6607192288571963, -0.7021591342172234, -0.2653726641040317], p1t, delta=X_TOL)
 
         # get non-loop intersection of tube1 and tube2
         ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface)
-        # self.assertEqual(len(ax), 9)
-        # self.assertFalse(aloop)
-        # ax = [[0.0, 0.0, 0.0]]
-        # ad1 = [[1.0, 0.0, 0.0]]
+        self.assertEqual(len(ax), 9)
+        self.assertFalse(aloop)
         aLength = getCubicHermiteCurvesLength(ax, ad1, loop=True)
-        # self.assertAlmostEqual(bCircumference, 0.5878589195857662, delta=X_TOL)
-        # assertAlmostEqualList(self, [0.7319656171294613, 0.28114905364638343, 0.13242150748131362], ax[0], delta=X_TOL)
-        # assertAlmostEqualList(self, [0.8408211373554277, 0.3182195051233381, -0.04550972731385178], ax[-1], delta=X_TOL)
-        # assertAlmostEqualList(self, [0.07625303032507409, 0.7159158176234063], aprops[0], delta=XI_TOL)
-        # assertAlmostEqualList(self, [0.9766040857065028, 0.8198148840936965], aprops[-1], delta=XI_TOL)
+        self.assertAlmostEqual(aLength, 1.2918661518946066, delta=X_TOL)
+        assertAlmostEqualList(self, [1.0179553998748692, -0.10371244390376227, 0.22619651874167146], ax[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.8745428778758625, -0.21896550828378, -0.07772568158397204], ax[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9779210512321508, 0.08203570459720216, -0.23450430440088343], ax[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.3189062431566756, 1.0], aprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.5614951905673695, 0.9099217375698783], aprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.8038793186883857, 1.0], aprops[8], delta=XI_TOL)
+
+        # get non-loop intersection of tube1 and tube3
+        bx = []
+        bd1 = []
+        # bx, bd1, bprops, bloop = tube1Surface.findIntersectionCurve(tube3Surface)
+        # self.assertEqual(len(bx), 9)
+        # self.assertFalse(bloop)
+        # bLength = getCubicHermiteCurvesLength(bx, bd1, loop=True)
+        # self.assertAlmostEqual(bLength, 1.2918661518946066, delta=X_TOL)
+        # assertAlmostEqualList(self, [1.0179553998748692, -0.10371244390376227, 0.22619651874167146], bx[0], delta=X_TOL)
+        # assertAlmostEqualList(self, [0.8745428778758625, -0.21896550828378, -0.07772568158397204], bx[4], delta=X_TOL)
+        # assertAlmostEqualList(self, [0.9779210512321508, 0.08203570459720216, -0.23450430440088343], bx[8], delta=X_TOL)
+        # assertAlmostEqualList(self, [0.3189062431566756, 1.0], bprops[0], delta=XI_TOL)
+        # assertAlmostEqualList(self, [0.5614951905673695, 0.9099217375698783], bprops[4], delta=XI_TOL)
+        # assertAlmostEqualList(self, [0.8038793186883857, 1.0], bprops[8], delta=XI_TOL)
 
         context = Context("TrackSurface")
         region = context.getDefaultRegion()
         tube1Surface.generateMesh(region)
         tube2Surface.generateMesh(region)
-        # tube3Surface.generateMesh(region)
+        tube3Surface.generateMesh(region)
         fieldmodule = region.getFieldmodule()
         fieldmodule.defineAllFaces()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -1108,8 +1123,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         nodetemplate.defineField(curveCoordinates)
         nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         fieldcache = fieldmodule.createFieldcache()
-        px = [p1x] + ax
-        pd1 = [p1t] + ad1
+        px = ax + bx
+        pd1 = ad1 + bd1
         for n in range(len(px)):
             node = nodes.createNode(-1, nodetemplate)
             fieldcache.setNode(node)
