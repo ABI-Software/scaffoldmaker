@@ -615,20 +615,19 @@ class TrackSurface:
         while True:
             position, otherPosition, x, t, onBoundary = \
                 self.findIntersectionPoint(otherTrackSurface, nextPosition, otherPosition)
-            onOtherBoundary = otherTrackSurface._positionOnBoundary(otherPosition)
-            # print("  curve pos", position, "boundary", onBoundary, "onOtherBoundary", onOtherBoundary)
             if not position:
                 assert pointCount == 0
                 print("TrackSurface.findIntersectionCurve.  No intersection")
                 return None, None, None, False
+            onOtherBoundary = otherTrackSurface._positionOnBoundary(otherPosition)
+            # print("  curve pos", position, "boundary", onBoundary, "onOtherBoundary", onOtherBoundary)
+            if boundaryCount == 0:
+                px.append(x)
+                pd1.append(t)
             else:
-                if boundaryCount == 0:
-                    px.append(x)
-                    pd1.append(t)
-                else:
-                    px.insert(0, x)
-                    pd1.insert(0, t)
-                pointCount += 1
+                px.insert(0, x)
+                pd1.insert(0, t)
+            pointCount += 1
             if (pointCount > 1) and (onBoundary or onOtherBoundary) and \
                     (crossBoundary or not (onBoundary and onOtherBoundary)):
                 if (pointCount > 1) and (magnitude(sub(x, px[-2])) < X_TOL):
