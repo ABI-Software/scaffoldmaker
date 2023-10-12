@@ -7,10 +7,10 @@ from enum import Enum
 import math
 from cmlibs.maths.vectorops import cross, dot, magnitude, mult, normalize, sub
 from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.zinc.element import Element, Elementbasis
-from cmlibs.zinc.field import Field
+from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, evaluateCoordinatesOnCurve, \
     getCubicHermiteArcLength, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, \
@@ -976,7 +976,8 @@ class TrackSurface:
         #    print('!!! Reached boundary of face', faceNumber, 'position', position)
         return onBoundary
 
-    def generateMesh(self, region, startNodeIdentifier: int=None, startElementIdentifier: int=None, serendipity=False):
+    def generateMesh(self, region, startNodeIdentifier: int=None, startElementIdentifier: int=None, serendipity=False,
+                     group_name=None):
         """
         Generate nodes and surface elements in region to show track surface.
         Client is required to define all faces.
@@ -984,42 +985,46 @@ class TrackSurface:
         :param startNodeIdentifier: Optional first node identifier to use.
         :param startElementIdentifier: Optional first 2D element identifier to use.
         :param serendipity: Set to True to use Hermite serendipity basis.
+        :param group_name: Optional name of group to put new nodes and elements in.
         :return: next node identifier, next 2D element identifier
         """
         fieldmodule = region.getFieldmodule()
-        coordinates = find_or_create_field_coordinates(fieldmodule)
-
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        firstNodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
-            max(get_maximum_node_identifier(nodes), 0) + 1
-        nodeIdentifier = firstNodeIdentifier
-
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if not serendipity:
-            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
-
-        mesh = fieldmodule.findMeshByDimension(2)
-        firstElementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
-            max(get_maximum_element_identifier(mesh), 0) + 1
-        elementIdentifier = firstElementIdentifier
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-        bicubicHermiteBasis = fieldmodule.createElementbasis(
-            2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if (serendipity and not self._nd12)
-               else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-        eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
-        # keep cross derivatives so can experiment with effect
-        # if not serendipity:
-        #     # remove cross derivative terms for regular Hermite
-        #     for n in range(4):
-        #         eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
-        elementtemplate.defineField(coordinates, -1, eft)
-
-        fieldcache = fieldmodule.createFieldcache()
         with ChangeManager(fieldmodule):
+            coordinates = find_or_create_field_coordinates(fieldmodule)
+            group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
+
+            nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            firstNodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
+                max(get_maximum_node_identifier(nodes), 0) + 1
+            nodeIdentifier = firstNodeIdentifier
+
+            nodetemplate = nodes.createNodetemplate()
+            nodetemplate.defineField(coordinates)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+            if not serendipity:
+                nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+
+            mesh = fieldmodule.findMeshByDimension(2)
+            firstElementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
+                max(get_maximum_element_identifier(mesh), 0) + 1
+            elementIdentifier = firstElementIdentifier
+            elementtemplate = mesh.createElementtemplate()
+            elementtemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+            bicubicHermiteBasis = fieldmodule.createElementbasis(
+                2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if (serendipity and not self._nd12)
+                   else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+            eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+            # keep cross derivatives so can experiment with effect
+            # if not serendipity:
+            #     # remove cross derivative terms for regular Hermite
+            #     for n in range(4):
+            #         eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
+            elementtemplate.defineField(coordinates, -1, eft)
+
+            fieldcache = fieldmodule.createFieldcache()
+
+            nodeset_group = group.getOrCreateNodesetGroup(nodes) if group else None
             for n1 in range(len(self._nx)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 fieldcache.setNode(node)
@@ -1028,8 +1033,12 @@ class TrackSurface:
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, self._nd2[n1])
                 if self._nd12:
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, self._nd12[n1])
+                if nodeset_group:
+                    nodeset_group.addNode(node)
                 nodeIdentifier += 1
             del n1
+
+            mesh_group = group.getOrCreateMeshGroup(mesh) if group else None
             nodesCount1 = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
             for e2 in range(self._elementsCount2):
                 for e1 in range(self._elementsCount1):
@@ -1042,7 +1051,15 @@ class TrackSurface:
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     element.setNodesByIdentifier(eft, nids)
                     # print(elementIdentifier, element.isValid(), nids)
+                    if mesh_group:
+                        mesh_group.addElement(element)
                     elementIdentifier += 1
+
+            fieldmodule.defineAllFaces()
+            if group:
+                # ensure all lines are in group
+                group.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+                mesh_group.addElementsConditional(group)
 
         return nodeIdentifier, elementIdentifier
 

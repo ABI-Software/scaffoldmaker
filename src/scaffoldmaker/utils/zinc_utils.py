@@ -609,7 +609,8 @@ def clearRegion(region):
             field = fieldIter.next()
 
 
-def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, startElementIdentifier=None):
+def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, startElementIdentifier=None,
+                      coordinate_field_name=None, group_name=None):
     """
     Generate a set of 1-D elements with Hermite basis
     :param region: Zinc Region.
@@ -618,46 +619,55 @@ def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, sta
     :param loop: True if curve loops back to first point, False if not.
     :param startNodeIdentifier: Optional first node identifier to use.
     :param startElementIdentifier: Optional first 1D element identifier to use.
+    :param coordinate_field_name: Optional name of coordinate field to define, if omitted use "coordinates".
+    :param group_name: Optional name of group to put new nodes and elements in.
     :return: next node identifier, next 2D element identifier
     """
     fieldmodule = region.getFieldmodule()
-    coordinates = find_or_create_field_coordinates(fieldmodule)
-
-    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    nodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
-        max(get_maximum_node_identifier(nodes), 0) + 1
-
-    nodetemplate = nodes.createNodetemplate()
-    nodetemplate.defineField(coordinates)
-    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-
-    mesh = fieldmodule.findMeshByDimension(1)
-    elementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
-        max(get_maximum_element_identifier(mesh), 0) + 1
-    elementtemplate = mesh.createElementtemplate()
-    elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
-    cubicHermiteBasis = fieldmodule.createElementbasis(
-        1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-    eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
-    elementtemplate.defineField(coordinates, -1, eft)
-
-    fieldcache = fieldmodule.createFieldcache()
     with ChangeManager(fieldmodule):
+        coordinates = find_or_create_field_coordinates(fieldmodule, name=coordinate_field_name)
+        group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
+
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
+            max(get_maximum_node_identifier(nodes), 0) + 1
+
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+
+        mesh = fieldmodule.findMeshByDimension(1)
+        elementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
+            max(get_maximum_element_identifier(mesh), 0) + 1
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
+        cubicHermiteBasis = fieldmodule.createElementbasis(
+            1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
+        elementtemplate.defineField(coordinates, -1, eft)
+
+        fieldcache = fieldmodule.createFieldcache()
         nids = []
         nCount = len(nx)
+        nodeset_group = group.getOrCreateNodesetGroup(nodes) if group else None
         for n in range(nCount):
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             nids.append(nodeIdentifier)
             fieldcache.setNode(node)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n])
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n])
+            if nodeset_group:
+                nodeset_group.addNode(node)
             nodeIdentifier += 1
         eCount = nCount if loop else nCount - 1
         if loop:
             nids.append(nids[0])
+        mesh_group = group.getOrCreateMeshGroup(mesh) if group else None
         for e in range(eCount):
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids[e:e + 2])
+            if mesh_group:
+                mesh_group.addElement(element)
             elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier

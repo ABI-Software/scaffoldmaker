@@ -2,7 +2,7 @@ import math
 import unittest
 
 from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
-from cmlibs.utils.zinc.field import create_field_coordinates
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
@@ -24,7 +24,7 @@ from scaffoldmaker.utils.interpolation import evaluateCoordinatesOnCurve, getCub
     getNearestLocationBetweenCurves, getNearestLocationOnCurve
 from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
-# from scaffoldmaker.utils.zinc_utils import generateCurveMesh
+from scaffoldmaker.utils.zinc_utils import generateCurveMesh
 
 from testutils import assertAlmostEqualList
 
@@ -852,23 +852,30 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         context = Context("TrackSurface")
         region = context.getDefaultRegion()
-        surf1.generateMesh(region)
-        surf2.generateMesh(region)
+        surfaceGroupName = "surface"
+        surf1.generateMesh(region, group_name=surfaceGroupName)
+        surf2.generateMesh(region, group_name=surfaceGroupName)
+        coordinateFieldName = "curve_coordinates"
+        curveGroupName = "curve"
         fieldmodule = region.getFieldmodule()
-        fieldmodule.defineAllFaces()
+        curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
+        curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
-        curveCoordinates = create_field_coordinates(fieldmodule, "curve_coordinates", managed=True)
         nodetemplate.defineField(curveCoordinates)
         nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
         fieldcache = fieldmodule.createFieldcache()
-        px = [p1x, p2x] + cx + dx
-        pd1 = [p1t, p2t] + cd1 + dd1
+        px = [p1x, p2x]
+        pd1 = [p1t, p2t]
         for n in range(len(px)):
             node = nodes.createNode(-1, nodetemplate)
             fieldcache.setNode(node)
             curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
             curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+            curveNodesetGroup.addNode(node)
+        generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        generateCurveMesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
         region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
     def test_tube_intersections1(self):
@@ -950,7 +957,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [1.3335632443577428, 1.0], aprops[4], delta=XI_TOL)
         assertAlmostEqualList(self, [1.666436755637046, 1.0], aprops[8], delta=XI_TOL)
 
-        # get loop intersection of fully unconnected tube2 and tube3
+        # get loop intersection of unconnected tube2 and tube3
         bx, bd1, bprops, bloop = tube2Surface.findIntersectionCurve(tube3Surface, curveElementsCount=12)
         self.assertIsNone(bx)
         self.assertIsNone(bd1)
@@ -988,27 +995,18 @@ class GeneralScaffoldTestCase(unittest.TestCase):
                                               [td2[n][0] for n in range(elementsCountAlong + 1)])
         self.assertAlmostEqual(tLength, 0.5004154200664181, delta=X_TOL)
 
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # tube1Surface.generateMesh(region)
-        # tube2Surface.generateMesh(region)
-        # # tube3Surface.generateMesh(region)
-        # tube3TrimmedSurface.generateMesh(region)
-        # fieldmodule = region.getFieldmodule()
-        # fieldmodule.defineAllFaces()
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # curveCoordinates = create_field_coordinates(fieldmodule, "curve_coordinates", managed=True)
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = bx + cx
-        # pd1 = bd1 + cd1
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+        context = Context("TrackSurface")
+        region = context.getDefaultRegion()
+        surfaceGroupName = "surface"
+        tube1Surface.generateMesh(region, group_name=surfaceGroupName)
+        tube2Surface.generateMesh(region, group_name=surfaceGroupName)
+        # tube3Surface.generateMesh(region, group_name=surfaceGroupName)
+        tube3TrimmedSurface.generateMesh(region, group_name=surfaceGroupName)
+        coordinateFieldName = "curve_coordinates"
+        curveGroupName = "curve"
+        generateCurveMesh(region, ax, ad1, aloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        generateCurveMesh(region, cx, cd1, cloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
     def test_tube_intersections2(self):
         elementsCountAround = 8
@@ -1142,24 +1140,15 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         context = Context("TrackSurface")
         region = context.getDefaultRegion()
-        tube1Surface.generateMesh(region)
-        tube2Surface.generateMesh(region)
-        tube3Surface.generateMesh(region)
-        fieldmodule = region.getFieldmodule()
-        fieldmodule.defineAllFaces()
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        curveCoordinates = create_field_coordinates(fieldmodule, "curve_coordinates", managed=True)
-        nodetemplate.defineField(curveCoordinates)
-        nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        fieldcache = fieldmodule.createFieldcache()
-        px = ax + bx + cx
-        pd1 = ad1 + bd1 + cd1
-        for n in range(len(px)):
-            node = nodes.createNode(-1, nodetemplate)
-            fieldcache.setNode(node)
-            curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-            curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+        surfaceGroupName = "surface"
+        tube1Surface.generateMesh(region, group_name=surfaceGroupName)
+        tube2Surface.generateMesh(region, group_name=surfaceGroupName)
+        tube3Surface.generateMesh(region, group_name=surfaceGroupName)
+        coordinateFieldName = "curve_coordinates"
+        curveGroupName = "curve"
+        generateCurveMesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        generateCurveMesh(region, bx, bd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
         region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
 
 
