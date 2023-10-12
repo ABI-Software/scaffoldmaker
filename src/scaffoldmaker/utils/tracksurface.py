@@ -353,6 +353,48 @@ class TrackSurface:
             return 2
         return 0
 
+    def _advancePosition(self, startPosition, dxi1, dxi2, MAX_MAG_DXI=0.5):
+        """
+        Advance position by element delta xi to maximum change of xi coordinates or boundary.
+        :param startPosition: Start position.
+        :param dxi1: Increment in xi1.
+        :param dxi2: Increment in xi2.
+        :param MAX_MAG_DXI: Maximum magnitude of dxi to keep increments reasonable for a cubic curve.
+        :return: Advanced position, onBoundary (0/1=xi1/2=xi2), actual dxi1, actual dxi2
+        """
+        startProportion1, startProportion2 = self.getProportion(startPosition)
+        magDxi = magnitude([dxi1, dxi2])
+        if magDxi > MAX_MAG_DXI:
+            factor = MAX_MAG_DXI / magDxi
+            dxi1 *= factor
+            dxi2 *= factor
+        proportion1 = startProportion1 + dxi1 / self._elementsCount1
+        proportion2 = startProportion2 + dxi2 / self._elementsCount2
+        onBoundary = 0
+        if self._loop1:
+            if proportion1 < 0.0:
+                proportion1 += 1.0
+            elif proportion1 > 2.0:
+                proportion1 -= 2.0
+        else:
+            if proportion1 < 0.0:
+                proportion1 = 0.0
+                onBoundary = 1
+            elif proportion1 > 1.0:
+                proportion1 = 1.0
+                onBoundary = 1
+        if proportion2 < 0.0:
+            proportion2 = 0.0
+            onBoundary = 2
+        elif proportion2 > 1.0:
+            proportion2 = 1.0
+            onBoundary = 2
+        if onBoundary:
+            if not self._loop1:
+                dxi1 = (proportion1 - startProportion1) / self._elementsCount1
+            dxi2 = (proportion2 - startProportion2) / self._elementsCount2
+        return self.createPositionProportion(proportion1, proportion2), onBoundary, dxi1, dxi2
+
     def findIntersectionPoint(self, otherTrackSurface,
                               startPosition: TrackSurfacePosition,
                               otherStartPosition: TrackSurfacePosition):
@@ -378,6 +420,7 @@ class TrackSurface:
         old_dxi = None
         mag_old_dxi = 0.0
         jolt_index = 0
+        jolt_it = -2  # iter number of last jolt
         for it in range(100):
             onBoundary = self._positionOnBoundary(position)
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
@@ -386,6 +429,7 @@ class TrackSurface:
             ox, od1, od2 = otherTrackSurface.evaluateCoordinates(otherPosition, derivatives=True)
             r = sub(ox, x)
             mag_r = magnitude(r)
+            # print("iter", it + 1, "pos", position, onBoundary, "other", otherPosition, onOtherBoundary, "mag_r", mag_r)
             n1 = cross(d1, d2)
             if mag_r < X_TOL:
                 n2 = cross(od1, od2)
@@ -394,25 +438,30 @@ class TrackSurface:
                         (onBoundary == 2) and (onOtherBoundary == 2) and (dot(normalize(d1), normalize(od1)) > 0.9999)):
                     tangent = d1 if (onBoundary == 2) else d2
                 tangent = normalize(tangent)
-                # print("TrackSurface.findIntersectionPoint found intersection: ", position, "on iter", it + 1)
+                # print("TrackSurface.findIntersectionPoint found intersection: ", position, "mag_r", mag_r, "iter", it + 1)
                 return position, otherPosition, x, tangent, onBoundary
-            if onBoundary:
-                d = d1 if (onBoundary == 2) else d2
-                n = normalize(cross(cross(d, r), d))
+            od = None
+            if onOtherBoundary and not onBoundary:
+                # projection is normal to this surface, not normal to other surface/edge
+                od = od1 if (onOtherBoundary == 2) else od2
+                n = cross(cross(od, r), od)
                 if dot(n, n1) < 0.0:
                     n = [-s for s in n]
-            else:
-                d = None
-                n = normalize(n1)
+            # this may be useful in future for tracking along boundary
+            # elif onBoundary:
+            #     d = d1 if (onBoundary == 2) else d2
+            #     n = cross(cross(d, r), d)
+            #     if dot(n, n1) < 0.0:
+            #         n = [-s for s in n]
+            n = normalize(n1)
             r_dot_n = dot(r, n)
-            # print("iter", it + 1, "pos", position, onBoundary, "other", otherPosition, onOtherBoundary, "dr", r_dot_n)
             if r_dot_n < 0:
                 # flip normal to be towards other x
                 n = [-s for s in n]
                 r_dot_n = -r_dot_n
             r_out_of_plane = mult(n, r_dot_n)
             r_in_plane = sub(r, r_out_of_plane)
-            if onOtherBoundary:  # projection will not generally be normal to other surface or edge
+            if onOtherBoundary and onBoundary:
                 u = r_in_plane
             else:
                 # add out-of-plane slope component
@@ -426,13 +475,21 @@ class TrackSurface:
                     # if slope_factor > 1000.0:
                     #     slope_factor = 1000.0
                     u = mult(r_in_plane, slope_factor)
+                    if onOtherBoundary and not onBoundary:
+                        # remove components of u not parallel to other boundary
+                        u_od2_alignment = dot(normalize(u), normalize(od2))
+                        if (it == (jolt_it + 1)) or (u_od2_alignment > 0.99):
+                            new_u = vector.vectorProjection(u, od2)
+                            # print("    other fix:", u_od2_alignment, "/", u, "-->", new_u)
+                            u = new_u
             dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, u)
             dxi = [dxi1, dxi2]
             mag_dxi = magnitude(dxi)
             # print("     dxi", dxi1, dxi2)
             if mag_dxi < (100.0 * XI_TOL):
+                jolt_it = it
                 # slow progress: may be a local minimum; jolt along boundary edge or cardinal direction
-                if onBoundary:
+                if onBoundary and ((not onOtherBoundary) or (jolt_index % 4 < 2)):
                     jolt_case = jolt_index % 2
                     jolt_dxi1 = 0.0 if (onBoundary == 1) else -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI
                     jolt_dxi2 = 0.0 if (onBoundary == 2) else -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI
@@ -505,51 +562,9 @@ class TrackSurface:
                 print("TrackSurface.findIntersectionPoint failed:  Insufficient increment, no intersection found")
                 break
         else:
-            print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', it + 1,
-                  'closeness in xi', mag_dxi)
+                print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', it + 1,
+                  'last increment', mag_dxi)
         return None, None, None, None, 0
-
-    def _advancePosition(self, startPosition, dxi1, dxi2, MAX_MAG_DXI=0.5):
-        """
-        Advance position by element delta xi to maximum change of xi coordinates or boundary.
-        :param startPosition: Start position.
-        :param dxi1: Increment in xi1.
-        :param dxi2: Increment in xi2.
-        :param MAX_MAG_DXI: Maximum magnitude of dxi to keep increments reasonable for a cubic curve.
-        :return: Advanced position, onBoundary (0/1=xi1/2=xi2), actual dxi1, actual dxi2
-        """
-        startProportion1, startProportion2 = self.getProportion(startPosition)
-        magDxi = magnitude([dxi1, dxi2])
-        if magDxi > MAX_MAG_DXI:
-            factor = MAX_MAG_DXI / magDxi
-            dxi1 *= factor
-            dxi2 *= factor
-        proportion1 = startProportion1 + dxi1 / self._elementsCount1
-        proportion2 = startProportion2 + dxi2 / self._elementsCount2
-        onBoundary = 0
-        if self._loop1:
-            if proportion1 < 0.0:
-                proportion1 += 1.0
-            elif proportion1 > 2.0:
-                proportion1 -= 2.0
-        else:
-            if proportion1 < 0.0:
-                proportion1 = 0.0
-                onBoundary = 1
-            elif proportion1 > 1.0:
-                proportion1 = 1.0
-                onBoundary = 1
-        if proportion2 < 0.0:
-            proportion2 = 0.0
-            onBoundary = 2
-        elif proportion2 > 1.0:
-            proportion2 = 1.0
-            onBoundary = 2
-        if onBoundary:
-            if not self._loop1:
-                dxi1 = (proportion1 - startProportion1) / self._elementsCount1
-            dxi2 = (proportion2 - startProportion2) / self._elementsCount2
-        return self.createPositionProportion(proportion1, proportion2), onBoundary, dxi1, dxi2
 
     def findIntersectionCurve(self, otherTrackSurface, startPosition: TrackSurfacePosition=None,
                               MAX_MAG_DXI=0.5, curveElementsCount: int=8):
@@ -589,7 +604,7 @@ class TrackSurface:
             nextPosition = startPosition = self.createPositionProportion(
                 nearest_n1 / self._elementsCount1, nearest_n2 / self._elementsCount2)
             otherPosition = otherStartPosition = nearestOtherPosition
-
+        X_TOL = 1.0E-6 * max(self._xRange)
         px = []
         pd1 = []
         boundaryCount = 0
@@ -600,7 +615,8 @@ class TrackSurface:
         while True:
             position, otherPosition, x, t, onBoundary = \
                 self.findIntersectionPoint(otherTrackSurface, nextPosition, otherPosition)
-            # print("  curve pos", position, "boundary", onBoundary)
+            onOtherBoundary = otherTrackSurface._positionOnBoundary(otherPosition)
+            # print("  curve pos", position, "boundary", onBoundary, "onOtherBoundary", onOtherBoundary)
             if not position:
                 assert pointCount == 0
                 print("TrackSurface.findIntersectionCurve.  No intersection")
@@ -613,7 +629,12 @@ class TrackSurface:
                     px.insert(0, x)
                     pd1.insert(0, t)
                 pointCount += 1
-            if onBoundary and crossBoundary:
+            if (pointCount > 1) and (onBoundary or onOtherBoundary) and \
+                    (crossBoundary or not (onBoundary and onOtherBoundary)):
+                if (pointCount > 1) and (magnitude(sub(x, px[-2])) < X_TOL):
+                    px.pop()
+                    pd1.pop()
+                    pointCount -= 1
                 boundaryCount += 1
                 # print("=== Boundary", boundaryCount, startPosition)
                 if boundaryCount == 2:
