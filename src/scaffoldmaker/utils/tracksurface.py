@@ -505,8 +505,9 @@ class TrackSurface:
                     if instrument:
                         print("    slope_factor", slope_factor, "r_in_plane", r_in_plane)
                     if onOtherBoundary and onBoundary:
-                       if slope_factor > 2.0:
+                        if slope_factor > 2.0:
                             slope_factor = 2.0
+                        slope_factor = 0.4 + 0.6 * slope_factor
                     elif slope_factor > 1000.0:
                         slope_factor = 1000.0
                     u = mult(r_in_plane, slope_factor)

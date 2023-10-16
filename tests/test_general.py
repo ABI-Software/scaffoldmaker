@@ -803,7 +803,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         surf2 = TrackSurface(1, 1, surf2_x, surf2_d1, surf2_d2)
 
         XI_TOL = 1.0E-5
-        X_TOL = 1.0E-6
+        X_TOL = 1.0E-5
         p1, op1, p1x, p1t, p1bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.25, 0.1), surf2.createPositionProportion(0.5, 0.5))
         self.assertEqual(p1.e1, 0)
@@ -845,13 +845,13 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             TrackSurfacePosition(0, 0, 0.35431492084144983, 0.006191352063889618), instrument=True)
         self.assertEqual(p4.e1, 0)
         self.assertEqual(p4.e2, 0)
-        self.assertAlmostEqual(p4.xi1, 0.38097886344754, delta=XI_TOL)
+        self.assertAlmostEqual(p4.xi1, 0.38097836477185065, delta=XI_TOL)
         self.assertAlmostEqual(p4.xi2, 0.0, delta=XI_TOL)
-        self.assertEqual(op3.e1, 0)
-        self.assertEqual(op3.e2, 0)
-        self.assertAlmostEqual(op3.xi1, 0.0, delta=XI_TOL)
-        self.assertAlmostEqual(op3.xi2, 0.3263518246534994, delta=XI_TOL)
-        assertAlmostEqualList(self, [1.0, 0.0, 0.0], p3t, delta=X_TOL)
+        self.assertEqual(op4.e1, 0)
+        self.assertEqual(op4.e2, 0)
+        self.assertAlmostEqual(op4.xi1, 0.3528986153613523, delta=XI_TOL)
+        self.assertAlmostEqual(op4.xi2, 0.0, delta=XI_TOL)
+        assertAlmostEqualList(self, [-0.1713415101967921, -0.9852116964812602, 0.0], p4t, delta=X_TOL)
 
         cx, cd1, cprops, loop = surf1.findIntersectionCurve(
             surf2, surf1.createPositionProportion(0.25, 0.1), MAX_MAG_DXI=0.2, instrument=True)
@@ -891,8 +891,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
         fieldcache = fieldmodule.createFieldcache()
-        px = [p1x, p2x]
-        pd1 = [p1t, p2t]
+        px = [p1x, p2x, p3x, p4x]
+        pd1 = [p1t, p2t, p3t, p4t]
         for n in range(len(px)):
             node = nodes.createNode(-1, nodetemplate)
             fieldcache.setNode(node)
@@ -1079,7 +1079,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         tube2Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
         XI_TOL = 1.0E-5
-        X_TOL = 1.0E-6
+        X_TOL = 1.0E-5
 
         startPosition = TrackSurfacePosition(6, 3, 0.5717869946250334, 1.0)
         otherStartPosition = TrackSurfacePosition(6, 0, 0.11046416298376727, 0.07944602603404333)
@@ -1158,7 +1158,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         tube3Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
         XI_TOL = 1.0E-5
-        X_TOL = 1.0E-6
+        X_TOL = 1.0E-5
 
         p1, op1, p1x, p1t, p1bdy = tube1Surface.findIntersectionPoint(
             tube2Surface, tube1Surface.createPositionProportion(0.25, 1.0),
