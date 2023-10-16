@@ -610,7 +610,7 @@ def clearRegion(region):
 
 
 def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, startElementIdentifier=None,
-                      coordinate_field_name=None, group_name=None):
+                      coordinate_field_name="coordinates", group_name=None):
     """
     Generate a set of 1-D elements with Hermite basis
     :param region: Zinc Region.
