@@ -12,8 +12,8 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteCurvesLength, \
-    interpolateCubicHermite, interpolateCubicHermiteDerivative, \
+from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, DerivativeScalingMode, \
+    getCubicHermiteCurvesLength, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
     interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
@@ -630,10 +630,9 @@ class SegmentTubeData:
 
     def getRawTrackSurface(self):
         """
-        Available after calling setRawTubeCoordintes().
+        Available after calling setRawTubeCoordinates().
         :return: TrackSurface
         """
-
         return self._rawTrackSurface
 
     def getRawTubeCoordinates(self):
@@ -714,8 +713,52 @@ class TubeBifurcationData:
             tubeTrackSurface2 = tubeData2.getRawTrackSurface()
             startPosition = None  # tubeTrackSurface1.createPositionProportion(0.5, 0.9) if s == 0 else None
             cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2, startPosition=startPosition)
-            print("s", s, cx is not None)
             self._intersectionCurves.append((cx, cd1, cProportions, loop))
+
+        # get trim surfaces
+        self._trimSurfaces = [None] * 3
+        for s in range(segmentCount):
+            networkSegment = self._networkSegments[s]
+            tubeData = segmentTubeData[networkSegment]
+            pathParameters = tubeData.getPathParameters()
+            path_d1 = pathParameters[1]
+            along = path_d1[-1 if networkSegment in self._networkSegmentsIn else 0]
+            ax, ad1, _, aloop = self._intersectionCurves[s - 1]
+            bx, bd1, _, bloop = self._intersectionCurves[s]
+            if ax and (len(ax) == 9) and not aloop and bx and (len(bx) == 9) and not bloop:
+                d2am = interpolateCubicHermiteSecondDerivative(ax[3], ad1[3], ax[4], ad1[4], 1.0)
+                d2ap = interpolateCubicHermiteSecondDerivative(ax[4], ad1[4], ax[5], ad1[5], 0.0)
+                d2a = add(d2am, d2ap)
+                cax = ax[4]
+                d2bm = interpolateCubicHermiteSecondDerivative(bx[3], bd1[3], bx[4], bd1[4], 1.0)
+                d2bp = interpolateCubicHermiteSecondDerivative(bx[4], bd1[4], bx[5], bd1[5], 0.0)
+                d2b = [-s for s in add(d2bm, d2bp)]
+                cbx = bx[4]
+                across = sub(cbx, cax)
+                up = cross(across, along)
+                size = magnitude(across)
+                cad2 = normalize(ad1[4])
+                if dot(up, cad2) < 0.0:
+                    cad2 = [-d for d in cad2]
+                cbd2 = normalize(bd1[4])
+                if dot(up, cbd2) < 0.0:
+                    cbd2 = [-d for d in cbd2]
+                nx = []
+                nd1 = []
+                nd2 = []
+                for delta in [-size, +size]:
+                    vax = add(cax, mult(cad2, delta))
+                    vbx = add(cbx, mult(cbd2, delta))
+                    arcLength = computeCubicHermiteArcLength(vax, d2a, vbx, d2b, rescaleDerivatives=True)
+                    vad1 = mult(d2a, arcLength / magnitude(d2a))
+                    vbd1 = mult(d2b, arcLength / magnitude(d2b))
+                    nx.append(vax)
+                    nd1.append(vad1)
+                    nd2.append(mult(cad2, 2.0 * size))
+                    nx.append(vbx)
+                    nd1.append(vbd1)
+                    nd2.append(mult(cbd2, 2.0 * size))
+                self._trimSurfaces[s] = TrackSurface(1, 1, nx, nd1, nd2)
 
     def getIntersectionCurve(self, s):
         """
@@ -725,7 +768,17 @@ class TubeBifurcationData:
         return self._intersectionCurves[s]
 
     def getSegmentTrimSurface(self, networkSegment):
-        return None
+        """
+        :return: Trim TrackSurface
+        """
+        return self.getTrimSurface(self._networkSegments.index(networkSegment))
+
+    def getTrimSurface(self, s):
+        """
+        :param s: Index from 0 to 2
+        :return: Trim TrackSurface
+        """
+        return self._trimSurfaces[s]
 
 def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                   elementsCountAround: int, targetElementAspectRatio: float,
@@ -766,7 +819,6 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
     # map from NetworkNodes to bifurcation data
     nodeTubeBifurcationData = {}
     for networkSegment in networkSegments:
-        print("\nSegment", networkSegment)
         tubeData = segmentTubeData[networkSegment]
         rawTubeCoordinates = tubeData.getRawTubeCoordinates()
 
@@ -778,10 +830,11 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
             startInSegments = startSegmentNode.getInSegments()
             startOutSegments = startSegmentNode.getOutSegments()
             if ((len(startInSegments) + len(startOutSegments)) == 3):
-                print("create start", networkSegment, startSegmentNode)
+                # print("create start", networkSegment, startSegmentNode)
                 startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
                 nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
-                startSurface = startTubeBifurcationData.getSegmentTrimSurface(networkSegment)
+        if startTubeBifurcationData:
+            startSurface = startTubeBifurcationData.getSegmentTrimSurface(networkSegment)
         endSegmentNode = segmentNodes[-1]
         endTubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
         endSurface = None
@@ -789,10 +842,11 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
             endInSegments = endSegmentNode.getInSegments()
             endOutSegments = endSegmentNode.getOutSegments()
             if ((len(endInSegments) + len(endOutSegments)) == 3):
-                print("create end", networkSegment, endSegmentNode)
+                # print("create end", networkSegment, endSegmentNode)
                 endTubeBifurcationData = TubeBifurcationData(endInSegments, endOutSegments, segmentTubeData)
                 nodeTubeBifurcationData[endSegmentNode] = endTubeBifurcationData
-                endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
+        if endTubeBifurcationData:
+            endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
         pathParameters = tubeData.getPathParameters()
         segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
         ringCount = len(rawTubeCoordinates[0])
@@ -803,6 +857,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
         meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
         targetElementLength = targetElementAspectRatio * meanElementLengthAround
         elementsCountAlong = max(2, math.ceil(segmentLength / targetElementLength))
+        print("startSurface", startSurface is not None, "endSurface", endSurface is not None)
         sx, sd1, sd2, sd12 = resampleTubeCoordinates(
             rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
         tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
@@ -841,13 +896,18 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                 outTubeData.setEndNodeIds(endNodeIds)
             tubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
             if tubeBifurcationData:
-                print("Here", networkSegment)
                 for s in range(3):
                     curve = tubeBifurcationData.getIntersectionCurve(s)
                     cx, cd1, cProportions, loop = curve
                     if cx:
                         nodeIdentifier, elementIdentifier = \
                             generateCurveMesh(region, cx, cd1, loop, nodeIdentifier, elementIdentifier)
+                for s in range(3):
+                    trimSurface = tubeBifurcationData.getTrimSurface(s)
+                    if trimSurface:
+                        nodeIdentifier = \
+                            trimSurface.generateMesh(region, nodeIdentifier)[0]
+
                 # tCoords = []
                 # tNodeIds = []
                 # # diverging bifurcation

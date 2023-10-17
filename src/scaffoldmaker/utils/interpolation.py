@@ -225,7 +225,8 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
     cp = vector.crossproduct3(tangent, dTangent)
-    curvature = magnitude(cp) / (magnitude(tangent)*magnitude(tangent)*magnitude(tangent))
+    mag_tangent = magnitude(tangent)
+    curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
 
     return curvature
 
@@ -1247,7 +1248,7 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
             u = r_in_plane
         else:
             # add out-of-plane slope component
-            factor = 1.0 + r_dot_n / mag_r
+            factor = 1.0 + r_dot_n / mag_r  # GRC wrong
             u = mult(r_in_plane, factor)
         mag_dxi = dxi = magnitude(u) / magnitude(d)
         dxi = mag_dxi if (mag_dxi < max_mag_dxi) else max_mag_dxi
