@@ -842,7 +842,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         p4, op4, p4x, p4t, p4bdy = surf1.findIntersectionPoint(
             surf2, TrackSurfacePosition(0, 0, 0.35032948194631897, 0.0),
-            TrackSurfacePosition(0, 0, 0.35431492084144983, 0.006191352063889618), instrument=True)
+            TrackSurfacePosition(0, 0, 0.35431492084144983, 0.006191352063889618))
         self.assertEqual(p4.e1, 0)
         self.assertEqual(p4.e2, 0)
         self.assertAlmostEqual(p4.xi1, 0.38097836477185065, delta=XI_TOL)
@@ -854,7 +854,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [-0.1713415101967921, -0.9852116964812602, 0.0], p4t, delta=X_TOL)
 
         cx, cd1, cprops, loop = surf1.findIntersectionCurve(
-            surf2, surf1.createPositionProportion(0.25, 0.1), MAX_MAG_DXI=0.2, instrument=True)
+            surf2, surf1.createPositionProportion(0.25, 0.1), MAX_MAG_DXI=0.2)
         self.assertEqual(len(cx), 9)
         self.assertFalse(loop)
         clength = getCubicHermiteCurvesLength(cx, cd1)

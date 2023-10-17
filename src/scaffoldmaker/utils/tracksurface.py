@@ -669,7 +669,7 @@ class TrackSurface:
             nextPosition = startPosition = self.createPositionProportion(
                 nearest_n1 / self._elementsCount1, nearest_n2 / self._elementsCount2)
             otherPosition = otherStartPosition = nearestOtherPosition
-        X_TOL = 1.0E-9 * max(self._xRange)
+        X_TOL = 1.0E-6 * max(self._xRange)
         px = []
         pd1 = []
         boundaryCount = 0
@@ -677,6 +677,7 @@ class TrackSurface:
         xiLoopSamples = [0.25, 0.5, 0.75, 1.0]
         pointCount = 0
         crossBoundary = 0
+        lastx = None
         if instrument:
             print("TrackSurface.findIntersectionCurve.  nextPosition", nextPosition, "otherPosition", otherPosition)
         while True:
@@ -690,33 +691,29 @@ class TrackSurface:
                     print("TrackSurface.findIntersectionCurve.  No intersection")
                 return None, None, None, False
             onOtherBoundary = otherTrackSurface._positionOnBoundary(otherPosition)
-            if boundaryCount == 0:
-                if pointCount == 0:
-                    startPosition = position
-                    otherStartPosition = otherPosition
-                px.append(x)
-                pd1.append(t)
+            noProgressBoundary = False
+            if (pointCount > 0) and (magnitude(sub(x, lastx)) < X_TOL):
+                print("- No progress boundary")
+                noProgressBoundary = True
             else:
-                px.insert(0, x)
-                pd1.insert(0, t)
-            pointCount += 1
-            if instrument:
-                print("- curve points", pointCount, "pos", position, "boundary", onBoundary, "onOtherBoundary", onOtherBoundary)
-            if pointCount > 50:
-                print("TrackSurface.findIntersectionCurve.  Stopping as too many points")
-                # stop infinite loop for problem cases
-                break
-            if (pointCount > 1) and (onBoundary or onOtherBoundary) and \
-                    (crossBoundary or not (onBoundary and onOtherBoundary)):
                 if boundaryCount == 0:
-                    if magnitude(sub(x, px[-2])) < X_TOL:
-                        px.pop()
-                        pd1.pop()
-                        pointCount -= 1
-                elif magnitude(sub(x, px[1])) < X_TOL:
-                    px.pop(0)
-                    pd1.pop(0)
-                    pointCount -= 1
+                    if pointCount == 0:
+                        startPosition = position
+                        otherStartPosition = otherPosition
+                    px.append(x)
+                    pd1.append(t)
+                else:
+                    px.insert(0, x)
+                    pd1.insert(0, t)
+                pointCount += 1
+                if instrument:
+                    print("- curve points", pointCount, "pos", position, "boundary", onBoundary, "onOtherBoundary", onOtherBoundary)
+                if pointCount > 50:
+                    print("TrackSurface.findIntersectionCurve.  Stopping as too many points")
+                    # stop infinite loop for problem cases
+                    break
+            if noProgressBoundary or ((pointCount > 1) and (onBoundary or onOtherBoundary) and \
+                    (crossBoundary or not (onBoundary and onOtherBoundary))):
                 boundaryCount += 1
                 if instrument:
                     print("- add boundary", boundaryCount)
@@ -750,6 +747,7 @@ class TrackSurface:
                     pointCount -= 1
                     break
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
+            lastx = x
             dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, mult(t, -1.0) if (boundaryCount == 1) else t)
             nextPosition, crossBoundary = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)[0:2]
             if instrument:
