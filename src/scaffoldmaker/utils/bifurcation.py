@@ -2,8 +2,6 @@
 Utilities for building bifurcating network meshes.
 """
 
-from __future__ import division
-
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
@@ -19,15 +17,16 @@ from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinat
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
 import math
+import copy
 
 
 def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
-    '''
+    """
     :param dmag: Magnitude of derivative on curve.
     :param side: Vector in side direction of first node around.
     Need not be unit or exactly normal to curve at xi.
     :return: x[], d1[] around, d2[] along
-    '''
+    """
     cx = interpolateCubicHermite(x1, xd1, x2, xd2, xi)
     cxd = interpolateCubicHermiteDerivative(x1, xd1, x2, xd2, xi)
     mag_cxd = magnitude(cxd)
@@ -51,33 +50,33 @@ def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, 
 
 
 def track_curve_side_axis(x1, d1, x2, d2, sideStart, xiStart, xiEnd):
-    '''
+    """
     Get side vector normal to curve at xiEnd for smoothest transition from
     sideStart at xiStart.
     :param xi, d1, x2, d2: 
     :param sideStart: Unit vector normal to curve
-    '''
+    """
     pass
 
 def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
-    '''
+    """
     Get coordinates and derivatives of triple point between p1, p2 and p3 with derivatives.
     :param p1x..p3d: Point coordinates and derivatives, numbered anticlockwise around triple point.
     All derivatives point away from triple point.
     Returned d1 points from triple point to p2, d2 points from triple point to p3.
     :return: x, d1, d2
-    '''
+    """
     trx1 = interpolateCubicHermite(p1x, mult(p1d, -2.0), p2x, mult(p2d, 2.0), 0.5)
     trx2 = interpolateCubicHermite(p2x, mult(p2d, -2.0), p3x, mult(p3d, 2.0), 0.5)
     trx3 = interpolateCubicHermite(p3x, mult(p3d, -2.0), p1x, mult(p1d, 2.0), 0.5)
-    trx = [ (trx1[c] + trx2[c] + trx3[c])/3.0 for c in range(3) ]
+    trx = [(trx1[c] + trx2[c] + trx3[c]) / 3.0 for c in range(3)]
     td1 = interpolateLagrangeHermiteDerivative(trx, p1x, p1d, 0.0)
     td2 = interpolateLagrangeHermiteDerivative(trx, p2x, p2d, 0.0)
     td3 = interpolateLagrangeHermiteDerivative(trx, p3x, p3d, 0.0)
     n12 = cross(td1, td2)
     n23 = cross(td2, td3)
     n31 = cross(td3, td1)
-    norm = normalize([ (n12[c] + n23[c] + n31[c]) for c in range(3) ])
+    norm = normalize([(n12[c] + n23[c] + n31[c]) for c in range(3)])
     sd1 = smoothCubicHermiteDerivativesLine([ trx, p1x ], [ normalize(cross(norm, cross(td1, norm))), p1d ], fixStartDirection=True, fixEndDerivative=True)[0]
     sd2 = smoothCubicHermiteDerivativesLine([ trx, p2x ], [ normalize(cross(norm, cross(td2, norm))), p2d ], fixStartDirection=True, fixEndDerivative=True)[0]
     sd3 = smoothCubicHermiteDerivativesLine([ trx, p3x ], [ normalize(cross(norm, cross(td3, norm))), p3d ], fixStartDirection=True, fixEndDerivative=True)[0]
@@ -86,27 +85,26 @@ def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
     return trx, trd1, trd2
 
 
-def get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count):
-    '''
-    Get number of elements between parent and child 1 and 2 from
-    number around each.
-    '''
-    pac1Count = (paCount + c1Count - c2Count)//2
-    pac2Count = (paCount + c2Count - c1Count)//2
-    c1c2Count = (c1Count + c2Count - paCount)//2
-    return pac1Count, pac2Count, c1c2Count
+def get_tube_bifurcation_connection_elements_counts(tCounts):
+    """
+    Get number of elements directly connecting tubes 1, 2 and 3 from the supplied number around.
+    :param tCounts: Number of elements around tubes in order.
+    :return: List of elements connect tube with its next neighbour, looping back to first.
+    """
+    assert len(tCounts) == 3
+    return [(tCounts[i] + tCounts[i - 2] - tCounts[i - 1]) // 2 for i in range(3)]
 
 
 def make_tube_bifurcation_points(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Centre, c2x, c2d2):
-    '''
+    """
     Gets first ring of coordinates and derivatives between parent pa and
     children c1, c2, and over the crotch between c1 and c2.
     :return rox, rod1, rod2, cox, cod1, cod2
-    '''
+    """
     paCount = len(pax)
     c1Count = len(c1x)
     c2Count = len(c2x)
-    pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+    pac1Count, c1c2Count, pac2Count = get_tube_bifurcation_connection_elements_counts([paCount, c1Count, c2Count])
     # convert to number of nodes, includes both 6-way points
     pac1NodeCount = pac1Count + 1
     pac2NodeCount = pac2Count + 1
@@ -179,7 +177,7 @@ def make_tube_bifurcation_points(paCentre, pax, pad2, c1Centre, c1x, c1d2, c2Cen
 def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         paNodeId, paStartIndex, c1NodeId, c1StartIndex, c2NodeId, c2StartIndex, roNodeId, coNodeId,
         useCrossDerivatives=False):
-    '''
+    """
     Creates elements from parent, ring/row, crotch/column, child1 and child2 nodes.
     Assumes client has active ChangeManager(fieldmodule).
     :param region: Zinc region to create model in.
@@ -190,11 +188,11 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
     :param roNodeId, coNodeId: Lists of ring/row and crotch/column nodes,
     starting at hex2 and between hex1 and hex2, respectively.
     :return next element identifier.
-    '''
+    """
     paCount = len(paNodeId)
     c1Count = len(c1NodeId)
     c2Count = len(c2NodeId)
-    pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+    pac1Count, c1c2Count, pac2Count = get_tube_bifurcation_connection_elements_counts([paCount, c1Count, c2Count])
 
     fieldmodule = region.getFieldmodule()
     mesh = fieldmodule.findMeshByDimension(2)
@@ -339,14 +337,14 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
 
 
 def getBifurcationCrossPoint(cx, p1x, p1d, p2x, p2d, p3x, p3d):
-    '''
+    """
     Get derivatives of cross point between p1, p2 and p3 with derivatives.
     :param cx: Cross point coordinates.
     :param p1x..p3d: Point coordinates and derivatives, numbered anticlockwise around triple point.
     All derivatives point away from triple point.
     Returned d1 points from triple point to p2, d2 points from triple point to p3.
     :return: d1, d2
-    '''
+    """
     # cx1 = interpolateCubicHermite(p1x, mult(p1d, -2.0), p2x, mult(p2d, 2.0), 0.5)
     # cx2 = interpolateCubicHermite(p2x, mult(p2d, -2.0), p3x, mult(p3d, 2.0), 0.5)
     # cx3 = interpolateCubicHermite(p3x, mult(p3d, -2.0), p1x, mult(p1d, 2.0), 0.5)
@@ -440,6 +438,7 @@ def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, n
                    startSkipCount: int=0, endSkipCount:int=0, startNodeIds: list=None, endNodeIds: list=None,
                    serendipity=False):
     """
+    Assumes client has active ChangeManager(fieldmodule).
     :param tx: tube coordinates x[along][around]
     :param td1: tube derivatives around d1[along][around]
     :param td2: tube derivatives along d2[along][around]
@@ -480,54 +479,57 @@ def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, n
             eft.setFunctionNumberOfTerms(n * 4 + 4, 0)
     elementtemplate.defineField(coordinates, -1, eft)
 
-    with ChangeManager(fieldmodule):
-        tNodeIds = []
-        for n2 in range(elementsCountAlong + 1):
-            if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount):
-                tNodeIds.append(None)
-                continue
-            if startNodeIds and (n2 == startSkipCount):
-                tNodeIds.append(startNodeIds)
-                continue
-            if endNodeIds and (n2 == (elementsCountAlong - endSkipCount)):
-                tNodeIds.append(endNodeIds)
-                continue
-            rowNodeIds = []
-            rx = tx[n2]
-            rd1 = td1[n2]
-            rd2 = td2[n2]
-            rd12 = td12[n2] if (td12 and not serendipity) else None
-            for n1 in range(elementsCountAround):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[n1])
-                if rd12:
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12[n1])
-                rowNodeIds.append(nodeIdentifier)
-                nodeIdentifier += 1
-            tNodeIds.append(rowNodeIds)
-        for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
-            for e1 in range(elementsCountAround):
-                e2p = e2 + 1
-                e1p = (e1 + 1) % elementsCountAround
-                nids = [tNodeIds[e2][e1], tNodeIds[e2][e1p], tNodeIds[e2p][e1], tNodeIds[e2p][e1p]]
-                element = mesh.createElement(elementIdentifier, elementtemplate)
-                element.setNodesByIdentifier(eft, nids)
-                elementIdentifier += 1
+    tNodeIds = []
+    for n2 in range(elementsCountAlong + 1):
+        if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount):
+            tNodeIds.append(None)
+            continue
+        if startNodeIds and (n2 == startSkipCount):
+            tNodeIds.append(startNodeIds)
+            continue
+        if endNodeIds and (n2 == (elementsCountAlong - endSkipCount)):
+            tNodeIds.append(endNodeIds)
+            continue
+        rowNodeIds = []
+        rx = tx[n2]
+        rd1 = td1[n2]
+        rd2 = td2[n2]
+        rd12 = td12[n2] if (td12 and not serendipity) else None
+        for n1 in range(elementsCountAround):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            fieldcache.setNode(node)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[n1])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[n1])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[n1])
+            if rd12:
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12[n1])
+            rowNodeIds.append(nodeIdentifier)
+            nodeIdentifier += 1
+        tNodeIds.append(rowNodeIds)
+    for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
+        for e1 in range(elementsCountAround):
+            e2p = e2 + 1
+            e1p = (e1 + 1) % elementsCountAround
+            nids = [tNodeIds[e2][e1], tNodeIds[e2][e1p], tNodeIds[e2p][e1], tNodeIds[e2p][e1p]]
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            element.setNodesByIdentifier(eft, nids)
+            elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier, tNodeIds[startSkipCount], tNodeIds[elementsCountAlong - endSkipCount]
 
 
-def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates: Field,
-                              nodeIdentifier, elementIdentifier,
-                              tNodeIds, serendipity=False):
+def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fieldcache, coordinates: Field,
+                              nodeIdentifier, elementIdentifier, tNodeIds, serendipity=False):
     """
     Generate a 2D tube bifurcation as elements connecting 3 rings of coordinates, optionally using existing nodes.
-    :param tCoords: List over 3 tubes (starting with "in" tubes) of [tx, td1, td2, td12] for
+    Assumes client has active ChangeManager(fieldmodule).
+    :param tCoords: List over 3 tubes (starting with "in" tubes) of [[tx], [td1], [td2], [td12]] for
     last/first tube ring in/out.
-    :param inCount: Number of tubes which are directed in to the junction.
+    :param inward: List over 3 tubes of True if inward, False if not. All inward tubes precede outward.
+    :param crossIndexes: List of 3 indexes around tCoords which link to first cross point.
+    :param mCoords: List of 3 middle half rings between tubes 1-2, 2-3 and 3-1 of coordinates [[mx], [md1], [md2]],
+    from first to second cross point. First/last coordinates in each are the same with d1 pointing towards tube 2 and
+    d2 pointing towards tube 3 at first cross point, flipped on second cross point.
     :param region: Zinc region to create model in.
     :param fieldcache: Field evaluation cache.
     :param coordinates: Finite element coordinate field to define.
@@ -538,13 +540,6 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
     :return: next node identifier, next element identifier
     """
-    tCount = len(tCoords)
-    assert tCount == 3
-    taCounts = [len(v[0]) for v in tCoords]
-    useCrossDerivatives = (len(tCoords[0]) == 4) and not serendipity
-    # get numbers of elements directly connecting t0-t1, t1-t2, t2-t1
-    teCounts = [(taCounts[i] + taCounts[i - tCount + 1] - taCounts[i - 1]) // 2 for i in range(tCount)]
-
     fieldmodule = region.getFieldmodule()
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -552,68 +547,231 @@ def generateTubeBifurcation2D(tCoords, inCount, region, fieldcache, coordinates:
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-    if useCrossDerivatives:
+    if (not serendipity) and (len(tCoords[0]) > 3):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
+    nodetemplateCross = nodes.createNodetemplate()
+    nodetemplateCross.defineField(coordinates)
+    nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
+    nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+    nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    mNodeIds = []
 
-    mCoords = getTubeBifurcationCoordinates2D(tCoords, inCount)
+    mesh = fieldmodule.findMeshByDimension(2)
+    elementtemplateStd = mesh.createElementtemplate()
+    elementtemplateStd.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+    bicubicHermiteBasis = fieldmodule.createElementbasis(
+        2, (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
+            else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
+    eftStd = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+    if (not serendipity) and (len(tCoords[0]) < 4):
+        # remove cross derivative terms for regular Hermite
+        for n in range(4):
+            eftStd.setFunctionNumberOfTerms(n * 4 + 4, 0)
+    elementtemplateStd.defineField(coordinates, -1, eftStd)
+    elementtemplateCross = mesh.createElementtemplate()
+    elementtemplateCross.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
 
-    with ChangeManager(fieldmodule):
-        # ensure inlet nodes are supplied or create here
-        for it in range(inCount):
-            if not tNodeIds[it]:
-                tNodeIds[it] = []
-                tx, td1, td2 = tCoords[it][:3]
-                td12 = tCoords[it][-1] if useCrossDerivatives else None
-                for n in range(taCounts[it]):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    fieldcache.setNode(node)
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
-                    if td12:
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, td12[n])
-                    tNodeIds[it].append(nodeIdentifier)
-                    nodeIdentifier = nodeIdentifier + 1
-
-        # create midside nodes
-        mNodeIds = [[] for _ in range(tCount)]
-        for it in range(tCount):
-            teCount = teCounts[it]
-            tnCount = teCount + 1
-            mx = [v[0] for v in mCoords[it]]
-            md1 = [v[1] for v in mCoords[it]]
-            md2 = [v[2] for v in mCoords[it]]
-            for n in range(tnCount):
-                if (it > 0) and (n in (0, teCount)):
-                    # cross point node have already been created
-                    mNodeIds[it].append(mNodeIds[it - 1][n])
-                    continue
+    # create nodes
+    for s in range(3):
+        # ensure tube nodes are supplied or create here
+        if not tNodeIds[s]:
+            tNodeIds[s] = []
+            tx, td1, td2 = tCoords[s][:3]
+            td12 = None if (serendipity or (len(tCoords[s]) == 3)) else tCoords[s][3]
+            for n in range(len(tx)):
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, mx[n])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, md1[n])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, md2[n])
-                mNodeIds[it].append(nodeIdentifier)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
+                if td12:
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, td12[n])
+                tNodeIds[s].append(nodeIdentifier)
                 nodeIdentifier = nodeIdentifier + 1
 
-        # ensure outlet nodes are supplied or create here
-        for it in range(inCount, tCount):
-            if not tNodeIds[it]:
-                tNodeIds[it] = []
-                tx, td1, td2 = tCoords[it][:3]
-                td12 = tCoords[it][-1] if useCrossDerivatives else None
-                for n in range(taCounts[it]):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    fieldcache.setNode(node)
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
-                    if td12:
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, td12[n])
-                    tNodeIds[it].append(nodeIdentifier)
-                    nodeIdentifier = nodeIdentifier + 1
+        # create nodes around middle half rings
+        mNodeIds.append([])
+        mx, md1, md2 = mCoords[s][:3]
+        md12 = None if (serendipity or (len(mCoords[s]) == 3)) else mCoords[s][3]
+        for n in range(len(mx)):
+            cross1 = n == 0
+            cross2 = n == len(mx) - 1
+            if s:
+                if cross1:
+                    mNodeIds[s].append(mNodeIds[0][0])
+                    continue
+                if cross2:
+                    mNodeIds[s].append(mNodeIds[0][-1])
+                    continue
+            node = nodes.createNode(nodeIdentifier, nodetemplateCross if (cross1 or cross2) else nodetemplate)
+            fieldcache.setNode(node)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, mx[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, md1[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, md2[n])
+            if md12 and not (cross1 or cross2):
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, md12[n])
+            mNodeIds[s].append(nodeIdentifier)
+            nodeIdentifier = nodeIdentifier + 1
+
+    # create elements
+    aroundCounts = [len(tCoords[s][0]) for s in range(3)]
+    connectionCounts = get_tube_bifurcation_connection_elements_counts(aroundCounts)
+    for s in range(3):
+
+        # forward connections
+
+        eftMid = eftStd
+        elementtemplateMid = elementtemplateStd
+        scalefactorsMid = None
+        if not inward[s]:
+            eftMid = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+            if (not serendipity) and (len(mCoords[0]) < 4):
+                for n in range(4):
+                    eftMid.setFunctionNumberOfTerms(n * 4 + 4, 0)
+            scalefactorsMid = [-1.0]
+            setEftScaleFactorIds(eftMid, [1], [])
+            scaleEftNodeValueLabels(eftMid, [1, 2], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+            elementtemplateMid = mesh.createElementtemplate()
+            elementtemplateMid.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+            elementtemplateMid.defineField(coordinates, -1, eftMid)
+
+        for e1 in range(connectionCounts[s]):
+            eft = eftMid
+            elementtemplate = elementtemplateMid
+            scalefactors = scalefactorsMid
+
+            if (e1 == 0) or (e1 == (connectionCounts[s] - 1)):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if inward[s]:
+                    lnCross = 3 if (e1 == 0) else 4
+                    lnOther = 4 if (e1 == 0) else 3
+                else:
+                    lnCross = 1 if (e1 == 0) else 2
+                    lnOther = 2 if (e1 == 0) else 1
+                if not serendipity:
+                    if len(mCoords[0]) < 4:
+                        remapEftNodeValueLabel(eft, [1, 2, 3, 4], Node.VALUE_LABEL_D2_DS1DS2, [])
+                    else:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D2_DS1DS2, [])
+                if (not inward[s]) or ((s != 1) and (e1 == 0)) or ((s == 1) and (e1 != 0)):
+                    setEftScaleFactorIds(eft, [1], [])
+                    scalefactors = [-1.0]
+                else:
+                    scalefactors = None
+                if s == 0:
+                    if e1 == 0:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                elif s == 1:
+                    scaling = [] if (e1 == 0) else [1]
+                    remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, scaling), (Node.VALUE_LABEL_D_DS2, scaling)])
+                    if e1 != 0:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                else:
+                    if e1 == 0:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                if not inward[s]:
+                    scaleEftNodeValueLabels(eft, [lnOther], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+                elementtemplateCross.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateCross
+
+            if inward[s]:
+                nStart = crossIndexes[s] - aroundCounts[s]
+                nids = [tNodeIds[s][nStart + e1], tNodeIds[s][nStart + e1 + 1],
+                        mNodeIds[s][e1], mNodeIds[s][e1 + 1]]
+            else:
+                nStart = crossIndexes[s] - connectionCounts[s]
+                re1 = connectionCounts[s] - e1
+                nids = [mNodeIds[s][re1], mNodeIds[s][re1 - 1],
+                        tNodeIds[s][nStart + e1], tNodeIds[s][nStart + e1 + 1]]
+
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            result1 = element.setNodesByIdentifier(eft, nids)
+            result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else " -"
+            # print('create element tube bifurcation s', s, elementIdentifier, element.isValid(), result1, result2, nids)
+            elementIdentifier += 1
+
+        # back connections
+
+        eftMid = eftStd
+        elementtemplateMid = elementtemplateStd
+        scalefactorsMid = None
+        if inward[s]:
+            eftMid = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+            if (not serendipity) and (len(mCoords[0]) < 4):
+                for n in range(4):
+                    eftMid.setFunctionNumberOfTerms(n * 4 + 4, 0)
+            scalefactorsMid = [-1.0]
+            setEftScaleFactorIds(eftMid, [1], [])
+            scaleEftNodeValueLabels(eftMid, [3, 4], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+            elementtemplateMid = mesh.createElementtemplate()
+            elementtemplateMid.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+            elementtemplateMid.defineField(coordinates, -1, eftMid)
+
+        for e1 in range(connectionCounts[s - 1]):
+            eft = eftMid
+            elementtemplate = elementtemplateMid
+            scalefactors = scalefactorsMid
+
+            if (e1 == 0) or (e1 == (connectionCounts[s - 1] - 1)):
+                eft = mesh.createElementfieldtemplate(bicubicHermiteBasis)
+                if inward[s]:
+                    lnCross = 3 if (e1 == 0) else 4
+                    lnOther = 4 if (e1 == 0) else 3
+                else:
+                    lnCross = 1 if (e1 == 0) else 2
+                    lnOther = 2 if (e1 == 0) else 1
+                if not serendipity:
+                    if len(mCoords[0]) < 4:
+                        remapEftNodeValueLabel(eft, [1, 2, 3, 4], Node.VALUE_LABEL_D2_DS1DS2, [])
+                    else:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D2_DS1DS2, [])
+                if inward[s] or ((s != 2) and (e1 == 0)) or ((s == 2) and (e1 != 0)):
+                    setEftScaleFactorIds(eft, [1], [])
+                    scalefactors = [-1.0]
+                else:
+                    scalefactors = None
+                if s == 0:
+                    if e1 == 0:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                    remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2,
+                                           [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+                elif s == 1:
+                    if e1 == 0:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                else:
+                    scaling = [] if (e1 == 0) else [1]
+                    remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
+                                           [(Node.VALUE_LABEL_D_DS1, scaling), (Node.VALUE_LABEL_D_DS2, scaling)])
+                    if e1 != 0:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                if inward[s]:
+                    scaleEftNodeValueLabels(eft, [lnOther], [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
+                elementtemplateCross.defineField(coordinates, -1, eft)
+                elementtemplate = elementtemplateCross
+
+            if inward[s]:
+                nStart = crossIndexes[s] - connectionCounts[s - 1]
+                re1 = connectionCounts[s - 1] - e1
+                nids = [tNodeIds[s][nStart + e1], tNodeIds[s][nStart + e1 + 1],
+                        mNodeIds[s - 1][re1], mNodeIds[s - 1][re1 - 1]]
+            else:
+                nStart = crossIndexes[s] - aroundCounts[s]
+                nids = [mNodeIds[s - 1][e1], mNodeIds[s - 1][e1 + 1],
+                        tNodeIds[s][nStart + e1], tNodeIds[s][nStart + e1 + 1]]
+
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            result1 = element.setNodesByIdentifier(eft, nids)
+            result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else " -"
+            # print('create element tube bifurcation s', s, elementIdentifier, element.isValid(), result1, result2, nids)
+            elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier
+
 
 class SegmentTubeData:
 
@@ -656,6 +814,7 @@ class SegmentTubeData:
             nd2 += pd2[i]
             nd12 += pd12[i]
         self._rawTrackSurface = TrackSurface(len(px[0]), len(px) - 1, nx, nd1, nd2, nd12, loop1=True)
+
     def getSampledTubeCoordinates(self):
         return self._sampledTubeCoordinates
 
@@ -701,22 +860,27 @@ class TubeBifurcationData:
         self._networkSegments = networkSegmentsIn + networkSegmentsOut
         segmentCount = len(self._networkSegments)
         assert segmentCount == 3
+        self._tubeData = [segmentTubeData[networkSegment] for networkSegment in self._networkSegments]
+        self._segmentsIn = [self._networkSegments[s] in self._networkSegmentsIn for s in range(3)]
+        # following are calculated in determineCrossIndexes()
+        self._coordinateRings = [[]] * 3
+        self._aroundCounts = [0] * 3
+        self._connectionCounts = [0] * 3
+        self._aCrossIndexes = None
+        self._bCrossIndexes = None
 
         # get intersection curves between pairs of segments
         self._intersectionCurves = []
         for s in range(segmentCount):
-            networkSegment1 = self._networkSegments[s]
-            tubeData1 = segmentTubeData[networkSegment1]
+            tubeData1 = self._tubeData[s]
             tubeTrackSurface1 = tubeData1.getRawTrackSurface()
-            networkSegment2 = self._networkSegments[(s + 1) % segmentCount]
-            tubeData2 = segmentTubeData[networkSegment2]
+            tubeData2 = self._tubeData[(s + 1) % segmentCount]
             tubeTrackSurface2 = tubeData2.getRawTrackSurface()
-            startPosition = None  # tubeTrackSurface1.createPositionProportion(0.5, 0.9) if s == 0 else None
-            cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2, startPosition=startPosition)
+            cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2)
             self._intersectionCurves.append((cx, cd1, cProportions, loop))
 
         # get trim surfaces
-        self._trimSurfaces = [None] * 3
+        self._trimSurfaces = []
         for s in range(segmentCount):
             networkSegment = self._networkSegments[s]
             tubeData = segmentTubeData[networkSegment]
@@ -725,6 +889,7 @@ class TubeBifurcationData:
             along = path_d1[-1 if networkSegment in self._networkSegmentsIn else 0]
             ax, ad1, _, aloop = self._intersectionCurves[s - 1]
             bx, bd1, _, bloop = self._intersectionCurves[s]
+            trimSurface = None
             if ax and (len(ax) == 9) and not aloop and bx and (len(bx) == 9) and not bloop:
                 d2am = interpolateCubicHermiteSecondDerivative(ax[3], ad1[3], ax[4], ad1[4], 1.0)
                 d2ap = interpolateCubicHermiteSecondDerivative(ax[4], ad1[4], ax[5], ad1[5], 0.0)
@@ -758,7 +923,9 @@ class TubeBifurcationData:
                     nx.append(vbx)
                     nd1.append(vbd1)
                     nd2.append(mult(cbd2, 2.0 * size))
-                self._trimSurfaces[s] = TrackSurface(1, 1, nx, nd1, nd2)
+                trimSurface = TrackSurface(1, 1, nx, nd1, nd2)
+            self._trimSurfaces.append(trimSurface)
+
 
     def getIntersectionCurve(self, s):
         """
@@ -766,6 +933,15 @@ class TubeBifurcationData:
         :return: (cx, cd1, cProportions on TrackSurface s, loop)
         """
         return self._intersectionCurves[s]
+
+    def getCrossIndexes(self):
+        return self._aCrossIndexes
+
+    def getMidCoordinates(self):
+        return self._midCoordinates
+
+    def getSegmentsIn(self):
+        return self._segmentsIn
 
     def getSegmentTrimSurface(self, networkSegment):
         """
@@ -779,6 +955,139 @@ class TubeBifurcationData:
         :return: Trim TrackSurface
         """
         return self._trimSurfaces[s]
+
+    def getTubeCoordinates(self):
+        return self._coordinateRings
+
+    def getTubeData(self):
+        return self._tubeData
+
+    def determineCrossIndexes(self):
+        assert self._aCrossIndexes is None  # should only call once
+        for s in range(3):
+            tubeData = self._tubeData[s]
+            row = -2 if self._segmentsIn[s] else 1
+            sampledTubeCoordinates = tubeData.getSampledTubeCoordinates()
+            coordinateRing = [value[row] for value in sampledTubeCoordinates]
+            self._coordinateRings[s] = coordinateRing
+            self._aroundCounts[s] = len(coordinateRing[0])
+        self._connectionCounts = get_tube_bifurcation_connection_elements_counts(self._aroundCounts)
+
+        min_dist = None
+        ibCrossIndex = 2 if self._segmentsIn[0] else 1
+        jbCrossIndex = 0 if self._segmentsIn[1] else 2
+        kbCrossIndex = 1 if self._segmentsIn[2] else 0
+        irx = self._coordinateRings[0][0]
+        jrx = self._coordinateRings[1][0]
+        krx = self._coordinateRings[2][0]
+        for ia in range(self._aroundCounts[0]):
+            ib = ia - self._connectionCounts[ibCrossIndex]
+            for ja in range(self._aroundCounts[1]):
+                jb = ja - self._connectionCounts[jbCrossIndex]
+                a12 = magnitude(sub(jrx[ja], irx[ia]))
+                b12 = magnitude(sub(jrx[jb], irx[ib]))
+                for ka in range(self._aroundCounts[2]):
+                    kb = ka - self._connectionCounts[kbCrossIndex]
+                    a23 = magnitude(sub(krx[ka], jrx[ja]))
+                    b23 = magnitude(sub(krx[kb], jrx[jb]))
+                    a31 = magnitude(sub(irx[ia], krx[ka]))
+                    b31 = magnitude(sub(irx[ib], krx[kb]))
+                    dist_a = a12 + a23 + a31
+                    dist_b = b12 + b23 + b31
+                    dist = dist_a + dist_b
+                    if (min_dist is None) or (dist < min_dist):
+                        self._aCrossIndexes = [ia, ja, ka]
+                        self._bCrossIndexes = [ib, jb, kb]
+                        min_dist = dist
+
+        # incomplete version trying to get shortest distance between directly connected points on adjacent tubes
+        # minDist = None
+        # aCrossIndexes = [None, None, None]
+        # for i in range(self._aroundCounts[0]):
+        #     aCrossIndexes[0] = i
+        #     for j in range(self._aroundCounts[1]):
+        #         aCrossIndexes[1] = j
+        #         for k in range(self._aroundCounts[2]):
+        #             aCrossIndexes[2] = k
+        #             dist = 0.0
+        #             for s in range(3):
+        #                 ring1 = self._coordinateRings[s]
+        #                 ring2 = self._coordinateRings[s - 2]
+        #                 ic1 = aCrossIndexes[s]
+        #                 ic2 = aCrossIndexes[s - 2]
+        #                 for n in range(1, self._connectionCounts[s]):
+        #                     i1 = (ic1 + n) % self._aroundCounts[s] if self._segmentsIn[s] else ic1 - n
+        #                     i2 = (ic2 - n) if self._segmentsIn[s - 2] else (ic2 + n) % self._aroundCounts[s - 2]
+        #                     delta = sub(ring1[0][i1], ring2[0][i2])
+        #                     dist += magnitude(delta)
+        #             if (minDist is None) or (dist < minDist):
+        #                 self._aCrossIndexes = copy.copy(aCrossIndexes)
+        #                 self._bCrossIndexes = [ib, jb, kb]
+        # print("aCrossIndexes", self._aCrossIndexes, "bCrossIndexes", self._bCrossIndexes)
+        # self._aCrossIndexes = [2, 2, 2]
+        # self._bCrossIndexes = [-2, -2, -2]
+
+    def determineMidCoordinates(self):
+        """
+        Get 3 half-rings of coordinates between the tube coordinate rings.
+        The order is between the 1-2, 2-3 and 3-1 tubes.
+        Each half ring goes from the first cross point to the second.
+        Coordinates at the cross points are averaged.
+        """
+        assert self._aCrossIndexes is not None  # must call determineCrossIndexes() first
+        # get cross points a and b
+        at1d2 = self._coordinateRings[0][2][self._aCrossIndexes[0]]
+        at2d2 = self._coordinateRings[1][2][self._aCrossIndexes[1]]
+        at3d2 = self._coordinateRings[2][2][self._aCrossIndexes[2]]
+        acx, acd1, acd2 = get_bifurcation_triple_point(
+            self._coordinateRings[0][0][self._aCrossIndexes[0]], [-d for d in at1d2] if self._segmentsIn[0] else at1d2,
+            self._coordinateRings[1][0][self._aCrossIndexes[1]], [-d for d in at2d2] if self._segmentsIn[1] else at2d2,
+            self._coordinateRings[2][0][self._aCrossIndexes[2]], [-d for d in at3d2] if self._segmentsIn[2] else at3d2)
+        bt1d2 = self._coordinateRings[0][2][self._bCrossIndexes[0]]
+        bt2d2 = self._coordinateRings[1][2][self._bCrossIndexes[1]]
+        bt3d2 = self._coordinateRings[2][2][self._bCrossIndexes[2]]
+        bcx, bcd1, bcd2 = get_bifurcation_triple_point(
+            self._coordinateRings[0][0][self._bCrossIndexes[0]], [-d for d in bt1d2] if self._segmentsIn[0] else bt1d2,
+            self._coordinateRings[2][0][self._bCrossIndexes[2]], [-d for d in bt3d2] if self._segmentsIn[2] else bt3d2,
+            self._coordinateRings[1][0][self._bCrossIndexes[1]], [-d for d in bt2d2] if self._segmentsIn[1] else bt2d2)
+
+        self._midCoordinates = []
+        for s in range(3):
+            self._midCoordinates.append([[acx], [acd1], [acd2]])
+            ring1 = self._coordinateRings[s]
+            ring2 = self._coordinateRings[s - 2]
+            for n in range(1, self._connectionCounts[s]):
+                i1 = (self._aCrossIndexes[s] + n) % self._aroundCounts[s] if self._segmentsIn[s] \
+                    else self._aCrossIndexes[s] - n
+                i2 = self._aCrossIndexes[s - 2] - n if self._segmentsIn[s - 2] \
+                    else (self._aCrossIndexes[s - 2] + n) % self._aroundCounts[s - 2]
+                t1x = ring1[0][i1]
+                t1d2 = mult(ring1[2][i1], 2.0 if self._segmentsIn[s] else -2.0)
+                t2x = ring2[0][i2]
+                t2d2 = mult(ring2[2][i2], -2.0 if self._segmentsIn[s - 2] else 2.0)
+                hx = interpolateCubicHermite(t1x, t1d2, t2x, t2d2, 0.5)
+                hd1 = [0.0, 0.0, 0.0]
+                hd2 = [0.5 * d for d in interpolateCubicHermiteDerivative(t1x, t1d2, t2x, t2d2, 0.5)]
+                self._midCoordinates[s][0].append(hx)
+                self._midCoordinates[s][1].append(hd1)
+                self._midCoordinates[s][2].append(hd2)
+            self._midCoordinates[s][0].append(bcx)
+            self._midCoordinates[s][1].append(bcd1)
+            self._midCoordinates[s][2].append(bcd2)
+
+            # smooth around loops through hex points to get d1
+            loopx = self._midCoordinates[s][0]
+            startd1 = [-d for d in acd2] if (s == 0) else \
+                add(acd1, acd2) if (s == 1) else \
+                [-d for d in acd1]
+            endd1 = acd1 if (s == 0) else \
+                [-d for d in add(acd1, acd2)] if (s == 1) else \
+                acd2
+            loopd1 = [startd1] + self._midCoordinates[s][1][1:-1] + [endd1]
+            loopd1 = smoothCubicHermiteDerivativesLine(loopx, loopd1, fixStartDerivative=True, fixEndDerivative=True,
+                                                       magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+            self._midCoordinates[s][1][1:-1] = loopd1[1:-1]
+
 
 def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                   elementsCountAround: int, targetElementAspectRatio: float,
@@ -816,7 +1125,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
         px, pd1, pd2, pd12 = getPathRawTubeCoordinates(pathParameters, elementsCountAround)
         tubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
 
-    # map from NetworkNodes to bifurcation data
+    # map from NetworkNodes to bifurcation data, resample tube coordinates to fit bifurcation
     nodeTubeBifurcationData = {}
     for networkSegment in networkSegments:
         tubeData = segmentTubeData[networkSegment]
@@ -826,6 +1135,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
         startSegmentNode = segmentNodes[0]
         startTubeBifurcationData = nodeTubeBifurcationData.get(startSegmentNode)
         startSurface = None
+        newBifurcationData = []
         if not startTubeBifurcationData:
             startInSegments = startSegmentNode.getInSegments()
             startOutSegments = startSegmentNode.getOutSegments()
@@ -833,18 +1143,21 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                 # print("create start", networkSegment, startSegmentNode)
                 startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
                 nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
+                newBifurcationData.append(startTubeBifurcationData)
         if startTubeBifurcationData:
             startSurface = startTubeBifurcationData.getSegmentTrimSurface(networkSegment)
         endSegmentNode = segmentNodes[-1]
         endTubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
         endSurface = None
-        if not endTubeBifurcationData:
+        createEndBifurcationData = not endTubeBifurcationData
+        if createEndBifurcationData:
             endInSegments = endSegmentNode.getInSegments()
             endOutSegments = endSegmentNode.getOutSegments()
             if ((len(endInSegments) + len(endOutSegments)) == 3):
                 # print("create end", networkSegment, endSegmentNode)
                 endTubeBifurcationData = TubeBifurcationData(endInSegments, endOutSegments, segmentTubeData)
                 nodeTubeBifurcationData[endSegmentNode] = endTubeBifurcationData
+                newBifurcationData.append(endTubeBifurcationData)
         if endTubeBifurcationData:
             endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
         pathParameters = tubeData.getPathParameters()
@@ -896,35 +1209,37 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                 outTubeData.setEndNodeIds(endNodeIds)
             tubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
             if tubeBifurcationData:
-                for s in range(3):
-                    curve = tubeBifurcationData.getIntersectionCurve(s)
-                    cx, cd1, cProportions, loop = curve
-                    if cx:
-                        nodeIdentifier, elementIdentifier = \
-                            generateCurveMesh(region, cx, cd1, loop, nodeIdentifier, elementIdentifier)
-                for s in range(3):
-                    trimSurface = tubeBifurcationData.getTrimSurface(s)
-                    if trimSurface:
-                        nodeIdentifier = \
-                            trimSurface.generateMesh(region, nodeIdentifier)[0]
+                # for s in range(3):
+                #     curve = tubeBifurcationData.getIntersectionCurve(s)
+                #     cx, cd1, cProportions, loop = curve
+                #     if cx:
+                #         nodeIdentifier, elementIdentifier = \
+                #             generateCurveMesh(region, cx, cd1, loop, nodeIdentifier, elementIdentifier)
+                # for s in range(3):
+                #     trimSurface = tubeBifurcationData.getTrimSurface(s)
+                #     if trimSurface:
+                #         nodeIdentifier = \
+                #             trimSurface.generateMesh(region, nodeIdentifier)[0]
+                tubeBifurcationData.determineCrossIndexes()
+                tubeBifurcationData.determineMidCoordinates()
+                # nodeIdentifier = tubeBifurcationData.makeHalfRingNodes(region, fieldcache, coordinates, nodeIdentifier)
 
-                # tCoords = []
-                # tNodeIds = []
-                # # diverging bifurcation
-                # tCoords.append((sx[-2], sd1[-2], sd2[-2], sd12[-2]))  # inlet
-                # tNodeIds.append(endNodeIds)
-                # for outSegment in endOutSegments:
-                #     outTubeData = segmentTubeData[outSegment]
-                #     coords = outTubeData.getSampledTubeCoordinates()
-                #     tCoords.append((coords[0][1], coords[1][1], coords[2][1], coords[3][1]))
-                #     tNodeIds.append(outTubeData.getStartNodeIds())
-                # nodeIdentifier, elementIdentifier = generateTubeBifurcation2D(
-                #     tCoords, 1, region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
-                #     tNodeIds, serendipity)
-                # it = 1
-                # for outSegment in endOutSegments:
-                #     outTubeData = segmentTubeData[outSegment]
-                #     outTubeData.setStartNodeIds(tNodeIds[it])
-                #     it += 1
+                tubeData = tubeBifurcationData.getTubeData()
+                inward = tubeBifurcationData.getSegmentsIn()
+                tNodeIds = [tubeData[s].getEndNodeIds() if inward[s] else tubeData[s].getStartNodeIds()
+                            for s in range(3)]
+                nodeIdentifier, elementIdentifier = generateTubeBifurcation2D(
+                    tubeBifurcationData.getTubeCoordinates(), inward,
+                    tubeBifurcationData.getCrossIndexes(), tubeBifurcationData.getMidCoordinates(),
+                    region, fieldcache, coordinates, nodeIdentifier, elementIdentifier, tNodeIds,
+                    serendipity=serendipity)
+
+                for s in range(3):
+                    if inward[s]:
+                        if not tubeData[s].getEndNodeIds():
+                            tubeData[s].setEndNodeIds(tNodeIds[s])
+                    else:
+                        if not tubeData[s].getStartNodeIds():
+                            tubeData[s].setStartNodeIds(tNodeIds[s])
 
     return nodeIdentifier, elementIdentifier
