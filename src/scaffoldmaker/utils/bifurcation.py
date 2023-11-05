@@ -15,7 +15,8 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, Deri
     interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters, \
+    print_node_field_parameters
 import math
 import copy
 
@@ -908,13 +909,19 @@ class TubeBifurcationData:
                 cbd2 = normalize(bd1[4])
                 if dot(up, cbd2) < 0.0:
                     cbd2 = [-d for d in cbd2]
+                # move coordinates out slightly to guarantee intersection
+                arcLength = computeCubicHermiteArcLength(cax, d2a, cbx, d2b, rescaleDerivatives=True)
+                d2a = mult(d2a, arcLength / magnitude(d2a))
+                cax = sub(cax, mult(d2a, 0.05))
+                d2b = mult(d2b, arcLength / magnitude(d2b))
+                cbx = add(cbx, mult(d2b, 0.05))
                 nx = []
                 nd1 = []
                 nd2 = []
                 for delta in [-size, +size]:
                     vax = add(cax, mult(cad2, delta))
                     vbx = add(cbx, mult(cbd2, delta))
-                    arcLength = computeCubicHermiteArcLength(vax, d2a, vbx, d2b, rescaleDerivatives=True)
+                    arcLength = 1.5 * computeCubicHermiteArcLength(vax, d2a, vbx, d2b, rescaleDerivatives=True)
                     vad1 = mult(d2a, arcLength / magnitude(d2a))
                     vbd1 = mult(d2b, arcLength / magnitude(d2b))
                     nx.append(vax)
@@ -1115,12 +1122,18 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
     # map from NetworkSegment to SegmentTubeData
     segmentTubeData = {}
     for networkSegment in networkSegments:
+        valueLabels = [
+            Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+            Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
         pathParameters = get_nodeset_path_ordered_field_parameters(
-            layoutNodes, layoutCoordinates,
-            [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-             Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
+            layoutNodes, layoutCoordinates, valueLabels,
             networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
+        print("path", pathParameters)
+        # nodeFieldParameters = [(n + 1, [[param[n] for param in pathParameters]]) for n in range(len(pathParameters[0]))]
+        # print("params", nodeFieldParameters)
+        # print_node_field_parameters(
+        #     valueLabels, nodeFieldParameters, format_string='{: 11e}')
         segmentTubeData[networkSegment] = tubeData = SegmentTubeData(pathParameters)
         px, pd1, pd2, pd12 = getPathRawTubeCoordinates(pathParameters, elementsCountAround)
         tubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
@@ -1220,9 +1233,10 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                 #     if trimSurface:
                 #         nodeIdentifier = \
                 #             trimSurface.generateMesh(region, nodeIdentifier)[0]
-                tubeBifurcationData.determineCrossIndexes()
-                tubeBifurcationData.determineMidCoordinates()
-                # nodeIdentifier = tubeBifurcationData.makeHalfRingNodes(region, fieldcache, coordinates, nodeIdentifier)
+                crossIndexes = tubeBifurcationData.getCrossIndexes()
+                if not crossIndexes:
+                    tubeBifurcationData.determineCrossIndexes()
+                    tubeBifurcationData.determineMidCoordinates()
 
                 tubeData = tubeBifurcationData.getTubeData()
                 inward = tubeBifurcationData.getSegmentsIn()
