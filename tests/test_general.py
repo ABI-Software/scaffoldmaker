@@ -766,7 +766,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         p2, cp2, p2intersects = surf2.findNearestPositionOnCurve(curve4_x, curve4_d1)
         self.assertTrue(p2intersects)
         self.assertEqual(cp2[0], 0)
-        self.assertAlmostEqual(cp2[1], 0.23080350957955792, delta=XI_TOL)
+        self.assertAlmostEqual(cp2[1], 0.23080643876585413, delta=XI_TOL)
         p2x = surf2.evaluateCoordinates(p2)
         cp2x = evaluateCoordinatesOnCurve(curve4_x, curve4_d1, cp2)
         assertAlmostEqualList(self, p2x, cp2x, delta=X_TOL)
@@ -802,31 +802,32 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         surf2_d2 = [[0.0, 1.0, 0.0], [0.0, 1.0, -0.8], [0.0, 1.0, 0.0], [0.0, 1.0, -0.8]]
         surf2 = TrackSurface(1, 1, surf2_x, surf2_d1, surf2_d2)
 
-        XI_TOL = 1.0E-5
-        X_TOL = 1.0E-5
+        XI_TOL = 1.0E-6
+        X_TOL = 1.0E-6
+
         p1, op1, p1x, p1t, p1bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.25, 0.1), surf2.createPositionProportion(0.5, 0.5))
         self.assertEqual(p1.e1, 0)
         self.assertEqual(p1.e2, 0)
-        self.assertAlmostEqual(p1.xi1, 0.3827542419576543, delta=XI_TOL)
-        self.assertAlmostEqual(p1.xi2, 0.14300039391998356, delta=XI_TOL)
+        self.assertAlmostEqual(p1.xi1, 0.38287186861026046, delta=XI_TOL)
+        self.assertAlmostEqual(p1.xi2, 0.14232301624230445, delta=XI_TOL)
         self.assertEqual(op1.e1, 0)
         self.assertEqual(op1.e2, 0)
-        self.assertAlmostEqual(op1.xi1, 0.3542086609802103, delta=XI_TOL)
-        self.assertAlmostEqual(op1.xi2, 0.14300039164709774, delta=XI_TOL)
-        assertAlmostEqualList(self, [0.17221106273469736, -0.9850600742451123, 0.0], p1t, delta=X_TOL)
+        self.assertAlmostEqual(op1.xi1, 0.35438003143365127, delta=XI_TOL)
+        self.assertAlmostEqual(op1.xi2, 0.14232301622713658, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.1700422367869369, -0.9854367750944224, 0.0], p1t, delta=X_TOL)
 
         p2, op2, p2x, p2t, p2bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.7, 0.6), surf2.createPositionProportion(0.5, 0.5))
         self.assertEqual(p2.e1, 0)
         self.assertEqual(p2.e2, 0)
-        self.assertAlmostEqual(p2.xi1, 0.7456454976534315, delta=XI_TOL)
-        self.assertAlmostEqual(p2.xi2, 0.6651853384978862, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi1, 0.7455699485954836, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi2, 0.6652325809349918, delta=XI_TOL)
         self.assertEqual(op2.e1, 0)
         self.assertEqual(op2.e2, 0)
-        self.assertAlmostEqual(op2.xi1, 0.8310708158830783, delta=XI_TOL)
-        self.assertAlmostEqual(op2.xi2, 0.6651848809929823, delta=XI_TOL)
-        assertAlmostEqualList(self, [-0.8393390605653583, 0.5436082609832762, 0.0], p2t, delta=X_TOL)
+        self.assertAlmostEqual(op2.xi1, 0.830980843977797, delta=XI_TOL)
+        self.assertAlmostEqual(op2.xi2, 0.6652325809312423, delta=XI_TOL)
+        assertAlmostEqualList(self, [-0.8391083674789601, 0.5439642889260237, 0.0], p2t, delta=X_TOL)
 
         p3, op3, p3x, p3t, p3bdy = surf1.findIntersectionPoint(
             surf2, surf1.createPositionProportion(0.0, 0.326), surf2.createPositionProportion(0.0, 0.25))
@@ -858,22 +859,26 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(len(cx), 9)
         self.assertFalse(loop)
         clength = getCubicHermiteCurvesLength(cx, cd1)
-        self.assertAlmostEqual(clength, 0.5166062430127731, delta=X_TOL)
-        assertAlmostEqualList(self, [0.1, 0.32635205915901244, 0.0], cx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.38097897734735064, 0.0, 0.0], cx[-1], delta=X_TOL)
-        assertAlmostEqualList(self, [0.1, 0.32635205915901244], cprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.38097897734735064, 0.0], cprops[-1], delta=XI_TOL)
+        self.assertAlmostEqual(clength, 0.5166105006376641, delta=X_TOL)
+        assertAlmostEqualList(self, [0.1000000000000001, 0.3263518562674236, 0.0], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.3373116664675114, 0.2471498514765583, 0.0], cx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.3809786164663428, 0.0, 0.0], cx[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.1, 0.3263518562674236], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.3373116664675114, 0.2471498514765583], cprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.3809786164663428, 0.0], cprops[8], delta=XI_TOL)
 
         dx, dd1, dprops, loop = surf1.findIntersectionCurve(
             surf2, surf1.createPositionProportion(0.85, 0.75), MAX_MAG_DXI=0.2)
         self.assertEqual(len(dx), 9)
         self.assertFalse(loop)
         dlength = getCubicHermiteCurvesLength(dx, dd1)
-        self.assertAlmostEqual(dlength, 0.5433206306126872, delta=X_TOL)
+        self.assertAlmostEqual(dlength, 0.5433209057545304, delta=X_TOL)
         assertAlmostEqualList(self, [0.9, 0.625, 0.0], dx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.5797044105290857, 1.0, 0.0], dx[-1], delta=3.0*X_TOL)
+        assertAlmostEqualList(self, [0.6714699015724952, 0.7450512483881269, 0.0], dx[4], delta=3.0*X_TOL)
+        assertAlmostEqualList(self, [0.5797035235769858, 1.0, 0.0], dx[8], delta=3.0*X_TOL)
         assertAlmostEqualList(self, [0.9, 0.625], dprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.5797044105290857, 1.0], dprops[-1], delta=3.0*XI_TOL)
+        assertAlmostEqualList(self, [0.6714699015724951, 0.7450512483881269], dprops[4], delta=3.0*XI_TOL)
+        assertAlmostEqualList(self, [0.5797035235769857, 1.0], dprops[8], delta=3.0*XI_TOL)
 
         context = Context("TrackSurface")
         region = context.getDefaultRegion()
@@ -966,21 +971,35 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             nd12 += sd12[i]
         tube3Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
-        XI_TOL = 1.0E-5
+        XI_TOL = 1.0E-6
         X_TOL = 1.0E-6
+
+        startPosition = TrackSurfacePosition(12, 5, 0.8242639579553614, 0.999980904098904)
+        p1x = tube1Surface.evaluateCoordinates(startPosition)
+        otherStartPosition = TrackSurfacePosition(4, 0, 0.1580888007016199, 4.3205057553252083e-16)
+        p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(tube2Surface, startPosition, otherStartPosition)
+        self.assertEqual(p2.e1, 12)
+        self.assertEqual(p2.e2, 5)
+        self.assertAlmostEqual(p2.xi1, 0.8242639579553614, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi2, 1.0, delta=XI_TOL)
+        self.assertEqual(op2.e1, 4)
+        self.assertEqual(op2.e2, 0)
+        self.assertAlmostEqual(op2.xi1, 0.8242639579553614, delta=XI_TOL)
+        self.assertAlmostEqual(op2.xi2, 0.0, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.045070823041903824, 0.5059563360833004, -0.8613807560466439], p2t, delta=X_TOL)
 
         # get loop intersection of fully connected tube1 and tube2
         ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface, curveElementsCount=12)
         self.assertEqual(len(ax), 12)
         self.assertTrue(aloop)
         aCircumference = getCubicHermiteCurvesLength(ax, ad1, loop=True)
-        self.assertAlmostEqual(aCircumference, 2.3970893922280316, delta=X_TOL)
-        assertAlmostEqualList(self, [1.031, 0.348, 0.0], ax[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.9835148692327162, -0.18505888732305587, 0.3490118118443725], ax[4], delta=X_TOL)
-        assertAlmostEqualList(self, [0.9835148692326543, -0.18505888732375525, -0.34901181184586105], ax[8], delta=X_TOL)
-        assertAlmostEqualList(self, [1.0, 1.0], aprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [1.3335632443577428, 1.0], aprops[4], delta=XI_TOL)
-        assertAlmostEqualList(self, [1.6664367556370447, 1.0], aprops[8], delta=XI_TOL)
+        self.assertAlmostEqual(aCircumference, 2.3973806470916053, delta=X_TOL)
+        assertAlmostEqualList(self, [0.9710855559899819, -0.3245879521124608, 0.14882333760790006], ax[0], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0042792217936645, 0.04803771561920248, -0.4088273215322407], ax[4], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0253800137427358, 0.28491112201522784, 0.23710643763851688], ax[8], delta=X_TOL)
+        assertAlmostEqualList(self, [1.437028796684921, 1.0], aprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.7702955198293207, 1.0], aprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.10347469710521648, 1.0], aprops[8], delta=XI_TOL)
 
         # get loop intersection of unconnected tube2 and tube3
         bx, bd1, bprops, bloop = tube2Surface.findIntersectionCurve(tube3Surface, curveElementsCount=12)
@@ -991,15 +1010,15 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # get loop intersection of large tube1 and small tube3
         cx, cd1, cprops, cloop = tube1Surface.findIntersectionCurve(
-            tube3Surface, tube1Surface.createPositionProportion(0.1, 0.7))
+             tube3Surface, tube1Surface.createPositionProportion(0.1, 0.7))
         self.assertEqual(len(cx), 8)
         self.assertTrue(cloop)
         cCircumference = getCubicHermiteCurvesLength(cx, cd1, loop=True)
-        self.assertAlmostEqual(cCircumference, 0.5878579659947212, delta=X_TOL)
-        assertAlmostEqualList(self, [0.7318795557933627, 0.28115372437396596, 0.13238827675372755], cx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.8408756825081185, 0.31822791967684666, -0.04549462829045712], cx[4], delta=X_TOL)
-        assertAlmostEqualList(self, [1.0762371065410046, 0.7158349700466852], cprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.9766130691654743, 0.819866522694973], cprops[4], delta=XI_TOL)
+        self.assertAlmostEqual(cCircumference, 0.587857727905694, delta=X_TOL)
+        assertAlmostEqualList(self, [0.7318758089726128, 0.28115396634786666, 0.13238674558014327], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.8408765202354725, 0.3182280500580874, -0.04549438718340043], cx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0762363614295223, 0.7158314515175085], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.9766132119015503, 0.8198673158401282], cprops[4], delta=XI_TOL)
 
         # make trimmed tube3 starting at intersection with tube1
         tx, td1, td2, td12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong,
@@ -1029,6 +1048,23 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # tube3TrimmedSurface.generateMesh(region, group_name=surfaceGroupName)
         # coordinateFieldName = "curve_coordinates"
         # curveGroupName = "curve"
+        # fieldmodule = region.getFieldmodule()
+        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
+        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # nodetemplate.defineField(curveCoordinates)
+        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
+        # fieldcache = fieldmodule.createFieldcache()
+        # px = [p1x, p2x]
+        # pd1 = [[0.0, 0.0, 0.0], p2t]
+        # for n in range(len(px)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+        #     curveNodesetGroup.addNode(node)
         # generateCurveMesh(region, ax, ad1, aloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
         # generateCurveMesh(region, cx, cd1, cloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
@@ -1078,21 +1114,20 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             nd12 += sd12[i]
         tube2Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
-        XI_TOL = 1.0E-5
-        X_TOL = 1.0E-5
+        XI_TOL = 1.0E-6
 
         startPosition = TrackSurfacePosition(6, 3, 0.5717869946250334, 1.0)
         otherStartPosition = TrackSurfacePosition(6, 0, 0.11046416298376727, 0.07944602603404333)
         p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(tube2Surface, startPosition, otherStartPosition)
         self.assertEqual(p2.e1, 6)
         self.assertEqual(p2.e2, 3)
-        self.assertAlmostEqual(p2.xi1, 0.46396585703160653, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi1, 0.4639613077782414, delta=XI_TOL)
         self.assertAlmostEqual(p2.xi2, 1.0, delta=XI_TOL)
         self.assertEqual(op2.e1, 6)
         self.assertEqual(op2.e2, 0)
-        self.assertAlmostEqual(op2.xi1, 0.48733088501338084, delta=XI_TOL)
-        self.assertAlmostEqual(op2.xi2, 0.003275382644915809, delta=XI_TOL)
-        assertAlmostEqualList(self, [0.6907071403217576, 0.6945588010123235, 0.2012752300827489], p2t, delta=X_TOL)
+        self.assertAlmostEqual(op2.xi1, 0.4873273111526366, delta=XI_TOL)
+        self.assertAlmostEqual(op2.xi2, 0.0032771820253160657, delta=XI_TOL)
+        self.assertIsNone(p2t)
 
     def test_tube_intersections2(self):
         elementsCountAround = 8
@@ -1157,8 +1192,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             nd12 += sd12[i]
         tube3Surface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
 
-        XI_TOL = 1.0E-5
-        X_TOL = 1.0E-5
+        XI_TOL = 1.0E-6
+        X_TOL = 1.0E-6
 
         p1, op1, p1x, p1t, p1bdy = tube1Surface.findIntersectionPoint(
             tube2Surface, tube1Surface.createPositionProportion(0.25, 1.0),
@@ -1166,81 +1201,105 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(p1.e1, 2)
         self.assertEqual(p1.e2, 5)
         self.assertEqual(p1bdy, 2)
-        self.assertAlmostEqual(p1.xi1, 0.5508997391776482, delta=XI_TOL)
+        self.assertAlmostEqual(p1.xi1, 0.551275863396822, delta=XI_TOL)
         self.assertAlmostEqual(p1.xi2, 1.0, delta=XI_TOL)
         self.assertEqual(op1.e1, 2)
         self.assertEqual(op1.e2, 0)
-        self.assertAlmostEqual(op1.xi1, 0.5563603080810435, delta=XI_TOL)
-        self.assertAlmostEqual(op1.xi2, 0.052530297603349416, delta=XI_TOL)
-        assertAlmostEqualList(self, [-0.6602410633777617, -0.702612140293533, -0.2653637476030644], p1t, delta=X_TOL)
+        self.assertAlmostEqual(op1.xi1, 0.5566551590679389, delta=XI_TOL)
+        self.assertAlmostEqual(op1.xi2, 0.052773843347578696, delta=XI_TOL)
+        assertAlmostEqualList(self, [-0.6607544357449996, -0.7021257304258945, -0.26537338660312426], p1t, delta=X_TOL)
 
+        startPosition = TrackSurfacePosition(6, 5, 0.0, 1.0)
         p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(
-            tube3Surface, TrackSurfacePosition(6, 5, 0.0, 1.0), TrackSurfacePosition(6, 0, 0.0, 0.0))
+            tube3Surface, startPosition, TrackSurfacePosition(6, 0, 0.0, 0.0))
         self.assertEqual(p2.e1, 6)
         self.assertEqual(p2.e2, 5)
-        self.assertAlmostEqual(p2.xi1, 0.3389900537842907, delta=XI_TOL)
-        self.assertAlmostEqual(p2.xi2, 0.8993560239245539, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi1, 0.33908360205244037, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi2, 0.899262977194283, delta=XI_TOL)
         self.assertEqual(op2.e1, 6)
         self.assertEqual(op2.e2, 0)
-        self.assertAlmostEqual(op2.xi1, 0.4058418399317789, delta=XI_TOL)
-        self.assertAlmostEqual(op2.xi2, 7.291857781453722e-07, delta=XI_TOL)
-        assertAlmostEqualList(self, [0.141189187940352, 0.9590669665688345, 0.24547131572792374], p2t, delta=X_TOL)
+        self.assertAlmostEqual(op2.xi1, 0.4059622427354084, delta=XI_TOL)
+        self.assertAlmostEqual(op2.xi2, 0.0, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.1412180735660879, 0.9590457759564066, 0.24553748251225724], p2t, delta=X_TOL)
+
+        startPosition = TrackSurfacePosition(6, 5, 0.053597696166878706, 1.0)
+        p3, op3, p3x, p3t, p3bdy = tube1Surface.findIntersectionPoint(
+            tube3Surface, startPosition, TrackSurfacePosition(6, 0, 0.5777545444894798, 0.1230948585475792))
+        self.assertEqual(p3.e1, 6)
+        self.assertEqual(p3.e2, 5)
+        self.assertAlmostEqual(p3.xi1, 0.3390958322811555, delta=XI_TOL)
+        self.assertAlmostEqual(p3.xi2, 0.899250982796703, delta=XI_TOL)
+
+        startPosition = TrackSurfacePosition(5, 5, 0.9639270978611663, 0.7487688426600227)
+        p4, op4, p4x, p4t, p4bdy = tube1Surface.findIntersectionPoint(
+            tube2Surface, startPosition, TrackSurfacePosition(5, 0, 0.49953899323872, 0.27331994814227073))
+        self.assertEqual(p4.e1, 5)
+        self.assertEqual(p4.e2, 5)
+        self.assertAlmostEqual(p4.xi1, 0.9585925958894155, delta=XI_TOL)
+        self.assertAlmostEqual(p4.xi2, 0.7720200484294564, delta=XI_TOL)
+
+        startPosition = TrackSurfacePosition(6, 0, 0.27152105049897823,0.0)
+        p5, op5, p5x, p5t, p5bdy = tube2Surface.findIntersectionPoint(
+            tube3Surface, startPosition, TrackSurfacePosition(6, 0, 0.1648182942983345,0.4437057086482662))
+        self.assertEqual(p5.e1, 6)
+        self.assertEqual(p5.e2, 0)
+        self.assertAlmostEqual(p5.xi1, 0.3265731742895994, delta=XI_TOL)
+        self.assertAlmostEqual(p5.xi2, 0.06905957836045906, delta=XI_TOL)
 
         startPosition = TrackSurfacePosition(5, 5, 0.8414377968474449, 0.9143600731749943)
         otherStartPosition = TrackSurfacePosition(6, 0, 0.4076509361724341, 0.0017373594850997659)
-        p1x = tube1Surface.evaluateCoordinates(startPosition)
-        p1t = [0.0, 0.0, 0.0]
-        op1x = tube2Surface.evaluateCoordinates(otherStartPosition)
-        op1t = [0.0, 0.0, 0.0]
-        p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(tube3Surface, startPosition, otherStartPosition)
-        self.assertEqual(p2.e1, 6)
-        self.assertEqual(p2.e2, 5)
-        self.assertAlmostEqual(p2.xi1, 0.3389900537842907, delta=XI_TOL)
-        self.assertAlmostEqual(p2.xi2, 0.8993560239245539, delta=XI_TOL)
-        self.assertEqual(op2.e1, 6)
-        self.assertEqual(op2.e2, 0)
-        self.assertAlmostEqual(op2.xi1, 0.4058418399317789, delta=XI_TOL)
-        self.assertAlmostEqual(op2.xi2, 7.291857781453722e-07, delta=XI_TOL)
-        assertAlmostEqualList(self, [0.141189187940352, 0.9590669665688345, 0.24547131572792374], p2t, delta=X_TOL)
+        p6, op6, p6x, p6t, p6bdy = tube1Surface.findIntersectionPoint(tube3Surface, startPosition, otherStartPosition)
+        self.assertEqual(p6.e1, 6)
+        self.assertEqual(p6.e2, 5)
+        self.assertAlmostEqual(p6.xi1, 0.3390904086633162, delta=XI_TOL)
+        self.assertAlmostEqual(p6.xi2, 0.89925630182541039, delta=XI_TOL)
+
+        startPosition = TrackSurfacePosition(2, 0, 0.6590628632288293, 0.0)
+        otherStartPosition = TrackSurfacePosition(2, 0, 0.5297149091022884, 0.09186286116765788)
+        p7, op7, p7x, p7t, p7bdy = tube2Surface.findIntersectionPoint(tube3Surface, startPosition, otherStartPosition)
+        self.assertEqual(p7.e1, 2)
+        self.assertEqual(p7.e2, 0)
+        self.assertAlmostEqual(p7.xi1, 0.3488485362030178, delta=XI_TOL)
+        self.assertAlmostEqual(p7.xi2, 0.10171143282929856, delta=XI_TOL)
 
         # get non-loop intersection of tube1 and tube2
         ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface)
         self.assertEqual(len(ax), 9)
         self.assertFalse(aloop)
         aLength = getCubicHermiteCurvesLength(ax, ad1, loop=True)
-        self.assertAlmostEqual(aLength, 1.2919777229894804, delta=X_TOL)
-        assertAlmostEqualList(self, [1.0179676600074015, -0.10365049701981008, 0.22622361976962302], ax[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.8745450783700838, -0.21897491524051715, -0.0777026065031321], ax[4], delta=X_TOL)
-        assertAlmostEqualList(self, [0.9779279419853613, 0.08207339709296503, -0.23449183063833312], ax[8], delta=X_TOL)
-        assertAlmostEqualList(self, [0.31886245989710243, 1.0], aprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.5614792571591593, 0.9099223342797073], aprops[4], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.803904992323552, 1.0], aprops[8], delta=XI_TOL)
+        self.assertAlmostEqual(aLength, 1.291896441648134, delta=X_TOL)
+        assertAlmostEqualList(self, [1.0179538858287902, -0.10372009294261042, 0.22619317098715946], ax[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.8745386899334123, -0.21894738318303653, -0.07777014486867816], ax[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9779282561711389, 0.0820751155699032, -0.23449126177600493], ax[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.31891164977233744, 1.0], aprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.5615258901138819, 0.9099206438856747], aprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.8039061628699322, 1.0], aprops[8], delta=XI_TOL)
 
-        # get non-loop intersection of tube1 and tube3
+        # # get non-loop intersection of tube1 and tube3
         bx, bd1, bprops, bloop = tube1Surface.findIntersectionCurve(tube3Surface)
         self.assertEqual(len(bx), 9)
         self.assertFalse(bloop)
         bLength = getCubicHermiteCurvesLength(bx, bd1, loop=True)
-        self.assertAlmostEqual(bLength, 1.2644488260309326, delta=X_TOL)
-        assertAlmostEqualList(self, [0.9591080944169758, 0.06709165587847295, -0.23727298923561452], bx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.9486202104506236, 0.2544915175468575, 0.05286616643399692], bx[4], delta=X_TOL)
-        assertAlmostEqualList(self, [1.0147881663670826, -0.023169799379465502, 0.24848769164457918], bx[8], delta=X_TOL)
-        assertAlmostEqualList(self, [0.7923737567230363, 0.9832260039874257], bprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [1.0300715902775395, 0.9150677659200408], bprops[4], delta=XI_TOL)
-        assertAlmostEqualList(self, [1.2664751916813988, 0.9841115235317165], bprops[8], delta=XI_TOL)
+        self.assertAlmostEqual(bLength, 1.2644609503534696, delta=X_TOL)
+        assertAlmostEqualList(self, [0.959094526660969, 0.06711431057004068, -0.2372654694905775], bx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9486154683235082, 0.2545005003987398, 0.05281998774919236], bx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0147890884040247, -0.023171620406177137, 0.24848738902991338], bx[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.7923873358701699, 0.9832080394698671], bprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.0300414330440506, 0.9150675749144951], bprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.2664762695247593, 0.9841126335511698], bprops[8], delta=XI_TOL)
 
         # get non-loop intersection of tube2 and tube3
         cx, cd1, cprops, cloop = tube2Surface.findIntersectionCurve(tube3Surface)
         self.assertEqual(len(cx), 9)
         self.assertFalse(cloop)
         cLength = getCubicHermiteCurvesLength(cx, cd1, loop=True)
-        self.assertAlmostEqual(cLength, 1.5064361276928098, delta=X_TOL)
-        assertAlmostEqualList(self, [1.0515374617602475, -0.08502587600186669, 0.22935125161743802], cx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [1.3713605440959897, -0.024400847183938618, -0.08286692008305784], cx[4], delta=X_TOL)
-        assertAlmostEqualList(self, [0.9646359650479515, 0.05778405738477461, -0.24059093986461438], cx[8], delta=X_TOL)
-        assertAlmostEqualList(self, [0.29558983388126037, 0.0169591475867031], cprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.05133497775216426, 0.2953734803901128], cprops[4], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.7907952733062866, 0.0115085396081928], cprops[8], delta=XI_TOL)
+        self.assertAlmostEqual(cLength, 1.5043466772609664, delta=X_TOL)
+        assertAlmostEqualList(self, [1.0520314480858863, -0.08448292231982152, 0.22943933201798475], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [1.371595090134054, -0.025198139662860983, -0.08077579593457211], cx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9646802371174595, 0.05782142665662265, -0.2405883772081815], cx[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.29512079285309245, 0.016904371941478556], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.05279076844122189, 0.2956101303623628], cprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.7908321660824743, 0.011511436246596925], cprops[8], delta=XI_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
@@ -1250,26 +1309,148 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # tube3Surface.generateMesh(region, group_name=surfaceGroupName)
         # coordinateFieldName = "curve_coordinates"
         # curveGroupName = "curve"
-        # # fieldmodule = region.getFieldmodule()
-        # # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # # nodetemplate = nodes.createNodetemplate()
-        # # nodetemplate.defineField(curveCoordinates)
-        # # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # # fieldcache = fieldmodule.createFieldcache()
-        # # px = [p1x, op1x, p2x]
-        # # pd1 = [p1t, op1t, p2t]
-        # # for n in range(len(px)):
-        # #     node = nodes.createNode(-1, nodetemplate)
-        # #     fieldcache.setNode(node)
-        # #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        # #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        # #     curveNodesetGroup.addNode(node)
+        # fieldmodule = region.getFieldmodule()
+        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
+        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # nodetemplate.defineField(curveCoordinates)
+        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
+        # fieldcache = fieldmodule.createFieldcache()
+        # px = [p1x, p2x, p3x, p4x, p5x, p6x, p7x]
+        # pd1 = [p1t, p2t, p3t, p4t, p5t, p6t, p7t]
+        # for n in range(len(px)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+        #     curveNodesetGroup.addNode(node)
         # generateCurveMesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
         # generateCurveMesh(region, bx, bd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
         # generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+
+    def test_tube_intersections3(self):
+        """
+        Regular converging bifurcation failed to find boundary intersection point.
+        """
+        elementsCountAround = 10
+        # elementsCountAlong = 4
+        path1Params = [
+            [[0.0, -0.25, 0.0], [1.0, 0.0, 0.0]],
+            [[0.9701425001453319, 0.24253562503633297, 0.0], [0.9701425001453319, 0.24253562503633297, 0.0]],
+            [[-0.06063390625908324, 0.24253562503633297, 0.0], [-0.06063390625908324, 0.24253562503633297, 0.0]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            [[0.0, -0.0, 0.25], [0.0, -0.0, 0.25]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]]
+        px, pd1, pd2, pd12 = getPathRawTubeCoordinates(path1Params, elementsCountAround)
+        # px, pd1, pd2, pd12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong)
+        nx = []
+        nd1 = []
+        nd2 = []
+        nd12 = []
+        for i in range(len(px)):
+            nx += px[i]
+            nd1 += pd1[i]
+            nd2 += pd2[i]
+            nd12 += pd12[i]
+        tube1Surface = TrackSurface(len(px[0]), len(px) - 1, nx, nd1, nd2, nd12, loop1=True)
+
+        path2Params = [
+            [[0.0, 0.25, 0.0], [1.0, 0.0, 0.0]],
+            [[0.9701425001453319, -0.24253562503633297, 0.0], [0.9701425001453319, -0.24253562503633297, 0.0]],
+            [[0.06063390625908324, 0.24253562503633297, 0.0], [0.06063390625908324, 0.24253562503633297, 0.0]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            [[-0.0, 0.0, 0.25], [-0.0, 0.0, 0.25]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]]
+        px, pd1, pd2, pd12 = getPathRawTubeCoordinates(path2Params, elementsCountAround)
+        # px, pd1, pd2, pd12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong)
+        nx = []
+        nd1 = []
+        nd2 = []
+        nd12 = []
+        for i in range(len(px)):
+            nx += px[i]
+            nd1 += pd1[i]
+            nd2 += pd2[i]
+            nd12 += pd12[i]
+        tube2Surface = TrackSurface(len(px[0]), len(px) - 1, nx, nd1, nd2, nd12, loop1=True)
+
+        # path3Params = [
+        #     [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        #     [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        #     [[-0.0, 0.25, 0.0], [-0.0, 0.25, 0.0]],
+        #     [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        #     [[0.0, -0.0, 0.25], [0.0, -0.0, 0.25]],
+        #     [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]]
+
+        XI_TOL = 1.0E-6
+        X_TOL = 1.0E-6
+
+        startPosition = TrackSurfacePosition(12, 0, 0.7886706262895231, 1.0)
+        p1x = tube1Surface.evaluateCoordinates(startPosition)
+        otherStartPosition = TrackSurfacePosition(2, 0, 0.636882069585452, 0.9147548823734029)
+        p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(
+            tube2Surface, startPosition, otherStartPosition)
+        self.assertEqual(p2.e1, 12)
+        self.assertEqual(p2.e2, 0)
+        self.assertAlmostEqual(p2.xi1, 0.4973473706811795, delta=XI_TOL)
+        self.assertAlmostEqual(p2.xi2, 1.0, delta=XI_TOL)
+        self.assertEqual(op2.e1, 2)
+        self.assertEqual(op2.e2, 0)
+        self.assertAlmostEqual(op2.xi1, 0.49765944425751174, delta=XI_TOL)
+        self.assertAlmostEqual(op2.xi2, 0.9998039549126785, delta=XI_TOL)
+        self.assertIsNone(p2t)
+
+        startPosition = TrackSurfacePosition(0, 0, 0.08468387605632358, 0.0)
+        p3x = tube1Surface.evaluateCoordinates(startPosition)
+        otherStartPosition = TrackSurfacePosition(4, 0, 0.42675444143171326, 0.09458268381308738)
+        p4, op4, p4x, p4t, p4bdy = tube1Surface.findIntersectionPoint(
+            tube2Surface, startPosition, otherStartPosition)
+        self.assertEqual(p4.e1, 0)
+        self.assertEqual(p4.e2, 0)
+        self.assertAlmostEqual(p4.xi1, 0.001112953121053552, delta=XI_TOL)
+        self.assertAlmostEqual(p4.xi2, 0.030691469925266602, delta=XI_TOL)
+        assertAlmostEqualList(self, [0.002978246340503309, 1.6957770277963287e-12, 0.999995565014533], p4t, delta=X_TOL)
+
+        # get non-loop intersection of tube1 and tube2
+        ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface)
+        self.assertEqual(len(ax), 9)
+        self.assertFalse(aloop)
+        aLength = getCubicHermiteCurvesLength(ax, ad1, loop=True)
+        self.assertAlmostEqual(aLength, 2.7550717460511067, delta=X_TOL)
+        assertAlmostEqualList(self, [0.9999027578036812, 0.00038896878527516776, -0.24987413008984302], ax[0], delta=X_TOL)
+        assertAlmostEqualList(self, [-0.03077634623170676, 1.5966942528521302e-09, 7.945917568834134e-05], ax[4], delta=X_TOL)
+        assertAlmostEqualList(self, [0.9997557619375088, 0.0009769522499643996, 0.24987245334458275], ax[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.7502552895299374, 1.0], aprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.0000505870312695, 0.030691274736817955], aprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.249358801390615, 1.0], aprops[8], delta=XI_TOL)
+
+        # context = Context("TrackSurface")
+        # region = context.getDefaultRegion()
+        # surfaceGroupName = "surface"
+        # tube1Surface.generateMesh(region, group_name=surfaceGroupName)
+        # tube2Surface.generateMesh(region, group_name=surfaceGroupName)
+        # coordinateFieldName = "curve_coordinates"
+        # curveGroupName = "curve"
+        # fieldmodule = region.getFieldmodule()
+        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
+        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # nodetemplate.defineField(curveCoordinates)
+        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
+        # fieldcache = fieldmodule.createFieldcache()
+        # px = [p1x, p2x, p3x, p4x]
+        # pd1 = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], p4t]
+        # for n in range(len(px)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+        #     curveNodesetGroup.addNode(node)
+        # generateCurveMesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
 
 if __name__ == "__main__":
