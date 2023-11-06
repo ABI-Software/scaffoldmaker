@@ -394,13 +394,15 @@ class TrackSurface:
         :return: Advanced position, onBoundary (0/1=xi1/2=xi2), actual dxi1, actual dxi2
         """
         startProportion1, startProportion2 = self.getProportion(startPosition)
+        adxi1 = dxi1
+        adxi2 = dxi2
         magDxi = magnitude([dxi1, dxi2])
         if magDxi > MAX_MAG_DXI:
             factor = MAX_MAG_DXI / magDxi
-            dxi1 *= factor
-            dxi2 *= factor
-        proportion1 = startProportion1 + dxi1 / self._elementsCount1
-        proportion2 = startProportion2 + dxi2 / self._elementsCount2
+            adxi1 *= factor
+            adxi2 *= factor
+        proportion1 = startProportion1 + adxi1 / self._elementsCount1
+        proportion2 = startProportion2 + adxi2 / self._elementsCount2
         onBoundary = 0
         if self._loop1:
             if proportion1 < 0.0:
@@ -422,9 +424,9 @@ class TrackSurface:
             onBoundary = 2
         if onBoundary:
             if not self._loop1:
-                dxi1 = (proportion1 - startProportion1) / self._elementsCount1
-            dxi2 = (proportion2 - startProportion2) / self._elementsCount2
-        return self.createPositionProportion(proportion1, proportion2), onBoundary, dxi1, dxi2
+                adxi1 = (proportion1 - startProportion1) * self._elementsCount1
+            adxi2 = (proportion2 - startProportion2) * self._elementsCount2
+        return self.createPositionProportion(proportion1, proportion2), onBoundary, adxi1, adxi2
 
     def _getIntersectionDelta(self, position, otherTrackSurface, otherPosition, stickyBoundaryCount):
         onBoundary = self._positionOnBoundary(position)
@@ -441,8 +443,7 @@ class TrackSurface:
             position.xi2 = position2.xi2
             oldOnBoundary = onBoundary
             onBoundary = self._positionOnBoundary(position)
-            # if onBoundary != oldOnBoundary:
-            #     print("   BOUNDARY CHANGE", onBoundary)
+            # print("   Find nearest position to other boundary")
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
             otherPosition = otherTrackSurface.findNearestPosition(x, otherPosition)
             onOtherBoundary = otherTrackSurface._positionOnBoundary(otherPosition)
@@ -684,6 +685,7 @@ class TrackSurface:
                         otherStartPosition = otherPosition
             nextPosition = startPosition
             otherPosition = otherStartPosition
+        START_MAX_MAG_DXI = MAX_MAG_DXI
         X_TOL = 1.0E-6 * max(self._xRange)
         px = []
         pd1 = []
@@ -693,11 +695,12 @@ class TrackSurface:
         pointCount = 0
         crossBoundary = 0
         lastx = None
+        dirn = None
         if instrument:
             print("TrackSurface.findIntersectionCurve.  nextPosition", nextPosition, "otherPosition", otherPosition)
         while True:
             position, otherPosition, x, t, onBoundary = \
-                self.findIntersectionPoint(otherTrackSurface, nextPosition, otherPosition, instrument=instrument and (pointCount==12))
+                self.findIntersectionPoint(otherTrackSurface, nextPosition, otherPosition, instrument=instrument)
             if not position:
                 if pointCount > 0:
                     print("TrackSurface.findIntersectionCurve.  Stopping as lost intersection")
@@ -709,9 +712,13 @@ class TrackSurface:
                 return None, None, None, False
             onOtherBoundary = otherTrackSurface._positionOnBoundary(otherPosition)
             noProgressBoundary = False
-            if (pointCount > 0) and (magnitude(sub(x, lastx)) < X_TOL):
-                print("- No progress boundary")
-                noProgressBoundary = True
+            if (pointCount > 0) and (dot(dirn, sub(x, lastx)) < X_TOL):
+                MAX_MAG_DXI *= 0.5
+                if MAX_MAG_DXI < 1.0E-6:
+                    print("TrackSurface.findIntersectionCurve.  No progress boundary")
+                    noProgressBoundary = True
+                else:
+                    t = pd1[-1] if (boundaryCount == 0) else pd1[0]
             else:
                 if boundaryCount == 0:
                     if pointCount == 0:
@@ -744,6 +751,7 @@ class TrackSurface:
             if noProgressBoundary or ((pointCount > 1) and (onBoundary or onOtherBoundary) and \
                     (crossBoundary or not (onBoundary and onOtherBoundary))):
                 boundaryCount += 1
+                MAX_MAG_DXI = START_MAX_MAG_DXI
                 if instrument:
                     print("- add boundary", boundaryCount)
                 if boundaryCount == 2:
@@ -777,10 +785,11 @@ class TrackSurface:
                     break
             x, d1, d2 = self.evaluateCoordinates(position, derivatives=True)
             lastx = x
-            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, mult(t, -1.0) if (boundaryCount == 1) else t)
-            nextPosition, crossBoundary = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)[0:2]
+            dirn = mult(t, -1.0) if (boundaryCount == 1) else t
+            dxi1, dxi2 = calculate_surface_delta_xi(d1, d2, dirn)
+            nextPosition, crossBoundary, adxi1, adxi2 = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)
             if instrument:
-                print("  t", t, "next", nextPosition, "crossBoundary", crossBoundary)
+                print("  dirn", dirn, "next", nextPosition, "crossBoundary", crossBoundary)
 
         # resample and re-find positions and tangents
         if pointCount == 1:
