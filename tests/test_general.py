@@ -880,33 +880,32 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [0.6714699015724951, 0.7450512483881269], dprops[4], delta=3.0*XI_TOL)
         assertAlmostEqualList(self, [0.5797035235769857, 1.0], dprops[8], delta=3.0*XI_TOL)
 
-        context = Context("TrackSurface")
-        region = context.getDefaultRegion()
-        surfaceGroupName = "surface"
-        surf1.generateMesh(region, group_name=surfaceGroupName)
-        surf2.generateMesh(region, group_name=surfaceGroupName)
-        coordinateFieldName = "curve_coordinates"
-        curveGroupName = "curve"
-        fieldmodule = region.getFieldmodule()
-        curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(curveCoordinates)
-        nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        fieldcache = fieldmodule.createFieldcache()
-        px = [p1x, p2x, p3x, p4x]
-        pd1 = [p1t, p2t, p3t, p4t]
-        for n in range(len(px)):
-            node = nodes.createNode(-1, nodetemplate)
-            fieldcache.setNode(node)
-            curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-            curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-            curveNodesetGroup.addNode(node)
-        generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        generateCurveMesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        region.writeFile("C:\\Users\\gchr006\\tmp\\tracksurface_intersection.exf")
+        # context = Context("TrackSurface")
+        # region = context.getDefaultRegion()
+        # surfaceGroupName = "surface"
+        # surf1.generateMesh(region, group_name=surfaceGroupName)
+        # surf2.generateMesh(region, group_name=surfaceGroupName)
+        # coordinateFieldName = "curve_coordinates"
+        # curveGroupName = "curve"
+        # fieldmodule = region.getFieldmodule()
+        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
+        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
+        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # nodetemplate = nodes.createNodetemplate()
+        # nodetemplate.defineField(curveCoordinates)
+        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
+        # fieldcache = fieldmodule.createFieldcache()
+        # px = [p1x, p2x, p3x, p4x]
+        # pd1 = [p1t, p2t, p3t, p4t]
+        # for n in range(len(px)):
+        #     node = nodes.createNode(-1, nodetemplate)
+        #     fieldcache.setNode(node)
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
+        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
+        #     curveNodesetGroup.addNode(node)
+        # generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generateCurveMesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections1(self):
         elementsCountAround = 8
@@ -1265,6 +1264,44 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(p7.xi1, 0.3488485362030178, delta=XI_TOL)
             self.assertAlmostEqual(p7.xi2, 0.10171143282929856, delta=XI_TOL)
 
+        if elementsCountAround == 4:
+            # startPosition = TrackSurfacePosition(3, 5, 0.36148219241126434, 1.0)
+            # p1x = tube1Surface.evaluateCoordinates(startPosition)
+            # p1t = [0.0, 0.0, 0.0]
+            # p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(
+            #     tube2Surface, startPosition, TrackSurfacePosition(2, 0, 0.9794494698544911, 0.1562967852059411))
+            # self.assertIsNotNone(p2)
+            # self.assertEqual(p2.e1, 6)
+            # self.assertEqual(p2.e2, 5)
+            # self.assertAlmostEqual(p2.xi1, 0.33908360205244037, delta=XI_TOL)
+            # self.assertAlmostEqual(p2.xi2, 0.899262977194283, delta=XI_TOL)
+            # self.assertEqual(op2.e1, 6)
+            # self.assertEqual(op2.e2, 0)
+            # self.assertAlmostEqual(op2.xi1, 0.4059622427354084, delta=XI_TOL)
+            # self.assertAlmostEqual(op2.xi2, 0.0, delta=XI_TOL)
+            # assertAlmostEqualList(self, [0.1412180735660879, 0.9590457759564066, 0.24553748251225724], p2t, delta=X_TOL)
+
+            # startPosition = TrackSurfacePosition(1, 5, 0.3631033157903245, 1.0)
+            # p1x = tube1Surface.evaluateCoordinates(startPosition)
+            # p1t = [0.0, 0.0, 0.0]
+            # p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(
+            #     tube2Surface, startPosition, TrackSurfacePosition(1, 0, 0.33228274550722303,0.0))
+            # self.assertIsNotNone(p2)
+
+            # startPosition = TrackSurfacePosition(1, 5, 0.3631033157903245, 1.0)
+            # p1x = tube1Surface.evaluateCoordinates(startPosition)
+            # p1t = [0.0, 0.0, 0.0]
+            # p2, op2, p2x, p2t, p2bdy = tube1Surface.findIntersectionPoint(
+            #     tube3Surface, startPosition, TrackSurfacePosition(1, 0, 0.33228274550722303, 0.0))
+            # self.assertIsNotNone(p2)
+
+            startPosition = TrackSurfacePosition(3, 0, 0.0865879388733597, 0.0)
+            p1x = tube1Surface.evaluateCoordinates(startPosition)
+            p1t = [0.0, 0.0, 0.0]
+            p2, op2, p2x, p2t, p2bdy = tube2Surface.findIntersectionPoint(
+                tube3Surface, startPosition, TrackSurfacePosition(3, 0, 0.19438867305821184, 0.0))
+            self.assertIsNotNone(p2)
+
         # get non-loop intersection of tube1 and tube2
         ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface)
         self.assertEqual(len(ax), 9)
@@ -1280,6 +1317,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [0.8039061628699322, 1.0], aprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
             self.assertAlmostEqual(aLength, 1.2935036652991265, delta=X_TOL)
+        elif elementsCountAround == 4:
+            self.assertAlmostEqual(aLength, 1.2777849511330288, delta=X_TOL)
 
         # # get non-loop intersection of tube1 and tube3
         bx, bd1, bprops, bloop = tube1Surface.findIntersectionCurve(tube3Surface)
@@ -1296,9 +1335,11 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [1.2664762695247593, 0.9841126335511698], bprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
             self.assertAlmostEqual(bLength, 1.2594725877612785, delta=X_TOL)
+        elif elementsCountAround == 4:
+            self.assertAlmostEqual(bLength, 1.2658594359610489, delta=X_TOL)
 
         # get non-loop intersection of tube2 and tube3
-        cx, cd1, cprops, cloop = tube2Surface.findIntersectionCurve(tube3Surface, instrument=True, MAX_MAG_DXI=0.5)
+        cx, cd1, cprops, cloop = tube2Surface.findIntersectionCurve(tube3Surface)
         self.assertEqual(len(cx), 9)
         self.assertFalse(cloop)
         cLength = getCubicHermiteCurvesLength(cx, cd1, loop=True)
@@ -1312,6 +1353,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [0.7907974706501059, 0.011505022662710312], cprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
             self.assertAlmostEqual(cLength, 1.500631828350329, delta=X_TOL)
+        elif elementsCountAround == 4:
+            self.assertAlmostEqual(cLength, 1.5116074716918804, delta=X_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()

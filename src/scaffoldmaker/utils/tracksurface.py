@@ -511,6 +511,8 @@ class TrackSurface:
         oldOnBoundary = self._positionOnBoundary(position)
         stickyBoundaryCount = STICKY_BOUNDARY_ITERATIONS if oldOnBoundary else 0
         joltBoundaryCount = 0
+        # XI_TOL = 1.0E-6
+        # lowDxiCount = 0
         for it in range(100):
             coords, n1, n, onBoundary, otherPosition, otherCoords, onOtherBoundary, r, rNormal, rTangent = \
                 self._getIntersectionDelta(position, otherTrackSurface, otherPosition, stickyBoundaryCount)
@@ -553,11 +555,12 @@ class TrackSurface:
                     slope_factor = MAX_SLOPE_FACTOR
                 u = mult(rTangent, slope_factor)
             dxi1, dxi2 = calculate_surface_delta_xi(coords[1], coords[2], u)
-            dxi = [dxi1, dxi2]
+            # dxi = [dxi1, dxi2]
+            # mag_dxi = magnitude(dxi)
             if instrument:
                 print("    initial dxi", dxi1, dxi2, jolt_it, stickyBoundaryCount)
             if (it > (jolt_it + 1)) and (slope_factor >= MAX_SLOPE_FACTOR) \
-                    and (stickyBoundaryCount <= 0):  # (mag_dxi < (100.0 * XI_TOL)):
+                    and (stickyBoundaryCount <= 0):  #  or (lowDxiCount > 2))
                 # slow progress: may be a local minimum; jolt along boundary edge or cardinal direction
                 if onBoundary and (joltBoundaryCount < 2) and ((not onOtherBoundary) or (jolt_index % 4 < 2)):
                     # maximum 2 boundary jolts to allow return to interior after sticky boundary
@@ -576,9 +579,9 @@ class TrackSurface:
                     if instrument:
                         print("JOLT other boundary")  # GRC
                 else:
-                    jolt_case = jolt_index % 4
-                    dxi1 = -MAG_JOLT_DXI if (jolt_case == 0) else MAG_JOLT_DXI if (jolt_case == 2) else 0.0
-                    dxi2 = -MAG_JOLT_DXI if (jolt_case == 1) else MAG_JOLT_DXI if (jolt_case == 3) else 0.0
+                    jolt_case = jolt_index % 8
+                    dxi1 = -MAG_JOLT_DXI if (jolt_case in [0, 4, 6]) else MAG_JOLT_DXI if (jolt_case in [2, 5, 7]) else 0.0
+                    dxi2 = -MAG_JOLT_DXI if (jolt_case in [1, 4, 5]) else MAG_JOLT_DXI if (jolt_case in [3, 6, 7]) else 0.0
                     if instrument:
                         print("JOLT interior")
                 if instrument:
@@ -635,6 +638,8 @@ class TrackSurface:
                     abs_r2 = abs(r2)
                     abs_r3 = abs(r3)
                     xiFactor = 1.0 if ((abs_r3 < abs_r1) and (abs_r3 < abs_r2)) else 0.5 if (abs_r2 < abs_r1) else 0.0
+                    # xiFactor = 1.0 if ((abs_r3 < abs_r1) and (abs_r3 < abs_r2)) else 0.5 if (abs_r2 < abs_r1) else \
+                    #     0.1 if (it == jolt_it) else 0.0
             dxi1 = dxi1 * xiFactor
             dxi2 = dxi2 * xiFactor
             if instrument:
@@ -644,6 +649,10 @@ class TrackSurface:
                 print("    final dxi", dxi1, dxi2)
             dxi = [dxi1, dxi2]
             mag_dxi = magnitude(dxi)
+            # if mag_dxi < XI_TOL:
+            #     lowDxiCount += 1
+            # else:
+            #     lowDxiCount = 0
             stickyBoundaryCount -= 1
         else:
             print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', it + 1,
