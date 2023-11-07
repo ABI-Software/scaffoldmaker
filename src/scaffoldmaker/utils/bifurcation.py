@@ -654,7 +654,7 @@ def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fi
                         remapEftNodeValueLabel(eft, [1, 2, 3, 4], Node.VALUE_LABEL_D2_DS1DS2, [])
                     else:
                         remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D2_DS1DS2, [])
-                if (not inward[s]) or ((s != 1) and (e1 == 0)) or ((s == 1) and (e1 != 0)):
+                if (not inward[s]) or ((s != 1) and (e1 == 0)) or ((s == 1) and (inward[s] or (e1 != 0))):
                     setEftScaleFactorIds(eft, [1], [])
                     scalefactors = [-1.0]
                 else:
@@ -668,8 +668,15 @@ def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fi
                     scaling = [] if (e1 == 0) else [1]
                     remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
                                            [(Node.VALUE_LABEL_D_DS1, scaling), (Node.VALUE_LABEL_D_DS2, scaling)])
+                    if (e1 == 0) and inward[s]:
+                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [1])])
                     if e1 != 0:
-                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                        if inward[s]:
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                        else:
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [])])
                 else:
                     if e1 == 0:
                         remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
@@ -742,8 +749,21 @@ def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fi
                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
                 elif s == 1:
                     if e1 == 0:
-                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1, [(Node.VALUE_LABEL_D_DS2, [1])])
-                        remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                        if inward[s]:
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                        else:
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [1])])
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2, [(Node.VALUE_LABEL_D_DS1, [])])
+                    else:
+                        if inward[s]:
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS2,
+                                                   [(Node.VALUE_LABEL_D_DS1, [1])])
+                            remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
+                                                   [(Node.VALUE_LABEL_D_DS2, [])])
                 else:
                     scaling = [] if (e1 == 0) else [1]
                     remapEftNodeValueLabel(eft, [lnCross], Node.VALUE_LABEL_D_DS1,
@@ -1005,6 +1025,17 @@ class TubeBifurcationData:
                     if (min_dist is None) or (dist < min_dist):
                         self._aCrossIndexes = [ia, ja, ka]
                         self._bCrossIndexes = [ib, jb, kb]
+                        # switch if wrong sense relative to b_to_a axis
+                        aNormal = cross(sub(jrx[ja], irx[ia]), sub(krx[ka], jrx[ja]))
+                        aMean = add(add(irx[ia], jrx[ja]), krx[ka])
+                        bMean = add(add(irx[ib], jrx[jb]), krx[kb])
+                        b_to_a = sub(aMean, bMean)
+                        if dot(aNormal, b_to_a) < 0.0:
+                            self._aCrossIndexes = [self._bCrossIndexes[s] + self._aroundCounts[s] for s in range(3)]
+                            self._bCrossIndexes = [
+                                self._aCrossIndexes[0] - self._connectionCounts[ibCrossIndex],
+                                self._aCrossIndexes[1] - self._connectionCounts[jbCrossIndex],
+                                self._aCrossIndexes[2] - self._connectionCounts[kbCrossIndex]]
                         min_dist = dist
 
         # incomplete version trying to get shortest distance between directly connected points on adjacent tubes
@@ -1030,9 +1061,8 @@ class TubeBifurcationData:
         #             if (minDist is None) or (dist < minDist):
         #                 self._aCrossIndexes = copy.copy(aCrossIndexes)
         #                 self._bCrossIndexes = [ib, jb, kb]
+
         # print("aCrossIndexes", self._aCrossIndexes, "bCrossIndexes", self._bCrossIndexes)
-        # self._aCrossIndexes = [2, 2, 2]
-        # self._bCrossIndexes = [-2, -2, -2]
 
     def determineMidCoordinates(self):
         """
@@ -1058,6 +1088,7 @@ class TubeBifurcationData:
             self._coordinateRings[2][0][self._bCrossIndexes[2]], [-d for d in bt3d2] if self._segmentsIn[2] else bt3d2,
             self._coordinateRings[1][0][self._bCrossIndexes[1]], [-d for d in bt2d2] if self._segmentsIn[1] else bt2d2)
 
+        # print("_aCrossIndexes", self._aCrossIndexes)
         self._midCoordinates = []
         for s in range(3):
             self._midCoordinates.append([[acx], [acd1], [acd2]])
@@ -1068,6 +1099,7 @@ class TubeBifurcationData:
                     else self._aCrossIndexes[s] - n
                 i2 = self._aCrossIndexes[s - 2] - n if self._segmentsIn[s - 2] \
                     else (self._aCrossIndexes[s - 2] + n) % self._aroundCounts[s - 2]
+                # print("s", s, "n", n, "/", self._connectionCounts[s], "i1", i1, "i2", i2)
                 t1x = ring1[0][i1]
                 t1d2 = mult(ring1[2][i1], 2.0 if self._segmentsIn[s] else -2.0)
                 t2x = ring2[0][i2]
@@ -1188,6 +1220,8 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
             rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
         tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
 
+    completedBifurcations = set()  # record so only done once
+
     with ChangeManager(fieldmodule):
         for networkSegment in networkSegments:
             segmentNodes = networkSegment.getNetworkNodes()
@@ -1221,7 +1255,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                 outTubeData = segmentTubeData[endOutSegments[0]]
                 outTubeData.setEndNodeIds(endNodeIds)
             tubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
-            if tubeBifurcationData:
+            if tubeBifurcationData and not tubeBifurcationData in completedBifurcations:
                 # for s in range(3):
                 #     curve = tubeBifurcationData.getIntersectionCurve(s)
                 #     cx, cd1, cProportions, loop = curve
@@ -1255,5 +1289,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                     else:
                         if not tubeData[s].getStartNodeIds():
                             tubeData[s].setStartNodeIds(tNodeIds[s])
+
+                completedBifurcations.add(tubeBifurcationData)
 
     return nodeIdentifier, elementIdentifier
