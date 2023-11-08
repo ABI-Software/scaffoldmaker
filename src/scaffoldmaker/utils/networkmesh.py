@@ -321,7 +321,7 @@ class NetworkMesh:
                     nodetemplate = nodes.createNodetemplate()
                     nodetemplate.defineField(coordinates)
                     for valueLabel in derivativeValueLabels:
-                        nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, versionsCount)
+                        nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, v)
                     nodetemplates.append(nodetemplate)
             node = nodes.createNode(networkNode.getNodeIdentifier(), nodetemplate)
             fieldcache.setNode(node)

@@ -29,7 +29,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1),
             "Elements count around": 8,
-            "Target element aspect ratio": 2.0
+            "Target element aspect ratio": 2.0,
+            "Serendipity": False
         }
         return options
 
@@ -38,7 +39,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         return [
             "Network layout",
             "Elements count around",
-            "Target element aspect ratio"
+            "Target element aspect ratio",
+            "Serendipity"
         ]
 
     @classmethod
@@ -92,11 +94,12 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         elementsCountAround = options["Elements count around"]
         networkLayout = options["Network layout"]
         targetElementAspectRatio = options["Target element aspect ratio"]
+        serendipity = options["Serendipity"]
 
         layoutRegion = region.createRegion()
         layoutFieldmodule = layoutRegion.getFieldmodule()
         # layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # layoutMesh = layoutFieldmodule.findMeshByDimension(1)
+        layoutMesh = layoutFieldmodule.findMeshByDimension(1)
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         # layoutCoordinates = find_or_create_field_coordinates(layoutFieldmodule)
@@ -123,6 +126,6 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
 
         nodeIdentifier, elementIdentifier = generateTubeBifurcationTree2D(
             networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementAspectRatio, serendipity=False)
+            elementsCountAround, targetElementAspectRatio, serendipity=serendipity)
 
         return annotationGroups, None
