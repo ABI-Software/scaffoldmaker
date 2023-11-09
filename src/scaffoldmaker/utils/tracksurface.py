@@ -849,6 +849,10 @@ class TrackSurface:
                             cd1[n:] = smoothCubicHermiteDerivativesLine(
                                 cx[n:], [cd1[n]] + [[0.0, 0.0, 0.0]] * (len(nx) - 1 - n), fixStartDirection=True)
                         break
+                for n in range(1, len(cd1) - 1):
+                    if cd1[n] is None:
+                        print("Fix missing derivative")
+                        cd1[n] = [0.5 * (cd1[n - 1][c] + cd1[n + 1][c]) for c in range(3)]
                 cd1 = smoothCubicHermiteDerivativesLine(cx, cd1, fixAllDirections=True)
         return cx, cd1, cProportions, loop
 
@@ -931,6 +935,10 @@ class TrackSurface:
                     print(">     osc_factor", osc_factor)
             if instrument:
                 print(">     dxi", dxi)
+            if (it % 20) == 19:
+                MAX_MAG_DXI *= 0.5
+                if instrument:
+                    print(">    reduce MAX_MAG_DXI to", MAX_MAG_DXI)
             position, onBoundary, adxi1, adxi2 = self._advancePosition(position, dxi1, dxi2, MAX_MAG_DXI=MAX_MAG_DXI)
             old_dxi = dxi
             mag_old_dxi = mag_dxi
@@ -941,6 +949,8 @@ class TrackSurface:
                 break
         else:
             print('TrackSurface.findNearestPosition:  Reach max iterations', it + 1, 'closeness in xi', mag_adxi)
+            # if not instrument:
+            #     self.findNearestPosition(targetx, startPosition, instrument=True)
         #print('final position', position)
         return position
 

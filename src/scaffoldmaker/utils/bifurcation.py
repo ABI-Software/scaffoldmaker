@@ -1223,7 +1223,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
         pathParameters = get_nodeset_path_ordered_field_parameters(
             layoutNodes, layoutCoordinates, valueLabels,
             networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
-        print("path", pathParameters)
+        # print("path", pathParameters)
         # nodeFieldParameters = [(n + 1, [[param[n] for param in pathParameters]]) for n in range(len(pathParameters[0]))]
         # print("params", nodeFieldParameters)
         # print_node_field_parameters(
@@ -1277,7 +1277,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
         meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
         targetElementLength = targetElementAspectRatio * meanElementLengthAround
         elementsCountAlong = max(2, math.ceil(segmentLength / targetElementLength))
-        print("startSurface", startSurface is not None, "endSurface", endSurface is not None)
+        # print("startSurface", startSurface is not None, "endSurface", endSurface is not None)
         sx, sd1, sd2, sd12 = resampleTubeCoordinates(
             rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
         tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))

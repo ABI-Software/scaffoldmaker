@@ -1,7 +1,7 @@
 """
 Utility functions for easing use of Zinc API.
 """
-
+from cmlibs.maths.vectorops import mult
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
@@ -285,6 +285,29 @@ def make_nodeset_derivatives_orthogonal(nodeset, field, make_d2_normal: bool=Tru
     for node_identifier, node_parameters in node_field_parameters:
         for i in remove_indexes:
             node_parameters.pop(i)
+    set_nodeset_field_parameters(nodeset, field, value_labels, node_field_parameters, edit_group_name)
+
+
+def scale_nodeset_derivatives(nodeset, field, value_labels_in: list, scalings: list, edit_group_name=None):
+    """
+    Scale the listed value labels parameters by the supplied scaling values.
+    :param nodeset: Owning nodeset containing nodes to modify.
+    :param field: The field to modify parameters for. Must be finite element type with 1-3 real components.
+    :param value_labels_in: Values labels to modify. Same length list as scalings.
+    :param scalings: Scaling values to apply. Same length list as valueLabels.
+    :param edit_group_name: Optional name of group to get or create and put modified nodes in the
+    respective nodeset group.
+    """
+    assert (len(value_labels_in) > 0) and (len(value_labels_in) == len(scalings))
+    finite_element_field = field.castFiniteElement()
+    assert finite_element_field.isValid(), "scale_nodeset_derivatives:  Field is not finite element type"
+    assert field.getNumberOfComponents() <= 3, "scale_nodeset_derivatives:  Field has more than 3 components"
+    value_labels, node_field_parameters = get_nodeset_field_parameters(nodeset, field, value_labels_in)
+    for node_identifier, node_parameters in node_field_parameters:
+        for d in range(len(value_labels)):
+            version_count = len(node_parameters[d])
+            for v in range(version_count):
+                node_parameters[d][v] = mult(node_parameters[d][v], scalings[d])
     set_nodeset_field_parameters(nodeset, field, value_labels, node_field_parameters, edit_group_name)
 
 

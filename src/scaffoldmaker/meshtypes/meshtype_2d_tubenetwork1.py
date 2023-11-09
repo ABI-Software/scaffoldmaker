@@ -25,12 +25,16 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         return "2D Tube Network 1"
 
     @classmethod
+    def getParameterSetNames(cls):
+        return MeshType_1d_network_layout1.getParameterSetNames()
+
+    @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
-            "Network layout": ScaffoldPackage(MeshType_1d_network_layout1),
+            "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
             "Elements count around": 8,
             "Target element aspect ratio": 2.0,
-            "Serendipity": False
+            "Serendipity": True
         }
         return options
 
@@ -124,8 +128,12 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
 
         networkMesh = networkLayout.getConstructionObject()
 
-        nodeIdentifier, elementIdentifier = generateTubeBifurcationTree2D(
-            networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementAspectRatio, serendipity=serendipity)
+        try:
+            nodeIdentifier, elementIdentifier = generateTubeBifurcationTree2D(
+                networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
+                elementsCountAround, targetElementAspectRatio, serendipity=serendipity)
+        except Exception as e:
+            print("Exception occurred while generating tube bifurcation.")
+            return [], None
 
         return annotationGroups, None

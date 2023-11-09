@@ -1,12 +1,14 @@
 import unittest
 
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
+from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
+from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 
 from testutils import assertAlmostEqualList
 
@@ -19,7 +21,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_1d_network_layout1
         options = scaffold.getDefaultOptions()
-        self.assertEqual(1, len(options))
+        self.assertEqual(2, len(options))
         self.assertEqual("1-2", options.get("Structure"))
         options["Structure"] = "1-2-3,3-4,3.2-5"
 
@@ -69,6 +71,49 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         expected_nd = [nx[1][c] - nx[0][c] for c in range(3)]
         assertAlmostEqualList(self, nd1[0], expected_nd, 1.0E-6)
         assertAlmostEqualList(self, nd1[1], expected_nd, 1.0E-6)
+
+    def test_2d_tube_network_sphere_cube(self):
+        """
+        Test sphere cube is generated correctly.
+        """
+        scaffold = MeshType_2d_tubenetwork1
+        options = scaffold.getDefaultOptions("Sphere cube")
+        self.assertEqual(4, len(options))
+        options["Elements count around"] = 8
+        options["Target element aspect ratio"] = 2.0
+        options["Serendipity"] = True
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        fieldmodule = region.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            annotationGroups, _ = scaffold.generateBaseMesh(region, options)
+        self.assertEqual(0, len(annotationGroups))
+
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(32 * 12, mesh2d.getSize())
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        self.assertEqual(8 * 7 * 12 + 4 * 3 * 8, mesh1d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(8 * 3 * 12 + (2 + 3 * 3) * 8, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [-0.5658330029836134, -0.5787347924219615, -0.5903131690984363], 1.0E-8)
+        assertAlmostEqualList(self, maximums, [0.5658331365887045, 0.578734792421953, 0.5903125661076012], 1.0E-8)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh2d)
+            surfaceAreaField.setNumbersOfPoints(4)
+            fieldcache = fieldmodule.createFieldcache()
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(surfaceArea, 3.879343151083442, delta=1.0E-8)
+
 
 if __name__ == "__main__":
     unittest.main()
