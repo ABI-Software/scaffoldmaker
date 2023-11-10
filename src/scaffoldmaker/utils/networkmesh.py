@@ -134,6 +134,18 @@ class NetworkSegment:
     def setElementIdentifier(self, index, elementIdentifier):
         self._elementIdentifiers[index] = elementIdentifier
 
+    def hasLayoutElementsInMeshGroup(self, meshGroup):
+        """
+        NetworkSegment must have elementIdentifiers first!
+        :param meshGroup: 1D Mesh group to check membership of.
+        :return: True if any element in segment is in 1D mesh group.
+        """
+        for elementIdentifier in self._elementIdentifiers:
+            element = meshGroup.findElementByIdentifier(elementIdentifier)
+            if element.isValid():
+                return True
+        return False
+
     def isCyclic(self):
         """
         Determine by advancing from end node through each out segment recursively whether network cycles back to

@@ -2,7 +2,7 @@ import math
 import unittest
 
 from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
+# from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
@@ -24,7 +24,7 @@ from scaffoldmaker.utils.interpolation import evaluateCoordinatesOnCurve, getCub
     getNearestLocationBetweenCurves, getNearestLocationOnCurve
 from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
-from scaffoldmaker.utils.zinc_utils import generateCurveMesh
+# from scaffoldmaker.utils.zinc_utils import generateCurveMesh
 
 from testutils import assertAlmostEqualList
 

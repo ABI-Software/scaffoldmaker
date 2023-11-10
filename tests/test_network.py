@@ -2,12 +2,15 @@ import unittest
 
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.group import identifier_ranges_to_string, mesh_group_add_identifier_ranges, \
+    mesh_group_to_identifier_ranges
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
+from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
 
 from testutils import assertAlmostEqualList
@@ -76,20 +79,38 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         Test sphere cube is generated correctly.
         """
-        scaffold = MeshType_2d_tubenetwork1
-        options = scaffold.getDefaultOptions("Sphere cube")
-        self.assertEqual(4, len(options))
-        options["Elements count around"] = 8
-        options["Target element aspect ratio"] = 2.0
-        options["Serendipity"] = True
+        scaffoldPackage = ScaffoldPackage(MeshType_2d_tubenetwork1, defaultParameterSetName="Sphere cube")
+        settings = scaffoldPackage.getScaffoldSettings()
+        self.assertEqual(4, len(settings))
+        self.assertEqual(8, settings["Elements count around"])
+        self.assertEqual(2.0, settings["Target element aspect ratio"])
+        self.assertTrue(settings["Serendipity"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
+
+        # add a user-defined annotation group to network layout. Must generate first
+        tmpRegion = region.createRegion()
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutScaffoldPackage.generate(tmpRegion)
+
+        annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        group = annotationGroup1.getGroup()
+        mesh1d = tmpFieldmodule.findMeshByDimension(1)
+        meshGroup = group.createMeshGroup(mesh1d)
+        mesh_group_add_identifier_ranges(meshGroup, [[1, 1], [5, 5]])
+        self.assertEqual(2, meshGroup.getSize())
+        self.assertEqual(1, annotationGroup1.getDimension())
+        identifier_ranges_string = identifier_ranges_to_string(mesh_group_to_identifier_ranges(meshGroup))
+        self.assertEqual('1,5', identifier_ranges_string)
+        networkLayoutScaffoldPackage.updateUserAnnotationGroups()
+
         self.assertTrue(region.isValid())
         fieldmodule = region.getFieldmodule()
-        with ChangeManager(fieldmodule):
-            annotationGroups, _ = scaffold.generateBaseMesh(region, options)
-        self.assertEqual(0, len(annotationGroups))
+        scaffoldPackage.generate(region)
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(1, len(annotationGroups))
 
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh2d = fieldmodule.findMeshByDimension(2)
@@ -100,6 +121,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(8 * 3 * 12 + (2 + 3 * 3) * 8, nodes.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
+
+        # check annotation group transferred to 2D tube
+        annotationGroup = annotationGroups[0]
+        self.assertEqual("bob", annotationGroup.getName())
+        self.assertEqual("BOB:1", annotationGroup.getId())
+        self.assertEqual(64, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(2)).getSize())
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [-0.5658330029836134, -0.5787347924219615, -0.5903131690984363], 1.0E-8)

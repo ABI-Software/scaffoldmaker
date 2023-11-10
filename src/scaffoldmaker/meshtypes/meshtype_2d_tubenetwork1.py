@@ -116,22 +116,12 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         mesh = fieldmodule.findMeshByDimension(2)
         elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
 
-        # make box annotation groups from network layout annotations
-        annotationGroups = []
-        layoutMeshGroups = {}  # map from group name
-        for layoutAnnotationGroup in layoutAnnotationGroups:
-            if layoutAnnotationGroup.getDimension() == 1:
-                annotationGroup = AnnotationGroup(region, layoutAnnotationGroup.getTerm())
-                annotationGroups.append(annotationGroup)
-                layoutMeshGroups[layoutAnnotationGroup.getName()] = \
-                    (layoutAnnotationGroup.getMeshGroup(layoutMesh), annotationGroup.getMeshGroup(mesh))
-
         networkMesh = networkLayout.getConstructionObject()
 
         try:
-            nodeIdentifier, elementIdentifier = generateTubeBifurcationTree2D(
+            nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree2D(
                 networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-                elementsCountAround, targetElementAspectRatio, serendipity=serendipity)
+                elementsCountAround, targetElementAspectRatio, layoutAnnotationGroups, serendipity=serendipity)
         except Exception as e:
             print("Exception occurred while generating tube bifurcation.")
             return [], None

@@ -8,6 +8,7 @@ from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, computeCubicHermiteDerivativeScaling, \
@@ -336,9 +337,9 @@ def make_tube_bifurcation_elements_2d(region, coordinates, elementIdentifier,
         else:
             result3 = '-'
         #print('create element tube bifurcation c2', element.isValid(), elementIdentifier, result2, result3, nids)
-        elementIdentifier += 1
         for meshGroup in meshGroups:
             meshGroup.addElement(element)
+        elementIdentifier += 1
 
     return elementIdentifier
 
@@ -443,7 +444,7 @@ def getTubeBifurcationCoordinates2D(tCoords, inCount):
 
 def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier,
                    startSkipCount: int=0, endSkipCount:int=0, startNodeIds: list=None, endNodeIds: list=None,
-                   serendipity=False):
+                   annotationMeshGroups=[], serendipity=False):
     """
     Assumes client has active ChangeManager(fieldmodule).
     :param tx: tube coordinates x[along][around]
@@ -459,6 +460,7 @@ def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, n
     :param endSkipCount: Number of element rows to skip along at end.
     :param startNodeIds: Optional ring of existing node identifiers to use at start.
     :param endNodeIds: Optional ring of existing node identifiers to use at end.
+    :param annotationMeshGroups: Mesh groups to add elements to.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
     :return: next node identifier, next element identifier, startNodeIds, endNodeIds
     """
@@ -520,13 +522,16 @@ def generateTube2D(tx, td1, td2, td12, region, fieldcache, coordinates: Field, n
             nids = [tNodeIds[e2][e1], tNodeIds[e2][e1p], tNodeIds[e2p][e1], tNodeIds[e2p][e1p]]
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids)
+            for annotationMeshGroup in annotationMeshGroups:
+                annotationMeshGroup.addElement(element)
             elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier, tNodeIds[startSkipCount], tNodeIds[elementsCountAlong - endSkipCount]
 
 
 def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fieldcache, coordinates: Field,
-                              nodeIdentifier, elementIdentifier, tNodeIds, serendipity=False):
+                              nodeIdentifier, elementIdentifier, tNodeIds, annotationMeshGroups,
+                              serendipity=False):
     """
     Generate a 2D tube bifurcation as elements connecting 3 rings of coordinates, optionally using existing nodes.
     Assumes client has active ChangeManager(fieldmodule).
@@ -544,6 +549,8 @@ def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fi
     :param elementIdentifier: First 2D element identifier to use.
     :param tNodeIds: List over 3 tubes of ring of existing node identifiers to use at that inlet/outlet, any of which
     may be None. On return, None rings are filled with new node identifiers.
+    :param annotationMeshGroups: List over 3 tubes of lists of meshGroups to add elements to for the part of the
+    bifurcation that is part of that segment.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
     :return: next node identifier, next element identifier
     """
@@ -728,6 +735,8 @@ def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fi
             result1 = element.setNodesByIdentifier(eft, nids)
             result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else " -"
             # print('create element tube bifurcation s', s, elementIdentifier, element.isValid(), result1, result2, nids)
+            for meshGroup in annotationMeshGroups[s]:
+                meshGroup.addElement(element)
             elementIdentifier += 1
 
         # back connections
@@ -834,6 +843,8 @@ def generateTubeBifurcation2D(tCoords, inward, crossIndexes, mCoords, region, fi
             result1 = element.setNodesByIdentifier(eft, nids)
             result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else " -"
             # print('create element tube bifurcation s', s, elementIdentifier, element.isValid(), result1, result2, nids)
+            for meshGroup in annotationMeshGroups[s]:
+                meshGroup.addElement(element)
             elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier
@@ -848,6 +859,7 @@ class SegmentTubeData:
         self._sampledTubeCoordinates = None
         self._startNodeIds = None
         self._endNodeIds = None
+        self._annotationMeshGroups = []
 
     def getPathParameters(self):
         return self._pathParameters
@@ -907,6 +919,16 @@ class SegmentTubeData:
         :param endNodeIds: list of node IDs around tube end row.
         """
         self._endNodeIds = endNodeIds
+
+    def addAnnotationMeshGroup(self, annotationMeshGroup):
+        """
+        Add an annotation mesh group for segment elements to be added to.
+        :param annotationMeshGroup: Mesh group to add.
+        """
+        self._annotationMeshGroups.append(annotationMeshGroup)
+
+    def getAnnotationMeshGroups(self):
+        return self._annotationMeshGroups
 
 
 class TubeBifurcationData:
@@ -1192,7 +1214,7 @@ class TubeBifurcationData:
 
 def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                   elementsCountAround: int, targetElementAspectRatio: float,
-                                  serendipity=False):
+                                  layoutAnnotationGroups: list=[], serendipity=False):
     """
     :param networkMesh: Specification of network path and lateral sizes.
     :param region: Zinc region to generate mesh in.
@@ -1201,16 +1223,29 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
     :param elementIdentifier: First 2D element identifier to use.
     :param elementsCountAround: Number of elements around tube.
     :param targetElementAspectRatio: Target ratio of element size along over around. Approximately satisfied.
+    :param layoutAnnotationGroups: Optional list of annotations defined on layout mesh for networkMesh.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
-    :return: next node identifier, next element identifier.
+    :return: next node identifier, next element identifier, annotationGroups.
     """
     layoutRegion = networkMesh.getRegion()
     layoutFieldmodule = layoutRegion.getFieldmodule()
     layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     layoutCoordinates = find_or_create_field_coordinates(layoutFieldmodule)
+    layoutMesh = layoutFieldmodule.findMeshByDimension(1)
 
     fieldmodule = region.getFieldmodule()
+    mesh = fieldmodule.findMeshByDimension(2)
     fieldcache = fieldmodule.createFieldcache()
+
+    # make 2D annotation groups from 1D network layout annotation groups
+    annotationGroups = []
+    layoutAnnotationMeshGroupMap = []  # List of tuples of layout annotation mesh group to final mesh group
+    for layoutAnnotationGroup in layoutAnnotationGroups:
+        if layoutAnnotationGroup.getDimension() == 1:
+            annotationGroup = AnnotationGroup(region, layoutAnnotationGroup.getTerm())
+            annotationGroups.append(annotationGroup)
+            layoutAnnotationMeshGroupMap.append(
+                (layoutAnnotationGroup.getMeshGroup(layoutMesh), annotationGroup.getMeshGroup(mesh)))
 
     networkSegments = networkMesh.getNetworkSegments()
     # map from NetworkSegment to SegmentTubeData
@@ -1231,6 +1266,9 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
         segmentTubeData[networkSegment] = tubeData = SegmentTubeData(pathParameters)
         px, pd1, pd2, pd12 = getPathRawTubeCoordinates(pathParameters, elementsCountAround)
         tubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
+        for layoutAnnotationMeshGroup, annotationMeshGroup in layoutAnnotationMeshGroupMap:
+            if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationMeshGroup):
+                tubeData.addAnnotationMeshGroup(annotationMeshGroup)
 
     # map from NetworkNodes to bifurcation data, resample tube coordinates to fit bifurcation
     nodeTubeBifurcationData = {}
@@ -1307,6 +1345,7 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                         sx, sd1, sd2, sd12, region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
                         startSkipCount=startSkipCount, endSkipCount=endSkipCount,
                         startNodeIds=startNodeIds, endNodeIds=endNodeIds,
+                        annotationMeshGroups=tubeData.getAnnotationMeshGroups(),
                         serendipity=serendipity)
                     tubeData.setStartNodeIds(startNodeIds)
                     tubeData.setEndNodeIds(endNodeIds)
@@ -1344,11 +1383,12 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
                         inward = tubeBifurcationData.getSegmentsIn()
                         tNodeIds = [tubeData[s].getEndNodeIds() if inward[s] else tubeData[s].getStartNodeIds()
                                     for s in range(3)]
+                        annotationMeshGroups = [tubeData[s].getAnnotationMeshGroups() for s in range(3)]
                         nodeIdentifier, elementIdentifier = generateTubeBifurcation2D(
                             tubeBifurcationData.getTubeCoordinates(), inward,
                             tubeBifurcationData.getCrossIndexes(), tubeBifurcationData.getMidCoordinates(),
                             region, fieldcache, coordinates, nodeIdentifier, elementIdentifier, tNodeIds,
-                            serendipity=serendipity)
+                            annotationMeshGroups, serendipity=serendipity)
 
                         for s in range(3):
                             if inward[s]:
@@ -1360,4 +1400,4 @@ def generateTubeBifurcationTree2D(networkMesh: NetworkMesh, region, coordinates,
 
                         completedBifurcations.add(tubeBifurcationData)
 
-    return nodeIdentifier, elementIdentifier
+    return nodeIdentifier, elementIdentifier, annotationGroups
