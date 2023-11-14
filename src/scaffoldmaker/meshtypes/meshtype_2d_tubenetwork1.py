@@ -7,11 +7,9 @@ import copy
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.zinc.field import Field
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.bifurcation import generateTubeBifurcationTree2D
 
 
@@ -101,13 +99,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         serendipity = options["Serendipity"]
 
         layoutRegion = region.createRegion()
-        layoutFieldmodule = layoutRegion.getFieldmodule()
-        # layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        layoutMesh = layoutFieldmodule.findMeshByDimension(1)
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
-        # layoutCoordinates = find_or_create_field_coordinates(layoutFieldmodule)
-        # layoutFieldcache = layoutFieldmodule.createFieldcache()
 
         fieldmodule = region.getFieldmodule()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -123,7 +116,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
                 networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                 elementsCountAround, targetElementAspectRatio, layoutAnnotationGroups, serendipity=serendipity)
         except Exception as e:
-            print("Exception occurred while generating tube bifurcation.")
+            print("Exception occurred while generating tube network: Please edit network layout")
             return [], None
 
         return annotationGroups, None

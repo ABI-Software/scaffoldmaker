@@ -24,7 +24,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_1d_network_layout1
         options = scaffold.getDefaultOptions()
-        self.assertEqual(2, len(options))
+        self.assertEqual(3, len(options))
         self.assertEqual("1-2", options.get("Structure"))
         options["Structure"] = "1-2-3,3-4,3.2-5"
 
@@ -129,8 +129,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(64, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(2)).getSize())
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5658330029836134, -0.5787347924219615, -0.5903131690984363], 1.0E-8)
-        assertAlmostEqualList(self, maximums, [0.5658331365887045, 0.578734792421953, 0.5903125661076012], 1.0E-8)
+        assertAlmostEqualList(self, minimums, [-0.5682760261793237, -0.5810707177223273, -0.5933654189390684], 1.0E-8)
+        assertAlmostEqualList(self, maximums, [0.5674640763685259, 0.5876184768140706, 0.5933227142314541], 1.0E-8)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -139,7 +139,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 3.879343151083442, delta=1.0E-8)
+            self.assertAlmostEqual(surfaceArea, 3.974619168265453, delta=1.0E-8)
 
 
 if __name__ == "__main__":
