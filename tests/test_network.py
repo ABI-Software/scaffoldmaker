@@ -5,11 +5,13 @@ from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.group import identifier_ranges_to_string, mesh_group_add_identifier_ranges, \
     mesh_group_to_identifier_ranges
 from cmlibs.zinc.context import Context
+from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
+from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
 
@@ -81,6 +83,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffoldPackage = ScaffoldPackage(MeshType_2d_tubenetwork1, defaultParameterSetName="Sphere cube")
         settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertFalse(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(4, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual(2.0, settings["Target element aspect ratio"])
@@ -92,7 +97,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         # add a user-defined annotation group to network layout. Must generate first
         tmpRegion = region.createRegion()
         tmpFieldmodule = tmpRegion.getFieldmodule()
-        networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutScaffoldPackage.generate(tmpRegion)
 
         annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
@@ -107,11 +111,11 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage.updateUserAnnotationGroups()
 
         self.assertTrue(region.isValid())
-        fieldmodule = region.getFieldmodule()
         scaffoldPackage.generate(region)
         annotationGroups = scaffoldPackage.getAnnotationGroups()
         self.assertEqual(1, len(annotationGroups))
 
+        fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh2d = fieldmodule.findMeshByDimension(2)
         self.assertEqual(32 * 12, mesh2d.getSize())
@@ -140,6 +144,90 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(surfaceArea, 3.974619168265453, delta=1.0E-8)
+
+    def test_3d_tube_network_sphere_cube(self):
+        """
+        Test sphere cube 3-D tube network is generated correctly.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Sphere cube")
+        settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertTrue(networkLayoutSettings["Define inner coordinates"])
+        self.assertEqual(5, len(settings))
+        self.assertEqual(8, settings["Elements count around"])
+        self.assertEqual(1, settings["Elements count through wall"])
+        self.assertEqual(2.0, settings["Target element aspect ratio"])
+        self.assertTrue(settings["Serendipity"])
+        settings["Elements count through wall"] = 2
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+
+        # set custom inner coordinates
+        tmpRegion = region.createRegion()
+        networkLayoutScaffoldPackage.generate(tmpRegion)
+        networkMesh = networkLayoutScaffoldPackage.getConstructionObject()
+        functionOptions = {
+            "Mode": {"Wall proportion": True, "Wall thickness": False},
+            "Value": 0.2}
+        editGroupName = "meshEdits"
+        MeshType_1d_network_layout1.assignInnerCoordinates(tmpRegion, networkLayoutSettings, networkMesh,
+                                                           functionOptions, editGroupName=editGroupName)
+        # put edited coordinates into scaffold package
+        sir = tmpRegion.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        sir.setResourceGroupName(srm, editGroupName)
+        sir.setResourceFieldNames(srm, ["coordinates", "inner coordinates"])
+        tmpRegion.write(sir)
+        result, meshEditsString = srm.getBuffer()
+        self.assertEqual(RESULT_OK, result)
+        networkLayoutScaffoldPackage.setMeshEdits(meshEditsString)
+
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+
+        fieldmodule = region.getFieldmodule()
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(32 * 12 * 2, mesh3d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(8 * 3 * 12 * 3 + (2 + 3 * 3) * 8 * 3, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [-0.5682760261793237, -0.5810707177223273, -0.5933654189390684], 1.0E-8)
+        assertAlmostEqualList(self, maximums, [0.5674640763685259, 0.5876184768140706, 0.5933227142314541], 1.0E-8)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_0 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(volume, 0.07062041904759, delta=1.0E-8)
+
+            outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
+            outerSurfaceAreaField.setNumbersOfPoints(4)
+            result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(outerSurfaceArea, 3.974619168265453, delta=1.0E-8)
+
+            innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
+            innerSurfaceAreaField.setNumbersOfPoints(4)
+            result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(innerSurfaceArea, 3.299211421181769, delta=1.0E-8)
+
 
 
 if __name__ == "__main__":

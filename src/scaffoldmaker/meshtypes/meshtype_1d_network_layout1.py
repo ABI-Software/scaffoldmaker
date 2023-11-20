@@ -133,23 +133,32 @@ class MeshType_1d_network_layout1(Scaffold_base):
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, v + 1, cd13[n][v])
                 nodeId += 1
 
-            if defineInnerCoordinates:
-                # copy coordinates to inner coordinates via in-memory model file
-                coordinates.setName("inner coordinates")  # temporarily rename
-                sir = region.createStreaminformationRegion()
-                srm = sir.createStreamresourceMemory()
-                region.write(sir)
-                result, buffer = srm.getBuffer()
-                coordinates.setName("coordinates")  # restore name before reading inner coordinates back in
-                sir = region.createStreaminformationRegion()
-                srm = sir.createStreamresourceMemoryBuffer(buffer)
-                region.read(sir)
-                functionOptions = {
-                    "Mode": {"Wall proportion": True, "Wall thickness": False},
-                    "Value": 0.5}
-                cls.assignInnerCoordinates(region, options, networkMesh, functionOptions, editGroupName=None)
+        if defineInnerCoordinates:
+            cls._defineInnerCoordinates(region, coordinates, options, networkMesh)
 
         return [], networkMesh
+
+    @classmethod
+    def _defineInnerCoordinates(cls, region, coordinates, options, networkMesh):
+        """
+        Copy coordinates to inner coordinates via in-memory model file.
+        Assign using the interactive function.
+        :param region:
+        :param coordinates: Standard/outer coordinate field
+        """
+        coordinates.setName("inner coordinates")  # temporarily rename
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        region.write(sir)
+        result, buffer = srm.getBuffer()
+        coordinates.setName("coordinates")  # restore name before reading inner coordinates back in
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemoryBuffer(buffer)
+        region.read(sir)
+        functionOptions = {
+            "Mode": {"Wall proportion": True, "Wall thickness": False},
+            "Value": 0.5}
+        cls.assignInnerCoordinates(region, options, networkMesh, functionOptions, editGroupName=None)
 
     @classmethod
     def editStructure(cls, region, options, networkMesh, functionOptions, editGroupName):
@@ -170,6 +179,12 @@ class MeshType_1d_network_layout1(Scaffold_base):
             structure = options["Structure"] = functionOptions["Structure"]
             networkMesh.build(structure)
             networkMesh.create1DLayoutMesh(region)
+            coordinates = find_or_create_field_coordinates(fieldmodule).castFiniteElement()
+            coordinates.setManaged(True)  # since cleared by clearRegion
+            defineInnerCoordinates = options["Define inner coordinates"]
+            if defineInnerCoordinates:
+                cls._defineInnerCoordinates(region, coordinates, options, networkMesh)
+
         return True, False  # settings changed, nodes not changed (since reset to original coordinates)
 
     class InnerCoordinatesMode(Enum):
@@ -230,7 +245,6 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
                 tmpMeshGroup.addElementsConditional(selectionGroup)
                 useNodeset = tmpGroup.getNodesetGroup(nodes)
-                print("selection nodeset size", useNodeset.getSize())
                 del tmpMeshGroup
                 del tmpGroup
             _, nodeParameters = get_nodeset_field_parameters(useNodeset, coordinates, valueLabels)
@@ -248,7 +262,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 nodeVersions = networkSegment.getNodeVersions()
                 for n in range(len(nodeIdentifiers)):
                     nodeIndex = nodeIdentifierIndexes.get(nodeIdentifiers[n])
-                    print("Node identifier", nodeIdentifiers[n], "index", nodeIndex, "version", nodeVersions[n])
+                    # print("Node identifier", nodeIdentifiers[n], "index", nodeIndex, "version", nodeVersions[n])
                     if nodeIndex is not None:
                         modifyVersions[nodeIndex][nodeVersions[n] - 1] = True
 

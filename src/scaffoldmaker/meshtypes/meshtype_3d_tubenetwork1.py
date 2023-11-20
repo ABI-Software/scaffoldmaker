@@ -1,5 +1,5 @@
 """
-Generates a 2-D Hermite bifurcating tube network.
+Generates a 3-D Hermite bifurcating tube network.
 """
 
 import copy
@@ -13,14 +13,14 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.bifurcation import generateTubeBifurcationTree
 
 
-class MeshType_2d_tubenetwork1(Scaffold_base):
+class MeshType_3d_tubenetwork1(Scaffold_base):
     """
-    Generates a 2-D hermite bifurcating tube network.
+    Generates a 3-D hermite bifurcating tube network, with linear basis through wall.
     """
 
     @staticmethod
     def getName():
-        return "2D Tube Network 1"
+        return "3D Tube Network 1"
 
     @classmethod
     def getParameterSetNames(cls):
@@ -29,8 +29,11 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
-            "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
+            "Network layout": ScaffoldPackage(MeshType_1d_network_layout1,
+                                              {"scaffoldSettings": {"Define inner coordinates": True}},
+                                              defaultParameterSetName=parameterSetName),
             "Elements count around": 8,
+            "Elements count through wall": 1,
             "Target element aspect ratio": 2.0,
             "Serendipity": True
         }
@@ -41,6 +44,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         return [
             "Network layout",
             "Elements count around",
+            "Elements count through wall",
             "Target element aspect ratio",
             "Serendipity"
         ]
@@ -71,7 +75,9 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         if optionName == "Network layout":
             if not parameterSetName:
                 parameterSetName = "Default"
-            return ScaffoldPackage(scaffoldType, defaultParameterSetName=parameterSetName)
+            return ScaffoldPackage(scaffoldType,
+                                   {"scaffoldSettings": {"Define inner coordinates": True}},
+                                   defaultParameterSetName=parameterSetName)
         assert False, cls.__name__ + ".getOptionScaffoldPackage:  Option " + optionName + " is not a scaffold"
 
     @classmethod
@@ -80,6 +86,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout")
         elementsCountAround = options["Elements count around"]
         options["Elements count around"] = max(4, elementsCountAround + (elementsCountAround % 2))
+        if options["Elements count through wall"] < 1:
+            options["Elements count through wall"] = 1
         if options["Target element aspect ratio"] < 0.01:
             options["Target element aspect ratio"] = 0.01
         dependentChanges = False
@@ -94,6 +102,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         :return: list of AnnotationGroup, None
         """
         elementsCountAround = options["Elements count around"]
+        elementsCountThroughWall = options["Elements count through wall"]
         networkLayout = options["Network layout"]
         targetElementAspectRatio = options["Target element aspect ratio"]
         serendipity = options["Serendipity"]
@@ -111,13 +120,13 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
 
         networkMesh = networkLayout.getConstructionObject()
 
-        # try:
-        if True:
+        try:
             nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
                 networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-                elementsCountAround, targetElementAspectRatio, 1, layoutAnnotationGroups, serendipity=serendipity)
-        # except Exception as e:
-        #     print("Exception occurred while generating tube network: Please edit network layout")
-        #     return [], None
+                elementsCountAround, targetElementAspectRatio, elementsCountThroughWall,
+                layoutAnnotationGroups, serendipity=serendipity)
+        except Exception as e:
+            print("Exception occurred while generating tube network: Please edit network layout")
+            return [], None
 
         return annotationGroups, None
