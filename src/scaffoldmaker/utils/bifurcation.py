@@ -1023,8 +1023,7 @@ class SegmentTubeData:
         self._rawTubeCoordinates = None
         self._rawTrackSurface = None
         self._sampledTubeCoordinates = None
-        self._startNodeIds = None
-        self._endNodeIds = None
+        self._sampledNodeIds = []  # indexed along sample nodes. Only ever set on rows where junctions occur
         self._annotationMeshGroups = []
 
     def getPathParameters(self):
@@ -1067,6 +1066,7 @@ class SegmentTubeData:
         :param sampledTubeCoordinates: sx, sd1, sd2, sd12
         """
         self._sampledTubeCoordinates = sampledTubeCoordinates
+        self._sampledNodeIds = [None] * len(self._sampledTubeCoordinates[0])
 
     def getSampledElementsCountAlong(self):
         """
@@ -1075,23 +1075,33 @@ class SegmentTubeData:
         """
         return len(self._sampledTubeCoordinates[0]) - 1
 
-    def getStartNodeIds(self):
-        return self._startNodeIds
+    def getStartNodeIds(self, startSkipCount):
+        """
+        Get start nodes for supplying to adjacent tube or bifurcation.
+        :param startSkipCount: Row in from start that node ids are for.
+        """
+        return self._sampledNodeIds[startSkipCount]
 
-    def setStartNodeIds(self, startNodeIds):
+    def setStartNodeIds(self, startNodeIds, startSkipCount):
         """
-        :param startNodeIds: list of node IDs around tube start row.
+        :param startNodeIds: list of node ids around tube start row.
+        :param startSkipCount: Row in from start that ids are for.
         """
-        self._startNodeIds = startNodeIds
+        self._sampledNodeIds[startSkipCount] = startNodeIds
 
-    def getEndNodeIds(self):
-        return self._endNodeIds
+    def getEndNodeIds(self, endSkipCount):
+        """
+        Get end nodes for supplying to adjacent tube or bifurcation.
+        :param endSkipCount: Row in from end that node ids are for.
+        """
+        return self._sampledNodeIds[self.getSampledElementsCountAlong() - endSkipCount]
 
-    def setEndNodeIds(self, endNodeIds):
+    def setEndNodeIds(self, endNodeIds, endSkipCount):
         """
-        :param endNodeIds: list of node IDs around tube end row.
+        :param endNodeIds: list of node ids around tube end row.
+        :param endSkipCount: Row in from end that node ids are for.
         """
-        self._endNodeIds = endNodeIds
+        self._sampledNodeIds[self.getSampledElementsCountAlong() - endSkipCount] = endNodeIds
 
     def addAnnotationMeshGroup(self, annotationMeshGroup):
         """
@@ -1554,8 +1564,8 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                     outerTubeCoordinates = outerTubeData.getSampledTubeCoordinates()
                     innerTubeData = innerSegmentTubeData[networkSegment] if layoutInnerCoordinates else None
                     innerTubeCoordinates = innerTubeData.getSampledTubeCoordinates() if layoutInnerCoordinates else None
-                    startNodeIds = outerTubeData.getStartNodeIds()
-                    endNodeIds = outerTubeData.getEndNodeIds()
+                    startNodeIds = outerTubeData.getStartNodeIds(startSkipCount)
+                    endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
                     nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
                         outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
                         region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
@@ -1563,17 +1573,17 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                         startNodeIds=startNodeIds, endNodeIds=endNodeIds,
                         annotationMeshGroups=outerTubeData.getAnnotationMeshGroups(),
                         serendipity=serendipity)
-                    outerTubeData.setStartNodeIds(startNodeIds)
-                    outerTubeData.setEndNodeIds(endNodeIds)
+                    outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
+                    outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
 
                     if (len(startInSegments) == 1) and (startSkipCount == 0):
                         # copy startNodeIds to end of last segment
                         inTubeData = segmentTubeData[startInSegments[0]]
-                        inTubeData.setStartNodeIds(startNodeIds)
+                        inTubeData.setStartNodeIds(startNodeIds, startSkipCount)
                     if (len(endOutSegments) == 1) and (endSkipCount == 0):
                         # copy endNodesIds to start of next segment
                         outTubeData = segmentTubeData[endOutSegments[0]]
-                        outTubeData.setEndNodeIds(endNodeIds)
+                        outTubeData.setEndNodeIds(endNodeIds, endSkipCount)
                 else:
                     # start, end bifurcation
                     outerTubeBifurcationData = outerNodeTubeBifurcationData.get(
@@ -1607,8 +1617,8 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                         outerMidCoordinates = outerTubeBifurcationData.getMidCoordinates()
                         inward = outerTubeBifurcationData.getSegmentsIn()
                         outerTubeData = outerTubeBifurcationData.getTubeData()
-                        tubeNodeIds = [outerTubeData[s].getEndNodeIds() if inward[s] else \
-                                           outerTubeData[s].getStartNodeIds() for s in range(3)]
+                        tubeNodeIds = [outerTubeData[s].getEndNodeIds(1) if inward[s] else \
+                                           outerTubeData[s].getStartNodeIds(1) for s in range(3)]
                         innerTubeCoordinates = None
                         innerMidCoordinates = None
                         if innerTubeBifurcationData:
@@ -1624,11 +1634,11 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
 
                         for s in range(3):
                             if inward[s]:
-                                if not outerTubeData[s].getEndNodeIds():
-                                    outerTubeData[s].setEndNodeIds(tubeNodeIds[s])
+                                if not outerTubeData[s].getEndNodeIds(1):
+                                    outerTubeData[s].setEndNodeIds(tubeNodeIds[s], 1)
                             else:
-                                if not outerTubeData[s].getStartNodeIds():
-                                    outerTubeData[s].setStartNodeIds(tubeNodeIds[s])
+                                if not outerTubeData[s].getStartNodeIds(1):
+                                    outerTubeData[s].setStartNodeIds(tubeNodeIds[s], 1)
 
                         completedBifurcations.add(outerTubeBifurcationData)
 

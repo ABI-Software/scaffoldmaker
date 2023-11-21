@@ -126,7 +126,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                 elementsCountAround, targetElementAspectRatio, elementsCountThroughWall,
                 layoutAnnotationGroups, serendipity=serendipity)
         except Exception as e:
-            print("Exception occurred while generating tube network: Please edit network layout")
+            print(e, "\nException occurred while generating tube network: Please edit network layout")
             return [], None
 
         return annotationGroups, None

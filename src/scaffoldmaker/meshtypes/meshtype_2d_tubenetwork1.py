@@ -111,13 +111,12 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
 
         networkMesh = networkLayout.getConstructionObject()
 
-        # try:
-        if True:
+        try:
             nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
                 networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                 elementsCountAround, targetElementAspectRatio, 1, layoutAnnotationGroups, serendipity=serendipity)
-        # except Exception as e:
-        #     print("Exception occurred while generating tube network: Please edit network layout")
-        #     return [], None
+        except Exception as e:
+            print(e, "\nException occurred while generating tube network: Please edit network layout")
+            return [], None
 
         return annotationGroups, None
