@@ -279,13 +279,13 @@ class NetworkMesh:
         maxCountY = 0
         for posX in range(0, maxPosX + 1):
             maxCountY = max(maxCountY, len(posNodes[posX]))
-        rangeY = float(maxCountY - 1)
         for posX in range(0, maxPosX + 1):
             xx = float(posX)
             nodes = posNodes[posX]
             countY = len(nodes)
+            rangeY = float(countY - 1)
             for iy in range(countY):
-                x = [xx, rangeY * (-0.5 + (iy + 0.5) / countY), 0.0]
+                x = [xx, rangeY * (-0.5 + iy / rangeY) if (countY > 1) else 0.0, 0.0]
                 nodes[iy].setX(x)
 
     def getNetworkNodes(self):
@@ -365,8 +365,8 @@ class NetworkMesh:
                     else:
                         d1 = sub(nextNetworkNode.getX(), networkNode.getX())
                     d1 = normalize(d1)
-                    d2 = [-0.25 * d1[1], 0.25 * d1[0], 0.0]
-                    d3 = cross(d1, d2)
+                    d3 = [0.0, 0.0, 0.1]
+                    d2 = cross(d3, normalize(d1))
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, nodeVersion, d1)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, nodeVersion, d2)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, nodeVersion, d3)

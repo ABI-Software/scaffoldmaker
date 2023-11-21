@@ -24,8 +24,9 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
     parameterSetStructureStrings = {
         "Default": "1-2",
-        "Bifurcation": "1-2,2-3,2.2-4",
+        "Bifurcation": "1-2.1,2.2-3,2.3-4",
         "Converging bifurcation": "1-3.1,2-3.2,3.3-4",
+        "Loop": "1-2-3-4-5-6-7-8-1",
         "Sphere cube": "1.1-2.1,1.2-3.1,1.3-4.1,2.2-5.2,2.3-6.1,3.2-6.2,3.3-7.1,4.2-7.2,4.3-5.1,5.3-8.1,6.3-8.2,7.3-8.3"
     }
 
@@ -35,7 +36,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
     @classmethod
     def getParameterSetNames(cls):
-        return ["Default", "Bifurcation", "Converging bifurcation", "Sphere cube"]
+        return list(cls.parameterSetStructureStrings.keys())
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
@@ -76,7 +77,27 @@ class MeshType_1d_network_layout1(Scaffold_base):
         coordinates = find_or_create_field_coordinates(fieldmodule).castFiniteElement()
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         fieldcache = fieldmodule.createFieldcache()
-        if "Sphere cube" in parameterSetName:
+        if "Loop" in parameterSetName:
+            loopRadius = 0.5
+            tubeRadius = 0.1
+            d1Mag = loopRadius * 0.25 * math.pi
+            for n in range(8):
+                angle = 0.25 * math.pi * n
+                cosAngle = math.cos(angle)
+                sinAngle = math.sin(angle)
+                node = nodes.findNodeByIdentifier(n + 1)
+                fieldcache.setNode(node)
+                x = [loopRadius * cosAngle, loopRadius * sinAngle, 0.0]
+                d1 = [-d1Mag * sinAngle, d1Mag * cosAngle, 0.0]
+                d2 = [tubeRadius * cosAngle, tubeRadius * sinAngle, 0.0]
+                d12 = mult(d1, tubeRadius)
+                d3 = [0.0, 0.0, tubeRadius]
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+        elif "Sphere cube" in parameterSetName:
             # edit node parameters
             sphereRadius = 0.5
             tubeRadius = 0.1
@@ -121,9 +142,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
             # fix the one node out of order:
             for d in [cd1[4], cd2[4]]:
                 d[0:2] = [d[1], d[0]]
-            nodeId = 1
             for n in range(8):
-                node = nodes.findNodeByIdentifier(nodeId)
+                node = nodes.findNodeByIdentifier(n + 1)
                 fieldcache.setNode(node)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, cx[n])
                 for v in range(3):
@@ -131,7 +151,6 @@ class MeshType_1d_network_layout1(Scaffold_base):
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, v + 1, cd2[n][v])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, v + 1, cd3[n])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, v + 1, cd13[n][v])
-                nodeId += 1
 
         if defineInnerCoordinates:
             cls._defineInnerCoordinates(region, coordinates, options, networkMesh)

@@ -54,8 +54,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         scaffold.smoothDerivatives(region, options, None, functionOptions, "meshEdits")
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [0.0, -0.25, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [3.0, 0.25, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [0.0, -0.5, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [3.0, 0.5, 0.0], 1.0E-6)
 
         networkSegments = networkMesh.getNetworkSegments()
         self.assertEqual(3, len(networkSegments))
@@ -72,7 +72,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             networkSegments[2].getNodeIdentifiers(), networkSegments[2].getNodeVersions())
         self.assertEqual(2, len(nx))
         assertAlmostEqualList(self, nx[0], [2.0, 0.0, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, nx[1], [3.0, 0.25, 0.0], 1.0E-6)
+        assertAlmostEqualList(self, nx[1], [3.0, 0.5, 0.0], 1.0E-6)
         expected_nd = [nx[1][c] - nx[0][c] for c in range(3)]
         assertAlmostEqualList(self, nd1[0], expected_nd, 1.0E-6)
         assertAlmostEqualList(self, nd1[1], expected_nd, 1.0E-6)
@@ -99,7 +99,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         tmpFieldmodule = tmpRegion.getFieldmodule()
         networkLayoutScaffoldPackage.generate(tmpRegion)
 
-        annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(('bob', 'BOB:1'))
+        annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(("bob", "BOB:1"))
         group = annotationGroup1.getGroup()
         mesh1d = tmpFieldmodule.findMeshByDimension(1)
         meshGroup = group.createMeshGroup(mesh1d)
@@ -107,7 +107,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(2, meshGroup.getSize())
         self.assertEqual(1, annotationGroup1.getDimension())
         identifier_ranges_string = identifier_ranges_to_string(mesh_group_to_identifier_ranges(meshGroup))
-        self.assertEqual('1,5', identifier_ranges_string)
+        self.assertEqual("1,5", identifier_ranges_string)
         networkLayoutScaffoldPackage.updateUserAnnotationGroups()
 
         self.assertTrue(region.isValid())
@@ -228,6 +228,149 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(innerSurfaceArea, 3.299211421181769, delta=1.0E-8)
 
+    def test_3d_tube_network_loop(self):
+        """
+        Test loop 3-D tube network is generated correctly.
+        This has one segment which loops back on itself so nodes are common at start and end.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Loop")
+        settings = scaffoldPackage.getScaffoldSettings()
+        settings["Target element aspect ratio"] = 5.5
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        scaffoldPackage.generate(region)
+
+        fieldmodule = region.getFieldmodule()
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(8 * 8, mesh3d.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(8 * 8 * 4, mesh2d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(8 * 8 * 2, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [-0.6, -0.6, -0.1], 1.0E-8)
+        assertAlmostEqualList(self, maximums, [0.6, 0.6, 0.1], 1.0E-8)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_0 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(volume, 0.07362320216167444, delta=1.0E-6)
+
+            outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
+            outerSurfaceAreaField.setNumbersOfPoints(4)
+            result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9681635889129865, delta=1.0E-6)
+
+            innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
+            innerSurfaceAreaField.setNumbersOfPoints(4)
+            result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(innerSurfaceArea, 0.9840793993494295, delta=1.0E-6)
+
+    def test_3d_tube_network_loop_two_segments(self):
+        """
+        Test loop 3-D tube network is generated with 2 segments with fixed element boundary between them.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Loop")
+        settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        # change structure to make two segments but use regular loop parameters:
+        networkLayoutSettings["Structure"] = "1-2-3-4-5-6-7,7-8-1"
+        settings["Target element aspect ratio"] = 5.0
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+
+        # add a user-defined annotation group to network layout. Must generate first
+        tmpRegion = region.createRegion()
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        networkLayoutScaffoldPackage.generate(tmpRegion)
+
+        annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(("bob", "BOB:1"))
+        group = annotationGroup1.getGroup()
+        mesh1d = tmpFieldmodule.findMeshByDimension(1)
+        meshGroup = group.createMeshGroup(mesh1d)
+        mesh_group_add_identifier_ranges(meshGroup, [[7, 8]])
+        self.assertEqual(2, meshGroup.getSize())
+        self.assertEqual(1, annotationGroup1.getDimension())
+        identifier_ranges_string = identifier_ranges_to_string(mesh_group_to_identifier_ranges(meshGroup))
+        self.assertEqual("7-8", identifier_ranges_string)
+        networkLayoutScaffoldPackage.updateUserAnnotationGroups()
+
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(1, len(annotationGroups))
+
+        fieldmodule = region.getFieldmodule()
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(10 * 8, mesh3d.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(10 * 8 * 4, mesh2d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(10 * 8 * 2, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [-0.5821327737763893, -0.6, -0.10000000000000003], 1.0E-8)
+        assertAlmostEqualList(self, maximums, [0.6, 0.5821327023307064, 0.1], 1.0E-8)
+
+        bob = fieldmodule.findFieldByName("bob").castGroup()
+        self.assertTrue(bob.isValid())
+        bobNodes = bob.getNodesetGroup(nodes)
+        self.assertTrue(bobNodes.isValid())
+        self.assertEqual(4 * 8 * 2, bobNodes.getSize())
+        bobMinimums, bobMaximums = evaluateFieldNodesetRange(coordinates, bobNodes)
+        assertAlmostEqualList(self, bobMinimums, [0.0, -0.6, -0.1], 1.0E-8)
+        assertAlmostEqualList(self, bobMaximums, [0.6, 0.0, 0.1], 1.0E-8)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_0 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(volume, 0.07231010978255667, delta=1.0E-6)
+
+            outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
+            outerSurfaceAreaField.setNumbersOfPoints(4)
+            result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9509183799522376, delta=1.0E-6)
+
+            innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
+            innerSurfaceAreaField.setNumbersOfPoints(4)
+            result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(innerSurfaceArea, 0.9754616538026685, delta=1.0E-6)
 
 
 if __name__ == "__main__":

@@ -445,7 +445,7 @@ def getTubeBifurcationCoordinates2D(tCoords, inCount):
 def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
                  region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier,
                  startSkipCount: int=0, endSkipCount:int=0, startNodeIds: list=None, endNodeIds: list=None,
-                 annotationMeshGroups=[], serendipity=False):
+                 annotationMeshGroups=[], loop=False, serendipity=False):
     """
     Generate a 2D or 3D thick walled tube from supplied coordinates.
     Assumes client has active ChangeManager(fieldmodule).
@@ -463,6 +463,7 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     :param startNodeIds: Optional existing node identifiers [wall outward][around] to use at start, or None.
     :param endNodeIds: Optional existing node identifiers [wall outward][around] to use at end, or None.
     :param annotationMeshGroups: Mesh groups to add elements to.
+    :param loop: Set to true to loop back to start coordinates at end.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
     :return: next node identifier, next element identifier, startNodeIds, endNodeIds
     """
@@ -474,6 +475,7 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     nodesCountThroughWall = (elementsCountThroughWall + 1) if (dimension == 3) else 1
     elementsCountAlong = len(ox) - 1
     elementsCountAround = len(ox[0])
+    assert (not loop) or ((startSkipCount == 0) and (endSkipCount == 0))
 
     fieldmodule = region.getFieldmodule()
 
@@ -498,6 +500,9 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
             continue
         if endNodeIds and (n2 == (elementsCountAlong - endSkipCount)):
             tubeNodeIds.append(endNodeIds)
+            continue
+        if loop and (n2 == elementsCountAlong):
+            tubeNodeIds.append(tubeNodeIds[0])
             continue
         tubeNodeIds.append([])
         for n3 in range(nodesCountThroughWall):
@@ -1532,7 +1537,16 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                     sumRingLength += ringLength
                 meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
                 targetElementLength = targetElementAspectRatio * meanElementLengthAround
-                elementsCountAlong = max(2, math.ceil(segmentLength / targetElementLength))
+                elementsCountAlong = max(1, math.ceil(segmentLength / targetElementLength))
+                loop = (len(startSegmentNode.getInSegments()) == 1) and \
+                       (startSegmentNode.getInSegments()[0] is networkSegment) and \
+                       (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
+                if (elementsCountAlong == 1) and (startTubeBifurcationData or endTubeBifurcationData):
+                    # at least 2 segments if bifurcating at either end, or loop
+                    elementsCountAlong = 2
+                elif (elementsCountAlong < 3) and loop:
+                    # at least 3 segments around loop; 2 should work, but zinc currently makes incorrect faces
+                    elementsCountAlong = 3
             else:
                 # must match count from outer surface!
                 outerTubeData = outerSegmentTubeData[networkSegment]
@@ -1566,24 +1580,26 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                     innerTubeCoordinates = innerTubeData.getSampledTubeCoordinates() if layoutInnerCoordinates else None
                     startNodeIds = outerTubeData.getStartNodeIds(startSkipCount)
                     endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
+                    loop = (len(startInSegments) == 1) and (startInSegments[0] is networkSegment) and \
+                           (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
                     nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
                         outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
                         region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
                         startSkipCount=startSkipCount, endSkipCount=endSkipCount,
                         startNodeIds=startNodeIds, endNodeIds=endNodeIds,
                         annotationMeshGroups=outerTubeData.getAnnotationMeshGroups(),
-                        serendipity=serendipity)
+                        loop=loop, serendipity=serendipity)
                     outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
                     outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
 
                     if (len(startInSegments) == 1) and (startSkipCount == 0):
                         # copy startNodeIds to end of last segment
-                        inTubeData = segmentTubeData[startInSegments[0]]
-                        inTubeData.setStartNodeIds(startNodeIds, startSkipCount)
+                        inTubeData = outerSegmentTubeData[startInSegments[0]]
+                        inTubeData.setEndNodeIds(startNodeIds, 0)
                     if (len(endOutSegments) == 1) and (endSkipCount == 0):
                         # copy endNodesIds to start of next segment
-                        outTubeData = segmentTubeData[endOutSegments[0]]
-                        outTubeData.setEndNodeIds(endNodeIds, endSkipCount)
+                        outTubeData = outerSegmentTubeData[endOutSegments[0]]
+                        outTubeData.setStartNodeIds(endNodeIds, 0)
                 else:
                     # start, end bifurcation
                     outerTubeBifurcationData = outerNodeTubeBifurcationData.get(
