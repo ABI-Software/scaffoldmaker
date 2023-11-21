@@ -187,7 +187,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
         return True, False  # settings changed, nodes not changed (since reset to original coordinates)
 
-    class InnerCoordinatesMode(Enum):
+    class AssignInnerCoordinatesMode(Enum):
         """
         Controls how inner
         """
@@ -216,9 +216,9 @@ class MeshType_1d_network_layout1(Scaffold_base):
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         assignMode = None
         if functionOptions["Mode"]["Wall proportion"]:
-            assignMode = cls.InnerCoordinatesMode.PROPORTIONAL_WALL_THICKNESS
+            assignMode = cls.AssignInnerCoordinatesMode.PROPORTIONAL_WALL_THICKNESS
         elif functionOptions["Mode"]["Wall thickness"]:
-            assignMode = cls.InnerCoordinatesMode.ABSOLUTE_WALL_THICKNESS
+            assignMode = cls.AssignInnerCoordinatesMode.ABSOLUTE_WALL_THICKNESS
         else:
             assert False, "assignInnerCoordinates. Invalid mode"
         wallThicknessValue = functionOptions["Value"]
@@ -238,54 +238,68 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
         with ChangeManager(fieldmodule):
             # get all node parameters (from selection if any)
-            useNodeset = nodeset
+            editNodeset = nodeset
+            originalNodeParameters = None
             if selectionGroup:
+                # make group of only nodes being edited
                 tmpGroup = fieldmodule.createFieldGroup()
                 tmpGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
                 tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
                 tmpMeshGroup.addElementsConditional(selectionGroup)
-                useNodeset = tmpGroup.getNodesetGroup(nodes)
+                editNodeset = tmpGroup.getNodesetGroup(nodes)
+                _, originalNodeParameters = get_nodeset_field_parameters(editNodeset, innerCoordinates, valueLabels)
                 del tmpMeshGroup
                 del tmpGroup
-            _, nodeParameters = get_nodeset_field_parameters(useNodeset, coordinates, valueLabels)
+            _, nodeParameters = get_nodeset_field_parameters(editNodeset, coordinates, valueLabels)
 
-            nodeIdentifierIndexes = {}
-            modifyVersions = []
-            for n in range(len(nodeParameters)):
-                nodeIdentifierIndexes[nodeParameters[n][0]] = n
-                versionsCount = len(nodeParameters[n][1][1])
-                modifyVersions.append([False] * versionsCount)
-
-            networkSegments = networkMesh.getNetworkSegments()
-            for networkSegment in networkSegments:
-                nodeIdentifiers = networkSegment.getNodeIdentifiers()
-                nodeVersions = networkSegment.getNodeVersions()
-                for n in range(len(nodeIdentifiers)):
-                    nodeIndex = nodeIdentifierIndexes.get(nodeIdentifiers[n])
-                    # print("Node identifier", nodeIdentifiers[n], "index", nodeIndex, "version", nodeVersions[n])
-                    if nodeIndex is not None:
-                        modifyVersions[nodeIndex][nodeVersions[n] - 1] = True
+            modifyVersions = None  # default is to modify all versions
+            if selectionGroup:
+                nodeIdentifierIndexes = {}
+                modifyVersions = []
+                for n in range(len(nodeParameters)):
+                    nodeIdentifierIndexes[nodeParameters[n][0]] = n
+                    versionsCount = len(nodeParameters[n][1][1])
+                    modifyVersions.append([False] * versionsCount if selectionGroup else [True] * versionsCount)
+                networkSegments = networkMesh.getNetworkSegments()
+                for networkSegment in networkSegments:
+                    nodeIdentifiers = networkSegment.getNodeIdentifiers()
+                    nodeVersions = networkSegment.getNodeVersions()
+                    elementIdentifiers = networkSegment.getElementIdentifiers()
+                    for e in range(len(elementIdentifiers)):
+                        elementIdentifier = elementIdentifiers[e]
+                        element = selectionMeshGroup.findElementByIdentifier(elementIdentifier)
+                        if element.isValid():
+                            for n in [e, e + 1]:
+                                nodeIndex = nodeIdentifierIndexes.get(nodeIdentifiers[n])
+                                # print("Node identifier", nodeIdentifiers[n], "index", nodeIndex, "version", nodeVersions[n])
+                                if nodeIndex is not None:
+                                    modifyVersions[nodeIndex][nodeVersions[n] - 1] = True
 
             proportion = 1.0 - wallThicknessValue
             for n in range(len(nodeParameters)):
-                modifyVersion = modifyVersions[n]
-                versionsCount = len(modifyVersion)
+                modifyVersion = modifyVersions[n] if modifyVersions else None
                 nNodeParameters = nodeParameters[n][1]
+                oNodeParameters = originalNodeParameters[n][1] if modifyVersions else None
+                versionsCount = len(nNodeParameters[1])
                 for v in range(versionsCount):
-                    if modifyVersion[v]:
-                        if assignMode == cls.InnerCoordinatesMode.PROPORTIONAL_WALL_THICKNESS:
+                    if (not modifyVersions) or modifyVersion[v]:
+                        if assignMode == cls.AssignInnerCoordinatesMode.PROPORTIONAL_WALL_THICKNESS:
                             for d in range(2, 6):
                                 nNodeParameters[d][v] = mult(nNodeParameters[d][v], proportion)
-                        elif assignMode == cls.InnerCoordinatesMode.ABSOLUTE_WALL_THICKNESS:
+                        elif assignMode == cls.AssignInnerCoordinatesMode.ABSOLUTE_WALL_THICKNESS:
                             for dd in range(2):
                                 mag = magnitude(nNodeParameters[2 + 2 * dd][v])
                                 if abs(mag) > 0.0:
                                     proportion = (mag - wallThicknessValue) / mag
                                     for d in [2 + 2 * dd, 3 + 2 * dd]:
                                         nNodeParameters[d][v] = mult(nNodeParameters[d][v], proportion)
+                    else:
+                        # copy original derivative versions
+                        for d in range(2, 6):
+                            nNodeParameters[d][v] = oNodeParameters[d][v]
 
-            set_nodeset_field_parameters(useNodeset, innerCoordinates, valueLabels, nodeParameters, editGroupName)
-            del useNodeset
+            set_nodeset_field_parameters(editNodeset, innerCoordinates, valueLabels, nodeParameters, editGroupName)
+            del editNodeset
 
         return False, True  # settings not changed, nodes changed
 
