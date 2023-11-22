@@ -738,7 +738,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
     def test_curve_track_surface_nearest_intersection(self):
         """
-        Test finding nearest/intersection points a curve and a track surface.
+        Test finding nearest/intersection points on a curve and a track surface.
         """
         curve3_x = [[0.0, 0.3, 0.5], [1.0, 0.7, 0.5]]
         curve3_d1 = [[1.0, -0.2, 0.0], [1.0, -0.2, 0.0]]
@@ -908,6 +908,10 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # generateCurveMesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections1(self):
+        """
+        Test tube intersections in a diverging bifurcation with one pair of tubes equal sized and continuous,
+        but with one small outward tube which only intersects with the first tube.
+        """
         elementsCountAround = 8
         elementsCountAlong = 6
         path1Params = [
@@ -1129,6 +1133,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertIsNone(p2t)
 
     def test_tube_intersections2(self):
+        """
+        Test tube intersections in a diverging bifurcation case with similar tube sizes.
+        """
         elementsCountAround = 8
         elementsCountAlong = 6
         path1Params = [

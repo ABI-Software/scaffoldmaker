@@ -162,9 +162,12 @@ class MeshType_1d_network_layout1(Scaffold_base):
         """
         Copy coordinates to inner coordinates via in-memory model file.
         Assign using the interactive function.
-        :param region:
-        :param coordinates: Standard/outer coordinate field
+        :param region: Region to define field in.
+        :param coordinates: Standard/outer coordinate field.
+        :param options: Options used to generate scaffold.
+        :param networkMesh: Network mesh object used to generate scaffold.
         """
+        assert options["Define inner coordinates"]
         coordinates.setName("inner coordinates")  # temporarily rename
         sir = region.createStreaminformationRegion()
         srm = sir.createStreamresourceMemory()
@@ -172,7 +175,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         result, buffer = srm.getBuffer()
         coordinates.setName("coordinates")  # restore name before reading inner coordinates back in
         sir = region.createStreaminformationRegion()
-        srm = sir.createStreamresourceMemoryBuffer(buffer)
+        sir.createStreamresourceMemoryBuffer(buffer)
         region.read(sir)
         functionOptions = {
             "To field": {"coordinates": False, "inner coordinates": True},

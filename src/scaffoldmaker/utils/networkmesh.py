@@ -415,7 +415,7 @@ def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0):
     and cd12, cd13 giving rate of change of side vectors. Parameters have 3 components.
     Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
     :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
-    :param radius: Redius of tube in xi space.
+    :param radius: Radius of tube in xi space.
     :return: px[][], pd1[][], pd2[][], pd12[][] with first index in range(pointsCountAlong),
     second inner index in range(elementsCountAround)
     """

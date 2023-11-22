@@ -1071,7 +1071,7 @@ def isLocationOnCurveBoundary(location, elementsCount):
     return ((e == 0) and (xi < XI_TOL)) or ((e == (elementsCount - 1)) and (xi > (1.0 - XI_TOL)))
 
 
-def updateCurveLocationTofaceNumber(location, faceNumber, elementsCount, loop=False):
+def updateCurveLocationToFaceNumber(location, faceNumber, elementsCount, loop=False):
     """
     Determine curve location after crossing given face number, and either clamp to range if reached boundary,
     or loop around depending on mode.
@@ -1134,6 +1134,8 @@ def getNearestParameterLocationOnCurve(nx, targetx, loop=False):
 
 def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
     """
+    Get location on a piecewise Hermite curve which is closest to target coordinates.
+    Can be a local minimum depending on start location.
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
     :param targetx: Coordinates to get nearest point on curve to.
@@ -1175,7 +1177,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
             # print("getNearestLocationOnCurve:  Converged in", iter + 1, "iterations, mag_dxi", mag_dxi)
             break
         if faceNumber:
-            location, onBoundary = updateCurveLocationTofaceNumber(location, faceNumber, eCount, loop)
+            location, onBoundary = updateCurveLocationToFaceNumber(location, faceNumber, eCount, loop)
             if onBoundary and lastOnBoundary:
                 # print("getNearestLocationOnCurve:  Converged on boundary in", iter + 1, "iterations")
                 break
@@ -1189,6 +1191,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
 
 def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, startLocation=None):
     """
+    Get the closest locations on two piecewise Hermite curves. Can be a local minimum depending on start location.
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
     :param ox: Coordinates along other curve.
@@ -1263,7 +1266,7 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
         bxi, faceNumber = incrementXiOnLine(location[1], dxi)
         location = (location[0], bxi)
         if faceNumber:
-            location, onBoundary = updateCurveLocationTofaceNumber(location, faceNumber, neCount, nLoop)
+            location, onBoundary = updateCurveLocationToFaceNumber(location, faceNumber, neCount, nLoop)
             if onBoundary and lastOnBoundary:
                 # print("getNearestLocationBetweenCurves:  Found nearest on boundary in", iter + 1, "iterations")
                 break

@@ -50,16 +50,6 @@ def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, 
         d2.append(add(mult(cxd, dmagFinal/mag_cxd), mult(radialVector, dmagFinal*radialGrowth)))
     return x, d1, d2
 
-
-def track_curve_side_axis(x1, d1, x2, d2, sideStart, xiStart, xiEnd):
-    """
-    Get side vector normal to curve at xiEnd for smoothest transition from
-    sideStart at xiStart.
-    :param xi, d1, x2, d2: 
-    :param sideStart: Unit vector normal to curve
-    """
-    pass
-
 def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
     """
     Get coordinates and derivatives of triple point between p1, p2 and p3 with derivatives.
