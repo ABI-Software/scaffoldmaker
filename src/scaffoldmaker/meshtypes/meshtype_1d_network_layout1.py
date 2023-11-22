@@ -11,7 +11,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.zinc_utils import clearRegion, get_nodeset_field_parameters, \
-    get_nodeset_path_field_parameters, make_nodeset_derivatives_orthogonal, scale_nodeset_derivatives, \
+    get_nodeset_path_field_parameters, make_nodeset_derivatives_orthogonal, \
     set_nodeset_field_parameters, setPathParameters
 from enum import Enum
 import math
@@ -89,13 +89,13 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 fieldcache.setNode(node)
                 x = [loopRadius * cosAngle, loopRadius * sinAngle, 0.0]
                 d1 = [-d1Mag * sinAngle, d1Mag * cosAngle, 0.0]
-                d2 = [tubeRadius * cosAngle, tubeRadius * sinAngle, 0.0]
-                d12 = mult(d1, tubeRadius)
-                d3 = [0.0, 0.0, tubeRadius]
+                d2 = [0.0, 0.0, tubeRadius]
+                d3 = [tubeRadius * cosAngle, tubeRadius * sinAngle, 0.0]
+                d13 = mult(d1, tubeRadius)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
         elif "Sphere cube" in parameterSetName:
             # edit node parameters
@@ -175,9 +175,12 @@ class MeshType_1d_network_layout1(Scaffold_base):
         srm = sir.createStreamresourceMemoryBuffer(buffer)
         region.read(sir)
         functionOptions = {
-            "Mode": {"Wall proportion": True, "Wall thickness": False},
-            "Value": 0.5}
-        cls.assignInnerCoordinates(region, options, networkMesh, functionOptions, editGroupName=None)
+            "To field": {"coordinates": False, "inner coordinates": True},
+            "From field": {"coordinates": True, "inner coordinates": False},
+            "Mode": {"Scale": True, "Offset": False},
+            "D2 value": 0.5,
+            "D3 value": 0.5}
+        cls.assignCoordinates(region, options, networkMesh, functionOptions, editGroupName=None)
 
     @classmethod
     def editStructure(cls, region, options, networkMesh, functionOptions, editGroupName):
@@ -206,19 +209,16 @@ class MeshType_1d_network_layout1(Scaffold_base):
 
         return True, False  # settings changed, nodes not changed (since reset to original coordinates)
 
-    class AssignInnerCoordinatesMode(Enum):
-        """
-        Controls how inner
-        """
-        PROPORTIONAL_WALL_THICKNESS = 1  # same
-        ABSOLUTE_WALL_THICKNESS = 2
+    class AssignCoordinatesMode(Enum):
+        SCALE = 1,  # scale side derivative magnitude by value
+        OFFSET = 2   # offset side derivative by absolute distance
 
     @classmethod
-    def assignInnerCoordinates(cls, region, options, networkMesh, functionOptions, editGroupName):
+    def assignCoordinates(cls, region, options, networkMesh, functionOptions, editGroupName):
         """
-        Assign inner coordinates from outer coordinates with wall thickness either a proportion of the
-        outer side derivatives, or with an absolute wall thickness.
-        If elements are selected, applies
+        Assign coordinates or inner coordinates by scaling or offsetting from either original
+        values or values from other field.
+        If elements are selected, applied only to nodes used by the element and versions used in the enclosing segment.
         :param region: Region containing model to change parameters of.
         :param options: The scaffold settings used to create the original model, pre-edits.
         :param networkMesh: The NetworkMesh construction object model was created from. Unused.
@@ -230,17 +230,23 @@ class MeshType_1d_network_layout1(Scaffold_base):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         innerCoordinates = fieldmodule.findFieldByName("inner coordinates").castFiniteElement()
         if not innerCoordinates.isValid():
-            print("Assign inner coordinates:  No inner coordinates defined")
-            return None, None
-        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        assignMode = None
-        if functionOptions["Mode"]["Wall proportion"]:
-            assignMode = cls.AssignInnerCoordinatesMode.PROPORTIONAL_WALL_THICKNESS
-        elif functionOptions["Mode"]["Wall thickness"]:
-            assignMode = cls.AssignInnerCoordinatesMode.ABSOLUTE_WALL_THICKNESS
+            if functionOptions["To field"]["inner coordinates"] or \
+                    functionOptions["From field"]["inner coordinates"]:
+                print("Assign coordinates:  No inner coordinates defined")
+                return None, None
+        mode = None
+        if functionOptions["Mode"]["Scale"]:
+            mode = cls.AssignCoordinatesMode.SCALE
+        elif functionOptions["Mode"]["Offset"]:
+            mode = cls.AssignCoordinatesMode.OFFSET
         else:
-            assert False, "assignInnerCoordinates. Invalid mode"
-        wallThicknessValue = functionOptions["Value"]
+            print("Assign coordinates:  Invalid mode")
+            return None, None
+        toCoordinates = coordinates if functionOptions["To field"]["coordinates"] else innerCoordinates
+        fromCoordinates = coordinates if functionOptions["From field"]["coordinates"] else innerCoordinates
+        d2Value = functionOptions["D2 value"]
+        d3Value = functionOptions["D3 value"]
+        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         selectionGroup = scene_get_selection_group(region.getScene(), inherit_root_region=region.getRoot())
         selectionMeshGroup = None
         mesh1d = fieldmodule.findMeshByDimension(1)
@@ -248,7 +254,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         if selectionGroup:
             selectionMeshGroup = selectionGroup.getMeshGroup(mesh1d)
             if not selectionMeshGroup.isValid():
-                print("Assign inner coordinates:  Selection contains no elements. Clear it to assign globally.")
+                print("Assign coordinates:  Selection contains no elements. Clear it to assign globally.")
                 return None, None
         valueLabels = [
             Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
@@ -266,10 +272,10 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
                 tmpMeshGroup.addElementsConditional(selectionGroup)
                 editNodeset = tmpGroup.getNodesetGroup(nodes)
-                _, originalNodeParameters = get_nodeset_field_parameters(editNodeset, innerCoordinates, valueLabels)
+                _, originalNodeParameters = get_nodeset_field_parameters(editNodeset, toCoordinates, valueLabels)
                 del tmpMeshGroup
                 del tmpGroup
-            _, nodeParameters = get_nodeset_field_parameters(editNodeset, coordinates, valueLabels)
+            _, nodeParameters = get_nodeset_field_parameters(editNodeset, fromCoordinates, valueLabels)
 
             modifyVersions = None  # default is to modify all versions
             if selectionGroup:
@@ -294,7 +300,6 @@ class MeshType_1d_network_layout1(Scaffold_base):
                                 if nodeIndex is not None:
                                     modifyVersions[nodeIndex][nodeVersions[n] - 1] = True
 
-            proportion = 1.0 - wallThicknessValue
             for n in range(len(nodeParameters)):
                 modifyVersion = modifyVersions[n] if modifyVersions else None
                 nNodeParameters = nodeParameters[n][1]
@@ -302,22 +307,19 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 versionsCount = len(nNodeParameters[1])
                 for v in range(versionsCount):
                     if (not modifyVersions) or modifyVersion[v]:
-                        if assignMode == cls.AssignInnerCoordinatesMode.PROPORTIONAL_WALL_THICKNESS:
-                            for d in range(2, 6):
-                                nNodeParameters[d][v] = mult(nNodeParameters[d][v], proportion)
-                        elif assignMode == cls.AssignInnerCoordinatesMode.ABSOLUTE_WALL_THICKNESS:
-                            for dd in range(2):
+                        for dd in range(2):
+                            scale = d2Value if (dd == 0) else d3Value
+                            if mode == cls.AssignCoordinatesMode.OFFSET:
                                 mag = magnitude(nNodeParameters[2 + 2 * dd][v])
-                                if abs(mag) > 0.0:
-                                    proportion = (mag - wallThicknessValue) / mag
-                                    for d in [2 + 2 * dd, 3 + 2 * dd]:
-                                        nNodeParameters[d][v] = mult(nNodeParameters[d][v], proportion)
+                                scale = (mag + scale) / mag if (abs(mag) > 0.0) else 1.0
+                            for d in [2 + 2 * dd, 3 + 2 * dd]:
+                                nNodeParameters[d][v] = mult(nNodeParameters[d][v], scale)
                     else:
                         # copy original derivative versions
                         for d in range(2, 6):
                             nNodeParameters[d][v] = oNodeParameters[d][v]
 
-            set_nodeset_field_parameters(editNodeset, innerCoordinates, valueLabels, nodeParameters, editGroupName)
+            set_nodeset_field_parameters(editNodeset, toCoordinates, valueLabels, nodeParameters, editGroupName)
             del editNodeset
 
         return False, True  # settings not changed, nodes changed
@@ -386,37 +388,6 @@ class MeshType_1d_network_layout1(Scaffold_base):
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def scaleSideDerivatives(cls, region, options, networkMesh, functionOptions, editGroupName):
-        """
-        Make side directions normal to d1 and each other. Works for all versions.
-        :param region: Region containing model to change parameters of.
-        :param options: The scaffold settings used to create the original model, pre-edits.
-        :param networkMesh: The NetworkMesh construction object model was created from. Unused.
-        :param functionOptions: Which side directions to make normal.
-        :param editGroupName: Name of Zinc group to put edited nodes in.
-        :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
-        """
-        fieldmodule = region.getFieldmodule()
-        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
-        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        d2Scale = functionOptions['D2 scale']
-        d3Scale = functionOptions['D3 scale']
-        if (d2Scale == 0.0) or (d3Scale == 0.0):
-            return False, False
-        valueLabels = []
-        scalings = []
-        if d2Scale != 1.0:
-            valueLabels += [Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2]
-            scalings += [d2Scale, d2Scale]
-        if d3Scale != 1.0:
-            valueLabels += [Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-            scalings += [d3Scale, d3Scale]
-        if not scalings:
-            return False, False
-        scale_nodeset_derivatives(nodeset, coordinates, valueLabels, scalings, editGroupName)
-        return False, True  # settings not changed, nodes changed
-
-    @classmethod
     def getInteractiveFunctions(cls):
         """
         Supply client with functions for smoothing path parameters.
@@ -426,11 +397,14 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 {"Structure": None},  # None = take value from options
                 lambda region, options, networkMesh, functionOptions, editGroupName:
                     cls.editStructure(region, options, networkMesh, functionOptions, editGroupName)),
-            ("Assign inner coordinates...",
-                {"Mode": {"Wall proportion": True, "Wall thickness": False},
-                 "Value": 0.5},
+            ("Assign coordinates...", {
+                "To field": {"coordinates": True, "inner coordinates": False},
+                "From field": {"coordinates": True, "inner coordinates": False},
+                "Mode": {"Scale": True, "Offset": False},
+                "D2 value": 1.0,
+                "D3 value": 1.0},
                 lambda region, options, networkMesh, functionOptions, editGroupName:
-                    cls.assignInnerCoordinates(region, options, networkMesh, functionOptions, editGroupName)),
+                    cls.assignCoordinates(region, options, networkMesh, functionOptions, editGroupName)),
             ("Make side derivatives normal...",
                 {"Make D2 normal": True,
                  "Make D3 normal": True},
@@ -440,10 +414,5 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 {"Smooth D12": True,
                  "Smooth D13": True},
                 lambda region, options, networkMesh, functionOptions, editGroupName:
-                    cls.smoothSideCrossDerivatives(region, options, networkMesh, functionOptions, editGroupName)),
-            ("Scale side derivatives...",
-             {"D2 scale": 1.0,
-              "D3 scale": 1.0},
-             lambda region, options, networkMesh, functionOptions, editGroupName:
-                cls.scaleSideDerivatives(region, options, networkMesh, functionOptions, editGroupName)),
+                    cls.smoothSideCrossDerivatives(region, options, networkMesh, functionOptions, editGroupName))
         ]

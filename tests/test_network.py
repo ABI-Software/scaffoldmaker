@@ -169,11 +169,14 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage.generate(tmpRegion)
         networkMesh = networkLayoutScaffoldPackage.getConstructionObject()
         functionOptions = {
-            "Mode": {"Wall proportion": True, "Wall thickness": False},
-            "Value": 0.2}
+            "To field": {"coordinates": False, "inner coordinates": True},
+            "From field": {"coordinates": True, "inner coordinates": False},
+            "Mode": {"Scale": True, "Offset": False},
+            "D2 value": 0.8,
+            "D3 value": 0.8}
         editGroupName = "meshEdits"
-        MeshType_1d_network_layout1.assignInnerCoordinates(tmpRegion, networkLayoutSettings, networkMesh,
-                                                           functionOptions, editGroupName=editGroupName)
+        MeshType_1d_network_layout1.assignCoordinates(tmpRegion, networkLayoutSettings, networkMesh,
+                                                      functionOptions, editGroupName=editGroupName)
         # put edited coordinates into scaffold package
         sir = tmpRegion.createStreaminformationRegion()
         srm = sir.createStreamresourceMemory()
