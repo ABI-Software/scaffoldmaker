@@ -6,8 +6,13 @@ from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from cmlibs.maths.vectorops import cross, normalize, sub
+from cmlibs.maths.vectorops import cross, magnitude, normalize, sub
+from scaffoldmaker.utils.interpolation import interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,\
+    smoothCubicHermiteDerivativesLoop
+from scaffoldmaker.utils.tracksurface import TrackSurface
+from scaffoldmaker.utils.vector import vectorRejection
 
+import math
 import sys
 
 
@@ -129,6 +134,18 @@ class NetworkSegment:
     def setElementIdentifier(self, index, elementIdentifier):
         self._elementIdentifiers[index] = elementIdentifier
 
+    def hasLayoutElementsInMeshGroup(self, meshGroup):
+        """
+        NetworkSegment must have elementIdentifiers first!
+        :param meshGroup: 1D Mesh group to check membership of.
+        :return: True if any element in segment is in 1D mesh group.
+        """
+        for elementIdentifier in self._elementIdentifiers:
+            element = meshGroup.findElementByIdentifier(elementIdentifier)
+            if element.isValid():
+                return True
+        return False
+
     def isCyclic(self):
         """
         Determine by advancing from end node through each out segment recursively whether network cycles back to
@@ -156,6 +173,12 @@ class NetworkMesh:
     """
 
     def __init__(self, structureString):
+        self._networkNodes = {}
+        self._networkSegments = []
+        self.build(structureString)
+        self._region = None  # set when generated
+
+    def build(self, structureString):
         """
         Set up network structure from structure string description.
         :param structureString: Comma-separated sequences of dash-separated node identifiers defining connectivity and
@@ -256,13 +279,13 @@ class NetworkMesh:
         maxCountY = 0
         for posX in range(0, maxPosX + 1):
             maxCountY = max(maxCountY, len(posNodes[posX]))
-        rangeY = float(maxCountY - 1)
         for posX in range(0, maxPosX + 1):
             xx = float(posX)
             nodes = posNodes[posX]
             countY = len(nodes)
+            rangeY = float(countY - 1)
             for iy in range(countY):
-                x = [xx, rangeY * (-0.5 + (iy + 0.5) / countY), 0.0]
+                x = [xx, rangeY * (-0.5 + iy / rangeY) if (countY > 1) else 0.0, 0.0]
                 nodes[iy].setX(x)
 
     def getNetworkNodes(self):
@@ -277,11 +300,18 @@ class NetworkMesh:
         """
         return self._networkSegments
 
+    def getRegion(self):
+        """
+        :return: Zinc Region containing generated network layout, or None if not generated
+        """
+        return self._region
+
     def create1DLayoutMesh(self, region):
         """
         Expects region Fieldmodule ChangeManager to be in effect.
         :param region: Zinc region to create network layout in.
         """
+        self._region = region
         fieldmodule = region.getFieldmodule()
         coordinates = findOrCreateFieldCoordinates(fieldmodule)
 
@@ -303,7 +333,7 @@ class NetworkMesh:
                     nodetemplate = nodes.createNodetemplate()
                     nodetemplate.defineField(coordinates)
                     for valueLabel in derivativeValueLabels:
-                        nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, versionsCount)
+                        nodetemplate.setValueNumberOfVersions(coordinates, -1, valueLabel, v)
                     nodetemplates.append(nodetemplate)
             node = nodes.createNode(networkNode.getNodeIdentifier(), nodetemplate)
             fieldcache.setNode(node)
@@ -335,8 +365,8 @@ class NetworkMesh:
                     else:
                         d1 = sub(nextNetworkNode.getX(), networkNode.getX())
                     d1 = normalize(d1)
-                    d2 = [-0.25 * d1[1], 0.25 * d1[0], 0.0]
-                    d3 = cross(d1, d2)
+                    d3 = [0.0, 0.0, 0.1]
+                    d2 = cross(d3, normalize(d1))
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, nodeVersion, d1)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, nodeVersion, d2)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, nodeVersion, d3)
@@ -374,3 +404,155 @@ class NetworkMesh:
                     eft, [segmentNodes[e].getNodeIdentifier(), segmentNodes[e + 1].getNodeIdentifier()])
                 networkSegment.setElementIdentifier(e, elementIdentifier)
                 elementIdentifier += 1
+
+
+def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0):
+    """
+    Generate coordinates around and along a tube in parametric space around the path parameters,
+    at xi2^2 + xi3^2 = radius at the same density as path parameters.
+    :param pathParameters: List over nodes of 6 parameters vectors [cx, cd1, cd2, cd12, cd3, cd13] giving
+    coordinates cx along path centre, derivatives cd1 along path, cd2 and cd3 giving side vectors,
+    and cd12, cd13 giving rate of change of side vectors. Parameters have 3 components.
+    Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
+    :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
+    :param radius: Radius of tube in xi space.
+    :return: px[][], pd1[][], pd2[][], pd12[][] with first index in range(pointsCountAlong),
+    second inner index in range(elementsCountAround)
+    """
+    assert len(pathParameters) == 6
+    pointsCountAlong = len(pathParameters[0])
+    assert pointsCountAlong > 1
+    assert len(pathParameters[0][0]) == 3
+
+    # sample around circle in xi space, later smooth and re-sample to get even spacing in geometric space
+    ellipsePointCount = 16
+    aroundScale = 2.0 * math.pi / ellipsePointCount
+    sxi = []
+    sdxi = []
+    for q in range(ellipsePointCount):
+        theta = (q / ellipsePointCount) * 2.0 * math.pi
+        xi2 = radius * math.cos(theta)
+        xi3 = radius * math.sin(theta)
+        sxi.append([xi2, xi3])
+        dxi2 = -xi3 * aroundScale
+        dxi3 = xi2 * aroundScale
+        sdxi.append([dxi2, dxi3])
+
+    px = []
+    pd1 = []
+    pd2 = []
+    pd12 = []
+    for p in range(pointsCountAlong):
+        cx, cd1, cd2, cd12, cd3, cd13 = [cp[p] for cp in pathParameters]
+        tx = []
+        td1 = []
+        for q in range(ellipsePointCount):
+            xi2 = sxi[q][0]
+            xi3 = sxi[q][1]
+            x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+            tx.append(x)
+            dxi2 = sdxi[q][0]
+            dxi3 = sdxi[q][1]
+            d1 = [(dxi2 * cd2[c] + dxi3 * cd3[c]) for c in range(3)]
+            td1.append(d1)
+        # smooth to get reasonable derivative magnitudes
+        td1 = smoothCubicHermiteDerivativesLoop(tx, td1, fixAllDirections=True)
+        # resample to get evenly spaced points around loop, temporarily adding start point to end
+        ex, ed1, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(tx + tx[:1], td1 + td1[:1], elementsCountAround)
+        exi, edxi = interpolateSampleCubicHermite(sxi + sxi[:1], sdxi + sdxi[:1], pe, pxi, psf)
+        ex.pop()
+        ed1.pop()
+        exi.pop()
+        edxi.pop()
+
+        # check closeness of x(exi[i]) to ex[i]
+        # find nearest xi2, xi3 if above is finite error
+        # a small but non-negligible error, but results look fine so not worrying
+        # dxi = []
+        # for i in range(len(ex)):
+        #     xi2 = exi[i][0]
+        #     xi3 = exi[i][1]
+        #     xi23 = xi2 * xi3
+        #     x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+        #     dxi.append(sub(x, ex[i]))
+        # print("error", p, "=", [magnitude(v) for v in dxi])
+
+        # calculate d2, d12 at exi
+        ed2 = []
+        ed12 = []
+        for i in range(len(ex)):
+            xi2 = exi[i][0]
+            xi3 = exi[i][1]
+            d2 = [(cd1[c] + xi2 * cd12[c] + xi3 * cd13[c]) for c in range(3)]
+            ed2.append(d2)
+            dxi2 = edxi[i][0]
+            dxi3 = edxi[i][1]
+            d12 = [(dxi2 * cd12[c] + dxi3 * cd13[c]) for c in range(3)]
+            ed12.append(d12)
+
+        px.append(ex)
+        pd1.append(ed1)
+        pd2.append(ed2)
+        pd12.append(ed12)
+
+    return px, pd1, pd2, pd12
+
+
+def resampleTubeCoordinates(rawTubeCoordinates, elementsCountAlong,
+                            startSurface: TrackSurface=None, endSurface: TrackSurface=None):
+    """
+    Generate new tube coordinates evenly spaced along raw tube coordinates, optionally
+    starting or ending at intersections at start/end track surfaces.
+    :param rawTubeCoordinates: (px, pd1, pd2, pd12) returned by getPathRawTubeCoordinates().
+    :param elementsCountAlong: Number of elements in resampled coordinates.
+    :param startSurface: Optional TrackSurface specifying start of tube at intersection with it.
+    :param endSurface: Optional TrackSurface specifying end of tube at intersection with it.
+    :return: sx[][], sd1[][], sd2[][], sd12[][] with first index in range(elementsCountAlong + 1),
+    second inner index in range(elementsCountAround)
+    """
+    px, pd1, pd2, pd12 = rawTubeCoordinates
+    pointsCountAlong = len(px)
+    elementsCountAround = len(px[0])
+    # resample at even spacing along
+    sx = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd1 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd2 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd12 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    for q in range(elementsCountAround):
+        cx = [px[p][q] for p in range(pointsCountAlong)]
+        cd1 = [pd1[p][q] for p in range(pointsCountAlong)]
+        cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
+        cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
+        startCurveLocation = None
+        if startSurface:
+            startSurfacePosition, startCurveLocation, startIntersects = startSurface.findNearestPositionOnCurve(cx, cd2)
+            if not startIntersects:
+                startCurveLocation = None
+        endCurveLocation = None
+        if endSurface:
+            endSurfacePosition, endCurveLocation, endIntersects = endSurface.findNearestPositionOnCurve(cx, cd2)
+            if not endIntersects:
+                endCurveLocation = None
+        qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
+            cx, cd2, elementsCountAlong, startLocation=startCurveLocation, endLocation=endCurveLocation)
+        qd1, qd12 = interpolateSampleCubicHermite(cd1, cd12, pe, pxi, psf)
+        # swizzle
+        for p in range(elementsCountAlong + 1):
+            sx[p][q] = qx[p]
+            sd1[p][q] = qd1[p]
+            sd2[p][q] = qd2[p]
+            sd12[p][q] = qd12[p]
+
+    # recalculate d1 around intermediate rings, but still in plane
+    # normally looks fine, but d1 derivatives are wavy when very distorted
+    pStart = 0 if startSurface else 1
+    pLimit = elementsCountAlong + 1 if endSurface else elementsCountAlong
+    for p in range(pStart, pLimit):
+        # first smooth to get d1 with new directions not tangential to surface
+        td1 = smoothCubicHermiteDerivativesLoop(sx[p], sd1[p])
+        # constraint to be tangential to surface
+        td1 = [vectorRejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
+        # smooth magnitudes only
+        sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
+
+    return sx, sd1, sd2, sd12

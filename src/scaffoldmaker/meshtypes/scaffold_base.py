@@ -163,7 +163,7 @@ class Scaffold_base:
         return annotationGroups, constructionObject
 
     @classmethod
-    def printNodeFieldParameters(cls, region, options, functionOptions, editGroupName):
+    def printNodeFieldParameters(cls, region, options, constructionObject, functionOptions, editGroupName):
         '''
         Interactive function for printing node field parameters for pasting into code.
         '''
@@ -182,7 +182,7 @@ class Scaffold_base:
         return False, False  # no change to settings, nor node parameters
 
     @classmethod
-    def smoothDerivatives(cls, region, options, functionOptions, editGroupName):
+    def smoothDerivatives(cls, region, options, constructionObject, functionOptions, editGroupName):
         fieldmodule = region.getFieldmodule()
         coordinatesField = fieldmodule.findFieldByName('coordinates').castFiniteElement()
         selectionGroup = scene_get_selection_group(region.getScene(), inherit_root_region=region.getRoot())
@@ -199,9 +199,10 @@ class Scaffold_base:
         """
         Override to return list of named interactive functions that client
         can invoke to modify mesh parameters with a push button control.
-        Functions must take 3 arguments: Zinc region, scaffold options and
-        editGroupName (can be None) for optional name of Zinc group to
-        create or modify so changed nodes etc. are put in it.
+        Functions must take 5 arguments:
+        Zinc region, scaffold options, relevant Construction Object (can be None),
+        function options, editGroupName (can be None) for optional name of Zinc
+        group to create or modify so changed nodes etc. are put in it.
         Functions return 2 boolean values: optionsChanged, nodesChanged.
         These tell the client whether to redisplay the options or process
         the effects of node edits (which will be recorded in edit group if
@@ -211,9 +212,11 @@ class Scaffold_base:
         return [
             ("Print node parameters...",
                 { 'Number format (e.g. 8.3f)': ' 11e' },
-                lambda region, options, functionOptions, editGroupName: cls.printNodeFieldParameters(region, options, functionOptions, editGroupName)),
+                lambda region, options, constructionObject, functionOptions, editGroupName:
+                    cls.printNodeFieldParameters(region, options, constructionObject, functionOptions, editGroupName)),
             ("Smooth derivatives...",
                 { 'Update directions': False,
                   'Scaling mode': { 'Arithmetic mean': True, 'Harmonic mean': False } },
-                lambda region, options, functionOptions, editGroupName: cls.smoothDerivatives(region, options, functionOptions, editGroupName))
+                lambda region, options, constructionObject, functionOptions, editGroupName:
+                    cls.smoothDerivatives(region, options, constructionObject, functionOptions, editGroupName))
             ]

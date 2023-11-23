@@ -1,9 +1,8 @@
-'''
+"""
 Interpolation functions shared by mesh generators.
-'''
+"""
 
-from __future__ import division
-
+from cmlibs.maths.vectorops import cross, dot, eldiv, magnitude, mult, normalize, sub
 import copy
 import math
 from collections.abc import Sequence
@@ -124,11 +123,11 @@ def computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives):
     return arcLength
 
 def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
-    '''
+    """
     Compute scaling for d1, d2 which makes their sum twice the arc length.
     :return: Scale factor to multiply d1, d2
-    '''
-    origMag = 0.5*(vector.magnitude(d1) + vector.magnitude(d2))
+    """
+    origMag = 0.5*(magnitude(d1) + magnitude(d2))
     scaling = 1.0
     for iters in range(100):
         mag = origMag*scaling
@@ -141,10 +140,10 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
     return scaling
 
 def getCubicHermiteArcLength(v1, d1, v2, d2):
-    '''
+    """
     Note this is approximate.
     :return: Arc length of cubic curve using 4 point Gaussian quadrature.
-    '''
+    """
     arcLength = 0.0
     for i in range(4):
         dm = interpolateCubicHermiteDerivative(v1, d1, v2, d2, gaussXi4[i])
@@ -152,29 +151,49 @@ def getCubicHermiteArcLength(v1, d1, v2, d2):
     return arcLength
 
 def getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi):
-    '''
+    """
     Note this is approximate.
     :return: Arc length of cubic curve up to given xi coordinate.
-    '''
-    d1m = [ d*xi for d in d1 ]
+    """
+    d1m = [d * xi for d in d1]
     v2m = interpolateCubicHermite(v1, d1, v2, d2, xi)
     d2m = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
-    d2m = [ d*xi for d in d2m ]
+    d2m = [d * xi for d in d2m]
     return getCubicHermiteArcLength(v1, d1m, v2m, d2m)
 
-def getCubicHermiteCurvesLength(cx, sd1):
+def getCubicHermiteCurvesLength(cx, cd1, loop=False):
     """
-    Calculate total length of a curve
-    :param cx: coordinates along the path.
-    :param sd1: d1 derivatives.
-    :return:
+    Calculate total length of a curve.
+    :param cx: coordinates along the curve.
+    :param cd1: d1 derivatives.
+    :param loop: True if curve loops back to first point, False if not.
+    :return: Length
     """
     totalLength = 0.0
-    elementsCountIn = len(cx) - 1
-    for e in range(elementsCountIn):
-        arcLength = getCubicHermiteArcLength(cx[e], sd1[e], cx[e + 1], sd1[e + 1])
+    elementsCount = len(cx)
+    if not loop:
+        elementsCount -= 1
+    for e in range(elementsCount):
+        ep = e + 1
+        if loop and (ep == elementsCount):
+            ep = 0
+        arcLength = getCubicHermiteArcLength(cx[e], cd1[e], cx[ep], cd1[ep])
         totalLength += arcLength
+    return totalLength
 
+def getCubicHermiteCurvesLengthLoop(cx, cd1):
+    """
+    Calculate total length of a loop curve, which repeats back to first point.
+    :param cx: coordinates along the curve.
+    :param cd1: d1 derivatives.
+    :return: Length
+    """
+    totalLength = 0.0
+    elementsCount = len(cx)
+    for e in range(elementsCount):
+        ep = e - elementsCount + 1
+        arcLength = getCubicHermiteArcLength(cx[e], cd1[e], cx[ep], cd1[ep])
+        totalLength += arcLength
     return totalLength
 
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
@@ -190,7 +209,7 @@ def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     #tangentVector = vector.normalise(tangent)
     #tangentCurvature = vector.dotproduct(dTangent, tangentVector)
     radialCurvature = vector.dotproduct(dTangent, radialVector)
-    magTangent = vector.magnitude(tangent)
+    magTangent = magnitude(tangent)
     curvature = radialCurvature/(magTangent*magTangent)
 
     return curvature
@@ -206,7 +225,8 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
     cp = vector.crossproduct3(tangent, dTangent)
-    curvature = vector.magnitude(cp) / (vector.magnitude(tangent)*vector.magnitude(tangent)*vector.magnitude(tangent))
+    mag_tangent = magnitude(tangent)
+    curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
 
     return curvature
 
@@ -251,9 +271,9 @@ def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
 
 def getNearestPointIndex(nx, x):
-    '''
+    """
     :return: index of point in nx at shortest distance from x.
-    '''
+    """
     pointCount = len(nx)
     assert pointCount > 0
     components = len(x)
@@ -266,15 +286,16 @@ def getNearestPointIndex(nx, x):
             index = n
     return index
 
-def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop = False):
-    '''
+def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop=False):
+    """
     From Hermite curve nx, nd1 with cross direction nd2, project normal to wall
     by wall thickness to get coordinates, d1 affected by curvature etc.
     Assumes 3 components.
     :param n: Index into nx, nd1, nd2 of where to project.
     :param wallThickness: Use positive from in to out, negative from outside to in.
+    :param loop: True if curve loops back to first point, False if not.
     :return: x, d1, d2, d3
-    '''
+    """
     maxPointIndex = len(nx) - 1
     assert (0 <= n <= maxPointIndex), 'projectHermiteCurvesThroughWall.  Invalid index'
     unitNormal = vector.normalise(vector.crossproduct3(nd1[n], nd2[n]))
@@ -294,6 +315,7 @@ def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop = False
     d2 = copy.deepcopy(nd2[n])  # magnitude can't be determined here
     d3 = vector.setMagnitude(unitNormal, math.fabs(wallThickness))
     return x, d1, d2, d3
+
 
 def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     addLengthStart = 0.0, addLengthEnd = 0.0,
@@ -385,7 +407,7 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
                     d1 = interpolateCubicHermiteDerivative(nx[e], nd1a[e], nx[e + 1], nd1b[e], xi)
                 else:
                     x, d1, _eIn, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
-                sf = nodeDerivativeMagnitudes[eOut]/vector.magnitude(d1)
+                sf = nodeDerivativeMagnitudes[eOut]/magnitude(d1)
                 px.append(x)
                 pd1.append([ sf*d for d in d1 ])
                 pe.append(e)
@@ -398,7 +420,7 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     eOut = elementsCountOut
     xi = 1.0
     d1 = nd1[e]
-    sf = nodeDerivativeMagnitudes[eOut]/vector.magnitude(d1)
+    sf = nodeDerivativeMagnitudes[eOut]/magnitude(d1)
     px.append(nx[e])
     pd1.append([ sf*d for d in d1 ])
     pe.append(e - 1)
@@ -406,8 +428,10 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     psf.append(sf)
     return px, pd1, pe, pxi, psf
 
+
 def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
-       derivativeMagnitudeStart=None, derivativeMagnitudeEnd=None):
+        derivativeMagnitudeStart=None, derivativeMagnitudeEnd=None,
+        startLocation=None, endLocation=None):
     """
     Get smoothly spaced points and derivatives over cubic Hermite interpolated
     curves with nodes nx and derivatives nd1. The first element uses the first two nodes.
@@ -418,79 +442,81 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     :param derivativeMagnitudeStart, derivativeMagnitudeEnd: Optional magnitudes of start and end
     derivatives appropriate for elementsCountOut. If unspecified these are calculated from the other
     end or set to be equal for even spaced elements. 0.0 is a valid derivative magnitude.
+    :param startLocation: Optional tuple of 'in' (element, xi) to start curve at.
+    :param endLocation: Optional tuple of 'in' (element, xi) to end curve at.
     :return: px[], pd1[], pe[], pxi[], psf[], where pe[] and pxi[] are lists of element indices and
-    and xi locations in the 'in' elements to pass to partner interpolateSample functions. psf[] is
+    xi locations in the 'in' elements to pass to partner interpolateSample functions. psf[] is
     a list of scale factors for converting derivatives from old to new xi coordinates: dxi(old)/dxi(new).
     """
     elementsCountIn = len(nx) - 1
     assert (elementsCountIn > 0) and (len(nd1) == (elementsCountIn + 1)) and (elementsCountOut > 0), \
-        'sampleCubicHermiteCurvesSmooth.  Invalid arguments'
-    lengths = [ 0.0 ]
+        "sampleCubicHermiteCurvesSmooth.  Invalid arguments"
+    lengthToNodeIn = [0.0]
     length = 0.0
     for e in range(elementsCountIn):
         length += getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1])
-        lengths.append(length)
+        lengthToNodeIn.append(length)
+    startDistance = 0.0
+    if startLocation:
+        e = startLocation[0]
+        startDistance = lengthToNodeIn[e] + \
+            getCubicHermiteArcLengthToXi(nx[e], nd1[e], nx[e + 1], nd1[e + 1], startLocation[1])
+        length -= startDistance
+    if endLocation:
+        e = endLocation[0]
+        endDistance = lengthToNodeIn[-1] - lengthToNodeIn[e] - \
+            getCubicHermiteArcLengthToXi(nx[e], nd1[e], nx[e + 1], nd1[e + 1], endLocation[1])
+        length -= endDistance
     hasStartDerivative = derivativeMagnitudeStart is not None
     hasEndDerivative = derivativeMagnitudeEnd is not None
     if hasStartDerivative and hasEndDerivative:
         pass
     elif hasEndDerivative:
-        derivativeMagnitudeStart = (2.0*length - elementsCountOut*derivativeMagnitudeEnd)/elementsCountOut
+        derivativeMagnitudeStart = (2.0 * length - elementsCountOut * derivativeMagnitudeEnd) / elementsCountOut
     elif hasStartDerivative:
-        derivativeMagnitudeEnd = (2.0*length - elementsCountOut*derivativeMagnitudeStart)/elementsCountOut
+        derivativeMagnitudeEnd = (2.0 * length - elementsCountOut * derivativeMagnitudeStart) / elementsCountOut
     else:
-        derivativeMagnitudeStart = derivativeMagnitudeEnd = length/elementsCountOut
+        derivativeMagnitudeStart = derivativeMagnitudeEnd = length / elementsCountOut
     # sample over length to get distances to elements boundaries
-    x1 = 0.0
-    d1 = derivativeMagnitudeStart*elementsCountOut
-    x2 = length
-    d2 = derivativeMagnitudeEnd*elementsCountOut
+    x1 = startDistance
+    d1 = derivativeMagnitudeStart * elementsCountOut
+    x2 = startDistance + length
+    d2 = derivativeMagnitudeEnd * elementsCountOut
     nodeDistances = []
     nodeDerivativeMagnitudes = []
-    for n in range(elementsCountOut + 1):
-        xi = n/elementsCountOut
+    nodesCountOut = elementsCountOut + 1
+    for n in range(nodesCountOut):
+        xi = n / elementsCountOut
         f1, f2, f3, f4 = getCubicHermiteBasis(xi)
         distance = f1*x1 + f2*d1 + f3*x2 + f4*d2
         nodeDistances.append(distance)
         f1, f2, f3, f4 = getCubicHermiteBasisDerivatives(xi)
         derivative = f1*x1 + f2*d1 + f3*x2 + f4*d2
         nodeDerivativeMagnitudes.append(derivative/elementsCountOut)
-    #print('nodeDerivativeMagnitudesIn ', [ vector.magnitude(d1) for d1 in nd1 ])
-    #print('nodeDerivativeMagnitudesOut', nodeDerivativeMagnitudes)
     px = []
     pd1 = []
     pe = []
     pxi = []
     psf = []
     e = 0
-    for eOut in range(elementsCountOut):
-        distance = nodeDistances[eOut]
-        while e < elementsCountIn:
-            if distance < lengths[e + 1]:
-                partDistance = distance - lengths[e]
-                x, d1, _, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
-                sf = nodeDerivativeMagnitudes[eOut]/vector.magnitude(d1)
-                px.append(x)
-                pd1.append([ sf*d for d in d1 ])
-                pe.append(e)
-                pxi.append(xi)
-                psf.append(sf)
-                break
+    lastElementIn = elementsCountIn - 1
+    for nOut in range(nodesCountOut):
+        distance = nodeDistances[nOut]
+        while (e < lastElementIn) and (distance >= lengthToNodeIn[e + 1]):
             e += 1
-    e = elementsCountIn
-    eOut = elementsCountOut
-    xi = 1.0
-    d1 = nd1[e]
-    sf = nodeDerivativeMagnitudes[eOut]/vector.magnitude(d1)
-    px.append(nx[e])
-    pd1.append([ sf*d for d in d1 ])
-    pe.append(e - 1)
-    pxi.append(xi)
-    psf.append(sf)
+        partDistance = distance - lengthToNodeIn[e]
+        x, d1, _, xi = getCubicHermiteCurvesPointAtArcDistance(nx[e:e + 2], nd1[e:e + 2], partDistance)
+        sf = nodeDerivativeMagnitudes[nOut] / magnitude(d1)
+        px.append(x)
+        pd1.append([sf * d for d in d1])
+        pe.append(e)
+        pxi.append(xi)
+        psf.append(sf)
     return px, pd1, pe, pxi, psf
 
+
 def interpolateSampleCubicHermite(v, d, pe, pxi, psf):
-    '''
+    """
     Partner function to sampleCubicHermiteCurves for interpolating additional variables with
     cubic Hermite basis, at the element indexes, xi coordinates and xi scaling returned from that function.
     Note: this does not work for sampleCubicHermiteCurves with arcLengthDerivatives = False.
@@ -503,7 +529,7 @@ def interpolateSampleCubicHermite(v, d, pe, pxi, psf):
     :param psf: List of scale factors dxi(old)/dxi(new). Length same as pe, pxi. Used to convert derivatives
     from old to new xi spacing.
     :return: List of interpolated values, list of interpolated derivatives; scalar or vector as for v, d.
-    '''
+    """
     assert (len(v) > 1) and (len(d) == len(v)), 'interpolateSampleCubicHermite. Invalid values v, d'
     valuesCountOut = len(pe)
     assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleCubicHermite. Invalid element, xi'
@@ -529,8 +555,9 @@ def interpolateSampleCubicHermite(v, d, pe, pxi, psf):
             dOut.append(psf[n]*interpolateCubicHermiteDerivative(v1, d1, v2, d2, pxi[n])[0])
     return vOut, dOut
 
+
 def interpolateSampleLinear(v, pe, pxi):
-    '''
+    """
     Partner function to sampleCubicHermiteCurves for linearly interpolating additional variables based on the 
     element indexes and element xi coordinates returned from that function.
     :param v: List of scalar values or sequence-of-values to interpolate. len(v) == number of elements in + 1.
@@ -539,7 +566,7 @@ def interpolateSampleLinear(v, pe, pxi):
     Indexes in pe start at 0, and are not checked; sampleCubicHermiteCurves() guarantees these are valid for
     the number of elements passed to it.
     :return: List of interpolated values, scalar or vector as for v.
-    '''
+    """
     assert len(v) > 1, 'interpolateSampleLinear. Invalid values v: not enough data'
     valuesCountOut = len(pe)
     assert (valuesCountOut > 0) and (len(pxi) == valuesCountOut), 'interpolateSampleLinear. Invalid element, xi'
@@ -559,13 +586,14 @@ def interpolateSampleLinear(v, pe, pxi):
             vOut.append(wm*v[pe[n]] + wp*v[pe[n] + 1])
     return vOut
 
+
 def sampleCubicElementLengths(length, elementsCount, startDerivative = None, endDerivative = None):
-    '''
+    """
     Get lengths of elements gradually changing over length, satisfying the start and end derivatives.
     :param startDerivative, endDerivative: Magnitudes of end derivatives to use with elementsCount,
     or None to choose a natural size.
     :return: List of elementsCount element lengths
-    '''
+    """
     assert (elementsCount > 0), 'interpolation sampleCubicElementLengths:  Invalid number of elements'
     x1 = 0.0
     x2 = length
@@ -586,6 +614,7 @@ def sampleCubicElementLengths(length, elementsCount, startDerivative = None, end
         elementLengths.append(x - lastx)
         lastx = x
     return elementLengths
+
 
 def getCubicHermiteCurvesPointAtArcDistance(nx, nd, arcDistance):
     """
@@ -695,7 +724,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         # start
         if not fixStartDerivative:
             if fixAllDirections or fixStartDirection:
-                mag = 2.0*arcLengths[0] - vector.magnitude(lastmd1[1])
+                mag = 2.0*arcLengths[0] - magnitude(lastmd1[1])
                 md1[0] = vector.setMagnitude(nd1[0], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
             else:
                 md1[0] = interpolateLagrangeHermiteDerivative(nx[0], nx[1], lastmd1[1], 0.0)
@@ -720,7 +749,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         # end
         if not fixEndDerivative:
             if fixAllDirections or fixEndDirection:
-                mag = 2.0*arcLengths[-1] - vector.magnitude(lastmd1[-2])
+                mag = 2.0*arcLengths[-1] - magnitude(lastmd1[-2])
                 md1[-1] = vector.setMagnitude(nd1[-1], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
             else:
                 md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], lastmd1[-2], nx[-1], 1.0)
@@ -773,7 +802,7 @@ def smoothCubicHermiteCrossDerivativesLine(nx, nd1, nd2, nd12,
         return [ delta, copy.deepcopy(delta) ]
     tol = 1.0E-6
     arcLengths = [ getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1]) for e in range(elementsCount) ]
-    dtol = tol*sum(vector.magnitude(d) for d in nd2)
+    dtol = tol*sum(magnitude(d) for d in nd2)
     if instrument:
         print('iter 0', md12)
     for iter in range(100):
@@ -896,8 +925,8 @@ def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
     md1 = [ (bx[c] - ax[c]) for c in range(3) ]
     arcLengtha = computeCubicHermiteArcLength(ax, ad1, mx, md1, rescaleDerivatives = True)
     arcLengthb = computeCubicHermiteArcLength(mx, md1, bx, bd1, rescaleDerivatives = True)
-    maga = vector.magnitude(ad1)
-    magb = vector.magnitude(bd1)
+    maga = magnitude(ad1)
+    magb = magnitude(bd1)
     magm = arcLengtha + arcLengthb - 0.5*(maga + magb)
     return vector.setMagnitude(md1, magm)
 
@@ -975,3 +1004,279 @@ def sampleParameterAlongLine(lengthList, paramList, elementsCountOut):
     sdP.append(dpdx*lengthPerElementOut)
 
     return sP, sdP
+
+
+def getCoordinatesRange(nx):
+    """
+    :param nx: list of coordinates.
+    :return: xMin[], xMax[]
+    """
+    xMin = copy.copy(nx[0])
+    xMax = copy.copy(nx[0])
+    componentsCount = len(xMin)
+    for x in nx:
+        for c in range(componentsCount):
+            s = x[c]
+            if s < xMin[c]:
+                xMin[c] = s
+            elif s > xMax[c]:
+                xMax[c] = s
+    return xMin, xMax
+
+
+def incrementXiOnLine(xi, dxi):
+    """
+    Increment xi, dxi limited to line element bounds on [0,1].
+    :return: New xi, face number 1-2 or None if within boundary.
+    Face 1 is xi==0.0, 2 is xi==1.0.
+    """
+    new_xi = xi + dxi
+    if new_xi >= 1.0:
+        return 1.0, 2
+    elif new_xi < 0.0:
+        return 0.0, 1
+    return new_xi, None
+
+
+def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
+    """
+    :param nx: Coordinates along curve.
+    :param nd1: Derivatives along curve.
+    :param location: Location (element index, xi) to get coordinates for.
+    :param loop: True if curve loops back to first point, False if not.
+    :param derivative: Set to True to calculate and return derivative w.r.t. element xi.
+    :return: If derivative is False: coordinates.
+    If derivatives is True: coordinates, derivative.
+    """
+    e1 = location[0]
+    e2 = 0 if (loop and (e1 == (len(nx) - 1))) else e1 + 1
+    xi = location[1]
+    x = interpolateCubicHermite(nx[e1], nd1[e1], nx[e2], nd1[e2], xi)
+    if not derivative:
+        return x
+    d = interpolateCubicHermiteDerivative(nx[e1], nd1[e1], nx[e2], nd1[e2], xi)
+    return x, d
+
+
+def isLocationOnCurveBoundary(location, elementsCount):
+    """
+    For non-loop curves, query if location is on one of the ends
+    :param location: Curve location (element index, xi).
+    :param elementsCount: Number of elements in curve.
+    :return: True if on boundary.
+    """
+    XI_TOL = 1.0E-7
+    e = location[0]
+    xi = location[1]
+    return ((e == 0) and (xi < XI_TOL)) or ((e == (elementsCount - 1)) and (xi > (1.0 - XI_TOL)))
+
+
+def updateCurveLocationToFaceNumber(location, faceNumber, elementsCount, loop=False):
+    """
+    Determine curve location after crossing given face number, and either clamp to range if reached boundary,
+    or loop around depending on mode.
+    :param location: Location tuple (element index, xi).
+    :param faceNumber: Face number 1 (xi==0.0) or 2 (xi==1.0).
+    :param elementsCount: Number of elements in curve.
+    :param loop: True if curve loops back to first point.
+    :return: New location, onBoundary (True or False).
+    """
+    e = location[0]
+    xi = location[1]
+    onBoundary = False
+    if faceNumber == 1:
+        if e == 0:
+            if loop:
+                e = elementsCount - 1
+                xi = 1.0
+            else:
+                onBoundary = True
+        else:
+            e -= 1
+            xi = 1.0
+    elif faceNumber == 2:
+        if e == (elementsCount - 1):
+            if loop:
+                e = 0
+                xi = 0.0
+            else:
+                onBoundary = True
+        else:
+            e += 1
+            xi = 0.0
+    return (e, xi), onBoundary
+
+
+def getNearestParameterLocationOnCurve(nx, targetx, loop=False):
+    """
+    Get location of nx parameter nearest to targetx.
+    :param nx: Coordinates along curve.
+    :param targetx: Coordinates of point to find nearest to.
+    :param loop: True if curve loops back to first point, False if not.
+    :return: nearest parameter location tuple (element index, xi), nearest distance, or None, None if not found.
+    """
+    nCount = len(nx)
+    assert nCount > 1
+    nearest_distance = None
+    nearest_n = None
+    for n in range(nCount):
+        distance = magnitude(sub(nx[n], targetx))
+        if (nearest_distance is None) or (distance < nearest_distance):
+            nearest_distance = distance
+            nearest_n = n
+    nearest_e = nearest_n
+    xi = 0.0
+    if not loop and (nearest_n == (nCount - 1)):
+        nearest_e -= 1
+        xi = 1.0
+    return (nearest_e, xi), nearest_distance
+
+
+def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
+    """
+    Get location on a piecewise Hermite curve which is closest to target coordinates.
+    Can be a local minimum depending on start location.
+    :param nx: Coordinates along curve.
+    :param nd1: Derivatives along curve.
+    :param targetx: Coordinates to get nearest point on curve to.
+    :param loop: True if curve loops back to first point, False if not.
+    :param startLocation: Optional initial location (element index, xi) to search from.
+    If not supplied, uses element location at the nearest node coordinates.
+    :return: nearest location tuple (element index, xi), nearest x.
+    """
+    location = copy.copy(startLocation) if startLocation else getNearestParameterLocationOnCurve(nx, targetx, loop)[0]
+    nCount = len(nx)
+    assert nCount > 1
+    eCount = nCount if loop else nCount - 1
+    max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
+    xi_tol = 1.0E-7
+    last_dxi = None
+    lastOnBoundary = False
+    x = None
+    for iter in range(100):
+        x, d = evaluateCoordinatesOnCurve(nx, nd1, location, loop, derivative=True)
+        mag_d = magnitude(d)
+        deltax = sub(targetx, x)
+        deltau = dot(deltax, normalize(d))  # tangential deltax, scalar
+        dxi = deltau / mag_d
+        mag_dxi = abs(dxi)
+        # control oscillations
+        if (iter > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
+            factor = mag_dxi / (mag_dxi + mag_last_dxi)
+            dxi *= factor
+            mag_dxi *= factor
+        if mag_dxi > max_mag_dxi:
+            dxi *= max_mag_dxi / mag_dxi
+            mag_dxi = max_mag_dxi
+        last_dxi = dxi
+        mag_last_dxi = mag_dxi
+        # limit to line element bounds
+        bxi, faceNumber = incrementXiOnLine(location[1], dxi)
+        location = (location[0], bxi)
+        if mag_dxi < xi_tol:
+            # print("getNearestLocationOnCurve:  Converged in", iter + 1, "iterations, mag_dxi", mag_dxi)
+            break
+        if faceNumber:
+            location, onBoundary = updateCurveLocationToFaceNumber(location, faceNumber, eCount, loop)
+            if onBoundary and lastOnBoundary:
+                # print("getNearestLocationOnCurve:  Converged on boundary in", iter + 1, "iterations")
+                break
+            lastOnBoundary = onBoundary
+        else:
+            lastOnBoundary = False
+    else:
+        print("getNearestLocationOnCurve:  Reached max iterations", iter + 1, "closeness in xi", mag_dxi)
+    return location, x
+
+
+def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, startLocation=None):
+    """
+    Get the closest locations on two piecewise Hermite curves. Can be a local minimum depending on start location.
+    :param nx: Coordinates along curve.
+    :param nd1: Derivatives along curve.
+    :param ox: Coordinates along other curve.
+    :param od1: Derivatives along other curve.
+    :param nLoop: True if curve loops back to first point, False if not.
+    :param oLoop: True if other curve loops back to first point, False if not.
+    :param startLocation: Optional initial location (element index, xi) to search from.
+    If not supplied, uses element location at the nearest parameter location to any parameter location on other curve.
+    :return: Nearest/intersection location (element index, xi), other curve location (element index, xi),
+    isIntersection (True/False).
+    """
+    nnCount = len(nx)
+    assert nnCount > 1
+    neCount = nnCount if nLoop else nnCount - 1
+    onCount = len(ox)
+    assert onCount > 1
+    oeCount = onCount if oLoop else onCount - 1
+    location = copy.copy(startLocation) if startLocation else None
+    if not location:
+        nearestDistance = None
+        for targetx in ox:
+            tmpLocation, tmpDistance = getNearestParameterLocationOnCurve(nx, targetx, nLoop)
+            if (nearestDistance is None) or (tmpDistance < nearestDistance):
+                nearestDistance = tmpDistance
+                location = tmpLocation
+    targetx = evaluateCoordinatesOnCurve(nx, nd1, location, nLoop)
+    otherLocation = getNearestParameterLocationOnCurve(ox, targetx, oLoop)[0]
+    max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
+    xi_tol = 1.0E-7
+    # get max range for tolerances
+    xMin, xMax = getCoordinatesRange(nx)
+    xRange = [xMax[c] - xMin[c] for c in range(len(xMin))]
+    x_tol = 1.0E-6 * max(xRange)
+    lastOnBoundary = False
+    last_dxi = None
+    for iter in range(100):
+        x, d = evaluateCoordinatesOnCurve(nx, nd1, location, nLoop, derivative=True)
+        otherLocation = getNearestLocationOnCurve(ox, od1, x, oLoop, otherLocation)[0]
+        onOtherBoundary = not oLoop and isLocationOnCurveBoundary(otherLocation, oeCount)
+        other_x = evaluateCoordinatesOnCurve(ox, od1, otherLocation, oLoop)
+        r = sub(other_x, x)
+        mag_r = magnitude(r)
+        # print("    pos", location, onBoundary, "other", otherLocation, onOtherBoundary, "mag_r", mag_r)
+        if mag_r < x_tol:
+            # print("getNearestLocationBetweenCurves:  Found intersection: ", location, "on iter", iter + 1)
+            return location, otherLocation, True
+        n = normalize(cross(cross(d, r), d))
+        r_dot_n = dot(r, n)
+        if r_dot_n < 0:
+            # flip normal to be towards other x
+            n = [-s for s in n]
+            r_dot_n = -r_dot_n
+        r_out_of_plane = mult(n, r_dot_n)
+        r_in_plane = sub(r, r_out_of_plane)
+        # get tangential displacement u
+        if onOtherBoundary:
+            u = r_in_plane
+        else:
+            # add out-of-plane slope component
+            factor = 1.0 + r_dot_n / mag_r  # GRC wrong
+            u = mult(r_in_plane, factor)
+        mag_dxi = dxi = magnitude(u) / magnitude(d)
+        dxi = mag_dxi if (mag_dxi < max_mag_dxi) else max_mag_dxi
+        if dot(u, d) < 0.0:
+            dxi = -dxi
+        # control oscillations
+        if (iter > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
+            factor = mag_dxi / (mag_dxi + abs(last_dxi))
+            dxi *= factor
+            mag_dxi *= factor
+        last_dxi = dxi
+        bxi, faceNumber = incrementXiOnLine(location[1], dxi)
+        location = (location[0], bxi)
+        if faceNumber:
+            location, onBoundary = updateCurveLocationToFaceNumber(location, faceNumber, neCount, nLoop)
+            if onBoundary and lastOnBoundary:
+                # print("getNearestLocationBetweenCurves:  Found nearest on boundary in", iter + 1, "iterations")
+                break
+            lastOnBoundary = onBoundary
+        else:
+            lastOnBoundary = False
+        if mag_dxi < xi_tol:
+            # print("getNearestLocationBetweenCurves:  Found nearest in", iter + 1, "iterations, dxi", mag_dxi)
+            break
+    else:
+        print('getNearestLocationBetweenCurves did not converge:  Reached max iterations', iter + 1,
+              'closeness in xi', mag_dxi)
+    return location, otherLocation, False

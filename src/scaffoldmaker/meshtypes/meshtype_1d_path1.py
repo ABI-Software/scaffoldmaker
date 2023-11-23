@@ -131,7 +131,7 @@ class MeshType_1d_path1(Scaffold_base):
         return [], None
 
     @classmethod
-    def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):
+    def makeSideDerivativesNormal(cls, region, options, constructionObject, functionOptions, editGroupName):
         fieldmodule = region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -143,7 +143,7 @@ class MeshType_1d_path1(Scaffold_base):
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def smoothSideCrossDerivatives(cls, region, options, functionOptions, editGroupName):
+    def smoothSideCrossDerivatives(cls, region, options, constructionObject, functionOptions, editGroupName):
         smoothD12 = options['D2 derivatives'] and functionOptions['Smooth D12']
         smoothD13 = options['D3 derivatives'] and functionOptions['Smooth D13']
         if not (smoothD12 or smoothD13):
@@ -182,9 +182,11 @@ class MeshType_1d_path1(Scaffold_base):
             ("Make side derivatives normal...",
                 { 'Make D2 normal': True,
                   'Make D3 normal': True },
-                lambda region, options, functionOptions, editGroupName: cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
+                lambda region, options, constructionObject, functionOptions, editGroupName:
+                    cls.makeSideDerivativesNormal(region, options, constructionObject, functionOptions, editGroupName)),
             ("Smooth side cross derivatives...",
                 { 'Smooth D12' : True,
                   'Smooth D13' : True },
-                lambda region, options, functionOptions, editGroupName: cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
+                lambda region, options, constructionObject, functionOptions, editGroupName:
+                    cls.smoothSideCrossDerivatives(region, options, constructionObject, functionOptions, editGroupName))
         ]
