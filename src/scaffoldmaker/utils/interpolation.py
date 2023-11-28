@@ -258,7 +258,7 @@ def interpolateLagrangeHermite(v1, v2, d2, xi):
     f1 = 1 - 2.0*xi + xi*xi
     f2 = 2.0*xi - xi*xi
     f3 = -xi + xi*xi
-    return [ (v1[c]*f1 + d1[c]*f2 + v2[c]*f3) for c in range(len(v1)) ]
+    return [ (v1[c]*f1 + v2[c]*f2 + d2[c]*f3) for c in range(len(v1)) ]
 
 def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     """
@@ -777,20 +777,24 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     return md1
 
 
-def computeCubicHermiteSideCrossDerivatives(ax, ad1, bx, bd1, asd_list, bsd_list):
+def computeCubicHermiteSideCrossDerivatives(ax, ad1, bx, bd1, asd_list, bsd_list,
+                                            ascd_fixed=None, bscd_fixed=None):
     """
-    Compute 'side cross derivatives' which smoothly transition between side derivatives at start and end of hermite
-    curve, handling curvature of the curve and rotations of side derivatives about its axis.
+    Compute 'side cross derivatives' which smoothly transition between side vectors at start and end of hermite
+    curve, handling curvature of the curve and rotations of side vectors about its axis.
     :param ax: Coordinates at start of curve.
     :param ad1: Derivative at start of curve.
     :param bx: Coordinates at end of curve.
     :param bd1: Derivative at end of curve.
-    :param asd_list: List of start side derivatives e.g. [ad2, ad3].
-    :param bsd_list: List of end side derivatives e.g. [bd2, bd3].
+    :param asd_list: List of start side vectors e.g. [ad2, ad3].
+    :param bsd_list: List of end side vectors e.g. [bd2, bd3].
+    :param ascd_fixed: Optional fixed values of start side cross derivatives.
+    :param bscd_fixed: Optional fixed values of end side cross derivatives.
     :return: List of side cross derivatives at start, list of side cross derivatives at end.
     """
-    count = len(asd_list)
-    assert len(bsd_list) == count
+    sideVectorCount = len(asd_list)
+    assert len(bsd_list) == sideVectorCount
+    assert not (ascd_fixed and bscd_fixed)
     aTangent = normalize(ad1)
     bTangent = normalize(bd1)
     # get hermite basis functions at xi = 1/3, 2/3
@@ -802,25 +806,50 @@ def computeCubicHermiteSideCrossDerivatives(ax, ad1, bx, bd1, asd_list, bsd_list
     bbTangent = normalize(interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, bbXi))
     ascd_list = []
     bscd_list = []
-    for i in range(count):
-        asd = asd_list[i]
-        bsd = bsd_list[i]
+    for s in range(sideVectorCount):
+        asd = asd_list[s]
+        bsd = bsd_list[s]
         aNormal = normalize(cross(cross(ad1, asd), ad1))
         bNormal = normalize(cross(cross(bd1, bsd), bd1))
         asdNormalComp = dot(asd, aNormal)
         bsdNormalComp = dot(bsd, bNormal)
         asdTangentComp = dot(asd, aTangent)
         bsdTangentComp = dot(bsd, bTangent)
-        # initial linear guess of side derivatives at xi = 1/3, 2/3
-        aasdGuess = add(mult(asd, bbXi), mult(bsd, aaXi))
-        bbsdGuess = add(mult(asd, aaXi), mult(bsd, bbXi))
+        # initial guess of side derivatives at xi = 1/3, 2/3
+        if ascd_fixed:
+            # hermite-lagrange
+            aasdGuess = interpolateHermiteLagrange(asd, ascd_fixed[s], bsd, aaXi)
+            bbsdGuess = interpolateHermiteLagrange(asd, ascd_fixed[s], bsd, bbXi)
+        elif bscd_fixed:
+            # lagrange-hermite
+            aasdGuess = interpolateLagrangeHermite(asd, bsd, bscd_fixed[s], aaXi)
+            bbsdGuess = interpolateLagrangeHermite(asd, bsd, bscd_fixed[s], bbXi)
+        else:
+            # linear
+            aasdGuess = add(mult(asd, bbXi), mult(bsd, aaXi))
+            bbsdGuess = add(mult(asd, aaXi), mult(bsd, bbXi))
         aaNormal = normalize(cross(cross(aaTangent, aasdGuess), aaTangent))
         bbNormal = normalize(cross(cross(bbTangent, bbsdGuess), bbTangent))
         # make target side derivatives at xi = 1/3, 2/3
-        aasdTarget = add(mult(aaNormal, bbXi * asdNormalComp + aaXi * bsdNormalComp),
-                         mult(aaTangent, bbXi * asdTangentComp + aaXi * bsdTangentComp))
-        bbsdTarget = add(mult(bbNormal, aaXi * asdNormalComp + bbXi * bsdNormalComp),
-                         mult(bbTangent, aaXi * asdTangentComp + bbXi * bsdTangentComp))
+        if ascd_fixed:
+            ascdNormalTangent = [dot(ascd_fixed[s], aNormal), dot(ascd_fixed[s], aTangent)]
+            aaNormalComp, aaTangentComp = interpolateHermiteLagrange(
+                [asdNormalComp, asdTangentComp], ascdNormalTangent, [bsdNormalComp, bsdTangentComp], aaXi)
+            bbNormalComp, bbTangentComp = interpolateHermiteLagrange(
+                [asdNormalComp, asdTangentComp], ascdNormalTangent, [bsdNormalComp, bsdTangentComp], bbXi)
+        elif bscd_fixed:
+            bscdNormalTangent = [dot(bscd_fixed[s], bNormal), dot(bscd_fixed[s], bTangent)]
+            aaNormalComp, aaTangentComp = interpolateLagrangeHermite(
+                [asdNormalComp, asdTangentComp], [bsdNormalComp, bsdTangentComp], bscdNormalTangent, aaXi)
+            bbNormalComp, bbTangentComp = interpolateLagrangeHermite(
+                [asdNormalComp, asdTangentComp], [bsdNormalComp, bsdTangentComp], bscdNormalTangent, bbXi)
+        else:
+            aaNormalComp = bbXi * asdNormalComp + aaXi * bsdNormalComp
+            aaTangentComp = bbXi * asdTangentComp + aaXi * bsdTangentComp
+            bbNormalComp = aaXi * asdNormalComp + bbXi * bsdNormalComp
+            bbTangentComp = aaXi * asdTangentComp + bbXi * bsdTangentComp
+        aasdTarget = add(mult(aaNormal, aaNormalComp), mult(aaTangent, aaTangentComp))
+        bbsdTarget = add(mult(bbNormal, bbNormalComp), mult(bbTangent, bbTangentComp))
         # print("aasdTarget", aasdTarget, "mag", magnitude(aasdTarget))
         # print("bbsdTarget", bbsdTarget, "mag", magnitude(bbsdTarget))
         # subtract known contributions from interpolated start and end side derivatives
@@ -851,76 +880,53 @@ def computeCubicHermiteSideCrossDerivatives(ax, ad1, bx, bd1, asd_list, bsd_list
     return ascd_list, bscd_list
 
 
-def smoothCurveSideCrossDerivativesLine(nx, nd1, nd2, nd12,
-        fixStartDerivative = False, fixEndDerivative = False, instrument=False):
+def smoothCurveSideCrossDerivatives(nx, nd1, nsv, loop=False):
     """
     Smooth cross derivatives for rate of change of side directions of hermite curves.
-    Assumes initial nd12 derivatives are zero or reasonable.
-    Where directions are smoothed the weighted/harmonic mean is used.
-    :param nx: List of coordinates of nodes along curves.
-    :param nd1: List of derivatives of nodes along curves.
-    :param nd2: List of lateral direction vectors of nodes along curves.
-    :param nd12: List of derivatives of lateral directions along curves.
-    :param fixStartDerivative, fixEndDerivative: Set to True to fix derivative direction and magnitude at respective end.
-    :return: Modified nd12
+    Uses arithmetic mean of side cross derivatives between elements.
+    :param nx: List of coordinates of nodes along curve.
+    :param nd1: List of derivatives of nodes along curve.
+    :param nsv: List over S indexes of lateral direction vectors of nodes along curves.
+    :param loop: True if curve loops back to first index.
+    :return: List over S indexes of rate of change of nsv w.r.t. d1.
     """
     nodesCount = len(nx)
-    elementsCount = nodesCount - 1
-    assert elementsCount > 0, 'smoothCurveSideCrossDerivativesLine.  Too few nodes/elements'
-    assert len(nd1) == nodesCount, 'smoothCurveSideCrossDerivativesLine.  Mismatched number of derivatives'
-    md12 = copy.copy(nd12)
-    componentsCount = len(nx[0])
-    componentRange = range(componentsCount)
-    # special case where equal derivatives at each end are sought
-    if (elementsCount == 1) and not (fixStartDerivative or fixEndDerivative):
-        delta = [ (nd2[1][c] - nd2[0][c]) for c in componentRange ]
-        return [ delta, copy.deepcopy(delta) ]
-    tol = 1.0E-6
-    arcLengths = [ getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1]) for e in range(elementsCount) ]
-    dtol = tol*sum(magnitude(d) for d in nd2)
-    if instrument:
-        print('iter 0', md12)
-    for iter in range(100):
-        lastmd12 = copy.copy(md12)
-        # start
-        if not fixStartDerivative:
-            md12[0] = interpolateLagrangeHermiteDerivative(nd2[0], nd2[1], lastmd12[1], 0.0)
-        # middle
-        for n in range(1, nodesCount - 1):
-            nm = n - 1
-            # get mean of directions from point n to points (n - 1) and (n + 1)
-            np = n + 1
-            dirm = [ (nd2[n ][c] - nd2[nm][c]) for c in componentRange ]
-            dirp = [ (nd2[np][c] - nd2[n ][c]) for c in componentRange ]
-            # mean weighted by fraction towards that end, equivalent to harmonic mean
-            arcLengthmp = arcLengths[nm] + arcLengths[n]
-            wm = arcLengths[n ]/arcLengthmp
-            wp = arcLengths[nm]/arcLengthmp
-            md12[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
-        # end
-        if not fixEndDerivative:
-            md12[-1] = interpolateHermiteLagrangeDerivative(nd2[-2], lastmd12[-2], nd2[-1], 1.0)
-        if instrument:
-            print('iter', iter + 1, md12)
-        for n in range(nodesCount):
-            for c in componentRange:
-                if math.fabs(md12[n][c] - lastmd12[n][c]) > dtol:
-                    break
-            else:
-                continue
-            break
-        else:
-            if instrument:
-                print('smoothCurveSideCrossDerivativesLine converged after iter:', iter + 1)
-            return md12
+    elementsCount = nodesCount if loop else nodesCount - 1
+    sideVectorCount = len(nsv)
+    assert sideVectorCount > 0, 'smoothCurveSideCrossDerivatives.  No side vectors supplied'
+    assert len(nsv[0]) == len(nd1) == nodesCount, 'smoothCurveSideCrossDerivatives.  Mismatched number of derivatives'
+    assert elementsCount > 0, 'smoothCurveSideCrossDerivatives.  Too few elements'
+    assert not loop or (elementsCount > 2), 'smoothCurveSideCrossDerivatives.  Too few elements for loop'
+    dnsv = [[None] * nodesCount for s in range(sideVectorCount)]
+    for e in range(elementsCount):
+        nm = e
+        np = e + 1
+        if loop and (np == elementsCount):
+            np = 0
+        dnsvm, dnsvp = computeCubicHermiteSideCrossDerivatives(
+            nx[nm], nd1[nm], nx[np], nd1[np],
+            [nsv[s][nm] for s in range(sideVectorCount)],
+            [nsv[s][np] for s in range(sideVectorCount)])
+        for s in range(sideVectorCount):
+            dnsv[s][nm] = mult(add(dnsv[s][nm], dnsvm[s]), 0.5) if dnsv[s][nm] else dnsvm[s]
+            dnsv[s][np] = mult(add(dnsv[s][np], dnsvp[s]), 0.5) if dnsv[s][np] else dnsvp[s]
+    if (not loop) and (elementsCount > 1):
+        # get start and end derivatives by recomputing with fixed nearest inter-element derivative
+        dnsvm = computeCubicHermiteSideCrossDerivatives(
+            nx[0], nd1[0], nx[1], nd1[1],
+            [nsv[s][0] for s in range(sideVectorCount)],
+            [nsv[s][1] for s in range(sideVectorCount)],
+            bscd_fixed=[dnsv[s][1] for s in range(sideVectorCount)])[0]
+        dnsvp = computeCubicHermiteSideCrossDerivatives(
+            nx[-2], nd1[-2], nx[-1], nd1[-1],
+            [nsv[s][-2] for s in range(sideVectorCount)],
+            [nsv[s][-1] for s in range(sideVectorCount)],
+            ascd_fixed=[dnsv[s][-2] for s in range(sideVectorCount)])[1]
+        for s in range(sideVectorCount):
+            dnsv[s][0] = dnsvm[s]
+            dnsv[s][-1] = dnsvp[s]
+    return dnsv
 
-    cmax = 0.0
-    for n in range(nodesCount):
-        for c in componentRange:
-            cmax = max(cmax, math.fabs(md12[n][c] - lastmd12[n][c]))
-    closeness = cmax / dtol
-    print('smoothCurveSideCrossDerivativesLine max iters reached:', iter + 1, ', cmax = ', round(closeness,2), 'x tolerance')
-    return md12
 
 def smoothCubicHermiteDerivativesLoop(nx, nd1,
         fixAllDirections = False,

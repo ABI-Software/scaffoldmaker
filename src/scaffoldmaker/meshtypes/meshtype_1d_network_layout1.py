@@ -9,6 +9,7 @@ from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.networkmesh import NetworkMesh
+from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.zinc_utils import clearRegion, get_nodeset_field_parameters, \
     get_nodeset_path_field_parameters, make_nodeset_derivatives_orthogonal, \
     set_nodeset_field_parameters, setPathParameters
@@ -369,9 +370,9 @@ class MeshType_1d_network_layout1(Scaffold_base):
             return False, False
         valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
         if smoothD12:
-            valueLabels += [Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2]
+            valueLabels += [Node.VALUE_LABEL_D_DS2]
         if smoothD13:
-            valueLabels += [Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
+            valueLabels += [Node.VALUE_LABEL_D_DS3]
         fieldmodule = region.getFieldmodule()
         parameters = get_nodeset_path_field_parameters(
             fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
@@ -379,15 +380,19 @@ class MeshType_1d_network_layout1(Scaffold_base):
             valueLabels)
         x = parameters[0]
         d1 = parameters[1]
+        nsv = []
+        if smoothD12:
+            nsv.append(parameters[2])
+        if smoothD13:
+            nsv.append(parameters[-1])
+        dnsv = smoothCurveSideCrossDerivatives(x, d1, nsv)
         modifyParameters = []
         modifyValueLabels = []
         if smoothD12:
-            d12 = smoothCurveSideCrossDerivativesLine(x, d1, parameters[2], parameters[3])
-            modifyParameters.append(d12)
+            modifyParameters.append(dnsv[0])
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
         if smoothD13:
-            d13 = smoothCurveSideCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
-            modifyParameters.append(d13)
+            modifyParameters.append(dnsv[-1])
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
         setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)
         return False, True  # settings not changed, nodes changed
