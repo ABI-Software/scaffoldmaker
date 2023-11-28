@@ -20,8 +20,8 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
-from scaffoldmaker.utils.interpolation import evaluateCoordinatesOnCurve, getCubicHermiteCurvesLength, \
-    getNearestLocationBetweenCurves, getNearestLocationOnCurve
+from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDerivatives, evaluateCoordinatesOnCurve, \
+    getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, interpolateCubicHermite
 from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 # from scaffoldmaker.utils.zinc_utils import generateCurveMesh
@@ -1513,6 +1513,56 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
         #     curveNodesetGroup.addNode(node)
         # generateCurveMesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+
+    def test_smooth_side_cross_derivatives(self):
+        """
+        Test algorithm for smoothing side cross derivatives used in network layout.
+        """
+        loopRadius = 0.5
+        tubeRadius1 = 0.05
+        tubeRadius2 = 0.15
+        deltaRadius = tubeRadius2 - tubeRadius1
+        angleAround = 0.5 * math.pi
+        d1Mag = loopRadius * angleAround
+        x_list = []
+        d1_list = []
+        d2_list = []
+        d3_list = []
+        for n in range(2):
+            xi = float(n)
+            tubeRadius = (1.0 - xi) * tubeRadius1 + xi * tubeRadius2
+            angle = angleAround * xi
+            cosAngle = math.cos(angle)
+            sinAngle = math.sin(angle)
+            x_list.append([loopRadius * cosAngle, loopRadius * sinAngle, 0.0])
+            d1_list.append([-d1Mag * sinAngle, d1Mag * cosAngle, 0.0])
+            d2_list.append([0.0, 0.0, tubeRadius])
+            d3_list.append([tubeRadius * cosAngle, tubeRadius * sinAngle, 0.0])
+
+        ascd_list, bscd_list = computeCubicHermiteSideCrossDerivatives(
+            x_list[0], d1_list[0], x_list[1], d1_list[1], [d2_list[0], d3_list[0]], [d2_list[1], d3_list[1]])
+        d12_list = [ascd_list[0], bscd_list[0]]
+        d13_list = [ascd_list[1], bscd_list[1]]
+
+        X_TOL = 1.0E-6
+        assertAlmostEqualList(self, [0.0, 0.0, deltaRadius], d12_list[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.0, 0.0, deltaRadius], d12_list[1], delta=X_TOL)
+        assertAlmostEqualList(self, [0.09353034063054447, 0.09057565385867462, 0.0], d13_list[0], delta=X_TOL)
+        assertAlmostEqualList(self, [-0.27450784324366634, 0.12218985977600845, -0.0], d13_list[1], delta=X_TOL)
+
+        # check rotation around curve for d13
+        ANGLE_TOL = 1.6  # degrees
+        LENGTH_TOL = 6.0E-4
+        for n in range(5):
+            xi = 0.25 * n
+            d3 = interpolateCubicHermite(d3_list[0], d13_list[0], d3_list[1], d13_list[1], xi)
+            targetAngle = math.degrees(xi * angleAround)
+            actualAngle = math.degrees(math.atan2(d3[1], d3[0]))
+            targetLength = (1.0 - xi) * tubeRadius1 + xi * tubeRadius2
+            actualLength = magnitude(d3)
+            self.assertAlmostEqual(targetAngle, actualAngle, delta=ANGLE_TOL)
+            self.assertAlmostEqual(targetLength, actualLength, delta=LENGTH_TOL)
+            # print("xi", xi, "length", actualLength, "angle", actualAngle, targetAngle)
 
 
 if __name__ == "__main__":

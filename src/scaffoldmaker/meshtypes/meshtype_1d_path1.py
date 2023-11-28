@@ -11,7 +11,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
+from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivativesLine
 from scaffoldmaker.utils.zinc_utils import make_nodeset_derivatives_orthogonal, \
     get_nodeset_path_field_parameters, setPathParameters
 
@@ -163,11 +163,11 @@ class MeshType_1d_path1(Scaffold_base):
         modifyParameters = []
         modifyValueLabels = []
         if smoothD12:
-            d12 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[2], parameters[3])
+            d12 = smoothCurveSideCrossDerivativesLine(x, d1, parameters[2], parameters[3])
             modifyParameters.append(d12)
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
         if smoothD13:
-            d13 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
+            d13 = smoothCurveSideCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
             modifyParameters.append(d13)
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
         setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)

@@ -2,7 +2,7 @@
 Interpolation functions shared by mesh generators.
 """
 
-from cmlibs.maths.vectorops import cross, dot, eldiv, magnitude, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 import copy
 import math
 from collections.abc import Sequence
@@ -776,10 +776,85 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     print('smoothCubicHermiteDerivativesLine max iters reached:', iter + 1, ', cmax = ', round(closeness,2), 'x tolerance')
     return md1
 
-def smoothCubicHermiteCrossDerivativesLine(nx, nd1, nd2, nd12,
+
+def computeCubicHermiteSideCrossDerivatives(ax, ad1, bx, bd1, asd_list, bsd_list):
+    """
+    Compute 'side cross derivatives' which smoothly transition between side derivatives at start and end of hermite
+    curve, handling curvature of the curve and rotations of side derivatives about its axis.
+    :param ax: Coordinates at start of curve.
+    :param ad1: Derivative at start of curve.
+    :param bx: Coordinates at end of curve.
+    :param bd1: Derivative at end of curve.
+    :param asd_list: List of start side derivatives e.g. [ad2, ad3].
+    :param bsd_list: List of end side derivatives e.g. [bd2, bd3].
+    :return: List of side cross derivatives at start, list of side cross derivatives at end.
+    """
+    count = len(asd_list)
+    assert len(bsd_list) == count
+    aTangent = normalize(ad1)
+    bTangent = normalize(bd1)
+    # get hermite basis functions at xi = 1/3, 2/3
+    aaXi = 1.0 / 3.0
+    bbXi = 2.0 / 3.0
+    aaPhi1, aaPhi2, aaPhi3, aaPhi4 = getCubicHermiteBasis(aaXi)
+    bbPhi1, bbPhi2, bbPhi3, bbPhi4 = getCubicHermiteBasis(bbXi)
+    aaTangent = normalize(interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, aaXi))
+    bbTangent = normalize(interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, bbXi))
+    ascd_list = []
+    bscd_list = []
+    for i in range(count):
+        asd = asd_list[i]
+        bsd = bsd_list[i]
+        aNormal = normalize(cross(cross(ad1, asd), ad1))
+        bNormal = normalize(cross(cross(bd1, bsd), bd1))
+        asdNormalComp = dot(asd, aNormal)
+        bsdNormalComp = dot(bsd, bNormal)
+        asdTangentComp = dot(asd, aTangent)
+        bsdTangentComp = dot(bsd, bTangent)
+        # initial linear guess of side derivatives at xi = 1/3, 2/3
+        aasdGuess = add(mult(asd, bbXi), mult(bsd, aaXi))
+        bbsdGuess = add(mult(asd, aaXi), mult(bsd, bbXi))
+        aaNormal = normalize(cross(cross(aaTangent, aasdGuess), aaTangent))
+        bbNormal = normalize(cross(cross(bbTangent, bbsdGuess), bbTangent))
+        # make target side derivatives at xi = 1/3, 2/3
+        aasdTarget = add(mult(aaNormal, bbXi * asdNormalComp + aaXi * bsdNormalComp),
+                         mult(aaTangent, bbXi * asdTangentComp + aaXi * bsdTangentComp))
+        bbsdTarget = add(mult(bbNormal, aaXi * asdNormalComp + bbXi * bsdNormalComp),
+                         mult(bbTangent, aaXi * asdTangentComp + bbXi * bsdTangentComp))
+        # print("aasdTarget", aasdTarget, "mag", magnitude(aasdTarget))
+        # print("bbsdTarget", bbsdTarget, "mag", magnitude(bbsdTarget))
+        # subtract known contributions from interpolated start and end side derivatives
+        # these are the fractions that the side cross derivative contributions must sum to
+        aasdCross = sub(sub(aasdTarget, mult(asd, aaPhi1)), mult(bsd, aaPhi3))
+        bbsdCross = sub(sub(bbsdTarget, mult(asd, bbPhi1)), mult(bsd, bbPhi3))
+        betaFact = aaPhi4 / bbPhi4
+        alphaFact = aaPhi2 - betaFact * bbPhi2
+        ascd = []
+        bscd = []
+        for c in range(3):
+            ascdc = (aasdCross[c] - betaFact * bbsdCross[c]) / alphaFact
+            bscdc = (aasdCross[c] - aaPhi2 * ascdc) / aaPhi4
+            # print("(1)", aaPhi2 * ascdc + aaPhi4 * bscdc, "=", aasdCross[c])
+            # print("(2)", bbPhi2 * ascdc + bbPhi4 * bscdc, "=", bbsdCross[c])
+            ascd.append(ascdc)
+            bscd.append(bscdc)
+        aasdCrossActual = add(mult(ascd, aaPhi2), mult(bscd, aaPhi4))
+        bbsdCrossActual = add(mult(ascd, bbPhi2), mult(bscd, bbPhi4))
+        # print("aasd cross", aasdCross, "actual", aasdCrossActual)
+        # print("bbsd cross", bbsdCross, "actual", bbsdCrossActual)
+        aasdActual = interpolateCubicHermiteDerivative(asd, ascd, bsd, bscd, aaXi)
+        bbsdActual = interpolateCubicHermiteDerivative(asd, ascd, bsd, bscd, bbXi)
+        # print("aasd target", aasdTarget, "actual", aasdActual)
+        # print("bbsd target", bbsdTarget, "actual", bbsdActual)
+        ascd_list.append(ascd)
+        bscd_list.append(bscd)
+    return ascd_list, bscd_list
+
+
+def smoothCurveSideCrossDerivativesLine(nx, nd1, nd2, nd12,
         fixStartDerivative = False, fixEndDerivative = False, instrument=False):
     """
-    Smooth derivatives of cross directions of hermite curves.
+    Smooth cross derivatives for rate of change of side directions of hermite curves.
     Assumes initial nd12 derivatives are zero or reasonable.
     Where directions are smoothed the weighted/harmonic mean is used.
     :param nx: List of coordinates of nodes along curves.
@@ -791,8 +866,8 @@ def smoothCubicHermiteCrossDerivativesLine(nx, nd1, nd2, nd12,
     """
     nodesCount = len(nx)
     elementsCount = nodesCount - 1
-    assert elementsCount > 0, 'smoothCubicHermiteCrossDerivativesLine.  Too few nodes/elements'
-    assert len(nd1) == nodesCount, 'smoothCubicHermiteCrossDerivativesLine.  Mismatched number of derivatives'
+    assert elementsCount > 0, 'smoothCurveSideCrossDerivativesLine.  Too few nodes/elements'
+    assert len(nd1) == nodesCount, 'smoothCurveSideCrossDerivativesLine.  Mismatched number of derivatives'
     md12 = copy.copy(nd12)
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
@@ -836,7 +911,7 @@ def smoothCubicHermiteCrossDerivativesLine(nx, nd1, nd2, nd12,
             break
         else:
             if instrument:
-                print('smoothCubicHermiteCrossDerivativesLine converged after iter:', iter + 1)
+                print('smoothCurveSideCrossDerivativesLine converged after iter:', iter + 1)
             return md12
 
     cmax = 0.0
@@ -844,7 +919,7 @@ def smoothCubicHermiteCrossDerivativesLine(nx, nd1, nd2, nd12,
         for c in componentRange:
             cmax = max(cmax, math.fabs(md12[n][c] - lastmd12[n][c]))
     closeness = cmax / dtol
-    print('smoothCubicHermiteCrossDerivativesLine max iters reached:', iter + 1, ', cmax = ', round(closeness,2), 'x tolerance')
+    print('smoothCurveSideCrossDerivativesLine max iters reached:', iter + 1, ', cmax = ', round(closeness,2), 'x tolerance')
     return md12
 
 def smoothCubicHermiteDerivativesLoop(nx, nd1,

@@ -8,7 +8,6 @@ from cmlibs.utils.zinc.scene import scene_get_selection_group
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.zinc_utils import clearRegion, get_nodeset_field_parameters, \
     get_nodeset_path_field_parameters, make_nodeset_derivatives_orthogonal, \
@@ -80,9 +79,11 @@ class MeshType_1d_network_layout1(Scaffold_base):
         if "Loop" in parameterSetName:
             loopRadius = 0.5
             tubeRadius = 0.1
-            d1Mag = loopRadius * 0.25 * math.pi
-            for n in range(8):
-                angle = 0.25 * math.pi * n
+            elementsCount = nodes.getSize()
+            elementAngle = 2.0 * math.pi / elementsCount
+            d1Mag = loopRadius * elementAngle
+            for n in range(elementsCount):
+                angle = elementAngle * n
                 cosAngle = math.cos(angle)
                 sinAngle = math.sin(angle)
                 node = nodes.findNodeByIdentifier(n + 1)
@@ -91,12 +92,12 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 d1 = [-d1Mag * sinAngle, d1Mag * cosAngle, 0.0]
                 d2 = [0.0, 0.0, tubeRadius]
                 d3 = [tubeRadius * cosAngle, tubeRadius * sinAngle, 0.0]
-                d13 = mult(d1, tubeRadius)
+                d13 = mult(d1, elementAngle * tubeRadius / d1Mag)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
         elif "Sphere cube" in parameterSetName:
             # edit node parameters
             sphereRadius = 0.5
@@ -135,10 +136,11 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 for ln in range(2):
                     d3 = cd3[nodeIndexes[ln]]
                     d2 = mult(normalize(cross(d3, delta)), tubeRadius)
-                    d1 = mult(normalize(cross(d2, d3)), edgeArcLength)
+                    d1Unit = normalize(cross(d2, d3))
+                    d1 = mult(d1Unit, edgeArcLength)
                     cd1[nodeIndexes[ln]].append(d1)
                     cd2[nodeIndexes[ln]].append(d2)
-                    cd13[nodeIndexes[ln]].append(mult(d1, tubeRadius))
+                    cd13[nodeIndexes[ln]].append(mult(d1Unit, edgeAngle * tubeRadius))
             # fix the one node out of order:
             for d in [cd1[4], cd2[4]]:
                 d[0:2] = [d[1], d[0]]
@@ -380,11 +382,11 @@ class MeshType_1d_network_layout1(Scaffold_base):
         modifyParameters = []
         modifyValueLabels = []
         if smoothD12:
-            d12 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[2], parameters[3])
+            d12 = smoothCurveSideCrossDerivativesLine(x, d1, parameters[2], parameters[3])
             modifyParameters.append(d12)
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
         if smoothD13:
-            d13 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
+            d13 = smoothCurveSideCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
             modifyParameters.append(d13)
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
         setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)
