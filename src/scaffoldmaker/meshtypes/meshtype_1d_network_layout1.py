@@ -11,8 +11,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.zinc_utils import clearRegion, get_nodeset_field_parameters, \
-    get_nodeset_path_field_parameters, make_nodeset_derivatives_orthogonal, \
-    set_nodeset_field_parameters, setPathParameters
+    get_nodeset_path_ordered_field_parameters, make_nodeset_derivatives_orthogonal, \
+    set_nodeset_field_parameters
 from enum import Enum
 import math
 
@@ -235,11 +235,10 @@ class MeshType_1d_network_layout1(Scaffold_base):
         fieldmodule = region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         innerCoordinates = fieldmodule.findFieldByName("inner coordinates").castFiniteElement()
-        if not innerCoordinates.isValid():
-            if functionOptions["To field"]["inner coordinates"] or \
-                    functionOptions["From field"]["inner coordinates"]:
-                print("Assign coordinates:  No inner coordinates defined")
-                return None, None
+        if (functionOptions["To field"]["inner coordinates"] or functionOptions["From field"]["inner coordinates"]) \
+                and not innerCoordinates.isValid():
+            print("Assign coordinates:  inner coordinates field not defined")
+            return False, False
         mode = None
         if functionOptions["Mode"]["Scale"]:
             mode = cls.AssignCoordinatesMode.SCALE
@@ -247,7 +246,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
             mode = cls.AssignCoordinatesMode.OFFSET
         else:
             print("Assign coordinates:  Invalid mode")
-            return None, None
+            return False, False
         toCoordinates = coordinates if functionOptions["To field"]["coordinates"] else innerCoordinates
         fromCoordinates = coordinates if functionOptions["From field"]["coordinates"] else innerCoordinates
         d2Value = functionOptions["D2 value"]
@@ -261,7 +260,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
             selectionMeshGroup = selectionGroup.getMeshGroup(mesh1d)
             if not selectionMeshGroup.isValid():
                 print("Assign coordinates:  Selection contains no elements. Clear it to assign globally.")
-                return None, None
+                return False, False
         valueLabels = [
             Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
@@ -343,19 +342,26 @@ class MeshType_1d_network_layout1(Scaffold_base):
         """
         fieldmodule = region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
-        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        innerCoordinates = fieldmodule.findFieldByName("inner coordinates").castFiniteElement()
+        if functionOptions["Field"]["inner coordinates"] and not innerCoordinates.isValid():
+            print("Make side derivatives normal:  inner coordinates field not defined")
+            return False, False
+        useCoordinates = coordinates if functionOptions["Field"]["coordinates"] else innerCoordinates
         makeD2Normal = functionOptions['Make D2 normal']
         makeD3Normal = functionOptions['Make D3 normal']
         if not (makeD2Normal or makeD3Normal):
             return False, False
-        make_nodeset_derivatives_orthogonal(nodeset, coordinates, makeD2Normal, makeD3Normal, editGroupName)
+        nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        make_nodeset_derivatives_orthogonal(nodeset, useCoordinates, makeD2Normal, makeD3Normal, editGroupName)
         return False, True  # settings not changed, nodes changed
 
     @classmethod
     def smoothSideCrossDerivatives(cls, region, options, networkMesh, functionOptions, editGroupName):
         """
         Smooth side cross derivatives giving rate of change of side directions d2, d3 w.r.t. d1.
-        Note: only works for a single path with version 1.
+        If a single element in a segment is selected, the whole segment is smoothed, and if the segment
+        connects to others with the same version, they are also smoothed with it.
+        Also detects loops back to the start of a segment.
         :param region: Region containing model to change parameters of.
         :param options: The scaffold settings used to create the original model, pre-edits.
         :param networkMesh: The NetworkMesh construction object model was created from.
@@ -364,37 +370,145 @@ class MeshType_1d_network_layout1(Scaffold_base):
         :param editGroupName: Name of Zinc group to put edited nodes in.
         :return: boolean indicating if settings changed, boolean indicating if node parameters changed.
         """
+        fieldmodule = region.getFieldmodule()
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        innerCoordinates = fieldmodule.findFieldByName("inner coordinates").castFiniteElement()
+        if functionOptions["Field"]["inner coordinates"] and not innerCoordinates.isValid():
+            print("Make side derivatives normal:  inner coordinates field not defined")
+            return False, False
+        useCoordinates = coordinates if functionOptions["Field"]["coordinates"] else innerCoordinates
         smoothD12 = functionOptions["Smooth D12"]
         smoothD13 = functionOptions["Smooth D13"]
         if not (smoothD12 or smoothD13):
             return False, False
-        valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
+
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        selectionGroup = scene_get_selection_group(region.getScene(), inherit_root_region=region.getRoot())
+        selectionMeshGroup = None
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        if selectionGroup:
+            selectionMeshGroup = selectionGroup.getMeshGroup(mesh1d)
+            if not selectionMeshGroup.isValid():
+                print("Smooth side cross derivatives:  Selection must contain elements to smooth segment chains "
+                    "containing them, or be clear it to smooth all segment chains.")
+                return False, False
+        getValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
+        setValueLabels = []
         if smoothD12:
-            valueLabels += [Node.VALUE_LABEL_D_DS2]
+            getValueLabels.append(Node.VALUE_LABEL_D_DS2)
+            setValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
         if smoothD13:
-            valueLabels += [Node.VALUE_LABEL_D_DS3]
-        fieldmodule = region.getFieldmodule()
-        parameters = get_nodeset_path_field_parameters(
-            fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
-            fieldmodule.findFieldByName('coordinates'),
-            valueLabels)
-        x = parameters[0]
-        d1 = parameters[1]
-        nsv = []
-        if smoothD12:
-            nsv.append(parameters[2])
-        if smoothD13:
-            nsv.append(parameters[-1])
-        dnsv = smoothCurveSideCrossDerivatives(x, d1, nsv)
-        modifyParameters = []
-        modifyValueLabels = []
-        if smoothD12:
-            modifyParameters.append(dnsv[0])
-            modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
-        if smoothD13:
-            modifyParameters.append(dnsv[-1])
-            modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
-        setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)
+            getValueLabels.append(Node.VALUE_LABEL_D_DS3)
+            setValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
+
+        # determine segment chains which must be smoothed together:
+        # currently only links segments aligned in the same direction
+        networkSegments = networkMesh.getNetworkSegments()
+        segmentChains = []
+        segmentChainsLoop = []  # True if same index segment chain is a loop
+        processedSegments = set()
+        for segment in networkSegments:
+            if segment in processedSegments:
+                continue
+            segmentChain = [segment]
+            processedSegments.add(segment)
+            # add other non-processed segments attached and using the same derivative version
+            startNetworkNode = segment.getNetworkNodes()[0]
+            startNodeVersion = segment.getNodeVersions()[0]
+            endNetworkNode = segment.getNetworkNodes()[-1]
+            endNodeVersion = segment.getNodeVersions()[-1]
+            while True:
+                for outSegment in endNetworkNode.getOutSegments():
+                    if ((outSegment.getNodeVersions()[0] == endNodeVersion) and
+                            outSegment not in processedSegments):
+                        segmentChain.append(outSegment)
+                        processedSegments.add(outSegment)
+                        endNetworkNode = outSegment.getNetworkNodes()[-1]
+                        endNodeVersion = outSegment.getNodeVersions()[-1]
+                        break
+                else:
+                    break
+            while True:
+                for inSegment in startNetworkNode.getInSegments():
+                    if ((inSegment.getNodeVersions()[-1] == startNodeVersion) and
+                            inSegment not in processedSegments):
+                        segmentChain.insert(0, inSegment)
+                        processedSegments.add(inSegment)
+                        startNetworkNode = inSegment.getNetworkNodes()[0]
+                        startNodeVersion = inSegment.getNodeVersions()[0]
+                        break
+                else:
+                    break
+            segmentChains.append(segmentChain)
+            segmentChainsLoop.append((startNetworkNode == endNetworkNode) and (startNodeVersion == endNodeVersion))
+
+        with ChangeManager(fieldmodule):
+
+            editNodeset = nodes
+            if selectionGroup:
+                # include only chains containing a selected element
+                chainIndex = 0
+                while chainIndex < len(segmentChains):
+                    segmentChain = segmentChains[chainIndex]
+                    for segment in segmentChain:
+                        if segment.hasLayoutElementsInMeshGroup(selectionMeshGroup):
+                            break
+                    else:
+                        segmentChains.pop(chainIndex)
+                        segmentChainsLoop.pop(chainIndex)
+                        continue
+                    chainIndex += 1
+                # make group of only nodes being edited
+                tmpGroup = fieldmodule.createFieldGroup()
+                editNodeset = tmpGroup.createNodesetGroup(nodes)
+                for segmentChain in segmentChains:
+                    for segment in segmentChain:
+                        for nodeIdentifier in segment.getNodeIdentifiers():
+                            editNodeset.addNode(nodes.findNodeByIdentifier(nodeIdentifier))
+                del tmpGroup
+
+            _, nodeParameters = get_nodeset_field_parameters(editNodeset, useCoordinates, setValueLabels)
+            nodeIdentifierIndexes = {}
+            for n in range(len(nodeParameters)):
+                nodeIdentifierIndexes[nodeParameters[n][0]] = n
+
+            for chainIndex in range(len(segmentChains)):
+                # get parameters for chain
+                segmentChain = segmentChains[chainIndex]
+                loop = segmentChainsLoop[chainIndex]
+                segmentsCount = len(segmentChain)
+                nx = []
+                nd1 = []
+                sideVectorsCount = 2 if smoothD12 and smoothD13 else 1
+                nsv = [[] for s in range(sideVectorsCount)]
+                nodeIdentifiers = []
+                nodeVersions = []
+                for segmentIndex in range(segmentsCount):
+                    segment = segmentChain[segmentIndex]
+                    segmentNodeIdentifiers = segment.getNodeIdentifiers()
+                    segmentNodeVersions = segment.getNodeVersions()
+                    segmentParameters = get_nodeset_path_ordered_field_parameters(
+                        nodes, useCoordinates, getValueLabels, segmentNodeIdentifiers, segmentNodeVersions)
+                    nodesCount = len(segmentNodeIdentifiers)
+                    if loop or (segmentIndex < (segmentsCount - 1)):
+                        nodesCount -= 1
+                    nx += segmentParameters[0][:nodesCount]
+                    nd1 += segmentParameters[1][:nodesCount]
+                    for s in range(sideVectorsCount):
+                        nsv[s] += segmentParameters[2 + s][:nodesCount]
+                    nodeIdentifiers += segmentNodeIdentifiers[:nodesCount]
+                    nodeVersions += segmentNodeVersions[:nodesCount]
+                dnsv = smoothCurveSideCrossDerivatives(nx, nd1, nsv, loop=loop)
+                for n in range(len(nodeIdentifiers)):
+                    nodeIndex = nodeIdentifierIndexes.get(nodeIdentifiers[n])
+                    nodeVersion = nodeVersions[n] - 1
+                    assert nodeIndex is not None
+                    for s in range(sideVectorsCount):
+                        nodeParameters[nodeIndex][1][s][nodeVersion] = dnsv[s][n]
+
+            set_nodeset_field_parameters(editNodeset, useCoordinates, setValueLabels, nodeParameters, editGroupName)
+            del editNodeset
+
         return False, True  # settings not changed, nodes changed
 
     @classmethod
@@ -402,9 +516,17 @@ class MeshType_1d_network_layout1(Scaffold_base):
         """
         Supply client with functions for smoothing path parameters.
         """
-        return Scaffold_base.getInteractiveFunctions() + [
-            ("Edit structure...",
-                {"Structure": None},  # None = take value from options
+        # add choice of field to base functions
+        modifiedBaseInteractiveFunctions = []
+        for interactiveFunction in Scaffold_base.getInteractiveFunctions():
+            dct = {"Field": {"coordinates": True, "inner coordinates": False}}
+            dct.update(interactiveFunction[1])
+            modifiedBaseInteractiveFunctions.append((
+               interactiveFunction[0], dct,
+               interactiveFunction[2]))
+        return modifiedBaseInteractiveFunctions + [
+            ("Edit structure...", {
+                "Structure": None},  # None = take value from options
                 lambda region, options, networkMesh, functionOptions, editGroupName:
                     cls.editStructure(region, options, networkMesh, functionOptions, editGroupName)),
             ("Assign coordinates...", {
@@ -415,14 +537,16 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 "D3 value": 1.0},
                 lambda region, options, networkMesh, functionOptions, editGroupName:
                     cls.assignCoordinates(region, options, networkMesh, functionOptions, editGroupName)),
-            ("Make side derivatives normal...",
-                {"Make D2 normal": True,
-                 "Make D3 normal": True},
+            ("Make side derivatives normal...", {
+                "Field": {"coordinates": True, "inner coordinates": False},
+                "Make D2 normal": True,
+                "Make D3 normal": True},
                 lambda region, options, networkMesh, functionOptions, editGroupName:
                     cls.makeSideDerivativesNormal(region, options, networkMesh, functionOptions, editGroupName)),
-            ("Smooth side cross derivatives...",
-                {"Smooth D12": True,
-                 "Smooth D13": True},
+            ("Smooth side cross derivatives...", {
+                "Field": {"coordinates": True, "inner coordinates": False},
+                "Smooth D12": True,
+                "Smooth D13": True},
                 lambda region, options, networkMesh, functionOptions, editGroupName:
                     cls.smoothSideCrossDerivatives(region, options, networkMesh, functionOptions, editGroupName))
         ]
