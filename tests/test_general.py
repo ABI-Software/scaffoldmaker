@@ -1313,9 +1313,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface)
         self.assertEqual(len(ax), 9)
         self.assertFalse(aloop)
-        aLength = getCubicHermiteCurvesLength(ax, ad1, loop=True)
+        aLength = getCubicHermiteCurvesLength(ax, ad1)
         if elementsCountAround == 8:
-            self.assertAlmostEqual(aLength, 1.291896441648134, delta=X_TOL)
+            self.assertAlmostEqual(aLength, 0.7867534776273488, delta=X_TOL)
             assertAlmostEqualList(self, [1.0179538858287902, -0.10372009294261042, 0.22619317098715946], ax[0], delta=X_TOL)
             assertAlmostEqualList(self, [0.8745386899334123, -0.21894738318303653, -0.07777014486867816], ax[4], delta=X_TOL)
             assertAlmostEqualList(self, [0.9779282561711389, 0.0820751155699032, -0.23449126177600493], ax[8], delta=X_TOL)
@@ -1323,17 +1323,17 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [0.5615258901138819, 0.9099206438856747], aprops[4], delta=XI_TOL)
             assertAlmostEqualList(self, [0.8039061628699322, 1.0], aprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
-            self.assertAlmostEqual(aLength, 1.2935036652991265, delta=X_TOL)
+            self.assertAlmostEqual(aLength, 0.7881053324748947, delta=X_TOL)
         elif elementsCountAround == 4:
-            self.assertAlmostEqual(aLength, 1.2777849511330288, delta=X_TOL)
+            self.assertAlmostEqual(aLength, 0.7881053324748947, delta=X_TOL)
 
         # # get non-loop intersection of tube1 and tube3
         bx, bd1, bprops, bloop = tube1Surface.findIntersectionCurve(tube3Surface)
         self.assertEqual(len(bx), 9)
         self.assertFalse(bloop)
-        bLength = getCubicHermiteCurvesLength(bx, bd1, loop=True)
+        bLength = getCubicHermiteCurvesLength(bx, bd1)
         if elementsCountAround == 8:
-            self.assertAlmostEqual(bLength, 1.2644609503534696, delta=X_TOL)
+            self.assertAlmostEqual(bLength, 0.7608142851170996, delta=X_TOL)
             assertAlmostEqualList(self, [0.959094526660969, 0.06711431057004068, -0.2372654694905775], bx[0], delta=X_TOL)
             assertAlmostEqualList(self, [0.9486154683235082, 0.2545005003987398, 0.05281998774919236], bx[4], delta=X_TOL)
             assertAlmostEqualList(self, [1.0147890884040247, -0.023171620406177137, 0.24848738902991338], bx[8], delta=X_TOL)
@@ -1341,17 +1341,17 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [1.0300414330440506, 0.9150675749144951], bprops[4], delta=XI_TOL)
             assertAlmostEqualList(self, [1.2664762695247593, 0.9841126335511698], bprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
-            self.assertAlmostEqual(bLength, 1.2594725877612785, delta=X_TOL)
+            self.assertAlmostEqual(bLength, 0.75690656676417, delta=X_TOL)
         elif elementsCountAround == 4:
-            self.assertAlmostEqual(bLength, 1.2658594359610489, delta=X_TOL)
+            self.assertAlmostEqual(bLength, 0.75690656676417, delta=X_TOL)
 
         # get non-loop intersection of tube2 and tube3
         cx, cd1, cprops, cloop = tube2Surface.findIntersectionCurve(tube3Surface)
         self.assertEqual(len(cx), 9)
         self.assertFalse(cloop)
-        cLength = getCubicHermiteCurvesLength(cx, cd1, loop=True)
+        cLength = getCubicHermiteCurvesLength(cx, cd1)
         if elementsCountAround == 8:
-            self.assertAlmostEqual(cLength, 1.5064021938074896, delta=X_TOL)
+            self.assertAlmostEqual(cLength, 0.9966054266784098, delta=X_TOL)
             assertAlmostEqualList(self, [1.0515320702829902, -0.08500706675336937, 0.22935825287467218], cx[0], delta=X_TOL)
             assertAlmostEqualList(self, [1.371362500857284, -0.024407127528850117, -0.08285047871256904], cx[4], delta=X_TOL)
             assertAlmostEqualList(self, [0.9646355114600913, 0.05778940350574679, -0.240589269211589], cx[8], delta=X_TOL)
@@ -1359,9 +1359,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [0.05134644399148322, 0.29537544509373714], cprops[4], delta=XI_TOL)
             assertAlmostEqualList(self, [0.7907974706501059, 0.011505022662710312], cprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
-            self.assertAlmostEqual(cLength, 1.500631828350329, delta=X_TOL)
+            self.assertAlmostEqual(cLength, 0.9914364842222108, delta=X_TOL)
         elif elementsCountAround == 4:
-            self.assertAlmostEqual(cLength, 1.5116074716918804, delta=X_TOL)
+            self.assertAlmostEqual(cLength, 0.9914364842222108, delta=X_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
@@ -1479,8 +1479,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         ax, ad1, aprops, aloop = tube1Surface.findIntersectionCurve(tube2Surface)
         self.assertEqual(len(ax), 9)
         self.assertFalse(aloop)
-        aLength = getCubicHermiteCurvesLength(ax, ad1, loop=True)
-        self.assertAlmostEqual(aLength, 2.7550717460511067, delta=X_TOL)
+        aLength = getCubicHermiteCurvesLength(ax, ad1)
+        self.assertAlmostEqual(aLength, 2.214117090392043, delta=X_TOL)
         assertAlmostEqualList(self, [0.9999027578036812, 0.00038896878527516776, -0.24987413008984302], ax[0], delta=X_TOL)
         assertAlmostEqualList(self, [-0.03077634623170676, 1.5966942528521302e-09, 7.945917568834134e-05], ax[4], delta=X_TOL)
         assertAlmostEqualList(self, [0.9997557619375088, 0.0009769522499643996, 0.24987245334458275], ax[8], delta=X_TOL)
