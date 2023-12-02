@@ -12,8 +12,9 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, computeCubicHermiteDerivativeScaling, \
-    DerivativeScalingMode, getCubicHermiteCurvesLength, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
-    interpolateCubicHermiteSecondDerivative, smoothCubicHermiteDerivativesLine, interpolateLagrangeHermiteDerivative
+    DerivativeScalingMode, getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, \
+    interpolateCubicHermite, interpolateCubicHermiteDerivative, interpolateCubicHermiteSecondDerivative, \
+    interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters, \
@@ -1165,56 +1166,117 @@ class TubeBifurcationData:
                 ax, ad1, _, aloop = self._intersectionCurves[s - 1]
                 bx, bd1, _, bloop = self._intersectionCurves[s]
                 trimSurface = None
-                if ax and (len(ax) == 9) and not aloop and bx and (len(bx) == 9) and not bloop:
-                    d2am = interpolateCubicHermiteSecondDerivative(ax[3], ad1[3], ax[4], ad1[4], 1.0)
-                    d2ap = interpolateCubicHermiteSecondDerivative(ax[4], ad1[4], ax[5], ad1[5], 0.0)
-                    d2a = add(d2am, d2ap)
-                    cax = ax[4]
-                    d2bm = interpolateCubicHermiteSecondDerivative(bx[3], bd1[3], bx[4], bd1[4], 1.0)
-                    d2bp = interpolateCubicHermiteSecondDerivative(bx[4], bd1[4], bx[5], bd1[5], 0.0)
-                    d2b = [-s for s in add(d2bm, d2bp)]
-                    cbx = bx[4]
-                    across = sub(cbx, cax)
-                    sizeAcross = magnitude(across)
-                    normAcross = normalize(across)
-                    up = cross(across, along)
-                    cad2 = normalize(ad1[4])
-                    if dot(up, cad2) < 0.0:
-                        cad2 = [-d for d in cad2]
-                    cbd2 = normalize(bd1[4])
-                    if dot(up, cbd2) < 0.0:
-                        cbd2 = [-d for d in cbd2]
-                    # move coordinates out slightly to guarantee intersection
-                    arcLength = computeCubicHermiteArcLength(cax, d2a, cbx, d2b, rescaleDerivatives=True)
-                    d2a = mult(d2a, arcLength / magnitude(d2a))
-                    cax = sub(cax, mult(d2a, 0.05))
-                    d2b = mult(d2b, arcLength / magnitude(d2b))
-                    cbx = add(cbx, mult(d2b, 0.05))
-                    nx = []
-                    nd1 = []
-                    nd2 = []
-                    eCount = 2
-                    for i in range(eCount + 1):
-                        delta = (i - eCount // 2) * 1.2 * sizeAcross
-                        vax = add(cax, mult(cad2, delta))
-                        vbx = add(cbx, mult(cbd2, delta))
-                        deltaAcross = sub(vbx, vax)
-                        normDeltaAcross = normalize(deltaAcross)
-                        use_d2a = d2a
-                        use_d2b = d2b
-                        if dot(normAcross, normDeltaAcross) <= 0.5:
-                            use_d2a = deltaAcross
-                            use_d2b = deltaAcross
-                        arcLength = 1.5 * computeCubicHermiteArcLength(vax, use_d2a, vbx, use_d2b, rescaleDerivatives=True)
-                        vad1 = mult(use_d2a, arcLength / magnitude(use_d2a))
-                        vbd1 = mult(use_d2b, arcLength / magnitude(use_d2b))
-                        nx.append(vax)
-                        nd1.append(vad1)
-                        nd2.append(mult(cad2, sizeAcross))
-                        nx.append(vbx)
-                        nd1.append(vbd1)
-                        nd2.append(mult(cbd2, sizeAcross))
-                    trimSurface = TrackSurface(1, eCount, nx, nd1, nd2)
+                if ax and bx:
+                    d2a = None
+                    cax = None
+                    ha = len(ax) // 2  # halfway index in a
+                    assert ha > 0
+                    if not aloop:
+                        # get coordinates and 2nd derivative halfway along a
+                        assert ha * 2 == len(ax) - 1  # must be an even number of elements
+                        d2am = interpolateCubicHermiteSecondDerivative(ax[ha - 1], ad1[ha - 1], ax[ha], ad1[ha], 1.0)
+                        d2ap = interpolateCubicHermiteSecondDerivative(ax[ha], ad1[ha], ax[ha + 1], ad1[ha + 1], 0.0)
+                        d2a = add(d2am, d2ap)
+                        cax = ax[4]
+                    d2b = None
+                    cbx = None
+                    hb = len(bx) // 2  # halfway index in b
+                    assert hb > 0
+                    if not bloop:
+                        # get coordinates and 2nd derivative halfway along b
+                        assert hb * 2 == len(bx) - 1  # must be an even number of elements
+                        d2bm = interpolateCubicHermiteSecondDerivative(bx[hb - 1], bd1[hb - 1], bx[hb], bd1[hb], 1.0)
+                        d2bp = interpolateCubicHermiteSecondDerivative(bx[hb], bd1[hb], bx[hb + 1], bd1[hb + 1], 0.0)
+                        d2b = add(d2bm, d2bp)
+                        cbx = bx[4]
+                    aNearestLocation = None  # (element index, xi)
+                    bNearestLocation = None  # (element index, xi)
+                    if aloop and bloop:
+                        aNearestLocation, bNearestLocation = \
+                            getNearestLocationBetweenCurves(ax, ad1, bx, bd1, aloop, bloop)[:2]
+                    else:
+                        if aloop:
+                            aNearestLocation = getNearestLocationOnCurve(ax, ad1, cbx, aloop)[0]
+                        if bloop:
+                            bNearestLocation = getNearestLocationOnCurve(bx, bd1, cax, bloop)[0]
+                    if aloop and aNearestLocation:
+                        # get coordinates and 2nd derivative at opposite to nearest location on a
+                        assert ha * 2 == len(ax)  # must be an even number of elements
+                        oa = aNearestLocation[0] - ha  # opposite element index in a
+                        xi = aNearestLocation[1]
+                        d2a = interpolateCubicHermiteSecondDerivative(ax[oa], ad1[oa], ax[oa + 1], ad1[oa + 1], xi)
+                        cax = interpolateCubicHermite(ax[oa], ad1[oa], ax[oa + 1], ad1[oa + 1], xi)
+                    if bloop and bNearestLocation:
+                        # get coordinates and 2nd derivative at opposite to nearest location on b
+                        assert hb * 2 == len(bx)  # must be an even number of elements
+                        ob = bNearestLocation[0] - hb  # opposite element index in b
+                        xi = bNearestLocation[1]
+                        d2b = interpolateCubicHermiteSecondDerivative(bx[ob], bd1[ob], bx[ob + 1], bd1[ob + 1], xi)
+                        cbx = interpolateCubicHermite(bx[ob], bd1[ob], bx[ob + 1], bd1[ob + 1], xi)
+                    if cax and cbx:
+                        d2b = [-s for s in d2b]  # reverse derivative on second point
+                        across = sub(cbx, cax)
+                        sizeAcross = magnitude(across)
+                        normAcross = normalize(across)
+                        up = cross(across, along)
+                        cad2 = normalize(ad1[4])
+                        if dot(up, cad2) < 0.0:
+                            cad2 = [-d for d in cad2]
+                        cbd2 = normalize(bd1[4])
+                        if dot(up, cbd2) < 0.0:
+                            cbd2 = [-d for d in cbd2]
+                        # move coordinates out slightly to guarantee intersection
+                        arcLength = computeCubicHermiteArcLength(cax, d2a, cbx, d2b, rescaleDerivatives=True)
+                        d2a = mult(d2a, arcLength / magnitude(d2a))
+                        # cax = sub(cax, mult(d2a, 0.05))
+                        d2b = mult(d2b, arcLength / magnitude(d2b))
+                        # cbx = add(cbx, mult(d2b, 0.05))
+                        nx = []
+                        nd1 = []
+                        nd2 = []
+                        elementsCount2 = 2
+                        for i in range(elementsCount2 + 1):
+                            delta = (i - elementsCount2 // 2) * 1.2 * sizeAcross
+                            vax = add(cax, mult(cad2, delta))
+                            vbx = add(cbx, mult(cbd2, delta))
+                            deltaAcross = sub(vbx, vax)
+                            normDeltaAcross = normalize(deltaAcross)
+                            use_d2a = d2a
+                            use_d2b = d2b
+                            if dot(normAcross, normDeltaAcross) <= 0.5:
+                                use_d2a = deltaAcross
+                                use_d2b = deltaAcross
+                            arcLength = 1.5 * computeCubicHermiteArcLength(vax, use_d2a, vbx, use_d2b, rescaleDerivatives=True)
+                            vad1 = mult(use_d2a, arcLength / magnitude(use_d2a))
+                            vbd1 = mult(use_d2b, arcLength / magnitude(use_d2b))
+                            vad2 = mult(cad2, sizeAcross)
+                            vbd2 = mult(cbd2, sizeAcross)
+                            # add extensions before / after
+                            nx.append(sub(vax, vad1))
+                            nx.append(vax)
+                            nd1.append(vad1)
+                            nd1.append(vad1)
+                            nd2.append(vad2)
+                            nd2.append(vad2)
+                            nx.append(vbx)
+                            nx.append(add(vbx, vbd1))
+                            nd1.append(vbd1)
+                            nd1.append(vbd1)
+                            nd2.append(vbd2)
+                            nd2.append(vbd2)
+                        # smooth extension d2
+                        for j in [0, 3]:
+                            tx = [nx[i * 4 + j] for i in range(3)]
+                            td2 = smoothCubicHermiteDerivativesLine(tx, [nd2[i * 4 + j] for i in range(3)])
+                            for i in range(3):
+                                nd2[i * 4 + j] = td2[i]
+                        trimSurface = TrackSurface(3, elementsCount2, nx, nd1, nd2)
+                elif ax:
+                    # use previous tube surface as trim surface
+                    trimSurface = self._tubeData[s - 1].getRawTrackSurface()
+                elif bx:
+                    # use next tube surface as trim surface
+                    trimSurface = self._tubeData[s - 2].getRawTrackSurface()
                 self._trimSurfaces.append(trimSurface)
 
 
@@ -1406,7 +1468,8 @@ class TubeBifurcationData:
 
 def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                 elementsCountAround: int, targetElementAspectRatio: float,
-                                elementsCountThroughWall: int, layoutAnnotationGroups: list=[], serendipity=False):
+                                elementsCountThroughWall: int, layoutAnnotationGroups: list=[], serendipity=False,
+                                showIntersectionCurves=False, showTrimSurfaces=False):
     """
     Generate a 2D, or 3D (thick walled) tube bifurcation tree mesh.
     :param networkMesh: Specification of network path and lateral sizes.
@@ -1420,6 +1483,8 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     otherwise 1.
     :param layoutAnnotationGroups: Optional list of annotations defined on layout mesh for networkMesh.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
+    :param showIntersectionCurves: Set to True to make lines from tube intersection curves. For diagnostic use.
+    :param showTrimSurfaces: Set to True to make surfaces from inter-tube trim surfaces. For diagnostic use.
     :return: next node identifier, next element identifier, annotationGroups.
     """
     layoutRegion = networkMesh.getRegion()
@@ -1541,7 +1606,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 # must match count from outer surface!
                 outerTubeData = outerSegmentTubeData[networkSegment]
                 elementsCountAlong = outerTubeData.getSampledElementsCountAlong()
-            # print("startSurface", startSurface is not None, "endSurface", endSurface is not None)
+            # print("Resample startSurface", startSurface is not None, "endSurface", endSurface is not None)
             sx, sd1, sd2, sd12 = resampleTubeCoordinates(
                 rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
             tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
@@ -1595,16 +1660,23 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                     outerTubeBifurcationData = outerNodeTubeBifurcationData.get(
                         startSegmentNode if (stage == 0) else endSegmentNode)
                     if outerTubeBifurcationData and not outerTubeBifurcationData in completedBifurcations:
-                        # for s in range(3):
-                        #     curve = outerTubeBifurcationData.getIntersectionCurve(s)
-                        #     cx, cd1, cProportions, loop = curve
-                        #     if cx:
-                        #         nodeIdentifier, elementIdentifier = \
-                        #             generateCurveMesh(region, cx, cd1, loop, nodeIdentifier, elementIdentifier)
-                        # for s in range(3):
-                        #     trimSurface = outerTubeBifurcationData.getTrimSurface(s)
-                        #     if trimSurface:
-                        #         nodeIdentifier = trimSurface.generateMesh(region, nodeIdentifier)[0]
+                        if showIntersectionCurves:
+                            lineIdentifier = None
+                            for s in range(3):
+                                curve = outerTubeBifurcationData.getIntersectionCurve(s)
+                                cx, cd1, cProportions, loop = curve
+                                if cx:
+                                    nodeIdentifier, lineIdentifier = \
+                                        generateCurveMesh(region, cx, cd1, loop, nodeIdentifier, lineIdentifier)
+                        if showTrimSurfaces:
+                            faceIdentifier = elementIdentifier if (dimension == 2) else None
+                            for s in range(3):
+                                trimSurface = outerTubeBifurcationData.getTrimSurface(s)
+                                if trimSurface:
+                                    nodeIdentifier, faceIdentifier = \
+                                        trimSurface.generateMesh(region, nodeIdentifier, faceIdentifier)
+                            if dimension == 2:
+                                elementIdentifier = faceIdentifier
                         innerTubeBifurcationData = None
                         if innerNodeTubeBifurcationData:
                             innerTubeBifurcationData = innerNodeTubeBifurcationData.get(

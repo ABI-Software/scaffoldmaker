@@ -972,7 +972,8 @@ class TrackSurface:
         # print('final position', position)
         return position
 
-    def findNearestPositionOnCurve(self, cx, cd1, loop=False, startCurveLocation=None, curveSamples: int = 4):
+    def findNearestPositionOnCurve(self, cx, cd1, loop=False, startCurveLocation=None, curveSamples: int = 4,
+                                   instrument=False):
         """
         Find nearest/intersection point on curve to this surface.
         :param cx: Coordinates along curve.
@@ -982,9 +983,12 @@ class TrackSurface:
         If not supplied, uses element location at the nearest node coordinates.
         :param curveSamples: If startLocation not supplied, sets number of curve xi locations to evaluate when finding
         nearest initial curve location.
+        :param instrument: Set to True to print debug messages.
         :return: Nearest TrackSurfacePosition on self, nearest/intersection point on curve (element index, xi),
         isIntersection (True/False).
         """
+        if instrument:
+            print("findNearestPositionOnCurve")
         nCount = len(cx)
         assert nCount > 1
         eCount = nCount if loop else nCount - 1
@@ -1010,6 +1014,7 @@ class TrackSurface:
         MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
         XI_TOL = 1.0E-7
         X_TOL = 1.0E-6 * max(self._xRange)
+        MAX_SLOPE_FACTOR = 10000.0
         lastOnBoundary = False
         last_dxi = None
         for it in range(100):
@@ -1019,7 +1024,8 @@ class TrackSurface:
             other_x = self.evaluateCoordinates(surfacePosition)
             r = sub(other_x, x)
             mag_r = magnitude(r)
-            # print("    pos", curveLocation, onBoundary, "other", otherLocation, onOtherBoundary, "mag_r", mag_r)
+            if instrument:
+                print("    iter", it, "curve location", curveLocation, "surface position", surfacePosition, "mag_r", mag_r)
             if mag_r < X_TOL:
                 # print("TrackSurface.findNearestPositionOnCurve:  Found intersection: ", curveLocation, "on iter", it + 1)
                 return surfacePosition, curveLocation, True
@@ -1029,39 +1035,53 @@ class TrackSurface:
                 # flip normal to be towards other x
                 n = [-s for s in n]
                 r_dot_n = -r_dot_n
-            r_out_of_plane = mult(n, r_dot_n)
-            r_in_plane = sub(r, r_out_of_plane)
+            rNormal = mult(n, r_dot_n)
+            rTangent = sub(r, rNormal)
+            mag_ri = magnitude(rTangent)
             # get tangential displacement u
             if onOtherBoundary:
-                u = r_in_plane
+                u = rTangent
             else:
                 # add out-of-plane slope component
-                factor = 1.0 + r_dot_n / mag_r
-                u = mult(r_in_plane, factor)
+                slope_factor = 1.0 + r_dot_n / mag_r  # wrong, but more reliable
+                # slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+                if instrument:
+                    print("    slope_factor", slope_factor, "rTangent", rTangent)
+                if slope_factor > MAX_SLOPE_FACTOR:
+                    slope_factor = MAX_SLOPE_FACTOR
+                u = mult(rTangent, slope_factor)
             mag_dxi = dxi = magnitude(u) / magnitude(d)
             dxi = mag_dxi if (mag_dxi < MAX_MAG_DXI) else MAX_MAG_DXI
             if dot(u, d) < 0.0:
                 dxi = -dxi
+            if instrument:
+                print("    dxi", dxi)
             # control oscillations
             if (it > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
-                factor = mag_dxi / (mag_dxi + abs(last_dxi))
-                dxi *= factor
-                mag_dxi *= factor
+                osc_factor = mag_dxi / (mag_dxi + abs(last_dxi))
+                if instrument:
+                    print("    osc factor", osc_factor)
+                dxi *= osc_factor
+                mag_dxi *= osc_factor
             last_dxi = dxi
+            if instrument:
+                print("    final dxi", dxi)
             bxi, faceNumber = incrementXiOnLine(curveLocation[1], dxi)
             curveLocation = (curveLocation[0], bxi)
             if faceNumber:
                 curveLocation, onBoundary = updateCurveLocationToFaceNumber(curveLocation, faceNumber, eCount, loop)
                 if onBoundary and lastOnBoundary:
-                    # print("TrackSurface.findNearestPositionOnCurve:  Found nearest on boundary in",
-                    #       it + 1, "iterations")
+                    if instrument:
+                        print("TrackSurface.findNearestPositionOnCurve:  Found nearest on boundary in",
+                              it + 1, "iterations")
                     break
                 lastOnBoundary = onBoundary
             else:
                 lastOnBoundary = False
             if mag_dxi < XI_TOL:
-                # print("TrackSurface.findNearestPositionOnCurve:  Found nearest in",
-                #       it + 1, "iterations, dxi", mag_dxi)
+                if instrument:
+                    print("TrackSurface.findNearestPositionOnCurve:  Found nearest in",
+                          it + 1, "iterations, dxi", mag_dxi)
                 break
         else:
             print('TrackSurface.findNearestPositionOnCurve did not converge:  Reached max iterations', it + 1,

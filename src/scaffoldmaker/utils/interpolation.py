@@ -223,11 +223,13 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     """
 
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
-    dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
-    cp = vector.crossproduct3(tangent, dTangent)
     mag_tangent = magnitude(tangent)
-    curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
-
+    if mag_tangent > 0.0:
+        dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
+        cp = vector.crossproduct3(tangent, dTangent)
+        curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
+    else:
+        curvature = 0.0
     return curvature
 
 def interpolateHermiteLagrange(v1, d1, v2, xi):
@@ -1119,6 +1121,42 @@ def incrementXiOnLine(xi, dxi):
     return new_xi, None
 
 
+def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_DXI=0.5):
+    """
+    Advance location by element delta xi, subject to maximum.
+    :param startLocation: Start location on curve.
+    :param dxi: Increment in xi.
+    :param elementsCount: Number of elements in curve.
+    :param loop: True if curve loops back to start.
+    :param MAX_MAG_DXI: Maximum magnitude of dxi to keep increments reasonable for a cubic curve.
+    :return: Advanced location, onBoundary (0/1=xi_0/2=xi_1)
+    """
+    startProportion = (startLocation[0] + startLocation[1]) / elementsCount
+    adxi = dxi
+    magDxi = abs(dxi)
+    if magDxi > MAX_MAG_DXI:
+        factor = MAX_MAG_DXI / magDxi
+        adxi *= factor
+    proportion = startProportion + adxi / elementsCount
+    onBoundary = 0
+    if loop:
+        if proportion < 0.0:
+            proportion += 1.0
+        elif proportion > 1.0:
+            proportion -= 1.0
+    else:
+        if proportion < 0.0:
+            proportion = 0.0
+            onBoundary = 1
+        elif proportion > 1.0:
+            proportion = 1.0
+            onBoundary = 2
+    scaledProportion = proportion * elementsCount
+    elementIndex = int(scaledProportion)
+    location = (elementIndex, scaledProportion - elementIndex)
+    return location, onBoundary
+
+
 def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
     """
     :param nx: Coordinates along curve.
@@ -1213,7 +1251,7 @@ def getNearestParameterLocationOnCurve(nx, targetx, loop=False):
     return (nearest_e, xi), nearest_distance
 
 
-def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
+def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, instrument=False):
     """
     Get location on a piecewise Hermite curve which is closest to target coordinates.
     Can be a local minimum depending on start location.
@@ -1223,54 +1261,79 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None):
     :param loop: True if curve loops back to first point, False if not.
     :param startLocation: Optional initial location (element index, xi) to search from.
     If not supplied, uses element location at the nearest node coordinates.
+    :param instrument: Set to True to print debug messages.
     :return: nearest location tuple (element index, xi), nearest x.
     """
+    if instrument:
+        print("getNearestLocationOnCurve targetx", targetx)
     location = copy.copy(startLocation) if startLocation else getNearestParameterLocationOnCurve(nx, targetx, loop)[0]
-    nCount = len(nx)
-    assert nCount > 1
-    eCount = nCount if loop else nCount - 1
-    max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
-    xi_tol = 1.0E-7
+    nodesCount = len(nx)
+    assert nodesCount > 1
+    elementsCount = nodesCount if loop else nodesCount - 1
+    MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
+    XI_TOL = 1.0E-7
+    xMin, xMax = getCoordinatesRange(nx)
+    xRange = [xMax[c] - xMin[c] for c in range(len(xMin))]
     last_dxi = None
+    mag_last_dxi = None
     lastOnBoundary = False
     x = None
-    for iter in range(100):
+    for it in range(100):
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, loop, derivative=True)
         mag_d = magnitude(d)
+        if mag_d == 0.0:
+            print("getNearestLocationOnCurve:  Zero derivative at iteration", it + 1)
+            break
         deltax = sub(targetx, x)
-        deltau = dot(deltax, normalize(d))  # tangential deltax, scalar
-        dxi = deltau / mag_d
+        norm_d = normalize(d)
+        ut = dot(deltax, norm_d)  # tangential deltax, scalar
+        # limit by curvature and distance to targetx
+        nm = location[0]
+        np = (nm + 1) % nodesCount
+        curvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])
+        uNormal = sub(deltax, mult(norm_d, ut))
+        un = magnitude(uNormal)
+        curvatureFactor = 1.0 / (un * curvature + 1.0)
+        ut = ut * curvatureFactor
+        if instrument:
+            print("--> curvature", curvature, "factor", curvatureFactor)
+        dxi = ut / mag_d
         mag_dxi = abs(dxi)
+        if instrument:
+            print("iter", it, "location", location, "dxi", dxi, "deltax", deltax, "displacement", ut)
         # control oscillations
-        if (iter > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
-            factor = mag_dxi / (mag_dxi + mag_last_dxi)
-            dxi *= factor
-            mag_dxi *= factor
-        if mag_dxi > max_mag_dxi:
-            dxi *= max_mag_dxi / mag_dxi
-            mag_dxi = max_mag_dxi
+        if (it > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
+            osc_factor = mag_dxi / (mag_dxi + mag_last_dxi)
+            dxi *= osc_factor
+            mag_dxi *= osc_factor
+            if instrument:
+                print("    osc_factor", osc_factor, "dxi", dxi)
+        if (it % 20) == 19:
+            MAX_MAG_DXI *= 0.5
+            if instrument:
+                print("    reduce MAX_MAG_DXI to", MAX_MAG_DXI)
+        if mag_dxi > MAX_MAG_DXI:
+            dxi *= MAX_MAG_DXI / mag_dxi
+            mag_dxi = MAX_MAG_DXI
         last_dxi = dxi
         mag_last_dxi = mag_dxi
         # limit to line element bounds
-        bxi, faceNumber = incrementXiOnLine(location[1], dxi)
-        location = (location[0], bxi)
-        if mag_dxi < xi_tol:
-            # print("getNearestLocationOnCurve:  Converged in", iter + 1, "iterations, mag_dxi", mag_dxi)
+        location, onBoundary = advanceCurveLocation(location, dxi, elementsCount, loop, MAX_MAG_DXI)
+        if mag_dxi < XI_TOL:
+            if instrument:
+                print("getNearestLocationOnCurve:  Converged in", it + 1, "iterations, mag_dxi", mag_dxi)
             break
-        if faceNumber:
-            location, onBoundary = updateCurveLocationToFaceNumber(location, faceNumber, eCount, loop)
-            if onBoundary and lastOnBoundary:
-                # print("getNearestLocationOnCurve:  Converged on boundary in", iter + 1, "iterations")
-                break
-            lastOnBoundary = onBoundary
-        else:
-            lastOnBoundary = False
+        if onBoundary and lastOnBoundary:
+            if instrument:
+                print("getNearestLocationOnCurve:  Converged on boundary in", it + 1, "iterations")
+            break
+        lastOnBoundary = onBoundary
     else:
-        print("getNearestLocationOnCurve:  Reached max iterations", iter + 1, "closeness in xi", mag_dxi)
+        print("getNearestLocationOnCurve:  Reached max iterations", it + 1, "closeness in xi", mag_dxi)
     return location, x
 
 
-def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, startLocation=None):
+def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, startLocation=None, instrument=False):
     """
     Get the closest locations on two piecewise Hermite curves. Can be a local minimum depending on start location.
     :param nx: Coordinates along curve.
@@ -1281,9 +1344,12 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
     :param oLoop: True if other curve loops back to first point, False if not.
     :param startLocation: Optional initial location (element index, xi) to search from.
     If not supplied, uses element location at the nearest parameter location to any parameter location on other curve.
+    :param instrument: Set to True to print debug messages.
     :return: Nearest/intersection location (element index, xi), other curve location (element index, xi),
     isIntersection (True/False).
     """
+    if instrument:
+        print("getNearestLocationBetweenCurves")
     nnCount = len(nx)
     assert nnCount > 1
     neCount = nnCount if nLoop else nnCount - 1
@@ -1300,22 +1366,24 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
                 location = tmpLocation
     targetx = evaluateCoordinatesOnCurve(nx, nd1, location, nLoop)
     otherLocation = getNearestParameterLocationOnCurve(ox, targetx, oLoop)[0]
-    max_mag_dxi = 0.5  # target/maximum magnitude of xi increment
-    xi_tol = 1.0E-7
+    MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
+    XI_TOL = 1.0E-7
     # get max range for tolerances
     xMin, xMax = getCoordinatesRange(nx)
     xRange = [xMax[c] - xMin[c] for c in range(len(xMin))]
+    MAX_SLOPE_FACTOR = 1000.0
     x_tol = 1.0E-6 * max(xRange)
     lastOnBoundary = False
     last_dxi = None
-    for iter in range(100):
+    for it in range(100):
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, nLoop, derivative=True)
         otherLocation = getNearestLocationOnCurve(ox, od1, x, oLoop, otherLocation)[0]
         onOtherBoundary = not oLoop and isLocationOnCurveBoundary(otherLocation, oeCount)
         other_x = evaluateCoordinatesOnCurve(ox, od1, otherLocation, oLoop)
         r = sub(other_x, x)
         mag_r = magnitude(r)
-        # print("    pos", location, onBoundary, "other", otherLocation, onOtherBoundary, "mag_r", mag_r)
+        if instrument:
+            print("iter", it, "pos", location, "other", otherLocation, "mag_r", mag_r, "x", x)
         if mag_r < x_tol:
             # print("getNearestLocationBetweenCurves:  Found intersection: ", location, "on iter", iter + 1)
             return location, otherLocation, True
@@ -1325,39 +1393,78 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
             # flip normal to be towards other x
             n = [-s for s in n]
             r_dot_n = -r_dot_n
-        r_out_of_plane = mult(n, r_dot_n)
-        r_in_plane = sub(r, r_out_of_plane)
+        rNormal = mult(n, r_dot_n)
+        rTangent = sub(r, rNormal)
+        mag_ri = magnitude(rTangent)
+        mag_ro = magnitude(rNormal)
         # get tangential displacement u
         if onOtherBoundary:
-            u = r_in_plane
+            slope_factor = 1.0
         else:
             # add out-of-plane slope component
-            factor = 1.0 + r_dot_n / mag_r  # GRC wrong
-            u = mult(r_in_plane, factor)
-        mag_dxi = dxi = magnitude(u) / magnitude(d)
-        dxi = mag_dxi if (mag_dxi < max_mag_dxi) else max_mag_dxi
+            slope_factor = 1.0 + r_dot_n / mag_r  # GRC wrong, but more reliable
+            # slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+            if slope_factor > MAX_SLOPE_FACTOR:
+                slope_factor = MAX_SLOPE_FACTOR
+            if instrument:
+                print("    slope_factor", slope_factor)
+        u = mult(rTangent, slope_factor)
+        # limit by curvature and distance to other_x
+        nm = location[0]
+        np = (nm + 1) % nnCount
+        nCurvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])
+        om = otherLocation[0]
+        op = (om + 1) % onCount
+        oCurvature = getCubicHermiteCurvatureSimple(ox[om], od1[om], ox[op], od1[op], otherLocation[1])
+        curvature = nCurvature + oCurvature
+        uNormal = sub(r, u)
+        un = magnitude(uNormal)
+        curvatureFactor = 1.0 / (un * curvature + 1.0)
+        mag_u = magnitude(u) * curvatureFactor
+        # never go further than parallel, based on curvature from initial angle
+        parallelFactor = 1.0
+        if oCurvature > 0.0:
+            max_u = math.atan(mag_ri / mag_ro) / curvature
+            if mag_u > max_u:
+                parallelFactor = max_u / mag_u
+                mag_u = max_u
+        if instrument:
+            print("--> curvature", curvature, "curvature factor", curvatureFactor, "parallel factor", parallelFactor)
+        mag_dxi = mag_u / magnitude(d)
+        if mag_dxi > MAX_MAG_DXI:
+            mag_dxi = MAX_MAG_DXI
+        dxi = mag_dxi
         if dot(u, d) < 0.0:
             dxi = -dxi
+        if instrument:
+            print("    dxi", dxi)
         # control oscillations
-        if (iter > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
-            factor = mag_dxi / (mag_dxi + abs(last_dxi))
-            dxi *= factor
-            mag_dxi *= factor
+        if (it > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
+            osc_factor = mag_dxi / (mag_dxi + abs(last_dxi))
+            dxi *= osc_factor
+            mag_dxi *= osc_factor
+            if instrument:
+                print("    osc_factor", osc_factor, "dxi", dxi)
+        if (it % 20) == 19:
+            MAX_MAG_DXI *= 0.5
+            if instrument:
+                print("    reduce MAX_MAG_DXI to", MAX_MAG_DXI)
         last_dxi = dxi
         bxi, faceNumber = incrementXiOnLine(location[1], dxi)
         location = (location[0], bxi)
         if faceNumber:
             location, onBoundary = updateCurveLocationToFaceNumber(location, faceNumber, neCount, nLoop)
             if onBoundary and lastOnBoundary:
-                # print("getNearestLocationBetweenCurves:  Found nearest on boundary in", iter + 1, "iterations")
+                # print("getNearestLocationBetweenCurves:  Found nearest on boundary in", it + 1, "iterations")
                 break
             lastOnBoundary = onBoundary
         else:
             lastOnBoundary = False
-        if mag_dxi < xi_tol:
-            # print("getNearestLocationBetweenCurves:  Found nearest in", iter + 1, "iterations, dxi", mag_dxi)
+        if mag_dxi < XI_TOL:
+            if instrument:
+                print("getNearestLocationBetweenCurves:  Found nearest in", it + 1, "iterations, dxi", mag_dxi)
             break
     else:
-        print('getNearestLocationBetweenCurves did not converge:  Reached max iterations', iter + 1,
+        print('getNearestLocationBetweenCurves did not converge:  Reached max iterations', it + 1,
               'closeness in xi', mag_dxi)
     return location, otherLocation, False

@@ -695,7 +695,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         op6x = evaluateCoordinatesOnCurve(loop1_x, loop1_d1, op6, loop=True)
         self.assertTrue(p6intersects)
         self.assertEqual(p6[0], 0)
-        self.assertAlmostEqual(p6[1], 0.14995988970099794, delta=XI_TOL)
+        self.assertAlmostEqual(p6[1], 0.1499585051371609, delta=XI_TOL)
         assertAlmostEqualList(self, p6x, op6x, delta=X_TOL)
 
         p7, op7, p7intersects = getNearestLocationBetweenCurves(
@@ -1040,7 +1040,22 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(tCircumference, 0.589158910546622, delta=X_TOL)
         tLength = getCubicHermiteCurvesLength([tx[n][0] for n in range(elementsCountAlong + 1)],
                                               [td2[n][0] for n in range(elementsCountAlong + 1)])
-        self.assertAlmostEqual(tLength, 0.5004154200664181, delta=X_TOL)
+        self.assertAlmostEqual(tLength, 0.500415420066423, delta=X_TOL)
+
+        curveLocation1, curveX1 = getNearestLocationOnCurve(
+            cx, cd1, targetx=[1.0307591456989758, 0.3452962162336672, -0.05130331144410176], loop=True)
+        self.assertEqual(curveLocation1[0], 3)
+        self.assertAlmostEqual(curveLocation1[1], 0.2627396466353775, delta=XI_TOL)
+
+        aCurveLocation, cCurveLocation, acIntersection = getNearestLocationBetweenCurves(
+            ax, ad1, cx, cd1, aloop, cloop)
+        self.assertFalse(acIntersection)
+        p3x = evaluateCoordinatesOnCurve(ax, ad1, aCurveLocation, aloop)
+        p4x = evaluateCoordinatesOnCurve(cx, cd1, cCurveLocation, cloop)
+        self.assertEqual(aCurveLocation[0], 6)
+        self.assertAlmostEqual(aCurveLocation[1], 0.7955695405965547, delta=XI_TOL)
+        self.assertEqual(cCurveLocation[0], 3)
+        self.assertAlmostEqual(cCurveLocation[1], 0.05064391856701933, delta=XI_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
@@ -1060,8 +1075,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
         # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, p2x]
-        # pd1 = [[0.0, 0.0, 0.0], p2t]
+        # px = [p1x, p2x, p3x, p4x]
+        # pd1 = [[0.0, 0.0, 0.0], p2t, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
         # for n in range(len(px)):
         #     node = nodes.createNode(-1, nodetemplate)
         #     fieldcache.setNode(node)
