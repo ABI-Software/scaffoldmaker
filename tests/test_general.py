@@ -2,7 +2,7 @@ import math
 import unittest
 
 from cmlibs.maths.vectorops import dot, magnitude, normalize, sub
-# from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
@@ -24,7 +24,7 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDeriva
     getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, interpolateCubicHermite
 from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
-# from scaffoldmaker.utils.zinc_utils import generateCurveMesh
+from scaffoldmaker.utils.zinc_utils import generateCurveMesh
 
 from testutils import assertAlmostEqualList
 
@@ -752,7 +752,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         XI_TOL = 1.0E-6
         X_TOL = 1.0E-6
 
-        p1, cp1, p1intersects = surf2.findNearestPositionOnCurve(curve3_x, curve3_d1)
+        p1, cp1, p1intersects = surf2.findNearestPositionOnCurve(curve3_x, curve3_d1, instrument=True)
         self.assertFalse(p1intersects)
         self.assertEqual(cp1[0], 0)
         self.assertAlmostEqual(cp1[1], 0.4432272731754388, delta=XI_TOL)
@@ -779,7 +779,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # fieldmodule = region.getFieldmodule()
         # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         # nodetemplate = nodes.createNodetemplate()
-        # pointCoordinates = create_field_coordinates(fieldmodule, "point_coordinates", managed=True)
+        # pointCoordinates = find_or_create_field_coordinates(fieldmodule, "point_coordinates", managed=True)
         # nodetemplate.defineField(pointCoordinates)
         # fieldcache = fieldmodule.createFieldcache()
         # px = [p1x, cp1x, cp2x]
@@ -1040,7 +1040,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(tCircumference, 0.589158910546622, delta=X_TOL)
         tLength = getCubicHermiteCurvesLength([tx[n][0] for n in range(elementsCountAlong + 1)],
                                               [td2[n][0] for n in range(elementsCountAlong + 1)])
-        self.assertAlmostEqual(tLength, 0.500415420066423, delta=X_TOL)
+        self.assertAlmostEqual(tLength, 0.5004144140988955, delta=X_TOL)
 
         curveLocation1, curveX1 = getNearestLocationOnCurve(
             cx, cd1, targetx=[1.0307591456989758, 0.3452962162336672, -0.05130331144410176], loop=True)

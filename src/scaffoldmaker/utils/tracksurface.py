@@ -13,7 +13,7 @@ from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, evaluateCoordinatesOnCurve, \
-    getCubicHermiteArcLength, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, \
+    getCubicHermiteArcLength, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteCurvatureSimple, \
     incrementXiOnLine, interpolateCubicHermite, \
     interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurves, \
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, \
@@ -38,6 +38,10 @@ class TrackSurfacePosition:
 
     def __str__(self):
         return 'element (' + str(self.e1) + ',' + str(self.e2) + ') xi (' + str(self.xi1) + ',' + str(self.xi2) + ')'
+
+    def offsetXi(self, dxi1, dxi2):
+        self.xi1 += dxi1
+        self.xi2 += dxi2
 
 
 class TrackSurface:
@@ -493,6 +497,27 @@ class TrackSurface:
                 rNormal = mult(n, r_dot_n)
                 rTangent = sub(r, rNormal)
         return (x, d1, d2), n1, n, onBoundary, otherPosition, (ox, od1, od2), onOtherBoundary, r, rNormal, rTangent
+
+    def _getCurvaturesSimple(self, surfacePosition):
+        """
+        Get a simple scalar estimate of the curvature of the surface at the supplied position.
+        :param surfacePosition: Position on the surface.
+        :return: Scalar curvatures in 1 and 2 directions. Equal to 1 / radius of curvature = zero if not curved.
+        """
+        DELTA_XI = 1.0E-5
+        HALF_DELTA_XI = 0.5 * DELTA_XI
+        tmpPosition = copy.copy(surfacePosition)
+        tmpPosition.offsetXi(-HALF_DELTA_XI, 0.0)
+        x1, d1, _ = self.evaluateCoordinates(tmpPosition, derivatives=True)
+        tmpPosition.offsetXi(DELTA_XI, 0.0)
+        x2, d2, _ = self.evaluateCoordinates(tmpPosition, derivatives=True)
+        curvature1 = getCubicHermiteCurvatureSimple(x1, d1, x2, d2, 0.5)
+        tmpPosition.offsetXi(-HALF_DELTA_XI, -HALF_DELTA_XI)
+        x1, d1, _ = self.evaluateCoordinates(tmpPosition, derivatives=True)
+        tmpPosition.offsetXi(0.0, DELTA_XI)
+        x2, d2, _ = self.evaluateCoordinates(tmpPosition, derivatives=True)
+        curvature2 = getCubicHermiteCurvatureSimple(x1, d1, x2, d2, 0.5)
+        return curvature1, curvature2
 
     def findIntersectionPoint(self, otherTrackSurface,
                               startPosition: TrackSurfacePosition,
@@ -1025,7 +1050,7 @@ class TrackSurface:
             r = sub(other_x, x)
             mag_r = magnitude(r)
             if instrument:
-                print("    iter", it, "curve location", curveLocation, "surface position", surfacePosition, "mag_r", mag_r)
+                print("iter", it, "curve location", curveLocation, "surface position", surfacePosition, "mag_r", mag_r)
             if mag_r < X_TOL:
                 # print("TrackSurface.findNearestPositionOnCurve:  Found intersection: ", curveLocation, "on iter", it + 1)
                 return surfacePosition, curveLocation, True
@@ -1038,20 +1063,45 @@ class TrackSurface:
             rNormal = mult(n, r_dot_n)
             rTangent = sub(r, rNormal)
             mag_ri = magnitude(rTangent)
+            mag_ro = magnitude(rNormal)
             # get tangential displacement u
             if onOtherBoundary:
                 u = rTangent
             else:
                 # add out-of-plane slope component
-                slope_factor = 1.0 + r_dot_n / mag_r  # wrong, but more reliable
-                # slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+                if it < 10:
+                    slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+                else:
+                    slope_factor = 1.0 + r_dot_n / mag_r  # wrong, but more reliable
                 if instrument:
                     print("    slope_factor", slope_factor, "rTangent", rTangent)
                 if slope_factor > MAX_SLOPE_FACTOR:
                     slope_factor = MAX_SLOPE_FACTOR
                 u = mult(rTangent, slope_factor)
-            mag_dxi = dxi = magnitude(u) / magnitude(d)
-            dxi = mag_dxi if (mag_dxi < MAX_MAG_DXI) else MAX_MAG_DXI
+            # limit by curvature and distance to other_x
+            nm = curveLocation[0]
+            np = (nm + 1) % nCount
+            curveCurvature = getCubicHermiteCurvatureSimple(cx[nm], cd1[nm], cx[np], cd1[np], curveLocation[1])
+            surfaceCurvature1, surfaceCurvature2 = self._getCurvaturesSimple(surfacePosition)
+            curvature = curveCurvature + surfaceCurvature1 + surfaceCurvature2
+            uNormal = sub(r, u)
+            un = magnitude(uNormal)
+            curvatureFactor = 1.0 / (un * curvature + 1.0)
+            mag_u = magnitude(u) * curvatureFactor
+            # never go further than parallel, based on curvature from initial angle
+            parallelFactor = 1.0
+            if curvature > 0.0:
+                max_u = math.atan(mag_ri / mag_ro) / curvature
+                if mag_u > max_u:
+                    parallelFactor = max_u / mag_u
+                    mag_u = max_u
+            if instrument:
+                print("--> curvature", curvature, "curvature factor", curvatureFactor, "parallel factor",
+                      parallelFactor)
+            mag_dxi = mag_u / magnitude(d)
+            if mag_dxi > MAX_MAG_DXI:
+                mag_dxi = MAX_MAG_DXI
+            dxi = mag_dxi
             if dot(u, d) < 0.0:
                 dxi = -dxi
             if instrument:
@@ -1063,6 +1113,10 @@ class TrackSurface:
                     print("    osc factor", osc_factor)
                 dxi *= osc_factor
                 mag_dxi *= osc_factor
+            if (it % 20) == 19:
+                MAX_MAG_DXI *= 0.5
+                if instrument:
+                    print("    reduce MAX_MAG_DXI to", MAX_MAG_DXI)
             last_dxi = dxi
             if instrument:
                 print("    final dxi", dxi)

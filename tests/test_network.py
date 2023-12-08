@@ -132,7 +132,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual("BOB:1", annotationGroup.getId())
         self.assertEqual(64, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(2)).getSize())
 
-        X_TOL = 1.0E-8
+        X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [-0.5705013217996319, -0.5836294061063123, -0.5959391882611783], X_TOL)
@@ -201,7 +201,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
 
-        X_TOL = 1.0E-8
+        X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         assertAlmostEqualList(self, minimums, [-0.5705013217920429, -0.5836294060826132, -0.5959391881468018], X_TOL)

@@ -1402,8 +1402,10 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
             slope_factor = 1.0
         else:
             # add out-of-plane slope component
-            slope_factor = 1.0 + r_dot_n / mag_r  # GRC wrong, but more reliable
-            # slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+            if it < 10:
+                slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
+            else:
+                slope_factor = 1.0 + r_dot_n / mag_r  # wrong, but more reliable when far away
             if slope_factor > MAX_SLOPE_FACTOR:
                 slope_factor = MAX_SLOPE_FACTOR
             if instrument:
@@ -1423,7 +1425,7 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
         mag_u = magnitude(u) * curvatureFactor
         # never go further than parallel, based on curvature from initial angle
         parallelFactor = 1.0
-        if oCurvature > 0.0:
+        if curvature > 0.0:
             max_u = math.atan(mag_ri / mag_ro) / curvature
             if mag_u > max_u:
                 parallelFactor = max_u / mag_u

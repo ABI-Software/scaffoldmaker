@@ -1122,7 +1122,7 @@ class TubeBifurcationData:
         :param networkSegmentsIn: List of input segments.
         :param networkSegmentsOut: List of output segments.
         :param segmentTubeData: dict NetworkSegment -> SegmentTubeData.
-        :param outerTubeData: Optional reference to outer TubeBifurcationData to inherit trim surfaces and
+        :param outerTubeBifurcationData: Optional reference to outer TubeBifurcationData to inherit trim surfaces and
         cross indexes from.
         """
         self._networkSegmentsIn = networkSegmentsIn
