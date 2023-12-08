@@ -752,7 +752,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         XI_TOL = 1.0E-6
         X_TOL = 1.0E-6
 
-        p1, cp1, p1intersects = surf2.findNearestPositionOnCurve(curve3_x, curve3_d1, instrument=True)
+        p1, cp1, p1intersects = surf2.findNearestPositionOnCurve(curve3_x, curve3_d1)
         self.assertFalse(p1intersects)
         self.assertEqual(cp1[0], 0)
         self.assertAlmostEqual(cp1[1], 0.4432272731754388, delta=XI_TOL)
