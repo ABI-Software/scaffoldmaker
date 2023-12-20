@@ -4,7 +4,7 @@ Utilities for building bifurcating network meshes.
 
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
 from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates
+# from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -14,13 +14,14 @@ from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, computeCubicHermiteDerivativeScaling, \
     DerivativeScalingMode, getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, \
     interpolateCubicHermite, interpolateCubicHermiteDerivative, interpolateCubicHermiteSecondDerivative, \
-    interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine
+    interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, \
+    smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters, \
-    print_node_field_parameters
+from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
+#    print_node_field_parameters
 import math
-import copy
+# import copy
 
 
 def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
@@ -1139,146 +1140,276 @@ class TubeBifurcationData:
         self._aCrossIndexes = None
         self._bCrossIndexes = None
         self._outerTubeBifurcationData = outerTubeBifurcationData
+        self._intersectionCurves = []
+        self._trimSurfaces = []
 
         if outerTubeBifurcationData:
+            self._intersectionCurves = [(None, None, None, False)] * segmentCount
             # inherit trim surfaces
-            self._intersectionCurves = [(None, None, None, False)] * segmentCount  # not calculated
             self._trimSurfaces = outerTubeBifurcationData._trimSurfaces
         else:
-            # get intersection curves between pairs of segments
-            self._intersectionCurves = []
-            for s in range(segmentCount):
-                tubeData1 = self._tubeData[s]
-                tubeTrackSurface1 = tubeData1.getRawTrackSurface()
-                tubeData2 = self._tubeData[(s + 1) % segmentCount]
-                tubeTrackSurface2 = tubeData2.getRawTrackSurface()
-                cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2)
-                self._intersectionCurves.append((cx, cd1, cProportions, loop))
+            # self._calculateTrimSurfacesFromIntersectionCurves()
+            self._calculateTrimSurfacesNew()
 
-            # get trim surfaces
-            self._trimSurfaces = []
-            for s in range(segmentCount):
-                networkSegment = self._networkSegments[s]
-                tubeData = segmentTubeData[networkSegment]
-                pathParameters = tubeData.getPathParameters()
-                path_d1 = pathParameters[1]
-                along = path_d1[-1 if networkSegment in self._networkSegmentsIn else 0]
-                ax, ad1, _, aloop = self._intersectionCurves[s - 1]
-                bx, bd1, _, bloop = self._intersectionCurves[s]
-                trimSurface = None
-                if ax and bx:
-                    d2a = None
-                    cax = None
-                    ha = len(ax) // 2  # halfway index in a
-                    assert ha > 0
-                    if not aloop:
-                        # get coordinates and 2nd derivative halfway along a
-                        assert ha * 2 == len(ax) - 1  # must be an even number of elements
-                        d2am = interpolateCubicHermiteSecondDerivative(ax[ha - 1], ad1[ha - 1], ax[ha], ad1[ha], 1.0)
-                        d2ap = interpolateCubicHermiteSecondDerivative(ax[ha], ad1[ha], ax[ha + 1], ad1[ha + 1], 0.0)
-                        d2a = add(d2am, d2ap)
-                        cax = ax[4]
-                    d2b = None
-                    cbx = None
-                    hb = len(bx) // 2  # halfway index in b
-                    assert hb > 0
-                    if not bloop:
-                        # get coordinates and 2nd derivative halfway along b
-                        assert hb * 2 == len(bx) - 1  # must be an even number of elements
-                        d2bm = interpolateCubicHermiteSecondDerivative(bx[hb - 1], bd1[hb - 1], bx[hb], bd1[hb], 1.0)
-                        d2bp = interpolateCubicHermiteSecondDerivative(bx[hb], bd1[hb], bx[hb + 1], bd1[hb + 1], 0.0)
-                        d2b = add(d2bm, d2bp)
-                        cbx = bx[4]
-                    aNearestLocation = None  # (element index, xi)
-                    bNearestLocation = None  # (element index, xi)
-                    if aloop and bloop:
-                        aNearestLocation, bNearestLocation = \
-                            getNearestLocationBetweenCurves(ax, ad1, bx, bd1, aloop, bloop)[:2]
-                    else:
-                        if aloop:
-                            aNearestLocation = getNearestLocationOnCurve(ax, ad1, cbx, aloop)[0]
-                        if bloop:
-                            bNearestLocation = getNearestLocationOnCurve(bx, bd1, cax, bloop)[0]
-                    if aloop and aNearestLocation:
-                        # get coordinates and 2nd derivative at opposite to nearest location on a
-                        assert ha * 2 == len(ax)  # must be an even number of elements
-                        oa = aNearestLocation[0] - ha  # opposite element index in a
-                        xi = aNearestLocation[1]
-                        d2a = interpolateCubicHermiteSecondDerivative(ax[oa], ad1[oa], ax[oa + 1], ad1[oa + 1], xi)
-                        cax = interpolateCubicHermite(ax[oa], ad1[oa], ax[oa + 1], ad1[oa + 1], xi)
-                    if bloop and bNearestLocation:
-                        # get coordinates and 2nd derivative at opposite to nearest location on b
-                        assert hb * 2 == len(bx)  # must be an even number of elements
-                        ob = bNearestLocation[0] - hb  # opposite element index in b
-                        xi = bNearestLocation[1]
-                        d2b = interpolateCubicHermiteSecondDerivative(bx[ob], bd1[ob], bx[ob + 1], bd1[ob + 1], xi)
-                        cbx = interpolateCubicHermite(bx[ob], bd1[ob], bx[ob + 1], bd1[ob + 1], xi)
-                    if cax and cbx:
-                        d2b = [-s for s in d2b]  # reverse derivative on second point
-                        across = sub(cbx, cax)
-                        sizeAcross = magnitude(across)
-                        normAcross = normalize(across)
-                        up = cross(across, along)
-                        cad2 = normalize(ad1[4])
-                        if dot(up, cad2) < 0.0:
-                            cad2 = [-d for d in cad2]
-                        cbd2 = normalize(bd1[4])
-                        if dot(up, cbd2) < 0.0:
-                            cbd2 = [-d for d in cbd2]
-                        # move coordinates out slightly to guarantee intersection
-                        arcLength = computeCubicHermiteArcLength(cax, d2a, cbx, d2b, rescaleDerivatives=True)
-                        d2a = mult(d2a, arcLength / magnitude(d2a))
-                        # cax = sub(cax, mult(d2a, 0.05))
-                        d2b = mult(d2b, arcLength / magnitude(d2b))
-                        # cbx = add(cbx, mult(d2b, 0.05))
-                        nx = []
-                        nd1 = []
-                        nd2 = []
-                        elementsCount2 = 2
-                        for i in range(elementsCount2 + 1):
-                            delta = (i - elementsCount2 // 2) * 1.2 * sizeAcross
-                            vax = add(cax, mult(cad2, delta))
-                            vbx = add(cbx, mult(cbd2, delta))
-                            deltaAcross = sub(vbx, vax)
-                            normDeltaAcross = normalize(deltaAcross)
-                            use_d2a = d2a
-                            use_d2b = d2b
-                            if dot(normAcross, normDeltaAcross) <= 0.5:
-                                use_d2a = deltaAcross
-                                use_d2b = deltaAcross
-                            arcLength = 1.5 * computeCubicHermiteArcLength(vax, use_d2a, vbx, use_d2b, rescaleDerivatives=True)
-                            vad1 = mult(use_d2a, arcLength / magnitude(use_d2a))
-                            vbd1 = mult(use_d2b, arcLength / magnitude(use_d2b))
-                            vad2 = mult(cad2, sizeAcross)
-                            vbd2 = mult(cbd2, sizeAcross)
-                            # add extensions before / after
-                            nx.append(sub(vax, vad1))
-                            nx.append(vax)
-                            nd1.append(vad1)
-                            nd1.append(vad1)
-                            nd2.append(vad2)
-                            nd2.append(vad2)
-                            nx.append(vbx)
-                            nx.append(add(vbx, vbd1))
-                            nd1.append(vbd1)
-                            nd1.append(vbd1)
-                            nd2.append(vbd2)
-                            nd2.append(vbd2)
-                        # smooth extension d2
-                        for j in [0, 3]:
-                            tx = [nx[i * 4 + j] for i in range(3)]
-                            td2 = smoothCubicHermiteDerivativesLine(tx, [nd2[i * 4 + j] for i in range(3)])
-                            for i in range(3):
-                                nd2[i * 4 + j] = td2[i]
-                        trimSurface = TrackSurface(3, elementsCount2, nx, nd1, nd2)
-                elif ax:
-                    # use previous tube surface as trim surface
-                    trimSurface = self._tubeData[s - 1].getRawTrackSurface()
-                elif bx:
-                    # use next tube surface as trim surface
-                    trimSurface = self._tubeData[s - 2].getRawTrackSurface()
+    def _calculateTrimSurfacesFromIntersectionCurves(self):
+        assert (not self._intersectionCurves) and (not self._trimSurfaces)
+        segmentCount = len(self._networkSegments)
+        assert segmentCount == 3
+
+        # get intersection curves between pairs of segments
+        for s in range(segmentCount):
+            tubeData1 = self._tubeData[s]
+            tubeTrackSurface1 = tubeData1.getRawTrackSurface()
+            tubeData2 = self._tubeData[(s + 1) % segmentCount]
+            tubeTrackSurface2 = tubeData2.getRawTrackSurface()
+            cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2)
+            self._intersectionCurves.append((cx, cd1, cProportions, loop))
+
+        # get trim surfaces
+        for s in range(segmentCount):
+            networkSegment = self._networkSegments[s]
+            tubeData = self._tubeData[s]
+            pathParameters = tubeData.getPathParameters()
+            path_d1 = pathParameters[1]
+            along = path_d1[-1 if networkSegment in self._networkSegmentsIn else 0]
+            ax, ad1, _, aloop = self._intersectionCurves[s - 1]
+            bx, bd1, _, bloop = self._intersectionCurves[s]
+            trimSurface = None
+            if ax and bx:
+                d2a = None
+                cax = None
+                ha = len(ax) // 2  # halfway index in a
+                assert ha > 0
+                if not aloop:
+                    # get coordinates and 2nd derivative halfway along a
+                    assert ha * 2 == len(ax) - 1  # must be an even number of elements
+                    d2am = interpolateCubicHermiteSecondDerivative(ax[ha - 1], ad1[ha - 1], ax[ha], ad1[ha], 1.0)
+                    d2ap = interpolateCubicHermiteSecondDerivative(ax[ha], ad1[ha], ax[ha + 1], ad1[ha + 1], 0.0)
+                    d2a = add(d2am, d2ap)
+                    cax = ax[4]
+                d2b = None
+                cbx = None
+                hb = len(bx) // 2  # halfway index in b
+                assert hb > 0
+                if not bloop:
+                    # get coordinates and 2nd derivative halfway along b
+                    assert hb * 2 == len(bx) - 1  # must be an even number of elements
+                    d2bm = interpolateCubicHermiteSecondDerivative(bx[hb - 1], bd1[hb - 1], bx[hb], bd1[hb], 1.0)
+                    d2bp = interpolateCubicHermiteSecondDerivative(bx[hb], bd1[hb], bx[hb + 1], bd1[hb + 1], 0.0)
+                    d2b = add(d2bm, d2bp)
+                    cbx = bx[4]
+                aNearestLocation = None  # (element index, xi)
+                bNearestLocation = None  # (element index, xi)
+                if aloop and bloop:
+                    aNearestLocation, bNearestLocation = \
+                        getNearestLocationBetweenCurves(ax, ad1, bx, bd1, aloop, bloop)[:2]
+                else:
+                    if aloop:
+                        aNearestLocation = getNearestLocationOnCurve(ax, ad1, cbx, aloop)[0]
+                    if bloop:
+                        bNearestLocation = getNearestLocationOnCurve(bx, bd1, cax, bloop)[0]
+                if aloop and aNearestLocation:
+                    # get coordinates and 2nd derivative at opposite to nearest location on a
+                    assert ha * 2 == len(ax)  # must be an even number of elements
+                    oa = aNearestLocation[0] - ha  # opposite element index in a
+                    xi = aNearestLocation[1]
+                    d2a = interpolateCubicHermiteSecondDerivative(ax[oa], ad1[oa], ax[oa + 1], ad1[oa + 1], xi)
+                    cax = interpolateCubicHermite(ax[oa], ad1[oa], ax[oa + 1], ad1[oa + 1], xi)
+                if bloop and bNearestLocation:
+                    # get coordinates and 2nd derivative at opposite to nearest location on b
+                    assert hb * 2 == len(bx)  # must be an even number of elements
+                    ob = bNearestLocation[0] - hb  # opposite element index in b
+                    xi = bNearestLocation[1]
+                    d2b = interpolateCubicHermiteSecondDerivative(bx[ob], bd1[ob], bx[ob + 1], bd1[ob + 1], xi)
+                    cbx = interpolateCubicHermite(bx[ob], bd1[ob], bx[ob + 1], bd1[ob + 1], xi)
+                if cax and cbx:
+                    d2b = [-s for s in d2b]  # reverse derivative on second point
+                    across = sub(cbx, cax)
+                    sizeAcross = magnitude(across)
+                    normAcross = normalize(across)
+                    up = cross(across, along)
+                    cad2 = normalize(ad1[4])
+                    if dot(up, cad2) < 0.0:
+                        cad2 = [-d for d in cad2]
+                    cbd2 = normalize(bd1[4])
+                    if dot(up, cbd2) < 0.0:
+                        cbd2 = [-d for d in cbd2]
+                    # move coordinates out slightly to guarantee intersection
+                    arcLength = computeCubicHermiteArcLength(cax, d2a, cbx, d2b, rescaleDerivatives=True)
+                    d2a = mult(d2a, arcLength / magnitude(d2a))
+                    # cax = sub(cax, mult(d2a, 0.05))
+                    d2b = mult(d2b, arcLength / magnitude(d2b))
+                    # cbx = add(cbx, mult(d2b, 0.05))
+                    nx = []
+                    nd1 = []
+                    nd2 = []
+                    elementsCount2 = 2
+                    for i in range(elementsCount2 + 1):
+                        delta = (i - elementsCount2 // 2) * 1.2 * sizeAcross
+                        vax = add(cax, mult(cad2, delta))
+                        vbx = add(cbx, mult(cbd2, delta))
+                        deltaAcross = sub(vbx, vax)
+                        normDeltaAcross = normalize(deltaAcross)
+                        use_d2a = d2a
+                        use_d2b = d2b
+                        if dot(normAcross, normDeltaAcross) <= 0.5:
+                            use_d2a = deltaAcross
+                            use_d2b = deltaAcross
+                        arcLength = 1.5 * computeCubicHermiteArcLength(vax, use_d2a, vbx, use_d2b, rescaleDerivatives=True)
+                        vad1 = mult(use_d2a, arcLength / magnitude(use_d2a))
+                        vbd1 = mult(use_d2b, arcLength / magnitude(use_d2b))
+                        vad2 = mult(cad2, sizeAcross)
+                        vbd2 = mult(cbd2, sizeAcross)
+                        # add extensions before / after
+                        nx.append(sub(vax, vad1))
+                        nx.append(vax)
+                        nd1.append(vad1)
+                        nd1.append(vad1)
+                        nd2.append(vad2)
+                        nd2.append(vad2)
+                        nx.append(vbx)
+                        nx.append(add(vbx, vbd1))
+                        nd1.append(vbd1)
+                        nd1.append(vbd1)
+                        nd2.append(vbd2)
+                        nd2.append(vbd2)
+                    # smooth extension d2
+                    for j in [0, 3]:
+                        tx = [nx[i * 4 + j] for i in range(3)]
+                        td2 = smoothCubicHermiteDerivativesLine(tx, [nd2[i * 4 + j] for i in range(3)])
+                        for i in range(3):
+                            nd2[i * 4 + j] = td2[i]
+                    trimSurface = TrackSurface(3, elementsCount2, nx, nd1, nd2)
+            elif ax:
+                # use previous tube surface as trim surface
+                trimSurface = self._tubeData[s - 1].getRawTrackSurface()
+            elif bx:
+                # use next tube surface as trim surface
+                trimSurface = self._tubeData[s - 2].getRawTrackSurface()
+            self._trimSurfaces.append(trimSurface)
+
+    def _calculateTrimSurfacesNew(self):
+        assert not self._trimSurfaces
+        segmentCount = len(self._networkSegments)
+        assert segmentCount == 3
+
+        # get intersection curves between pairs of segments
+        for s in range(segmentCount):
+            self._intersectionCurves.append(None)
+            # tubeData1 = self._tubeData[s]
+            # tubeTrackSurface1 = tubeData1.getRawTrackSurface()
+            # tubeData2 = self._tubeData[(s + 1) % segmentCount]
+            # tubeTrackSurface2 = tubeData2.getRawTrackSurface()
+            # cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2)
+            # self._intersectionCurves.append((cx, cd1, cProportions, loop))
+
+        dirEnd = []
+        for s in range(segmentCount):
+            tubeData = self._tubeData[s]
+            pathParameters = tubeData.getPathParameters()
+            endIndex = -1 if self._segmentsIn[s] else 0
+            dirEnd.append(normalize(pathParameters[1][endIndex]))
+
+        for s in range(segmentCount):
+            networkSegment = self._networkSegments[s]
+            tubeData = self._tubeData[s]
+            pathParameters = tubeData.getPathParameters()
+            endIndex = -1 if self._segmentsIn[s] else 0
+            # d1End = pathParameters[1][endIndex]
+            d2End = pathParameters[2][endIndex]
+            d3End = pathParameters[4][endIndex]
+            # get index of other direction most normal to this segment direction
+            sos = ((s - 1), (s - 2)) if (abs(dot(dirEnd[s], dirEnd[s - 1])) < abs(dot(dirEnd[s], dirEnd[s - 2]))) \
+                else ((s - 2), (s - 1))
+            xEnd = pathParameters[0][endIndex]
+            endEllipseNormal = normalize(cross(d2End, d3End))
+            # get components of so1 direction aligned with d2, d3 and compute initial phase
+            oDirEnd = dirEnd[sos[0]]
+            if self._segmentsIn[sos[0]]:
+                oDirEnd = [-d for d in oDirEnd]
+            dx = dot(oDirEnd, d2End)
+            dy = dot(oDirEnd, d3End)
+            phaseAngle = math.atan2(dy, dx)
+            # if s == 0:
+            #     print("oDirEnd", oDirEnd, "d2", dx, "d3", dy, "phaseAngle", math.degrees(phaseAngle))
+            # GRC Future: get exact phase angle with non-linear optimisation!
+            elementsCountAround = 6
+            tubeCoordinates = getPathRawTubeCoordinates(
+                pathParameters, elementsCountAround, radius=1.0, phaseAngle=phaseAngle)
+            px, pd1, pd2, pd12 = tubeCoordinates
+            nx = []
+            nd1 = []
+            nd2 = []
+            nd12 = []
+            for i in range(len(px)):
+                nx += px[i]
+                nd1 += pd1[i]
+                nd2 += pd2[i]
+                nd12 += pd12[i]
+            tmpTrackSurface = TrackSurface(len(px[0]), len(px) - 1, nx, nd1, nd2, nd12, loop1=True)
+            pointsCountAlong = len(pathParameters[0])
+            # get coordinates and directions of intersection points of longitudinal lines and other track surfaces
+            rx = []
+            rd1 = []
+            trim = False
+            # if s == 0:
+            #     print("sos", (sos[0] % 3) + 1, (sos[1] % 3) + 1)
+            trimIndex = 0
+            for n1 in range(elementsCountAround):
+                proportion1 = n1 / elementsCountAround
+                cx = [tubeCoordinates[0][n2][n1] for n2 in range(pointsCountAlong)]
+                cd2 = [tubeCoordinates[2][n2][n1] for n2 in range(pointsCountAlong)]
+                ox = x = tubeCoordinates[0][endIndex][n1]
+                d1 = tubeCoordinates[1][endIndex][n1]
+                maxProportionFromEnd = 0.0
+                for so in sos:
+                    otherTrackSurface = self._tubeData[so].getRawTrackSurface()
+                    otherSurfacePosition, curveLocation, isIntersection = \
+                        otherTrackSurface.findNearestPositionOnCurve(cx, cd2, loop=False, sampleEnds=False)
+                    if isIntersection:
+                        proportion2 = (curveLocation[0] + curveLocation[1]) / (pointsCountAlong - 1)
+                        proportionFromEnd = abs(proportion2 - (1.0 if self._segmentsIn[s] else 0.0))
+                        if proportionFromEnd > maxProportionFromEnd:
+                            trim = True
+                            trimIndex = (so % 3) + 1
+                            surfacePosition = tmpTrackSurface.createPositionProportion(proportion1, proportion2)
+                            x, d1, d2 = tmpTrackSurface.evaluateCoordinates(surfacePosition, derivatives=True)
+                            n = cross(d1, d2)
+                            ox, od1, od2 = otherTrackSurface.evaluateCoordinates(
+                                otherSurfacePosition, derivatives=True)
+                            on = cross(od1, od2)
+                            d1 = cross(n, on)
+                            maxProportionFromEnd = proportionFromEnd
+                # if s == 0:
+                #     print("    ", n1, "trim", trimIndex, "max", maxProportionFromEnd, "x", x, "d1", d1, sub(ox, x))
+                # ensure d1 directions go around in same direction as loop
+                if dot(endEllipseNormal, cross(sub(x, xEnd), d1)) < 0.0:
+                    d1 = [-d for d in d1]
+                rx.append(x)
+                rd1.append(d1)
+            if trim:
+                rd1 = smoothCubicHermiteDerivativesLoop(rx, rd1, fixAllDirections=True,
+                                                        magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                rd2 = [sub(rx[n1], xEnd) for n1 in range(elementsCountAround)]
+                rd12 = smoothCurveSideCrossDerivatives(rx, rd1, [rd2], loop=True)[0]
+                nx = []
+                nd1 = []
+                nd2 = []
+                nd12 = []
+                for factor in (0.5, 1.5):
+                    for n1 in range(elementsCountAround):
+                        d2 = sub(rx[n1], xEnd)
+                        x = add(xEnd, mult(d2, factor))
+                        d1 = mult(rd1[n1], factor)
+                        d12 = mult(rd12[n1], factor)
+                        nx.append(x)
+                        nd1.append(d1)
+                        nd2.append(d2)
+                        nd12.append(d12)
+                trimSurface = TrackSurface(elementsCountAround, 1, nx, nd1, nd2, nd12, loop1=True)
                 self._trimSurfaces.append(trimSurface)
-
+            else:
+                self._trimSurfaces.append(None)
 
     def getIntersectionCurve(self, s):
         """

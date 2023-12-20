@@ -35,7 +35,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count around": 8,
             "Elements count through wall": 1,
             "Target element aspect ratio": 2.0,
-            "Serendipity": True
+            "Serendipity": True,
+            "Show trim surfaces": False
         }
         return options
 
@@ -46,7 +47,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count around",
             "Elements count through wall",
             "Target element aspect ratio",
-            "Serendipity"
+            "Serendipity",
+            "Show trim surfaces"
         ]
 
     @classmethod
@@ -120,13 +122,10 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
 
         networkMesh = networkLayout.getConstructionObject()
 
-        try:
-            nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
-                networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-                elementsCountAround, targetElementAspectRatio, elementsCountThroughWall,
-                layoutAnnotationGroups, serendipity=serendipity)
-        except Exception as e:
-            print(e, "\nException occurred while generating tube network: Please edit network layout")
-            return [], None
+        nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
+            networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
+            elementsCountAround, targetElementAspectRatio, elementsCountThroughWall,
+            layoutAnnotationGroups, serendipity=serendipity,
+            showTrimSurfaces=options["Show trim surfaces"])
 
         return annotationGroups, None

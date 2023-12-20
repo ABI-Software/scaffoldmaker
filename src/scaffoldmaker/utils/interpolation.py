@@ -221,7 +221,6 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     :param xi: Position in curve, nominally in [0.0, 1.0].
     :return: Scalar curvature (1/R) of the 1-D cubic Hermite curve.
     """
-
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     mag_tangent = magnitude(tangent)
     if mag_tangent > 0.0:
@@ -950,7 +949,7 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
     assert len(nd1) == elementsCount, 'smoothCubicHermiteDerivativesLoop.  Mismatched number of derivatives'
     arithmeticMeanMagnitude = magnitudeScalingMode is DerivativeScalingMode.ARITHMETIC_MEAN
     assert arithmeticMeanMagnitude or (magnitudeScalingMode is DerivativeScalingMode.HARMONIC_MEAN), \
-        'smoothCubicHermiteDerivativesLine. Invalid magnitude scaling mode'
+        'smoothCubicHermiteDerivativesLoop. Invalid magnitude scaling mode'
     md1 = copy.copy(nd1)
     componentsCount = len(nx[0])
     componentRange = range(componentsCount)
@@ -997,7 +996,7 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
         for c in componentRange:
             cmax = max(cmax, math.fabs(md1[n][c] - lastmd1[n][c]))
     closeness = cmax / dtol
-    print('smoothCubicHermiteDerivativesLoop max iters reached:', iter + 1, ', cmax = ', round(closeness,2) , 'x tolerance')
+    print('smoothCubicHermiteDerivativesLoop max iters reached:', iter + 1, ', cmax = ', round(closeness, 2), '* TOL')
     return md1
 
 def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):

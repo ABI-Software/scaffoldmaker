@@ -406,7 +406,7 @@ class NetworkMesh:
                 elementIdentifier += 1
 
 
-def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0):
+def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0, phaseAngle=0.0):
     """
     Generate coordinates around and along a tube in parametric space around the path parameters,
     at xi2^2 + xi3^2 = radius at the same density as path parameters.
@@ -416,6 +416,7 @@ def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0):
     Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
     :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
     :param radius: Radius of tube in xi space.
+    :param phaseAngle: Starting angle around ellipse, where 0.0 is at d2, pi/2 is at d3.
     :return: px[][], pd1[][], pd2[][], pd12[][] with first index in range(pointsCountAlong),
     second inner index in range(elementsCountAround)
     """
@@ -429,8 +430,9 @@ def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0):
     aroundScale = 2.0 * math.pi / ellipsePointCount
     sxi = []
     sdxi = []
+    angleBetweenPoints = 2.0 * math.pi / ellipsePointCount
     for q in range(ellipsePointCount):
-        theta = (q / ellipsePointCount) * 2.0 * math.pi
+        theta = phaseAngle + q * angleBetweenPoints
         xi2 = radius * math.cos(theta)
         xi3 = radius * math.sin(theta)
         sxi.append([xi2, xi3])
