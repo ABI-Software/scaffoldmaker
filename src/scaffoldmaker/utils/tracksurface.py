@@ -543,6 +543,7 @@ class TrackSurface:
         position = copy.deepcopy(startPosition)
         otherPosition = copy.deepcopy(otherStartPosition)
         MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
+        MINIMUM_DXI = 1.0E-10
         X_TOL = 1.0E-6 * max(self._xRange)
         MAG_JOLT_DXI = 0.05  # magnitude of xi change when jolting out of local minimum
         mag_dxi = 0.0
@@ -693,14 +694,17 @@ class TrackSurface:
                 print("    final dxi", dxi1, dxi2)
             dxi = [dxi1, dxi2]
             mag_dxi = magnitude(dxi)
-            # if mag_dxi < XI_TOL:
-            #     lowDxiCount += 1
-            # else:
-            #     lowDxiCount = 0
+            if (it >= 50) and (mag_dxi < MINIMUM_DXI):
+                if instrument:
+                    print("TrackSurface.findIntersectionPoint low increment after", it + 1, "iterations, dxi", dxi)
+                break
             stickyBoundaryCount -= 1
         else:
             print('TrackSurface.findIntersectionPoint failed:  Reached max iterations', it + 1,
                   'last increment', mag_dxi)
+            # if not instrument:
+            #     return self.findIntersectionPoint(
+            #         otherTrackSurface, startPosition, otherStartPosition, instrument=True)
         return None, None, None, None, 0
 
     def findIntersectionCurve(self, otherTrackSurface, startPosition: TrackSurfacePosition = None,
@@ -1032,7 +1036,7 @@ class TrackSurface:
             adxi = [adxi1, adxi2]
             mag_adxi = magnitude(adxi)
             if instrument:
-                print("    final dxi", dxi)
+                print("    final dxi", adxi)
             if mag_adxi < XI_TOL:
                 if instrument:
                     print("TrackSurface.findNearestPosition:  converged in", it + 1, "iterations, dxi", mag_adxi)

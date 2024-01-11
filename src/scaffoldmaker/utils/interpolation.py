@@ -1129,7 +1129,7 @@ def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_
     :param elementsCount: Number of elements in curve.
     :param loop: True if curve loops back to start.
     :param MAX_MAG_DXI: Maximum magnitude of dxi to keep increments reasonable for a cubic curve.
-    :return: Advanced location, onBoundary (0/1=xi_0/2=xi_1)
+    :return: Advanced location, actual dxi, onBoundary (0/1=xi_0/2=xi_1)
     """
     startProportion = (startLocation[0] + startLocation[1]) / elementsCount
     adxi = dxi
@@ -1151,10 +1151,11 @@ def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_
         elif proportion > 1.0:
             proportion = 1.0
             onBoundary = 2
+        adxi = (proportion - startProportion) * elementsCount
     scaledProportion = proportion * elementsCount
     elementIndex = int(scaledProportion)
     location = (elementIndex, scaledProportion - elementIndex)
-    return location, onBoundary
+    return location, adxi, onBoundary
 
 
 def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
@@ -1184,7 +1185,7 @@ def isLocationOnCurveBoundary(location, elementsCount):
     :param elementsCount: Number of elements in curve.
     :return: True if on boundary.
     """
-    XI_TOL = 1.0E-7
+    XI_TOL = 1.0E-8
     e = location[0]
     xi = location[1]
     return ((e == 0) and (xi < XI_TOL)) or ((e == (elementsCount - 1)) and (xi > (1.0 - XI_TOL)))
@@ -1274,11 +1275,11 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
     XI_TOL = 1.0E-7
     xMin, xMax = getCoordinatesRange(nx)
     xRange = [xMax[c] - xMin[c] for c in range(len(xMin))]
-    last_dxi = None
-    mag_last_dxi = None
-    lastOnBoundary = False
+    MIN_CURVATURE = 0.1 / max(xRange)  # minimum to consider
+    MAX_CURVATURE_FACTOR = 100.0
     x = None
-    for it in range(100):
+    MAX_ITERS = 100
+    for it in range(MAX_ITERS):
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, loop, derivative=True)
         mag_d = magnitude(d)
         if mag_d == 0.0:
@@ -1287,47 +1288,49 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
         deltax = sub(targetx, x)
         norm_d = normalize(d)
         ut = dot(deltax, norm_d)  # tangential deltax, scalar
-        # limit by curvature and distance to targetx
+        dxi = ut / mag_d
+        if instrument:
+            print("iter", it + 1, "location", location, "deltax", deltax, "displacement", ut)
+            print("    initial dxi", dxi)
         nm = location[0]
         np = (nm + 1) % nodesCount
-        curvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])[0]
-        uNormal = sub(deltax, mult(norm_d, ut))
-        un = magnitude(uNormal)
-        curvatureFactor = 1.0 / (un * curvature + 1.0)
-        ut = ut * curvatureFactor
+        curvature, tangent, dTangent = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])
+        if curvature > MIN_CURVATURE:
+            # get non-linear increment using radius of curvature
+            radius = 1.0 / curvature
+            jVector = normalize(tangent)
+            if dxi < 0.0:
+                jVector = [-d for d in jVector]
+            iVector = normalize(cross(tangent, cross(tangent, dTangent)))
+            centre = sub(x, mult(iVector, radius))
+            delta = sub(targetx, centre)
+            dj = dot(delta, jVector)
+            di = dot(delta, iVector)
+            angle = math.atan2(dj, di)
+            if (it < 10) and (abs(angle) > 0.1):  # radians ~ 6 degrees
+                arcLength = radius * angle
+                originalLength = abs(ut)
+                curvatureFactor = arcLength / originalLength
+            else:
+                curvatureFactor = radius / di
+                if curvatureFactor > MAX_CURVATURE_FACTOR:
+                    curvatureFactor = MAX_CURVATURE_FACTOR
+            dxi *= curvatureFactor
+            if instrument:
+                print("    curvature", curvature, "curvature factor", curvatureFactor, "angle",
+                      math.degrees(angle), "degrees")
+                print("    centre", centre, "delta", delta)
+                print("    iVector", iVector, "di", di)
+                print("    jVector", jVector, "dj", dj)
+                print("    curved dxi", dxi)
+        location, adxi, onBoundary = advanceCurveLocation(location, dxi, elementsCount, loop, MAX_MAG_DXI)
+        mag_adxi = abs(adxi)
         if instrument:
-            print("--> curvature", curvature, "factor", curvatureFactor)
-        dxi = ut / mag_d
-        mag_dxi = abs(dxi)
-        if instrument:
-            print("iter", it, "location", location, "dxi", dxi, "deltax", deltax, "displacement", ut)
-        # control oscillations
-        if (it > 0) and ((dxi * last_dxi) < -0.5 * (last_dxi * last_dxi)):
-            osc_factor = mag_dxi / (mag_dxi + mag_last_dxi)
-            dxi *= osc_factor
-            mag_dxi *= osc_factor
+            print("    final dxi", adxi)
+        if mag_adxi < XI_TOL:
             if instrument:
-                print("    osc_factor", osc_factor, "dxi", dxi)
-        if (it % 20) == 19:
-            MAX_MAG_DXI *= 0.5
-            if instrument:
-                print("    reduce MAX_MAG_DXI to", MAX_MAG_DXI)
-        if mag_dxi > MAX_MAG_DXI:
-            dxi *= MAX_MAG_DXI / mag_dxi
-            mag_dxi = MAX_MAG_DXI
-        last_dxi = dxi
-        mag_last_dxi = mag_dxi
-        # limit to line element bounds
-        location, onBoundary = advanceCurveLocation(location, dxi, elementsCount, loop, MAX_MAG_DXI)
-        if mag_dxi < XI_TOL:
-            if instrument:
-                print("getNearestLocationOnCurve:  Converged in", it + 1, "iterations, mag_dxi", mag_dxi)
+                print("getNearestLocationOnCurve:  Converged in", it + 1, "iterations, dxi", mag_adxi)
             break
-        if onBoundary and lastOnBoundary:
-            if instrument:
-                print("getNearestLocationOnCurve:  Converged on boundary in", it + 1, "iterations")
-            break
-        lastOnBoundary = onBoundary
     else:
         print("getNearestLocationOnCurve:  Reached max iterations", it + 1, "closeness in xi", mag_dxi)
     return location, x
