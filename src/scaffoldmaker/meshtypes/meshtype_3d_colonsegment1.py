@@ -1283,8 +1283,9 @@ def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
         # Calculate curvature along elements around
         prevIdx = n - 1 if (n != 0) else len(xInner) - 1
         nextIdx = n + 1 if (n < (len(xInner) - 1)) else 0
-        kappam = interp.getCubicHermiteCurvatureSimple(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], 1.0)
-        kappap = interp.getCubicHermiteCurvatureSimple(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], 0.0)
+        kappam = interp.getCubicHermiteCurvatureSimple(xInner[prevIdx], d1Inner[prevIdx], xInner[n], d1Inner[n], 1.0)[0]
+        kappap = interp.getCubicHermiteCurvatureSimple(xInner[n], d1Inner[n], xInner[nextIdx], d1Inner[nextIdx], 0.0)[0]
+        curvatureAround = 0.0
         if not transitElementList[n] and not transitElementList[(n - 1) % (len(xInner))]:
             curvatureAround = 0.5 * (kappam + kappap)
         elif transitElementList[n]:

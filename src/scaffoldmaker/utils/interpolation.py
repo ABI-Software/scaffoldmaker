@@ -219,7 +219,7 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
     :param d1, d2: Derivatives w.r.t. xi at xi = 0.0 and xi = 1.0, respectively.
     :param xi: Position in curve, nominally in [0.0, 1.0].
-    :return: Scalar curvature (1/R) of the 1-D cubic Hermite curve.
+    :return: Scalar curvature (1/R) of the 1-D cubic Hermite curve, tangent, dTangent
     """
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     mag_tangent = magnitude(tangent)
@@ -229,7 +229,8 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
         curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
     else:
         curvature = 0.0
-    return curvature
+        dTangent = [0.0, 0.0, 0.0]
+    return curvature, tangent, dTangent
 
 def interpolateHermiteLagrange(v1, d1, v2, xi):
     """
@@ -1289,7 +1290,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
         # limit by curvature and distance to targetx
         nm = location[0]
         np = (nm + 1) % nodesCount
-        curvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])
+        curvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])[0]
         uNormal = sub(deltax, mult(norm_d, ut))
         un = magnitude(uNormal)
         curvatureFactor = 1.0 / (un * curvature + 1.0)
@@ -1413,10 +1414,10 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
         # limit by curvature and distance to other_x
         nm = location[0]
         np = (nm + 1) % nnCount
-        nCurvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])
+        nCurvature = getCubicHermiteCurvatureSimple(nx[nm], nd1[nm], nx[np], nd1[np], location[1])[0]
         om = otherLocation[0]
         op = (om + 1) % onCount
-        oCurvature = getCubicHermiteCurvatureSimple(ox[om], od1[om], ox[op], od1[op], otherLocation[1])
+        oCurvature = getCubicHermiteCurvatureSimple(ox[om], od1[om], ox[op], od1[op], otherLocation[1])[0]
         curvature = nCurvature + oCurvature
         uNormal = sub(r, u)
         un = magnitude(uNormal)
