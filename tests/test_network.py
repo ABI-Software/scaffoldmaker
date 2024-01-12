@@ -88,8 +88,11 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(5, len(settings))
         self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(2.0, settings["Target element aspect ratio"])
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertTrue(settings["Serendipity"])
+        settings["Target element density along longest segment"] = 7.5
+        MeshType_2d_tubenetwork1.checkOptions(settings)
+        self.assertEqual(7.5, settings["Target element density along longest segment"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -131,7 +134,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(5, len(settings))
         self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(2.0, settings["Target element aspect ratio"])
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertTrue(settings["Serendipity"])
 
         context = Context("Test")
@@ -202,7 +205,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(6, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual(2.0, settings["Target element aspect ratio"])
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertTrue(settings["Serendipity"])
         settings["Elements count through wall"] = 2
 
@@ -285,7 +288,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Loop")
         settings = scaffoldPackage.getScaffoldSettings()
-        settings["Target element aspect ratio"] = 5.5
+        settings["Target element density along longest segment"] = 8.0
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -344,7 +347,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         # change structure to make two segments but use regular loop parameters:
         networkLayoutSettings["Structure"] = "1-2-3-4-5-6-7,7-8-1"
-        settings["Target element aspect ratio"] = 5.0
+        settings["Target element density along longest segment"] = 7.0
 
         context = Context("Test")
         region = context.getDefaultRegion()

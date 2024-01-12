@@ -31,7 +31,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
             "Elements count around": 8,
-            "Target element aspect ratio": 2.0,
+            "Target element density along longest segment": 4.0,
             "Serendipity": True,
             "Show trim surfaces": False
         }
@@ -42,7 +42,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         return [
             "Network layout",
             "Elements count around",
-            "Target element aspect ratio",
+            "Target element density along longest segment",
             "Serendipity",
             "Show trim surfaces"
         ]
@@ -82,8 +82,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout")
         elementsCountAround = options["Elements count around"]
         options["Elements count around"] = max(4, elementsCountAround + (elementsCountAround % 2))
-        if options["Target element aspect ratio"] < 0.01:
-            options["Target element aspect ratio"] = 0.01
+        if options["Target element density along longest segment"] < 1.0:
+            options["Target element density along longest segment"] = 1.0
         dependentChanges = False
         return dependentChanges
 
@@ -97,7 +97,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         """
         elementsCountAround = options["Elements count around"]
         networkLayout = options["Network layout"]
-        targetElementAspectRatio = options["Target element aspect ratio"]
+        targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
         serendipity = options["Serendipity"]
 
         layoutRegion = region.createRegion()
@@ -115,7 +115,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
 
         nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
             networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementAspectRatio, 1, layoutAnnotationGroups, serendipity=serendipity,
-            showTrimSurfaces=options["Show trim surfaces"])
+            elementsCountAround, targetElementDensityAlongLongestSegment, 1,
+            layoutAnnotationGroups, serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
 
         return annotationGroups, None

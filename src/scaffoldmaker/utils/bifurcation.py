@@ -1017,6 +1017,7 @@ class SegmentTubeData:
 
     def __init__(self, pathParameters):
         self._pathParameters = pathParameters
+        self._segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
         self._rawTubeCoordinates = None
         self._rawTrackSurface = None
         self._sampledTubeCoordinates = None
@@ -1025,6 +1026,9 @@ class SegmentTubeData:
 
     def getPathParameters(self):
         return self._pathParameters
+
+    def getSegmentLength(self):
+        return self._segmentLength
 
     def getRawTrackSurface(self):
         """
@@ -1598,7 +1602,7 @@ class TubeBifurcationData:
 
 
 def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-                                elementsCountAround: int, targetElementAspectRatio: float,
+                                elementsCountAround: int, targetElementDensityAlongLongestSegment: float,
                                 elementsCountThroughWall: int, layoutAnnotationGroups: list=[], serendipity=False,
                                 showIntersectionCurves=False, showTrimSurfaces=False):
     """
@@ -1609,7 +1613,8 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     :param nodeIdentifier: First node identifier to use.
     :param elementIdentifier: First 2D element identifier to use.
     :param elementsCountAround: Number of elements around tube.
-    :param targetElementAspectRatio: Target ratio of element size along over around. Approximately satisfied.
+    :param targetElementDensityAlongLongestSegment: Target number of elements along the longest segment, used to
+    calculate target element length along all segments of network.
     :param elementsCountThroughWall: Number of elements through wall if inner coordinates provided to make 3D elements,
     otherwise 1.
     :param layoutAnnotationGroups: Optional list of annotations defined on layout mesh for networkMesh.
@@ -1652,6 +1657,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     # map from NetworkSegment to SegmentTubeData
     outerSegmentTubeData = {}
     innerSegmentTubeData = {} if layoutInnerCoordinates else None
+    longestSegmentLength = 0.0
     for networkSegment in networkSegments:
         pathParameters = get_nodeset_path_ordered_field_parameters(
             layoutNodes, layoutCoordinates, valueLabels,
@@ -1659,6 +1665,9 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
         outerSegmentTubeData[networkSegment] = tubeData = SegmentTubeData(pathParameters)
         px, pd1, pd2, pd12 = getPathRawTubeCoordinates(pathParameters, elementsCountAround)
         tubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
+        segmentLength = tubeData.getSegmentLength()
+        if segmentLength > longestSegmentLength:
+            longestSegmentLength = segmentLength
         if layoutInnerCoordinates:
             innerPathParameters = get_nodeset_path_ordered_field_parameters(
                 layoutNodes, layoutInnerCoordinates, valueLabels,
@@ -1671,6 +1680,10 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 tubeData.addAnnotationMeshGroup(annotationMeshGroup)
                 if layoutInnerCoordinates:
                     innerTubeData.addAnnotationMeshGroup(annotationMeshGroup)
+    if longestSegmentLength > 0.0:
+        targetElementLength = longestSegmentLength / targetElementDensityAlongLongestSegment
+    else:
+        targetElementLength = 1.0
 
     # map from NetworkNodes to bifurcation data, resample tube coordinates to fit bifurcation
     outerNodeTubeBifurcationData = {}
@@ -1714,15 +1727,15 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
             if endTubeBifurcationData:
                 endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
             if segmentTubeData is outerSegmentTubeData:
-                pathParameters = tubeData.getPathParameters()
-                segmentLength = getCubicHermiteCurvesLength(pathParameters[0], pathParameters[1])
-                ringCount = len(rawTubeCoordinates[0])
-                sumRingLength = 0.0
-                for n in range(ringCount):
-                    ringLength = getCubicHermiteCurvesLength(rawTubeCoordinates[0][n], rawTubeCoordinates[1][n], loop=True)
-                    sumRingLength += ringLength
-                meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
-                targetElementLength = targetElementAspectRatio * meanElementLengthAround
+                segmentLength = tubeData.getSegmentLength()
+                # Previous code setting number of elements along to satisfy targetElementAspectRatio
+                # ringCount = len(rawTubeCoordinates[0])
+                # sumRingLength = 0.0
+                # for n in range(ringCount):
+                #     ringLength = getCubicHermiteCurvesLength(rawTubeCoordinates[0][n], rawTubeCoordinates[1][n], loop=True)
+                #     sumRingLength += ringLength
+                # meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
+                # targetElementLength = targetElementAspectRatio * meanElementLengthAround
                 elementsCountAlong = max(1, math.ceil(segmentLength / targetElementLength))
                 loop = (len(startSegmentNode.getInSegments()) == 1) and \
                        (startSegmentNode.getInSegments()[0] is networkSegment) and \

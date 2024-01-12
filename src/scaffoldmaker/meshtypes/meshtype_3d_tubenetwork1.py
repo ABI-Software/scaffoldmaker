@@ -34,7 +34,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                                               defaultParameterSetName=parameterSetName),
             "Elements count around": 8,
             "Elements count through wall": 1,
-            "Target element aspect ratio": 2.0,
+            "Target element density along longest segment": 4.0,
             "Serendipity": True,
             "Show trim surfaces": False
         }
@@ -46,7 +46,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Network layout",
             "Elements count around",
             "Elements count through wall",
-            "Target element aspect ratio",
+            "Target element density along longest segment",
             "Serendipity",
             "Show trim surfaces"
         ]
@@ -90,8 +90,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         options["Elements count around"] = max(4, elementsCountAround + (elementsCountAround % 2))
         if options["Elements count through wall"] < 1:
             options["Elements count through wall"] = 1
-        if options["Target element aspect ratio"] < 0.01:
-            options["Target element aspect ratio"] = 0.01
+        if options["Target element density along longest segment"] < 1.0:
+            options["Target element density along longest segment"] = 1.0
         dependentChanges = False
         return dependentChanges
 
@@ -106,7 +106,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         elementsCountAround = options["Elements count around"]
         elementsCountThroughWall = options["Elements count through wall"]
         networkLayout = options["Network layout"]
-        targetElementAspectRatio = options["Target element aspect ratio"]
+        targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
         serendipity = options["Serendipity"]
 
         layoutRegion = region.createRegion()
@@ -124,8 +124,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
 
         nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
             networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementAspectRatio, elementsCountThroughWall,
-            layoutAnnotationGroups, serendipity=serendipity,
-            showTrimSurfaces=options["Show trim surfaces"])
+            elementsCountAround, targetElementDensityAlongLongestSegment, elementsCountThroughWall,
+            layoutAnnotationGroups, serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
 
         return annotationGroups, None
