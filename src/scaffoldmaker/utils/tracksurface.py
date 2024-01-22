@@ -85,6 +85,12 @@ class TrackSurface:
                     self._xMax[c] = s
         self._xRange = [self._xMax[c] - self._xMin[c] for c in range(3)]
 
+    def getElementsCount1(self):
+        return self._elementsCount1
+
+    def getElementsCount2(self):
+        return self._elementsCount2
+
     def createMirrorX(self):
         """
         Mirror track surface about x-axis by negating all x coordinates
@@ -1401,7 +1407,6 @@ class TrackSurface:
                         mesh_group.addElement(element)
                     elementIdentifier += 1
 
-            fieldmodule.defineAllFaces()
             if group:
                 # ensure all lines are in group
                 group.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
