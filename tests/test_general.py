@@ -1595,12 +1595,13 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         segmentTubeData = []
         trackSurfaces = []
         networkSegments = networkMesh.getNetworkSegments()
+        elementsCountAround = 8
         for networkSegment in networkSegments:
             pathParameters = get_nodeset_path_ordered_field_parameters(
                 nodes, coordinates, valueLabels, networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
-            tubeData = SegmentTubeData(pathParameters)
+            tubeData = SegmentTubeData(pathParameters, elementsCountAround)
             segmentTubeData.append(tubeData)
-            rawTubeData = getPathRawTubeCoordinates(pathParameters, elementsCountAround=8)
+            rawTubeData = getPathRawTubeCoordinates(pathParameters, elementsCountAround=elementsCountAround)
             tubeData.setRawTubeCoordinates(rawTubeData)
             trackSurfaces.append(tubeData.getRawTrackSurface())
 

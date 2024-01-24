@@ -86,8 +86,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(5, len(settings))
+        self.assertEqual(6, len(settings))
         self.assertEqual(8, settings["Elements count around"])
+        self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertTrue(settings["Serendipity"])
         settings["Target element density along longest segment"] = 7.5
@@ -132,8 +133,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(5, len(settings))
+        self.assertEqual(6, len(settings))
         self.assertEqual(8, settings["Elements count around"])
+        self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertTrue(settings["Serendipity"])
 
@@ -202,9 +204,10 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(6, len(settings))
+        self.assertEqual(7, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual(1, settings["Elements count through wall"])
+        self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertTrue(settings["Serendipity"])
         settings["Elements count through wall"] = 2

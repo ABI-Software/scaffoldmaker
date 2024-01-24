@@ -31,6 +31,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
             "Elements count around": 8,
+            "Annotation elements counts around": [0],
             "Target element density along longest segment": 4.0,
             "Serendipity": True,
             "Show trim surfaces": False
@@ -42,6 +43,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         return [
             "Network layout",
             "Elements count around",
+            "Annotation elements counts around",
             "Target element density along longest segment",
             "Serendipity",
             "Show trim surfaces"
@@ -81,7 +83,17 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout")
         elementsCountAround = options["Elements count around"]
-        options["Elements count around"] = max(4, elementsCountAround + (elementsCountAround % 2))
+        if options["Elements count around"] < 4:
+            options["Elements count around"] = 4
+        annotationElementsCountsAround = options["Annotation elements counts around"]
+        if len(annotationElementsCountsAround) == 0:
+            options["Annotation elements count around"] = [0]
+        else:
+            for i in range(len(annotationElementsCountsAround)):
+                if annotationElementsCountsAround[i] <= 0:
+                    annotationElementsCountsAround[i] = 0
+                elif annotationElementsCountsAround[i] < 4:
+                    annotationElementsCountsAround[i] = 4
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
         dependentChanges = False
@@ -95,8 +107,9 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        elementsCountAround = options["Elements count around"]
         networkLayout = options["Network layout"]
+        elementsCountAround = options["Elements count around"]
+        annotationElementsCountsAround = options["Annotation elements counts around"]
         targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
         serendipity = options["Serendipity"]
 
@@ -116,6 +129,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
             networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
             elementsCountAround, targetElementDensityAlongLongestSegment, 1,
-            layoutAnnotationGroups, serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
+            layoutAnnotationGroups, annotationElementsCountsAround,
+            serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
 
         return annotationGroups, None
