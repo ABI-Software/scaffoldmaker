@@ -1840,7 +1840,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         d2AnnulusNorm.append(normD2)
         d2AnnulusOuter.append(vector.setMagnitude(o1_d2[-1][n1], sf))
         x = [o1_x[-1][n1][c] + sf * normD2[c] for c in range(3)]
-        nearestPosition = trackSurfaceStomach.findNearestPosition(x)
+        nearestPosition = trackSurfaceStomach.findNearestPosition(x, startPosition=o1_Positions[n1])
         xAnnulusOuterPosition[n1] = nearestPosition
         xAnnulusOuter[n1] = trackSurfaceStomach.evaluateCoordinates(nearestPosition)
 
@@ -2042,6 +2042,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 bPosition = trackSurfaceStomach.findNearestPosition(xEllipseAroundAll[sNext][n1], startGuessPosition)
 
             bProportion = trackSurfaceStomach.getProportion(bPosition)
+            if n1 == 0:
+                aProportion[0] = 1.0
+                bProportion[0] = 1.0
 
             nx, nd1, nd2, nd3, proportions = trackSurfaceStomach.createHermiteCurvePoints(
                 aProportion[0], aProportion[1], bProportion[0], bProportion[1], elementsOut,
@@ -2885,7 +2888,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             endNode_Id[n3][nAround] = idx
 
             if n3 == elementsCountThroughWall:  # outer layer
-                endPosition = trackSurfaceStomach.findNearestPosition(endPoints_x[n3][nAround])
+                startGuessPosition = trackSurfaceStomach.findNearestPositionParameter(endPoints_x[n3][nAround])[0]
+                endPosition = trackSurfaceStomach.findNearestPosition(endPoints_x[n3][nAround], startGuessPosition)
                 endProportions.append(trackSurfaceStomach.getProportion(endPosition))
 
     for n3 in range(elementsCountThroughWall + 1):

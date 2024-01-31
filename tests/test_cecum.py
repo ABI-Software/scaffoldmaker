@@ -81,10 +81,10 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 8554.479888104559, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 8554.513081780715, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 13809.92644167005, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 13809.9960233912, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {

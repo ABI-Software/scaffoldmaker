@@ -131,7 +131,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 }]
         }),
     }
-   
+
     ostiumDefaultScaffoldPackages = {
         'Human 1': ScaffoldPackage(MeshType_3d_ostium2, {
             'scaffoldSettings': {
@@ -390,7 +390,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         Generate the base tricubic Hermite mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: annotationGroups
+        :return: list of AnnotationGroup, None
         """
 
         nextNodeIdentifier = 1

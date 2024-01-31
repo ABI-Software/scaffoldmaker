@@ -1355,7 +1355,7 @@ def find_tube_bifurcation_points_converging(paCentre, pax, pad2, c1Centre, c1x, 
     paCount = len(pax)
     c1Count = len(c1x)
     c2Count = len(c2x)
-    pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+    pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts([paCount, c1Count, c2Count])
     # convert to number of nodes, includes both 6-way points
     pac1NodeCount = pac1Count + 1
     pac2NodeCount = pac2Count + 1
@@ -1535,8 +1535,8 @@ def make_tube_bifurcation_elements(fm, coordinates, elementIdentifier, elementsC
     elementsCountAroundRightTube = len(c1NodeId[0])
     elementsCountAroundLeftTube = len(c2NodeId[0])
     pac1Count, pac2Count, c1c2Count = \
-        get_tube_bifurcation_connection_elements_counts(elementsCountAround, elementsCountAroundRightTube,
-                                                        elementsCountAroundLeftTube)
+        get_tube_bifurcation_connection_elements_counts(
+            [elementsCountAround, elementsCountAroundRightTube, elementsCountAroundLeftTube])
 
     mesh = fm.findMeshByDimension(3)
     eftfactory = eftfactory_bicubichermitelinear(mesh, None)
@@ -2508,8 +2508,8 @@ def make_double_tube_bifurcation_elements(fm, coordinates, elementIdentifier, el
     elementsCountAroundRightTube = len(c1NodeId[0])
     elementsCountAroundLeftTube = len(c2NodeId[0])
     pac1Count, pac2Count, c1c2Count = \
-        get_tube_bifurcation_connection_elements_counts(elementsCountAround, elementsCountAroundRightTube,
-                                                        elementsCountAroundLeftTube)
+        get_tube_bifurcation_connection_elements_counts(
+            [elementsCountAround, elementsCountAroundRightTube, elementsCountAroundLeftTube])
 
     elementsCountAcross = elementsCountAroundRightTube - elementsCountAround // 2
 
