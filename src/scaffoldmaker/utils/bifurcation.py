@@ -1150,7 +1150,6 @@ class TubeBifurcationData:
         :param networkSegmentsIn: List of input segments.
         :param networkSegmentsOut: List of output segments.
         :param segmentTubeData: dict NetworkSegment -> SegmentTubeData.
-        cross indexes from. Makes inner bifurcation use same trim surfaces as outer = not currently recommended.
         """
         self._networkSegmentsIn = networkSegmentsIn
         self._networkSegmentsOut = networkSegmentsOut
@@ -1313,15 +1312,8 @@ class TubeBifurcationData:
         segmentCount = len(self._networkSegments)
         assert segmentCount == 3
 
-        # get intersection curves between pairs of segments
         for s in range(segmentCount):
             self._intersectionCurves.append(None)
-            # tubeData1 = self._tubeData[s]
-            # tubeTrackSurface1 = tubeData1.getRawTrackSurface()
-            # tubeData2 = self._tubeData[(s + 1) % segmentCount]
-            # tubeTrackSurface2 = tubeData2.getRawTrackSurface()
-            # cx, cd1, cProportions, loop = tubeTrackSurface1.findIntersectionCurve(tubeTrackSurface2)
-            # self._intersectionCurves.append((cx, cd1, cProportions, loop))
 
         dirEnd = []
         for s in range(segmentCount):

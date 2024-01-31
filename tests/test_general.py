@@ -1019,9 +1019,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [0.9708619388739947, -0.3270981496668778, 0.14086800149667], ax[0], delta=X_TOL)
         assertAlmostEqualList(self, [1.0050064347902659, 0.056201268034582176, -0.4072936264713945], ax[4], delta=X_TOL)
         assertAlmostEqualList(self, [1.024996071040654, 0.28060105555314807, 0.24424001783212906], ax[8], delta=X_TOL)
-        assertAlmostEqualList(self, [1.4405054359950804, 1.0], aprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [1.7737970104355056, 1.0], aprops[4], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.10696010571695916, 1.0], aprops[8], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.4405054359950804, 1.0], aprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.7737970104355056, 1.0], aprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.10696010571695916, 1.0], aprops[8], delta=XI_TOL)
 
         # get loop intersection of unconnected tube2 and tube3
         bx, bd1, bprops, bloop = tube2Surface.findIntersectionCurve(tube3Surface, curveElementsCount=12)
@@ -1405,8 +1405,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             assertAlmostEqualList(self, [1.0515358634986118, -0.08502266290179061, 0.2293525653558907], cx[0], delta=X_TOL)
             assertAlmostEqualList(self, [1.3713633820298987, -0.024409957536963414, -0.08284306983602606], cx[4], delta=X_TOL)
             assertAlmostEqualList(self, [0.9646346791047065, 0.057787366383426825, -0.24058971254661396], cx[8], delta=X_TOL)
-            assertAlmostEqualList(self, [0.29558913002461046, 0.016955772619840683], cprops[0], delta=XI_TOL)
-            assertAlmostEqualList(self, [0.051351610846633235, 0.2953763298880561], cprops[4], delta=XI_TOL)
+            assertAlmostEqualList(self, [1.29558913002461046, 0.016955772619840683], cprops[0], delta=XI_TOL)
+            assertAlmostEqualList(self, [1.051351610846633235, 0.2953763298880561], cprops[4], delta=XI_TOL)
             assertAlmostEqualList(self, [0.7907961771250209, 0.011505780523740128], cprops[8], delta=XI_TOL)
         elif elementsCountAround == 6:
             self.assertAlmostEqual(cLength, 0.991440388450334, delta=X_TOL)

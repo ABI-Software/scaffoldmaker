@@ -423,7 +423,7 @@ class TrackSurface:
         onBoundary = 0
         if self._loop1:
             if proportion1 < 0.0:
-                proportion1 += 1.0
+                proportion1 += 2.0
             elif proportion1 > 2.0:
                 proportion1 -= 2.0
         else:
@@ -809,7 +809,7 @@ class TrackSurface:
                 if instrument:
                     print("- curve points", pointCount, "pos", position, "boundary", onBoundary,
                           "onOtherBoundary", onOtherBoundary)
-                if pointCount > 50:
+                if pointCount > 100:
                     print("TrackSurface.findIntersectionCurve.  Stopping as too many points")
                     # stop infinite loop for problem cases
                     break
@@ -827,7 +827,7 @@ class TrackSurface:
                 t = pd1[0]
                 if instrument:
                     print("- go back to position", position, "otherPosition", otherPosition, "t", pd1[0])
-            # check for loop; can't happen after a boundary had been found
+            # check for loop; can't happen after a boundary has been found
             if (boundaryCount == 0) and (pointCount > 2):
                 x1, d1 = px[-2], pd1[-2]
                 x2, d2 = px[-1], pd1[-1]
@@ -875,17 +875,29 @@ class TrackSurface:
         for n in range(len(nx)):
             position = self.findNearestPosition(nx[n], position)
             assert position is not None
-            tmpPosition = position
-            tmpOtherPosition = otherPosition
+            # tmpPosition = position
+            # tmpOtherPosition = otherPosition
             position, otherPosition, x, t, onBoundary =\
                 self.findIntersectionPoint(otherTrackSurface, position, otherPosition)
             if position is None:
-                print("\nDid not refind position!\n")
-                position, otherPosition, x, t, onBoundary = \
-                    self.findIntersectionPoint(otherTrackSurface, tmpPosition, tmpOtherPosition, instrument=True)
+                print("\nDid not re-find position!\n")
+                # position, otherPosition, x, t, onBoundary = \
+                #     self.findIntersectionPoint(otherTrackSurface, tmpPosition, tmpOtherPosition, instrument=True)
             cx.append(x)
             cd1.append(t)
-            cProportions.append(self.getProportion(position))
+            proportion = self.getProportion(position)
+            if self._loop1 and (n > 0) and (abs(proportion[0] - cProportions[-1][0]) > 1.0):
+                # wrapped around 0.0 or 2.0: displace proportions to be within (0, 2)
+                if proportion[0] < 1.0:
+                    proportion[0] += 1.0
+                    deltaProportion1 = -1.0
+                else:
+                    proportion[0] -= 1.0
+                    deltaProportion1 = 1.0
+                for cProportion in cProportions:
+                    cProportion[0] += deltaProportion1
+                position = self.createPositionProportion(proportion[0], proportion[1])
+            cProportions.append(proportion)
         if pointCount > 1:
             if loop:
                 cd1 = smoothCubicHermiteDerivativesLoop(cx, cd1, fixAllDirections=True)
@@ -917,13 +929,21 @@ class TrackSurface:
         :param targetx: Coordinates of point to find nearest to.
         :return: nearest TrackSurfacePosition, nearest distance
         """
-        n1Limit = self._elementsCount1 if self._loop1 else self._elementsCount1 + 1
+        if self._loop1:
+            # future: loop option to limit to between [0.5, 1.5]
+            # n1Start = self._elementsCount1 // 2
+            # n1Limit = n1Start + self._elementsCount1
+            n1Start = 0
+            n1Limit = self._elementsCount1
+        else:
+            n1Start = 0
+            n1Limit = self._elementsCount1 + 1
         p = 0
         nearest_distance = None
         nearest_n1 = None
         nearest_n2 = None
         for n2 in range(self._elementsCount2 + 1):
-            for n1 in range(n1Limit):
+            for n1 in range(n1Start, n1Limit):
                 distance = magnitude(sub(self._nx[p], targetx))
                 if (nearest_distance is None) or (distance < nearest_distance):
                     nearest_distance = distance
@@ -940,11 +960,15 @@ class TrackSurface:
         :param targetx: Coordinates of point to find nearest to.
         :return: nearest TrackSurfacePosition, nearest distance
         """
+        e1Start = 0
+        # future: loop option to limit to between [0.5, 1.5]
+        # e1Start = (self._elementsCount1 // 2) if self._loop1 else 0
+        e1Limit = e1Start + self._elementsCount1
         nearestDistance = None
         nearestPosition = None
-        for n2 in range(self._elementsCount2):
-            for n1 in range(self._elementsCount1):
-                position = TrackSurfacePosition(n1, n2, 0.5, 0.5)
+        for e2 in range(self._elementsCount2):
+            for e1 in range(e1Start, e1Limit):
+                position = TrackSurfacePosition(e1, e2, 0.5, 0.5)
                 x = self.evaluateCoordinates(position)
                 distance = magnitude(sub(x, targetx))
                 if (nearestDistance is None) or (distance < nearestDistance):
