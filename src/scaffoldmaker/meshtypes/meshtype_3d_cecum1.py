@@ -33,45 +33,40 @@ from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_para
     mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_ordered_field_parameters
 
 
-class MeshType_3d_cecum1(Scaffold_base):
-    '''
-    Generates a 3-D cecum mesh with variable numbers of elements around, along the central line, and through wall. The
-    cecum is created by a function that generates a cecum segment and uses tubemesh to map the segment along a network
-    layout. The proximal end of the cecum is closed up with an apex plate. An ostium is included to generate the
-    ileo-cecal junction.
-    '''
-
-    parameterSetStructureStrings = {
-        'Human 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
+    assert parameterSetName in cls.getParameterSetNames()  # make sure parameter set is in list of parameters of parent scaffold
+    if parameterSetName in ("Default", "Human 1"):
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                "Structure": "1-2-3.2, 4-3-5"
-            },
-            'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[7.50,-20.00,0.00], [0.00,8.28,0.00], [-2.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,2.50], [0.00,0.00,0.00]]),
-                (2, [[7.50,-10.86,0.00], [0.00,10.00,0.00], [-4.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,4.50], [0.00,0.00,0.00]]),
-                (3, [[7.50,0.00,0.00], [[8.44,0.00,0.04],[0.00,11.72,0.00]], [[0.00,11.60,0.00],[-4.50,0.00,0.00]], [[1.02,6.79,0.00],[0.00,0.00,0.00]], [[0.00,0.00,11.60],[0.00,-0.00,4.50]], [[0.00,0.00,5.77],[0.00,0.00,0.00]]]),
-                (4, [[-1.88,0.00,-0.08], [10.32,0.00,0.12], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]]),
-                (5, [[15.00,0.00,0.00], [6.56,0.00,-0.04], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]])
-                ]),
-
-            'userAnnotationGroups': [
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-4',
-                    'name': get_cecum_term('caecum')[0],
-                    'ontId': get_cecum_term('caecum')[1]
+                    "Structure": "1-2-3.2, 4-3-5"
                 },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-2',
-                    'name': get_cecum_term('ileum part of cecum')[0],
-                    'ontId': get_cecum_term('ileum part of cecum')[1]
-                }]
-        }),
-        'Human 2': ScaffoldPackage(MeshType_1d_network_layout1, {
+                'meshEdits': exnode_string_from_nodeset_field_parameters(
+                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[7.50,-20.00,0.00], [0.00,8.28,0.00], [-2.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,2.50], [0.00,0.00,0.00]]),
+                    (2, [[7.50,-10.86,0.00], [0.00,10.00,0.00], [-4.50,0.00,0.00], [0.00,0.00,0.00], [0.00,-0.00,4.50], [0.00,0.00,0.00]]),
+                    (3, [[7.50,0.00,0.00], [[8.44,0.00,0.04],[0.00,11.72,0.00]], [[0.00,11.60,0.00],[-4.50,0.00,0.00]], [[1.02,6.79,0.00],[0.00,0.00,0.00]], [[0.00,0.00,11.60],[0.00,-0.00,4.50]], [[0.00,0.00,5.77],[0.00,0.00,0.00]]]),
+                    (4, [[-1.88,0.00,-0.08], [10.32,0.00,0.12], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]]),
+                    (5, [[15.00,0.00,0.00], [6.56,0.00,-0.04], [0.00,11.60,0.00], [0.00,0.00,0.00], [0.00,0.00,11.60], [0.00,0.00,0.00]])
+                    ]),
+
+                'userAnnotationGroups': [
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '1-4',
+                        'name': get_cecum_term('caecum')[0],
+                        'ontId': get_cecum_term('caecum')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '1-2',
+                        'name': get_cecum_term('ileum part of cecum')[0],
+                        'ontId': get_cecum_term('ileum part of cecum')[1]
+                    }]
+            })
+    elif "Human 2" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-3-5"
             },
@@ -83,6 +78,7 @@ class MeshType_3d_cecum1(Scaffold_base):
                 (4, [[-71.690,-109.000,866.040], [-9.550,-3.730,12.060], [17.410,-4.850,11.460], [3.730,0.680,4.200], [0.820,19.940,7.200], [3.740,0.690,4.200]]),
                 (5, [[-87.210,-111.060,890.540], [-4.750,0.410,12.390], [23.270,-3.130,7.880], [2.460,-0.390,-2.950], [3.090,24.460,0.450], [1.830,0.460,-4.310]])
                 ]),
+                
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -98,8 +94,9 @@ class MeshType_3d_cecum1(Scaffold_base):
                     'name': get_cecum_term('ileum part of cecum')[0],
                     'ontId': get_cecum_term('ileum part of cecum')[1]
                 }]
-        }),
-        'Pig 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+        })
+    elif "Pig 1" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-3-7"
             },
@@ -129,8 +126,16 @@ class MeshType_3d_cecum1(Scaffold_base):
                     'name': get_cecum_term('ileum part of cecum')[0],
                     'ontId': get_cecum_term('ileum part of cecum')[1]
                 }]
-        }),
-    }
+        })
+           
+
+class MeshType_3d_cecum1(Scaffold_base):
+    '''
+    Generates a 3-D cecum mesh with variable numbers of elements around, along the central line, and through wall. The
+    cecum is created by a function that generates a cecum segment and uses tubemesh to map the segment along a network
+    layout. The proximal end of the cecum is closed up with an apex plate. An ostium is included to generate the
+    ileo-cecal junction.
+    '''
 
     ostiumDefaultScaffoldPackages = {
         'Human 1': ScaffoldPackage(MeshType_3d_ostium2, {
@@ -188,17 +193,14 @@ class MeshType_3d_cecum1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Human 2']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
         elif 'Pig 1' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Pig 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
         else:
-            centralPathOption = cls.parameterSetStructureStrings['Human 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
 
         options = {
-            'Central path': copy.deepcopy(centralPathOption),
+            'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             'Number of segments': 1,
             'Number of elements around tenia coli': 2,
             'Number of elements around haustrum': 8,
@@ -256,7 +258,7 @@ class MeshType_3d_cecum1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Network layout',
             'Number of segments',
             'Number of elements around tenia coli',
             'Number of elements around haustrum',
@@ -287,7 +289,7 @@ class MeshType_3d_cecum1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             return [ MeshType_1d_network_layout1 ]
         if optionName == 'Ileocecal junction':
             return [ MeshType_3d_ostium2 ]
@@ -295,8 +297,8 @@ class MeshType_3d_cecum1(Scaffold_base):
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.parameterSetStructureStrings.keys())
+        if optionName == 'Network layout':
+            return cls.getParameterSetNames()
         if optionName == 'Ileocecal junction':
             return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
@@ -312,10 +314,10 @@ class MeshType_3d_cecum1(Scaffold_base):
         if parameterSetName:
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             if not parameterSetName:
-                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
-            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
+                parameterSetName = "Default"
+            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
         if optionName == 'Ileocecal junction':
             if not parameterSetName:
                 parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
@@ -324,8 +326,8 @@ class MeshType_3d_cecum1(Scaffold_base):
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
+        if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
+            options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
         if not options['Ileocecal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Ileocecal junction'):
             options['Ileocecal junction'] = cls.getOptionScaffoldPackage('Ileocecal junction', MeshType_3d_ostium2)
         for key in [
@@ -396,7 +398,7 @@ class MeshType_3d_cecum1(Scaffold_base):
         nextNodeIdentifier = 1
         nextElementIdentifier = 1
         cls.updateSubScaffoldOptions(options)
-        geometricCentralPath = options['Central path']
+        geometricCentralPath = options['Network layout']
         cecumTermsAlong = ['caecum', 'ileum part of cecum']
         geometricCentralPath = CecumCentralPath(region, geometricCentralPath, cecumTermsAlong)
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \

@@ -39,16 +39,10 @@ from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_para
     mesh_destroy_elements_and_nodes_by_identifiers, get_nodeset_path_ordered_field_parameters, \
     get_nodeset_path_field_parameters
 
-
-class MeshType_3d_stomach1(Scaffold_base):
-    """
-    Generates a 3-D stomach mesh with variable numbers of elements around the esophagus and duodenum,
-    along the central line, and through wall. The stomach is created using a central path as the longitudinal axis
-    of the stomach. D2 of the central path points to the greater curvature of the stomach and magnitude of D2 and D3
-    are the radii of the stomach in the respective direction.
-    """
-    parameterSetStructureStrings = {
-        'Human 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
+    assert parameterSetName in cls.getParameterSetNames()  # make sure parameter set is in list of parameters of parent scaffold
+    if parameterSetName in ("Default", "Human 1"):
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-7-8-3-9-10-11-12-13-14-15"
             },
@@ -121,9 +115,10 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'name': get_stomach_term('duodenum part of stomach')[0],
                     'ontId': get_stomach_term('duodenum part of stomach')[1]
                 }]
-        }),
-        'Human 2': ScaffoldPackage(MeshType_1d_network_layout1, {
-            'scaffoldSettings': {
+        })
+    elif "Human 2" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
+        'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-7-3-8-9-10-11-12-13-14-15"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
@@ -195,8 +190,9 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'name': get_stomach_term('duodenum part of stomach')[0],
                     'ontId': get_stomach_term('duodenum part of stomach')[1]
                 }]
-        }),
-        'Mouse 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+        })
+    elif "Mouse 1" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14"
             },
@@ -268,8 +264,9 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'name': get_stomach_term('duodenum part of stomach')[0],
                     'ontId': get_stomach_term('duodenum part of stomach')[1]
                 }]
-        }),
-        'Pig 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+        })
+    elif "Pig 1" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-7-3-8-9-10-11-12-13"
             },
@@ -340,82 +337,84 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'name': get_stomach_term('duodenum part of stomach')[0],
                     'ontId': get_stomach_term('duodenum part of stomach')[1]
                 }]
-        }),
-        'Rat 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+        })
+    elif "Rat 1" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14-15"
-            },
-            'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[-0.011,0.636,0.000], [0.012,-0.116,0.000], [0.057,0.000,0.000], [0.122,-0.056,0.000], [-0.000,0.000,0.057], [0.000,0.000,0.076]]),
-                (2, [[-0.001,0.419,-0.000], [0.008,-0.318,0.000], [0.108,0.000,0.000], [0.101,-0.066,0.000], [0.000,0.000,0.108], [0.000,0.000,0.084]]),
-                (3, [[0.000,0.000,0.000], [[-0.200,0.002,0.000],[-0.006,-0.520,0.000]], [[0.005,-0.420,0.000],[0.108,0.000,0.000]], [[-0.156,0.003,0.000],[-0.156,0.003,0.000]], [[0.000,0.000,0.360],[0.000,0.000,0.108]], [[0.000,0.000,-0.009],[0.000,0.000,-0.009]]]),
-                (4, [[0.601,0.602,0.000], [-0.027,-0.056,0.000], [0.077,-0.036,0.000], [0.122,-0.056,0.000], [0.000,0.000,0.080], [0.000,0.000,0.076]]),
-                (5, [[0.564,0.524,0.000], [-0.047,-0.100,-0.000], [0.189,-0.097,0.000], [0.101,-0.066,0.000], [0.000,0.000,0.160], [0.000,0.000,0.084]]),
-                (6, [[0.507,0.402,0.000], [-0.071,-0.139,-0.000], [0.273,-0.171,0.000], [0.062,-0.070,-0.000], [0.000,0.000,0.250], [0.000,0.000,0.073]]),
-                (7, [[0.420,0.248,0.000], [-0.097,-0.137,-0.000], [0.307,-0.237,0.000], [-0.011,-0.067,-0.000], [0.000,0.000,0.300], [0.000,0.000,0.039]]),
-                (8, [[0.315,0.129,0.000], [-0.125,-0.109,-0.000], [0.256,-0.304,0.000], [-0.080,-0.076,0.000], [0.000,0.000,0.330], [0.000,0.000,0.030]]),
-                (9, [[0.171,0.034,0.000], [-0.161,-0.066,0.000], [0.144,-0.389,0.000], [-0.125,-0.058,0.000], [0.000,0.000,0.360], [0.000,0.000,0.015]]),
-                (10, [[-0.218,0.048,0.000], [-0.208,0.094,0.000], [-0.173,-0.374,0.000], [-0.152,0.079,0.000], [0.000,0.000,0.340], [0.000,0.000,-0.015]]),
-                (11, [[-0.404,0.184,0.000], [-0.142,0.162,0.000], [-0.299,-0.260,0.000], [-0.044,0.113,0.000], [0.000,0.000,0.330], [0.000,0.000,-0.025]]),
-                (12, [[-0.497,0.356,0.000], [-0.049,0.209,0.000], [-0.255,-0.188,0.000], [0.077,0.107,0.000], [0.000,0.000,0.290], [0.000,0.000,-0.111]]),
-                (13, [[-0.490,0.587,0.000], [-0.018,0.189,-0.000], [-0.152,-0.045,0.000], [0.069,0.049,0.000], [0.000,0.000,0.120], [0.000,0.000,-0.073]]),
-                (14, [[-0.523,0.730,0.000], [-0.032,0.116,0.000], [-0.111,-0.036,0.000], [0.003,-0.002,0.000], [0.000,0.000,0.120], [0.000,0.000,0.018]]),
-                (15, [[-0.552,0.820,0.000], [-0.026,0.063,0.000], [-0.132,-0.045,0.000], [-0.045,-0.016,0.000], [0.000,0.000,0.150], [0.000,0.000,0.042]])
-                ]),
+                    "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14-15"
+                },
+                'meshEdits': exnode_string_from_nodeset_field_parameters(
+                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[-0.011,0.636,0.000], [0.012,-0.116,0.000], [0.057,0.000,0.000], [0.122,-0.056,0.000], [-0.000,0.000,0.057], [0.000,0.000,0.076]]),
+                    (2, [[-0.001,0.419,-0.000], [0.008,-0.318,0.000], [0.108,0.000,0.000], [0.101,-0.066,0.000], [0.000,0.000,0.108], [0.000,0.000,0.084]]),
+                    (3, [[0.000,0.000,0.000], [[-0.200,0.002,0.000],[-0.006,-0.520,0.000]], [[0.005,-0.420,0.000],[0.108,0.000,0.000]], [[-0.156,0.003,0.000],[-0.156,0.003,0.000]], [[0.000,0.000,0.360],[0.000,0.000,0.108]], [[0.000,0.000,-0.009],[0.000,0.000,-0.009]]]),
+                    (4, [[0.601,0.602,0.000], [-0.027,-0.056,0.000], [0.077,-0.036,0.000], [0.122,-0.056,0.000], [0.000,0.000,0.080], [0.000,0.000,0.076]]),
+                    (5, [[0.564,0.524,0.000], [-0.047,-0.100,-0.000], [0.189,-0.097,0.000], [0.101,-0.066,0.000], [0.000,0.000,0.160], [0.000,0.000,0.084]]),
+                    (6, [[0.507,0.402,0.000], [-0.071,-0.139,-0.000], [0.273,-0.171,0.000], [0.062,-0.070,-0.000], [0.000,0.000,0.250], [0.000,0.000,0.073]]),
+                    (7, [[0.420,0.248,0.000], [-0.097,-0.137,-0.000], [0.307,-0.237,0.000], [-0.011,-0.067,-0.000], [0.000,0.000,0.300], [0.000,0.000,0.039]]),
+                    (8, [[0.315,0.129,0.000], [-0.125,-0.109,-0.000], [0.256,-0.304,0.000], [-0.080,-0.076,0.000], [0.000,0.000,0.330], [0.000,0.000,0.030]]),
+                    (9, [[0.171,0.034,0.000], [-0.161,-0.066,0.000], [0.144,-0.389,0.000], [-0.125,-0.058,0.000], [0.000,0.000,0.360], [0.000,0.000,0.015]]),
+                    (10, [[-0.218,0.048,0.000], [-0.208,0.094,0.000], [-0.173,-0.374,0.000], [-0.152,0.079,0.000], [0.000,0.000,0.340], [0.000,0.000,-0.015]]),
+                    (11, [[-0.404,0.184,0.000], [-0.142,0.162,0.000], [-0.299,-0.260,0.000], [-0.044,0.113,0.000], [0.000,0.000,0.330], [0.000,0.000,-0.025]]),
+                    (12, [[-0.497,0.356,0.000], [-0.049,0.209,0.000], [-0.255,-0.188,0.000], [0.077,0.107,0.000], [0.000,0.000,0.290], [0.000,0.000,-0.111]]),
+                    (13, [[-0.490,0.587,0.000], [-0.018,0.189,-0.000], [-0.152,-0.045,0.000], [0.069,0.049,0.000], [0.000,0.000,0.120], [0.000,0.000,-0.073]]),
+                    (14, [[-0.523,0.730,0.000], [-0.032,0.116,0.000], [-0.111,-0.036,0.000], [0.003,-0.002,0.000], [0.000,0.000,0.120], [0.000,0.000,0.018]]),
+                    (15, [[-0.552,0.820,0.000], [-0.026,0.063,0.000], [-0.132,-0.045,0.000], [-0.045,-0.016,0.000], [0.000,0.000,0.150], [0.000,0.000,0.042]])
+                    ]),
 
-            'userAnnotationGroups': [
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-14',
-                    'name': get_stomach_term('stomach')[0],
-                    'ontId': get_stomach_term('stomach')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-2',
-                    'name': get_stomach_term('esophagus part of stomach')[0],
-                    'ontId': get_stomach_term('esophagus part of stomach')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '3-8',
-                    'name': get_stomach_term('fundus of stomach')[0],
-                    'ontId': get_stomach_term('fundus of stomach')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '9-11',
-                    'name': get_stomach_term('body of stomach')[0],
-                    'ontId': get_stomach_term('body of stomach')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '12',
-                    'name': get_stomach_term('pyloric antrum')[0],
-                    'ontId': get_stomach_term('pyloric antrum')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '13',
-                    'name': get_stomach_term('pyloric canal')[0],
-                    'ontId': get_stomach_term('pyloric canal')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '14',
-                    'name': get_stomach_term('duodenum part of stomach')[0],
-                    'ontId': get_stomach_term('duodenum part of stomach')[1]
-                }]
-        }),
-        'Material': ScaffoldPackage(MeshType_1d_network_layout1, {
+                'userAnnotationGroups': [
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '1-14',
+                        'name': get_stomach_term('stomach')[0],
+                        'ontId': get_stomach_term('stomach')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '1-2',
+                        'name': get_stomach_term('esophagus part of stomach')[0],
+                        'ontId': get_stomach_term('esophagus part of stomach')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '3-8',
+                        'name': get_stomach_term('fundus of stomach')[0],
+                        'ontId': get_stomach_term('fundus of stomach')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '9-11',
+                        'name': get_stomach_term('body of stomach')[0],
+                        'ontId': get_stomach_term('body of stomach')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '12',
+                        'name': get_stomach_term('pyloric antrum')[0],
+                        'ontId': get_stomach_term('pyloric antrum')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '13',
+                        'name': get_stomach_term('pyloric canal')[0],
+                        'ontId': get_stomach_term('pyloric canal')[1]
+                    },
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '14',
+                        'name': get_stomach_term('duodenum part of stomach')[0],
+                        'ontId': get_stomach_term('duodenum part of stomach')[1]
+                    }]
+            })
+    elif "Material" in parameterSetName:
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14-15-16-17-18"
             },
@@ -491,8 +490,16 @@ class MeshType_3d_stomach1(Scaffold_base):
                     'name': get_stomach_term('duodenum part of stomach')[0],
                     'ontId': get_stomach_term('duodenum part of stomach')[1]
                 }]
-        }),
-    }
+        })         
+            
+  
+class MeshType_3d_stomach1(Scaffold_base):
+    """
+    Generates a 3-D stomach mesh with variable numbers of elements around the esophagus and duodenum,
+    along the central line, and through wall. The stomach is created using a central path as the longitudinal axis
+    of the stomach. D2 of the central path points to the greater curvature of the stomach and magnitude of D2 and D3
+    are the radii of the stomach in the respective direction.
+    """
 
     ostiumDefaultScaffoldPackages = {
         'Human 1': ScaffoldPackage(MeshType_3d_ostium2, {
@@ -635,26 +642,20 @@ class MeshType_3d_stomach1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         if 'Human 2' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Human 2']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 2']
         elif 'Mouse 1' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Mouse 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
         elif 'Pig 1' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Pig 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
         elif 'Rat 1' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Rat 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']
         elif 'Material' in parameterSetName:
-            centralPathOption = cls.parameterSetStructureStrings['Material']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Material']
         else:
-            centralPathOption = cls.parameterSetStructureStrings['Human 1']
             ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
 
         options = {
-            'Central path': copy.deepcopy(centralPathOption),
+            'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             'Number of elements around esophagus': 8,
             'Number of elements around duodenum': 16,
             'Number of elements along': 14,
@@ -711,7 +712,7 @@ class MeshType_3d_stomach1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Network layout',
             'Number of elements around esophagus',
             'Number of elements around duodenum',
             'Number of elements along',
@@ -731,7 +732,7 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             return [MeshType_1d_network_layout1]
         if optionName == 'Gastro-esophageal junction':
             return [MeshType_3d_ostium2]
@@ -739,8 +740,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.parameterSetStructureStrings.keys())
+        if optionName == 'Network layout':
+            return cls.getParameterSetNames()
         if optionName == 'Gastro-esophageal junction':
             return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
@@ -758,10 +759,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             if not parameterSetName:
-                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
-            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
+                parameterSetName = "Default"
+            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
         if optionName == 'Gastro-esophageal junction':
             if not parameterSetName:
                 parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
@@ -770,8 +771,8 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
+        if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
+            options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
         if not options['Gastro-esophageal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes(
                 'Gastro-esophageal junction'):
             options['Gastro-esophageal junction'] = cls.getOptionScaffoldPackage('Gastro-esophageal junction',
@@ -832,8 +833,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         :return: list of AnnotationGroup, None
         """
         cls.updateSubScaffoldOptions(options)
-        geometricCentralPath = options['Central path']
-        materialCentralPath = cls.parameterSetStructureStrings['Material']
+        geometricCentralPath = options['Network layout']
+        materialCentralPath = getDefaultNetworkLayoutScaffoldPackage(cls, 'Material')
         limitingRidge = options['Limiting ridge']
         elementsCountThroughWall = options['Number of elements through wall']
 

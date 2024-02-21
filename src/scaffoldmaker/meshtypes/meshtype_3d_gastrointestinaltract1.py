@@ -29,15 +29,10 @@ from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 
 
-class MeshType_3d_gastrointestinaltract1(Scaffold_base):
-    '''
-    Generates a 3-D gastrointestinal tract mesh with variable numbers of elements around, along the central line,
-    and through wall. The tract is created by following an annotated central path and calling scaffold function to
-    generate the respective segment along the central line profile.
-    '''
-
-    parameterSetStructureStrings = {
-        'Human 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
+    assert parameterSetName in cls.getParameterSetNames() # make sure parameter set is in list of parameters of parent scaffold
+    if parameterSetName in ("Default", "Human 1"):
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3-4-5-6-7.2, 8-9-10-11-7-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-"
                              "32-33-34-35-36-37-38-39-40-41-42-43-44-45-46-47-48-49-50-51-52-53-54-55-56-57-58-59-60-"
@@ -425,7 +420,14 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                     'ontId': get_colon_term('descending colon')[1]
                 }]
             })
-        }
+
+
+class MeshType_3d_gastrointestinaltract1(Scaffold_base):
+    '''
+    Generates a 3-D gastrointestinal tract mesh with variable numbers of elements around, along the central line,
+    and through wall. The tract is created by following an annotated central path and calling scaffold function to
+    generate the respective segment along the central line profile.
+    '''
 
     @staticmethod
     def getName():
@@ -439,13 +441,12 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.parameterSetStructureStrings['Human 1']
         esophagusOption = ScaffoldPackage(MeshType_3d_esophagus1, defaultParameterSetName='Human 1')
         stomachOption = ScaffoldPackage(MeshType_3d_stomach1, defaultParameterSetName='Human 2')
         smallIntestineOption = ScaffoldPackage(MeshType_3d_smallintestine1, defaultParameterSetName='Human 1')
         cecumOption = ScaffoldPackage(MeshType_3d_cecum1, defaultParameterSetName='Human 2')
         colonOption = ScaffoldPackage(MeshType_3d_colon1, defaultParameterSetName='Human 3')
-        options = {'Central path': copy.deepcopy(centralPathOption),
+        options = {'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
                    'Esophagus': esophagusOption,
                    'Stomach': stomachOption,
                    'Small intestine': smallIntestineOption,
@@ -462,7 +463,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Network layout',
             'Esophagus',
             'Stomach',
             'Small intestine',
@@ -475,7 +476,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             return [MeshType_1d_network_layout1]
         if optionName == 'Esophagus':
             return [MeshType_3d_esophagus1]
@@ -491,8 +492,8 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.parameterSetStructureStrings.keys())
+        if optionName == 'Network layout':
+            return cls.getParameterSetNames()
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -508,10 +509,10 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             if not parameterSetName:
-                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
-            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
+                parameterSetName = "Default"
+            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
         if optionName == 'Esophagus':
             if not parameterSetName:
                 parameterSetName = scaffoldType.getParameterSetNames()[0]
@@ -536,8 +537,8 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
+        if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
+            options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
         if not options['Esophagus'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Esophagus'):
             options['Esophagus'] = cls.getOptionScaffoldPackage('Esophagus', MeshType_3d_stomach1)
         if not options['Stomach'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Stomach'):
@@ -564,7 +565,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: annotationGroups
         """
-        centralPath = options['Central path']
+        centralPath = options['Network layout']
         esophagusOptions = options['Esophagus']
         stomachOptions = options['Stomach']
         smallIntestineOptions = options['Small intestine']

@@ -25,23 +25,25 @@ from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_para
     get_nodeset_path_field_parameters
 
 
+def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
+    assert parameterSetName in cls.getParameterSetNames()  # make sure parameter set is in list of parameters of parent scaffold
+    if parameterSetName in ("Default"):
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
+            'scaffoldSettings': {
+                "Structure": "1-2-3"
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[0.00, 0.00, 1.00], [0.00, 0.00, -0.50], [0.00, 0.50, 0.00], [0.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (2, [[0.00, 0.00, 0.50], [0.00, 0.00, -0.50], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00]]),
+                    (3, [[0.00, 0.00, 0.00], [0.00, 0.00, -0.50], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00], [2.00, 0.00, 0.00], [0.00, 0.00, 0.00]])])
+        })
 
 class MeshType_3d_ostium2(Scaffold_base):
     """
     Generates a 3-D single or double/common ostium inlet or outlet.
     """
-    parameterSetStructureStrings = {
-        'Default': ScaffoldPackage(MeshType_1d_network_layout1, {
-            'scaffoldSettings': {
-                "Structure": "1-2-3"
-            },
-            'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[0.00,0.00,1.00], [0.00,0.00,-0.50], [0.00,0.50,0.00], [0.00,0.00,0.00], [1.00,0.00,0.00], [0.00,0.00,0.00]]),
-                (2, [[0.00,0.00,0.50], [0.00,0.00,-0.50], [0.00,1.00,0.00], [0.00,0.00,0.00], [1.00,0.00,0.00], [0.00,0.00,0.00]]),
-                (3, [[0.00,0.00,0.00], [0.00,0.00,-0.50], [0.00,1.00,0.00], [0.00,0.00,0.00], [2.00,0.00,0.00], [0.00,0.00,0.00]])])
-        })
-    }
 
     @staticmethod
     def getName():
@@ -49,9 +51,8 @@ class MeshType_3d_ostium2(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.parameterSetStructureStrings['Default']
         options = {
-            'Central path': copy.deepcopy(centralPathOption),
+            'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             # 'Number of vessels': 1,
             # 'Number of elements across common': 2,
             'Number of elements around ostium': 8,
@@ -79,7 +80,7 @@ class MeshType_3d_ostium2(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Network layout',
             # 'Number of vessels',
             # 'Number of elements across common',
             'Number of elements around ostium',
@@ -104,13 +105,13 @@ class MeshType_3d_ostium2(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             return [MeshType_1d_network_layout1]
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.parameterSetStructureStrings.keys())
+        if optionName == 'Network layout':
+            return cls.getParameterSetNames()
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -126,17 +127,17 @@ class MeshType_3d_ostium2(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             if not parameterSetName:
-                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
-            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
+                parameterSetName = "Default"
+            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
+        if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
+            options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
         # vesselsCount = options['Number of vessels']
         # if vesselsCount != 1:
         #     vesselsCount = options['Number of vessels'] = 1
@@ -197,7 +198,7 @@ class MeshType_3d_ostium2(Scaffold_base):
         :return: [] empty list of AnnotationGroup, None
         """
         unitScale = options['Unit scale']
-        centralPath = options['Central path']
+        centralPath = options['Network layout']
         centralPath = CentralPath(region, centralPath, unitScale)
 
         # interVesselDistance = unitScale * options['Ostium inter-vessel distance']

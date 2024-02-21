@@ -25,27 +25,22 @@ from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters,\
     get_nodeset_path_field_parameters
 
-
-class MeshType_3d_esophagus1(Scaffold_base):
-    """
-    Generates a 3-D esophagus mesh with variable numbers of elements around, along the central line, and through wall.
-    The esophagus is created by a function that generates an elliptical tube segment and uses tubemesh to map the
-    segment along a central path profile.
-    """
-
-    parameterSetStructureStrings = {
-        'Human 1': ScaffoldPackage(MeshType_1d_network_layout1, {
+def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
+    assert parameterSetName in cls.getParameterSetNames()  # make sure parameter set is in list of parameters of parent scaffold
+    if parameterSetName in ("Default", "Human 1"):
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
                 "Structure": "1-2-3-4-5"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [[0.394,-100.872,1402.818], [-0.035,12.367,-48.020], [8.730,-0.526,-0.142], [0.613,-0.153,-0.037], [-0.272,-4.224,-1.088], [-0.169,-1.491,-0.564]]),
-                (2, [[0.520,-86.043,1340.066], [0.501,16.682,-77.602], [9.142,-0.799,-0.113], [0.212,-0.392,0.096], [-0.465,-5.159,-1.112], [-0.215,-0.377,0.515]]),
-                (3, [[1.368,-67.733,1247.932], [0.235,-3.685,-89.672], [9.061,-1.366,0.080], [-0.833,-0.231,0.187], [-0.714,-4.722,0.192], [-0.167,0.445,1.659]]),
-                (4, [[0.361,-91.057,1165.531], [-2.499,-24.560,-49.102], [7.540,-1.290,0.261], [-0.809,1.514,2.095], [-0.806,-4.269,2.176], [0.001,0.896,0.910]]),
-                (5, [[11.750,-111.874,1127.887], [7.636,-5.715,-7.930], [5.678,1.265,4.556], [-8.397,13.092,24.878], [-0.708,-3.530,1.862], [-0.807,-7.995,7.596]])
-            ]),
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[0.394, -100.872, 1402.818], [-0.035, 12.367, -48.020], [8.730, -0.526, -0.142], [0.613, -0.153, -0.037], [-0.272, -4.224, -1.088], [-0.169, -1.491, -0.564]]),
+                    (2, [[0.520, -86.043, 1340.066], [0.501, 16.682, -77.602], [9.142, -0.799, -0.113], [0.212, -0.392, 0.096], [-0.465, -5.159, -1.112], [-0.215, -0.377, 0.515]]),
+                    (3, [[1.368, -67.733, 1247.932], [0.235, -3.685, -89.672], [9.061, -1.366, 0.080], [-0.833, -0.231, 0.187], [-0.714, -4.722, 0.192], [-0.167, 0.445, 1.659]]),
+                    (4, [[0.361, -91.057, 1165.531], [-2.499, -24.560, -49.102], [7.540, -1.290, 0.261], [-0.809, 1.514, 2.095], [-0.806, -4.269, 2.176], [0.001, 0.896, 0.910]]),
+                    (5, [[11.750, -111.874, 1127.887], [7.636, -5.715, -7.930], [5.678, 1.265, 4.556], [-8.397, 13.092, 24.878], [-0.708, -3.530, 1.862], [-0.807, -7.995, 7.596]])
+                ]),
 
             'userAnnotationGroups': [
                 {
@@ -76,8 +71,15 @@ class MeshType_3d_esophagus1(Scaffold_base):
                     'name': get_esophagus_term('abdominal part of esophagus')[0],
                     'ontId': get_esophagus_term('abdominal part of esophagus')[1]
                 }]
-            })
-        }
+        })
+
+
+class MeshType_3d_esophagus1(Scaffold_base):
+    """
+    Generates a 3-D esophagus mesh with variable numbers of elements around, along the central line, and through wall.
+    The esophagus is created by a function that generates an elliptical tube segment and uses tubemesh to map the
+    segment along a central path profile.
+    """
 
     @staticmethod
     def getName():
@@ -91,9 +93,8 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.parameterSetStructureStrings['Human 1']
         options = {
-            'Central path': copy.deepcopy(centralPathOption),
+            'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             'Number of elements around': 8,
             'Number of elements along': 20,
             'Number of elements through wall': 1,
@@ -114,7 +115,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Network layout',
             'Number of elements around',
             'Number of elements along',
             'Number of elements through wall',
@@ -132,14 +133,14 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             return [MeshType_1d_network_layout1]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.parameterSetStructureStrings.keys())
+        if optionName == 'Network layout':
+            return cls.getParameterSetNames()
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -155,16 +156,16 @@ class MeshType_3d_esophagus1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             if not parameterSetName:
-                parameterSetName = list(cls.parameterSetStructureStrings.keys())[0]
-            return copy.deepcopy(cls.parameterSetStructureStrings[parameterSetName])
+                parameterSetName = "Default"
+            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_network_layout1)
+        if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
+            options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -191,7 +192,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         nextElementIdentifier = 1
         esophagusTermsAlong = ['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus',
                                'abdominal part of esophagus']
-        geometricCentralPath = options['Central path']
+        geometricCentralPath = options['Network layout']
         geometricCentralPath = EsophagusCentralPath(region, geometricCentralPath, esophagusTermsAlong)
 
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
