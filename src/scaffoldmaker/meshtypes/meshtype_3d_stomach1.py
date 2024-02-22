@@ -23,7 +23,7 @@ from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
-from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2, generateOstiumMesh
+from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -490,9 +490,57 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     'name': get_stomach_term('duodenum part of stomach')[0],
                     'ontId': get_stomach_term('duodenum part of stomach')[1]
                 }]
-        })         
-            
-  
+        })
+
+def getDefaultOstiumSettings():
+    """
+    Generate list of default options for ostium.
+    """
+    options = { 'Number of elements around ostium': 8,
+                'Number of elements along': 3,
+                'Number of elements through wall': 4,
+                'Unit scale': 1.0,
+                'Outlet': False,
+                'Ostium wall thickness': 0.0525,
+                'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
+                'Use linear through ostium wall': True,
+                'Vessel wall thickness': 0.0315,
+                'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
+                'Use linear through vessel wall': True,
+                'Use cross derivatives': False,
+                'Refine': False,
+                'Refine number of elements around': 4,
+                'Refine number of elements along': 4,
+                'Refine number of elements through wall': 1}
+
+    return options
+
+def updateOstiumOptions(options, ostiumOptions):
+    """
+    Update ostium sub-scaffold options which depend on parent options.
+    """
+    ostiumOptions['Number of elements around ostium'] = options['Number of elements around esophagus']
+    ostiumOptions['Ostium wall thickness'] = options['Wall thickness']
+    ostiumOptions['Vessel wall thickness'] = options['Esophagus wall thickness']
+    elementsCountThroughWall = options['Number of elements through wall']
+    ostiumOptions['Number of elements through wall'] = elementsCountThroughWall
+    ostiumOptions['Use linear through ostium wall'] = options['Use linear through wall']
+    ostiumOptions['Use linear through vessel wall'] = options['Use linear through wall']
+    if elementsCountThroughWall == 1:
+        ostiumOptions['Ostium wall relative thicknesses'] = [1.0]
+        ostiumOptions['Vessel wall relative thicknesses'] = [1.0]
+    else:
+        mucosaRelThickness = options['Mucosa relative thickness']
+        submucosaRelThickness = options['Submucosa relative thickness']
+        circularRelThickness = options['Circular muscle layer relative thickness']
+        longRelThickness = options['Longitudinal muscle layer relative thickness']
+        relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longRelThickness]
+        ostiumOptions['Ostium wall relative thicknesses'] = relThicknesses
+        ostiumOptions['Vessel wall relative thicknesses'] = relThicknesses
+
+    return ostiumOptions
+
+
 class MeshType_3d_stomach1(Scaffold_base):
     """
     Generates a 3-D stomach mesh with variable numbers of elements around the esophagus and duodenum,
@@ -500,129 +548,6 @@ class MeshType_3d_stomach1(Scaffold_base):
     of the stomach. D2 of the central path points to the greater curvature of the stomach and magnitude of D2 and D3
     are the radii of the stomach in the respective direction.
     """
-
-    ostiumDefaultScaffoldPackages = {
-        'Human 1': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 3,
-                'Number of elements through wall': 4,
-                'Unit scale': 0.0105,
-                'Outlet': False,
-                'Ostium wall thickness': 5.0,
-                'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 3.0,
-                'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Human 2': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 3,
-                'Number of elements through wall': 1,
-                'Unit scale': 0.0105 * 101,
-                'Outlet': False,
-                'Ostium wall thickness': 5.0,
-                'Ostium wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 3.0,
-                'Vessel wall relative thicknesses': [0.55, 0.15, 0.25, 0.05],
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Mouse 1': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 3,
-                'Number of elements through wall': 4,
-                'Unit scale': 0.147,
-                'Outlet': False,
-                'Ostium wall thickness': 0.35,
-                'Ostium wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 0.2,
-                'Vessel wall relative thicknesses': [0.75, 0.05, 0.15, 0.05],
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Pig 1': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 3,
-                'Number of elements through wall': 4,
-                'Unit scale': 0.0118,
-                'Outlet': False,
-                'Ostium wall thickness': 5.0,
-                'Ostium wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 3.0,
-                'Vessel wall relative thicknesses': [0.47, 0.1, 0.33, 0.1],
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Rat 1': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 3,
-                'Number of elements through wall': 4,
-                'Unit scale': 0.043,
-                'Outlet': False,
-                'Ostium wall thickness': 0.5,
-                'Ostium wall relative thicknesses': [0.65, 0.12, 0.18, 0.05],
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 0.3,
-                'Vessel wall relative thicknesses': [0.65, 0.12, 0.18, 0.05],
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Material': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 3,
-                'Number of elements through wall': 4,
-                'Unit scale': 1.0,
-                'Outlet': False,
-                'Ostium wall thickness': 0.05,
-                'Ostium wall relative thicknesses': [0.25, 0.25, 0.25, 0.25],
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 0.03,
-                'Vessel wall relative thicknesses': [0.25, 0.25, 0.25, 0.25],
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-    }
 
     @staticmethod
     def getName():
@@ -641,19 +566,6 @@ class MeshType_3d_stomach1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Human 2' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 2']
-        elif 'Mouse 1' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Mouse 1']
-        elif 'Pig 1' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
-        elif 'Rat 1' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Rat 1']
-        elif 'Material' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Material']
-        else:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
-
         options = {
             'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             'Number of elements around esophagus': 8,
@@ -661,12 +573,12 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements along': 14,
             'Number of elements through wall': 4,
             'Wall thickness': 0.0525,
+            'Esophagus wall thickness': 0.0315,
             'Mucosa relative thickness': 0.55,
             'Submucosa relative thickness': 0.15,
             'Circular muscle layer relative thickness': 0.25,
             'Longitudinal muscle layer relative thickness': 0.05,
             'Limiting ridge': False,
-            'Gastro-esophageal junction': copy.deepcopy(ostiumOption),
             'Use linear through wall': True,
             'Refine': False,
             'Refine number of elements surface': 4,
@@ -677,8 +589,10 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Number of elements around duodenum'] = 12
             options['Number of elements through wall'] = 1
             options['Wall thickness'] = 3.0
+            options['Esophagus wall thickness'] = 3.0
         elif 'Mouse 1' in parameterSetName:
             options['Wall thickness'] = 0.05145
+            options['Esophagus wall thickness'] = 0.01029
             options['Mucosa relative thickness'] = 0.75
             options['Submucosa relative thickness'] = 0.05
             options['Circular muscle layer relative thickness'] = 0.15
@@ -686,6 +600,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = True
         elif 'Pig 1' in parameterSetName:
             options['Wall thickness'] = 0.059
+            options['Esophagus wall thickness'] = 0.0354
             options['Mucosa relative thickness'] = 0.47
             options['Submucosa relative thickness'] = 0.1
             options['Circular muscle layer relative thickness'] = 0.33
@@ -693,6 +608,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = False
         elif 'Rat 1' in parameterSetName:
             options['Wall thickness'] = 0.0215
+            options['Esophagus wall thickness'] = 0.0129
             options['Mucosa relative thickness'] = 0.65
             options['Submucosa relative thickness'] = 0.12
             options['Circular muscle layer relative thickness'] = 0.18
@@ -700,12 +616,12 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Limiting ridge'] = True
         elif 'Material' in parameterSetName:
             options['Wall thickness'] = 0.05
+            options['Esophagus wall thickness'] = 0.03
             options['Mucosa relative thickness'] = 0.25
             options['Submucosa relative thickness'] = 0.25
             options['Circular muscle layer relative thickness'] = 0.25
             options['Longitudinal muscle layer relative thickness'] = 0.25
             options['Limiting ridge'] = False
-        cls.updateSubScaffoldOptions(options)
 
         return options
 
@@ -718,12 +634,12 @@ class MeshType_3d_stomach1(Scaffold_base):
             'Number of elements along',
             'Number of elements through wall',
             'Wall thickness',
+            'Esophagus wall thickness',
             'Mucosa relative thickness',
             'Submucosa relative thickness',
             'Circular muscle layer relative thickness',
             'Longitudinal muscle layer relative thickness',
             'Limiting ridge',
-            'Gastro-esophageal junction',
             'Use linear through wall',
             'Refine',
             'Refine number of elements surface',
@@ -734,16 +650,12 @@ class MeshType_3d_stomach1(Scaffold_base):
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Network layout':
             return [MeshType_1d_network_layout1]
-        if optionName == 'Gastro-esophageal junction':
-            return [MeshType_3d_ostium2]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Network layout':
             return cls.getParameterSetNames()
-        if optionName == 'Gastro-esophageal junction':
-            return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -763,20 +675,12 @@ class MeshType_3d_stomach1(Scaffold_base):
             if not parameterSetName:
                 parameterSetName = "Default"
             return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
-        if optionName == 'Gastro-esophageal junction':
-            if not parameterSetName:
-                parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.ostiumDefaultScaffoldPackages[parameterSetName])
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
         if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
             options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
-        if not options['Gastro-esophageal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes(
-                'Gastro-esophageal junction'):
-            options['Gastro-esophageal junction'] = cls.getOptionScaffoldPackage('Gastro-esophageal junction',
-                                                                                MeshType_3d_ostium2)
         if options['Number of elements around esophagus'] < 8:
             options['Number of elements around esophagus'] = 8
         if options['Number of elements around duodenum'] < 12:
@@ -796,34 +700,6 @@ class MeshType_3d_stomach1(Scaffold_base):
             if options[key] < 1:
                 options[key] = 1
 
-        cls.updateSubScaffoldOptions(options)
-
-    @classmethod
-    def updateSubScaffoldOptions(cls, options):
-        """
-        Update ostium sub-scaffold options which depend on parent options.
-        """
-        ostiumOptions = options['Gastro-esophageal junction']
-        ostiumSettings = ostiumOptions.getScaffoldSettings()
-        ostiumSettings['Number of elements around ostium'] = options['Number of elements around esophagus']
-        wallThickness = options['Wall thickness'] / ostiumSettings['Unit scale']
-        ostiumSettings['Ostium wall thickness'] = wallThickness
-        elementsCountThroughWall = options['Number of elements through wall']
-        ostiumSettings['Number of elements through wall'] = elementsCountThroughWall
-        ostiumSettings['Use linear through ostium wall'] = options['Use linear through wall']
-        ostiumSettings['Use linear through vessel wall'] = options['Use linear through wall']
-        if elementsCountThroughWall == 1:
-            ostiumSettings['Ostium wall relative thicknesses'] = [1.0]
-            ostiumSettings['Vessel wall relative thicknesses'] = [1.0]
-        else:
-            mucosaRelThickness = options['Mucosa relative thickness']
-            submucosaRelThickness = options['Submucosa relative thickness']
-            circularRelThickness = options['Circular muscle layer relative thickness']
-            longRelThickness = options['Longitudinal muscle layer relative thickness']
-            relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longRelThickness]
-            ostiumSettings['Ostium wall relative thicknesses'] = relThicknesses
-            ostiumSettings['Vessel wall relative thicknesses'] = relThicknesses
-
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
@@ -832,7 +708,7 @@ class MeshType_3d_stomach1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        cls.updateSubScaffoldOptions(options)
+
         geometricCentralPath = options['Network layout']
         materialCentralPath = getDefaultNetworkLayoutScaffoldPackage(cls, 'Material')
         limitingRidge = options['Limiting ridge']
@@ -1400,8 +1276,9 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
 
 
 def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups, centralPath, options,
-                        nodeIdentifier, elementIdentifier, elementsAlongSections = [], materialCoordinates=False,
-                        nodeIdProximalEso=[], xProximalEso=[], d1ProximalEso=[], d2ProximalEso=[], d3ProximalEso=[]):
+                        nodeIdentifier, elementIdentifier, elementsAlongSections = [],
+                        materialCoordinates=False, nodeIdProximalEso=[], xProximalEso=[], d1ProximalEso=[],
+                        d2ProximalEso=[], d3ProximalEso=[]):
     """
     Generates a stomach scaffold in the region using a central path and parameter options.
     :param region: Region to create elements in.
@@ -1431,8 +1308,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     useCrossDerivatives = False
     useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
-    GEJOptions = options['Gastro-esophageal junction']
-    GEJSettings = GEJOptions.getScaffoldSettings()
+    ostiumOptions = getDefaultOstiumSettings()
+    GEJSettings = updateOstiumOptions(options, ostiumOptions)
     elementsAlongEsophagus = GEJSettings['Number of elements along']
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
     ostiumRadius = vector.magnitude(centralPath.cd2Groups[-1][1])

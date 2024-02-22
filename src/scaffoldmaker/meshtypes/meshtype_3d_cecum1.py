@@ -17,7 +17,7 @@ from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_ter
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import ColonSegmentTubeMeshOuterPoints, \
     getFullProfileFromHalfHaustrum, getTeniaColi, createNodesAndElementsTeniaColi
-from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2, generateOstiumMesh
+from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -127,20 +127,12 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     'ontId': get_cecum_term('ileum part of cecum')[1]
                 }]
         })
-           
 
-class MeshType_3d_cecum1(Scaffold_base):
-    '''
-    Generates a 3-D cecum mesh with variable numbers of elements around, along the central line, and through wall. The
-    cecum is created by a function that generates a cecum segment and uses tubemesh to map the segment along a network
-    layout. The proximal end of the cecum is closed up with an apex plate. An ostium is included to generate the
-    ileo-cecal junction.
-    '''
-
-    ostiumDefaultScaffoldPackages = {
-        'Human 1': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
+def getDefaultOstiumSettings():
+    """
+    Generate list of default options for ostium.
+    """
+    options = { 'Number of elements around ostium': 8,
                 'Number of elements along': 2,
                 'Number of elements through wall': 1,
                 'Unit scale': 1.0,
@@ -155,28 +147,42 @@ class MeshType_3d_cecum1(Scaffold_base):
                 'Refine': False,
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        }),
-        'Pig 1': ScaffoldPackage(MeshType_3d_ostium2, {
-            'scaffoldSettings': {
-                'Number of elements around ostium': 8,
-                'Number of elements along': 2,
-                'Number of elements through wall': 1,
-                'Unit scale': 1.0,
-                'Outlet': False,
-                'Ostium wall thickness': 2.0,
-                'Use linear through ostium wall': True,
-                'Vessel wall thickness': 2.0,
-                'Use linear through vessel wall': True,
-                'Use cross derivatives': False,
-                'Refine': False,
-                'Refine number of elements around': 4,
-                'Refine number of elements along': 4,
-                'Refine number of elements through wall': 1
-            },
-        })
-    }
+                'Refine number of elements through wall': 1}
+
+    return options
+
+def updateOstiumOptions(options, ostiumOptions):
+    """
+    Update ostium sub-scaffold options which depend on parent options.
+    """
+    ostiumOptions['Ostium wall thickness'] = options['Wall thickness']
+    ostiumOptions['Vessel wall thickness'] = options['Ileum wall thickness']
+    elementsCountThroughWall = options['Number of elements through wall']
+    ostiumOptions['Number of elements through wall'] = elementsCountThroughWall
+    ostiumOptions['Use linear through ostium wall'] = options['Use linear through wall']
+    ostiumOptions['Use linear through vessel wall'] = options['Use linear through wall']
+    if elementsCountThroughWall == 1:
+        ostiumOptions['Ostium wall relative thicknesses'] = [1.0]
+        ostiumOptions['Vessel wall relative thicknesses'] = [1.0]
+    else:
+        mucosaRelThickness = options['Mucosa relative thickness']
+        submucosaRelThickness = options['Submucosa relative thickness']
+        circularRelThickness = options['Circular muscle layer relative thickness']
+        longRelThickness = options['Longitudinal muscle layer relative thickness']
+        relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longRelThickness]
+        ostiumOptions['Ostium wall relative thicknesses'] = relThicknesses
+        ostiumOptions['Vessel wall relative thicknesses'] = relThicknesses
+
+    return ostiumOptions
+           
+
+class MeshType_3d_cecum1(Scaffold_base):
+    '''
+    Generates a 3-D cecum mesh with variable numbers of elements around, along the central line, and through wall. The
+    cecum is created by a function that generates a cecum segment and uses tubemesh to map the segment along a network
+    layout. The proximal end of the cecum is closed up with an apex plate. An ostium is included to generate the
+    ileo-cecal junction.
+    '''
 
     @staticmethod
     def getName():
@@ -192,13 +198,6 @@ class MeshType_3d_cecum1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        if 'Human 2' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
-        elif 'Pig 1' in parameterSetName:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Pig 1']
-        else:
-            ostiumOption = cls.ostiumDefaultScaffoldPackages['Human 1']
-
         options = {
             'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             'Number of segments': 1,
@@ -217,11 +216,11 @@ class MeshType_3d_cecum1(Scaffold_base):
             'End tenia coli width derivative': 3.3,
             'Tenia coli thickness': 0.5,
             'Wall thickness': 1.6,
+            'Ileum wall thickness': 1.6,
             'Mucosa relative thickness': 0.55,
             'Submucosa relative thickness': 0.15,
             'Circular muscle layer relative thickness': 0.25,
             'Longitudinal muscle layer relative thickness': 0.05,
-            'Ileocecal junction': copy.deepcopy(ostiumOption),
             'Use cross derivatives': False,
             'Use linear through wall': True,
             'Refine': False,
@@ -250,9 +249,9 @@ class MeshType_3d_cecum1(Scaffold_base):
             options['End tenia coli width'] = 5.0
             options['End tenia coli width derivative'] = 0.0
             options['Wall thickness'] = 2.0
+            options['Ileum wall thickness'] = 2.0
 
         options['Base parameter set'] = parameterSetName
-        cls.updateSubScaffoldOptions(options)
         return options
 
     @staticmethod
@@ -275,11 +274,11 @@ class MeshType_3d_cecum1(Scaffold_base):
             'End tenia coli width derivative',
             'Tenia coli thickness',
             'Wall thickness',
+            'Ileum wall thickness',
             'Mucosa relative thickness',
             'Submucosa relative thickness',
             'Circular muscle layer relative thickness',
             'Longitudinal muscle layer relative thickness',
-            'Ileocecal junction',
             'Use cross derivatives',
             'Use linear through wall',
             'Refine',
@@ -291,16 +290,12 @@ class MeshType_3d_cecum1(Scaffold_base):
     def getOptionValidScaffoldTypes(cls, optionName):
         if optionName == 'Network layout':
             return [ MeshType_1d_network_layout1 ]
-        if optionName == 'Ileocecal junction':
-            return [ MeshType_3d_ostium2 ]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
         if optionName == 'Network layout':
             return cls.getParameterSetNames()
-        if optionName == 'Ileocecal junction':
-            return list(cls.ostiumDefaultScaffoldPackages.keys())
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
         return scaffoldType.getParameterSetNames()
@@ -318,18 +313,12 @@ class MeshType_3d_cecum1(Scaffold_base):
             if not parameterSetName:
                 parameterSetName = "Default"
             return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
-        if optionName == 'Ileocecal junction':
-            if not parameterSetName:
-                parameterSetName = list(cls.ostiumDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.ostiumDefaultScaffoldPackages[parameterSetName])
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
         if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
             options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
-        if not options['Ileocecal junction'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Ileocecal junction'):
-            options['Ileocecal junction'] = cls.getOptionScaffoldPackage('Ileocecal junction', MeshType_3d_ostium2)
         for key in [
             'Number of segments',
             'Refine number of elements around',
@@ -359,32 +348,6 @@ class MeshType_3d_cecum1(Scaffold_base):
                options['Number of elements along segment'] = options['Number of elements along segment'] // 4 * 4
             if options['Number of elements through wall'] != (1 or 4):
                 options['Number of elements through wall'] = 4
-        cls.updateSubScaffoldOptions(options)
-
-    @classmethod
-    def updateSubScaffoldOptions(cls, options):
-        '''
-        Update ostium sub-scaffold options which depend on parent options.
-        '''
-        wallThickness = options['Wall thickness']
-        ostiumOptions = options['Ileocecal junction']
-        ostiumSettings = ostiumOptions.getScaffoldSettings()
-        ostiumSettings['Ostium wall thickness'] = wallThickness
-        elementsCountThroughWall = options['Number of elements through wall']
-        ostiumSettings['Number of elements through wall'] = elementsCountThroughWall
-        ostiumSettings['Use linear through ostium wall'] = options['Use linear through wall']
-        ostiumSettings['Use linear through vessel wall'] = options['Use linear through wall']
-        if elementsCountThroughWall == 1:
-            ostiumSettings['Ostium wall relative thicknesses'] = [1.0]
-            ostiumSettings['Vessel wall relative thicknesses'] = [1.0]
-        else:
-            mucosaRelThickness = options['Mucosa relative thickness']
-            submucosaRelThickness = options['Submucosa relative thickness']
-            circularRelThickness = options['Circular muscle layer relative thickness']
-            longRelThickness = options['Longitudinal muscle layer relative thickness']
-            relThicknesses = [mucosaRelThickness, submucosaRelThickness, circularRelThickness, longRelThickness]
-            ostiumSettings['Ostium wall relative thicknesses'] = relThicknesses
-            ostiumSettings['Vessel wall relative thicknesses'] = relThicknesses
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -397,7 +360,6 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         nextNodeIdentifier = 1
         nextElementIdentifier = 1
-        cls.updateSubScaffoldOptions(options)
         geometricCentralPath = options['Network layout']
         cecumTermsAlong = ['caecum', 'ileum part of cecum']
         geometricCentralPath = CecumCentralPath(region, geometricCentralPath, cecumTermsAlong)
@@ -700,8 +662,8 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     elementsCountAlong = int(elementsCountAlongSegment * segmentCount)
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum) * tcCount
 
-    ostiumOptions = options['Ileocecal junction']
-    ostiumSettings = ostiumOptions.getScaffoldSettings()
+    ostiumOptions = getDefaultOstiumSettings()
+    ostiumSettings = updateOstiumOptions(options, ostiumOptions)
 
     zero = [0.0, 0.0, 0.0]
     firstNodeIdentifier = nodeIdentifier
