@@ -445,7 +445,7 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     derivatives appropriate for elementsCountOut. If unspecified these are calculated from the other
     end or set to be equal for even spaced elements. 0.0 is a valid derivative magnitude.
     :param startLocation: Optional tuple of 'in' (element, xi) to start curve at.
-    :param endLocation: Optional tuple of 'in' (element, xi) to end curve at.
+    :param endLocation: Optional tuple of 'out' (element, xi) to end curve at.
     :return: px[], pd1[], pe[], pxi[], psf[], where pe[] and pxi[] are lists of element indices and
     xi locations in the 'in' elements to pass to partner interpolateSample functions. psf[] is
     a list of scale factors for converting derivatives from old to new xi coordinates: dxi(old)/dxi(new).
