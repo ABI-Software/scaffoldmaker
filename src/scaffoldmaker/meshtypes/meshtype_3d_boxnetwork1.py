@@ -6,7 +6,8 @@ from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -134,7 +135,8 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
-            "Target element density along longest segment": 4.0
+            "Target element density along longest segment": 4.0,
+            "Vagus": True
         }
         return options
 
@@ -142,7 +144,8 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
     def getOrderedOptionNames(cls):
         return [
             "Network layout",
-            "Target element density along longest segment"
+            "Target element density along longest segment",
+            "Vagus"
         ]
 
     @classmethod
@@ -193,6 +196,7 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         """
         networkLayout = options["Network layout"]
         targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
+        vagus = options["Vagus"]
 
         layoutRegion = region.createRegion()
         layoutFieldmodule = layoutRegion.getFieldmodule()
@@ -218,6 +222,17 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         hermiteBilinearBasis.setFunctionType(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
         elementtemplates = {}  # map from (startVersion, endVersion) to (elementtemplate, eft)
 
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        faceIdentifier = 1
+        bicubichermiteSerendipityBasis = (
+            fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY))
+        facetemplates = {}  # map from (startVersion, endVersion) to [4](elementtemplate, eft)
+
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        lineIdentifier = 1
+        hermiteBasis = fieldmodule.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        linetemplates = {}  # map from (startVersion, endVersion) to (elementtemplate, eft)
+
         # make box annotation groups from network layout annotations
         annotationGroups = []
         layoutAnnotationMeshGroupMap = []  # List of tuples of (layout annotation mesh group, box mesh group)
@@ -227,6 +242,17 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
                 annotationGroups.append(annotationGroup)
                 layoutAnnotationMeshGroupMap.append(
                     (layoutAnnotationGroup.getMeshGroup(layoutMesh), annotationGroup.getMeshGroup(mesh)))
+
+        vagusCentroidMeshGroup = None
+        vagusEpineuriumMeshGroup = None
+        if vagus:
+            vagusCentroidAnnotationGroup = AnnotationGroup(region, ("vagus centroid", ""))
+            annotationGroups.append(vagusCentroidAnnotationGroup)
+            vagusCentroidMeshGroup = vagusCentroidAnnotationGroup.getMeshGroup(mesh1d)
+
+            vagusEpineuriumAnnotationGroup = AnnotationGroup(region, ("vagus epineurium", ""))
+            annotationGroups.append(vagusEpineuriumAnnotationGroup)
+            vagusEpineuriumMeshGroup = vagusEpineuriumAnnotationGroup.getMeshGroup(mesh2d)
 
         valueLabels = [
             Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
@@ -372,6 +398,128 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
                         annotationMeshGroup.addElement(element)
                     elementIdentifier += 1
 
+                    if vagus:
+                        # vagus centroid
+                        linetemplate_and_eft = linetemplates.get(templateKey)
+                        if linetemplate_and_eft:
+                            linetemplate, eft = linetemplate_and_eft
+                        else:
+                            eft = mesh1d.createElementfieldtemplate(hermiteBasis)
+                            f = 1
+                            for n1 in range(2):
+                                v = startVersion if (n1 == 0) else version
+                                ln = n1 + 1
+                                eft.setTermNodeParameter(f, 1, ln, Node.VALUE_LABEL_VALUE, 1)
+                                f += 1
+                                eft.setTermNodeParameter(f, 1, ln, Node.VALUE_LABEL_D_DS1, v)
+                                f += 1
+                            linetemplate = mesh1d.createElementtemplate()
+                            linetemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
+                            linetemplate.defineField(coordinates, -1, eft)
+                            linetemplates[templateKey] = (linetemplate, eft)
+
+                        line = mesh1d.createElement(lineIdentifier, linetemplate)
+                        nids = [lastNodeIdentifier, thisNodeIdentifier]
+                        line.setNodesByIdentifier(eft, nids)
+                        vagusCentroidMeshGroup.addElement(line)
+                        lineIdentifier += 1
+
+                        # vagus epineurium
+                        facetemplate_and_eft_list = facetemplates.get(templateKey)
+                        scalefactors = [-1.0, 0.5, 0.25 * math.pi]
+                        if not facetemplate_and_eft_list:
+                            # 4 elements around circle
+                            facetemplate_and_eft_list = [None] * 4
+                            for e in range(4):
+                                eft = mesh2d.createElementfieldtemplate(bicubichermiteSerendipityBasis)
+                                setEftScaleFactorIds(eft, [1, 2, 3], [])
+                                ln = 1
+                                for n2 in range(2):
+                                    sv2 = [1] if (n2 == 0) else []
+                                    for n1 in range(2):
+                                        v = startVersion if (n1 == 0) else version
+                                        valueExpression = [(Node.VALUE_LABEL_VALUE, 1, [])]
+                                        d_ds1Expression = [(Node.VALUE_LABEL_D_DS1, v, [])]
+                                        d_ds2Expression = []
+                                        pole = (e + n2) % 4
+                                        if pole == 0:
+                                            valueExpression.append((Node.VALUE_LABEL_D_DS2, v, [2]))
+                                            d_ds1Expression.append((Node.VALUE_LABEL_D2_DS1DS2, v, [2]))
+                                            d_ds2Expression.append((Node.VALUE_LABEL_D_DS3, v, [3]))
+                                        elif pole == 1:
+                                            valueExpression.append((Node.VALUE_LABEL_D_DS3, v, [2]))
+                                            d_ds1Expression.append((Node.VALUE_LABEL_D2_DS1DS3, v, [2]))
+                                            d_ds2Expression.append((Node.VALUE_LABEL_D_DS2, v, [1, 3]))
+                                        elif pole == 2:
+                                            valueExpression.append((Node.VALUE_LABEL_D_DS2, v, [1, 2]))
+                                            d_ds1Expression.append((Node.VALUE_LABEL_D2_DS1DS2, v, [1, 2]))
+                                            d_ds2Expression.append((Node.VALUE_LABEL_D_DS3, v, [1, 3]))
+                                        elif pole == 3:
+                                            valueExpression.append((Node.VALUE_LABEL_D_DS3, v, [1, 2]))
+                                            d_ds1Expression.append((Node.VALUE_LABEL_D2_DS1DS3, v, [1, 2]))
+                                            d_ds2Expression.append((Node.VALUE_LABEL_D_DS2, v, [3]))
+                                        # print("value", valueExpression)
+                                        # print("d_ds1", d_ds1Expression)
+                                        # print("d_ds2", d_ds2Expression)
+                                        remapEftNodeValueLabelVersion(
+                                            eft, [ln], Node.VALUE_LABEL_VALUE, valueExpression)
+                                        remapEftNodeValueLabelVersion(
+                                            eft, [ln], Node.VALUE_LABEL_D_DS1, d_ds1Expression)
+                                        remapEftNodeValueLabelVersion(
+                                            eft, [ln], Node.VALUE_LABEL_D_DS2, d_ds2Expression)
+                                        ln += 1
+                                ln_map = [1, 2, 1, 2]
+                                remapEftLocalNodes(eft, 2, ln_map)
+                                facetemplate = mesh2d.createElementtemplate()
+                                facetemplate.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+                                facetemplate.defineField(coordinates, -1, eft)
+                                facetemplate_and_eft_list[e] = (facetemplate, eft)
+                            facetemplates[templateKey] = facetemplate_and_eft_list
+
+                        for e in range(4):
+                            facetemplate, eft = facetemplate_and_eft_list[e]
+                            face = mesh2d.createElement(faceIdentifier, facetemplate)
+                            nids = [lastNodeIdentifier, thisNodeIdentifier]
+                            face.setNodesByIdentifier(eft, nids)
+                            face.setScaleFactors(eft, scalefactors)
+                            vagusEpineuriumMeshGroup.addElement(face)
+                            faceIdentifier += 1
+
                 lastNodeIdentifier = thisNodeIdentifier
 
         return annotationGroups, None
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        vagus = options["Vagus"]
+        if not vagus:
+            return
+
+        # Create 2d surface mesh groups
+        fieldmodule = region.getFieldmodule()
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        mesh1d = fieldmodule.findMeshByDimension(1)
+
+        vagusEpineuriumAnnotationGroup = getAnnotationGroupForTerm(annotationGroups, ("vagus epineurium", ""))
+        vagusEpineuriumMeshGroup = vagusEpineuriumAnnotationGroup.getMeshGroup(mesh2d)
+        vagusAnteriorLineAnnotationGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, ("vagus anterior line", ""))
+        vagusAnteriorLineMeshGroup = vagusAnteriorLineAnnotationGroup.getMeshGroup(mesh1d)
+
+        faceIterator = vagusEpineuriumMeshGroup.createElementiterator()
+        quadrant = 0
+        face = faceIterator.next()
+        while face.isValid():
+            if quadrant == 0:
+                line = face.getFaceElement(4)
+                vagusAnteriorLineMeshGroup.addElement(line)
+            quadrant = (quadrant + 1) % 4
+            face = faceIterator.next()
