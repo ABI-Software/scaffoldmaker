@@ -72,7 +72,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Upper scale': 1.0,
             'Upper scale_Z': 1.0,
             'Lower scale': 1.0,
-            'Lower scale_Z': 2.0
+            'Lower scale_Z': 1.0
         }
         return options
 
@@ -86,7 +86,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across transition',
             'Number of elements along',
             'Shell element thickness proportion',
-            # 'Lower half',
             'Refine',
             'Refine number of elements across major',
             'Refine number of elements along',
@@ -253,24 +252,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                                 n1c = elementsCountAcross[1] - 1
                         if cylinder1._shield.nodeId[0][n2c][n1c]:
                             nodesIdCylinderProximalEnd.append(cylinder1._shield.nodeId[0][n2c][n1c])
-#                        hemisphere.nodeId[n3][n2][n1] = cylinder1._shield.nodeId[0][n2c][n1c]
-
-        # Make a list of nodes index at cylinder end
-#        nodesIdCylinderProximalEnd = []
-#        for n2 in range(elementsCountAcross[0] + 1):
-#            for n1 in range(elementsCountAcross[1] + 1):
-#                n2c, n1c = n2, n1
-#                if n2 < 1 and n1 == n2:
-#                    n1c = 1
-#                elif n2 < 1 and n1 == elementsCountAcross[1] - n2:
-#                    n1c = elementsCountAcross[1] - 1
-#                elif n2 > elementsCountAcross[1] - 1:
-#                    if n1 == elementsCountAcross[1] - n2:
-#                        n1c = 1
-#                    elif n1 == n2:
-#                        n1c = elementsCountAcross[1] - 1
-#                if cylinder1._shield.nodeId[0][n2c][n1c]:
-#                    nodesIdCylinderProximalEnd.append(cylinder1._shield.nodeId[0][n2c][n1c])
 
         # ******************************************************************************************************************************
         # generate hemisphere extra nodes.
@@ -297,13 +278,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     hemisphere.nodeId[elementsCountAcross[2] // 2][n2][n1] = nodesIdCylinderProximalEnd[count]
                     count += 1
 
-
-
-        #         # rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]], [0, 1]]
-        #         # nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        #         # nodeIdentifier = hemisphere.generateNodes(fm, coordinates, nodeIdentifier,
-        #         #                                           rangeOfRequiredElements)
-        # #**********************************************************************************************************************
         # generate hemisphere elements.
         rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]],
                                    [0, int(0.5 * elementsCountAcross[2])]]
@@ -370,23 +344,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                         if cylinder1._shield.nodeId[-1][n2c][n1c]:
                             nodesIdCylinderDistalEnd.append(cylinder1._shield.nodeId[-1][n2c][n1c])
 
-        # Make a list of nodes index at cylinder end
-#        nodesIdCylinderDistalEnd = []
-#        for n2 in range(elementsCountAcross[0] + 1):
-#            for n1 in range(elementsCountAcross[1] + 1):
-#                n2c, n1c = n2, n1
-#                if n2 < 1 and n1 == n2:
-#                    n1c = 1
-#                elif n2 < 1 and n1 == elementsCountAcross[1] - n2:
-#                    n1c = elementsCountAcross[1] - 1
-#                elif n2 > elementsCountAcross[1] - 1:
-#                    if n1 == elementsCountAcross[1] - n2:
-#                        n1c = 1
-#                    elif n1 == n2:
-#                        n1c = elementsCountAcross[1] - 1
-#                if cylinder1._shield.nodeId[-1][n2c][n1c]:
-#                    nodesIdCylinderDistalEnd.append(cylinder1._shield.nodeId[-1][n2c][n1c])
-
         # ******************************************************************************************************************************
         # generate hemisphere extra nodes.
         rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]],
@@ -413,11 +370,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     hemisphere2.nodeId[elementsCountAcross[2] // 2][n2][n1] = nodesIdCylinderDistalEnd[count]
                     count += 1
 
-        #         # rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]], [0, 1]]
-        #         # nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-        #         # nodeIdentifier = hemisphere.generateNodes(fm, coordinates, nodeIdentifier,
-        #         #                                           rangeOfRequiredElements)
-        # #**********************************************************************************************************************
         # generate hemisphere elements.
         rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]],
                                    [int(0.5 * elementsCountAcross[2]),elementsCountAcross[2]]]
@@ -425,23 +377,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
         elementIdentifier = hemisphere2.generateElements(fm, coordinates, elementIdentifier,
                                                          rangeOfRequiredElements)
 
-#         # AnnotationGroup.createMarkerNode(startNodeIdentifier=1, materialCoordinatesField: FieldFiniteElement = None, materialCoordinates = None, element = None, xi = [0.0, 0.0, 0.0])
-#
-#
-#         # markerTermNameBoneCoordinatesMap = {
-#         #     'tibial tuberosity': [-5.076472492200136e+01, -4.592226612078402e+01, -1.261953033704384e+03],
-#         # }
-#         # annotationGroups = []
-#         # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-#         # nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
-#         # print(nodeIdentifier)
-#         # for termName, boneCoordinatesValues in markerTermNameBoneCoordinatesMap.items():
-#         #     annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ('tibia point', 'FM:63'))
-#         #     annotationGroup.createMarkerNode(nodeIdentifier, coordinates, boneCoordinatesValues)
-#         #     nodeIdentifier += 1
-
-        # smoothing = DerivativeSmoothing(region, coordinates)
-        # smoothing.smooth(True)
 
         annotationGroup = []
         return annotationGroup, None
