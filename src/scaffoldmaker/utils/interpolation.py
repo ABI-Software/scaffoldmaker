@@ -1473,3 +1473,29 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
         print('getNearestLocationBetweenCurves did not converge:  Reached max iterations', it + 1,
               'closeness in xi', mag_dxi)
     return location, otherLocation, False
+
+def getCurvaturesAlongCurve(cx, cd, radialVectors, loop=False):
+    """
+    Calculate curvatures for points lying along a curve.
+    :param cx: coordinates on curve
+    :param cd: derivative of coordinates on curve
+    :param radialVectors: radial direction, assumed normal to curve tangent at coordinate
+    :param loop: True if curve is a closed loop
+    :return: curvatures along coordinates on curve
+    """
+    curvatures = []
+    cCount = len(cx)
+    for c in range(cCount):
+        kappa = None
+        if (c > 0) or loop:
+            cm = c - 1
+            kappa = getCubicHermiteCurvature(cx[cm], cd[cm], cx[c], cd[c], radialVectors[c], 1.0)
+        if (c < (cCount - 1)) or loop:
+            cp = c + 1 - cCount
+            kappap = getCubicHermiteCurvature(cx[c], cd[c], cx[cp], cd[cp], radialVectors[c], 0.0)
+            if kappa is None:
+                kappa = kappap
+            else:
+                kappa = 0.5 * (kappa + kappap)
+        curvatures.append(kappa)
+    return curvatures
