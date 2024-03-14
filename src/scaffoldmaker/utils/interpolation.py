@@ -1474,42 +1474,28 @@ def getNearestLocationBetweenCurves(nx, nd1, ox, od1, nLoop=False, oLoop=False, 
               'closeness in xi', mag_dxi)
     return location, otherLocation, False
 
-
-def findCurvatureAroundLoop(nx, nd, radialVectors):
+def getCurvaturesAlongCurve(cx, cd, radialVectors, loop=False):
     """
-    Calculate curvature for points lying along a loop.
-    :param nx: points on loop
-    :param nd: derivative of points on loop
-    :param radialVectors: radial direction, assumed normal to curve tangent at point
-    :return: curvatures along points on loop
+    Calculate curvatures for points lying along a curve.
+    :param cx: coordinates on curve
+    :param cd: derivative of coordinates on curve
+    :param radialVectors: radial direction, assumed normal to curve tangent at coordinate
+    :param loop: True if curve is a closed loop
+    :return: curvatures along coordinates on curve
     """
-    curvature = []
-    for n in range(len(nx)):
-        prevIdx = n - 1 if n > 0 else -1
-        nextIdx = n + 1 if n < len(nx) - 1 else 0
-        kappam = getCubicHermiteCurvature(nx[prevIdx], nd[prevIdx], nx[n], nd[n], radialVectors[n], 1.0)
-        kappap = getCubicHermiteCurvature(nx[n], nd[n], nx[nextIdx], nd[nextIdx], radialVectors[n], 0.0)
-        curvature.append(0.5 * (kappam + kappap))
-
-    return curvature
-
-def findCurvatureAlongLine(nx, nd, radialVectors):
-    """
-    Calculate curvature for points lying along a line.
-    :param nx: points on line
-    :param nd: derivative of points on line
-    :param radialVectors: radial direction, assumed normal to curve tangent at point
-    :return: curvatures along points on line
-    """
-    curvature = []
-    for n in range(len(nx)):
-        if n == 0:
-            curvature.append(getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0))
-        elif n == len(nx) - 1:
-            curvature.append(getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0))
-        else:
-            curvature.append(0.5 * (
-                    getCubicHermiteCurvature(nx[n], nd[n], nx[n + 1], nd[n + 1], radialVectors[n], 0.0) +
-                    getCubicHermiteCurvature(nx[n - 1], nd[n - 1], nx[n], nd[n], radialVectors[n], 1.0)))
-
-    return curvature
+    curvatures = []
+    cCount = len(cx)
+    for c in range(cCount):
+        kappa = None
+        if (c > 0) or loop:
+            cm = c - 1
+            kappa = getCubicHermiteCurvature(cx[cm], cd[cm], cx[c], cd[c], radialVectors[c], 1.0)
+        if (c < (cCount - 1)) or loop:
+            cp = c + 1 - cCount
+            kappap = getCubicHermiteCurvature(cx[c], cd[c], cx[cp], cd[cp], radialVectors[c], 0.0)
+            if kappa is None:
+                kappa = kappap
+            else:
+                kappa = 0.5 * (kappa + kappap)
+        curvatures.append(kappa)
+    return curvatures

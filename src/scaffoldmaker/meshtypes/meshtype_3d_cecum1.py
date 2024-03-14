@@ -1190,7 +1190,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
     for n in range(elementsCountAroundOstium):
         d3 = vector.normalise(vector.crossproduct3(vector.normalise(d2AnnulusOuter[n]), d1AnnulusNorm[n]))
         d3Annulus.append(d3)
-    annulusD2Curvature = interp.findCurvatureAroundLoop(xAnnulusOuter, d2AnnulusOuter, d3Annulus)
+    annulusD2Curvature = interp.getCurvaturesAlongCurve(xAnnulusOuter, d2AnnulusOuter, d3Annulus, loop=True)
 
     # # Visualise annulus
     # for n1 in range(len(xAnnulusOuter)):
@@ -1555,14 +1555,14 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
     for n2 in range(1 if segmentIdx == 0 else 0, elementsCountAlongSegment + 1):
         if n2 < startRowIdx or n2 > endRowIdx: #== elementsCountAlongSegment:
-            d1Curvature.append(interp.findCurvatureAlongLine(xAroundAlong[n2], d1AroundAlongOriginal[n2],
+            d1Curvature.append(interp.getCurvaturesAlongCurve(xAroundAlong[n2], d1AroundAlongOriginal[n2],
                                                              d3UnitAroundAlong[n2]))
         else:
-            d1CurvatureLeft = interp.findCurvatureAlongLine(xAroundAlong[n2][:int(0.5 * len(xAroundAlong[n2]))],
+            d1CurvatureLeft = interp.getCurvaturesAlongCurve(xAroundAlong[n2][:int(0.5 * len(xAroundAlong[n2]))],
                                                      d1AroundAlongOriginal[n2][:int(0.5 * len(xAroundAlong[n2]))],
                                                      d3UnitAroundAlong[n2][:int(0.5 * len(xAroundAlong[n2]))])
 
-            d1CurvatureRight = interp.findCurvatureAlongLine(xAroundAlong[n2][int(0.5 * len(xAroundAlong[n2])):],
+            d1CurvatureRight = interp.getCurvaturesAlongCurve(xAroundAlong[n2][int(0.5 * len(xAroundAlong[n2])):],
                                                       d1AroundAlongOriginal[n2][int(0.5 * len(xAroundAlong[n2])):],
                                                       d3UnitAroundAlong[n2][int(0.5 * len(xAroundAlong[n2])):])
             d1Curvature.append(d1CurvatureLeft + d1CurvatureRight)
@@ -1585,7 +1585,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1])
             d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong, d2Along, d3UnitAlong)
+            d2CurvatureAlong = interp.getCurvaturesAlongCurve(xAlong, d2Along, d3UnitAlong)
             for n2 in range(len(d2CurvatureAlong)):
                 d2Curvature[n2][n1] = d2CurvatureAlong[n2]
 
@@ -1594,7 +1594,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1])
             d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong[:startRowIdx + 1], nd2AlongBottomLHS,
+            d2CurvatureAlong = interp.getCurvaturesAlongCurve(xAlong[:startRowIdx + 1], nd2AlongBottomLHS,
                                                                    d3UnitAlong[:startRowIdx + 1])
 
             # Curvature of nodes along LHS annulus
@@ -1602,7 +1602,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                 d2CurvatureAlong.append(d1Curvature[m + startRowIdx + 1][n1])
 
             # From annulus to distal end
-            d2CurvatureAlong += interp.findCurvatureAlongLine(xAlong[endRowIdx:], nd2AlongTopLHS,
+            d2CurvatureAlong += interp.getCurvaturesAlongCurve(xAlong[endRowIdx:], nd2AlongTopLHS,
                                                              d3UnitAlong[endRowIdx:])
 
             for n2 in range(len(d2CurvatureAlong)):
@@ -1616,7 +1616,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             # From apex to annulus
             for n2 in range(len(pxAlongMidLine)):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(pxAlongMidLine, pd2AlongMidLine, d3UnitAlong)
+            d2CurvatureAlong = interp.getCurvaturesAlongCurve(pxAlongMidLine, pd2AlongMidLine, d3UnitAlong)
             d2CurvatureAnnulusZero = d2CurvatureAlong[-1]
             for n2 in range(len(d2CurvatureAlong) - 1):
                 d2Curvature[n2][n1] = d2CurvatureAlong[n2]
@@ -1624,7 +1624,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             d3UnitAlong = []
             for n in range(len(pxAlongMidLineBottom)):
                 d3UnitAlong.append(d3UnitAroundAlong[n + endRowIdx][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(pxAlongMidLineBottom, pd2AlongMidLineBottom, d3UnitAlong)
+            d2CurvatureAlong = interp.getCurvaturesAlongCurve(pxAlongMidLineBottom, pd2AlongMidLineBottom, d3UnitAlong)
             d2CurvatureAlongHalfOstium = d2CurvatureAlong[0]
             for n in range(1, len(pd2AlongMidLineBottom)):
                 nIdx = n + endRowIdx
@@ -1635,7 +1635,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)])
             d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong[:startRowIdx + 1], nd2AlongBottomRHS,
+            d2CurvatureAlong = interp.getCurvaturesAlongCurve(xAlong[:startRowIdx + 1], nd2AlongBottomRHS,
                                                              d3UnitAlong[:startRowIdx + 1])
 
             # Curvature of nodes along LHS annulus
@@ -1643,7 +1643,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                 d2CurvatureAlong.append(d1Curvature[m + startRowIdx + 1][n1 - 1])
 
             # From annulus to distal end
-            d2CurvatureAlong += interp.findCurvatureAlongLine(xAlong[endRowIdx:], nd2AlongTopRHS,
+            d2CurvatureAlong += interp.getCurvaturesAlongCurve(xAlong[endRowIdx:], nd2AlongTopRHS,
                                                               d3UnitAlong[endRowIdx:])
 
             for n2 in range(len(d2CurvatureAlong)):
@@ -1661,7 +1661,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             for n2 in range(elementsCountAlongSegment):
                 d3UnitAlong.append(d3UnitAroundAlong[n2][n1 + (0 if (n2 < startRowIdx or n2 > endRowIdx) else -1)])
             d3UnitAlong.append(d3UnitAroundAlong[n2 + 1][n1])
-            d2CurvatureAlong = interp.findCurvatureAlongLine(xAlong, d2Along, d3UnitAlong)
+            d2CurvatureAlong = interp.getCurvaturesAlongCurve(xAlong, d2Along, d3UnitAlong)
 
             # Adjust for corners
             if n1 == elementsCountAroundHalfHaustrum:
