@@ -25,7 +25,7 @@ class CecumScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Pig 1"])
         options = MeshType_3d_cecum1.getDefaultOptions("Human 2")
 
-        centralPath = options.get("Central path")
+        centralPath = options.get("Network layout")
         centralPathSettings = centralPath.getScaffoldSettings()
         self.assertEqual("1-2-3.2, 4-3-5", centralPathSettings["Structure"])
 
@@ -41,10 +41,6 @@ class CecumScaffoldTestCase(unittest.TestCase):
         self.assertEqual(10.0, options.get("Start tenia coli width"))
         self.assertEqual(0.0, options.get("End tenia coli width derivative"))
         self.assertEqual(1.6, options.get("Wall thickness"))
-        ostiumOptions = options['Ileocecal junction']
-        ostiumSettings = ostiumOptions.getScaffoldSettings()
-        self.assertEqual(8, ostiumSettings.get("Number of elements around ostium"))
-        self.assertEqual(1, ostiumSettings.get("Number of elements through wall"))
 
         context = Context("Test")
         region = context.getDefaultRegion()

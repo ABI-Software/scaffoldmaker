@@ -76,7 +76,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 1')
         options = {
             'Base parameter set': 'Human 1',
-            'Central path': copy.deepcopy(centralPathOption),
+            'Network layout': copy.deepcopy(centralPathOption),
             'Segment profile': segmentProfileOption,
             'Number of segments': 3,
             'Start phase': 0.0,
@@ -91,7 +91,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
             'Refine number of elements through wall': 1
         }
         self.assertEqual(14, len(options))
-        centralPath = options['Central path']
+        centralPath = options['Network layout']
         segmentProfile = options.get("Segment profile")
         segmentSettings = segmentProfile.getScaffoldSettings()
         self.assertEqual(8, segmentSettings.get("Number of elements around haustrum"))
@@ -151,7 +151,6 @@ class ColonScaffoldTestCase(unittest.TestCase):
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
-        print(minimums, maximums)
         assertAlmostEqualList(self, minimums, [0.0, 0.0, 0.0], 1.0E-6)
         assertAlmostEqualList(self, maximums, [377.06179507784395, 561.3383898388232, 2.2], 1.0E-6)
 

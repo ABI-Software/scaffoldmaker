@@ -70,10 +70,10 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         }
         centralPathOption = parameterSetStructureStrings['Test line']
         options = MeshType_3d_smallintestine1.getDefaultOptions("Mouse 1")
-        options['Central path'] = copy.deepcopy(centralPathOption)
+        options['Network layout'] = copy.deepcopy(centralPathOption)
         options['Number of segments'] = 3
         self.assertEqual(16, len(options))
-        centralPath = options['Central path']
+        centralPath = options['Network layout']
         self.assertEqual(3, options.get("Number of segments"))
         self.assertEqual(8, options.get("Number of elements around"))
         self.assertEqual(3, options.get("Number of elements along segment"))
