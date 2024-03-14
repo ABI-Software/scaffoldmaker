@@ -29,54 +29,53 @@ class ColonScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Human 3", "Mouse 1",
                                              "Mouse 2", "Pig 1"])
 
-        parameterSetStructureStrings = {
-            'Test line': ScaffoldPackage(MeshType_1d_network_layout1, {
-                'scaffoldSettings': {
-                    "Structure": "1-2-3-4"
-                },
-                'meshEdits': exnode_string_from_nodeset_field_parameters(
-                    [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                    (1, [ [   0.00,   0.00, 0.00 ], [ -50.70,  178.20, 0.00 ], [ -37.97,  -9.49, -18.98 ], [ -6.86, -11.39,  -2.36 ], [ -18.61,  -3.98, 39.12 ], [ -14.00,  -1.00, -12.00] ] ),
-                    (2, [ [ -47.40, 188.60, 0.00 ], [ -19.30,  177.10, 0.00 ], [ -35.79,  -6.51, -13.01 ], [ 11.23,  17.36,  14.31 ], [ -12.66,  -3.99, 36.28 ], [  -4.00,  19.00,  22.00] ] ),
-                    (3, [ [  -4.40, 396.50, 0.00 ], [ 206.00,   40.10, 0.00 ], [ -13.89,  27.78,  11.11 ], [ 13.54,  -1.87,  21.51 ], [  -6.05, -12.50, 29.93 ], [  -6.00,   0.00,  51.00] ] ),
-                    (4, [ [ 130.00, 384.10, 0.00 ], [ 130.80,  -40.50, 0.00 ], [  -5.35,   4.28,  31.06 ], [  5.83,  -8.41,   8.86 ], [ -15.28, -27.78,  2.51 ], [   0.00,   1.00,  24.00] ] ) ] ),
+        testNetworkLayout = ScaffoldPackage(MeshType_1d_network_layout1, {
+            'scaffoldSettings': {
+                "Structure": "1-2-3-4"
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[0.00, 0.00, 0.00], [-50.70, 178.20, 0.00], [-37.97, -9.49, -18.98], [-6.86, -11.39, -2.36], [-18.61, -3.98, 39.12], [-14.00, -1.00, -12.00]]),
+                    (2, [[-47.40, 188.60, 0.00], [-19.30, 177.10, 0.00], [-35.79, -6.51, -13.01], [11.23, 17.36, 14.31], [-12.66, -3.99, 36.28], [-4.00, 19.00, 22.00]]),
+                    (3, [[-4.40, 396.50, 0.00], [206.00, 40.10, 0.00], [-13.89, 27.78, 11.11], [13.54, -1.87, 21.51], [-6.05, -12.50, 29.93], [-6.00, 0.00, 51.00]]),
+                    (4, [[130.00, 384.10, 0.00], [130.80, -40.50, 0.00], [-5.35, 4.28, 31.06], [5.83, -8.41, 8.86], [-15.28, -27.78, 2.51], [0.00, 1.00, 24.00]])]),
 
-                'userAnnotationGroups': [
-                    {
-                        '_AnnotationGroup': True,
-                        'dimension': 1,
-                        'identifierRanges': '1-3',
-                        'name': get_colon_term('colon')[0],
-                        'ontId': get_colon_term('colon')[1]
-                    },
-                    {
-                        '_AnnotationGroup': True,
-                        'dimension': 1,
-                        'identifierRanges': '1',
-                        'name': get_colon_term('ascending colon')[0],
-                        'ontId': get_colon_term('ascending colon')[1]
-                    },
-                    {
-                        '_AnnotationGroup': True,
-                        'dimension': 1,
-                        'identifierRanges': '2',
-                        'name': get_colon_term('transverse colon')[0],
-                        'ontId': get_colon_term('transverse colon')[1]
-                    },
-                    {
-                        '_AnnotationGroup': True,
-                        'dimension': 1,
-                        'identifierRanges': '3',
-                        'name': get_colon_term('descending colon')[0],
-                        'ontId': get_colon_term('descending colon')[1]
-                    }]
-            })
-        }
-        centralPathOption = parameterSetStructureStrings['Test line']
+            'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-3',
+                    'name': get_colon_term('colon')[0],
+                    'ontId': get_colon_term('colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1',
+                    'name': get_colon_term('ascending colon')[0],
+                    'ontId': get_colon_term('ascending colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '2',
+                    'name': get_colon_term('transverse colon')[0],
+                    'ontId': get_colon_term('transverse colon')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '3',
+                    'name': get_colon_term('descending colon')[0],
+                    'ontId': get_colon_term('descending colon')[1]
+                }]
+        })
+
         segmentProfileOption = ScaffoldPackage(MeshType_3d_colonsegment1, defaultParameterSetName='Human 1')
         options = {
             'Base parameter set': 'Human 1',
-            'Network layout': copy.deepcopy(centralPathOption),
+            'Network layout': testNetworkLayout,
             'Segment profile': segmentProfileOption,
             'Number of segments': 3,
             'Start phase': 0.0,
@@ -91,7 +90,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
             'Refine number of elements through wall': 1
         }
         self.assertEqual(14, len(options))
-        centralPath = options['Network layout']
+        networkLayout = options['Network layout']
         segmentProfile = options.get("Segment profile")
         segmentSettings = segmentProfile.getScaffoldSettings()
         self.assertEqual(8, segmentSettings.get("Number of elements around haustrum"))
@@ -111,7 +110,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         cx = get_nodeset_path_field_parameters(
             tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),

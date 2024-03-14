@@ -360,11 +360,11 @@ class MeshType_3d_cecum1(Scaffold_base):
 
         nextNodeIdentifier = 1
         nextElementIdentifier = 1
-        geometricCentralPath = options['Network layout']
+        geometricNetworkLayout = options['Network layout']
         cecumTermsAlong = ['caecum', 'ileum part of cecum']
-        geometricCentralPath = CecumCentralPath(region, geometricCentralPath, cecumTermsAlong)
+        geometricNetworkLayout = CecumNetworkLayout(region, geometricNetworkLayout, cecumTermsAlong)
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
-            createCecumMesh3d(region, options, geometricCentralPath, nextNodeIdentifier,
+            createCecumMesh3d(region, options, geometricNetworkLayout, nextNodeIdentifier,
                               nextElementIdentifier)[0:3]
 
         return annotationGroups, None
@@ -619,13 +619,13 @@ def findDerivativeBetweenPoints(v1, v2):
 
     return d
 
-def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdentifier, nodeIdProximalIleum=[],
+def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIdentifier, nodeIdProximalIleum=[],
                       xProximalIleum=[], d1ProximalIleum=[], d2ProximalIleum=[], d3ProximalIleum=[]):
     """
     Generates a cecum scaffold in the region using a network layout and parameter options.
     :param region: Region to create elements in.
     :param options: Parameter options for scaffold.
-    :param centralPath: Central path through the axis of the cecum scaffold.
+    :param networkLayout: Network layout through the axis of the cecum scaffold.
     :param nodeIdentifier: First node identifier.
     :param elementIdentifier: First element identifier.
     :param nodeIdProximalIleum: Node identifiers of nodes around starting nodes for ileum.
@@ -704,22 +704,22 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
         annotationGroupsThroughWall = [[mucosaGroup], [submucosaGroup], [circularMuscleGroup],
                                        [longitudinalMuscleGroup]]
 
-    # Sample central path along cecum
-    # print(len(centralPath.cxGroups))
-    cecumLength = centralPath.arcLengthOfGroupsAlong[0]
-    cx = centralPath.cxGroups[0]
-    cd1 = centralPath.cd1Groups[0]
-    cd2 = centralPath.cd2Groups[0]
-    cd12 = centralPath.cd12Groups[0]
+    # Sample network layout along cecum
+    # print(len(networkLayout.cxGroups))
+    cecumLength = networkLayout.arcLengthOfGroupsAlong[0]
+    cx = networkLayout.cxGroups[0]
+    cd1 = networkLayout.cd1Groups[0]
+    cd2 = networkLayout.cd2Groups[0]
+    cd12 = networkLayout.cd12Groups[0]
 
-    cxIleum = centralPath.cxGroups[1]
-    cd1Ileum = centralPath.cd1Groups[1]
-    cd2Ileum = centralPath.cd2Groups[1]
-    cd3Ileum = centralPath.cd3Groups[1]
-    cd12Ileum = centralPath.cd12Groups[1]
+    cxIleum = networkLayout.cxGroups[1]
+    cd1Ileum = networkLayout.cd1Groups[1]
+    cd2Ileum = networkLayout.cd2Groups[1]
+    cd3Ileum = networkLayout.cd3Groups[1]
+    cd12Ileum = networkLayout.cd12Groups[1]
 
-    d2BranchPt = centralPath.d2BranchPt
-    d3BranchPt = centralPath.d3BranchPt
+    d2BranchPt = networkLayout.d2BranchPt
+    d3BranchPt = networkLayout.d3BranchPt
 
     sxCecum, sd1Cecum, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
     sd2Cecum, sd12Cecum = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
@@ -811,7 +811,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     for n in range(len(xToWarp)):
         xToWarp[n][2] = xToWarp[n][2] - minZ
 
-    # Project reference point for warping onto central path
+    # Project reference point for warping onto network layout
     sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
         tubemesh.getPlaneProjectionOnCentralPath(xToWarp, elementsCountAround, elementsCountAlong,
                                                  cecumLength, sxCecum, sd1Cecum, sd2Cecum, sd12Cecum)
@@ -923,9 +923,9 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     #     element.setNodesByIdentifier(eft, [nodeIdentifierCecum + e, nodeIdentifierCecum + 1 + e])
     #     elementIdentifier = elementIdentifier + 1
     #
-    # cx = centralPath.cxGroups[1]
-    # cd1 = centralPath.cd1Groups[1]
-    # cd2 = centralPath.cd2Groups[1]
+    # cx = networkLayout.cxGroups[1]
+    # cd1 = networkLayout.cd1Groups[1]
+    # cd2 = networkLayout.cd2Groups[1]
     #
     # nodeIdentifierIleum = nextNodeIdentifier
     # for n2 in range(len(cx)):
@@ -961,7 +961,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     startIdxElementsAround = int((elementsCountAroundHaustrum + elementsCountAroundTC) * sectorIdx +
                                  elementsCountAroundTC * 0.5)
 
-    segmentIdx = int(centralPath.arcLengthToBranchPt // segmentLength)
+    segmentIdx = int(networkLayout.arcLengthToBranchPt // segmentLength)
 
     baseNodesIdx = (elementsCountThroughWall + 1) + \
                    + (elementsCountAround * (elementsCountThroughWall + 1) +
@@ -1061,7 +1061,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
 
     xTol = 1.0E-6
     arcStart = 0.0
-    arcEnd = centralPath.arcLengthOfGroupsAlong[1]
+    arcEnd = networkLayout.arcLengthOfGroupsAlong[1]
     nearestPosition = trackSurfaceOstium.findNearestPosition(cxIleum[0])
     xNearestStart = trackSurfaceOstium.evaluateCoordinates(nearestPosition, derivatives=False)
     distStart = vector.magnitude([cxIleum[0][c] - xNearestStart[c] for c in range(3)])
@@ -1138,10 +1138,10 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     d12Path = [cd2Ileum[0], [0.0, 0.0, 0.0]]
     d13Path = [cd3Ileum[0], [0.0, 0.0, 0.0]]
 
-    centralPathIleum = CustomCentralPath(xPath, d1Path, d2Path, d3Path, d12Path, d13Path)
+    networkLayoutIleum = CustomNetworkLayout(xPath, d1Path, d2Path, d3Path, d12Path, d13Path)
 
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
-        generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, centralPathIleum,
+        generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, networkLayoutIleum,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
                            nodeIdProximal=nodeIdProximalIleum, xProximal=xProximalIleum, d1Proximal=d1ProximalIleum,
                            d2Proximal=d2ProximalIleum, d3Proximal=d3ProximalIleum,
@@ -1161,7 +1161,7 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
     e1Right = 0
     e2Top = 0
     e2Bottom = elementsAlongTrackSurface
-    sf = vector.magnitude(centralPathIleum.cd2Path[-1]) * 0.35
+    sf = vector.magnitude(networkLayoutIleum.cd2Path[-1]) * 0.35
     for n1 in range(elementsCountAroundOstium):
         normD2 = vector.normalise(o1_d2[-1][n1])
         d1AnnulusNorm.append(normD2)
@@ -2130,20 +2130,20 @@ def createCecumMesh3d(region, options, centralPath, nodeIdentifier, elementIdent
            d2Distal, d3Distal
 
 
-class CecumCentralPath:
+class CecumNetworkLayout:
     """
-    Generates sampled central path for cecum scaffold.
+    Generates sampled network layout for cecum scaffold.
     """
-    def __init__(self, region, centralPath, termsAlong=[None], ileumSegmentIdx=0, cecumSegmentIdx=[1,2]):
+    def __init__(self, region, networkLayout, termsAlong=[None], ileumSegmentIdx=0, cecumSegmentIdx=[1,2]):
         """
         :param region: Zinc region to define model in.
-        :param centralPath: Central path subscaffold from meshtype_1d_path1
-        :param termsAlong: Annotation terms along length of central path
+        :param networkLayout: Network layout subscaffold from meshtype_1d_networklayout1
+        :param termsAlong: Annotation terms along length of network layout
         :param ileumSegmentIdx: Segment index of ileum branch.
         :param cecumSegmentIdx: Segment index of body of cecum.
         """
 
-        # Extract length of each group along cecum from central path
+        # Extract length of each group along cecum from network layout
         arcLengthOfGroupsAlong = []
         cxGroups = []
         cd1Groups = []
@@ -2153,8 +2153,8 @@ class CecumCentralPath:
         cd13Groups = []
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        pathNetworkMesh = centralPath.getConstructionObject()
+        networkLayout.generate(tmpRegion)
+        pathNetworkMesh = networkLayout.getConstructionObject()
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
@@ -2257,9 +2257,9 @@ class CecumCentralPath:
         self.d3BranchPt = d3branchpt
         self.arcLengthToBranchPt = arcLengthToBranchPt
 
-class CustomCentralPath:
+class CustomNetworkLayout:
     """
-    Generates sampled central path for part of central path.
+    Generates sampled network layout for part of network layout.
     """
     def __init__(self, cx, cd1, cd2, cd3, cd12, cd13):
         self.cxPath = cx

@@ -211,7 +211,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     'ontId': get_colon_term('descending colon')[1]
                 }]
         })
-    
+
     elif 'Cattle 1' in parameterSetName:
         return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
@@ -365,7 +365,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (4, [[-14.00,-1.00,-10.00], [1.00,1.00,-17.00], [0.00,-1.25,0.00], [0.00,0.08,0.00], [-1.25,-0.00,-0.00], [0.00,0.00,0.50]]),
                 (5, [[-14.00,0.00,-28.00], [0.00,0.00,-11.00], [0.00,-1.25,0.00], [0.00,-0.08,0.00], [-1.25,-0.00,0.00], [0.00,0.00,0.50]])
                 ] ),
-                
+
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -445,7 +445,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (39, [[-47.60,33.90,-112.20], [32.60,30.70,-27.80], [-10.59,-0.41,-1.32], [-7.25,2.76,-6.03], [-4.75,2.85,9.12], [-8.97,3.42,-7.45]]),
                 (40, [[19.60,96.00,-167.50], [19.90,19.10,-18.40], [-8.87,0.91,-5.71], [9.97,-0.68,-0.89], [-3.77,7.41,6.56], [12.30,-0.82,-1.11]])
                 ] ),
-                
+
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -476,7 +476,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     'ontId': get_colon_term('descending colon')[1]
                 }]
         })
-            
+
 
 class MeshType_3d_colon1(Scaffold_base):
     '''
@@ -644,7 +644,7 @@ class MeshType_3d_colon1(Scaffold_base):
         segmentSettings = segmentProfile.getScaffoldSettings()
         tcCount = segmentSettings['Number of tenia coli']
 
-        geometricCentralPath = options['Network layout']
+        geometricNetworkLayout = options['Network layout']
         if tcCount == 1:
             colonTermsAlong = ['colon', 'right colon', 'transverse colon', 'left colon']
         elif tcCount == 2:
@@ -652,10 +652,10 @@ class MeshType_3d_colon1(Scaffold_base):
         elif tcCount == 3:
             colonTermsAlong = ['colon', 'ascending colon', 'transverse colon', 'descending colon']
 
-        geometricCentralPath = ColonCentralPath(region, geometricCentralPath, colonTermsAlong)
+        geometricNetworkLayout = ColonNetworkLayout(region, geometricNetworkLayout, colonTermsAlong)
 
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
-            createColonMesh3d(region, options, geometricCentralPath, nextNodeIdentifier,
+            createColonMesh3d(region, options, geometricNetworkLayout, nextNodeIdentifier,
                               nextElementIdentifier, flatCoordinates=True, materialCoordinates=True)[0:3]
 
         return annotationGroups, None
@@ -702,14 +702,14 @@ class MeshType_3d_colon1(Scaffold_base):
                                                                 get_colon_term("luminal surface of the colonic mucosa"))
         mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
 
-def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElementIdentifier,
+def createColonMesh3d(region, options, networkLayout, nextNodeIdentifier, nextElementIdentifier,
                       flatCoordinates=False, materialCoordinates=False,
                       nodeIdProximal=[], xProximal=[], d1Proximal=[], d2Proximal=[], d3Proximal=[]):
     """
-    Generates a colon scaffold in the region using a central path and parameter options.
+    Generates a colon scaffold in the region using a network layout and parameter options.
     :param region: Region to create elements in.
     :param options: Parameter options for creating scaffold.
-    :param centralPath: Central path through the path of the colon.
+    :param networkLayout: Network layout through the path of the colon.
     :param nextNodeIdentifier: Next node identifier to use.
     :param nextElementIdentifier: Next element identifier to use.
     :param flatCoordinates: Generate flat coordinates if True.
@@ -758,7 +758,7 @@ def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
     teniaColiThicknessToDiameterRatio = 0.25 * wallThicknessToDiameterRatio
     relativeThicknessListColonCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
 
-    # Central path
+    # Network layout
     if tcCount == 1:
         colonTermsAlong = ['colon', 'right colon', 'transverse colon', 'left colon']
     elif tcCount == 2:
@@ -766,12 +766,12 @@ def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
     elif tcCount == 3:
         colonTermsAlong = ['colon', 'ascending colon', 'transverse colon', 'descending colon']
 
-    centralPathLength = centralPath.arcLengthOfGroupsAlong[0]
-    cx = centralPath.cxGroups[0]
-    cd1 = centralPath.cd1Groups[0]
-    cd2 = centralPath.cd2Groups[0]
-    cd12 = centralPath.cd12Groups[0]
-    arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
+    networkLayoutLength = networkLayout.arcLengthOfGroupsAlong[0]
+    cx = networkLayout.cxGroups[0]
+    cd1 = networkLayout.cd1Groups[0]
+    cd2 = networkLayout.cd2Groups[0]
+    cd12 = networkLayout.cd12Groups[0]
+    arcLengthOfGroupsAlong = networkLayout.arcLengthOfGroupsAlong
 
     # find arclength of colon
     length = 0.0
@@ -784,11 +784,11 @@ def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
         length += arcLength
     segmentLength = length / segmentCount
 
-    # Sample central path
+    # Sample network layout
     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
     sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
-    elementAlongLength = centralPathLength / elementsCountAlong
+    elementAlongLength = networkLayoutLength / elementsCountAlong
 
     elementsCountAlongGroups = []
     groupLength = 0.0
@@ -910,7 +910,7 @@ def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
         xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround \
             = colonSegmentTubeMeshOuterPoints.getColonSegmentTubeMeshOuterPoints(nSegment)
 
-        # Project reference point for warping onto central path
+        # Project reference point for warping onto network layout
         start = nSegment * elementsCountAlongSegment
         end = (nSegment + 1) * elementsCountAlongSegment + 1
         sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
@@ -1007,15 +1007,15 @@ def createColonMesh3d(region, options, centralPath, nextNodeIdentifier, nextElem
     return annotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, d2Distal, \
            d3Distal
 
-class ColonCentralPath:
+class ColonNetworkLayout:
 
-    def __init__(self, region, centralPath, termsAlong=[None]):
+    def __init__(self, region, networkLayout, termsAlong=[None]):
         """
         :param region: Zinc region to define model in.
-        :param centralPath: Central path subscaffold from meshtype_1d_network_layout1
+        :param networkLayout: Network layout subscaffold from meshtype_1d_network_layout1
         :param termsAlong: Annotation terms along length of colon
         """
-        # Extract length of each group along colon from central path
+        # Extract length of each group along colon from network layout
         cxGroups = []
         cd1Groups = []
         cd2Groups = []
@@ -1024,7 +1024,7 @@ class ColonCentralPath:
         cd13Groups = []
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')

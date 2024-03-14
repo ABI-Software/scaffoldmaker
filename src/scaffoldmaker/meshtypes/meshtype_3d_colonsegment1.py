@@ -277,13 +277,13 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         firstNodeIdentifier = 1
         firstElementIdentifier = 1
 
-        # Central path
+        # Network layout
         cx = [[0.0, 0.0, 0.0], [segmentLength, 0.0, 0.0]]
         cd1 = [[segmentLength, 0.0, 0.0], [segmentLength, 0.0, 0.0]]
         cd2 = [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
         cd12 = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
 
-        # Sample central path
+        # Sample network layout
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment)
         sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
@@ -325,7 +325,7 @@ class MeshType_3d_colonsegment1(Scaffold_base):
         xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, annotationGroupsAround = \
             colonSegmentTubeMeshOuterPoints.getColonSegmentTubeMeshOuterPoints(nSegment)
 
-        # Project reference point for warping onto central path
+        # Project reference point for warping onto network layout
         sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
             tubemesh.getPlaneProjectionOnCentralPath(xOuter, elementsCountAround, elementsCountAlongSegment,
                                                      segmentLength, sx, sd1, sd2, sd12)
@@ -526,7 +526,7 @@ def getColonSegmentOuterPoints(region, elementsCountAroundTC, elementsCountAroun
                                tcWidthSegmentList, startPhase):
     """
     Generates a 3-D colon segment mesh with variable numbers of tenia coli,
-    numbers of elements around, along the central path, and through wall.
+    numbers of elements around, along the network layout, and through wall.
     Colon segment with one "tenia coli" (mouse) has a circular profile along
     its length. Colon segment with two tenia coli (pig) has a circular profile
     at the inter-haustral septa, and a bowtie profile in the intra-haustral

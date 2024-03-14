@@ -16,13 +16,13 @@ from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.annotation.stomach_terms import get_stomach_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
-from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1, createCecumMesh3d, CecumCentralPath
-from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1, createColonMesh3d, ColonCentralPath
+from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1, createCecumMesh3d, CecumNetworkLayout
+from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1, createColonMesh3d, ColonNetworkLayout
 from scaffoldmaker.meshtypes.meshtype_3d_esophagus1 import MeshType_3d_esophagus1, createEsophagusMesh3d, \
-    EsophagusCentralPath
+    EsophagusNetworkLayout
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1, \
-    createSmallIntestineMesh3d, SmallIntestineCentralPath
-from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1, createStomachMesh3d, StomachCentralPath
+    createSmallIntestineMesh3d, SmallIntestineNetworkLayout
+from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1, createStomachMesh3d, StomachNetworkLayout
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
@@ -425,7 +425,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
 class MeshType_3d_gastrointestinaltract1(Scaffold_base):
     '''
     Generates a 3-D gastrointestinal tract mesh with variable numbers of elements around, along the central line,
-    and through wall. The tract is created by following an annotated central path and calling scaffold function to
+    and through wall. The tract is created by following an annotated network layout and calling scaffold function to
     generate the respective segment along the central line profile.
     '''
 
@@ -590,7 +590,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
         :return: annotationGroups
         """
         cls.updateSubScaffoldOptions(options)
-        centralPath = options['Network layout']
+        networkLayout = options['Network layout']
         esophagusOptions = options['Esophagus']
         stomachOptions = options['Stomach']
         smallIntestineOptions = options['Small intestine']
@@ -612,9 +612,9 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
         nextElementIdentifier = 1
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
 
-        # Central path
+        # Network layout
         gastroTermsAlong = [['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus',
                              'abdominal part of esophagus'],
                             ['stomach', 'fundus of stomach', 'body of stomach', 'pyloric antrum', 'pyloric canal',
@@ -629,20 +629,20 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
             allAnnotationGroups = []
 
             if gastroTermsAlong[section][0] == 'esophagus':
-                esoCentralPath = EsophagusCentralPath(region, centralPath, gastroTermsAlong[section])
+                esoNetworkLayout = EsophagusNetworkLayout(region, networkLayout, gastroTermsAlong[section])
                 annotationGroupsEsophagus, nextNodeIdentifier, nextElementIdentifier, nodesIdEsoDistal,\
                 xEsoDistal, d1EsoDistal, d2EsoDistal, d3EsoDistal = \
-                    createEsophagusMesh3d(region, esophagusSettings, esoCentralPath, nextNodeIdentifier,
+                    createEsophagusMesh3d(region, esophagusSettings, esoNetworkLayout, nextNodeIdentifier,
                                           nextElementIdentifier)
 
             elif gastroTermsAlong[section][0] == 'stomach':
-                stomachCentralPath = StomachCentralPath(region, centralPath, gastroTermsAlong[section], esoSegmentIdx=0,
-                                                        stomachSegmentIdx=[1,2])
+                stomachNetworkLayout = StomachNetworkLayout(region, networkLayout, gastroTermsAlong[section],
+                                                            esoSegmentIdx=0, stomachSegmentIdx=[1,2])
                 annotationGroupsStomach, nextNodeIdentifier, nextElementIdentifier, _, nodesIdStomachDistal,\
                 xStomachDistal, d1StomachDistal, d2StomachDistal, d3StomachDistal, arclengthCPStomachDistal, xPrev, \
                 d2Prev = \
                     createStomachMesh3d(region, fm, coordinates, gastroTermsAlong[section],
-                                        allAnnotationGroups, stomachCentralPath,
+                                        allAnnotationGroups, stomachNetworkLayout,
                                         options=stomachSettings, nodeIdentifier=nextNodeIdentifier,
                                         elementIdentifier=nextElementIdentifier,
                                         nodeIdProximalEso=nodesIdEsoDistal, xProximalEso=xEsoDistal,
@@ -652,12 +652,13 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                 annotationGroupsStomach.remove(nearLCGroup)
 
             elif gastroTermsAlong[section][0] == 'small intestine':
-                smallIntestineCentralPath = SmallIntestineCentralPath(region, centralPath, gastroTermsAlong[section])
+                smallIntestineNetworkLayout = SmallIntestineNetworkLayout(region, networkLayout,
+                                                                          gastroTermsAlong[section])
 
                 annotationGroupsSmallIntestine, nextNodeIdentifier, nextElementIdentifier, \
                 nodesIdSmallIntestineDistal, xSmallIntestineDistal, d1SmallIntestineDistal, d2SmallIntestineDistal, \
                 d3SmallIntestineDistal, xNext, d2Next = \
-                    createSmallIntestineMesh3d(region, smallIntestineSettings, smallIntestineCentralPath,
+                    createSmallIntestineMesh3d(region, smallIntestineSettings, smallIntestineNetworkLayout,
                                                nextNodeIdentifier, nextElementIdentifier,
                                                nodeIdProximal=nodesIdStomachDistal, xProximal=xStomachDistal,
                                                d1Proximal=d1StomachDistal, d2Proximal=d2StomachDistal,
@@ -677,20 +678,20 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, newD2)
 
             elif gastroTermsAlong[section][0] == 'caecum':
-                cecumCentralPath = CecumCentralPath(region, centralPath, gastroTermsAlong[section],
+                cecumNetworkLayout = CecumNetworkLayout(region, networkLayout, gastroTermsAlong[section],
                                                     ileumSegmentIdx=2, cecumSegmentIdx=[3,4])
                 annotationGroupsCecum, nextNodeIdentifier, nextElementIdentifier, nodesIdCecumDistal, \
                 xCecumDistal, d1CecumDistal, d2CecumDistal, d3CecumDistal = \
-                    createCecumMesh3d(region, cecumSettings, cecumCentralPath, nextNodeIdentifier,
+                    createCecumMesh3d(region, cecumSettings, cecumNetworkLayout, nextNodeIdentifier,
                                       nextElementIdentifier,  nodeIdProximalIleum=nodesIdSmallIntestineDistal,
                                       xProximalIleum=xSmallIntestineDistal, d1ProximalIleum=d1SmallIntestineDistal,
                                       d2ProximalIleum=d2SmallIntestineDistal, d3ProximalIleum=d3SmallIntestineDistal)
 
             elif gastroTermsAlong[section][0] == 'colon':
-                colonCentralPath = ColonCentralPath(region, centralPath, gastroTermsAlong[section])
+                colonNetworkLayout = ColonNetworkLayout(region, networkLayout, gastroTermsAlong[section])
                 annotationGroupsColon, nextNodeIdentifier, nextElementIdentifier, \
                 nodesIdColonDistal, xColonDistal, d1ColonDistal, d2ColonDistal, d3ColonDistal = \
-                    createColonMesh3d(region, colonSettings, colonCentralPath, nextNodeIdentifier,
+                    createColonMesh3d(region, colonSettings, colonNetworkLayout, nextNodeIdentifier,
                                       nextElementIdentifier, nodeIdProximal=nodesIdCecumDistal,
                                       xProximal=xCecumDistal, d1Proximal=d1CecumDistal, d2Proximal=d2CecumDistal,
                                       d3Proximal=d3CecumDistal)
@@ -718,15 +719,15 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                                                        refineElementsCountThroughWall)
         return
 
-class SectionCentralPath:
+class SectionNetworkLayout:
     """
-    Generates sampled central path for GI Tract scaffold.
+    Generates sampled network layout for GI Tract scaffold.
     """
     def __init__(self, arcLengthOfGroupsAlong, cxGroups, cd1Groups, cd2Groups,cd3Groups, cd12Groups, cd13Groups):
         """
         :param region: Zinc region to define model in.
-        :param centralPath: Central path subscaffold from meshtype_1d_path1
-        :param stomachTermsAlong: Annotation terms along length of central path
+        :param networkLayout: Network layout subscaffold from meshtype_1d_networklayout1
+        :param stomachTermsAlong: Annotation terms along length of network layout
         """
         self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
         self.cxGroups = cxGroups

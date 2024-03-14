@@ -25,8 +25,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         """
         parameterSetNames = MeshType_3d_smallintestine1.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Mouse 1"])
-        parameterSetStructureStrings = {
-            'Test line': ScaffoldPackage(MeshType_1d_network_layout1, {
+        testNetworkLayout = ScaffoldPackage(MeshType_1d_network_layout1, {
                 'scaffoldSettings': {
                     "Structure": "1-2-3-4"
                 },
@@ -67,13 +66,12 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                         'ontId': get_smallintestine_term('ileum')[1]
                     }]
             })
-        }
-        centralPathOption = parameterSetStructureStrings['Test line']
+
         options = MeshType_3d_smallintestine1.getDefaultOptions("Mouse 1")
-        options['Network layout'] = copy.deepcopy(centralPathOption)
+        options['Network layout'] = testNetworkLayout
         options['Number of segments'] = 3
         self.assertEqual(16, len(options))
-        centralPath = options['Network layout']
+        networkLayout = options['Network layout']
         self.assertEqual(3, options.get("Number of segments"))
         self.assertEqual(8, options.get("Number of elements around"))
         self.assertEqual(3, options.get("Number of elements along segment"))
@@ -87,7 +85,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         cx = get_nodeset_path_field_parameters(
             tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),

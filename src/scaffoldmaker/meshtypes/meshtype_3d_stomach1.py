@@ -544,8 +544,8 @@ def updateOstiumOptions(options, ostiumOptions):
 class MeshType_3d_stomach1(Scaffold_base):
     """
     Generates a 3-D stomach mesh with variable numbers of elements around the esophagus and duodenum,
-    along the central line, and through wall. The stomach is created using a central path as the longitudinal axis
-    of the stomach. D2 of the central path points to the greater curvature of the stomach and magnitude of D2 and D3
+    along the central line, and through wall. The stomach is created using a network layout as the longitudinal axis
+    of the stomach. D2 of the network layout points to the greater curvature of the stomach and magnitude of D2 and D3
     are the radii of the stomach in the respective direction.
     """
 
@@ -709,8 +709,8 @@ class MeshType_3d_stomach1(Scaffold_base):
         :return: list of AnnotationGroup, None
         """
 
-        geometricCentralPath = options['Network layout']
-        materialCentralPath = getDefaultNetworkLayoutScaffoldPackage(cls, 'Material')
+        geometricNetworkLayout = options['Network layout']
+        materialNetworkLayout = getDefaultNetworkLayoutScaffoldPackage(cls, 'Material')
         limitingRidge = options['Limiting ridge']
         elementsCountThroughWall = options['Number of elements through wall']
 
@@ -723,11 +723,11 @@ class MeshType_3d_stomach1(Scaffold_base):
         fm = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fm)
 
-        geometricCentralPath = StomachCentralPath(region, geometricCentralPath, stomachTermsAlong)
+        geometricNetworkLayout = StomachNetworkLayout(region, geometricNetworkLayout, stomachTermsAlong)
 
         allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongGroups = \
             createStomachMesh3d(region, fm, coordinates, stomachTermsAlong,
-                                allAnnotationGroups, centralPath=geometricCentralPath,
+                                allAnnotationGroups, networkLayout=geometricNetworkLayout,
                                 options=options, nodeIdentifier=1, elementIdentifier=1)[0:4]
 
         # Material coordinates
@@ -738,12 +738,12 @@ class MeshType_3d_stomach1(Scaffold_base):
         with ChangeManager(tmp_fm):
             tmp_stomach_coordinates = find_or_create_field_coordinates(tmp_fm, name="stomach coordinates")
 
-            materialCentralPath = StomachCentralPath(tmp_region, materialCentralPath, stomachTermsAlong)
+            materialNetworkLayout = StomachNetworkLayout(tmp_region, materialNetworkLayout, stomachTermsAlong)
 
             allAnnotationGroupsMaterial, nextNodeIdentifier, nextElementIdentifier = \
                 createStomachMesh3d(tmp_region, tmp_fm, tmp_stomach_coordinates, stomachTermsAlong,
                                     allAnnotationGroupsMaterial,
-                                    centralPath=materialCentralPath, options=options, nodeIdentifier=1,
+                                    networkLayout=materialNetworkLayout, options=options, nodeIdentifier=1,
                                     elementIdentifier=1, elementsAlongSections=elementsAlongGroups,
                                     materialCoordinates=True)[:3]
 
@@ -1093,19 +1093,19 @@ class MeshType_3d_stomach1(Scaffold_base):
 
         annotationGroups.remove(nearLCGroup)
 
-class StomachCentralPath:
+class StomachNetworkLayout:
     """
-    Generates sampled central path for stomach scaffold.
+    Generates sampled network layout for stomach scaffold.
     """
-    def __init__(self, region, centralPath, stomachTermsAlong=[None], esoSegmentIdx=0, stomachSegmentIdx=[1,2]):
+    def __init__(self, region, networkLayout, stomachTermsAlong=[None], esoSegmentIdx=0, stomachSegmentIdx=[1,2]):
         """
         :param region: Zinc region needed to create path region to define path in.
-        :param centralPath: Central path subscaffold from meshtype_1d_network_layout1
+        :param networkLayout: Network layout subscaffold from meshtype_1d_network_layout1
         :param stomachTermsAlong: Annotation terms along length of stomach
         :param esoSegmentIdx: Segment index of esophagus branch.
         :param stomachSegmentIdx: Segment index of the body of stomach.
         """
-        # Extract length of each group along stomach from central path
+        # Extract length of each group along stomach from network layout
         arcLengthOfGroupsAlong = []
         cxGroups = []
         cd1Groups = []
@@ -1115,8 +1115,8 @@ class StomachCentralPath:
         cd13Groups = []
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        pathNetworkMesh = centralPath.getConstructionObject()
+        networkLayout.generate(tmpRegion)
+        pathNetworkMesh = networkLayout.getConstructionObject()
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
@@ -1275,18 +1275,18 @@ def findCurvatureAlongLine(nx, nd, radialVectors):
     return curvature
 
 
-def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups, centralPath, options,
+def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotationGroups, networkLayout, options,
                         nodeIdentifier, elementIdentifier, elementsAlongSections = [],
                         materialCoordinates=False, nodeIdProximalEso=[], xProximalEso=[], d1ProximalEso=[],
                         d2ProximalEso=[], d3ProximalEso=[]):
     """
-    Generates a stomach scaffold in the region using a central path and parameter options.
+    Generates a stomach scaffold in the region using a network layout and parameter options.
     :param region: Region to create elements in.
     :param fm: Zinc fieldModule to create elements in.
     :param coordinates: Coordinate field to define nodes and elements.
     :param stomachTermsAlong: Annotation terms along length of stomach.
     :param allAnnotationGroups: List of annotation groups.
-    :param centralPath: Central path through the axis of the stomach scaffold.
+    :param networkLayout: Network layout through the axis of the stomach scaffold.
     :param options: Parameter options for stomach scaffold.
     :param nodeIdentifier: First node identifier.
     :param elementIdentifier: First element identifier.
@@ -1312,7 +1312,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     GEJSettings = updateOstiumOptions(options, ostiumOptions)
     elementsAlongEsophagus = GEJSettings['Number of elements along']
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
-    ostiumRadius = vector.magnitude(centralPath.cd2Groups[-1][1])
+    ostiumRadius = vector.magnitude(networkLayout.cd2Groups[-1][1])
     limitingRidge = options['Limiting ridge']
     wallThickness = options['Wall thickness']
     GEJSettings['Use linear through ostium wall'] = options['Use linear through wall']
@@ -1371,11 +1371,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     # Create annotation groups for stomach sections
     arcLengthRatioForGroupsFromFundusApex = []
-    arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
-    stomachCentralPathLength = arcLengthOfGroupsAlong[0]
+    arcLengthOfGroupsAlong = networkLayout.arcLengthOfGroupsAlong
+    stomachNetworkLayoutLength = arcLengthOfGroupsAlong[0]
 
     for i in range(1, len(stomachTermsAlong) - 1):
-        arcLengthRatio = arcLengthOfGroupsAlong[i] / stomachCentralPathLength
+        arcLengthRatio = arcLengthOfGroupsAlong[i] / stomachNetworkLayoutLength
         arcLengthRatioForGroupsFromFundusApex.append(arcLengthRatio)
 
     stomachGroup = AnnotationGroup(region, get_stomach_term("stomach"))
@@ -1405,7 +1405,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                        [circularMuscleGroup],
                                        [longitudinalMuscleGroup]]
 
-    # Break central path into elements allocation to each group
+    # Break network layout into elements allocation to each group
     cxSections = []
     cd1Sections = []
     cd2Sections = []
@@ -1422,12 +1422,12 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     targetLengthTS = 0.025
 
     for i in (list(range(1, len(stomachTermsAlong) - 2)) + [0]):  # start from body, go back to fundus
-        cxGroup = centralPath.cxGroups[i + 1]
-        cd1Group = centralPath.cd1Groups[i + 1]
-        cd2Group = centralPath.cd2Groups[i + 1]
-        cd3Group = centralPath.cd3Groups[i + 1]
-        cd12Group = centralPath.cd12Groups[i + 1]
-        cd13Group = centralPath.cd13Groups[i + 1]
+        cxGroup = networkLayout.cxGroups[i + 1]
+        cd1Group = networkLayout.cd1Groups[i + 1]
+        cd2Group = networkLayout.cd2Groups[i + 1]
+        cd3Group = networkLayout.cd3Groups[i + 1]
+        cd12Group = networkLayout.cd12Groups[i + 1]
+        cd13Group = networkLayout.cd13Groups[i + 1]
 
         # for n2 in range(len(cxGroup)):
         #     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1597,11 +1597,11 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # nodeIdentifier, elementIdentifier = trackSurfaceStomach.generateMesh(region)
 
     # Set up gastro-esophageal junction with network layout
-    cxEso = centralPath.cxGroups[-1]
-    cd1Eso = centralPath.cd1Groups[-1]
-    cd2Eso = centralPath.cd2Groups[-1]
-    cd3Eso = centralPath.cd3Groups[-1]
-    cd12Eso = centralPath.cd12Groups[-1]
+    cxEso = networkLayout.cxGroups[-1]
+    cd1Eso = networkLayout.cd1Groups[-1]
+    cd2Eso = networkLayout.cd2Groups[-1]
+    cd3Eso = networkLayout.cd3Groups[-1]
+    cd12Eso = networkLayout.cd12Groups[-1]
 
     # Find centre position
     # track along esophagus path and since cxEso[1] could be above or below the track surface, we check both side to
@@ -1610,7 +1610,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     xTol = 1.0E-6
     arcStart = 0.0
-    arcEnd = centralPath.arcLengthOfGroupsAlong[-1]
+    arcEnd = networkLayout.arcLengthOfGroupsAlong[-1]
     nearestPosition = trackSurfaceStomach.findNearestPosition(cxEso[0])
     xNearestStart = trackSurfaceStomach.evaluateCoordinates(nearestPosition, derivatives=False)
     distStart = vector.magnitude([cxEso[0][c] - xNearestStart[c] for c in range(3)])
@@ -1686,10 +1686,10 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d12Path = [cd2Eso[0], [0.0, 0.0, 0.0]]
     d13Path = [cd3Eso[0], [0.0, 0.0, 0.0]]
 
-    centralPathEso = CustomCentralPath(xPath, d1Path, d2Path, d3Path, d12Path, d13Path)
+    networkLayoutEso = CustomNetworkLayout(xPath, d1Path, d2Path, d3Path, d12Path, d13Path)
 
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
-        generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, centralPathEso,
+        generateOstiumMesh(region, GEJSettings, trackSurfaceStomach, networkLayoutEso,
                            nodeIdentifier, elementIdentifier, nodeIdProximal=nodeIdProximalEso,
                            xProximal=xProximalEso, d1Proximal=d1ProximalEso, d2Proximal=d2ProximalEso,
                            d3Proximal=d3ProximalEso,
@@ -2875,9 +2875,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
            xDistal, d1Distal, d2Distal, d3Distal, arclengthDuodenumCP, xPrev, d2Prev
 
 
-class CustomCentralPath:
+class CustomNetworkLayout:
     """
-    Generates sampled central path for part of central path.
+    Generates sampled network layout for part of network layout.
     """
     def __init__(self, cx, cd1, cd2, cd3, cd12, cd13):
         self.cxPath = cx

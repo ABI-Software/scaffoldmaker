@@ -25,9 +25,9 @@ class CecumScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Pig 1"])
         options = MeshType_3d_cecum1.getDefaultOptions("Human 2")
 
-        centralPath = options.get("Network layout")
-        centralPathSettings = centralPath.getScaffoldSettings()
-        self.assertEqual("1-2-3.2, 4-3-5", centralPathSettings["Structure"])
+        networkLayout = options.get("Network layout")
+        networkLayoutSettings = networkLayout.getScaffoldSettings()
+        self.assertEqual("1-2-3.2, 4-3-5", networkLayoutSettings["Structure"])
 
         self.assertEqual(29, len(options))
         self.assertEqual(1, options.get("Number of segments"))

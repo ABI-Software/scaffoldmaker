@@ -1041,11 +1041,11 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         nextNodeIdentifier = 1
         nextElementIdentifier = 1
         smallIntestineTermsAlong = ['small intestine', 'duodenum', 'jejunum', 'ileum']
-        geometricCentralPath = options['Network layout']
-        geometricCentralPath = SmallIntestineCentralPath(region, geometricCentralPath, smallIntestineTermsAlong)
+        geometricNetworkLayout = options['Network layout']
+        geometricNetworkLayout = SmallIntestineNetworkLayout(region, geometricNetworkLayout, smallIntestineTermsAlong)
 
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
-            createSmallIntestineMesh3d(region, options, geometricCentralPath, nextNodeIdentifier,
+            createSmallIntestineMesh3d(region, options, geometricNetworkLayout, nextNodeIdentifier,
                                        nextElementIdentifier, flatCoordinates=True, materialCoordinates=True)[0:3]
 
         return annotationGroups, None
@@ -1102,20 +1102,20 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                                                                  "luminal surface of duodenum"))
         duodenumLuminal.getMeshGroup(mesh2d).addElementsConditional(is_duodenumLuminal)
 
-def createSmallIntestineMesh3d(region, options, centralPath, nextNodeIdentifier, nextElementIdentifier,
+def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifier, nextElementIdentifier,
                                flatCoordinates=False, materialCoordinates=False, nodeIdProximal=[],
                                xProximal=[], d1Proximal=[], d2Proximal=[], d3Proximal=[], arclengthCPProximal=0.0):
     """
-    Generates a small intestine scaffold in the region using a central path and parameter options.
+    Generates a small intestine scaffold in the region using a network layout and parameter options.
     :param region: Region to create elements in.
     :param options: Parameter options for small intestine scaffold.
-    :param centralPath: Central path describing path of small intestine.
+    :param networkLayout: Network layout describing path of small intestine.
     :param nextNodeIdentifier: Next node identifier to use.
     :param nextElementIdentifier: Next element identifier to use.
     :param flatCoordinates: Create flat coordinates if True.
     :param nodeIdProximal, xProximal, d1Proximal, d2Proximal, d3Proximal: Identifier, coordinates and derivatives of
     nodes to use on proximal end of small intestine.
-    :param arclengthCPProximal: Arc length of central path in the element leading up to the start of the small
+    :param arclengthCPProximal: Arc length of network layout in the element leading up to the start of the small
     intestine.
     :param materialCoordinates: Create material coordinates if True.
     :return annotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, d2Distal,
@@ -1143,12 +1143,12 @@ def createSmallIntestineMesh3d(region, options, centralPath, nextNodeIdentifier,
 
     smallIntestineTermsAlong = ['small intestine', 'duodenum', 'jejunum', 'ileum']
 
-    centralPathLength = centralPath.arcLengthOfGroupsAlong[0]
-    cx = centralPath.cxGroups[0]
-    cd1 = centralPath.cd1Groups[0]
-    cd2 = centralPath.cd2Groups[0]
-    cd12 = centralPath.cd12Groups[0]
-    arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
+    networkLayoutLength = networkLayout.arcLengthOfGroupsAlong[0]
+    cx = networkLayout.cxGroups[0]
+    cd1 = networkLayout.cd1Groups[0]
+    cd2 = networkLayout.cd2Groups[0]
+    cd12 = networkLayout.cd12Groups[0]
+    arcLengthOfGroupsAlong = networkLayout.arcLengthOfGroupsAlong
 
     # find arclength of colon
     length = 0.0
@@ -1164,7 +1164,7 @@ def createSmallIntestineMesh3d(region, options, centralPath, nextNodeIdentifier,
     elementAlongLength = length / elementsCountAlong
     # print('Length = ', length)
 
-    # Sample central path
+    # Sample network layout
     startLength = 0.0
     lengthFraction = 1.0
     if xProximal:
@@ -1183,7 +1183,7 @@ def createSmallIntestineMesh3d(region, options, centralPath, nextNodeIdentifier,
     outerRadiusList, dOuterRadiusList = interp.interpolateSampleCubicHermite(
         outerRadiusListCP, dOuterRadiusListCP, se, sxi, ssf)
 
-    elementAlongLength = centralPathLength / elementsCountAlong
+    elementAlongLength = networkLayoutLength / elementsCountAlong
 
     elementsCountAlongGroups = []
     groupLength = 0.0
@@ -1266,7 +1266,7 @@ def createSmallIntestineMesh3d(region, options, centralPath, nextNodeIdentifier,
         xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, radiusAlongSegmentList = \
            smallIntestineSegmentTubeMeshOuterPoints.getCylindricalSegmentTubeMeshOuterPoints(nSegment)
 
-        # Project reference point for warping onto central path
+        # Project reference point for warping onto network layout
         start = nSegment*elementsCountAlongSegment
         end = (nSegment + 1)*elementsCountAlongSegment + 1
         sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
@@ -1363,17 +1363,17 @@ def createSmallIntestineMesh3d(region, options, centralPath, nextNodeIdentifier,
     return annotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, d2Distal, \
            d3Distal, xNext, d2Next
 
-class SmallIntestineCentralPath:
+class SmallIntestineNetworkLayout:
     """
-    Generates sampled central path for small intestine scaffold.
+    Generates sampled network layout for small intestine scaffold.
     """
-    def __init__(self, region, centralPath, termsAlong=[None]):
+    def __init__(self, region, networkLayout, termsAlong=[None]):
         """
         :param region: Zinc region to define model in.
-        :param centralPath: Central path subscaffold from meshtype_1d_network_layout1
-        :param termsAlong: Annotation terms along length of central path
+        :param networkLayout: Network layout subscaffold from meshtype_1d_network_layout1
+        :param termsAlong: Annotation terms along length of network layout
         """
-        # Extract length of each group along small intestine from central path
+        # Extract length of each group along small intestine from network layout
         cxGroups = []
         cd1Groups = []
         cd2Groups = []
@@ -1382,7 +1382,7 @@ class SmallIntestineCentralPath:
         cd13Groups = []
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')

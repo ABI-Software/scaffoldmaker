@@ -78,7 +78,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
     """
     Generates a 3-D esophagus mesh with variable numbers of elements around, along the central line, and through wall.
     The esophagus is created by a function that generates an elliptical tube segment and uses tubemesh to map the
-    segment along a central path profile.
+    segment along a network layout profile.
     """
 
     @staticmethod
@@ -192,11 +192,11 @@ class MeshType_3d_esophagus1(Scaffold_base):
         nextElementIdentifier = 1
         esophagusTermsAlong = ['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus',
                                'abdominal part of esophagus']
-        geometricCentralPath = options['Network layout']
-        geometricCentralPath = EsophagusCentralPath(region, geometricCentralPath, esophagusTermsAlong)
+        geometricNetworkLayout = options['Network layout']
+        geometricNetworkLayout = EsophagusNetworkLayout(region, geometricNetworkLayout, esophagusTermsAlong)
 
         annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
-            createEsophagusMesh3d(region, options, geometricCentralPath, nextNodeIdentifier, nextElementIdentifier,
+            createEsophagusMesh3d(region, options, geometricNetworkLayout, nextNodeIdentifier, nextElementIdentifier,
                                   flatCoordinates=True, materialCoordinates=True)[:3]
 
         return annotationGroups, None
@@ -243,13 +243,13 @@ class MeshType_3d_esophagus1(Scaffold_base):
                                                                 get_esophagus_term("luminal surface of esophagus"))
         mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
 
-def createEsophagusMesh3d(region, options, centralPath, nextNodeIdentifier, nextElementIdentifier,
+def createEsophagusMesh3d(region, options, networkLayout, nextNodeIdentifier, nextElementIdentifier,
                           flatCoordinates=False, materialCoordinates=False):
     """
-    Generates an esophagus scaffold in the region using a central path and parameter options.
+    Generates an esophagus scaffold in the region using a network layout and parameter options.
     :param region: Region to create elements in.
     :param options: Parameter options for esophagus scaffold.
-    :param centralPath: Central path describing path of the esophagus.
+    :param networkLayout: Network layout describing path of the esophagus.
     :param nextNodeIdentifier: Next node identifier to use.
     :param nextElementIdentifier: Next element identifier to use.
     :param flatCoordinates: Create flat coordinates if True.
@@ -275,21 +275,21 @@ def createEsophagusMesh3d(region, options, centralPath, nextNodeIdentifier, next
     esophagusTermsAlong =\
         ['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus', 'abdominal part of esophagus']
 
-    centralPathLength = centralPath.arcLengthOfGroupsAlong[0]
-    cx = centralPath.cxGroups[0]
-    cd1 = centralPath.cd1Groups[0]
-    cd2 = centralPath.cd2Groups[0]
-    cd12 = centralPath.cd12Groups[0]
-    cd3 = centralPath.cd3Groups[0]
-    cd13 = centralPath.cd13Groups[0]
-    arcLengthOfGroupsAlong = centralPath.arcLengthOfGroupsAlong
+    networkLayoutLength = networkLayout.arcLengthOfGroupsAlong[0]
+    cx = networkLayout.cxGroups[0]
+    cd1 = networkLayout.cd1Groups[0]
+    cd2 = networkLayout.cd2Groups[0]
+    cd12 = networkLayout.cd12Groups[0]
+    cd3 = networkLayout.cd3Groups[0]
+    cd13 = networkLayout.cd13Groups[0]
+    arcLengthOfGroupsAlong = networkLayout.arcLengthOfGroupsAlong
 
-    # Sample central path
+    # Sample network layout
     sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
     sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
     sd3, sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
 
-    elementAlongLength = centralPathLength / elementsCountAlong
+    elementAlongLength = networkLayoutLength / elementsCountAlong
 
     elementsCountAlongGroups = []
     groupLength = 0.0
@@ -436,10 +436,10 @@ def createEsophagusMesh3d(region, options, centralPath, nextNodeIdentifier, next
             xiFace.append(xi)
         xiList.append(xiFace)
 
-    # Project reference point for warping onto central path
+    # Project reference point for warping onto network layout
     sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
         tubemesh.getPlaneProjectionOnCentralPath(xToWarp, elementsCountAround, elementsCountAlong,
-                                                 centralPathLength, sx, sd1, sd2, sd12)
+                                                 networkLayoutLength, sx, sd1, sd2, sd12)
 
     # Warp points
     segmentAxis = [0.0, 0.0, 1.0]
@@ -549,17 +549,17 @@ def createEsophagusMesh3d(region, options, centralPath, nextNodeIdentifier, next
 
     return annotationGroups, nodeIdentifier, elementIdentifier, nodeIdDistal, xDistal, d1Distal, d2Distal, d3Distal
 
-class EsophagusCentralPath:
+class EsophagusNetworkLayout:
     """
-    Generates sampled central path for esophagus scaffold.
+    Generates sampled network layout for esophagus scaffold.
     """
-    def __init__(self, region, centralPath, termsAlong=[None]):
+    def __init__(self, region, networkLayout, termsAlong=[None]):
         """
         :param region: Zinc region to define model in.
-        :param centralPath: Central path subscaffold from meshtype_1d_network_layout1
-        :param termsAlong: Annotation terms along length of central path
+        :param networkLayout: Network layout subscaffold from meshtype_1d_network_layout1
+        :param termsAlong: Annotation terms along length of network layout
         """
-        # Extract length of each group along esophagus from central path
+        # Extract length of each group along esophagus from network layout
         cxGroups = []
         cd1Groups = []
         cd2Groups = []
@@ -568,7 +568,7 @@ class EsophagusCentralPath:
         cd13Groups = []
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
