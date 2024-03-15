@@ -460,11 +460,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
 
         serosaOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_uterus_term("serosa of uerine cervix"))
+                                                            get_uterus_term("serosa of uterine cervix"))
         serosaOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of uerine cervix"))
+                                                           get_uterus_term("lumen of uterine cervix"))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
 
         serosaOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -1118,7 +1118,7 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
         tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner,
                                            [wallThickness] * (elementsCountAlongTube + 1), relativeThicknessList,
                                            elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
-                                           transitElementList, outward=False)
+                                           transitElementList, outward=False)[0:5]
 
     coordinatesList = [xList, d1List, d2List, d3List]
 
