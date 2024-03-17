@@ -39,9 +39,10 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[1.98482, -0.23213, 0.00000], [-0.27986, 0.04637, 0.00000], [-0.03267, -0.19717, 0.00000],
                          [-0.02887, -0.18604, 0.00000], [0.00000, 0.00000, 0.31783], [0.00000, 0.00000, 0.22083]]),
                     (2, [[1.69774, -0.18588, 0.00000], [-0.29430, 0.04613, 0.00000], [-0.05231, -0.33376, 0.00000],
@@ -58,7 +59,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                          [0.00715, 0.05112, 0.00000], [0.00000, 0.00000, 0.09658], [0.00000, 0.00000, -0.04254]]),
                     (8, [[0.00000, 0.00000, 0.00000], [-0.23137, 0.00000, 0.00000], [-0.00000, -0.05191, 0.00000],
                          [0.00294, 0.00527, 0.00000], [0.00000, 0.00000, 0.07300], [0.00000, 0.00000, -0.00462]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -84,9 +85,10 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[2.00000, 0.00000, 0.00000], [-0.29240, 0.00000, 0.00000], [0.00000, -0.27079, 0.00000],
                          [0.00000, -0.26496, 0.00000], [0.00000, 0.00000, 0.53835], [0.00000, 0.00000, 0.14344]]),
                     (2, [[1.70113, 0.00000, 0.00000], [-0.30534, 0.00000, 0.00000], [0.00000, -0.46797, 0.00000],
@@ -103,7 +105,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                          [0.00000, 0.07176, -0.00000], [0.00000, 0.00000, 0.21298], [0.00000, -0.00000, -0.13616]]),
                     (8, [[0.00000, 0.00000, 0.00000], [-0.24418, 0.00000, 0.00000], [0.00000, -0.11153, 0.00000],
                          [0.00000, 0.04545, -0.00000], [0.00000, 0.00000, 0.09572], [0.00000, -0.00000, -0.09837]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -129,9 +131,10 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[1.94475, -0.28705, 0.00000], [-0.34493, 0.16731, 0.00000], [-0.08535, -0.17595, 0.00000],
                          [-0.04402, -0.10886, 0.00000], [0.00000, 0.00000, 0.18665], [0.00000, 0.00000, 0.24107]]),
                     (2, [[1.61917, -0.14378, 0.00000], [-0.30588, 0.11906, 0.00000], [-0.10871, -0.27931, 0.00000],
@@ -148,7 +151,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                          [-0.00525, 0.07201, 0.00000], [0.00000, 0.00000, 0.12027], [0.00000, 0.00000, -0.08509]]),
                     (8, [[0.00000, 0.00000, 0.00000], [-0.27223, 0.00000, 0.00000], [-0.00000, -0.04285, 0.00000],
                          [-0.00982, 0.01186, 0.00000], [0.00000, 0.00000, 0.05222], [0.00000, 0.00000, -0.05101]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -174,9 +177,10 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[1.88718, 0.56852, 0.00000], [-0.20674, -0.15833, 0.00000], [0.09002, -0.11754, 0.00000],
                          [0.13867, -0.25647, 0.00000], [0.00000, 0.00000, 0.11203], [0.00000, 0.00000, 0.47891]]),
                     (2, [[1.66209, 0.42003, 0.00000], [-0.24279, -0.13815, 0.00000], [0.18168, -0.31927, 0.00000],
@@ -193,7 +197,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                          [-0.02501, 0.12449, 0.00000], [0.00000, 0.00000, 0.18610], [0.00000, 0.00000, -0.14240]]),
                     (8, [[0.00000, 0.00000, 0.00000], [-0.27970, -0.00000, 0.00000], [0.00000, -0.04485, 0.00000],
                          [-0.00345, 0.06647, 0.00000], [0.00000, 0.00000, 0.05111], [0.00000, 0.00000, -0.12759]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -219,9 +223,10 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[1.98605, -0.21791, 0.00000], [-0.20755, 0.03159, 0.00000], [-0.00760, -0.04989, 0.00000],
                          [-0.02445, -0.15319, 0.00000], [0.00000, 0.00000, 0.12825], [0.00000, 0.00000, 0.29326]]),
                     (2, [[1.75787, -0.18270, 0.00000], [-0.24882, 0.03881, 0.00000], [-0.02816, -0.18050, 0.00000],
@@ -238,7 +243,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                          [0.00931, 0.08494, 0.00000], [0.00000, 0.00000, 0.19799], [0.00000, 0.00000, -0.12929]]),
                     (8, [[0.00000, 0.00000, 0.00000], [-0.29834, 0.00000, 0.00000], [0.00000, -0.04096, 0.00000],
                          [0.00133, 0.04434, 0.00000], [0.00000, 0.00000, 0.08550], [0.00000, 0.00000, -0.09569]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -264,9 +269,10 @@ class MeshType_3d_bladder1(Scaffold_base):
                 'Number of elements': 10
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                  Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[2.00000, 0.00000, 0.00000], [-0.04772, 0.00000, 0.00000], [0.00000, -0.21530, 0.00000],
                          [0.00000, 0.04601, 0.00000], [0.00000, 0.00000, 0.21530], [0.00000, 0.00000, -0.04601]]),
                     (2, [[1.90255, 0.00000, 0.00000], [-0.14718, 0.00000, 0.00000], [0.00000, -0.21530, 0.00000],
@@ -289,7 +295,7 @@ class MeshType_3d_bladder1(Scaffold_base):
                           [0.00000, 0.11291, 0.00000], [0.00000, 0.00000, 0.21534], [0.00000, 0.00000, -0.11291]]),
                     (11, [[0.00000, 0.00000, 0.00000], [-0.04779, 0.00000, 0.00000], [0.00000, -0.11534, 0.00000],
                           [0.00000, 0.08709, 0.00000], [0.00000, 0.00000, 0.11534], [0.00000, 0.00000, -0.08709]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
