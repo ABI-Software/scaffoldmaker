@@ -21,20 +21,20 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         parameterSetNames = MeshType_3d_colonsegment1.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Human 2", "Mouse 1", "Pig 1"])
         options = MeshType_3d_colonsegment1.getDefaultOptions("Human 1")
-        self.assertEqual(31, len(options))
+        self.assertEqual(32, len(options))
         self.assertEqual(0.0, options.get("Start phase"))
         self.assertEqual(2, options.get("Number of elements around tenia coli"))
         self.assertEqual(4, options.get("Number of elements along segment"))
         self.assertEqual(4, options.get("Number of elements through wall"))
-        self.assertEqual(43.5, options.get("Start inner radius"))
-        self.assertEqual(0.0, options.get("Start inner radius derivative"))
-        self.assertEqual(33.0, options.get("End inner radius"))
-        self.assertEqual(0.0, options.get("End inner radius derivative"))
+        self.assertEqual(None, options.get("Start inner radius"))
+        self.assertEqual(None, options.get("Start inner radius derivative"))
+        self.assertEqual(None, options.get("End inner radius"))
+        self.assertEqual(None, options.get("End inner radius derivative"))
         self.assertEqual(3.0, options.get("Segment length mid derivative factor"))
         self.assertEqual(50.0, options.get("Segment length"))
         self.assertEqual(3, options.get("Number of tenia coli"))
-        self.assertEqual(10.0, options.get("Start tenia coli width"))
-        self.assertEqual(0.0, options.get("End tenia coli width derivative"))
+        self.assertEqual(11.1, options.get("Start tenia coli width"))
+        self.assertEqual(0.4, options.get("End tenia coli width derivative"))
         self.assertEqual(1.6, options.get("Wall thickness"))
 
         context = Context("Test")
@@ -59,14 +59,14 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-2.172286248499807e-15, -58.95670186936737, -55.54662267827035], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [50.0, 50.52621132610023, 55.54662267827035], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-2.172286248499807e-15, -59.07417787753859, -55.60850335002243], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [50.0, 50.60638395601446, 55.60850335002243], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(flatCoordinates, nodes)
         assertAlmostEqualList(self, minimums, [0.0, 0.0, 0.0], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [397.2736607240895, 50.0, 2.2], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [392.25861666443416, 50.0, 2.2], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -78,10 +78,10 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 21032.6788157990, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 20870.63159749863, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 39836.60239335828, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 39988.68541401406, delta=1.0E-6)
 
     def test_mousecolonsegment1(self):
         """
@@ -114,10 +114,10 @@ class ColonSegmentScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 468.17062489996886, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 467.98576432245915, delta=1.0E-6)
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(flatSurfaceArea, surfaceArea, delta=1.0E-3)
+        self.assertAlmostEqual(flatSurfaceArea, 467.98905126160287, delta=1.0E-3)
 
 
 if __name__ == "__main__":
