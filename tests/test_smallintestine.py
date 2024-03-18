@@ -9,7 +9,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
@@ -25,14 +25,9 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         """
         parameterSetNames = MeshType_3d_smallintestine1.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Cattle 1", "Human 1", "Mouse 1"])
-        centralPathDefaultScaffoldPackages = {
-            'Test line': ScaffoldPackage(MeshType_1d_path1, {
+        testNetworkLayout = ScaffoldPackage(MeshType_1d_network_layout1, {
                 'scaffoldSettings': {
-                    'D2 derivatives': True,
-                    'D3 derivatives': True,
-                    'Coordinate dimensions': 3,
-                    'Length': 1.0,
-                    'Number of elements': 3
+                    "Structure": "1-2-3-4"
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
                     [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [
@@ -42,6 +37,13 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                     (4,  [ [ -15.60, 13.70,  -6.10 ], [  7.00,  2.10,  -1.80 ], [  0.00,  1.00,  0.00 ], [  0.00,  0.05,  0.00 ], [  0.50,  0.08,  0.86 ], [ 0.00, 0.00, 0.50 ] ] ) ] ),
                     
                 'userAnnotationGroups': [
+                    {
+                        '_AnnotationGroup': True,
+                        'dimension': 1,
+                        'identifierRanges': '1-3',
+                        'name': get_smallintestine_term('small intestine')[0],
+                        'ontId': get_smallintestine_term('small intestine')[1]
+                    },
                     {
                         '_AnnotationGroup': True,
                         'dimension': 1,
@@ -64,17 +66,16 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
                         'ontId': get_smallintestine_term('ileum')[1]
                     }]
             })
-        }
-        centralPathOption = centralPathDefaultScaffoldPackages['Test line']
+
         options = MeshType_3d_smallintestine1.getDefaultOptions("Mouse 1")
-        options['Central path'] = copy.deepcopy(centralPathOption)
+        options['Network layout'] = testNetworkLayout
         options['Number of segments'] = 3
         self.assertEqual(16, len(options))
-        centralPath = options['Central path']
+        networkLayout = options['Network layout']
         self.assertEqual(3, options.get("Number of segments"))
         self.assertEqual(8, options.get("Number of elements around"))
         self.assertEqual(3, options.get("Number of elements along segment"))
-        self.assertEqual(4, options.get("Number of elements through wall"))
+        self.assertEqual(1, options.get("Number of elements through wall"))
         self.assertEqual(None, options.get("Duodenum length"))
         self.assertEqual(None, options.get("Jejunum-ileum inner radius"))
         self.assertEqual(0.1, options.get("Wall thickness"))
@@ -84,7 +85,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
 
         tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
+        networkLayout.generate(tmpRegion)
         tmpFieldmodule = tmpRegion.getFieldmodule()
         cx = get_nodeset_path_field_parameters(
             tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
@@ -97,26 +98,26 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         del tmpRegion
 
         annotationGroups = MeshType_3d_smallintestine1.generateBaseMesh(region, options)[0]
-        self.assertEqual(8, len(annotationGroups))
+        self.assertEqual(4, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(288, mesh3d.getSize())
+        self.assertEqual(72, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(968, mesh2d.getSize())
+        self.assertEqual(296, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1080, mesh1d.getSize())
+        self.assertEqual(384, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(400, nodes.getSize())
+        self.assertEqual(160, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-20.053209723800897, 11.40926084082289, -7.165067989112036], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [-1.8359517172713313, 19.193196743341623, 0.7249488391024033], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-19.956658197690174, 11.509153871441058, -7.068492932596849], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [-1.9033816741586018, 19.093964008729433, 0.6249529551386831], 1.0E-6)
 
         flatCoordinates = fieldmodule.findFieldByName("flat coordinates").castFiniteElement()
         self.assertTrue(flatCoordinates.isValid())
@@ -142,10 +143,10 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 143.8501823770281, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 127.90324495617577, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 13.608455265457282, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 12.011251644596864, delta=1.0E-6)
         result, flatSurfaceArea = flatSurfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(flatSurfaceArea, 144.42091907104523, delta=1.0E-3)

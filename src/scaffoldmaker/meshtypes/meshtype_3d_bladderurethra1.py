@@ -884,14 +884,12 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         transitElementList = [0] * elementsCountAround
 
         relativeThicknessList = []
-        xList, d1List, d2List, d3List, curvatureList = tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList,
-                                                                                        d2WarpedList, d3WarpedUnitList,
-                                                                                        wallThicknessList,
-                                                                                        relativeThicknessList,
-                                                                                        elementsCountAround,
-                                                                                        elementsCountAlong,
-                                                                                        elementsCountThroughWall,
-                                                                                        transitElementList, outward=True)
+        xList, d1List, d2List, d3List, curvatureList = \
+            tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
+                                               wallThicknessList, relativeThicknessList, elementsCountAround,
+                                               elementsCountAlong, elementsCountThroughWall, transitElementList,
+                                               outward=True)[0:5]
+
         # Call the derivatives from the transition list to be replaced in the d2List
         idx = elementsCountAlongBladder * elementsCountAround
         for n2 in range(elementsCountThroughWall + 1):
@@ -1045,7 +1043,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier,
-            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
+            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)[0:3]
 
         if includeUreter:
             annotationGroups.append(ureterGroup)
