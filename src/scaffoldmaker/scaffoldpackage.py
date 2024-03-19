@@ -210,7 +210,7 @@ class ScaffoldPackage:
                 [ 0.0, 0.0, 0.0, 1.0 ] ]
         return None
 
-    def applyTransformation(self):
+    def applyTransformation(self, editCoordinates):
         '''
         If rotation, scale or transformation are set, transform node coordinates.
         Only call after generate().
@@ -218,16 +218,15 @@ class ScaffoldPackage:
         '''
         assert self._region
         fieldmodule = self._region.getFieldmodule()
-        coordinates = fieldmodule.findFieldByName('coordinates').castFiniteElement()
-        if not coordinates.isValid():
+        if not editCoordinates.isValid():
             print('Warning: ScaffoldPackage.applyTransformation: Missing coordinates field')
             return
         with ChangeManager(fieldmodule):
-            componentsCount = coordinates.getNumberOfComponents()
+            componentsCount = editCoordinates.getNumberOfComponents()
             if componentsCount < 3:
                 # pad with zeros
-                coordinates = fieldmodule.createFieldConcatenate([ coordinates ] + [ fieldmodule.createFieldConstant([ 0.0 ]*(3 - componentsCount)) ])
-            newCoordinates = coordinates
+                editCoordinates = fieldmodule.createFieldConcatenate([ editCoordinates ] + [ fieldmodule.createFieldConstant([ 0.0 ]*(3 - componentsCount)) ])
+            newCoordinates = editCoordinates
             # apply scale first so variable scaling in x, y, z doesn't interplay with rotation
             if not all((v == 1.0) for v in self._scale):
                 #print("applyTransformation: apply scale", self._scale)
@@ -240,13 +239,13 @@ class ScaffoldPackage:
                 #print("applyTransformation: apply translation", self._translation)
                 newCoordinates = newCoordinates + fieldmodule.createFieldConstant(self._translation)
             # be sure to delete temporary fields and fieldassignment to reduce messages
-            doApply = newCoordinates is not coordinates
+            doApply = newCoordinates is not editCoordinates
             if doApply:
-                fieldassignment = coordinates.createFieldassignment(newCoordinates)
+                fieldassignment = editCoordinates.createFieldassignment(newCoordinates)
                 fieldassignment.assign()
                 del fieldassignment
             del newCoordinates
-            del coordinates
+            del editCoordinates
         return doApply
 
     def generate(self, region, applyTransformation=True):
@@ -271,8 +270,12 @@ class ScaffoldPackage:
             # define user AnnotationGroups from serialised Dict
             self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
             self._isGenerated = True
-            if applyTransformation:
-                self.applyTransformation()
+            fieldmodule = self._region.getFieldmodule()
+            for editFieldName in ['coordinates', 'inner coordinates']:
+                editCoordinates = fieldmodule.findFieldByName(editFieldName)
+                if editCoordinates.isValid():
+                    if applyTransformation:
+                        self.applyTransformation(editCoordinates)
 
     def deleteElementsInRanges(self, region, deleteElementRanges):
         """
