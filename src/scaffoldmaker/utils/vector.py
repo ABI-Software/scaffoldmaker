@@ -22,6 +22,12 @@ def magnitude(v):
     '''
     return math.sqrt(sum(c*c for c in v))
 
+def magnitude_squared(v):
+    '''
+    return: squared scalar magnitude of vector v
+    '''
+    return sum(c * c for c in v)
+
 def normalise(v):
     '''
     :return: vector v normalised to unit length
