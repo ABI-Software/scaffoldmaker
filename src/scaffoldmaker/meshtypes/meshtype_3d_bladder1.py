@@ -573,7 +573,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             bladderCoordinatesFieldName, elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
             annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
             firstNodeIdentifier, firstElementIdentifier,
-            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)
+            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd=True)[0:3]
 
         bladderCoordinates = fm.findFieldByName(bladderCoordinatesFieldName)
 
@@ -1335,7 +1335,7 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     xList, d1List, d2List, d3List, curvatureList = \
         tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner, wallThicknessList, relativeThicknessList,
                                          elementsCountAround, elementsCountAlongBladder, elementsCountThroughWall,
-                                         transitElementList, outward=False)
+                                         transitElementList, outward=False)[0:5]
 
     # Deal with multiple nodes at the start point for closed proximal end
     n = elementsCountAround * (elementsCountThroughWall + 1)
