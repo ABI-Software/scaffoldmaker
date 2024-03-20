@@ -21,6 +21,7 @@ from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition,
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
 import copy
 import math
+import numpy as np
 
 
 def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
@@ -435,8 +436,8 @@ def getTubeBifurcationCoordinates2D(tCoords, inCount):
 
 def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
                  region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier,
-                 startSkipCount: int=0, endSkipCount:int=0, startNodeIds: list=None, endNodeIds: list=None,
-                 annotationMeshGroups=[], loop=False, serendipity=False):
+                 startSkipCount: int = 0, endSkipCount: int = 0, startNodeIds: list = None, endNodeIds: list = None,
+                 annotationMeshGroups=[], loop=False, serendipity=False, core=False):
     """
     Generate a 2D or 3D thick walled tube from supplied coordinates.
     Assumes client has active ChangeManager(fieldmodule).
@@ -456,6 +457,7 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     :param annotationMeshGroups: Mesh groups to add elements to.
     :param loop: Set to true to loop back to start coordinates at end.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
+    :param core: True for generating a solid core inside the tube, False for regular tube network
     :return: next node identifier, next element identifier, startNodeIds, endNodeIds
     """
     ox, od1, od2, od12 = outerTubeCoordinates
@@ -466,6 +468,10 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     nodesCountThroughWall = (elementsCountThroughWall + 1) if (dimension == 3) else 1
     elementsCountAlong = len(ox) - 1
     elementsCountAround = len(ox[0])
+    if core:
+        cx, cd1, cd2, cd12 = getCoreNodeValues(outerTubeCoordinates, innerTubeCoordinates, elementsCountAround,
+                                               elementsCountAlong)
+        coreElementsCountAround = int(elementsCountAround / 2)
     assert (not loop) or ((startSkipCount == 0) and (endSkipCount == 0))
 
     fieldmodule = region.getFieldmodule()
@@ -481,51 +487,86 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
     tubeNodeIds = []
+    centreNodeIds = []
     oFactor = iFactor = 0.0
+    coreNodeCount = elementsCountAround + 1
     for n2 in range(elementsCountAlong + 1):
         if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount):
             tubeNodeIds.append(None)
+            if core:
+                centreNodeIds.append(None)
             continue
         if startNodeIds and (n2 == startSkipCount):
             tubeNodeIds.append(startNodeIds)
+            if core:
+                centreNodeIds.append(startNodeIds[0][0] - 1)
             continue
         if endNodeIds and (n2 == (elementsCountAlong - endSkipCount)):
             tubeNodeIds.append(endNodeIds)
+            if core:
+                centreNodeIds.append(endNodeIds[0][0] - 1)
             continue
         if loop and (n2 == elementsCountAlong):
             tubeNodeIds.append(tubeNodeIds[0])
+            if core:
+                centreNodeIds.append(centreNodeIds[0])
             continue
         tubeNodeIds.append([])
-        for n3 in range(nodesCountThroughWall):
+
+        for n3 in range(-1 if core else 0, nodesCountThroughWall):
             ringNodeIds = []
             otx, otd1, otd2 = (ox[n2], od1[n2], od2[n2])
             otd12 = od12[n2] if (od12 and not serendipity) else None
             itx, itd1, itd2 = (ix[n2], id1[n2], id2[n2]) if innerTubeCoordinates else (None, None, None)
+            ctx, ctd1, ctd2 = (cx[n2], cd1[n2], cd2[n2]) if core else (None, None, None)
             itd12 = id12[n2] if (innerTubeCoordinates and otd12) else None
+            ctd12 = cd12[n2] if (innerTubeCoordinates and otd12) else None
             if innerTubeCoordinates:
                 oFactor = n3 / elementsCountThroughWall
                 iFactor = 1.0 - oFactor
-            for n1 in range(elementsCountAround):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                fieldcache.setNode(node)
-                if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall):
-                    rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
-                elif n3 == 0:
-                    rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
-                else:
-                    rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
-                    rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
-                    rd2 = add(mult(otd2[n1], oFactor), mult(itd2[n1], iFactor))
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
-                if otd12:
-                    rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall)) else \
-                        itd12[n1] if (n3 == 0) else \
-                        add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
-                ringNodeIds.append(nodeIdentifier)
-                nodeIdentifier += 1
+            if n3 == -1:
+                # Create nodes for the core
+                for n1 in range(coreNodeCount):
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
+                    rx, rd1, rd2 = ctx[n1], ctd1[n1], ctd2[n1]
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    if itd12:
+                        rd12 = ctd12[n1]
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+                    if n1 == 0:
+                        centreNodeIds.append(nodeIdentifier)
+                    else:
+                        ringNodeIds.append(nodeIdentifier)
+                    nodeIdentifier += 1
+            else:
+                # Create nodes for non-core layers
+                for n1 in range(elementsCountAround):
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
+                    if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall + 1):
+                        rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
+                    elif n3 == 0:
+                        rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
+                    else:
+                        rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
+                        rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
+                        rd2 = add(mult(otd2[n1], oFactor), mult(itd2[n1], iFactor))
+
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    if otd12:
+                        rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall + 1)) else \
+                            itd12[n1] if (n3 == 0) else \
+                                add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+                    ringNodeIds.append(nodeIdentifier)
+
+                    nodeIdentifier += 1
+
             tubeNodeIds[-1].append(ringNodeIds)
 
     # create elements
@@ -535,7 +576,7 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE if (dimension == 3) else Element.SHAPE_TYPE_SQUARE)
     basis = fieldmodule.createElementbasis(
         dimension, (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
-            else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
+                    else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
     if dimension == 3:
         basis.setFunctionType(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
     eft = mesh.createElementfieldtemplate(basis)
@@ -546,30 +587,178 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     elementtemplate.defineField(coordinates, -1, eft)
 
     for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
-        for e3 in range(elementsCountThroughWall):
-            for e1 in range(elementsCountAround):
-                e2p = e2 + 1
-                e1p = (e1 + 1) % elementsCountAround
-                nids = []
-                for n3 in [e3, e3 + 1] if (dimension == 3) else [0]:
-                    nids += [tubeNodeIds[e2][n3][e1], tubeNodeIds[e2][n3][e1p],
-                             tubeNodeIds[e2p][n3][e1], tubeNodeIds[e2p][n3][e1p]]
-                element = mesh.createElement(elementIdentifier, elementtemplate)
-                element.setNodesByIdentifier(eft, nids)
-                # print("Tube element", elementIdentifier, "nodes", nids)
-                for annotationMeshGroup in annotationMeshGroups:
-                    annotationMeshGroup.addElement(element)
-                elementIdentifier += 1
+        for e3 in range(elementsCountThroughWall + 2 if core else elementsCountThroughWall):
+            if e3 == 0 and core:
+                # Create elements for the core
+                for e1 in range(coreElementsCountAround):
+                    c1 = centreNodeIds[e2]
+                    c2 = centreNodeIds[e2 + 1]
+                    n1 = tubeNodeIds[e2][e3][e1 * 2]
+                    n1p = tubeNodeIds[e2 + 1][e3][e1 * 2]
+                    n2 = tubeNodeIds[e2][e3][(e1 * 2 + 2) % elementsCountAround]
+                    n2p = tubeNodeIds[e2 + 1][e3][(e1 * 2 + 2) % elementsCountAround]
+                    n3 = tubeNodeIds[e2][e3][e1 * 2 + 1]
+                    n3p = tubeNodeIds[e2 + 1][e3][e1 * 2 + 1]
+
+                    nids = [c1, n1, n2, n3, c2, n1p, n2p, n3p]
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
+
+                    elementIdentifier += 1
+            else:
+                # Create elements for non-core layers
+                for e1 in range(elementsCountAround):
+                    e2p = e2 + 1
+                    e1p = (e1 + 1) % elementsCountAround
+                    nids = []
+                    n3range = [e3 - 1, e3] if core else [e3, e3 + 1]
+                    for n3 in n3range if (dimension == 3) else [0]:
+                        nids += [tubeNodeIds[e2][n3][e1], tubeNodeIds[e2][n3][e1p],
+                                 tubeNodeIds[e2p][n3][e1], tubeNodeIds[e2p][n3][e1p]]
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
+                    elementIdentifier += 1
+
+    # Set the end node id of the core - this node ID is used with tubeNodeIds when generating bifurcation
+    if core:
+        centreEndNodeId = centreNodeIds[elementsCountAlong - endSkipCount]
+    else:
+        centreEndNodeId = None
 
     return nodeIdentifier, elementIdentifier, tubeNodeIds[startSkipCount], \
-        tubeNodeIds[elementsCountAlong - endSkipCount]
+        tubeNodeIds[elementsCountAlong - endSkipCount], centreEndNodeId
+
+
+def findCoreCentre(ox, ix):
+    """
+    Finds cartesian coordinates for the centre of the solid core.
+    A number of direction vectors (straight lines) are projected based on the outer and inner coordinates of the tube.
+    Then the function finds the intersection point of these direction vectors using least squares method.
+    :param ox: a list of outer tube coordinates.
+    :param ix: a list of inner tube coordinates.
+    :return: coordinates at the centre of the core.
+    """
+    P0 = []
+    P1 = []
+    elementsCountAround = len(ox[0]) if isinstance(ox[0], list) else len(ox)
+
+    for n3 in range(elementsCountAround):
+        P0.append(ox[n3])
+        P1.append(ix[n3])
+    P0 = np.array(P0)
+    P1 = np.array(P1)
+
+    # generate all line direction vectors
+    n = (P1 - P0) / np.linalg.norm(P1 - P0, axis=1)[:, np.newaxis]
+
+    # generate the array of all projectors
+    projs = np.eye(n.shape[1]) - n[:, :, np.newaxis] * n[:, np.newaxis]
+
+    # generate R matrix and q vector
+    R = projs.sum(axis=0)
+    q = (projs @ P0[:, :, np.newaxis]).sum(axis=0)
+
+    # solve the least squares problem for the intersection point p: Rp = q
+    p = np.linalg.lstsq(R, q, rcond=None)[0]
+
+    Px = p[0][0]
+    Py = p[1][0]
+    Pz = p[2][0]
+
+    return Px, Py, Pz
+
+
+def findCoreBoundary(ix, centre, scale=0.5):
+    """
+    Finds cartesian coordinates for the solid core inside the inner tube.
+    The function first finds the direction vector (i.e. straight line) from the core centre to one of the nearby inner coordinates.
+    Then the function sets the core boundary coordinate along the direction vector based on the scale factor.
+    Derivatives for core nodes are currently set to zero.
+    :param ix: A list of inner tube coordinates.
+    :param centre: A list of coordinates at the core centre.
+    :param scale: Determines how far the new boundary coordinates should be along the direction vector
+    :return: coordinates of nodes around the core boundary.
+    """
+    cbx = [0, 0, 0]
+    x1 = np.array(centre)
+    x2 = np.array(ix)
+    dx = x2 - x1
+
+    newPos = x1 + scale * dx
+    cbx[0], cbx[1], cbx[2] = newPos[0], newPos[1], newPos[2]
+
+    return cbx
+
+
+def getCoreNodeValues(outerTubeCoordinates, innerTubeCoordinates, elementsCountAround, elementsCountAlong):
+    """
+    Get node values (coordinates and derivatives) for the solid core inside the inner tube.
+    Derivatives for core nodes are currently set to zero.
+    Node values at the centre of the core are found using findCoreCentre function.
+    Node values around the boundary of the core are found using findCoreBoundary function
+    :param outerTubeCoordinates: A list of outer tube coordinates.
+    :param innerTubeCoordinates: A list of inner tube coordinates.
+    :param elementsCountAround: Number of elements around tube.
+    :param elementsCountAlong: Number of elements along tube.
+    :return: coordinates and derivatives for the core nodes.
+    """
+    coreNodeCount = elementsCountAround + 1
+    cx = [[None] * coreNodeCount for i in range(elementsCountAlong + 1)]
+    cd1 = [[None] * coreNodeCount for i in range(elementsCountAlong + 1)]
+    cd2 = [[None] * coreNodeCount for i in range(elementsCountAlong + 1)]
+    cd12 = [[None] * coreNodeCount for i in range(elementsCountAlong + 1)]
+
+    ox, od1, od2, od12 = outerTubeCoordinates
+    ix, id1, id2, id12 = innerTubeCoordinates
+
+    for n2 in range(elementsCountAlong + 1):
+        centre = [0.0, 0.0, 0.0]
+        centre[0], centre[1], centre[2] = findCoreCentre(ox[n2], ix[n2])
+        for n1 in range(-1, elementsCountAround):
+            x = centre if n1 == -1 else findCoreBoundary(ix[n2][n1], centre)
+            d1 = d2 = d12 = [0, 0, 0]
+            ### Needs fixing ####
+            # if n1 == -1:
+            #    x = centre
+            #    d1 = [0, 0, 0]
+            #    d2 = [0, 0, 0]
+            #    d12 = [0, 0, 0]
+            # else:
+            #    x = findCoreBoundary(ix[n2][n1], centre)
+            #    d1 = (np.array(id1[n2][n1]) * 0.5).tolist()
+            #    d2 = id2[n2][n1]
+            #    d12 = id12[n2][n1]
+
+            cx[n2][n1 + 1] = x
+            #### The derivatives need to be fixed ####
+            cd1[n2][n1 + 1] = d1
+            cd2[n2][n1 + 1] = d2
+            cd12[n2][n1 + 1] = d12
+            ##########################################
+
+    ##### smoothing ####
+    # for n2 in range(elementsCountAlong + 1):
+    #    x = cx[n2][1:-1]
+    #    d1 = cd1[n2][1:-1]
+    #    sd1 = smoothCubicHermiteDerivativesLoop(x, d1)
+    #    cd1[n2][1:-1] = sd1
+    #    #print("sd1", sd1)
+    #    #cd1[n2] = sd1
+    return cx, cd1, cd2, cd12
 
 
 def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
                             outerMidCoordinates, innerMidCoordinates, crossIndexes,
                             region, fieldcache, coordinates: Field,
                             nodeIdentifier, elementIdentifier, tubeNodeIds,
-                            annotationMeshGroups, serendipity=False):
+                            annotationMeshGroups, serendipity=False, centreEndNodeId=None, core=False):
     """
     Generate a 2D tube bifurcation as elements connecting 3 rings of coordinates, optionally using existing nodes.
     Assumes client has active ChangeManager(fieldmodule).
@@ -596,13 +785,16 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
     :param annotationMeshGroups: List over 3 tubes of lists of meshGroups to add elements to for the part of the
     bifurcation that is part of that segment.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
+    :param centreEndNodeId: Centre node ID at the of the end of the tube. This is only used when creating elements
+    between the first generated tube and the bifurcation. The value is None for regular tubes.
+    :param core: True for generating a solid core inside the tube, False for regular tube network
     :return: next node identifier, next element identifier
     """
     dimension = 3 if innerTubeCoordinates else 2
     assert ((dimension == 2) and (elementsCountThroughWall == 1)) or \
            ((dimension == 3) and (elementsCountThroughWall >= 1))
     nodesCountThroughWall = (elementsCountThroughWall + 1) if (dimension == 3) else 1
-
+    coreCentre = getCoreMidCentre(outerMidCoordinates, innerMidCoordinates)
     fieldmodule = region.getFieldmodule()
 
     # create nodes
@@ -622,7 +814,12 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
     nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
     midNodeIds = []
+    if core:
+        centreTubeNodeIds = []
+        centreMidNodeIds = []
+        centreTubeNodeIds.append(centreEndNodeId)
     oFactor = iFactor = 0.0
+
     for s in range(3):
 
         # ensure tube nodes are supplied or create here
@@ -635,18 +832,26 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
             itd12 = None if ((not innerTubeCoordinates) or serendipity or (len(innerTubeCoordinates[s]) == 3)) \
                 else innerTubeCoordinates[s][3]
             elementsCountAround = len(otx)
-            for n3 in range(nodesCountThroughWall):
+            if core:
+                centre = [0, 0, 0]
+                centre[0], centre[1], centre[2] = findCoreCentre(otx, itx)
+                ctx, ctd1, ctd2, ctd3  = getCoreMidBoundary(itx, centre)
+                ctx.append(centre)
+            for n3 in range(-1 if core else 0, nodesCountThroughWall):
                 ringNodeIds = []
                 if innerTubeCoordinates:
                     oFactor = n3 / elementsCountThroughWall
                     iFactor = 1.0 - oFactor
-                for n1 in range(elementsCountAround):
+                n1range = (elementsCountAround + 1) if n3 == -1 else elementsCountAround
+                for n1 in range(n1range):
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     fieldcache.setNode(node)
                     if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall):
                         rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
                     elif n3 == 0:
                         rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
+                    elif n3 == -1:
+                        rx, rd1, rd2 = ctx[n1-1], [0, 0, 0], [0, 0, 0]
                     else:
                         rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
                         rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
@@ -658,7 +863,15 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
                         rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall)) else \
                             itd12[n1] if (n3 == 0) else add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
                         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
-                    ringNodeIds.append(nodeIdentifier)
+                    if core:
+                        if n3 == -1 and n1 == 0 and nodeIdentifier not in centreTubeNodeIds:
+                            centreMidNodeIds.append(nodeIdentifier)
+                        elif nodeIdentifier == 1:
+                            pass
+                        else:
+                            ringNodeIds.append(nodeIdentifier)
+                    else:
+                        ringNodeIds.append(nodeIdentifier)
                     nodeIdentifier += 1
                 tubeNodeIds[s].append(ringNodeIds)
 
@@ -670,42 +883,91 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
         imd12 = None if ((not innerMidCoordinates) or serendipity or (len(innerMidCoordinates[s]) == 3)) \
             else innerMidCoordinates[s][3]
         elementsCountAroundHalf = len(omx) - 1
-        for n3 in range(nodesCountThroughWall):
+        if core:
+            cmx, cmd1, cmd2, cmd3 = getCoreMidBoundary(imx, coreCentre)
+            cmx.append(coreCentre)
+
+        for n3 in range(-1 if core else 0, nodesCountThroughWall):
             ringNodeIds = []
             if innerTubeCoordinates:
                 oFactor = n3 / elementsCountThroughWall
                 iFactor = 1.0 - oFactor
-            for n1 in range(elementsCountAroundHalf + 1):
-                cross1 = n1 == 0
-                cross2 = n1 == elementsCountAroundHalf
-                if s > 0:
-                    if cross1:
-                        ringNodeIds.append(midNodeIds[0][n3][0])
-                        continue
-                    if cross2:
-                        ringNodeIds.append(midNodeIds[0][n3][-1])
-                        continue
-                node = nodes.createNode(nodeIdentifier, nodetemplateCross if (cross1 or cross2) else nodetemplate)
-                fieldcache.setNode(node)
-                if (not innerMidCoordinates) or (n3 == elementsCountThroughWall):
-                    rx, rd1, rd2 = omx[n1], omd1[n1], omd2[n1]
-                elif n3 == 0:
-                    rx, rd1, rd2 = imx[n1], imd1[n1], imd2[n1]
-                else:
-                    rx = add(mult(omx[n1], oFactor), mult(imx[n1], iFactor))
-                    rd1 = add(mult(omd1[n1], oFactor), mult(imd1[n1], iFactor))
-                    rd2 = add(mult(omd2[n1], oFactor), mult(imd2[n1], iFactor))
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
-                if omd12 and not (cross1 or cross2):
-                    rd12 = omd12[n1] if ((not innerMidCoordinates) or (n3 == elementsCountThroughWall)) else \
-                        imd12[n1] if (n3 == 0) else add(mult(omd12[n1], oFactor), mult(imd12[n1], iFactor))
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
-                ringNodeIds.append(nodeIdentifier)
-                nodeIdentifier = nodeIdentifier + 1
+            if n3 == -1:
+                # Create nodes for the core - only active when core is True
+                for n1 in range(-1 if s == 0 else 0, elementsCountAroundHalf + 1):
+                    cross1 = n1 == 0
+                    cross2 = n1 == elementsCountAroundHalf
+                    if s > 0:
+                        if cross1:
+                            if core:
+                                ringNodeIds.append(midNodeIds[0][n3+1][0])
+                                continue
+                            else:
+                                ringNodeIds.append(midNodeIds[0][n3][0])
+                                continue
+                        if cross2:
+                            if core:
+                                ringNodeIds.append(midNodeIds[0][n3+1][-1])
+                                continue
+                            else:
+                                ringNodeIds.append(midNodeIds[0][n3][-1])
+                                continue
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
 
-            midNodeIds[s].append(ringNodeIds)
+                    rx, rd1, rd2 = cmx[n1], cmd1, cmd2
+
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+
+                    if n1 == -1 and (nodeIdentifier not in centreMidNodeIds or nodeIdentifier != 1):
+                        centreMidNodeIds.append(nodeIdentifier)
+                    if nodeIdentifier not in centreMidNodeIds:
+                        ringNodeIds.append(nodeIdentifier)
+                    nodeIdentifier = nodeIdentifier + 1
+                midNodeIds[s].append(ringNodeIds)
+            else:
+                # Create nodes for non-core layers
+                for n1 in range(elementsCountAroundHalf + 1):
+                    cross1 = n1 == 0
+                    cross2 = n1 == elementsCountAroundHalf
+                    if s > 0:
+                        if cross1:
+                            if core:
+                                ringNodeIds.append(midNodeIds[0][n3+1][0])
+                                continue
+                            else:
+                                ringNodeIds.append(midNodeIds[0][n3][0])
+                                continue
+                        if cross2:
+                            if core:
+                                ringNodeIds.append(midNodeIds[0][n3+1][-1])
+                                continue
+                            else:
+                                ringNodeIds.append(midNodeIds[0][n3][-1])
+                                continue
+                    node = nodes.createNode(nodeIdentifier, nodetemplateCross if (cross1 or cross2) else nodetemplate)
+                    fieldcache.setNode(node)
+                    if (not innerMidCoordinates) or (n3 == elementsCountThroughWall):
+                        rx, rd1, rd2 = omx[n1], omd1[n1], omd2[n1]
+                    elif n3 == 0:
+                        rx, rd1, rd2 = imx[n1], imd1[n1], imd2[n1]
+                    else:
+                        rx = add(mult(omx[n1], oFactor), mult(imx[n1], iFactor))
+                        rd1 = add(mult(omd1[n1], oFactor), mult(imd1[n1], iFactor))
+                        rd2 = add(mult(omd2[n1], oFactor), mult(imd2[n1], iFactor))
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    if omd12 and not (cross1 or cross2):
+                        rd12 = omd12[n1] if ((not innerMidCoordinates) or (n3 == elementsCountThroughWall)) else \
+                            imd12[n1] if (n3 == 0) else add(mult(omd12[n1], oFactor), mult(imd12[n1], iFactor))
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+
+                    ringNodeIds.append(nodeIdentifier)
+                    nodeIdentifier = nodeIdentifier + 1
+                midNodeIds[s].append(ringNodeIds)
 
     # create elements
 
@@ -718,7 +980,7 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
         et.setElementShapeType(Element.SHAPE_TYPE_CUBE if (dimension == 3) else Element.SHAPE_TYPE_SQUARE)
     basis = fieldmodule.createElementbasis(
         dimension, (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
-            else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
+                    else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE))
     if dimension == 3:
         basis.setFunctionType(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
     eftStd = mesh.createElementfieldtemplate(basis)
@@ -914,6 +1176,100 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
     connectionCounts = get_tube_bifurcation_connection_elements_counts(aroundCounts)
 
     for s in range(3):
+        # Create elements for the core
+        if core:
+            coreElementsCountAround = int(elementsCountAround / 2)
+            eftMid = eftStd
+            elementtemplateMid = elementtemplateStd
+            scalefactorsMid = None
+            if not inward[s]:
+                eftMid = eftMidOutward
+                elementtemplateMid = elementtemplateMidOutward
+                scalefactorsMid = [-1.0]
+            nStart = elementsCountAround + (crossIndexes[s] - aroundCounts[s])
+
+            if s == 0:
+                # Create elements between the first tube and the bifurcation
+                c1 = centreTubeNodeIds[s]
+                c2 = centreMidNodeIds[s]
+
+                for e1 in range(coreElementsCountAround):
+                    eft = eftMid
+                    elementtemplate = elementtemplateMid
+                    scalefactors = scalefactorsMid
+
+                    e1p = (nStart + e1 * 2)
+
+                    n1 = tubeNodeIds[s][0][e1p % elementsCountAround]
+                    n2 = tubeNodeIds[s][0][(e1p + 2) % elementsCountAround]
+                    n3 = tubeNodeIds[s][0][(e1p + 1) % elementsCountAround]
+
+                    if inward[s]:
+                        tempList = midNodeIds[2][0][::-1]
+                        tempList = tempList[1:-1]
+                        concatMidNodeIds = midNodeIds[0][0] + tempList
+
+                        n1p = concatMidNodeIds[(2 * e1) % elementsCountAround]
+                        n2p = concatMidNodeIds[(2 * e1 + 2) % elementsCountAround]
+                        n3p = concatMidNodeIds[(2 * e1 + 1) % elementsCountAround]
+
+                        nids = [c1, n1, n2, n3,
+                                c2, n1p, n2p, n3p]
+                    else:
+                        tempList = midNodeIds[s][0][::-1]
+                        tempList = tempList[1:-1]
+                        concatMidNodeIds = midNodeIds[s - 1][0] + tempList
+
+                        n1p = concatMidNodeIds[(2 * e1) % elementsCountAround]
+                        n2p = concatMidNodeIds[(2 * e1 + 2) % elementsCountAround]
+                        n3p = concatMidNodeIds[(2 * e1 + 1) % elementsCountAround]
+
+                        nids = [c1, n1, n2, n3,
+                                c2, n1p, n2p, n3p]
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    result1 = element.setNodesByIdentifier(eft, nids)
+                    result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else "-"
+                    for meshGroup in annotationMeshGroups[s]:
+                        meshGroup.addElement(element)
+                    elementIdentifier += 1
+            else:
+                c1 = centreMidNodeIds[0]
+                c2 = centreMidNodeIds[s]
+
+                for e1 in range(coreElementsCountAround):
+                    eft = eftMid
+                    elementtemplate = elementtemplateMid
+                    scalefactors = scalefactorsMid
+
+                    tempList = midNodeIds[s][0][::-1]
+                    tempList = tempList[1:-1]
+                    concatMidNodeIds = midNodeIds[s - 1][0] + tempList
+
+                    n1 = concatMidNodeIds[(2 * e1) % elementsCountAround]
+                    n2 = concatMidNodeIds[(2 * e1 + 2) % elementsCountAround]
+                    n3 = concatMidNodeIds[(2 * e1 + 1) % elementsCountAround]
+
+                    if not inward[s]:
+                        e1p = (nStart + e1 * 2)
+                        n1p = tubeNodeIds[s][0][e1p % elementsCountAround]
+                        n2p = tubeNodeIds[s][0][(e1p + 2) % elementsCountAround]
+                        n3p = tubeNodeIds[s][0][(e1p + 1) % elementsCountAround]
+                    else:
+                        e1p = (nStart - e1 * 2)
+                        n1p = tubeNodeIds[s][0][e1p % elementsCountAround]
+                        n2p = tubeNodeIds[s][0][(e1p - 2) % elementsCountAround]
+                        n3p = tubeNodeIds[s][0][(e1p - 1) % elementsCountAround]
+
+                    nids = [c1, n1, n2, n3,
+                            c2, n1p, n2p, n3p]
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    result1 = element.setNodesByIdentifier(eft, nids)
+                    result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else "-"
+                    for meshGroup in annotationMeshGroups[s]:
+                        meshGroup.addElement(element)
+                    elementIdentifier += 1
 
         # forward connections
 
@@ -925,7 +1281,7 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
             elementtemplateMid = elementtemplateMidOutward
             scalefactorsMid = [-1.0]
 
-        for e3 in range(elementsCountThroughWall):
+        for e3 in range(elementsCountThroughWall + 1 if core else elementsCountThroughWall):
             for e1 in range(connectionCounts[s]):
                 eft = eftMid
                 elementtemplate = elementtemplateMid
@@ -972,7 +1328,7 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
             elementtemplateMid = elementtemplateMidInward
             scalefactorsMid = [-1.0]
 
-        for e3 in range(elementsCountThroughWall):
+        for e3 in range(elementsCountThroughWall + 1 if core else elementsCountThroughWall):
             for e1 in range(connectionCounts[s - 1]):
                 eft = eftMid
                 elementtemplate = elementtemplateMid
@@ -1010,6 +1366,71 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
                 elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier
+
+
+def getCoreMidCentre(outerMidCoordinates, innerMidCoordinates):
+    """
+    Get the centre coordinates of the core at the bifurcation using outer and inner bifurcation coordinates.
+    :param outerMidCoordinates: A list of outer bifurcation coordinates.
+    :param innerMidCoordinates: A list of inner bifurcation coordinates.
+    :return: Centre coordinates for the core within the bifurcation.
+    """
+    P0 = []
+    P1 = []
+
+    P0.append(outerMidCoordinates[0][0][0])
+    P0.append(outerMidCoordinates[0][0][-1])
+    P1.append(innerMidCoordinates[0][0][0])
+    P1.append(innerMidCoordinates[0][0][-1])
+
+    P0 = np.array(P0)
+    P1 = np.array(P1)
+
+    # generate all line direction vectors
+    n = (P1 - P0) / np.linalg.norm(P1 - P0, axis=1)[:, np.newaxis]  # normalized
+
+    # generate the array of all projectors
+    projs = np.eye(n.shape[1]) - n[:, :, np.newaxis] * n[:, np.newaxis]  # I - n*n.T
+
+    # generate R matrix and q vector
+    R = projs.sum(axis=0)
+    q = (projs @ P0[:, :, np.newaxis]).sum(axis=0)
+
+    # solve the least squares problem for the intersection point p: Rp = q
+    p = np.linalg.lstsq(R, q, rcond=None)[0]
+
+    Px = p[0][0]
+    Py = p[1][0]
+    Pz = p[2][0]
+
+    centre = [Px, Py, Pz]
+
+    return centre
+
+
+def getCoreMidBoundary(imx, centre, scale=0.5):
+    """
+    Finds the cartesian coordinates for the core inside the inner bifurcation.
+    Work in a similar manner to findCoreBoundary function.
+    Derivatives for core nodes are currently set to zero - need to be updated.
+    :param imx: A list of inner bifurcation coordinates.
+    :param centre: A list of coordinates at the core centre.
+    :param scale: Determines how far the new boundary coordinates should be along the direction vector.
+    :return: Coordinates of nodes around the core boundary.
+    """
+    x1 = np.array(centre)
+    x2 = np.array(imx)
+    dx = x2 - x1
+
+    cmx = x1 + scale * dx
+    cmx = cmx.tolist()
+
+    ### The derivative values need to be updated
+    cd1 = [0, 0, 0]
+    cd2 = [0, 0, 0]
+    cd12 = [0, 0, 0]
+
+    return cmx, cd1, cd2, cd12
 
 
 class SegmentTubeData:
@@ -1647,7 +2068,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                                 defaultElementsCountAround: int, targetElementDensityAlongLongestSegment: float,
                                 elementsCountThroughWall: int, layoutAnnotationGroups: list=[],
                                 annotationElementsCountsAround: list=[],
-                                serendipity=False, showTrimSurfaces=False):
+                                serendipity=False, showTrimSurfaces=False, core=False):
     """
     Generate a 2D, or 3D (thick walled) tube bifurcation tree mesh.
     :param networkMesh: Specification of network path and lateral sizes.
@@ -1665,6 +2086,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     layoutAnnotationGroups. A value 0 means ignore; a shorter list means assume 0 for all remaining annotation groups.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
     :param showTrimSurfaces: Set to True to make surfaces from inter-tube trim surfaces. For diagnostic use.
+    :param core: True to generate a solid core inside the tube, False for regular tube network
     :return: next node identifier, next element identifier, annotationGroups.
     """
     layoutRegion = networkMesh.getRegion()
@@ -1839,13 +2261,13 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                     endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
                     loop = (len(startInSegments) == 1) and (startInSegments[0] is networkSegment) and \
                            (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
-                    nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
+                    nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds, centreEndNodeId = generateTube(
                         outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
                         region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
                         startSkipCount=startSkipCount, endSkipCount=endSkipCount,
                         startNodeIds=startNodeIds, endNodeIds=endNodeIds,
                         annotationMeshGroups=outerTubeData.getAnnotationMeshGroups(),
-                        loop=loop, serendipity=serendipity)
+                        loop=loop, serendipity=serendipity, core=core)
                     outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
                     outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
 
@@ -1906,11 +2328,17 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                             innerMidCoordinates = innerTubeBifurcationData.getMidCoordinates()
                         annotationMeshGroups = [outerTubeData[s].getAnnotationMeshGroups() for s in range(3)]
 
+                        # Check if centreEndNodeId variable exists, else set it to 1
+                        try:
+                            centreEndNodeId
+                        except NameError:
+                            centreEndNodeId = 1
+
                         nodeIdentifier, elementIdentifier = generateTubeBifurcation(
                             outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
                             outerMidCoordinates, innerMidCoordinates, crossIndexes,
                             region, fieldcache, coordinates, nodeIdentifier, elementIdentifier, tubeNodeIds,
-                            annotationMeshGroups, serendipity=serendipity)
+                            annotationMeshGroups, serendipity=serendipity, centreEndNodeId=centreEndNodeId, core=core)
 
                         for s in range(3):
                             if inward[s]:

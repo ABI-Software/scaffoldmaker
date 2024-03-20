@@ -37,7 +37,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Annotation elements counts around": [0],
             "Target element density along longest segment": 4.0,
             "Serendipity": True,
-            "Show trim surfaces": False
+            "Show trim surfaces": False,
+            "Core": False
         }
         return options
 
@@ -50,7 +51,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Annotation elements counts around",
             "Target element density along longest segment",
             "Serendipity",
-            "Show trim surfaces"
+            "Show trim surfaces",
+            "Core"
         ]
 
     @classmethod
@@ -104,6 +106,10 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                     annotationElementsCountsAround[i] = 4
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
+        if options["Core"]:
+            options["Elements count around"] = max(8, elementsCountAround + (elementsCountAround % 2))
+        else:
+            options["Elements count around"] = max(4, elementsCountAround + (elementsCountAround % 2))
         dependentChanges = False
         return dependentChanges
 
@@ -121,6 +127,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         annotationElementsCountsAround = options["Annotation elements counts around"]
         targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
         serendipity = options["Serendipity"]
+        core = options["Core"]
 
         layoutRegion = region.createRegion()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
@@ -139,6 +146,6 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
             elementsCountAround, targetElementDensityAlongLongestSegment, elementsCountThroughWall,
             layoutAnnotationGroups, annotationElementsCountsAround,
-            serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
+            serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"], core=core)
 
         return annotationGroups, None
