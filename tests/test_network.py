@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
@@ -11,6 +12,7 @@ from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
+from scaffoldmaker.meshtypes.meshtype_3d_boxnetwork1 import MeshType_3d_boxnetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
@@ -283,6 +285,60 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(innerSurfaceArea, 3.347440907189292, delta=X_TOL)
+
+    def test_3d_box_network_bifurcation(self):
+        """
+        Test 3-D box network bifurcation is generated correctly.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_boxnetwork1, defaultParameterSetName="Bifurcation")
+        settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertEqual(2, len(settings))
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+
+        fieldmodule = region.getFieldmodule()
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(12, mesh3d.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(63, mesh2d.getSize())
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        self.assertEqual(108, mesh1d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(13, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        X_TOL = 1.0E-6
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [0.0, -0.5, 0.0], X_TOL)
+        assertAlmostEqualList(self, maximums, [2.0, 0.5, 0.0], X_TOL)
+
+        L2 = math.sqrt(1.25)
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(1)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            expectedVolume = 0.2 * 0.2 * (1.0 + 2 * L2)
+            self.assertAlmostEqual(volume, expectedVolume, delta=X_TOL)
+
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(isExterior, coordinates, mesh2d)
+            surfaceAreaField.setNumbersOfPoints(1)
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            expectedSurfaceArea = 6 * 0.2 * 0.2 + 4 * 0.2 * (1.0 + 2 * L2)
+            self.assertAlmostEqual(surfaceArea, expectedSurfaceArea, delta=X_TOL)
 
     def test_3d_tube_network_loop(self):
         """
