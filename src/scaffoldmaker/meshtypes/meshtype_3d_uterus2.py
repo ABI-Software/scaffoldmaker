@@ -928,6 +928,8 @@ class MeshType_3d_uterus2(Scaffold_base):
             uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
             rightHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine horn"))
             leftHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine horn"))
+            bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
+            vaginaGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("vagina"))
 
             is_rightHorn = rightHornGroup.getGroup()
             is_rightHorn_outer = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_1)
@@ -940,6 +942,14 @@ class MeshType_3d_uterus2(Scaffold_base):
             is_uterus = uterusGroup.getGroup()
             is_uterus_outer = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_1)
             is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
+
+            is_body = bodyGroup.getGroup()
+            is_body_outer = fm.createFieldAnd(is_body, is_exterior_face_xi3_1)
+            is_body_inner = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
+
+            is_vagina = vaginaGroup.getGroup()
+            is_vagina_outer = fm.createFieldAnd(is_vagina, is_exterior_face_xi3_1)
+            is_vagina_inner = fm.createFieldAnd(is_vagina, is_exterior_face_xi3_0)
 
             serosaOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                 get_uterus_term("serosa of uterine cervix"))
@@ -972,6 +982,22 @@ class MeshType_3d_uterus2(Scaffold_base):
             lumenOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                get_uterus_term("lumen of uterus"))
             lumenOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
+
+            serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_uterus_term("serosa of body of uterus"))
+            serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_outer)
+
+            lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_uterus_term("lumen of body of uterus"))
+            lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_inner)
+
+            serosaOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                get_uterus_term("serosa of vagina"))
+            serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_outer)
+
+            lumenOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                               get_uterus_term("lumen of vagina"))
+            lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
 
 def addElementsToMargin(mesh, coordinates, group, nodeId):
