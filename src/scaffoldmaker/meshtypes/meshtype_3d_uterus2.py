@@ -81,9 +81,16 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '1-2, 6-7',
-                    'name': get_uterus_term('fallopian tube')[0],
-                    'ontId': get_uterus_term('fallopian tube')[1]
+                    'identifierRanges': '1-2',
+                    'name': get_uterus_term('left uterine tube')[0],
+                    'ontId': get_uterus_term('left uterine tube')[1]
+                },
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '6-7',
+                    'name': get_uterus_term('right uterine tube')[0],
+                    'ontId': get_uterus_term('right uterine tube')[1]
                 },
                 {
                     '_AnnotationGroup': True,
@@ -866,18 +873,31 @@ class MeshType_3d_uterus2(Scaffold_base):
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
         if isHuman:
-            fallopianTubeGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fallopian tube"))
-            is_fallopianTube = fallopianTubeGroup.getGroup()
-            is_fallopianTube_outer = fm.createFieldAnd(is_fallopianTube, is_exterior_face_xi3_1)
-            is_fallopianTube_inner = fm.createFieldAnd(is_fallopianTube, is_exterior_face_xi3_0)
+            leftUterineTubeGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine tube"))
+            is_leftUterineTube = leftUterineTubeGroup.getGroup()
+            is_leftUterineTube_outer = fm.createFieldAnd(is_leftUterineTube, is_exterior_face_xi3_1)
+            is_leftUterineTube_inner = fm.createFieldAnd(is_leftUterineTube, is_exterior_face_xi3_0)
 
-            serosaOfFallopianTube = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_uterus_term("serosa of fallopian tube"))
-            serosaOfFallopianTube.getMeshGroup(mesh2d).addElementsConditional(is_fallopianTube_outer)
+            serosaOfLeftUterineTube = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                   get_uterus_term("serosa of left uterine tube"))
+            serosaOfLeftUterineTube.getMeshGroup(mesh2d).addElementsConditional(is_leftUterineTube_outer)
 
-            lumenOfFallopianTube = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_uterus_term("lumen of fallopian tube"))
-            lumenOfFallopianTube.getMeshGroup(mesh2d).addElementsConditional(is_fallopianTube_inner)
+            rightUterineTubeGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine tube"))
+            is_rightUterineTube = rightUterineTubeGroup.getGroup()
+            is_rightUterineTube_outer = fm.createFieldAnd(is_rightUterineTube, is_exterior_face_xi3_1)
+            is_rightUterineTube_inner = fm.createFieldAnd(is_rightUterineTube, is_exterior_face_xi3_0)
+
+            serosaOfRightUterineTube = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                         get_uterus_term("serosa of right uterine tube"))
+            serosaOfRightUterineTube.getMeshGroup(mesh2d).addElementsConditional(is_rightUterineTube_outer)
+
+            lumenOfLeftUterineTube = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_uterus_term("lumen of left uterine tube"))
+            lumenOfLeftUterineTube.getMeshGroup(mesh2d).addElementsConditional(is_leftUterineTube_inner)
+
+            lumenOfRightUterineTube = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                        get_uterus_term("lumen of right uterine tube"))
+            lumenOfRightUterineTube.getMeshGroup(mesh2d).addElementsConditional(is_rightUterineTube_inner)
 
             nearRightMarginDorsalGroup = getAnnotationGroupForTerm(annotationGroups,
                                                                    ("elements adjacent to right margin dorsal",
