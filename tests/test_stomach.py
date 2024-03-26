@@ -33,25 +33,12 @@ class StomachScaffoldTestCase(unittest.TestCase):
         self.assertEqual(14, options.get("Number of elements along"))
         self.assertEqual(0.0215, options.get("Wall thickness"))
         self.assertEqual(True, options.get("Limiting ridge"))
-        ostiumOptions = options['Gastro-esophageal junction']
-        ostiumSettings = ostiumOptions.getScaffoldSettings()
-        self.assertEqual(1, ostiumSettings.get("Number of vessels"))
-        self.assertEqual(8, ostiumSettings.get("Number of elements around ostium"))
-        self.assertEqual(4, ostiumSettings.get("Number of elements through wall"))
-        self.assertEqual(5.0, ostiumSettings.get("Ostium diameter"))
-        self.assertEqual(5.0, ostiumSettings.get("Ostium length"))
-        self.assertEqual(0.5, ostiumSettings.get("Ostium wall thickness"))
-        self.assertEqual([0.65, 0.12, 0.18, 0.05], ostiumSettings.get("Ostium wall relative thicknesses"))
-        self.assertEqual(2.0, ostiumSettings.get("Vessel inner diameter"))
-        self.assertEqual(0.3, ostiumSettings.get("Vessel wall thickness"))
-        self.assertEqual([0.65, 0.12, 0.18, 0.05], ostiumSettings.get("Vessel wall relative thicknesses"))
-        self.assertEqual(0.0, ostiumSettings.get("Vessel angle 1 degrees"))
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateBaseMesh(region, options)[0]
-        self.assertEqual(41, len(annotationGroups))
+        self.assertEqual(42, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -87,10 +74,10 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 4.090555416482455, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 4.092273543567514, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.05785162434759533, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 0.05789368036003227, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -101,7 +88,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
             "pyloric antrum": 128,
             "pyloric canal": 128,
             "duodenum": 64,
-            "stomach": 906
+            "stomach": 778
             }
 
         for name in expectedSizes3d:
@@ -125,7 +112,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
 
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(41, len(annotationGroups))
+        self.assertEqual(42, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -144,7 +131,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(75, len(annotationGroups))
+        self.assertEqual(76, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(57984, mesh3d.getSize())

@@ -243,9 +243,9 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
 
     return xWarpedList, d1WarpedList, d2WarpedListFinal, d3WarpedUnitList
 
-def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
-    wallThicknessList, relativeThicknessList, elementsCountAround,
-    elementsCountAlong, elementsCountThroughWall, transitElementList, outward=True):
+def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf, wallThicknessList, relativeThicknessList,
+                              elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList,
+                              outward=True, xProximal=[], d1Proximal=[], d2Proximal=[], d3Proximal=[]):
     """
     Generates extruded coordinates using coordinates and derivatives of a surface.
     :param xSurf: Coordinates on surface
@@ -260,6 +260,7 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
     :param transitElementList: stores true if element around is a transition
     element that is between a big and a small element.
     :param outward: Set to True to generate coordinates from inner to outer surface.
+    :param xProximal, d1Proximal, d2Proximal, d3Proximal: coordinates and derivatives of nodes to use on proximal end.
     return nodes and derivatives for mesh, and curvature along extruded surface.
     """
 
@@ -271,6 +272,12 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
     d1List = []
     d2List = []
     d3List = []
+    count = 0
+    localIdxDistal = []
+    xDistal = []
+    d1Distal = []
+    d2Distal = []
+    d3Distal = []
 
     if relativeThicknessList:
         xi3 = 0.0
@@ -324,35 +331,64 @@ def extrudeSurfaceCoordinates(xSurf, d1Surf, d2Surf, d3Surf,
 
         for n3 in range(elementsCountThroughWall + 1):
             xi3 = xi3List[n3] if relativeThicknessList else 1.0/elementsCountThroughWall * n3
+            xDistalAround = []
+            d1DistalAround = []
+            d2DistalAround = []
+            d3DistalAround = []
+            localIdxDistalAround = []
+
             for n1 in range(elementsCountAround):
-                n = n2*elementsCountAround + n1
-                norm = d3Surf[n]
-                surfx = xSurf[n]
-                extrudedx = xExtrudedSurf[n]
-                # x
-                dWall = [wallThickness * c for c in norm]
-                if outward:
-                    x = interp.interpolateCubicHermite(surfx, dWall, extrudedx, dWall, xi3)
+                if n2 == 0 and xProximal:
+                    xList.append(xProximal[n3][n1])
+                    d1List.append(d1Proximal[n3][n1])
+                    d2List.append(d2Proximal[n3][n1])
+                    d3List.append(d3Proximal[n3][n1])
+                    n = n2 * elementsCountAround + n1
+                    curvatureList.append(curvatureAlong[n])
                 else:
-                    x = interp.interpolateCubicHermite(extrudedx, dWall, surfx, dWall, xi3)
-                xList.append(x)
+                    n = n2*elementsCountAround + n1
+                    norm = d3Surf[n]
+                    surfx = xSurf[n]
+                    extrudedx = xExtrudedSurf[n]
+                    # x
+                    dWall = [wallThickness * c for c in norm]
+                    if outward:
+                        x = interp.interpolateCubicHermite(surfx, dWall, extrudedx, dWall, xi3)
+                    else:
+                        x = interp.interpolateCubicHermite(extrudedx, dWall, surfx, dWall, xi3)
+                    xList.append(x)
 
-                # dx_ds1
-                factor = 1.0 - wallOutwardDisplacement * (xi3 if outward else (1.0 - xi3)) * curvatureAroundSurf[n]
-                d1 = [factor*c for c in d1Surf[n]]
-                d1List.append(d1)
+                    # dx_ds1
+                    factor = 1.0 - wallOutwardDisplacement * (xi3 if outward else (1.0 - xi3)) * curvatureAroundSurf[n]
+                    d1 = [factor*c for c in d1Surf[n]]
+                    d1List.append(d1)
 
-                # dx_ds2
-                factor = 1.0 - wallOutwardDisplacement * (xi3 if outward else (1.0 - xi3)) * curvatureAlong[n]
-                d2 = [factor * c for c in d2Surf[n]]
-                d2List.append(d2)
-                curvatureList.append(curvatureAlong[n])
+                    # dx_ds2
+                    factor = 1.0 - wallOutwardDisplacement * (xi3 if outward else (1.0 - xi3)) * curvatureAlong[n]
+                    d2 = [factor * c for c in d2Surf[n]]
+                    d2List.append(d2)
+                    curvatureList.append(curvatureAlong[n])
 
-                # dx_ds3
-                d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
-                d3List.append(d3)
+                    # dx_ds3
+                    d3 = [c * wallThickness * (relativeThicknessList[n3] if relativeThicknessList else 1.0/elementsCountThroughWall) for c in norm]
+                    d3List.append(d3)
 
-    return xList, d1List, d2List, d3List, curvatureList
+                if n2 == elementsCountAlong:
+                    xDistalAround.append(x)
+                    d1DistalAround.append(d1)
+                    d2DistalAround.append(d2)
+                    d3DistalAround.append(d3)
+                    localIdxDistalAround.append(count)
+                count += 1
+
+            if n2 == elementsCountAlong:
+                xDistal.append(xDistalAround)
+                d1Distal.append(d1DistalAround)
+                d2Distal.append(d2DistalAround)
+                d3Distal.append(d3DistalAround)
+                localIdxDistal.append(localIdxDistalAround)
+
+    return xList, d1List, d2List, d3List, curvatureList, localIdxDistal, xDistal, d1Distal, d2Distal, d3Distal
 
 def createFlatCoordinates(xiList, lengthAroundList, totalLengthAlong, wallThickness, relativeThicknessList,
                           elementsCountAround, elementsCountAlong, elementsCountThroughWall, transitElementList):
@@ -485,7 +521,7 @@ def createNodesAndElements(region,
     elementsCountAround, elementsCountAlong, elementsCountThroughWall,
     annotationGroupsAround, annotationGroupsAlong, annotationGroupsThroughWall,
     firstNodeIdentifier, firstElementIdentifier,
-    useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd):
+    useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd, localIdxDistal=[], nodeIdProximal=[]):
     """
     Create nodes and elements for the coordinates and flat coordinates fields.
     :param x, d1, d2, d3: coordinates and derivatives of coordinates field.
@@ -499,16 +535,23 @@ def createNodesAndElements(region,
     :param annotationGroupsAround: Annotation groups of elements around.
     :param annotationGroupsAlong: Annotation groups of elements along.
     :param annotationGroupsThroughWall: Annotation groups of elements through wall.
-    :param firstNodeIdentifier, firstElementIdentifier: first node and
-    element identifier to use.
+    :param firstNodeIdentifier, firstElementIdentifier: first node and element identifier to use.
     :param useCubicHermiteThroughWall: use linear when false
     :param useCrossDerivatives: use cross derivatives when true
-    :return nodeIdentifier, elementIdentifier, allAnnotationGroups
+    :param closedProximalEnd: Proximal end of tube is closed if true
+    :param localIdxDistal: local node identifiers for nodes on distal end of the tube.
+    :param nodeIdProximal: Node identifiers for nodes to use on proximal end of the tube.
+    :return nodeIdentifier, elementIdentifier, allAnnotationGroups, nodesDistal
     """
 
     nodeIdentifier = firstNodeIdentifier
     elementIdentifier = firstElementIdentifier
+    startNode = firstNodeIdentifier
     zero = [ 0.0, 0.0, 0.0 ]
+    nodesDistal = []
+
+    for i in range(len(localIdxDistal)):
+        nodesDistal.append([firstNodeIdentifier + c for c in localIdxDistal[i]])
 
     fm = region.getFieldmodule()
     fm.beginChange()
@@ -622,7 +665,19 @@ def createNodesAndElements(region,
 
     # Create nodes
     # Coordinates field
-    for n in range(len(x)):
+    if nodeIdProximal:
+        proximalNodesOffset = len(nodeIdProximal) * len(nodeIdProximal[0])
+        nodeList = []
+        newNodeList = []
+
+    if nodeIdProximal:
+        for n3 in range(len(nodeIdProximal)):
+            for n1 in range(len(nodeIdProximal[n3])):
+                nodeList.append(nodeIdentifier)
+                newNodeList.append(nodeIdProximal[n3][n1])
+                nodeIdentifier = nodeIdentifier + 1
+
+    for n in range(proximalNodesOffset if nodeIdProximal else 0, len(x)):
         node = nodes.createNode(nodeIdentifier, nodetemplate)
         cache.setNode(node)
         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x[n])
@@ -709,9 +764,9 @@ def createNodesAndElements(region,
                 eftApex = eftfactory.createEftShellPoleBottom(va * 100, vb * 100)
                 elementtemplateApex.defineField(coordinates, -1, eftApex)
                 element = mesh.createElement(elementIdentifier, elementtemplateApex)
-                bni1 = e3 + 1
-                bni2 = elementsCountThroughWall + 1 + elementsCountAround*e3 + e1 + 1
-                bni3 = elementsCountThroughWall + 1 + elementsCountAround*e3 + (e1 + 1) % elementsCountAround + 1
+                bni1 = e3 + 1 + startNode - 1
+                bni2 = elementsCountThroughWall + 1 + elementsCountAround*e3 + e1 + 1 + startNode - 1
+                bni3 = elementsCountThroughWall + 1 + elementsCountAround*e3 + (e1 + 1) % elementsCountAround + 1 + startNode - 1
                 nodeIdentifiers = [bni1, bni2, bni3, bni1 + 1, bni2 + elementsCountAround, bni3 + elementsCountAround]
                 element.setNodesByIdentifier(eftApex, nodeIdentifiers)
                 onOpening = e1 > elementsCountAround - 2
@@ -790,6 +845,13 @@ def createNodesAndElements(region,
                     bni21 = e2 * now + (e3 + 1) * elementsCountAround + e1 + 1
                     bni22 = e2 * now + (e3 + 1) * elementsCountAround + (e1 + 1) % elementsCountAround + 1
                 nodeIdentifiers = [bni11, bni12, bni11 + now, bni12 + now, bni21, bni22, bni21 + now, bni22 + now]
+                nodeIdentifiers = [startNode - 1 + c for c in nodeIdentifiers]
+                if e2 == 0 and nodeIdProximal:
+                    for m in range(len(nodeIdentifiers)):
+                        if nodeIdentifiers[m] in nodeList:
+                            idx = nodeList.index(nodeIdentifiers[m])
+                            nodeIdentifiers[m] = newNodeList[idx]
+
                 onOpening = e1 > elementsCountAround - 2
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nodeIdentifiers)
@@ -811,34 +873,34 @@ def createNodesAndElements(region,
 
     fm.endChange()
 
-    return nodeIdentifier, elementIdentifier, allAnnotationGroups
+    return nodeIdentifier, elementIdentifier, allAnnotationGroups, nodesDistal
 
-class CylindricalSegmentTubeMeshInnerPoints:
+class CylindricalSegmentTubeMeshOuterPoints:
     """
-    Generates inner profile of a cylindrical segment for use by tubemesh.
+    Generates outer profile of a cylindrical segment for use by tubemesh.
     """
 
     def __init__(self, elementsCountAround, elementsCountAlongSegment,
-                 segmentLength, wallThickness, innerRadiusList, startPhase):
+                 segmentLength, wallThickness, outerRadiusList, startPhase):
 
         self._elementsCountAround = elementsCountAround
         self._elementsCountAlongSegment = elementsCountAlongSegment
         self._segmentLength = segmentLength
         self._wallThickness = wallThickness
-        self._innerRadiusList = innerRadiusList
+        self._outerRadiusList = outerRadiusList
         self._xiList = []
         self._flatWidthList = []
         self._startPhase = startPhase
 
-    def getCylindricalSegmentTubeMeshInnerPoints(self, nSegment):
+    def getCylindricalSegmentTubeMeshOuterPoints(self, nSegment):
 
         elementAlongStartIdx = nSegment * self._elementsCountAlongSegment
         elementAlongEndIdx = (nSegment + 1) * self._elementsCountAlongSegment
 
-        xInner, d1Inner, d2Inner, transitElementList, xiSegment, flatWidthSegment, segmentAxis, radiusAlongSegmentList \
-            = getCylindricalSegmentInnerPoints(self._elementsCountAround, self._elementsCountAlongSegment,
+        xOuter, d1Outer, d2Outer, transitElementList, xiSegment, flatWidthSegment, segmentAxis, radiusAlongSegmentList \
+            = getCylindricalSegmentOuterPoints(self._elementsCountAround, self._elementsCountAlongSegment,
                                                self._segmentLength, self._wallThickness,
-                                               self._innerRadiusList[elementAlongStartIdx: elementAlongEndIdx + 1],
+                                               self._outerRadiusList[elementAlongStartIdx: elementAlongEndIdx + 1],
                                                self._startPhase)
 
         startIdx = 0 if nSegment == 0 else 1
@@ -848,12 +910,12 @@ class CylindricalSegmentTubeMeshInnerPoints:
         flatWidth = flatWidthSegment[startIdx:self._elementsCountAlongSegment + 1]
         self._flatWidthList += flatWidth
 
-        return xInner, d1Inner, d2Inner, transitElementList, segmentAxis, radiusAlongSegmentList
+        return xOuter, d1Outer, d2Outer, transitElementList, segmentAxis, radiusAlongSegmentList
 
     def getFlatWidthAndXiList(self):
         return self._flatWidthList, self._xiList
 
-def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegment, segmentLength,
+def getCylindricalSegmentOuterPoints(elementsCountAround, elementsCountAlongSegment, segmentLength,
                                      wallThickness, radiusList, startPhase):
     """
     Generates a 3-D cylindrical segment mesh with variable numbers of elements
@@ -862,7 +924,7 @@ def getCylindricalSegmentInnerPoints(elementsCountAround, elementsCountAlongSegm
     :param elementsCountAlongSegment: Number of elements along cylindrical segment.
     :param segmentLength: Length of a cylindrical segment.
     :param wallThickness: Thickness of wall.
-    :param radiusList: Inner radius at elements along tube length.
+    :param radiusList: Outer radius at elements along tube length.
     :param startPhase: Phase at start.
     :return coordinates, derivatives on inner surface of a cylindrical segment.
     :return transitElementList: stores true if element around is an element that
