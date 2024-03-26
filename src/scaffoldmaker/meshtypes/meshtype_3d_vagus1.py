@@ -1,5 +1,5 @@
 """
-Generates a hermite x bilinear 3-D box network mesh from a 1-D network layout.
+Generates a hermite x bilinear 1-D central line mesh for a vagus nerve with branches.
 """
 
 import copy
@@ -27,17 +27,22 @@ from scaffoldfitter.fitterstepfit import FitterStepFit
 
 class MeshType_3d_vagus1(Scaffold_base):
     """
-    Generates a hermite x bilinear 3-D box network mesh from a 1-D network layout.
+    Generates a hermite x bilinear 1-D central line mesh for a vagus nerve with branches.
     """
 
     @staticmethod
     def getName():
         return "3D Vagus 1"
 
+    @staticmethod
+    def getParameterSetNames():
+        return [
+            'Human Left Trunk 1']
+
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
-            'Number of elements along the trunk': 20
+            'Number of elements along the trunk': 45
         }
         return options
 
@@ -50,8 +55,8 @@ class MeshType_3d_vagus1(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if options['Number of elements along the trunk'] < 5:
-            options['Number of elements along the trunk'] = 5
+        if options['Number of elements along the trunk'] < 10:
+            options['Number of elements along the trunk'] = 10
         return dependentChanges
 
     @classmethod
@@ -121,7 +126,7 @@ class MeshType_3d_vagus1(Scaffold_base):
 
         # choose markers for building initial scaffold
         use_marker_names = [list(marker_data.keys())[0],
-                           list(marker_data.keys())[-1]]
+                            list(marker_data.keys())[-1]]
         # use_marker_names = ["level of angle of mandible on the vagal trunk",
         #                     "level of aortic hiatus on the vagal trunk"]
         assert [name.lower() in marker_data for name in use_marker_names] and \
@@ -208,7 +213,7 @@ class MeshType_3d_vagus1(Scaffold_base):
         vagusElementtemplateBranchRoot.defineField(vagusCoordinates, -1, eftNVvagus)
 
 
-        # initial line for 1d vagus trunk scaffold
+        # build initial line for 1d vagus trunk scaffold
         elementsAlongTrunk = options['Number of elements along the trunk']
         step = rescaled_lengthToDiameterRatio/(elementsAlongTrunk - 1)
         trunk_nodes = []
@@ -284,7 +289,7 @@ class MeshType_3d_vagus1(Scaffold_base):
         # geometry fitting - trunk
         fitter_data_file = "C:/MAP/output/vagus_scaffold_temp/vagus_data.exf"
         fitter_model_file = "C:/MAP/output/vagus_scaffold_temp/vagus_trunk_model.exf"
-        fitter = fit_trunk_model(fitter_model_file, fitter_data_file, trunk_group_name)
+        fitter = fit_trunk_model(fitter_model_file, fitter_data_file)
         reset_nodes_with_fitted_nodes(fieldmodule, fitter)
         trunk_fitted_data = extract_group_nodeset_as_coordinates_list(fieldmodule, trunk_group_name)
 
@@ -702,8 +707,8 @@ def extract_group_nodeset_as_coordinates_list(fieldmodule, group_name):
     assert coordinates.isValid() and (coordinates.getNumberOfComponents() == 3)
 
     coordinates_list = []
-    group = find_or_create_field_group(fieldmodule, group_name)
-    if group:
+    group = fieldmodule.findFieldByName(group_name).castGroup()
+    if group.isValid():
         group_nodes = group.getNodesetGroup(nodes)
         node_iter = group_nodes.createNodeiterator()
         node = node_iter.next()
