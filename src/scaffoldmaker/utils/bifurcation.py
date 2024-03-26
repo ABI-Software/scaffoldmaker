@@ -1799,8 +1799,8 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 loop = (len(startSegmentNode.getInSegments()) == 1) and \
                        (startSegmentNode.getInSegments()[0] is networkSegment) and \
                        (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
-                if (elementsCountAlong == 1) and (startTubeBifurcationData or endTubeBifurcationData):
-                    # at least 2 segments if bifurcating at either end, or loop
+                if (elementsCountAlong == 1) and startTubeBifurcationData and endTubeBifurcationData:
+                    # at least 2 segments if bifurcating at both ends
                     elementsCountAlong = 2
                 elif (elementsCountAlong < 3) and loop:
                     # at least 3 segments around loop; 2 should work, but zinc currently makes incorrect faces
