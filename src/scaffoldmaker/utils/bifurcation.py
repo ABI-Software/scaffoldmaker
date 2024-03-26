@@ -1377,7 +1377,8 @@ class TubeBifurcationData:
                 for so in sos:
                     otherTrackSurface = self._tubeData[so].getRawTrackSurface()
                     otherSurfacePosition, curveLocation, isIntersection = \
-                        otherTrackSurface.findNearestPositionOnCurve(cx, cd2, loop=False, sampleEnds=False)
+                        otherTrackSurface.findNearestPositionOnCurve(
+                            cx, cd2, loop=False, sampleEnds=False, sampleHalf=2 if self._segmentsIn[s] else 1)
                     if isIntersection:
                         proportion2 = (curveLocation[0] + curveLocation[1]) / (pointsCountAlong - 1)
                         proportionFromEnd = abs(proportion2 - (1.0 if self._segmentsIn[s] else 0.0))
