@@ -210,23 +210,23 @@ class ScaffoldPackage:
                 [ 0.0, 0.0, 0.0, 1.0 ] ]
         return None
 
-    def applyTransformation(self, editCoordinates):
+    def applyTransformation(self, editCoordinatesField):
         '''
         If rotation, scale or transformation are set, transform node coordinates.
         Only call after generate().
-        :return: True if a non-identity transformation has been applied, False if not.
+        :param editCoordinatesField: Coordinates field in which transformation is applied to.
+        :return: True if a non-identity transformation has been applied, False if not. Return None if field is invalid.
         '''
         assert self._region
         fieldmodule = self._region.getFieldmodule()
-        if not editCoordinates.isValid():
+        if not editCoordinatesField.isValid():
             print('Warning: ScaffoldPackage.applyTransformation: Missing coordinates field')
             return
         with ChangeManager(fieldmodule):
-            componentsCount = editCoordinates.getNumberOfComponents()
-            if componentsCount < 3:
-                # pad with zeros
-                editCoordinates = fieldmodule.createFieldConcatenate([ editCoordinates ] + [ fieldmodule.createFieldConstant([ 0.0 ]*(3 - componentsCount)) ])
-            newCoordinates = editCoordinates
+            componentsCount = editCoordinatesField.getNumberOfComponents()
+            # pad with zeros if componentsCount < 3
+            newCoordinates = targetCoordinates = editCoordinatesField if (componentsCount >= 3) else fieldmodule.createFieldConcatenate([ editCoordinates ] + [ fieldmodule.createFieldConstant([ 0.0 ]*(3 - componentsCount)) ])
+
             # apply scale first so variable scaling in x, y, z doesn't interplay with rotation
             if not all((v == 1.0) for v in self._scale):
                 #print("applyTransformation: apply scale", self._scale)
@@ -239,13 +239,13 @@ class ScaffoldPackage:
                 #print("applyTransformation: apply translation", self._translation)
                 newCoordinates = newCoordinates + fieldmodule.createFieldConstant(self._translation)
             # be sure to delete temporary fields and fieldassignment to reduce messages
-            doApply = newCoordinates is not editCoordinates
+            doApply = newCoordinates is not targetCoordinates
             if doApply:
-                fieldassignment = editCoordinates.createFieldassignment(newCoordinates)
+                fieldassignment = targetCoordinates.createFieldassignment(newCoordinates)
                 fieldassignment.assign()
                 del fieldassignment
             del newCoordinates
-            del editCoordinates
+            del targetCoordinates
         return doApply
 
     def generate(self, region, applyTransformation=True):
@@ -270,11 +270,11 @@ class ScaffoldPackage:
             # define user AnnotationGroups from serialised Dict
             self._userAnnotationGroups = [ AnnotationGroup.fromDict(dct, self._region) for dct in self._userAnnotationGroupsDict ]
             self._isGenerated = True
-            fieldmodule = self._region.getFieldmodule()
-            for editFieldName in ['coordinates', 'inner coordinates']:
-                editCoordinates = fieldmodule.findFieldByName(editFieldName)
-                if editCoordinates.isValid():
-                    if applyTransformation:
+            if applyTransformation:
+                fieldmodule = self._region.getFieldmodule()
+                for editFieldName in ['coordinates', 'inner coordinates']:
+                    editCoordinates = fieldmodule.findFieldByName(editFieldName)
+                    if editCoordinates.isValid():
                         self.applyTransformation(editCoordinates)
 
     def deleteElementsInRanges(self, region, deleteElementRanges):
