@@ -1683,7 +1683,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     mesh = fieldmodule.findMeshByDimension(dimension)
     fieldcache = fieldmodule.createFieldcache()
 
-    # make 2D annotation groups from 1D network layout annotation groups
+    # make tube mesh annotation groups from 1D network layout annotation groups
     annotationGroups = []
     layoutAnnotationMeshGroupMap = []  # List of tuples of layout annotation mesh group to final mesh group
     for layoutAnnotationGroup in layoutAnnotationGroups:
@@ -1764,7 +1764,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
             if not startTubeBifurcationData:
                 startInSegments = startSegmentNode.getInSegments()
                 startOutSegments = startSegmentNode.getOutSegments()
-                if ((len(startInSegments) + len(startOutSegments)) == 3):
+                if (len(startInSegments) + len(startOutSegments)) == 3:
                     # print("create start", networkSegment, startSegmentNode)
                     startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
                     nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
@@ -1774,11 +1774,10 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
             endSegmentNode = segmentNodes[-1]
             endTubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
             endSurface = None
-            createEndBifurcationData = not endTubeBifurcationData
-            if createEndBifurcationData:
+            if not endTubeBifurcationData:
                 endInSegments = endSegmentNode.getInSegments()
                 endOutSegments = endSegmentNode.getOutSegments()
-                if ((len(endInSegments) + len(endOutSegments)) == 3):
+                if (len(endInSegments) + len(endOutSegments)) == 3:
                     # print("create end", networkSegment, endSegmentNode)
                     endTubeBifurcationData = TubeBifurcationData(endInSegments, endOutSegments, segmentTubeData)
                     nodeTubeBifurcationData[endSegmentNode] = endTubeBifurcationData
@@ -1802,9 +1801,9 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 if (elementsCountAlong == 1) and startTubeBifurcationData and endTubeBifurcationData:
                     # at least 2 segments if bifurcating at both ends
                     elementsCountAlong = 2
-                elif (elementsCountAlong < 3) and loop:
-                    # at least 3 segments around loop; 2 should work, but zinc currently makes incorrect faces
-                    elementsCountAlong = 3
+                elif (elementsCountAlong < 2) and loop:
+                    # at least 2 segments around loop
+                    elementsCountAlong = 2
             else:
                 # must match count from outer surface!
                 outerTubeData = outerSegmentTubeData[networkSegment]
