@@ -33,8 +33,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[-0.27, 0.44, 0.87], [6.61, 7.71, 43.82], [4.56, -1.02, -0.51], [-1.56, 0.44, 0.72], [0.29, 1.48, -0.30], [0.18, 0.93, 0.18]]),
                     (2, [[3.25, 5.21, 45.57], [0.37, 1.78, 45.29], [4.61, -0.73, -0.01], [1.66, 0.13, 0.29], [0.40, 2.58, -0.10], [0.04, 1.24, 0.22]]),
                     (3, [[0.46, 3.96, 90.94], [-0.69, -2.01, 59.61], [7.90, -0.75, 0.06], [5.17, -0.55, -0.35], [0.37, 3.97, 0.14], [0.20, 2.18, -0.21]]),
@@ -42,7 +43,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (5, [[11.03, 18.03, 234.00], [11.41, 10.94, 50.55], [8.22, -1.76, -1.46], [-5.41, 0.42, 0.14], [1.09, 6.46, -1.64], [0.55, -0.34, 0.05]]),
                     (6, [[21.86, 23.91, 265.44], [9.61, 3.36, 33.13], [3.98, -1.33, -1.02], [-3.21, 0.42, 0.52], [1.83, 6.41, -1.18], [0.10, -1.87, 0.76]]),
                     (7, [[30.07, 24.60, 299.90], [6.77, -1.97, 35.60], [1.85, -0.92, -0.40], [-1.04, 0.40, 0.71], [1.27, 2.61, -0.09], [-1.23, -5.71, 1.40]])
-                ])
+                ]])
         }),
         'Biceps femoris 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
@@ -53,8 +54,9 @@ with variable numbers of elements in major, minor, shell and axial directions.
                 'Number of elements': 7
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[1.11, 0.78, 0.89], [-17.32, 0.85, 44.44], [-2.04, 5.00, -0.89], [-0.58, 1.13, -0.73], [-3.62, -1.72, -1.38], [1.97, 0.30, 2.07]]),
                     (2, [[-10.89, 4.78, 45.89], [-6.48, 7.14, 45.04], [-2.06, 8.08, -1.58], [0.54, 5.02, -0.64], [-5.26, -1.44, -0.53], [-5.24, 0.26, -0.37]]),
                     (3, [[-11.89, 14.78, 89.89], [-7.65, 6.42, 47.75], [-0.97, 14.98, -2.17], [1.04, 8.35, 0.22], [-13.97, -1.21, -2.08], [-5.63, 0.61, -1.67]]),
@@ -63,7 +65,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (6, [[-42.89, 21.78, 237.89], [-6.50, 5.06, 48.56], [-0.91, 23.94, -2.62], [-0.55, -6.63, -0.82], [-19.08, -0.99, -2.45], [3.07, -0.76, 1.14]]),
                     (7, [[-48.89, 28.78, 284.89], [-5.02, 10.53, 46.68], [-1.99, 12.97, -3.14], [-0.54, -9.05, 0.11], [-13.94, -2.37, -0.97], [5.44, -0.79, 1.45]]),
                     (8, [[-52.89, 42.78, 330.89], [-2.97, 17.41, 45.15], [-1.98, 5.86, -2.39], [0.55, -5.16, 1.38], [-8.19, -2.58, 0.46], [6.06, 0.38, 1.39]])
-                ])
+                ]])
         }),
 
     }
