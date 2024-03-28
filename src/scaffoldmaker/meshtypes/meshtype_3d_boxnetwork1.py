@@ -57,7 +57,7 @@ class BoxSegmentData:
 
     def getSampledNodeIdentifier(self, nodeIndex):
         """
-        Get start node identifier for supplying to adjacent tube or bifurcation.
+        Get start node identifier for supplying to adjacent straight or junction.
         :param nodeIndex: Index of sampled node from 0 to sampledElementsCountAlong, or -1 for last.
         """
         return self._sampledNodeIdentifiers[nodeIndex]
@@ -89,7 +89,7 @@ class BoxJunctionData:
         """
         :param networkSegmentsIn: List of input segments.
         :param networkSegmentsOut: List of output segments.
-        :param segmentTubeData: dict NetworkSegment -> SegmentTubeData.
+        :param boxSegmentData: dict NetworkSegment -> BoxSegmentData.
         """
         self._networkSegmentsIn = networkSegmentsIn
         self._networkSegmentsOut = networkSegmentsOut
@@ -265,8 +265,8 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
                 startBoxJunctionData = BoxJunctionData(startInSegments, startOutSegments, boxSegmentData)
                 boxNodeJunctionDataMap[startSegmentNode] = startBoxJunctionData
             endSegmentNode = segmentNodes[-1]
-            endTubeBifurcationData = boxNodeJunctionDataMap.get(endSegmentNode)
-            if not endTubeBifurcationData:
+            endBoxJunctionData = boxNodeJunctionDataMap.get(endSegmentNode)
+            if not endBoxJunctionData:
                 endInSegments = endSegmentNode.getInSegments()
                 endOutSegments = endSegmentNode.getOutSegments()
                 endBoxJunctionData = BoxJunctionData(endInSegments, endOutSegments, boxSegmentData)
