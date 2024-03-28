@@ -143,7 +143,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
                     cd2[nodeIndexes[ln]].append(d2)
                     cd13[nodeIndexes[ln]].append(mult(d1Unit, edgeAngle * tubeRadius))
             # fix the one node out of order:
-            for d in [cd1[4], cd2[4]]:
+            for d in [cd1[4], cd2[4], cd13[4]]:
                 d[0:2] = [d[1], d[0]]
             for n in range(8):
                 node = nodes.findNodeByIdentifier(n + 1)

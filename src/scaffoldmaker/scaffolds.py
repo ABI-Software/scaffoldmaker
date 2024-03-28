@@ -15,6 +15,7 @@ from scaffoldmaker.meshtypes.meshtype_2d_tubebifurcation1 import MeshType_2d_tub
 from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
+from scaffoldmaker.meshtypes.meshtype_3d_bone1 import MeshType_3d_bone1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from scaffoldmaker.meshtypes.meshtype_3d_boxnetwork1 import MeshType_3d_boxnetwork1
@@ -75,6 +76,7 @@ class Scaffolds(object):
             MeshType_2d_tubenetwork1,
             MeshType_3d_bladder1,
             MeshType_3d_bladderurethra1,
+            MeshType_3d_bone1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
             MeshType_3d_boxnetwork1,
