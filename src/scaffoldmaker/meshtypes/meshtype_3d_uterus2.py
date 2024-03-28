@@ -754,8 +754,8 @@ class MeshType_3d_uterus2(Scaffold_base):
             annotationGroups.append(nearLeftMarginDorsalCervixGroup)
             annotationGroups.append(nearLeftMarginVentralCervixGroup)
 
-            allMarkers = {"junction of left round ligament with uterus": {"x": [-4.13264, 9.97541, -7.1167]},
-                          "junction of right round ligament with uterus": {"x": [4.13279, 9.97534, -7.1166]}}
+            allMarkers = {"junction of left round ligament with uterus": {"x": [-4.1312, 9.96436, -7.11994]},
+                          "junction of right round ligament with uterus": {"x": [4.13116, 9.96438, -7.11997]}}
 
             for key in allMarkers:
                 x = allMarkers[key]["x"]
