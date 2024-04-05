@@ -1,6 +1,6 @@
-'''
+"""
 Class for refining a mesh from one region to another.
-'''
+"""
 from __future__ import division
 
 import math
@@ -16,16 +16,16 @@ from scaffoldmaker.utils.octree import Octree
 
 
 class MeshRefinement:
-    '''
+    """
     Class for refining a mesh from one region to another.
-    '''
+    """
 
-    def __init__(self, sourceRegion, targetRegion, sourceAnnotationGroups = []):
-        '''
+    def __init__(self, sourceRegion, targetRegion, sourceAnnotationGroups=[]):
+        """
         Assumes targetRegion is empty.
         :param sourceAnnotationGroups: List of AnnotationGroup for source mesh in sourceRegion.
         A copy containing the refined elements is created by the MeshRefinement.
-        '''
+        """
         self._sourceRegion = sourceRegion
         self._sourceFm = sourceRegion.getFieldmodule()
         self._sourceCache = self._sourceFm.createFieldcache()
@@ -39,12 +39,12 @@ class MeshRefinement:
         maximumsField = self._sourceFm.createFieldNodesetMaximum(self._sourceCoordinates, sourceNodes)
         result, maximums = maximumsField.evaluateReal(self._sourceCache, 3)
         assert result == ZINC_OK, 'MeshRefinement failed to get maximum coordinates'
-        xrange = [ (maximums[i] - minimums[i]) for i in range(3) ]
-        edgeTolerance = 0.5*(max(xrange))
+        xrange = [(maximums[i] - minimums[i]) for i in range(3)]
+        edgeTolerance = 0.5 * (max(xrange))
         if edgeTolerance == 0.0:
             edgeTolerance = 1.0
-        minimums = [ (minimums[i] - edgeTolerance) for i in range(3) ]
-        maximums = [ (maximums[i] + edgeTolerance) for i in range(3) ]
+        minimums = [(minimums[i] - edgeTolerance) for i in range(3)]
+        maximums = [(maximums[i] + edgeTolerance) for i in range(3)]
         minimumsField = None
         maximumsField = None
         self._sourceMesh = self._sourceFm.findMeshByDimension(3)
@@ -81,9 +81,9 @@ class MeshRefinement:
             self._annotationGroups.append(targetAnnotationGroup)
             # assume have only highest dimension element or node/point annotation groups:
             if sourceAnnotationGroup.hasMeshGroup(self._sourceMesh):
-                self._sourceAndTargetMeshGroups.append( ( sourceAnnotationGroup.getMeshGroup(self._sourceMesh), targetAnnotationGroup.getMeshGroup(self._targetMesh)) )
+                self._sourceAndTargetMeshGroups.append((sourceAnnotationGroup.getMeshGroup(self._sourceMesh), targetAnnotationGroup.getMeshGroup(self._targetMesh)))
             else:
-                self._sourceAndTargetNodesetGroups.append( ( sourceAnnotationGroup.getNodesetGroup(self._sourceNodes), targetAnnotationGroup.getNodesetGroup(self._targetNodes)) )
+                self._sourceAndTargetNodesetGroups.append((sourceAnnotationGroup.getNodesetGroup(self._sourceNodes), targetAnnotationGroup.getNodesetGroup(self._targetNodes)))
 
         # prepare element -> marker point list map
         self.elementMarkerMap = {}
@@ -103,7 +103,7 @@ class MeshRefinement:
                 if not markerList:
                     markerList = []
                     self.elementMarkerMap[elementIdentifier] = markerList
-                markerList.append( ( markerName, xi, node.getIdentifier() ) )
+                markerList.append((markerName, xi, node.getIdentifier()))
             node = nodeIter.next()
         if self.elementMarkerMap:
             self._targetMarkerGroup = findOrCreateFieldGroup(self._targetFm, "marker")
@@ -114,19 +114,16 @@ class MeshRefinement:
             self._targetMarkerTemplate.defineField(self._targetMarkerName)
             self._targetMarkerTemplate.defineField(self._targetMarkerLocation)
 
-
     def __del__(self):
         self._sourceFm.endChange()
         self._targetFm.endChange()
 
-
     def getAnnotationGroups(self):
         return self._annotationGroups
 
-
     def refineElementCubeStandard3d(self, sourceElement, numberInXi1, numberInXi2, numberInXi3,
-            addNewNodesToOctree=True, shareNodeIds=None, shareNodeCoordinates=None):
-        '''
+                                    addNewNodesToOctree=True, shareNodeIds=None, shareNodeCoordinates=None):
+        """
         Refine cube sourceElement to numberInXi1*numberInXi2*numberInXi3 linear cube
         sub-elements, evenly spaced in xi.
         :param addNewNodesToOctree: If True (default) add newly created nodes to
@@ -137,7 +134,7 @@ class MeshRefinement:
         used ahead of points in the octree. Used to control merging with known nodes, e.g.
         those returned by this function for elements which used addNewNodesToOctree=False.
         :return: Node identifiers, node coordinates used in refinement of sourceElement.
-        '''
+        """
         assert (shareNodeIds and shareNodeCoordinates) or (not shareNodeIds and not shareNodeCoordinates), \
             'refineElementCubeStandard3d.  Must supply both of shareNodeIds and shareNodeCoordinates, or neither'
         shareNodesCount = len(shareNodeIds) if shareNodeIds else 0
@@ -148,17 +145,17 @@ class MeshRefinement:
         # create nodes
         nids = []
         nx = []
-        xi = [ 0.0, 0.0, 0.0 ]
+        xi = [0.0, 0.0, 0.0]
         tol = self._octree._tolerance
         for k in range(numberInXi3 + 1):
             kExterior = (k == 0) or (k == numberInXi3)
-            xi[2] = k/numberInXi3
+            xi[2] = k / numberInXi3
             for j in range(numberInXi2 + 1):
                 jExterior = kExterior or (j == 0) or (j == numberInXi2)
-                xi[1] = j/numberInXi2
+                xi[1] = j / numberInXi2
                 for i in range(numberInXi1 + 1):
                     iExterior = jExterior or (i == 0) or (i == numberInXi1)
-                    xi[0] = i/numberInXi1
+                    xi[0] = i / numberInXi1
                     self._sourceCache.setMeshLocation(sourceElement, xi)
                     result, x = self._sourceCoordinates.evaluateReal(self._sourceCache, 3)
                     # only exterior points are ever common:
@@ -167,8 +164,8 @@ class MeshRefinement:
                         if shareNodeIds:
                             for n in range(shareNodesCount):
                                 if (math.fabs(shareNodeCoordinates[n][0] - x[0]) <= tol) and \
-                                   (math.fabs(shareNodeCoordinates[n][1] - x[1]) <= tol) and \
-                                   (math.fabs(shareNodeCoordinates[n][2] - x[2]) <= tol):
+                                        (math.fabs(shareNodeCoordinates[n][1] - x[1]) <= tol) and \
+                                        (math.fabs(shareNodeCoordinates[n][2] - x[2]) <= tol):
                                     nodeId = shareNodeIds[n]
                                     break
                         if nodeId is None:
@@ -186,17 +183,17 @@ class MeshRefinement:
         # create elements
         startElementIdentifier = self._elementIdentifier
         for k in range(numberInXi3):
-            ok = (numberInXi2 + 1)*(numberInXi1 + 1)
+            ok = (numberInXi2 + 1) * (numberInXi1 + 1)
             for j in range(numberInXi2):
                 oj = (numberInXi1 + 1)
                 for i in range(numberInXi1):
-                    bni = k*ok + j*oj + i
+                    bni = k * ok + j * oj + i
                     element = self._targetMesh.createElement(self._elementIdentifier, self._targetElementtemplate)
-                    enids = [ nids[bni     ], nids[bni      + 1], nids[bni      + oj], nids[bni      + oj + 1],
-                              nids[bni + ok], nids[bni + ok + 1], nids[bni + ok + oj], nids[bni + ok + oj + 1] ]
+                    enids = [nids[bni], nids[bni + 1], nids[bni + oj], nids[bni + oj + 1],
+                             nids[bni + ok], nids[bni + ok + 1], nids[bni + ok + oj], nids[bni + ok + oj + 1]]
                     result = element.setNodesByIdentifier(self._targetEft, enids)
-                    #if result != ZINC_OK:
-                    #print('Element', self._elementIdentifier, result, enids)
+                    # if result != ZINC_OK:
+                    # print('Element', self._elementIdentifier, result, enids)
                     self._elementIdentifier += 1
 
                     for meshGroup in meshGroups:
@@ -206,9 +203,9 @@ class MeshRefinement:
         if self.elementMarkerMap:
             markerList = self.elementMarkerMap.get(sourceElement.getIdentifier())
             if markerList:
-                numberInXi = [ numberInXi1, numberInXi2, numberInXi3 ]
-                elementOffset = [ 1, numberInXi1, numberInXi1*numberInXi2 ]
-                targetXi = [ 0.0 ]*3
+                numberInXi = [numberInXi1, numberInXi2, numberInXi3]
+                elementOffset = [1, numberInXi1, numberInXi1 * numberInXi2]
+                targetXi = [0.0] * 3
                 for marker in markerList:
                     markerName, sourceXi, sourceNodeIdentifier = marker
                     sourceNode = self._sourceNodes.findNodeByIdentifier(sourceNodeIdentifier)
@@ -218,14 +215,14 @@ class MeshRefinement:
                     # determine which sub-element, targetXi that sourceXi maps to
                     targetElementIdentifier = startElementIdentifier
                     for i in range(3):
-                        targetXi[i] = sourceXi[i]*numberInXi[i]
+                        targetXi[i] = sourceXi[i] * numberInXi[i]
                         el = int(targetXi[i])
                         if el < numberInXi[i]:
                             targetXi[i] -= el
                         else:
                             el = numberInXi[i] - 1
                             targetXi[i] = 1.0
-                        targetElementIdentifier += el*elementOffset[i]
+                        targetElementIdentifier += el * elementOffset[i]
                     targetElement = self._targetMesh.findElementByIdentifier(targetElementIdentifier)
                     result = self._targetMarkerLocation.assignMeshLocation(self._targetCache, targetElement, targetXi)
                     self._nodeIdentifier += 1
@@ -235,7 +232,6 @@ class MeshRefinement:
                             sourceAndTargetNodesetGroup[1].addNode(node)
 
         return nids, nx
-
 
     def refineAllElementsCubeStandard3d(self, numberInXi1, numberInXi2, numberInXi3):
         element = self._sourceElementiterator.next()
