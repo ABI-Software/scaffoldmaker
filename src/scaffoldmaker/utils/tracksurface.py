@@ -1080,7 +1080,7 @@ class TrackSurface:
         return position
 
     def findNearestPositionOnCurve(self, cx, cd1, loop=False, startCurveLocation=None, curveSamples: int = 4,
-                                   sampleEnds=True, instrument=False):
+                                   sampleEnds=True, sampleHalf=0, instrument=False):
         """
         Find nearest/intersection point on curve to this surface.
         :param cx: Coordinates along curve.
@@ -1090,7 +1090,8 @@ class TrackSurface:
         If not supplied, samples curve element coordinates to get nearest initial curve location.
         :param curveSamples: If startLocation not supplied, sets number of curve xi locations to evaluate when finding
         initial nearest curve location.
-        :param sampleEnds: If not loop: set to False to remove start/end points from search for initial curve location.
+        :param sampleEnds: If not loop: set False to remove start/end points from search for initial curve location.
+        :param sampleHalf: Region of curve to search for initial curve location: 0=all, 1=first half, 2=last half.
         :param instrument: Set to True to print debug messages.
         :return: Nearest TrackSurfacePosition on self, nearest/intersection point on curve (element index, xi),
         isIntersection (True/False).
@@ -1110,6 +1111,10 @@ class TrackSurface:
             sCount = eCount * curveSamples
             sStart = 0 if (loop or sampleEnds) else 1
             sLimit = sCount if (loop or not sampleEnds) else sCount + 1
+            if sampleHalf == 1:
+                sLimit = (sCount + 1) // 2  # first half
+            elif sampleHalf == 2:
+                sStart = (sCount - 1) // 2  # last half
             for s in range(sStart, sLimit):
                 tmpCurveLocation = (s // curveSamples, (s % curveSamples) / curveSamples)
                 if not loop and (s == sCount):

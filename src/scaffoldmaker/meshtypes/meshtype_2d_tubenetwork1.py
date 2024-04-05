@@ -81,7 +81,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
-            options["Network layout"] = cls.getOptionScaffoldPackage("Network layout")
+            options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
         elementsCountAround = options["Elements count around"]
         if options["Elements count around"] < 4:
             options["Elements count around"] = 4

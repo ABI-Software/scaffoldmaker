@@ -1377,7 +1377,8 @@ class TubeBifurcationData:
                 for so in sos:
                     otherTrackSurface = self._tubeData[so].getRawTrackSurface()
                     otherSurfacePosition, curveLocation, isIntersection = \
-                        otherTrackSurface.findNearestPositionOnCurve(cx, cd2, loop=False, sampleEnds=False)
+                        otherTrackSurface.findNearestPositionOnCurve(
+                            cx, cd2, loop=False, sampleEnds=False, sampleHalf=2 if self._segmentsIn[s] else 1)
                     if isIntersection:
                         proportion2 = (curveLocation[0] + curveLocation[1]) / (pointsCountAlong - 1)
                         proportionFromEnd = abs(proportion2 - (1.0 if self._segmentsIn[s] else 0.0))
@@ -1682,7 +1683,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     mesh = fieldmodule.findMeshByDimension(dimension)
     fieldcache = fieldmodule.createFieldcache()
 
-    # make 2D annotation groups from 1D network layout annotation groups
+    # make tube mesh annotation groups from 1D network layout annotation groups
     annotationGroups = []
     layoutAnnotationMeshGroupMap = []  # List of tuples of layout annotation mesh group to final mesh group
     for layoutAnnotationGroup in layoutAnnotationGroups:
@@ -1763,7 +1764,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
             if not startTubeBifurcationData:
                 startInSegments = startSegmentNode.getInSegments()
                 startOutSegments = startSegmentNode.getOutSegments()
-                if ((len(startInSegments) + len(startOutSegments)) == 3):
+                if (len(startInSegments) + len(startOutSegments)) == 3:
                     # print("create start", networkSegment, startSegmentNode)
                     startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
                     nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
@@ -1773,11 +1774,10 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
             endSegmentNode = segmentNodes[-1]
             endTubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
             endSurface = None
-            createEndBifurcationData = not endTubeBifurcationData
-            if createEndBifurcationData:
+            if not endTubeBifurcationData:
                 endInSegments = endSegmentNode.getInSegments()
                 endOutSegments = endSegmentNode.getOutSegments()
-                if ((len(endInSegments) + len(endOutSegments)) == 3):
+                if (len(endInSegments) + len(endOutSegments)) == 3:
                     # print("create end", networkSegment, endSegmentNode)
                     endTubeBifurcationData = TubeBifurcationData(endInSegments, endOutSegments, segmentTubeData)
                     nodeTubeBifurcationData[endSegmentNode] = endTubeBifurcationData
@@ -1798,12 +1798,12 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 loop = (len(startSegmentNode.getInSegments()) == 1) and \
                        (startSegmentNode.getInSegments()[0] is networkSegment) and \
                        (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
-                if (elementsCountAlong == 1) and (startTubeBifurcationData or endTubeBifurcationData):
-                    # at least 2 segments if bifurcating at either end, or loop
+                if (elementsCountAlong == 1) and startTubeBifurcationData and endTubeBifurcationData:
+                    # at least 2 segments if bifurcating at both ends
                     elementsCountAlong = 2
-                elif (elementsCountAlong < 3) and loop:
-                    # at least 3 segments around loop; 2 should work, but zinc currently makes incorrect faces
-                    elementsCountAlong = 3
+                elif (elementsCountAlong < 2) and loop:
+                    # at least 2 segments around loop
+                    elementsCountAlong = 2
             else:
                 # must match count from outer surface!
                 outerTubeData = outerSegmentTubeData[networkSegment]

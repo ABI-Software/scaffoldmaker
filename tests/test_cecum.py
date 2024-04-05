@@ -6,6 +6,9 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
+from scaffoldmaker.annotation.cecum_terms import get_cecum_term
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 
@@ -19,58 +22,50 @@ class CecumScaffoldTestCase(unittest.TestCase):
         Test creation of cecum scaffold.
         """
         parameterSetNames = MeshType_3d_cecum1.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Pig 1"])
-        options = MeshType_3d_cecum1.getDefaultOptions("Pig 1")
-        self.assertEqual(30, len(options))
-        self.assertEqual(5, options.get("Number of segments"))
+        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Pig 1"])
+        options = MeshType_3d_cecum1.getDefaultOptions("Human 2")
+
+        networkLayout = options.get("Network layout")
+        networkLayoutSettings = networkLayout.getScaffoldSettings()
+        self.assertEqual("1-2-3.2, 4-3-5", networkLayoutSettings["Structure"])
+
+        self.assertEqual(29, len(options))
+        self.assertEqual(1, options.get("Number of segments"))
         self.assertEqual(2, options.get("Number of elements around tenia coli"))
-        self.assertEqual(8, options.get("Number of elements along segment"))
+        self.assertEqual(12, options.get("Number of elements along segment"))
         self.assertEqual(1, options.get("Number of elements through wall"))
-        self.assertEqual(35.0, options.get("Start inner radius"))
-        self.assertEqual(3.0, options.get("Start inner radius derivative"))
-        self.assertEqual(38.0, options.get("End inner radius"))
-        self.assertEqual(3.0, options.get("End inner radius derivative"))
-        self.assertEqual(0.5, options.get("Corner inner radius factor"))
-        self.assertEqual(0.25, options.get("Haustrum inner radius factor"))
-        self.assertEqual(4.0, options.get("Segment length mid derivative factor"))
+        self.assertEqual(0.536, options.get("Corner outer radius factor"))
+        self.assertEqual(0.464, options.get("Haustrum outer radius factor"))
+        self.assertEqual(3.0, options.get("Segment length mid derivative factor"))
         self.assertEqual(3, options.get("Number of tenia coli"))
-        self.assertEqual(5.0, options.get("Start tenia coli width"))
+        self.assertEqual(10.0, options.get("Start tenia coli width"))
         self.assertEqual(0.0, options.get("End tenia coli width derivative"))
-        self.assertEqual(2.0, options.get("Wall thickness"))
-        ostiumOptions = options['Ileocecal junction']
-        ostiumSettings = ostiumOptions.getScaffoldSettings()
-        self.assertEqual(1, ostiumSettings.get("Number of vessels"))
-        self.assertEqual(8, ostiumSettings.get("Number of elements around ostium"))
-        self.assertEqual(1, ostiumSettings.get("Number of elements through wall"))
-        self.assertEqual(20.0, ostiumSettings.get("Ostium diameter"))
-        self.assertEqual(10.0, ostiumSettings.get("Vessel inner diameter"))
-        self.assertEqual(60, options.get("Ileocecal junction angular position degrees"))
-        self.assertEqual(0.5, options.get("Ileocecal junction position along factor"))
+        self.assertEqual(1.6, options.get("Wall thickness"))
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = MeshType_3d_cecum1.generateBaseMesh(region, options)[0]
-        self.assertEqual(2, len(annotationGroups))
+        self.assertEqual(7, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(1492, mesh3d.getSize())
+        self.assertEqual(460, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(5617, mesh2d.getSize())
+        self.assertEqual(1738, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(6767, mesh1d.getSize())
+        self.assertEqual(2102, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(2642, nodes.getSize())
+        self.assertEqual(824, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-49.01658984455258, -46.89686037622053, -2.343256155753525], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [42.18085849205387, 54.90211871346987, 180.0], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-112.4222871639696, -146.3433620526202, 852.5876977230726], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [-54.14347619948218, -77.56, 899.9973429272325], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -82,10 +77,26 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 65905.04907630144, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 8554.513081780715, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 127866.92887366761, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 13809.9960233912, delta=1.0E-6)
+
+        # check some annotationGroups:
+        expectedSizes3d = {
+            "caecum": 460,
+            "ileum": 24,
+            "ileocecal junction": 12
+        }
+
+        for name in expectedSizes3d:
+            if name == "caecum":
+                term = get_cecum_term(name)
+            else:
+                term = get_smallintestine_term(name)
+            group = getAnnotationGroupForTerm(annotationGroups, term)
+            size = group.getMeshGroup(mesh3d).getSize()
+            self.assertEqual(expectedSizes3d[name], size, name)
 
 
 if __name__ == "__main__":
