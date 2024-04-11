@@ -45,7 +45,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
                 },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (2, [[0.0000, 0.0000, 15.000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (3, [[0.0000, 0.0000, 30.000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
@@ -55,7 +56,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.0000, 3.0500, 89.940], [0.0000, 1.8000, 15.400], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (8, [[0.0000, 5.9800, 107.94], [0.0000, 4.5000, 16.800], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (9, [[0.0000, 12.470, 127.07], [0.0000, 6.6700, 14.800], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -80,7 +81,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.0000,  0.0000, 0.0000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (2, [[0.0000,  0.0000, 20.000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (3, [[0.0000,  0.0000, 40.000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
@@ -90,7 +92,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.0000, -3.8000, 120.30], [0.0000, -0.6000, 18.800], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (8, [[0.0000, -3.6000, 140.50], [0.0000,  2.0000, 18.400], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (9, [[0.0000,  0.0000, 160.00], [0.0000,  4.0000, 15.500], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -115,7 +117,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.000,  0.0000, 0.0000], [0.0000,  0.2107, 19.185], [0.0000, 0.5000,  0.0006], [0.0000, -0.0002, -0.0098]]),
                     (2, [[0.000,  0.1095, 17.595], [0.0000,  0.0083, 16.005], [0.0000, 0.4999, -0.0074], [0.0000, -0.0000, -0.0062]]),
                     (3, [[0.000,  0.0347, 32.009], [0.0000,  0.0042, 13.831], [0.0000, 0.4999, -0.0122], [0.0000,  0.0001,  0.0027]]),
@@ -125,7 +128,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.000, -0.6320, 86.026], [0.0000, -0.5928, 14.006], [0.0000, 0.4997,  0.0193], [0.0000, -0.0027, -0.1007]]),
                     (8, [[0.000, -1.1544, 99.742], [0.0000,  0.7147, 16.377], [0.0000, 0.4961, -0.0620], [0.0000, -0.0226, -0.1114]]),
                     (9, [[0.000,  1.2247, 118.63], [0.0000,  4.0316, 21.331], [0.0000, 0.4719, -0.1653], [0.0000, -0.0498, -0.0958]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -150,7 +153,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.0000,  0.0000, 0.0000], [0.0000,  0.3967, 17.118], [0.0000, 0.4999, -0.0116], [0.0000,  0.0002,  0.0084]]),
                     (2, [[0.0000,  0.2526, 16.482], [0.0000,  0.1084, 15.844], [0.0000, 0.5000, -0.0034], [0.0000,  0.0001,  0.0073]]),
                     (3, [[0.0000,  0.2277, 31.687], [0.0000, -0.1005, 16.250], [0.0000, 0.5000,  0.0031], [0.0000,  0.0180,  0.0030]]),
@@ -160,7 +164,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.0000, -1.3669, 104.42], [0.0000,  0.5462, 17.118], [0.0000, 0.4994, -0.0233], [0.0000, -0.0266, -0.1269]]),
                     (8, [[0.0000, -0.1150, 119.12], [0.0000,  2.7663, 14.068], [0.0000, 0.4902, -0.0980], [0.0000, -0.0116, -0.0490]]),
                     (9, [[0.0000,  4.0321, 132.37], [0.0000,  5.4802, 12.315], [0.0000, 0.4691, -0.1728], [0.0000,  0.0080,  0.0382]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -185,7 +189,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.000,  0.0000, 0.0000], [0.0000, -0.0219, 18.928], [0.0000, 0.5000,  0.0006], [0.0000,  0.0001, -0.0062]]),
                     (2, [[0.000,  0.1095, 17.595], [0.0000,  0.2409, 16.260], [0.0000, 0.4999, -0.0074], [0.0000, -0.0000, -0.0051]]),
                     (3, [[0.000,  0.4589, 32.519], [0.0000,  0.3415, 14.001], [0.0000, 0.4999, -0.0122], [0.0000, -0.0000,  0.0018]]),
@@ -195,7 +200,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.000, -1.6517, 86.875], [0.0000, -0.5654, 14.673], [0.0000, 0.5000,  0.0047], [0.0000, -0.0038, -0.1421]]),
                     (8, [[0.000, -1.3262, 102.46], [0.0000,  1.8796, 15.041], [0.0000, 0.4872, -0.1123], [0.0000, -0.0646, -0.1586]]),
                     (9, [[0.000,  1.9903, 116.76], [0.0000,  4.7166, 13.462], [0.0000, 0.4510, -0.2159], [0.0000, -0.1378, -0.1893]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,

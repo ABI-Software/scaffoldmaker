@@ -42,8 +42,9 @@ class MeshType_3d_uterus1(Scaffold_base):
                 "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11, 11-12-13, 13-14"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[24.20, 0.00, 36.56], [-2.53, 0.00, -14.75], [2.42, 0.00, -0.41], [0.13, 0.00, -0.34], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (2, [[20.88, 0.00, 23.34], [-4.10, 0.00, -11.62], [2.47, 0.00, -0.87], [-0.03, 0.00, -0.57], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (3, [[16.28, 0.00, 13.37], [-5.76, 0.00, -8.94], [2.38, 0.00, -1.54], [-0.41, 0.00, -0.56], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
@@ -59,7 +60,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (11, [[0.00, 0.00, -7.37], [0.00, 0.00, -3.46], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (12, [[0.00, 0.00, -10.98], [0.00, 0.00, -3.31], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (13, [[0.00, 0.00, -14.00], [0.00, 0.00, -3.51], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -18.00], [0.00, 0.00, -4.49], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]])]),
+                    (14, [[0.00, 0.00, -18.00], [0.00, 0.00, -4.49], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -102,8 +103,9 @@ class MeshType_3d_uterus1(Scaffold_base):
                 "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10, 10-11, 11-12-13-14-15-16"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[25.00, 0.00, 43.53], [0.06, 0.00, -11.85], [2.27, 0.09, 0.01], [0.15, -0.06, -0.57], [0.09, -2.33, 0.00], [-0.08, 0.74, -0.01]]),
                     (2, [[23.55, 0.00, 31.29], [-2.96, 0.00, -12.51], [2.27, 0.04, -0.54], [-0.15, -0.04, -0.53], [0.03, -1.91, -0.01], [-0.04, 0.10, 0.00]]),
                     (3, [[19.03, 0.00, 18.76], [-6.24, 0.00, -11.75], [1.96, 0.01, -1.04], [-0.29, 0.01, -0.58], [0.01, -2.16, 0.00], [0.00, -0.20, -0.01]]),
@@ -121,7 +123,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]]),
                     (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]]),
                     (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]]),
-                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]])]),
+                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -164,7 +166,8 @@ class MeshType_3d_uterus1(Scaffold_base):
                 "Structure": "1-2-3, 4-5-3.2, 3.3-6, 6-7, 7-8-9"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[2.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (2, [[1.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (3, [[0.00, 0.00, 0.00], [[-1.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, -1.00]],
@@ -175,7 +178,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (6, [[0.00, 0.00, -1.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.12, 0.00, -0.12], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (7, [[0.00, 0.00, -2.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (8, [[0.00, 0.00, -3.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
-                    (9, [[0.00, 0.00, -4.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]])]),
+                    (9, [[0.00, 0.00, -4.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -460,11 +463,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
 
         serosaOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_uterus_term("serosa of uerine cervix"))
+                                                            get_uterus_term("serosa of uterine cervix"))
         serosaOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of uerine cervix"))
+                                                           get_uterus_term("lumen of uterine cervix"))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
 
         serosaOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -1118,7 +1121,7 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
         tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner,
                                            [wallThickness] * (elementsCountAlongTube + 1), relativeThicknessList,
                                            elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
-                                           transitElementList, outward=False)
+                                           transitElementList, outward=False)[0:5]
 
     coordinatesList = [xList, d1List, d2List, d3List]
 

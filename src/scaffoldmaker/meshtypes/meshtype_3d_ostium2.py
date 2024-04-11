@@ -33,11 +33,12 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.00, 0.00, 1.00], [0.00, 0.00, -0.50], [0.00, 0.50, 0.00], [0.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00]]),
                     (2, [[0.00, 0.00, 0.50], [0.00, 0.00, -0.50], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, 0.00]]),
-                    (3, [[0.00, 0.00, 0.00], [0.00, 0.00, -0.50], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00], [2.00, 0.00, 0.00], [0.00, 0.00, 0.00]])])
+                    (3, [[0.00, 0.00, 0.00], [0.00, 0.00, -0.50], [0.00, 1.00, 0.00], [0.00, 0.00, 0.00], [2.00, 0.00, 0.00], [0.00, 0.00, 0.00]])]])
         })
 
 class MeshType_3d_ostium2(Scaffold_base):
