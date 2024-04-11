@@ -470,19 +470,19 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.0737712467160836, delta=1.0E-6)
+            self.assertAlmostEqual(volume, 0.07367803305504764, delta=1.0E-6)
 
             outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             outerSurfaceAreaField.setNumbersOfPoints(4)
             result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(outerSurfaceArea, 1.9703453648288696, delta=1.0E-6)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9684589894847588, delta=1.0E-6)
 
             innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
             innerSurfaceAreaField.setNumbersOfPoints(4)
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(innerSurfaceArea, 0.9851721220077057, delta=1.0E-6)
+            self.assertAlmostEqual(innerSurfaceArea, 0.9842289454638566, delta=1.0E-6)
 
 
 if __name__ == "__main__":

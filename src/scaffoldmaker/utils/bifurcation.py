@@ -1644,6 +1644,65 @@ class TubeBifurcationData:
             self._midCoordinates[s][1][1:-1] = loopd1[1:-1]
 
 
+def blendNetworkNodeCoordinates(networkNode, segmentTubeDataList):
+    """
+    Blend coordinate d2 between segments connecting at networkNode if sharing the same version.
+    Must only call after all tube data has been resampled.
+    :param networkNode: The node to blend coordinates at.
+    :param segmentTubeDataList: List of dict mapping NetworkSegment to TubeData. Assumes all same structure.
+    :return: None
+    """
+    inSegments = networkNode.getInSegments()
+    outSegments = networkNode.getOutSegments()
+    nodeVersionSegments = {}  # map from version number to list of segments using it
+    for segment in (inSegments + outSegments):
+        nodeVersions = segment.getNodeVersions()
+        nodeIndex = -1 if (segment in inSegments) else 0
+        nodeVersion = nodeVersions[nodeIndex]
+        nodeVersionSegment = nodeVersionSegments.get(nodeVersion)
+        if not nodeVersionSegment:
+            nodeVersionSegments[nodeVersion] = nodeVersionSegment = []
+        nodeVersionSegment.append(segment)
+    for nodeVersion, segments in nodeVersionSegments.items():
+        if len(segments) < 2:
+            continue  # no blending required
+        for segmentTubeData in segmentTubeDataList:
+            d2Rings = []
+            nodesCountAround = None
+            for segment in segments:
+                tubeData = segmentTubeData[segment]
+                nodeIndex = -1 if segment in inSegments else 0
+                d2Ring = tubeData.getSampledTubeCoordinates()[2][nodeIndex]
+                if (not d2Rings) or (len(d2Ring) == nodesCountAround):
+                    d2Rings.append(d2Ring)
+                    nodesCountAround = len(d2Ring)
+                else:
+                    print("Cannot blend d1 version " + str(nodeVersion) + " at layout node " +
+                          str(networkNode.getNodeIdentifier()) + " due to mismatch in number around")
+                    break
+            ringCount = len(d2Rings)
+            if ringCount < 2:
+                break
+            for n in range(nodesCountAround):
+                # harmonic mean magnitude; directions are the same as same version
+                sum = 0.0
+                ringMags = []
+                for d2Ring in d2Rings:
+                    ringMag = magnitude(d2Ring[n])
+                    ringMags.append(ringMag)
+                    if ringMag == 0.0:
+                        sum = 0.0
+                        break
+                    sum += 1.0 / ringMag
+                mag = (ringCount / sum) if (sum != 0.0) else 0.0
+                for r in range(ringCount):
+                    d2Ring = d2Rings[r]
+                    if ringMags[r] > 0.0:
+                        d2 = mult(d2Ring[n], mag / ringMags[r])
+                        for c in range(3):
+                            d2Ring[n][c] = d2[c]
+
+
 def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                 defaultElementsCountAround: int, targetElementDensityAlongLongestSegment: float,
                                 elementsCountThroughWall: int, layoutAnnotationGroups: list=[],
@@ -1765,7 +1824,6 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 startInSegments = startSegmentNode.getInSegments()
                 startOutSegments = startSegmentNode.getOutSegments()
                 if (len(startInSegments) + len(startOutSegments)) == 3:
-                    # print("create start", networkSegment, startSegmentNode)
                     startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
                     nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
                     newBifurcationData.append(startTubeBifurcationData)
@@ -1786,14 +1844,6 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
             if segmentTubeData is outerSegmentTubeData:
                 segmentLength = tubeData.getSegmentLength()
-                # Previous code setting number of elements along to satisfy targetElementAspectRatio
-                # ringCount = len(rawTubeCoordinates[0])
-                # sumRingLength = 0.0
-                # for n in range(ringCount):
-                #     ringLength = getCubicHermiteCurvesLength(rawTubeCoordinates[0][n], rawTubeCoordinates[1][n], loop=True)
-                #     sumRingLength += ringLength
-                # meanElementLengthAround = sumRingLength / (ringCount * tubeData.getElementsCountAround())
-                # targetElementLength = targetElementAspectRatio * meanElementLengthAround
                 elementsCountAlong = max(1, math.ceil(segmentLength / targetElementLength))
                 loop = (len(startSegmentNode.getInSegments()) == 1) and \
                        (startSegmentNode.getInSegments()[0] is networkSegment) and \
@@ -1808,25 +1858,33 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                 # must match count from outer surface!
                 outerTubeData = outerSegmentTubeData[networkSegment]
                 elementsCountAlong = outerTubeData.getSampledElementsCountAlong()
-            # print("Resample startSurface", startSurface is not None, "endSurface", endSurface is not None)
             sx, sd1, sd2, sd12 = resampleTubeCoordinates(
                 rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
             tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
     del segmentTubeData
 
-    completedBifurcations = set()  # record so only done once
+    # blend coordinates where versions are shared between segments
+    blendedNetworkNodes = set()
+    for networkSegment in networkSegments:
+        segmentNodes = networkSegment.getNetworkNodes()
+        for segmentNode in [segmentNodes[0], segmentNodes[-1]]:
+            if segmentNode not in blendedNetworkNodes:
+                blendNetworkNodeCoordinates(segmentNode, allSegmentTubeData)
+                blendedNetworkNodes.add(segmentNode)
+    del blendedNetworkNodes
 
+    completedBifurcations = set()  # record so only done once
     with ChangeManager(fieldmodule):
         for networkSegment in networkSegments:
             segmentNodes = networkSegment.getNetworkNodes()
             startSegmentNode = segmentNodes[0]
             startInSegments = startSegmentNode.getInSegments()
             startOutSegments = startSegmentNode.getOutSegments()
-            startSkipCount = 1 if ((len(startInSegments) > 1) or (len(startOutSegments) > 1)) else 0
+            startSkipCount = 1 if ((len(startInSegments) + len(startOutSegments)) > 2) else 0
             endSegmentNode = segmentNodes[-1]
             endInSegments = endSegmentNode.getInSegments()
             endOutSegments = endSegmentNode.getOutSegments()
-            endSkipCount = 1 if ((len(endInSegments) > 1) or (len(endOutSegments) > 1)) else 0
+            endSkipCount = 1 if ((len(endInSegments) + len(endOutSegments)) > 2) else 0
 
             for stage in range(3):
                 if stage == 1:
@@ -1836,7 +1894,23 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                     innerTubeData = innerSegmentTubeData[networkSegment] if layoutInnerCoordinates else None
                     innerTubeCoordinates = innerTubeData.getSampledTubeCoordinates() if layoutInnerCoordinates else None
                     startNodeIds = outerTubeData.getStartNodeIds(startSkipCount)
+                    if (not startNodeIds) and (startSkipCount == 0) and (startInSegments or startOutSegments):
+                        # discover start nodes from single adjacent segment
+                        if startInSegments:
+                            startNodeIds = outerSegmentTubeData[startInSegments[0]].getEndNodeIds(0)
+                        else:
+                            startNodeIds = outerSegmentTubeData[startOutSegments[0]].getStartNodeIds(0)
+                        if startNodeIds:
+                            outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
                     endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
+                    if (not endNodeIds) and (endSkipCount == 0) and (endOutSegments or endInSegments):
+                        # discover end nodes from single adjacent segment
+                        if endOutSegments:
+                            endNodeIds = outerSegmentTubeData[endOutSegments[0]].getStartNodeIds(0)
+                        elif endInSegments:
+                            endNodeIds = outerSegmentTubeData[endInSegments[0]].getEndNodeIds(0)
+                        if endNodeIds:
+                            outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
                     loop = (len(startInSegments) == 1) and (startInSegments[0] is networkSegment) and \
                            (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
                     nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
@@ -1898,14 +1972,13 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                         inward = outerTubeBifurcationData.getSegmentsIn()
                         outerTubeData = outerTubeBifurcationData.getTubeData()
                         tubeNodeIds = [outerTubeData[s].getEndNodeIds(1) if inward[s] else \
-                                           outerTubeData[s].getStartNodeIds(1) for s in range(3)]
+                                       outerTubeData[s].getStartNodeIds(1) for s in range(3)]
                         innerTubeCoordinates = None
                         innerMidCoordinates = None
                         if innerTubeBifurcationData:
                             innerTubeCoordinates = innerTubeBifurcationData.getConnectingTubeCoordinates()
                             innerMidCoordinates = innerTubeBifurcationData.getMidCoordinates()
                         annotationMeshGroups = [outerTubeData[s].getAnnotationMeshGroups() for s in range(3)]
-
                         nodeIdentifier, elementIdentifier = generateTubeBifurcation(
                             outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
                             outerMidCoordinates, innerMidCoordinates, crossIndexes,
