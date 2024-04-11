@@ -18,7 +18,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_netw
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.bifurcation import SegmentTubeData, \
-    TubeBifurcationData, generateTube, generateTubeBifurcation, generateCurveMesh
+    TubeBifurcationData, generateTube, generateTubeBifurcation, generateCurveMesh, blendNetworkNodeCoordinates
 from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
@@ -271,7 +271,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         }
         if 'Mouse' in parameterSetName:
             options['Number of elements around'] = 8
-            options['Target element density along longest segment'] = 10
+            options['Target element density along longest segment'] = 10.0
 
         return options
 
@@ -425,7 +425,6 @@ class MeshType_3d_uterus2(Scaffold_base):
         # map from NetworkSegment to SegmentTubeData
         outerSegmentTubeData = {}
         innerSegmentTubeData = {} if layoutInnerCoordinates else None
-
         longestSegmentLength = 0.0
         for networkSegment in networkSegments:
             pathParameters = get_nodeset_path_ordered_field_parameters(
@@ -494,7 +493,6 @@ class MeshType_3d_uterus2(Scaffold_base):
                     startInSegments = startSegmentNode.getInSegments()
                     startOutSegments = startSegmentNode.getOutSegments()
                     if ((len(startInSegments) + len(startOutSegments)) == 3):
-                        # print("create start", networkSegment, startSegmentNode)
                         startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
                         nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
                         newBifurcationData.append(startTubeBifurcationData)
@@ -518,14 +516,6 @@ class MeshType_3d_uterus2(Scaffold_base):
                     endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
                 if segmentTubeData is outerSegmentTubeData:
                     segmentLength = tubeData.getSegmentLength()
-                    # Previous code setting number of elements along to satisfy targetElementAspectRatio
-                    # ringCount = len(rawTubeCoordinates[0])
-                    # sumRingLength = 0.0
-                    # for n in range(ringCount):
-                    #     ringLength = getCubicHermiteCurvesLength(rawTubeCoordinates[0][n], rawTubeCoordinates[1][n], loop=True)
-                    #     sumRingLength += ringLength
-                    # meanElementLengthAround = sumRingLength / (ringCount * elementsCountAround)
-                    # targetElementLength = targetElementAspectRatio * meanElementLengthAround
                     elementsCountAlong = max(1, math.ceil(segmentLength / targetElementLength))
                     loop = (len(startSegmentNode.getInSegments()) == 1) and \
                            (startSegmentNode.getInSegments()[0] is networkSegment) and \
@@ -540,12 +530,20 @@ class MeshType_3d_uterus2(Scaffold_base):
                     # must match count from outer surface!
                     outerTubeData = outerSegmentTubeData[networkSegment]
                     elementsCountAlong = outerTubeData.getSampledElementsCountAlong()
-                # print("Resample startSurface", startSurface is not None, "endSurface", endSurface is not None)
                 sx, sd1, sd2, sd12 = resampleTubeCoordinates(
                     rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
                 tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
-
         del segmentTubeData
+
+        # blend coordinates where versions are shared between segments
+        blendedNetworkNodes = set()
+        for networkSegment in networkSegments:
+            segmentNodes = networkSegment.getNetworkNodes()
+            for segmentNode in [segmentNodes[0], segmentNodes[-1]]:
+                if segmentNode not in blendedNetworkNodes:
+                    blendNetworkNodeCoordinates(segmentNode, allSegmentTubeData)
+                    blendedNetworkNodes.add(segmentNode)
+        del blendedNetworkNodes
 
         completedBifurcations = set()  # record so only done once
 
@@ -555,11 +553,11 @@ class MeshType_3d_uterus2(Scaffold_base):
                 startSegmentNode = segmentNodes[0]
                 startInSegments = startSegmentNode.getInSegments()
                 startOutSegments = startSegmentNode.getOutSegments()
-                startSkipCount = 1 if ((len(startInSegments) > 1) or (len(startOutSegments) > 1)) else 0
+                startSkipCount = 1 if ((len(startInSegments) + len(startOutSegments)) > 2) else 0
                 endSegmentNode = segmentNodes[-1]
                 endInSegments = endSegmentNode.getInSegments()
                 endOutSegments = endSegmentNode.getOutSegments()
-                endSkipCount = 1 if ((len(endInSegments) > 1) or (len(endOutSegments) > 1)) else 0
+                endSkipCount = 1 if ((len(endInSegments) + len(endOutSegments)) > 2) else 0
 
                 for stage in range(3):
                     if stage == 1:
@@ -572,16 +570,30 @@ class MeshType_3d_uterus2(Scaffold_base):
                         if cervixMeshGroup in outerTubeData.getAnnotationMeshGroups():
                             elementsAlongCervixSegment = len(outerTubeCoordinates)
                             elementsAroundCervixSegment = len(outerTubeCoordinates[0][0])
-                        startNodeIds = outerTubeData.getStartNodeIds(startSkipCount)
-                        endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
+                        if cervixMeshGroup in outerTubeData.getAnnotationMeshGroups():
+                            elementStartIdxCervix = elementIdentifier
                         loop = (len(startInSegments) == 1) and (startInSegments[0] is networkSegment) and \
                                (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
                         innerTubeData = innerSegmentTubeData[networkSegment] if layoutInnerCoordinates else None
-
-                        if cervixMeshGroup in outerTubeData.getAnnotationMeshGroups():
-                            elementStartIdxCervix = elementIdentifier
-
                         innerTubeCoordinates = innerTubeData.getSampledTubeCoordinates() if layoutInnerCoordinates else None
+                        startNodeIds = outerTubeData.getStartNodeIds(startSkipCount)
+                        if (not startNodeIds) and (startSkipCount == 0) and (startInSegments or startOutSegments):
+                            # discover start nodes from single adjacent segment
+                            if startInSegments:
+                                startNodeIds = outerSegmentTubeData[startInSegments[0]].getEndNodeIds(0)
+                            else:
+                                startNodeIds = outerSegmentTubeData[startOutSegments[0]].getStartNodeIds(0)
+                            if startNodeIds:
+                                outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
+                        endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
+                        if (not endNodeIds) and (endSkipCount == 0) and (endOutSegments or endInSegments):
+                            # discover end nodes from single adjacent segment
+                            if endOutSegments:
+                                endNodeIds = outerSegmentTubeData[endOutSegments[0]].getStartNodeIds(0)
+                            elif endInSegments:
+                                endNodeIds = outerSegmentTubeData[endInSegments[0]].getEndNodeIds(0)
+                            if endNodeIds:
+                                outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
                         nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
                             outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
                             region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
@@ -641,14 +653,13 @@ class MeshType_3d_uterus2(Scaffold_base):
                             inward = outerTubeBifurcationData.getSegmentsIn()
                             outerTubeData = outerTubeBifurcationData.getTubeData()
                             tubeNodeIds = [outerTubeData[s].getEndNodeIds(1) if inward[s] else \
-                                               outerTubeData[s].getStartNodeIds(1) for s in range(3)]
+                                           outerTubeData[s].getStartNodeIds(1) for s in range(3)]
                             innerTubeCoordinates = None
                             innerMidCoordinates = None
                             if innerTubeBifurcationData:
                                 innerTubeCoordinates = innerTubeBifurcationData.getConnectingTubeCoordinates()
                                 innerMidCoordinates = innerTubeBifurcationData.getMidCoordinates()
                             annotationMeshGroups = [outerTubeData[s].getAnnotationMeshGroups() for s in range(3)]
-
                             nodeIdentifier, elementIdentifier = generateTubeBifurcation(
                                 outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
                                 outerMidCoordinates, innerMidCoordinates, crossIndexes,
