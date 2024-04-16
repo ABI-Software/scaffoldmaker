@@ -4,7 +4,7 @@ Utilities for getting a mirror image of a scaffold.
 
 from __future__ import division
 
-from scaffoldmaker.utils import vector
+from cmlibs.maths.vectorops import dot, magnitude, normalize
 
 
 class Mirror:
@@ -17,7 +17,7 @@ class Mirror:
         '''
         self._plane = mirrorPlane
         self._planeUnitNormalVector = self.getPlaneNormalVector()
-        self._magNormal = vector.magnitude(mirrorPlane[:3])
+        self._magNormal = magnitude(mirrorPlane[:3])
         self._planeDParam = mirrorPlane[3]
 
     def getPointDistanceFromPlane(self, x):
@@ -29,7 +29,7 @@ class Mirror:
         n = self._planeUnitNormalVector
         ma = self._magNormal
         d = self._planeDParam
-        return vector.dotproduct(x, n) - d / ma
+        return dot(x, n) - d / ma
 
     def getPlaneNormalVector(self):
         """
@@ -37,7 +37,7 @@ class Mirror:
         :return: Unit normal vector.
         """
         p = self._plane
-        return vector.normalise([p[0], p[1], p[2]])
+        return normalize([p[0], p[1], p[2]])
 
     def pointProjectionToPlane(self, x):
         """
@@ -66,7 +66,7 @@ class Mirror:
         :return: image vector.
         """
         n = self._planeUnitNormalVector
-        return [(v[c] - 2 * vector.dotproduct(v, n) * n[c]) for c in range(3)]
+        return [(v[c] - 2 * dot(v, n) * n[c]) for c in range(3)]
 
     def reverseMirrorVector(self,v):
         """
@@ -75,4 +75,4 @@ class Mirror:
         :return: image vector.
         """
         n = self._planeUnitNormalVector
-        return [-v[c] + 2 * vector.dotproduct(v, n) * n[c] for c in range(3)]
+        return [-v[c] + 2 * dot(v, n) * n[c] for c in range(3)]

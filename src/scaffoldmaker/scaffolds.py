@@ -157,6 +157,5 @@ def Scaffolds_decodeJSON(dct):
             dct[key] = Scaffolds_decodeJSON(dct[key])
     if '_ScaffoldPackage' in dct:
         scaffoldType = Scaffolds().findScaffoldTypeByName(dct['scaffoldTypeName'])
-        #print('Scaffolds_decodeJSON scaffoldType',scaffoldType.getName(), dct)
         return ScaffoldPackage(scaffoldType, dct)
     return dct

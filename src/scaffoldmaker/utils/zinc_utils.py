@@ -2,6 +2,7 @@
 Utility functions for easing use of Zinc API.
 """
 
+from cmlibs.maths.vectorops import cross, magnitude, normalize, set_magnitude, vector_rejection
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
@@ -11,7 +12,6 @@ from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, Nodeset
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 
 
 def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
@@ -45,9 +45,9 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
     d2c = [ cross_scale2*d for d in d2c ]
 
     arcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-    mag = arcLength/vector.magnitude(d1)
+    mag = arcLength/magnitude(d1)
     d1 = [ mag*d for d in d1 ]
-    mag = arcLength/vector.magnitude(d2)
+    mag = arcLength/magnitude(d2)
     d2 = [ mag*d for d in d2 ]
 
     xr = 1.0 - xi
@@ -57,7 +57,7 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
     dx_ds = [ scale*d for d in dx_ds ]
     dx_ds_cross = [ (xr*d1c[c] + xi*d2c[c]) for c in range(3) ]
 
-    radialVector = vector.normalise(vector.crossproduct3(dx_ds_cross, dx_ds))
+    radialVector = normalize(cross(dx_ds_cross, dx_ds))
     dx_ds_normal = [ normal_scale*d for d in radialVector ]
 
     return x, dx_ds, dx_ds_cross, dx_ds_normal
@@ -261,16 +261,16 @@ def make_nodeset_derivatives_orthogonal(nodeset, field, make_d2_normal: bool=Tru
             d1 = node_parameters[d1_index][v]
             d2 = node_parameters[d2_index][v] if (d2_index is not None) else None
             if make_d2_normal:
-                td2 = vector.vectorRejection(d2, d1)
-                td2 = vector.setMagnitude(td2, vector.magnitude(d2))
+                td2 = vector_rejection(d2, d1)
+                td2 = set_magnitude(td2, magnitude(d2))
                 d2 = node_parameters[d2_index][v] = td2
             if make_d3_normal:
                 d3 = node_parameters[d3_index][v]
                 if d2:
-                    td3 = vector.crossproduct3(d1, d2)
+                    td3 = cross(d1, d2)
                 else:
-                    td3 = vector.vectorRejection(d3, d1)
-                td3 = vector.setMagnitude(td3, vector.magnitude(d3))
+                    td3 = vector_rejection(d3, d1)
+                td3 = set_magnitude(td3, magnitude(d3))
                 d3 = node_parameters[d3_index][v] = td3
     remove_indexes = [d1_index]
     if (d2_index is not None) and (not make_d2_normal):

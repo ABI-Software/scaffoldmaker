@@ -7,6 +7,7 @@ wall.
 import copy
 import math
 
+from cmlibs.maths.vectorops import angle_between_vectors, cross, magnitude, normalize, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
@@ -22,7 +23,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
@@ -866,7 +866,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         innerRadiusAlong = []
         for n2 in range(elementsCountAlong + 1):
             firstNodeAlong = innerNodes_x[n2 * elementsCountAround]
-            radius = vector.magnitude(firstNodeAlong[c] - [0.0, 0.0, firstNodeAlong[2]][c] for c in range(3))
+            radius = magnitude(firstNodeAlong[c] - [0.0, 0.0, firstNodeAlong[2]][c] for c in range(3))
             innerRadiusAlong.append(radius)
 
         # Warp points
@@ -904,11 +904,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Arclength between apex point and corresponding point on next face
         mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
                                               d2List[2 * elementsCountAround])
-        d2ApexInner = vector.setMagnitude(sd2[0], mag)
-        d1ApexInner = vector.crossproduct3(sd1[0], d2ApexInner)
-        d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
-        d3ApexUnit = vector.normalise(
-            vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
+        d2ApexInner = set_magnitude(sd2[0], mag)
+        d1ApexInner = cross(sd1[0], d2ApexInner)
+        d1ApexInner = set_magnitude(d1ApexInner, mag)
+        d3ApexUnit = normalize(
+            cross(normalize(d1ApexInner), normalize(d2ApexInner)))
         d3ApexInner = [d3ApexUnit[c] * bladderWallThickness / elementsCountThroughWall for c in range(3)]
 
         xFinal = []
@@ -1387,7 +1387,7 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCoun
         ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
     ureter1StartCornerx = xBladder[endPointStartId1 - 1]
     v1 = [(ureter1StartCornerx[c] - centerUreter1_x[c]) for c in range(3)]
-    ureter1Direction = vector.crossproduct3(td3, v1)
+    ureter1Direction = cross(td3, v1)
     nodeIdentifier, elementIdentifier, (o1_x, o1_d1, o1_d2, _, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter1, ureter1Position, ureter1Direction,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
@@ -1403,7 +1403,7 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCoun
                        elementsCountAround - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0.5 else 0)
     ureter2StartCornerx = xBladder[endPointStartId2 - 1]
     v2 = [(ureter2StartCornerx[c] - centerUreter2_x[c]) for c in range(3)]
-    ureter2Direction = vector.crossproduct3(ad3, v2)
+    ureter2Direction = cross(ad3, v2)
     nodeIdentifier, elementIdentifier, (o2_x, o2_d1, o2_d2, _, o2_NodeId, o2_Positions) = \
         generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter2, ureter2Position, ureter2Direction,
                            startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier,
@@ -1591,7 +1591,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     # Find the angle at the bottom of the bladder neck
     v1 = [0.0, 0.0, bladderLength]
     v2 = [0.5 * neckDiameter1, 0.0, bladderLength]
-    alpha = vector.angleBetweenVectors(v1, v2)
+    alpha = angle_between_vectors(v1, v2)
 
     # Find apex to urethra arcLength in minor radius
     minorNodeAlong_x.insert(0, xApexInner)
@@ -1705,8 +1705,8 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     v3 = xfnListRearranged[elementsCountAround // 2]
     v21 = [v2[c] - v1[c] for c in range(3)]
     v31 = [v3[c] - v1[c] for c in range(3)]
-    d1Mag = vector.magnitude(v21)
-    d2Mag = vector.magnitude(v31)
+    d1Mag = magnitude(v21)
+    d2Mag = magnitude(v31)
 
     # Add apex nodes to the list
     xFlat = []

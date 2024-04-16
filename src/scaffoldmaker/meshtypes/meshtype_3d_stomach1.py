@@ -9,6 +9,7 @@ from __future__ import division
 import copy
 import math
 
+from cmlibs.maths.vectorops import cross, dot, magnitude, normalize, set_magnitude, sub
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, getMaximumNodeIdentifier
 from cmlibs.utils.zinc.general import ChangeManager
@@ -26,7 +27,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -1258,7 +1258,7 @@ def findDerivativeBetweenPoints(v1, v2):
     """
     d = [v2[c] - v1[c] for c in range(3)]
     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-    d = [c * arcLengthAround for c in vector.normalise(d)]
+    d = [c * arcLengthAround for c in normalize(d)]
 
     return d
 
@@ -1528,8 +1528,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 arcLength = interp.getCubicHermiteArcLength(cxGroup[0], cd1Group[0],
                                                             cxGroup[1], cd1Group[1])
                 d1BoundaryStart = cd1Sections[-1][-1]
-                d1BoundaryEnd = vector.setMagnitude(cd1Group[-1],
-                                                    2*arcLength - vector.magnitude(cd1Sections[-1][-1]))
+                d1BoundaryEnd = set_magnitude(cd1Group[-1],
+                                                    2*arcLength - magnitude(cd1Sections[-1][-1]))
                 cd1Section = [d1BoundaryStart, d1BoundaryEnd]
                 cd2Section = cd2Group
                 cd3Section = cd3Group
@@ -1569,8 +1569,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d3EllipsoidEnd, d13EllipsoidEnd = interp.getCubicHermiteCurvesPointAtArcDistance(sd3Fundus, sd13Fundus,
                                                                                      ellipsoidHeight)[0:2]
 
-    ellipsoidMajorDiameter = vector.magnitude(d2EllipsoidEnd)
-    ellipsoidMinorDiameter = vector.magnitude(d3EllipsoidEnd)
+    ellipsoidMajorDiameter = magnitude(d2EllipsoidEnd)
+    ellipsoidMinorDiameter = magnitude(d3EllipsoidEnd)
 
     # resample just ellipsoidal part
     sxFundusEllipsoid, sd1FundusEllipsoid, pe, pxi, psf = \
@@ -1603,16 +1603,16 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xAroundAllTransformed = []
     for n2 in range(elementsAlong + 1):
         xAroundTransformed = []
-        unitTangent = vector.normalise(sd1FundusEllipsoid[n2])
-        unitVectorLine = vector.normalise(dLine[n2])
-        cp = vector.crossproduct3(unitVectorLine, unitTangent)
-        dp = vector.dotproduct(dLine[n2], sd1FundusEllipsoid[n2])
+        unitTangent = normalize(sd1FundusEllipsoid[n2])
+        unitVectorLine = normalize(dLine[n2])
+        cp = cross(unitVectorLine, unitTangent)
+        dp = dot(dLine[n2], sd1FundusEllipsoid[n2])
         centroid = xLine[n2]
         d2 = d2Line[n2]
 
-        if vector.magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
-            axisRot = vector.normalise(cp)
-            thetaRot = math.acos(dp / (vector.magnitude(dLine[n2]) * vector.magnitude(sd1FundusEllipsoid[n2])))
+        if magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
+            axisRot = normalize(cp)
+            thetaRot = math.acos(dp / (magnitude(dLine[n2]) * magnitude(sd1FundusEllipsoid[n2])))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
             centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] +
                            rotFrame[j][2]*centroid[2] for j in range(3)]
@@ -1633,7 +1633,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         for n1 in range(len(xAroundAll[n2])):
             x = xAroundAll[n2][n1]
-            if vector.magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
+            if magnitude(cp) > 0.0:  # path tangent not parallel to segment axis
                 xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in range(3)]
             else:  # path tangent parallel to segment axis
                 xRot1 = [rotFrame[j][0] * x[0] + rotFrame[j][1] * x[1] + rotFrame[j][2] * x[2] for j in
@@ -1642,14 +1642,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             # Check that the first node in each ellipse is aligned to sd2
             if n1 == 0:
                 vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
-                if vector.magnitude(vectorToFirstNode) > 0.0:
-                    cp = vector.crossproduct3(vector.normalise(vectorToFirstNode),
-                                              vector.normalise(sd2FundusEllipsoid[n2]))
-                    if vector.magnitude(cp) > 1e-7:
-                        cp = vector.normalise(cp)
-                        signThetaRot2 = vector.dotproduct(unitTangent, cp)
+                if magnitude(vectorToFirstNode) > 0.0:
+                    cp = cross(normalize(vectorToFirstNode),
+                                              normalize(sd2FundusEllipsoid[n2]))
+                    if magnitude(cp) > 1e-7:
+                        cp = normalize(cp)
+                        signThetaRot2 = dot(unitTangent, cp)
                         thetaRot2 = math.acos(
-                            vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2FundusEllipsoid[n2])))
+                            dot(normalize(vectorToFirstNode), normalize(sd2FundusEllipsoid[n2])))
                         axisRot2 = unitTangent
                         rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2 * thetaRot2)
                     else:
@@ -1683,7 +1683,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     xFundusQuarterSampled, d2FundusQuarterSampled = \
         interp.sampleCubicHermiteCurvesSmooth(xQuarterFundus, d2FundusQuarter, elementCountGroupList[0],
-                                              derivativeMagnitudeEnd=vector.magnitude(d2FundusEndQuarter))[0:2]
+                                              derivativeMagnitudeEnd=magnitude(d2FundusEndQuarter))[0:2]
 
     # GC
     d2FundusGC = [d1Apex]
@@ -1693,8 +1693,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     xFundusGCSampled, d2FundusGCSampled = \
         interp.sampleCubicHermiteCurvesSmooth(xGCFundus, d2FundusGC, elementCountGroupList[0],
-                                              derivativeMagnitudeStart=vector.magnitude(d2FundusQuarterSampled[0]),
-                                              derivativeMagnitudeEnd=vector.magnitude(d2FundusEndGC))[0:2]
+                                              derivativeMagnitudeStart=magnitude(d2FundusQuarterSampled[0]),
+                                              derivativeMagnitudeEnd=magnitude(d2FundusEndGC))[0:2]
 
     for n2 in range(elementsAlong):
         xGCFundus.append(xAroundAllTransformed[n2][0])
@@ -1716,8 +1716,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         d1 = findDerivativeBetweenPoints(cxFundus[n2 - 1], cxFundus[n2])
         d2 = findDerivativeBetweenPoints(xProjectionGC, xFundusGCSampled[n2])
         d3 = findDerivativeBetweenPoints(xProjectionQuarter, xFundusQuarterSampled[n2])
-        cd3DV = vector.normalise(vector.crossproduct3(vector.normalise(d1), vector.normalise(d2)))
-        d3 = vector.setMagnitude(cd3DV, vector.magnitude(d3))
+        cd3DV = normalize(cross(normalize(d1), normalize(d2)))
+        d3 = set_magnitude(cd3DV, magnitude(d3))
 
         cd1Fundus.append(d1)
         cd2Fundus.append(d2)
@@ -1736,7 +1736,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     d2Apex = cd2Sections[0][1]
     d1Apex = cd3Sections[0][1]
-    rotAxisApex = vector.crossproduct3(vector.normalise(d1Apex), vector.normalise(d2Apex))
+    rotAxisApex = cross(normalize(d1Apex), normalize(d2Apex))
 
     d1ApexAround = []
     for n1 in range(elementsCountAroundDuod):
@@ -1916,9 +1916,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d1AnnulusNorm = []
     d1AnnulusOuter = []
     for n1 in range(elementsCountAroundEso):
-        normD2 = vector.normalise(o1_d2[-1][n1])
+        normD2 = normalize(o1_d2[-1][n1])
         d1AnnulusNorm.append(normD2)
-        d1AnnulusOuter.append(vector.setMagnitude(o1_d2[-1][n1], sf))
+        d1AnnulusOuter.append(set_magnitude(o1_d2[-1][n1], sf))
         x = [o1_x[-1][n1][c] + sf * normD2[c] for c in range(3)]
         nearestPosition = trackSurfaceStomach.findNearestPosition(x)
         xAnnulusOuterPosition[n1] = nearestPosition
@@ -1931,7 +1931,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2AnnulusOuter = interp.smoothCubicHermiteDerivativesLoop(xAnnulusOuter, d2AnnulusOuter)
     d3Annulus = []
     for n in range(elementsCountAroundEso):
-        d3 = vector.normalise(vector.crossproduct3(vector.normalise(d2AnnulusOuter[n]), d1AnnulusNorm[n]))
+        d3 = normalize(cross(normalize(d2AnnulusOuter[n]), d1AnnulusNorm[n]))
         d3Annulus.append(d3)
     annulusD2Curvature = findCurvatureAroundLoop(xAnnulusOuter, d2AnnulusOuter, d3Annulus)
 
@@ -2004,7 +2004,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod = \
         interp.sampleCubicHermiteCurvesSmooth(xAlongGCHalfDuod + [o1_x[-1][0]], d2AlongGCHalfDuod + [d2AnnulusOuter[0]],
                                               elementsAlongFundusApexToCardia + 1,
-                                              derivativeMagnitudeEnd=vector.magnitude(d2AnnulusOuter[0]))[0:2]
+                                              derivativeMagnitudeEnd=magnitude(d2AnnulusOuter[0]))[0:2]
 
     d2SampledAlongGCHalfDuod = \
         interp.smoothCubicHermiteDerivativesLine(xSampledAlongGCHalfDuod, d2SampledAlongGCHalfDuod,
@@ -2036,7 +2036,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         nxNew, nd1New = \
             trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
                 nx, nd1, nd2, nd3, proportions,
-                derivativeMagnitudeStart=vector.magnitude(d2AnnulusOuter[elementsAroundHalfEso]))[0:2]
+                derivativeMagnitudeStart=magnitude(d2AnnulusOuter[elementsAroundHalfEso]))[0:2]
         xAlongLCHalfDuod += nxNew[1:-1]
 
     for n2 in range(sum(elementCountGroupList) - sum(elementCountGroupList[:2]) + 1):
@@ -2138,7 +2138,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             nx, nd1 = \
                 trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
                     nx, nd1, nd2, nd3, proportions,
-                    derivativeMagnitudeStart=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundQuarterDuod]))[0:2]
+                    derivativeMagnitudeStart=magnitude(d1EllipseAroundAll[n2][elementsAroundQuarterDuod]))[0:2]
 
             xEllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nx[1:-1]
             d1EllipseAroundAll[n2][elementsAroundQuarterDuod + 1:elementsAroundHalfDuod - 1] = nd1[1:-1]
@@ -2153,9 +2153,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             if interiorAnnulus:
                 d1EllipseAroundAll[n2][:elementsAroundHalfDuod] = d1SmoothedFirstHalf
             else:
-                d1SmoothedFirstHalf[-1] = vector.setMagnitude(d1SmoothedFirstHalf[-1],
-                                                              0.5 * (vector.magnitude(d1SmoothedFirstHalf[-2]) +
-                                                              vector.magnitude(d1AnnulusOuter[1])))
+                d1SmoothedFirstHalf[-1] = set_magnitude(d1SmoothedFirstHalf[-1],
+                                                              0.5 * (magnitude(d1SmoothedFirstHalf[-2]) +
+                                                              magnitude(d1AnnulusOuter[1])))
 
             xPositionA = trackSurfaceStomach.findNearestPosition(xAnnulusOuter[-esoCount])
             xProportionA = trackSurfaceStomach.getProportion(xPositionA)
@@ -2172,7 +2172,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
             nx, nd1 = \
                 trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
                     nx, nd1, nd2, nd3, proportions,
-                    derivativeMagnitudeEnd=vector.magnitude(d1EllipseAroundAll[n2][elementsAroundHalfDuod +
+                    derivativeMagnitudeEnd=magnitude(d1EllipseAroundAll[n2][elementsAroundHalfDuod +
                                                                                    elementsAroundQuarterDuod]))[0:2]
 
             xEllipseAroundAll[n2][elementsAroundHalfDuod + 2:elementsAroundHalfDuod + elementsAroundQuarterDuod] = \
@@ -2187,9 +2187,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                         xEllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [xEllipseAroundAll[n2][0]],
                         d1EllipseAroundAll[n2][elementsAroundHalfDuod + 1:] + [d1SmoothedFirstHalf[0]],
                         fixEndDerivative=True)
-                d1SmoothedSecondHalf[0] = vector.setMagnitude(d1SmoothedSecondHalf[0],
-                                                              0.5 * (vector.magnitude(d1SmoothedFirstHalf[1]) +
-                                                                     vector.magnitude(d1AnnulusOuter[1])))
+                d1SmoothedSecondHalf[0] = set_magnitude(d1SmoothedSecondHalf[0],
+                                                              0.5 * (magnitude(d1SmoothedFirstHalf[1]) +
+                                                                     magnitude(d1AnnulusOuter[1])))
 
                 d1EllipseAroundAll[n2] = d1SmoothedFirstHalf + \
                                          [d1AnnulusOuter[0 if startAnnulus else elementsAroundHalfEso]] + \
@@ -2250,7 +2250,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     sampledProportionsOneLeft = proportions
                 nxLeft, nd1Left = \
                     trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=vector.magnitude(d1ToSample[0]))[0:2]
+                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=magnitude(d1ToSample[0]))[0:2]
 
                 nx, nd1, nd2, nd3, proportions = \
                     trackSurfaceStomach.createHermiteCurvePoints(
@@ -2260,7 +2260,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                     sampledProportionsOneRight = proportions
                 nxRight, nd1Right = \
                     trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
-                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=vector.magnitude(d1ToSample[2]))[0:2]
+                        nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=magnitude(d1ToSample[2]))[0:2]
 
                 xNew = nxLeft[1:] + nxRight[1:-1]
                 d1New = nd1Left[1:] + nd1Right[1:-1]
@@ -2373,14 +2373,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                                    fixEndDirection=True)
             if n1 == elementsAroundHalfDuod - 1 or n1 == elementsAroundHalfDuod + 1:
                 d2Along[elementsAlongFundusApexToCardia] = \
-                    vector.setMagnitude(d2Along[elementsAlongFundusApexToCardia],
-                                        0.5 * (vector.magnitude(d2Along[elementsAlongFundusApexToCardia]) +
-                                               vector.magnitude(d2AnnulusOuter[1])))
+                    set_magnitude(d2Along[elementsAlongFundusApexToCardia],
+                                        0.5 * (magnitude(d2Along[elementsAlongFundusApexToCardia]) +
+                                               magnitude(d2AnnulusOuter[1])))
                 d2Along[elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2] = \
-                    vector.setMagnitude(d2Along[elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2],
-                                        0.5 * (vector.magnitude(d2Along[elementsAlongFundusApexToCardia +
+                    set_magnitude(d2Along[elementsAlongFundusApexToCardia + elementsAroundHalfEso - 2],
+                                        0.5 * (magnitude(d2Along[elementsAlongFundusApexToCardia +
                                                                         elementsAroundHalfEso - 2]) +
-                                               vector.magnitude(d2AnnulusOuter[1])))
+                                               magnitude(d2AnnulusOuter[1])))
             d2AlongAll.append(d2Along)
 
     # Replace d2 for points sitting on annulus
@@ -2414,8 +2414,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     for n2 in range(len(xOuter)):
         d3Around = []
         for n1 in range(len(xOuter[n2])):
-            d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1Outer[n2][n1]), vector.normalise(d2Outer[n2][n1]))))
+            d3Around.append(normalize(
+                cross(normalize(d1Outer[n2][n1]), normalize(d2Outer[n2][n1]))))
         d3UnitOuter.append(d3Around)
 
     # Calculate curvature around
@@ -2429,8 +2429,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                  elementsAroundHalfEso - 2)
         if incompleteRingsWithinEso:
             d2 = o1_d2[-1][esoCount]
-            rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][esoCount]),
-                                                            vector.normalise(o1_d2[-1][esoCount])))
+            rotAxis = normalize(cross(normalize(o1_d1[-1][esoCount]),
+                                                            normalize(o1_d2[-1][esoCount])))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, math.pi)
             d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
             d1CurvatureFirstHalf = findCurvatureAlongLine(xOuter[n2][:elementsAroundHalfDuod] + [o1_x[-1][esoCount]],
@@ -2441,8 +2441,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                         d3UnitOuter[n2][elementsAroundHalfDuod - 1], 0.0)
             d1CurvatureFirstHalf[-2] = curvature
 
-            d3 = vector.normalise(vector.crossproduct3(vector.normalise(o1_d1[-1][-esoCount]),
-                                                       vector.normalise(o1_d2[-1][-esoCount])))
+            d3 = normalize(cross(normalize(o1_d1[-1][-esoCount]),
+                                                       normalize(o1_d2[-1][-esoCount])))
             d1CurvatureSecondHalf = findCurvatureAlongLine([o1_x[-1][-esoCount]] +
                                                            xOuter[n2][elementsAroundHalfDuod:] + [xOuter[n2][0]],
                                                            [o1_d2[-1][-esoCount]] +
@@ -3259,7 +3259,7 @@ def findThetaFromArcDistance(xPt, arcDistance, xCentralPath, dCentralPath):
         return 0.0
     else:
         dxPt = findDerivativeBetweenPoints(xGuess, xPt)
-        cosTheta = vector.dotproduct(dGuess, dxPt) / (vector.magnitude(dGuess) * vector.magnitude(dxPt))
+        cosTheta = dot(dGuess, dxPt) / (magnitude(dGuess) * magnitude(dxPt))
         if abs(cosTheta) > 1.0:
             cosTheta = 1.0 if cosTheta > 0.0 else -1.0
         theta = abs(math.pi * 0.5 - math.acos(cosTheta))

@@ -6,7 +6,7 @@ Supports serialisation to/from JSON. Can be used as a scaffold option.
 import copy
 import math
 
-from cmlibs.maths.vectorops import euler_to_rotation_matrix
+from cmlibs.maths.vectorops import euler_to_rotation_matrix, magnitude
 from cmlibs.utils.zinc.field import createFieldEulerAnglesRotationMatrix
 from cmlibs.utils.zinc.finiteelement import get_highest_dimension_mesh, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager
@@ -14,7 +14,6 @@ from cmlibs.zinc.field import Field, FieldGroup
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName, \
     getAnnotationMarkerLocationField  # , getAnnotationMarkerNameField
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils import vector
 
 
 class ScaffoldPackage:
@@ -345,7 +344,7 @@ class ScaffoldPackage:
                             diff = [abs(evaluatedMaterialCoordinates[c] - materialCoordinates[c]) for c in range(3)]
 
                             # threshold designed for material coordinates of nominally unit scale
-                            if vector.magnitude(diff) < 1e-03:
+                            if magnitude(diff) < 1e-03:
                                 destroyNodes.removeNode(annotationGroup.getMarkerNode())
                                 removeMarkerGroup = False
 

@@ -6,6 +6,7 @@ numbers of elements around , along and through wall.
 import copy
 import math
 
+from cmlibs.maths.vectorops import angle_between_vectors, cross, magnitude, normalize, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
      findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
@@ -20,7 +21,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
@@ -457,7 +457,7 @@ class MeshType_3d_bladder1(Scaffold_base):
             annotationGroupsThroughWall.append([])
 
         # Flat coordinates
-        urethraOpeningRadius = vector.magnitude(sx_neck_group[2][-1])
+        urethraOpeningRadius = magnitude(sx_neck_group[2][-1])
         xFlat, d1Flat, d2Flat = obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, elementsCountThroughWall,
                                                        xFinal, d1Final, d2Final, bladderCentralPathLength, urethraOpeningRadius, wallThickness)
 
@@ -684,7 +684,7 @@ def findDerivativeBetweenPoints(v1, v2):
     """
     d = [v2[c] - v1[c] for c in range(3)]
     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-    d = [c * arcLengthAround for c in vector.normalise(d)]
+    d = [c * arcLengthAround for c in normalize(d)]
 
     return d
 
@@ -695,7 +695,7 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
     d2 = sx_dome_group[2][0]
     for n1 in range(elementsCountAround):
         rotAngle = n1 * 2.0 * math.pi / elementsCountAround
-        rotAxis = vector.normalise(vector.crossproduct3(vector.normalise(sx_dome_group[2][0]), vector.normalise(sx_dome_group[4][0])))
+        rotAxis = normalize(cross(normalize(sx_dome_group[2][0]), normalize(sx_dome_group[4][0])))
         rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
         d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
         d2Apex.append(d2Rot)
@@ -829,9 +829,9 @@ def findNodesAlongBladderNeck(sx_dome_group, sx_neck_group, d2SampledDome, domeS
                 v1 = xEllipses_neck[n2 - 1][n1]
                 v2 = xEllipses_neck[n2][n1]
                 d2vec = findDerivativeBetweenPoints(v1, v2)
-                d2mag = vector.magnitude(d2vec)
-                d2dir = vector.normalise(sx_neck_group[1][-1])
-                d2 = vector.setMagnitude(d2dir, d2mag)
+                d2mag = magnitude(d2vec)
+                d2dir = normalize(sx_neck_group[1][-1])
+                d2 = set_magnitude(d2dir, d2mag)
             else:
                 v1 = xEllipses_neck[n2 - 1][n1]
                 v2 = xEllipses_neck[n2][n1]
@@ -932,7 +932,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     # Find the angle at the bottom of the bladder neck
     v1 = [0.0, 0.0, bladderLength]
     v2 = [urethraOpeningRadius, 0.0, bladderLength]
-    alpha = vector.angleBetweenVectors(v1, v2)
+    alpha = angle_between_vectors(v1, v2)
 
     # Find apex to urethra arcLength in minor radius
     xApexInner = xFinal[0]
@@ -1048,8 +1048,8 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     v3 = xfnListRearranged[elementsCountAround // 2]
     v21 = [v2[c] - v1[c] for c in range(3)]
     v31 = [v3[c] - v1[c] for c in range(3)]
-    d1Mag = vector.magnitude(v21)
-    d2Mag = vector.magnitude(v31)
+    d1Mag = magnitude(v21)
+    d2Mag = magnitude(v31)
 
     # Add apex nodes to the list
     xFlat = []
@@ -1199,8 +1199,8 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     for n2 in range(1, elementsCountAlongBladder + 1):
         d3Around = []
         for n1 in range(elementsCountAround):
-            d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledAll[n2][n1]), vector.normalise(d2SampledAll[n2][n1]))))
+            d3Around.append(normalize(
+                cross(normalize(d1SampledAll[n2][n1]), normalize(d2SampledAll[n2][n1]))))
         d3UnitOuter.append(d3Around)
 
     # Inner nodes
@@ -1237,12 +1237,12 @@ def getBladderCoordinates(elementsCountAlongDome, elementsCountAlongNeck, elemen
     # Arclength between apex point and corresponding point on next face
     mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
                                           d2List[2 * elementsCountAround])
-    d2ApexInner = vector.setMagnitude(sx_dome_group[2][0], mag)
+    d2ApexInner = set_magnitude(sx_dome_group[2][0], mag)
 
-    d1ApexInner = vector.crossproduct3(sx_dome_group[1][0], d2ApexInner)
-    d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
-    d3ApexUnit = vector.normalise(
-        vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
+    d1ApexInner = cross(sx_dome_group[1][0], d2ApexInner)
+    d1ApexInner = set_magnitude(d1ApexInner, mag)
+    d3ApexUnit = normalize(
+        cross(normalize(d1ApexInner), normalize(d2ApexInner)))
     d3ApexInner = [d3ApexUnit[c] * wallThickness / elementsCountThroughWall for c in range(3)]
 
     # Final nodes on the bladder

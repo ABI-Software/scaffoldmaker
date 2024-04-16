@@ -8,6 +8,7 @@ and thickness along.
 import copy
 import math
 
+from cmlibs.maths.vectorops import cross, dot, normalize, magnitude, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -19,7 +20,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
@@ -800,21 +800,22 @@ def getColonSegmentInnerPoints(region, elementsCountAroundTC, elementsCountAroun
                     d1 = d1AtStartOfEachMidFace[n2] if n1 == 0 else [v2[c] - v1[c] for c in range(3)]
                     d2 = [v2[c] - v1[c] for c in range(3)]
                     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                    dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
+                    dx_ds1 = [c * arcLengthAround for c in normalize(d1)]
                     dx_ds1InnerAroundList.append(dx_ds1)
                 # Account for d1 of node sitting on half haustrum
-                d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] -
-                                       xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
+                d1 = normalize([xAround[elementsCountAroundHalfHaustrum][c] -
+                                          xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
                 dx_ds1 = [c * arcLengthAround for c in d1]
                 dx_ds1InnerAroundList.append(dx_ds1)
 
             if dx_ds1InnerAroundList:
                 d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, dx_ds1InnerAroundList,
                                                                       fixStartDerivative=True)
-                d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
-                                               vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
-                d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
-                                                   vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
+                d1TCEdge = set_magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
+                                                  magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
+                d1Transition = set_magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
+                                                      magnitude(
+                                                          d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
                 d1Corrected = []
                 d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC * 0.5)]
                 d1Corrected.append(d1TCEdge)
@@ -1091,7 +1092,7 @@ def sampleTeniaColi(nx, nd1, arcDistanceTCEdge, elementsCountAroundTC):
     for e in range(int(elementsCountAroundTC * 0.5) + 1):
         arcDistance = arcDistancePerElementTC * e
         x, d1, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, nd1, arcDistance)
-        d1Scaled = vector.setMagnitude(d1, arcDistancePerElementTC)
+        d1Scaled = set_magnitude(d1, arcDistancePerElementTC)
         xTC.append(x)
         d1TC.append(d1Scaled)
 
@@ -1119,7 +1120,7 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge,
     elementLengths = []
     length = arcLength - arcDistanceTCEdge
     elementsCountOut = int(elementsCountAroundHaustrum * 0.5)
-    addLengthStart = 0.5 * vector.magnitude(d1TCLast)
+    addLengthStart = 0.5 * magnitude(d1TCLast)
     lengthFractionStart = 0.5
     proportionStart = 1.0
     elementLengthMid = (length - addLengthStart) / (elementsCountOut - 1.0 + proportionStart * lengthFractionStart)
@@ -1135,13 +1136,13 @@ def sampleHaustrum(nx, nd1, xTCLast, d1TCLast, arcLength, arcDistanceTCEdge,
 
     arcDistance = arcDistanceTCEdge
     xHaustrum.append(xTCLast)
-    d1Scaled = vector.setMagnitude(d1TCLast, elementLengths[0])
+    d1Scaled = set_magnitude(d1TCLast, elementLengths[0])
     d1Haustrum.append(d1Scaled)
 
     for e in range(elementsCountOut):
         arcDistance = arcDistance + elementLengths[e]
         x, d1, _, _ = interp.getCubicHermiteCurvesPointAtArcDistance(nx, nd1, arcDistance)
-        d1Scaled = vector.setMagnitude(d1, elementLengths[e] if e > 0 else elementLengths[e + 1])
+        d1Scaled = set_magnitude(d1, elementLengths[e] if e > 0 else elementLengths[e + 1])
         xHaustrum.append(x)
         d1Haustrum.append(d1Scaled)
 
@@ -1272,7 +1273,7 @@ def getXiListFromOuterLengthProfile(xInner, d1Inner, segmentAxis,
     d1Outer = []
 
     for n in range(len(xInner)):
-        unitNormList.append(vector.normalise(vector.crossproduct3(d1Inner[n], segmentAxis)))
+        unitNormList.append(normalize(cross(d1Inner[n], segmentAxis)))
 
     for n in range(len(xInner)):
         norm = unitNormList[n]
@@ -1373,7 +1374,7 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
                 else n2 * elementsCountAround * (elementsCountThroughWall + 1) + \
                      elementsCountAround * elementsCountThroughWall + \
                      N * (elementsCountAroundTC + elementsCountAroundHaustrum)
-            unitNorm = vector.normalise(d3List[idxTCMid])
+            unitNorm = normalize(d3List[idxTCMid])
             xMid = [xList[idxTCMid][i] + unitNorm[i] * tcThickness for i in range(3)]
             d1Mid = d1List[idxTCMid]
             TCStartIdx = idxTCMid - int(elementsCountAroundTC * 0.5) if N > 0 else \
@@ -1381,11 +1382,11 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
                 int(elementsCountAroundTC * 0.5)
             TCEndIdx = idxTCMid + int(elementsCountAroundTC * 0.5)
             if closedProximalEnd:
-                tcWidth = vector.magnitude([xList[TCStartIdx][c] - xList[TCEndIdx][c] for c in range(3)])
+                tcWidth = magnitude([xList[TCStartIdx][c] - xList[TCEndIdx][c] for c in range(3)])
 
             v1 = xList[TCStartIdx]
             v2 = xMid
-            d1MidScaled = [c * tcWidth * TCEdgeFactor for c in vector.normalise(d1Mid)]
+            d1MidScaled = [c * tcWidth * TCEdgeFactor for c in normalize(d1Mid)]
             v3 = xList[TCEndIdx]
             nx = [v1, v2, v3]
             nd1 = [d1List[TCStartIdx], d1MidScaled, d1List[TCEndIdx]]
@@ -1393,8 +1394,8 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
             xTCRaw = xTCRaw + sxTC[1:-1]
             if elementsCountAroundTC == 2:
                 p = [v2[i] - v1[i] for i in range(3)]
-                A = vector.dotproduct(unitNorm, p)  # A<0 if v2 is higher than v1
-                d1 = [c * tcWidth * 0.5 for c in vector.normalise(d1Mid)] if A < 0 else d1MidScaled
+                A = dot(unitNorm, p)  # A<0 if v2 is higher than v1
+                d1 = [c * tcWidth * 0.5 for c in normalize(d1Mid)] if A < 0 else d1MidScaled
             d1TCRaw = d1TCRaw + sd1TC[1:-1] if elementsCountAroundTC > 2 else d1TCRaw + [d1]
             xTCInnerSet = list(range(TCStartIdx + 1, TCEndIdx)) if N > 0 else \
                 list(range(TCStartIdx + 1, TCStartIdx + int(elementsCountAroundTC * 0.5))) + \
@@ -1409,7 +1410,7 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
 
                 innerIdx = xTCInnerSet[n] - elementsCountThroughWall * elementsCountAround
                 curvature = curvatureList[innerIdx]
-                distanceToInnerIdx = vector.magnitude([xTCOuter[i] - xList[innerIdx][i] for i in range(3)])
+                distanceToInnerIdx = magnitude([xTCOuter[i] - xList[innerIdx][i] for i in range(3)])
                 factor = 1.0 - curvature * distanceToInnerIdx
                 d2 = [factor * c for c in d2List[innerIdx]]
                 d2TCRaw.append(d2)
@@ -1424,7 +1425,8 @@ def getTeniaColi(region, xList, d1List, d2List, d3List, curvatureList,
                        d3TCRaw[:int(elementsCountAroundTC * 0.5 - 1)]
 
     x, d1, d2, d3 = combineTeniaColiWithColon(xList, d1List, d2List, d3List, xTCArranged, d1TCArranged,
-                                              d2TCArranged, d3TCArranged, (elementsCountAroundTC - 1) * tcCount, elementsCountAround,
+                                              d2TCArranged, d3TCArranged, (elementsCountAroundTC - 1) * tcCount,
+                                              elementsCountAround,
                                               elementsCountAlong, elementsCountThroughWall, closedProximalEnd)
 
     # Update annotation groups
@@ -1593,7 +1595,7 @@ def createFlatCoordinatesTeniaColi(xiList, relaxedLengthList,
             v2 = xFlatListTC[nodeIdx]
             d1 = d2 = [v1[i] - v2[i] for i in range(3)]
             arclength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-            d2Flat = vector.setMagnitude(d1, arclength)
+            d2Flat = set_magnitude(d1, arclength)
             d2FlatListTC.append(d2Flat)
     d2FlatListTC = d2FlatListTC + d2FlatListTC[-((elementsCountAroundTC - 1) * tcCount + 1):]
 
@@ -1654,14 +1656,14 @@ def createColonCoordinatesTeniaColi(xiList, relativeThicknessList, lengthToDiame
                     elementsCountAroundTC * 0.5)
             TCEndIdx = TCMidIdx + int(elementsCountAroundTC * 0.5)
             v1 = xColon[TCStartIdx]
-            norm = vector.setMagnitude(
-                vector.crossproduct3(vector.normalise(d1Colon[TCMidIdx]), vector.normalise(d2Colon[TCMidIdx])),
+            norm = set_magnitude(
+                cross(normalize(d1Colon[TCMidIdx]), normalize(d2Colon[TCMidIdx])),
                 teniaColiThicknessToDiameterRatio)
             v2 = [xColon[TCMidIdx][c] + norm[c] for c in range(3)]
             v3 = xColon[TCEndIdx]
             nx = [v1, v2, v3]
             nd1 = [d1Colon[TCStartIdx],
-                   vector.setMagnitude(d1Colon[TCMidIdx], 2.0 * vector.magnitude(d1Colon[TCMidIdx])),
+                   set_magnitude(d1Colon[TCMidIdx], 2.0 * magnitude(d1Colon[TCMidIdx])),
                    d1Colon[TCEndIdx]]
             sx, sd1 = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundTC)[0:2]
             xTCRaw += sx[1:-1]

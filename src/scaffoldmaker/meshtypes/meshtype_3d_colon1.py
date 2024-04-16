@@ -6,6 +6,7 @@ variable radius and thickness along.
 
 import copy
 
+from cmlibs.maths.vectorops import magnitude
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -20,7 +21,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
 
@@ -752,7 +752,7 @@ class MeshType_3d_colon1(Scaffold_base):
         lengthList = [0.0, arcLengthOfGroupsAlong[1], arcLengthOfGroupsAlong[1] + arcLengthOfGroupsAlong[2],
                       arcLengthOfGroupsAlong[0]]
 
-        innerRadiusListCP = [vector.magnitude(c) for c in cd2]
+        innerRadiusListCP = [magnitude(c) for c in cd2]
         dInnerRadiusListCP = []
         for n in range(len(innerRadiusListCP) - 1):
             dInnerRadiusListCP.append(innerRadiusListCP[n + 1] - innerRadiusListCP[n])

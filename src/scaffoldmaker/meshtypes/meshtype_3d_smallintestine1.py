@@ -6,6 +6,7 @@ wall, with variable radius and thickness along.
 
 import copy
 
+from cmlibs.maths.vectorops import cross, magnitude,normalize
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -17,7 +18,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshInnerPoints
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
@@ -1078,7 +1078,7 @@ class MeshType_3d_smallintestine1(Scaffold_base):
         sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlongSegment*segmentCount)
         sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
-        innerRadiusListCP = [vector.magnitude(c) for c in cd2]
+        innerRadiusListCP = [magnitude(c) for c in cd2]
         dInnerRadiusListCP = []
         for n in range(len(innerRadiusListCP) - 1):
             dInnerRadiusListCP.append(innerRadiusListCP[n + 1] - innerRadiusListCP[n])
@@ -1200,8 +1200,8 @@ class MeshType_3d_smallintestine1(Scaffold_base):
                     d2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDerivative = True,
                                                                   fixEndDerivative = True)[1]
                     d2Extrude.append(d2)
-                    d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1LastTwoFaces[n1 + elementsCountAround]),
-                                                                   vector.normalise(d2)))
+                    d3Unit = normalize(cross(normalize(d1LastTwoFaces[n1 + elementsCountAround]),
+                                                                   normalize(d2)))
                     d3UnitExtrude.append(d3Unit)
                 d2Extrude = d2Extrude + \
                             (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else

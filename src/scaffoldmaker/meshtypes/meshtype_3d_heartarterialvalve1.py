@@ -8,6 +8,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import magnitude
 from cmlibs.maths.vectorops import eulerToRotationMatrix3
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
@@ -15,7 +16,6 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
@@ -145,7 +145,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         #centre = [ 0.0, 0.0, 0.0 ]
         #axis1 = [ 1.0, 0.0, 0.0 ]
         #axis2 = [ 0.0, 1.0, 0.0 ]
-        #axis3 = vector.crossproduct3(axis1, axis2)
+        #axis3 = cross(axis1, axis2)
         axis1, axis2, axis3 = eulerToRotationMatrix3([ rotationAzimuthRadians, rotationElevationRadians, rotationRollRadians ])
 
         x  = [ [ None, None ], [ None, None ] ]
@@ -165,7 +165,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         leafd1mag = innerInletRadius*radiansPerElementAround  # was 0.5*
         leafd2r, leafd2z = interpolateLagrangeHermiteDerivative([ innerRadialDisplacement, 0.0 ], [ 0.0, outletLength ], [ 0.0, outletLength ], 0.0)
         sinusd1mag = innerInletSinusRadius*radiansPerElementAround  # initial value only
-        sinusd1mag = vector.magnitude(smoothCubicHermiteDerivativesLine(
+        sinusd1mag = magnitude(smoothCubicHermiteDerivativesLine(
             [ [ innerInletRadius, 0.0, inletz ], [ innerInletSinusRadius*math.cos(pi_3), innerInletSinusRadius*math.sin(pi_3), sinusz ] ],
             [ [ 0.0, leafd1mag, 0.0 ], [ -sinusd1mag*math.sin(pi_3), sinusd1mag*math.cos(pi_3), 0.0 ] ],
             fixStartDerivative = True, fixEndDirection = True)[1])
@@ -215,7 +215,7 @@ class MeshType_3d_heartarterialvalve1(Scaffold_base):
         extSinusRadius = outerRadius + outerSinusRadialDisplacement
         leafd1mag = extRadius*radiansPerElementAround
         sinusd1mag = extSinusRadius*radiansPerElementAround  # initial value only
-        sinusd1mag = vector.magnitude(smoothCubicHermiteDerivativesLine(
+        sinusd1mag = magnitude(smoothCubicHermiteDerivativesLine(
             [ [ extRadius, 0.0, 0.0 ], [ extSinusRadius*math.cos(pi_3), extSinusRadius*math.sin(pi_3), 0.0 ] ],
             [ [ 0.0, leafd1mag, 0.0 ], [ -sinusd1mag*math.sin(pi_3), sinusd1mag*math.cos(pi_3), 0.0 ] ],
             fixStartDerivative = True, fixEndDirection = True)[1])

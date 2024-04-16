@@ -7,6 +7,7 @@ variable radius and thickness along.
 import copy
 import math
 
+from cmlibs.maths.vectorops import cross, magnitude, normalize, set_magnitude
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
@@ -20,7 +21,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
@@ -443,11 +443,11 @@ class MeshType_3d_cecum1(Scaffold_base):
         # arclength between apex point and corresponding point on next face
         mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[elementsCountAround*2],
                                               d2List[elementsCountAround*2])
-        d2ApexInner = vector.setMagnitude(sd2Cecum[0], mag)
-        d1ApexInner = vector.crossproduct3(sd1Cecum[0], d2ApexInner)
-        d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
-        d3ApexUnit = vector.normalise(vector.crossproduct3(vector.normalise(d1ApexInner),
-                                                           vector.normalise(d2ApexInner)))
+        d2ApexInner = set_magnitude(sd2Cecum[0], mag)
+        d1ApexInner = cross(sd1Cecum[0], d2ApexInner)
+        d1ApexInner = set_magnitude(d1ApexInner, mag)
+        d3ApexUnit = normalize(cross(normalize(d1ApexInner),
+                                                           normalize(d2ApexInner)))
         d3ApexInner = [d3ApexUnit[c] * wallThickness/elementsCountThroughWall for c in range(3)]
 
         xCecum = []
@@ -746,7 +746,7 @@ def getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaus
 
     # Compile nodes and d2 for sampling
     xFirstSegment += xInner[elementsCountAround * int(elementsCountAlongSegment * 0.5):] # second half of first regular segment
-    d1FirstDirectionVector = vector.normalise(d1Inner[elementsCountAround]) # Store direction vector of first d1 intra-haustral for later
+    d1FirstDirectionVector = normalize(d1Inner[elementsCountAround]) # Store direction vector of first d1 intra-haustral for later
     d2Vector = xInner[elementsCountAround * int(elementsCountAlongSegment * 0.5):
                       elementsCountAround * (int(elementsCountAlongSegment * 0.5) + 1)] # half face of segment - apex
     d2FirstSegment = []
@@ -798,20 +798,20 @@ def getApexSegmentForCecum(xInner, d1Inner, d2Inner, elementsCountAroundHalfHaus
                 d1 = d1FirstDirectionVector if n1 == 0 else [v2[c] - v1[c] for c in range(3)]
                 d2 = [v2[c] - v1[c] for c in range(3)]
                 arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                dx_ds1 = [c*arcLengthAround for c in vector.normalise(d1)]
+                dx_ds1 = [c*arcLengthAround for c in normalize(d1)]
                 d1Around.append(dx_ds1)
             # Account for d1 of node sitting on half haustrum
-            d1 = vector.normalise(
+            d1 = normalize(
                 [xAround[elementsCountAroundHalfHaustrum][c] - xAround[elementsCountAroundHalfHaustrum - 1][c]
                  for c in range(3)])
             dx_ds1 = [c * arcLengthAround for c in d1]
             d1Around.append(dx_ds1)
 
             d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1Around, fixStartDerivative=True)
-            d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
-                                           vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
-            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
-                                               vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
+            d1TCEdge = set_magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
+                                           magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
+            d1Transition = set_magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
+                                               magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
             d1Corrected = []
             d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC * 0.5)]
             d1Corrected.append(d1TCEdge)
@@ -916,20 +916,20 @@ def sampleCecumAlongLength(xToSample, d1ToSample, d2ToSample, d1FirstDirectionVe
                 d1 = d1FirstDirectionVector if n1 == 0 else [v2[c] - v1[c] for c in range(3)]
                 d2 = [v2[c] - v1[c] for c in range(3)]
                 arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
+                dx_ds1 = [c * arcLengthAround for c in normalize(d1)]
                 d1InnerAroundList.append(dx_ds1)
             # Account for d1 of node sitting on half haustrum
-            d1 = vector.normalise([xAround[elementsCountAroundHalfHaustrum][c] -
+            d1 = normalize([xAround[elementsCountAroundHalfHaustrum][c] -
                                    xAround[elementsCountAroundHalfHaustrum - 1][c] for c in range(3)])
             dx_ds1 = [c * arcLengthAround for c in d1]
             d1InnerAroundList.append(dx_ds1)
 
         if d1InnerAroundList:
             d1Smoothed = interp.smoothCubicHermiteDerivativesLine(xAround, d1InnerAroundList, fixStartDerivative=True)
-            d1TCEdge = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
-                                           vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
-            d1Transition = vector.setMagnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
-                                               vector.magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
+            d1TCEdge = set_magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5)],
+                                           magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 - 1)]))
+            d1Transition = set_magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 1)],
+                                               magnitude(d1Smoothed[int(elementsCountAroundTC * 0.5 + 2)]))
             d1Corrected = []
             d1Corrected = d1Corrected + d1Smoothed[:int(elementsCountAroundTC * 0.5)]
             d1Corrected.append(d1TCEdge)

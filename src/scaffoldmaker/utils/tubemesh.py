@@ -6,6 +6,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import cross, dot, magnitude, normalize, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -13,7 +14,6 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import mergeAnnotationGroups
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
@@ -77,10 +77,10 @@ def getPlaneProjectionOnCentralPath(x, elementsCountAround, elementsCountAlong,
     sd2ProjectedListRef = []
 
     for n in range(len(sd2RefList)):
-        sd1Normalised = vector.normalise(sd1RefList[n])
-        dp = vector.dotproduct(sd2RefList[n], sd1Normalised)
+        sd1Normalised = normalize(sd1RefList[n])
+        dp = dot(sd2RefList[n], sd1Normalised)
         dpScaled = [dp * c for c in sd1Normalised]
-        sd2Projected = vector.normalise([sd2RefList[n][c] - dpScaled[c] for c in range(3)])
+        sd2Projected = normalize([sd2RefList[n][c] - dpScaled[c] for c in range(3)])
         sd2ProjectedListRef.append(sd2Projected)
 
     return sxRefList, sd1RefList, sd2ProjectedListRef, zRefList
@@ -118,12 +118,12 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
         centroid = [0.0, 0.0, refPointZ[nAlongSegment]]
 
         # Rotate to align segment axis with tangent of central line
-        unitTangent = vector.normalise(sd1[nAlongSegment])
-        cp = vector.crossproduct3(segmentAxis, unitTangent)
-        dp = vector.dotproduct(segmentAxis, unitTangent)
-        if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
-            axisRot = vector.normalise(cp)
-            thetaRot = math.acos(vector.dotproduct(segmentAxis, unitTangent))
+        unitTangent = normalize(sd1[nAlongSegment])
+        cp = cross(segmentAxis, unitTangent)
+        dp = dot(segmentAxis, unitTangent)
+        if magnitude(cp)> 0.0: # path tangent not parallel to segment axis
+            axisRot = normalize(cp)
+            thetaRot = math.acos(dot(segmentAxis, unitTangent))
             rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
             centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] + rotFrame[j][2]*centroid[2] for j in range(3)]
 
@@ -145,7 +145,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
             d1 = d1ElementAlongSegment[n1]
             d2 = d2ElementAlongSegment[n1]
 
-            if vector.magnitude(cp)> 0.0: # path tangent not parallel to segment axis
+            if magnitude(cp)> 0.0: # path tangent not parallel to segment axis
                 xRot1 = [rotFrame[j][0]*x[0] + rotFrame[j][1]*x[1] + rotFrame[j][2]*x[2] for j in range(3)]
                 d1Rot1 = [rotFrame[j][0]*d1[0] + rotFrame[j][1]*d1[1] + rotFrame[j][2]*d1[2] for j in range(3)]
                 d2Rot1 = [rotFrame[j][0]*d2[0] + rotFrame[j][1]*d2[1] + rotFrame[j][2]*d2[2] for j in range(3)]
@@ -159,13 +159,13 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
 
             if n1 == 0:  # Find angle between xCentroidRot and first node in the face
                 vectorToFirstNode = [xRot1[c] - centroidRot[c] for c in range(3)]
-                if vector.magnitude(vectorToFirstNode) > 0.0:
-                    cp = vector.crossproduct3(vector.normalise(vectorToFirstNode), vector.normalise(sd2[nAlongSegment]))
-                    if vector.magnitude(cp) > 1e-7:
-                        cp = vector.normalise(cp)
-                        signThetaRot2 = vector.dotproduct(unitTangent, cp)
+                if magnitude(vectorToFirstNode) > 0.0:
+                    cp = cross(normalize(vectorToFirstNode), normalize(sd2[nAlongSegment]))
+                    if magnitude(cp) > 1e-7:
+                        cp = normalize(cp)
+                        signThetaRot2 = dot(unitTangent, cp)
                         thetaRot2 = math.acos(
-                            vector.dotproduct(vector.normalise(vectorToFirstNode), vector.normalise(sd2[nAlongSegment])))
+                            dot(normalize(vectorToFirstNode), normalize(sd2[nAlongSegment])))
                         axisRot2 = unitTangent
                         rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2*thetaRot2)
                     else:
@@ -188,13 +188,13 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
         for n1 in range(elementsCountAround):
             n = nAlongSegment * elementsCountAround + n1
             # Calculate norm
-            sd1Normalised = vector.normalise(sd1[nAlongSegment])
+            sd1Normalised = normalize(sd1[nAlongSegment])
             v = [xWarpedList[n][c] - sx[nAlongSegment][c] for c in range(3)]
-            dp = vector.dotproduct(v, sd1Normalised)
+            dp = dot(v, sd1Normalised)
             dpScaled = [dp * c for c in sd1Normalised]
             vProjected = [v[c] - dpScaled[c] for c in range(3)]
-            if vector.magnitude(vProjected) > 0.0:
-                vProjectedNormalised = vector.normalise(vProjected)
+            if magnitude(vProjected) > 0.0:
+                vProjectedNormalised = normalize(vProjected)
             else:
                 vProjectedNormalised = [0.0, 0.0, 0.0]
 
@@ -212,7 +212,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
                                                                    vProjectedNormalised, 0.0))
             # Scale
             if nAlongSegment < elementsCountAlongSegment:
-                factor = 1.0 - curvature * vector.magnitude(v)
+                factor = 1.0 - curvature * magnitude(v)
                 d2 = [factor * c for c in d2WarpedList[n]]
                 d2WarpedListScaled.append(d2)
             else:
@@ -237,8 +237,8 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
 
     # Calculate unit d3
     for n in range(len(xWarpedList)):
-        d3Unit = vector.normalise(vector.crossproduct3(vector.normalise(d1WarpedList[n]),
-                                                       vector.normalise(d2WarpedListFinal[n])))
+        d3Unit = normalize(cross(normalize(d1WarpedList[n]),
+                                 normalize(d2WarpedListFinal[n])))
         d3WarpedUnitList.append(d3Unit)
 
     return xWarpedList, d1WarpedList, d2WarpedListFinal, d3WarpedUnitList
@@ -305,18 +305,18 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
             if n2 == 0:
                 curvature = interp.getCubicHermiteCurvature(xInner[n], d2Inner[n], xInner[n + elementsCountAround],
                                                             d2Inner[n + elementsCountAround],
-                                                            vector.normalise(d3Inner[n]), 0.0)
+                                                            normalize(d3Inner[n]), 0.0)
             elif n2 == elementsCountAlong:
                 curvature = interp.getCubicHermiteCurvature(xInner[n - elementsCountAround],
                                                             d2Inner[n - elementsCountAround],
-                                                            xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0)
+                                                            xInner[n], d2Inner[n], normalize(d3Inner[n]), 1.0)
             else:
                 curvature = 0.5*(
                     interp.getCubicHermiteCurvature(xInner[n - elementsCountAround], d2Inner[n - elementsCountAround],
-                                                    xInner[n], d2Inner[n], vector.normalise(d3Inner[n]), 1.0) +
+                                                    xInner[n], d2Inner[n], normalize(d3Inner[n]), 1.0) +
                     interp.getCubicHermiteCurvature(xInner[n], d2Inner[n],
                                                     xInner[n + elementsCountAround], d2Inner[n + elementsCountAround],
-                                                    vector.normalise(d3Inner[n]), 0.0))
+                                                    normalize(d3Inner[n]), 0.0))
             curvatureAlong.append(curvature)
 
         for n3 in range(elementsCountThroughWall + 1):
@@ -338,7 +338,7 @@ def getCoordinatesFromInner(xInner, d1Inner, d2Inner, d3Inner,
 
                 # dx_ds2
                 curvature = curvatureAlong[n]
-                distance = vector.magnitude([x[i] - xInner[n][i] for i in range(3)])
+                distance = magnitude([x[i] - xInner[n][i] for i in range(3)])
                 factor = 1.0 - curvature*distance
                 d2 = [ factor*c for c in d2Inner[n]]
                 d2List.append(d2)
@@ -411,7 +411,7 @@ def createFlatCoordinates(xiList, lengthAroundList, totalLengthAlong, wallThickn
                 v2 = xFlatList[nodeIdx]
                 d1 = d2 = [v1[i] - v2[i] for i in range(3)]
                 arclength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                d2Flat = vector.setMagnitude(d1, arclength)
+                d2Flat = set_magnitude(d1, arclength)
                 d2FlatList.append(d2Flat)
     d2FlatList = d2FlatList + d2FlatList[-(elementsCountAround+1)*(elementsCountThroughWall+1):]
 
@@ -467,8 +467,8 @@ def createOrganCoordinates(xiList, relativeThicknessList, lengthToDiameterRatio,
             # To modify derivative along transition elements
             for i in range(len(transitElementList)):
                 if transitElementList[i]:
-                    d1List[i] = vector.setMagnitude(d1List[i], vector.magnitude(d1List[i - 1]))
-                    d1List[i + 1] = vector.setMagnitude(d1List[i+ 1], vector.magnitude(d1List[(i + 2) % elementsCountAround]))
+                    d1List[i] = set_magnitude(d1List[i], magnitude(d1List[i - 1]))
+                    d1List[i + 1] = set_magnitude(d1List[i+ 1], magnitude(d1List[(i + 2) % elementsCountAround]))
 
             d1OrganList += d1List
 

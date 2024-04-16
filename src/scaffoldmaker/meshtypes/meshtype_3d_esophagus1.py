@@ -6,6 +6,8 @@ wall, with variable radius and thickness along.
 
 import copy
 import math
+
+from cmlibs.maths.vectorops import magnitude, normalize
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
     findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
@@ -20,7 +22,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
 
@@ -325,8 +326,8 @@ class MeshType_3d_esophagus1(Scaffold_base):
         for n2 in range(elementsCountAlong + 1):
             # Create inner points
             cx = [0.0, 0.0, elementAlongLength * n2]
-            axis1 = [vector.magnitude(majorRadiusElementList[n2]), 0.0, 0.0]
-            axis2 = [0.0, vector.magnitude(minorRadiusElementList[n2]), 0.0]
+            axis1 = [magnitude(majorRadiusElementList[n2]), 0.0, 0.0]
+            axis2 = [0.0, magnitude(minorRadiusElementList[n2]), 0.0]
             xInner, d1Inner = geometry.createEllipsePoints(cx, 2 * math.pi, axis1, axis2,
                                                            elementsCountAround, startRadians=0.0)
             xToSample += xInner
@@ -372,7 +373,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
                 v2 = xAround[(n1 + 1) % elementsCountAround]
                 d1 = d2 = [v2[c] - v1[c] for c in range(3)]
                 arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
+                dx_ds1 = [c * arcLengthAround for c in normalize(d1)]
                 d1Around.append(dx_ds1)
             d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
 
@@ -409,7 +410,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
         for n2 in range(elementsCountAlong + 1):
             firstNodeAlong = xToWarp[n2 * elementsCountAround]
             midptSegmentAxis = [0.0, 0.0, elementAlongLength * n2]
-            radius = vector.magnitude(firstNodeAlong[c] - midptSegmentAxis[c] for c in range(3))
+            radius = magnitude(firstNodeAlong[c] - midptSegmentAxis[c] for c in range(3))
             innerRadiusAlong.append(radius)
 
         xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
