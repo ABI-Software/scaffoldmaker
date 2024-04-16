@@ -30,7 +30,7 @@ Generates a solid cylinder using a ShieldMesh of all cube elements,
 with variable numbers of elements in major, minor, shell and axial directions.
     """
     centralPathDefaultScaffoldPackages = {
-        'Cylinder 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Bone 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
@@ -47,6 +47,41 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (4, [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
                 ])
         })
+             'Ulna 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 3.0,
+                'Number of elements': 3
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[ 5.356588e-01, 1.344625e+00,-1.057989e+00], [-2.179484e-01,-6.019707e-01, 8.118885e-01], [ 1.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 1.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (2, [[ 5.342651e-01, 2.042545e-01, 7.154451e-01], [ 0.000000e+00, 0.000000e+00, 1.000000e+00], [ 1.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 1.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (3, [[ 4.256270e-01,-7.595472e-01, 2.423991e+00], [ 0.000000e+00, 0.000000e+00, 1.000000e+00], [ 1.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 1.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (4, [[ 8.636938e-01,-2.271568e+00, 3.615462e+00], [ 3.065797e-01,-1.318752e+00, 8.066436e-01], [ 1.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 0.000000e+00, 1.000000e+00, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]])
+                ])
+        }),
+        'Radius 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 3.0,
+                'Number of elements': 3
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[-1.046980e+00,-6.643628e-01,-1.123687e+00], [ 0.000000e+00, 0.000000e+00, 1.000000e+00], [ 2.606645e-01, 3.753671e-02, 1.551701e-02], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-6.214456e-02, 2.659024e-01, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (2, [[-9.877670e-01,-7.028367e-01,-4.943481e-01], [ 8.919182e-02,-5.293884e-02, 7.619579e-01], [ 2.444035e-01, 9.618276e-03, 1.657146e-02], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-4.259481e-02, 2.119403e-01, 3.984784e-03], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (3, [[-9.341713e-01,-6.580989e-01, 1.537421e-01], [ 1.589471e-01,-5.608755e-02, 8.047271e-01], [ 2.196727e-01, 2.198117e-02, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-2.156681e-02, 2.155317e-01, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (4, [[-8.515940e-01,-6.576398e-01, 6.944961e-01], [ 6.039198e-03, 5.546106e-02, 2.692810e-01], [ 2.174544e-01, 6.164221e-02, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-6.445803e-02, 2.273877e-01, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]])
+                ])
+        })
+
     }
 
     @staticmethod
