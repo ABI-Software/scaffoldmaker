@@ -16,7 +16,7 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
     findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
-from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
+from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import geometry
@@ -25,32 +25,32 @@ from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
 
-
-class MeshType_3d_esophagus1(Scaffold_base):
-    """
-    Generates a 3-D esophagus mesh with variable numbers of elements around, along the central line, and through wall.
-    The esophagus is created by a function that generates an elliptical tube segment and uses tubemesh to map the
-    segment along a central path profile.
-    """
-
-    centralPathDefaultScaffoldPackages = {
-        'Human 1': ScaffoldPackage(MeshType_1d_path1, {
+def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
+    assert parameterSetName in cls.getParameterSetNames()  # make sure parameter set is in list of parameters of parent scaffold
+    if parameterSetName in ("Default", "Human 1"):
+        return ScaffoldPackage(MeshType_1d_network_layout1, {
             'scaffoldSettings': {
-                'Coordinate dimensions': 3,
-                'D2 derivatives': True,
-                'D3 derivatives': True,
-                'Length': 1.0,
-                'Number of elements': 4
-                },
+                "Structure": "1-2-3-4-5"
+            },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
-                (1, [ [ -0.42, -100.50, 1401.88 ], [  0.74,  14.22, -46.12 ], [ 7.85, -0.56, -0.05 ], [  0.69,  0.03, 0.02 ], [ -0.22, -2.98, -0.92 ], [  0.19, 1.51, 0.43 ] ] ),
-                (2, [ [  0.52,  -84.95, 1340.25 ], [  1.15,  16.87, -77.08 ], [ 7.08, -0.66, -0.04 ], [ -0.25, -0.13, 0.05 ], [ -0.19, -2.04, -0.45 ], [ -0.03, 0.34, 0.51 ] ] ),
-                (3, [ [  1.85,  -67.80, 1247.93 ], [ -0.05,  -4.17, -89.62 ], [ 6.13, -0.92,  0.04 ], [ -0.56,  0.20, 0.44 ], [ -0.38, -2.56,  0.12 ], [  0.00, 0.08, 0.61 ] ] ),
-                (4, [ [  0.55,  -90.99, 1166.45 ], [  6.95, -24.56, -60.26 ], [ 4.15,  1.65, -0.20 ], [ -1.22,  1.08, 1.18 ], [  0.88, -2.09,  0.95 ], [ -0.02, 0.46, 0.61 ] ] ),
-                (5, [ [  9.34, -111.30, 1127.62 ], [  3.74,  -1.54,  -6.85 ], [ 1.93,  1.69,  0.67 ], [ -2.29,  1.59, 1.62 ], [  1.32, -1.98,  1.17 ], [ -0.24, 0.29, 0.57 ] ] )] ),
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
+                    (1, [[0.394, -100.872, 1402.818], [-0.035, 12.367, -48.020], [8.730, -0.526, -0.142], [0.613, -0.153, -0.037], [-0.272, -4.224, -1.088], [-0.169, -1.491, -0.564]]),
+                    (2, [[0.520, -86.043, 1340.066], [0.501, 16.682, -77.602], [9.142, -0.799, -0.113], [0.212, -0.392, 0.096], [-0.465, -5.159, -1.112], [-0.215, -0.377, 0.515]]),
+                    (3, [[1.368, -67.733, 1247.932], [0.235, -3.685, -89.672], [9.061, -1.366, 0.080], [-0.833, -0.231, 0.187], [-0.714, -4.722, 0.192], [-0.167, 0.445, 1.659]]),
+                    (4, [[0.361, -91.057, 1165.531], [-2.499, -24.560, -49.102], [7.540, -1.290, 0.261], [-0.809, 1.514, 2.095], [-0.806, -4.269, 2.176], [0.001, 0.896, 0.910]]),
+                    (5, [[11.750, -111.874, 1127.887], [7.636, -5.715, -7.930], [5.678, 1.265, 4.556], [-8.397, 13.092, 24.878], [-0.708, -3.530, 1.862], [-0.807, -7.995, 7.596]])
+                ]]),
 
             'userAnnotationGroups': [
+                {
+                    '_AnnotationGroup': True,
+                    'dimension': 1,
+                    'identifierRanges': '1-4',
+                    'name': get_esophagus_term('esophagus')[0],
+                    'ontId': get_esophagus_term('esophagus')[1]
+                },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
@@ -72,8 +72,15 @@ class MeshType_3d_esophagus1(Scaffold_base):
                     'name': get_esophagus_term('abdominal part of esophagus')[0],
                     'ontId': get_esophagus_term('abdominal part of esophagus')[1]
                 }]
-            })
-        }
+        })
+
+
+class MeshType_3d_esophagus1(Scaffold_base):
+    """
+    Generates a 3-D esophagus mesh with variable numbers of elements around, along the central line, and through wall.
+    The esophagus is created by a function that generates an elliptical tube segment and uses tubemesh to map the
+    segment along a network layout profile.
+    """
 
     @staticmethod
     def getName():
@@ -87,13 +94,12 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['Human 1']
         options = {
-            'Central path': copy.deepcopy(centralPathOption),
+            'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             'Number of elements around': 8,
             'Number of elements along': 20,
-            'Number of elements through wall': 4,
-            'Wall thickness': 3.2,
+            'Number of elements through wall': 1,
+            'Wall thickness': 1.2,
             'Mucosa relative thickness': 0.35,
             'Submucosa relative thickness': 0.15,
             'Circular muscle layer relative thickness': 0.25,
@@ -110,7 +116,7 @@ class MeshType_3d_esophagus1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Central path',
+            'Network layout',
             'Number of elements around',
             'Number of elements along',
             'Number of elements through wall',
@@ -128,14 +134,14 @@ class MeshType_3d_esophagus1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == 'Central path':
-            return [MeshType_1d_path1]
+        if optionName == 'Network layout':
+            return [MeshType_1d_network_layout1]
         return []
 
     @classmethod
     def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Central path':
-            return list(cls.centralPathDefaultScaffoldPackages.keys())
+        if optionName == 'Network layout':
+            return cls.getParameterSetNames()
         assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
             cls.__name__ + '.getOptionScaffoldTypeParameterSetNames.  ' + \
             'Invalid option \'' + optionName + '\' scaffold type ' + scaffoldType.getName()
@@ -151,16 +157,16 @@ class MeshType_3d_esophagus1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 'Invalid parameter set ' + str(parameterSetName) + ' for scaffold ' + str(scaffoldType.getName()) + \
                 ' in option ' + str(optionName) + ' of scaffold ' + cls.getName()
-        if optionName == 'Central path':
+        if optionName == 'Network layout':
             if not parameterSetName:
-                parameterSetName = list(cls.centralPathDefaultScaffoldPackages.keys())[0]
-            return copy.deepcopy(cls.centralPathDefaultScaffoldPackages[parameterSetName])
+                parameterSetName = "Default"
+            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
         assert False, cls.__name__ + '.getOptionScaffoldPackage:  Option ' + optionName + ' is not a scaffold'
 
     @classmethod
     def checkOptions(cls, options):
-        if not options['Central path'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Central path'):
-            options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
+        if not options['Network layout'].getScaffoldType() in cls.getOptionValidScaffoldTypes('Network layout'):
+            options['Network layout'] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
         if options['Number of elements through wall'] != (1 or 4):
             options['Number of elements through wall'] = 4
         for key in [
@@ -183,323 +189,16 @@ class MeshType_3d_esophagus1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        centralPath = options['Central path']
-        elementsCountAround = options['Number of elements around']
-        elementsCountAlong = options['Number of elements along']
-        elementsCountThroughWall = options['Number of elements through wall']
-        wallThickness = options['Wall thickness']
-        mucosaRelThickness = options['Mucosa relative thickness']
-        submucosaRelThickness = options['Submucosa relative thickness']
-        circularRelThickness = options['Circular muscle layer relative thickness']
-        longitudinalRelThickness = options['Longitudinal muscle layer relative thickness']
-        useCrossDerivatives = options['Use cross derivatives']
-        useCubicHermiteThroughWall = not(options['Use linear through wall'])
+        nextNodeIdentifier = 1
+        nextElementIdentifier = 1
+        esophagusTermsAlong = ['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus',
+                               'abdominal part of esophagus']
+        geometricNetworkLayout = options['Network layout']
+        geometricNetworkLayout = EsophagusNetworkLayout(region, geometricNetworkLayout, esophagusTermsAlong)
 
-        # Esophagus coordinates
-        lengthToDiameterRatio = 15
-        wallThicknessToDiameterRatio = 0.15
-        relativeThicknessListEsoCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
-
-        firstNodeIdentifier = 1
-        firstElementIdentifier = 1
-
-        # Central path
-        tmpRegion = region.createRegion()
-        centralPath.generate(tmpRegion)
-        tmpFieldmodule = tmpRegion.getFieldmodule()
-        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
-        esophagusTermsAlong =\
-            [None, 'cervical part of esophagus', 'thoracic part of esophagus', 'abdominal part of esophagus']
-        arcLengthOfGroupsAlong = []
-
-        for termName in esophagusTermsAlong:
-            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
-            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
-
-            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
-                tmpNodeset, tmpCoordinates,
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
-            arcLength = 0.0
-            for e in range(len(cxGroup) - 1):
-                arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
-                                                             cxGroup[e + 1], cd1Group[e + 1])
-            arcLengthOfGroupsAlong.append(arcLength)
-
-            if not termName:
-                cx = cxGroup
-                cd1 = cd1Group
-                cd2 = cd2Group
-                cd3 = cd3Group
-                cd12 = cd12Group
-                cd13 = cd13Group
-
-            del tmpNodeset
-            del tmpGroup
-
-        del tmpCoordinates
-        del tmpNodes
-        del tmpFieldmodule
-        del tmpRegion
-
-        # Sample central path
-        sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
-        sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
-        sd3, sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
-
-        centralPathLength = arcLengthOfGroupsAlong[0]
-        elementAlongLength = centralPathLength / elementsCountAlong
-
-        elementsCountAlongGroups = []
-        groupLength = 0.0
-        e = 0
-        elementsCount = 1
-        length = elementAlongLength
-        for i in range(1, len(esophagusTermsAlong)):
-            groupLength += arcLengthOfGroupsAlong[i]
-            if e == elementsCountAlong - 2:
-                elementsCount += 1
-                elementsCountAlongGroups.append(elementsCount)
-            else:
-                while length < groupLength:
-                    elementsCount += 1
-                    e += 1
-                    length += elementAlongLength
-
-                # check which end is grouplength closer to
-                distToUpperEnd = abs(length - groupLength)
-                distToLowerEnd = abs(groupLength - (length - elementsCountAlong))
-                if distToLowerEnd < distToUpperEnd:
-                    elementsCount -= 1
-                    elementsCountAlongGroups.append(elementsCount)
-                    e -= 1
-                    length -= elementAlongLength
-                else:
-                    elementsCountAlongGroups.append(elementsCount)
-            elementsCount = 0
-
-        majorRadiusElementList = sd2
-        minorRadiusElementList = sd3
-
-        # Create annotation groups along esophagus
-        esophagusGroup = AnnotationGroup(region, get_esophagus_term("esophagus"))
-        cervicalGroup = AnnotationGroup(region, get_esophagus_term("cervical part of esophagus"))
-        thoracicGroup = AnnotationGroup(region, get_esophagus_term("thoracic part of esophagus"))
-        abdominalGroup = AnnotationGroup(region, get_esophagus_term("abdominal part of esophagus"))
-
-        annotationGroupAlong = [[esophagusGroup, cervicalGroup],
-                                [esophagusGroup, thoracicGroup],
-                                [esophagusGroup, abdominalGroup]]
-
-        annotationGroupsAlong = []
-        for i in range(len(elementsCountAlongGroups)):
-            elementsCount = elementsCountAlongGroups[i]
-            for n in range(elementsCount):
-                annotationGroupsAlong.append(annotationGroupAlong[i])
-
-        annotationGroupsAround = []
-        for i in range(elementsCountAround):
-            annotationGroupsAround.append([])
-
-        # Groups through wall
-        longitudinalMuscleGroup = AnnotationGroup(region,
-                                                  get_esophagus_term("esophagus smooth muscle longitudinal layer"))
-        circularMuscleGroup = AnnotationGroup(region, get_esophagus_term("esophagus smooth muscle circular layer"))
-        submucosaGroup = AnnotationGroup(region, get_esophagus_term("submucosa of esophagus"))
-        mucosaGroup = AnnotationGroup(region, get_esophagus_term("esophagus mucosa"))
-
-        if elementsCountThroughWall == 1:
-            relativeThicknessList = [1.0]
-            annotationGroupsThroughWall = [[]]
-        else:
-            relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
-                                     circularRelThickness, longitudinalRelThickness]
-            annotationGroupsThroughWall = [[mucosaGroup],
-                                           [submucosaGroup],
-                                           [circularMuscleGroup],
-                                           [longitudinalMuscleGroup]]
-
-        xToSample = []
-        d1ToSample = []
-        for n2 in range(elementsCountAlong + 1):
-            # Create inner points
-            cx = [0.0, 0.0, elementAlongLength * n2]
-            axis1 = [magnitude(majorRadiusElementList[n2]), 0.0, 0.0]
-            axis2 = [0.0, magnitude(minorRadiusElementList[n2]), 0.0]
-            xInner, d1Inner = geometry.createEllipsePoints(cx, 2 * math.pi, axis1, axis2,
-                                                           elementsCountAround, startRadians=0.0)
-            xToSample += xInner
-            d1ToSample += d1Inner
-
-        d2ToSample = [[0.0, 0.0, elementAlongLength]] * (elementsCountAround * (elementsCountAlong+1))
-
-        # Sample along length
-        xInnerRaw = []
-        d2InnerRaw = []
-        xToWarp = []
-        d1ToWarp = []
-        d2ToWarp = []
-        flatWidthList = []
-        xiList = []
-
-        for n1 in range(elementsCountAround):
-            xForSamplingAlong = []
-            d2ForSamplingAlong = []
-            for n2 in range(elementsCountAlong + 1):
-                idx = n2 * elementsCountAround + n1
-                xForSamplingAlong.append(xToSample[idx])
-                d2ForSamplingAlong.append(d2ToSample[idx])
-            xSampled, d2Sampled = interp.sampleCubicHermiteCurves(xForSamplingAlong, d2ForSamplingAlong,
-                                                                  elementsCountAlong, arcLengthDerivatives=True)[0:2]
-            xInnerRaw.append(xSampled)
-            d2InnerRaw.append(d2Sampled)
-
-        # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
-        for n2 in range(elementsCountAlong + 1):
-            xAround = []
-            d2Around = []
-
-            for n1 in range(elementsCountAround):
-                x = xInnerRaw[n1][n2]
-                d2 = d2InnerRaw[n1][n2]
-                xAround.append(x)
-                d2Around.append(d2)
-
-            d1Around = []
-            for n1 in range(elementsCountAround):
-                v1 = xAround[n1]
-                v2 = xAround[(n1 + 1) % elementsCountAround]
-                d1 = d2 = [v2[c] - v1[c] for c in range(3)]
-                arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-                dx_ds1 = [c * arcLengthAround for c in normalize(d1)]
-                d1Around.append(dx_ds1)
-            d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
-
-            xToWarp += xAround
-            d1ToWarp += d1Smoothed
-            d2ToWarp += d2Around
-
-            # Flat width and xi
-            flatWidth = 0.0
-            xiFace = []
-            for n1 in range(elementsCountAround):
-                v1 = xAround[n1]
-                d1 = d1Smoothed[n1]
-                v2 = xAround[(n1 + 1) % elementsCountAround]
-                d2 = d1Smoothed[(n1 + 1) % elementsCountAround]
-                flatWidth += interp.getCubicHermiteArcLength(v1, d1, v2, d2)
-            flatWidthList.append(flatWidth)
-
-            for n1 in range(elementsCountAround + 1):
-                xi = 1.0 / elementsCountAround * n1
-                xiFace.append(xi)
-            xiList.append(xiFace)
-
-        # Project reference point for warping onto central path
-        sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
-            tubemesh.getPlaneProjectionOnCentralPath(xToWarp, elementsCountAround, elementsCountAlong,
-                                                     centralPathLength, sx, sd1, sd2, sd12)
-
-        # Warp points
-        segmentAxis = [0.0, 0.0, 1.0]
-        closedProximalEnd = False
-
-        innerRadiusAlong = []
-        for n2 in range(elementsCountAlong + 1):
-            firstNodeAlong = xToWarp[n2 * elementsCountAround]
-            midptSegmentAxis = [0.0, 0.0, elementAlongLength * n2]
-            radius = magnitude(firstNodeAlong[c] - midptSegmentAxis[c] for c in range(3))
-            innerRadiusAlong.append(radius)
-
-        xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
-            tubemesh.warpSegmentPoints(xToWarp, d1ToWarp, d2ToWarp, segmentAxis, sxRefList, sd1RefList,
-                                       sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
-                                       zRefList)
-
-        # Create coordinates and derivatives
-        transitElementList = [0]*elementsCountAround
-        xList, d1List, d2List, d3List, curvatureList = \
-            tubemesh.getCoordinatesFromInner(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
-                                             [wallThickness]*(elementsCountAlong+1), relativeThicknessList,
-                                             elementsCountAround, elementsCountAlong, elementsCountThroughWall,
-                                             transitElementList)
-
-        # Create flat coordinates
-        xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(xiList, flatWidthList, length, wallThickness,
-                                                               relativeThicknessList, elementsCountAround,
-                                                               elementsCountAlong, elementsCountThroughWall,
-                                                               transitElementList)
-
-        # Create colon coordinates
-        xEso, d1Eso, d2Eso = \
-            tubemesh.createOrganCoordinates(xiList, relativeThicknessListEsoCoordinates, lengthToDiameterRatio,
-                                            wallThicknessToDiameterRatio, elementsCountAround, elementsCountAlong,
-                                            elementsCountThroughWall, transitElementList)
-
-        # Create nodes and elements
-        nodeIdentifier, elementIdentifier, annotationGroups = \
-            tubemesh.createNodesAndElements(region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
-                                            xEso, d1Eso, d2Eso, "esophagus coordinates", elementsCountAround,
-                                            elementsCountAlong, elementsCountThroughWall, annotationGroupsAround,
-                                            annotationGroupsAlong, annotationGroupsThroughWall,
-                                            firstNodeIdentifier, firstElementIdentifier,
-                                            useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd)
-
-        # annotation fiducial points
-        fm = region.getFieldmodule()
-        fm.beginChange()
-        mesh = fm.findMeshByDimension(3)
-        cache = fm.createFieldcache()
-
-        markerGroup = findOrCreateFieldGroup(fm, "marker")
-        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
-        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
-
-        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
-        markerTemplateInternal = nodes.createNodetemplate()
-        markerTemplateInternal.defineField(markerName)
-        markerTemplateInternal.defineField(markerLocation)
-
-        markerNames = ["proximodorsal midpoint on serosa of upper esophageal sphincter",
-                       "proximoventral midpoint on serosa of upper esophageal sphincter",
-                       "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
-                       "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"]
-
-        totalElements = elementIdentifier
-        radPerElementAround = math.pi * 2.0 / elementsCountAround
-        elementAroundHalfPi = int(0.25 * elementsCountAround)
-        xi1HalfPi = (math.pi * 0.5 - radPerElementAround * elementAroundHalfPi)/radPerElementAround
-        elementAroundPi = int(0.5 * elementsCountAround)
-        xi1Pi = (math.pi - radPerElementAround * elementAroundPi)/radPerElementAround
-
-        markerElementIdentifiers = [elementsCountAround * elementsCountThroughWall - elementAroundHalfPi,
-                                    elementAroundHalfPi + 1 + elementsCountAround * (elementsCountThroughWall - 1),
-                                    totalElements - elementsCountAround,
-                                    totalElements - elementsCountAround + elementAroundPi]
-
-        markerXis = [[1.0 - xi1HalfPi, 0.0, 1.0],
-                     [xi1HalfPi, 0.0, 1.0],
-                     [0.0, 1.0, 1.0],
-                     [xi1Pi, 1.0, 1.0]]
-
-        for n in range(len(markerNames)):
-            markerGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                             get_esophagus_term(markerNames[n]))
-            markerElement = mesh.findElementByIdentifier(markerElementIdentifiers[n])
-            markerXi = markerXis[n]
-            cache.setMeshLocation(markerElement, markerXi)
-            markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
-            nodeIdentifier += 1
-            cache.setNode(markerPoint)
-            markerName.assignString(cache, markerGroup.getName())
-            markerLocation.assignMeshLocation(cache, markerElement, markerXi)
-            for group in [esophagusGroup, markerGroup]:
-                group.getNodesetGroup(nodes).addNode(markerPoint)
-
-        fm.endChange()
+        annotationGroups, nextNodeIdentifier, nextElementIdentifier = \
+            createEsophagusMesh3d(region, options, geometricNetworkLayout, nextNodeIdentifier, nextElementIdentifier,
+                                  flatCoordinates=True, materialCoordinates=True)[:3]
 
         return annotationGroups, None
 
@@ -544,3 +243,374 @@ class MeshType_3d_esophagus1(Scaffold_base):
         mucosaInnerSurface = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                 get_esophagus_term("luminal surface of esophagus"))
         mucosaInnerSurface.getMeshGroup(mesh2d).addElementsConditional(is_mucosaInnerSurface)
+
+def createEsophagusMesh3d(region, options, networkLayout, nextNodeIdentifier, nextElementIdentifier,
+                          flatCoordinates=False, materialCoordinates=False):
+    """
+    Generates an esophagus scaffold in the region using a network layout and parameter options.
+    :param region: Region to create elements in.
+    :param options: Parameter options for esophagus scaffold.
+    :param networkLayout: Network layout describing path of the esophagus.
+    :param nextNodeIdentifier: Next node identifier to use.
+    :param nextElementIdentifier: Next element identifier to use.
+    :param flatCoordinates: Create flat coordinates if True.
+    :param materialCoordinates: Create material coordinates if True.
+    :return annotationGroups, nodeIdentifier, elementIdentifier, nodeIdDistal, xDistal, d1Distal, d2Distal, d3Distal
+    """
+    elementsCountAround = options['Number of elements around']
+    elementsCountAlong = options['Number of elements along']
+    elementsCountThroughWall = options['Number of elements through wall']
+    wallThickness = options['Wall thickness']
+    mucosaRelThickness = options['Mucosa relative thickness']
+    submucosaRelThickness = options['Submucosa relative thickness']
+    circularRelThickness = options['Circular muscle layer relative thickness']
+    longitudinalRelThickness = options['Longitudinal muscle layer relative thickness']
+    useCrossDerivatives = options['Use cross derivatives']
+    useCubicHermiteThroughWall = not(options['Use linear through wall'])
+
+    # Esophagus coordinates
+    lengthToDiameterRatio = 15
+    wallThicknessToDiameterRatio = 0.15
+    relativeThicknessListEsoCoordinates = [1.0 / elementsCountThroughWall for n3 in range(elementsCountThroughWall)]
+
+    esophagusTermsAlong =\
+        ['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus', 'abdominal part of esophagus']
+
+    networkLayoutLength = networkLayout.arcLengthOfGroupsAlong[0]
+    cx = networkLayout.cxGroups[0]
+    cd1 = networkLayout.cd1Groups[0]
+    cd2 = networkLayout.cd2Groups[0]
+    cd12 = networkLayout.cd12Groups[0]
+    cd3 = networkLayout.cd3Groups[0]
+    cd13 = networkLayout.cd13Groups[0]
+    arcLengthOfGroupsAlong = networkLayout.arcLengthOfGroupsAlong
+
+    # Sample network layout
+    sx, sd1, se, sxi, ssf = interp.sampleCubicHermiteCurves(cx, cd1, elementsCountAlong)
+    sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
+    sd3, sd13 = interp.interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
+
+    elementAlongLength = networkLayoutLength / elementsCountAlong
+
+    elementsCountAlongGroups = []
+    groupLength = 0.0
+    e = 0
+    elementsCount = 1
+    length = elementAlongLength
+    for i in range(1, len(esophagusTermsAlong)):
+        groupLength += arcLengthOfGroupsAlong[i]
+        if e == elementsCountAlong - 2:
+            elementsCount += 1
+            elementsCountAlongGroups.append(elementsCount)
+        else:
+            while length < groupLength:
+                elementsCount += 1
+                e += 1
+                length += elementAlongLength
+
+            # check which end is grouplength closer to
+            distToUpperEnd = abs(length - groupLength)
+            distToLowerEnd = abs(groupLength - (length - elementsCountAlong))
+            if distToLowerEnd < distToUpperEnd:
+                elementsCount -= 1
+                elementsCountAlongGroups.append(elementsCount)
+                e -= 1
+                length -= elementAlongLength
+            else:
+                elementsCountAlongGroups.append(elementsCount)
+        elementsCount = 0
+
+    majorRadiusElementList = sd2
+    minorRadiusElementList = sd3
+
+    # Create annotation groups along esophagus
+    esophagusGroup = AnnotationGroup(region, get_esophagus_term("esophagus"))
+    cervicalGroup = AnnotationGroup(region, get_esophagus_term("cervical part of esophagus"))
+    thoracicGroup = AnnotationGroup(region, get_esophagus_term("thoracic part of esophagus"))
+    abdominalGroup = AnnotationGroup(region, get_esophagus_term("abdominal part of esophagus"))
+
+    annotationGroupAlong = [[esophagusGroup, cervicalGroup],
+                            [esophagusGroup, thoracicGroup],
+                            [esophagusGroup, abdominalGroup]]
+
+    annotationGroupsAlong = []
+    for i in range(len(elementsCountAlongGroups)):
+        elementsCount = elementsCountAlongGroups[i]
+        for n in range(elementsCount):
+            annotationGroupsAlong.append(annotationGroupAlong[i])
+
+    annotationGroupsAround = []
+    for i in range(elementsCountAround):
+        annotationGroupsAround.append([])
+
+    # Groups through wall
+    longitudinalMuscleGroup = AnnotationGroup(region,
+                                              get_esophagus_term("esophagus smooth muscle longitudinal layer"))
+    circularMuscleGroup = AnnotationGroup(region, get_esophagus_term("esophagus smooth muscle circular layer"))
+    submucosaGroup = AnnotationGroup(region, get_esophagus_term("submucosa of esophagus"))
+    mucosaGroup = AnnotationGroup(region, get_esophagus_term("esophagus mucosa"))
+
+    if elementsCountThroughWall == 1:
+        relativeThicknessList = [1.0]
+        annotationGroupsThroughWall = [[]]
+    else:
+        relativeThicknessList = [mucosaRelThickness, submucosaRelThickness,
+                                 circularRelThickness, longitudinalRelThickness]
+        annotationGroupsThroughWall = [[mucosaGroup],
+                                       [submucosaGroup],
+                                       [circularMuscleGroup],
+                                       [longitudinalMuscleGroup]]
+
+    xToSample = []
+    d1ToSample = []
+    for n2 in range(elementsCountAlong + 1):
+        # Create inner points
+        cx = [0.0, 0.0, elementAlongLength * n2]
+        axis1 = [magnitude(majorRadiusElementList[n2]), 0.0, 0.0]
+        axis2 = [0.0, magnitude(minorRadiusElementList[n2]), 0.0]
+        xInner, d1Inner = geometry.createEllipsePoints(cx, 2 * math.pi, axis1, axis2,
+                                                       elementsCountAround, startRadians=0.0)
+        xToSample += xInner
+        d1ToSample += d1Inner
+
+    d2ToSample = [[0.0, 0.0, elementAlongLength]] * (elementsCountAround * (elementsCountAlong+1))
+
+    # Sample along length
+    xInnerRaw = []
+    d2InnerRaw = []
+    xToWarp = []
+    d1ToWarp = []
+    d2ToWarp = []
+    flatWidthList = []
+    xiList = []
+
+    for n1 in range(elementsCountAround):
+        xForSamplingAlong = []
+        d2ForSamplingAlong = []
+        for n2 in range(elementsCountAlong + 1):
+            idx = n2 * elementsCountAround + n1
+            xForSamplingAlong.append(xToSample[idx])
+            d2ForSamplingAlong.append(d2ToSample[idx])
+        xSampled, d2Sampled = interp.sampleCubicHermiteCurves(xForSamplingAlong, d2ForSamplingAlong,
+                                                              elementsCountAlong, arcLengthDerivatives=True)[0:2]
+        xInnerRaw.append(xSampled)
+        d2InnerRaw.append(d2Sampled)
+
+    # Re-arrange sample order & calculate dx_ds1 and dx_ds3 from dx_ds2
+    for n2 in range(elementsCountAlong + 1):
+        xAround = []
+        d2Around = []
+
+        for n1 in range(elementsCountAround):
+            x = xInnerRaw[n1][n2]
+            d2 = d2InnerRaw[n1][n2]
+            xAround.append(x)
+            d2Around.append(d2)
+
+        d1Around = []
+        for n1 in range(elementsCountAround):
+            v1 = xAround[n1]
+            v2 = xAround[(n1 + 1) % elementsCountAround]
+            d1 = d2 = [v2[c] - v1[c] for c in range(3)]
+            arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
+            dx_ds1 = [c * arcLengthAround for c in normalize(d1)]
+            d1Around.append(dx_ds1)
+        d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
+
+        xToWarp += xAround
+        d1ToWarp += d1Smoothed
+        d2ToWarp += d2Around
+
+        # Flat width and xi
+        flatWidth = 0.0
+        xiFace = []
+        for n1 in range(elementsCountAround):
+            v1 = xAround[n1]
+            d1 = d1Smoothed[n1]
+            v2 = xAround[(n1 + 1) % elementsCountAround]
+            d2 = d1Smoothed[(n1 + 1) % elementsCountAround]
+            flatWidth += interp.getCubicHermiteArcLength(v1, d1, v2, d2)
+        flatWidthList.append(flatWidth)
+
+        for n1 in range(elementsCountAround + 1):
+            xi = 1.0 / elementsCountAround * n1
+            xiFace.append(xi)
+        xiList.append(xiFace)
+
+    # Project reference point for warping onto network layout
+    sxRefList, sd1RefList, sd2ProjectedListRef, zRefList = \
+        tubemesh.getPlaneProjectionOnCentralPath(xToWarp, elementsCountAround, elementsCountAlong,
+                                                 networkLayoutLength, sx, sd1, sd2, sd12)
+
+    # Warp points
+    segmentAxis = [0.0, 0.0, 1.0]
+    closedProximalEnd = False
+
+    innerRadiusAlong = []
+    for n2 in range(elementsCountAlong + 1):
+        firstNodeAlong = xToWarp[n2 * elementsCountAround]
+        midptSegmentAxis = [0.0, 0.0, elementAlongLength * n2]
+        radius = magnitude(firstNodeAlong[c] - midptSegmentAxis[c] for c in range(3))
+        innerRadiusAlong.append(radius)
+
+    xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \
+        tubemesh.warpSegmentPoints(xToWarp, d1ToWarp, d2ToWarp, segmentAxis, sxRefList, sd1RefList,
+                                   sd2ProjectedListRef, elementsCountAround, elementsCountAlong,
+                                   zRefList)
+
+    # Create coordinates and derivatives
+    transitElementList = [0]*elementsCountAround
+    xList, d1List, d2List, d3List, curvatureList, localIdxDistal, xDistal, d1Distal, d2Distal, d3Distal = \
+        tubemesh.extrudeSurfaceCoordinates(xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList,
+                                         [wallThickness]*(elementsCountAlong+1), relativeThicknessList,
+                                         elementsCountAround, elementsCountAlong, elementsCountThroughWall,
+                                         transitElementList, outward=False)
+
+    # Create flat coordinates
+    if flatCoordinates:
+        xFlat, d1Flat, d2Flat = tubemesh.createFlatCoordinates(xiList, flatWidthList, length, wallThickness,
+                                                               relativeThicknessList, elementsCountAround,
+                                                               elementsCountAlong, elementsCountThroughWall,
+                                                               transitElementList)
+    else:
+        xFlat = d1Flat = d2Flat = []
+
+    # Create colon coordinates
+    if materialCoordinates:
+        xEso, d1Eso, d2Eso = \
+            tubemesh.createOrganCoordinates(xiList, relativeThicknessListEsoCoordinates, lengthToDiameterRatio,
+                                            wallThicknessToDiameterRatio, elementsCountAround, elementsCountAlong,
+                                            elementsCountThroughWall, transitElementList)
+    else:
+        xEso = d1Eso = d2Eso = []
+
+    # Create nodes and elements
+    nodeIdentifier, elementIdentifier, annotationGroups, nodeIdDistal = \
+        tubemesh.createNodesAndElements(region, xList, d1List, d2List, d3List, xFlat, d1Flat, d2Flat,
+                                        xEso, d1Eso, d2Eso, "esophagus coordinates", elementsCountAround,
+                                        elementsCountAlong, elementsCountThroughWall, annotationGroupsAround,
+                                        annotationGroupsAlong, annotationGroupsThroughWall,
+                                        nextNodeIdentifier, nextElementIdentifier,
+                                        useCubicHermiteThroughWall, useCrossDerivatives, closedProximalEnd,
+                                        localIdxDistal)
+
+    # annotation fiducial points
+    fm = region.getFieldmodule()
+    fm.beginChange()
+    mesh = fm.findMeshByDimension(3)
+    cache = fm.createFieldcache()
+
+    markerGroup = findOrCreateFieldGroup(fm, "marker")
+    markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+    markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
+    markerTemplateInternal = nodes.createNodetemplate()
+    markerTemplateInternal.defineField(markerName)
+    markerTemplateInternal.defineField(markerLocation)
+
+    markerNames = ["proximodorsal midpoint on serosa of upper esophageal sphincter",
+                   "proximoventral midpoint on serosa of upper esophageal sphincter",
+                   "distal point of lower esophageal sphincter serosa on the greater curvature of stomach",
+                   "distal point of lower esophageal sphincter serosa on the lesser curvature of stomach"]
+
+    totalElements = elementIdentifier
+    radPerElementAround = math.pi * 2.0 / elementsCountAround
+    elementAroundHalfPi = int(0.25 * elementsCountAround)
+    xi1HalfPi = (math.pi * 0.5 - radPerElementAround * elementAroundHalfPi)/radPerElementAround
+    elementAroundPi = int(0.5 * elementsCountAround)
+    xi1Pi = (math.pi - radPerElementAround * elementAroundPi)/radPerElementAround
+
+    markerElementIdentifiers = [elementsCountAround * elementsCountThroughWall - elementAroundHalfPi,
+                                elementAroundHalfPi + 1 + elementsCountAround * (elementsCountThroughWall - 1),
+                                totalElements - elementsCountAround,
+                                totalElements - elementsCountAround + elementAroundPi]
+
+    markerXis = [[1.0 - xi1HalfPi, 0.0, 1.0],
+                 [xi1HalfPi, 0.0, 1.0],
+                 [0.0, 1.0, 1.0],
+                 [xi1Pi, 1.0, 1.0]]
+
+    for n in range(len(markerNames)):
+        markerGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                         get_esophagus_term(markerNames[n]))
+        markerElement = mesh.findElementByIdentifier(markerElementIdentifiers[n])
+        markerXi = markerXis[n]
+        cache.setMeshLocation(markerElement, markerXi)
+        markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+        nodeIdentifier += 1
+        cache.setNode(markerPoint)
+        markerName.assignString(cache, markerGroup.getName())
+        markerLocation.assignMeshLocation(cache, markerElement, markerXi)
+        for group in [esophagusGroup, markerGroup]:
+            group.getNodesetGroup(nodes).addNode(markerPoint)
+
+    fm.endChange()
+
+    return annotationGroups, nodeIdentifier, elementIdentifier, nodeIdDistal, xDistal, d1Distal, d2Distal, d3Distal
+
+class EsophagusNetworkLayout:
+    """
+    Generates sampled network layout for esophagus scaffold.
+    """
+    def __init__(self, region, networkLayout, termsAlong=[None]):
+        """
+        :param region: Zinc region to define model in.
+        :param networkLayout: Network layout subscaffold from meshtype_1d_network_layout1
+        :param termsAlong: Annotation terms along length of network layout
+        """
+        # Extract length of each group along esophagus from network layout
+        cxGroups = []
+        cd1Groups = []
+        cd2Groups = []
+        cd3Groups = []
+        cd12Groups = []
+        cd13Groups = []
+
+        tmpRegion = region.createRegion()
+        networkLayout.generate(tmpRegion)
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        tmpNodes = tmpFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        tmpCoordinates = tmpFieldmodule.findFieldByName('coordinates')
+        arcLengthOfGroupsAlong = []
+
+        for termName in termsAlong:
+            tmpGroup = tmpFieldmodule.findFieldByName(termName).castGroup() if termName else None
+            tmpNodeset = tmpGroup.getNodesetGroup(tmpNodes) if tmpGroup else tmpNodes
+
+            cxGroup, cd1Group, cd2Group, cd3Group, cd12Group, cd13Group = get_nodeset_path_field_parameters(
+                tmpNodeset, tmpCoordinates,
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                 Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
+                 Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3])
+
+            arcLength = 0.0
+            for e in range(len(cxGroup) - 1):
+                arcLength += interp.getCubicHermiteArcLength(cxGroup[e], cd1Group[e],
+                                                             cxGroup[e + 1], cd1Group[e + 1])
+            arcLengthOfGroupsAlong.append(arcLength)
+
+            if termName == "esophagus":
+                cxGroups.append(cxGroup)
+                cd1Groups.append(cd1Group)
+                cd2Groups.append(cd2Group)
+                cd3Groups.append(cd3Group)
+                cd12Groups.append(cd12Group)
+                cd13Groups.append(cd13Group)
+
+            del tmpNodeset
+            del tmpGroup
+
+        del tmpCoordinates
+        del tmpNodes
+        del tmpFieldmodule
+        del tmpRegion
+
+        self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
+        self.cxGroups = cxGroups
+        self.cd1Groups = cd1Groups
+        self.cd2Groups = cd2Groups
+        self.cd3Groups = cd3Groups
+        self.cd12Groups = cd12Groups
+        self.cd13Groups = cd13Groups

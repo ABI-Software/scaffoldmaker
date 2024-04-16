@@ -9,9 +9,8 @@ import copy
 import math
 
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, set_magnitude, sub
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
-    findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
-from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
@@ -870,10 +869,10 @@ class MeshType_3d_heartatria1(Scaffold_base):
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         nodetemplateLinearS3.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
 
-        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+        nodeIdentifier = max(1, get_maximum_node_identifier(nodes) + 1)
 
         mesh = fm.findMeshByDimension(3)
-        elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
+        elementIdentifier = max(1, get_maximum_element_identifier(mesh) + 1)
 
         heartMeshGroup = heartGroup.getMeshGroup(mesh)
         lamMeshGroup = lamGroup.getMeshGroup(mesh)
@@ -964,11 +963,11 @@ class MeshType_3d_heartatria1(Scaffold_base):
         # get points over interatrial septum on exterior groove
         agn1Mid = elementsCountOverRightAtriumNonVenousAnterior + elementsCountOverRightAtriumVenous//2
         # 1. go up vestibule height on posterior
-        nx = laTrackSurface.nx [:laTrackSurface.elementsCount1 + 1]
-        nd = laTrackSurface.nd1[:laTrackSurface.elementsCount1 + 1]
+        nx = laTrackSurface._nx [:laTrackSurface._elementsCount1 + 1]
+        nd = laTrackSurface._nd1[:laTrackSurface._elementsCount1 + 1]
         csx, csd2, e, xi = interp.getCubicHermiteCurvesPointAtArcDistance(nx, nd, aVestibuleOuterHeight)
-        lagcsProportion = (e + xi)/laTrackSurface.elementsCount1
-        agLength = sum(interp.getCubicHermiteArcLength(nx[e], nd[e], nx[e + 1], nd[e + 1]) for e in range(laTrackSurface.elementsCount1))
+        lagcsProportion = (e + xi)/laTrackSurface._elementsCount1
+        agLength = sum(interp.getCubicHermiteArcLength(nx[e], nd[e], nx[e + 1], nd[e + 1]) for e in range(laTrackSurface._elementsCount1))
         agx  = [labx [1][0]]
         agd1 = [labd1[1][0]]
         agd2 = [labd2[1][0]]
@@ -1200,7 +1199,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         lan1Mid = elementsCountAroundLeftAtriumAorta + elementsCountAroundLeftAtrialAppendageBase
         lan1MidVenous = lan1Mid + elementsCountAroundLeftAtriumLPV
         lavtProportions = [ [ 1.0 - ragProportions[1], 0.0 ] ]
-        laApexx = laTrackSurface.nx[-1]
+        laApexx = laTrackSurface._nx[-1]
         for n1 in range(1, elementsCountAroundLeftAtriumFreeWall):
             # find position on laTrackSurface corresponding to base outer node
             # avoid point at end of laTrackSurface where derivative 1 is zero
@@ -1274,7 +1273,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
         rabProportions = [ [ 1.0, 0.0 ] ]
         ran1Ctp = elementsCountAroundRightAtriumPosteriorVenous
         ran1Aorta = elementsCountAroundRightAtriumFreeWall - elementsCountAroundRightAtriumAorta
-        raApexx = raTrackSurface.nx[-1]
+        raApexx = raTrackSurface._nx[-1]
         for n1 in range(1, elementsCountAroundRightAtriumFreeWall):
             # find position on raTrackSurface corresponding to base outer node
             # avoid point at end of raTrackSurface where derivative 1 is zero
@@ -2065,40 +2064,6 @@ class MeshType_3d_heartatria1(Scaffold_base):
 
             fpTrackSurface = TrackSurface(1, elementsCountAcrossTrackSurface, nx, nd1, nd2)
 
-        drawLaTrackSurface = False
-        if drawLaTrackSurface:
-            # create track surface nodes:
-            laTrackSurfaceFirstNodeIdentifier = nodeIdentifier
-            for n in range((laTrackSurface.elementsCount2 + 1)*(laTrackSurface.elementsCount1 + 1)):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, laTrackSurface.nx[n] )
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, laTrackSurface.nd1[n])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, laTrackSurface.nd2[n])
-                nodeIdentifier += 1
-        drawRaTrackSurface = False
-        if drawRaTrackSurface:
-            # create track surface nodes:
-            raTrackSurfaceFirstNodeIdentifier = nodeIdentifier
-            for n in range((raTrackSurface.elementsCount2 + 1)*(raTrackSurface.elementsCount1 + 1)):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, raTrackSurface.nx[n] )
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, raTrackSurface.nd1[n])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, raTrackSurface.nd2[n])
-                nodeIdentifier += 1
-        drawFpTrackSurface = False
-        if drawFpTrackSurface:
-            # create track surface nodes:
-            fpTrackSurfaceFirstNodeIdentifier = nodeIdentifier
-            for n in range((fpTrackSurface.elementsCount2 + 1)*(fpTrackSurface.elementsCount1 + 1)):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                cache.setNode(node)
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, fpTrackSurface.nx[n] )
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, fpTrackSurface.nd1[n])
-                coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, fpTrackSurface.nd2[n])
-                nodeIdentifier += 1
-
         #################
         # Create elements
         #################
@@ -2744,7 +2709,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             vcEndDerivative = vcDerivativeFactor*vcLength/elementsCountAlongVCInlet
             ocxPosition = raTrackSurface.createPositionProportion(proportion1, proportion2)
             ocx, d1, d2 = raTrackSurface.evaluateCoordinates(ocxPosition, derivatives = True)
-            ocd1, ocd2, ocd3 = calculate_surface_axes(d1, d2, normalize(d1))
+            ocd1, ocd2, ocd3 = calculate_surface_axes(d1, d2, vector.normalise(d1))
             vcx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx, ocd1, ocd2, ocd3, vcLength, vcAngle1Radians, vcAngle2Radians)
             vcd1 = vd1
             vcd2 = [ -d for d in vd2 ]
@@ -2754,7 +2719,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             vcvd2 = [ None, None ]
             for n3 in range(2):
                 radius = vcInnerRadius if (n3 == 0) else vcOuterRadius
-                px, pd1 = createCirclePoints(vcx, set_magnitude(vcd1, radius), set_magnitude(vcd2, radius), elementsCountAroundVC, startRadians)
+                px, pd1 = createCirclePoints(vcx, vector.setMagnitude(vcd1, radius), vector.setMagnitude(vcd2, radius), elementsCountAroundVC, startRadians)
                 vcvx [n3] = px
                 vcvd1[n3] = pd1
                 vcvd2[n3] = [ vcd3 ]*elementsCountAroundVC
@@ -2937,8 +2902,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         laamx, d1, d2 = laTrackSurface.evaluateCoordinates(position, derivatives = True)
         # force d2 to be vertical, d3, d1 to be horizontal
         laamd2 = [ 0.0, 0.0, 1.0 ]
-        laamd3 = normalize(cross(d2, laamd2))
-        laamd1 = cross(laamd2, laamd3)
+        laamd3 = vector.normalise(vector.crossproduct3(d2, laamd2))
+        laamd1 = vector.crossproduct3(laamd2, laamd3)
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
@@ -3117,8 +3082,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raamx, d1, d2 = raTrackSurface.evaluateCoordinates(position, derivatives = True)
         # force d2 to be vertical, d3, d1 to be horizontal
         raamd2 = [ 0.0, 0.0, 1.0 ]
-        raamd3 = normalize(cross(raamd2, d2))
-        raamd1 = cross(raamd2, raamd3)
+        raamd3 = vector.normalise(vector.crossproduct3(raamd2, d2))
+        raamd1 = vector.crossproduct3(raamd2, raamd3)
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
@@ -3300,13 +3265,13 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 result, epid2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
                 result, epid3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
                 if result != RESULT_OK:
-                    epid3 = cross(epid1, epid2)
-                fatx = add(epix, set_magnitude(epid3, epicardiumLayerMinimumThickness))
+                    epid3 = vector.crossproduct3(epid1, epid2)
+                fatx = add(epix, vector.setMagnitude(epid3, epicardiumLayerMinimumThickness))
                 epifx = None
 
                 epifPosition = fpTrackSurface.findNearestPosition(epix, startPosition=None)
                 if not (((epifPosition.e1 == 0) and (epifPosition.xi1 < 0.0001)) or
-                        ((epifPosition.e1 == (fpTrackSurface.elementsCount1 - 1)) and (0.9999 < epifPosition.xi1))):
+                        ((epifPosition.e1 == (fpTrackSurface._elementsCount1 - 1)) and (0.9999 < epifPosition.xi1))):
                     # shift proportion 1 around inlet
                     xi_centre = 1.0 - (2.0 * math.fabs(0.5 - epifPosition.xi1))
                     proportion1, proportion2 = fpTrackSurface.getProportion(epifPosition)
@@ -3415,54 +3380,20 @@ class MeshType_3d_heartatria1(Scaffold_base):
                                             scalingMode=DerivativeScalingMode.HARMONIC_MEAN)
             smoothing.smooth(updateDirections=False)
 
+        mesh2d = fm.findMeshByDimension(2)
+        elementIdentifier2D = max(get_maximum_element_identifier(mesh2d), 0) + 1
+        drawLaTrackSurface = False
         if drawLaTrackSurface:
-            mesh2d = fm.findMeshByDimension(2)
-            bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-            eft2d = mesh2d.createElementfieldtemplate(bicubicHermiteBasis)
-            # remove cross derivative 12
-            for n in range(4):
-                r = eft2d.setFunctionNumberOfTerms(n*4 + 4, 0)
-            elementtemplate2d = mesh2d.createElementtemplate()
-            elementtemplate2d.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-            elementtemplate2d.defineField(coordinates, -1, eft2d)
-            nodesCount1 = laTrackSurface.elementsCount1 + 1
-            for e2 in range(laTrackSurface.elementsCount2):
-                for e1 in range(laTrackSurface.elementsCount1):
-                    element = mesh2d.createElement(-1, elementtemplate2d)  # since on 2-D mesh
-                    nid1 = laTrackSurfaceFirstNodeIdentifier + e2*nodesCount1 + e1
-                    element.setNodesByIdentifier(eft2d, [ nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1 ])
+            nodeIdentifier, elementIdentifier2D = \
+                laTrackSurface.generateMesh(region, nodeIdentifier, elementIdentifier2D)
+        drawRaTrackSurface = False
         if drawRaTrackSurface:
-            mesh2d = fm.findMeshByDimension(2)
-            bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-            eft2d = mesh2d.createElementfieldtemplate(bicubicHermiteBasis)
-            # remove cross derivative 12
-            for n in range(4):
-                r = eft2d.setFunctionNumberOfTerms(n*4 + 4, 0)
-            elementtemplate2d = mesh2d.createElementtemplate()
-            elementtemplate2d.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-            elementtemplate2d.defineField(coordinates, -1, eft2d)
-            nodesCount1 = raTrackSurface.elementsCount1 + 1
-            for e2 in range(raTrackSurface.elementsCount2):
-                for e1 in range(raTrackSurface.elementsCount1):
-                    element = mesh2d.createElement(-1, elementtemplate2d)  # since on 2-D mesh
-                    nid1 = raTrackSurfaceFirstNodeIdentifier + e2*nodesCount1 + e1
-                    element.setNodesByIdentifier(eft2d, [ nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1 ])
+            nodeIdentifier, elementIdentifier2D = \
+                raTrackSurface.generateMesh(region, nodeIdentifier, elementIdentifier2D)
+        drawFpTrackSurface = False
         if drawFpTrackSurface:
-            mesh2d = fm.findMeshByDimension(2)
-            bicubicHermiteBasis = fm.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-            eft2d = mesh2d.createElementfieldtemplate(bicubicHermiteBasis)
-            # remove cross derivative 12
-            for n in range(4):
-                r = eft2d.setFunctionNumberOfTerms(n * 4 + 4, 0)
-            elementtemplate2d = mesh2d.createElementtemplate()
-            elementtemplate2d.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-            elementtemplate2d.defineField(coordinates, -1, eft2d)
-            nodesCount1 = fpTrackSurface.elementsCount1 + 1
-            for e2 in range(fpTrackSurface.elementsCount2):
-                for e1 in range(fpTrackSurface.elementsCount1):
-                    element = mesh2d.createElement(-1, elementtemplate2d)  # since on 2-D mesh
-                    nid1 = fpTrackSurfaceFirstNodeIdentifier + e2 * nodesCount1 + e1
-                    element.setNodesByIdentifier(eft2d, [nid1, nid1 + 1, nid1 + nodesCount1, nid1 + nodesCount1 + 1])
+            nodeIdentifier, elementIdentifier2D = \
+                fpTrackSurface.generateMesh(region, nodeIdentifier, elementIdentifier2D)
 
         return annotationGroups, None
 

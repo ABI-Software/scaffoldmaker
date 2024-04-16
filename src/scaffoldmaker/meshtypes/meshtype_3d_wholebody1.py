@@ -47,6 +47,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
         'Default': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': cylinder1Settings,
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
                 [

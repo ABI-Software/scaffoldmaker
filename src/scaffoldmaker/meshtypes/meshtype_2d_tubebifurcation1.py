@@ -84,7 +84,7 @@ class MeshType_2d_tubebifurcation1(Scaffold_base):
         c2Count = options['Number of elements around child 2']
         if (paCount + c1Count + c2Count) % 2:
             c2Count += 1
-        pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+        pac1Count, c1c2Count, pac2Count = get_tube_bifurcation_connection_elements_counts([paCount, c1Count, c2Count])
         if pac1Count < 2:
             c2Count -= 2*(2 - pac1Count)
         elif pac2Count < 2:
@@ -126,7 +126,7 @@ class MeshType_2d_tubebifurcation1(Scaffold_base):
         c2Centre = [ child2Length*math.sin(child2AngleRadians), 0.0, child2Length*math.cos(child2AngleRadians) ]
         c12 = sub(c1Centre, c2Centre)
 
-        pac1Count, pac2Count, c1c2Count = get_tube_bifurcation_connection_elements_counts(paCount, c1Count, c2Count)
+        pac1Count, c1c2Count, pac2Count = get_tube_bifurcation_connection_elements_counts([paCount, c1Count, c2Count])
 
         # parent ring
         paAxis3 = [ 0.0, 0.0, parentLength ]

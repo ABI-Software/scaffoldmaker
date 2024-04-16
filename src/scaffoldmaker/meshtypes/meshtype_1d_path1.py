@@ -5,12 +5,11 @@ Generates a 1-D path mesh.
 from __future__ import division
 
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup
-from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteCrossDerivativesLine
+from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.zinc_utils import make_nodeset_derivatives_orthogonal, \
     get_nodeset_path_field_parameters, setPathParameters
 
@@ -130,7 +129,7 @@ class MeshType_1d_path1(Scaffold_base):
         return [], None
 
     @classmethod
-    def makeSideDerivativesNormal(cls, region, options, functionOptions, editGroupName):
+    def makeSideDerivativesNormal(cls, region, options, constructionObject, functionOptions, editGroupName):
         fieldmodule = region.getFieldmodule()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -142,16 +141,16 @@ class MeshType_1d_path1(Scaffold_base):
         return False, True  # settings not changed, nodes changed
 
     @classmethod
-    def smoothSideCrossDerivatives(cls, region, options, functionOptions, editGroupName):
+    def smoothSideCrossDerivatives(cls, region, options, constructionObject, functionOptions, editGroupName):
         smoothD12 = options['D2 derivatives'] and functionOptions['Smooth D12']
         smoothD13 = options['D3 derivatives'] and functionOptions['Smooth D13']
         if not (smoothD12 or smoothD13):
             return False, False
-        valueLabels = [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1 ]
+        valueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
         if smoothD12:
-            valueLabels += [ Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2 ]
+            valueLabels += [Node.VALUE_LABEL_D_DS2]
         if smoothD13:
-            valueLabels += [ Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ]
+            valueLabels += [Node.VALUE_LABEL_D_DS3]
         fieldmodule = region.getFieldmodule()
         parameters = get_nodeset_path_field_parameters(
             fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES),
@@ -159,15 +158,19 @@ class MeshType_1d_path1(Scaffold_base):
             valueLabels)
         x = parameters[0]
         d1 = parameters[1]
+        nsv = []
+        if smoothD12:
+            nsv.append(parameters[2])
+        if smoothD13:
+            nsv.append(parameters[-1])
+        dnsv = smoothCurveSideCrossDerivatives(x, d1, nsv)
         modifyParameters = []
         modifyValueLabels = []
         if smoothD12:
-            d12 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[2], parameters[3])
-            modifyParameters.append(d12)
+            modifyParameters.append(dnsv[0])
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS2)
         if smoothD13:
-            d13 = smoothCubicHermiteCrossDerivativesLine(x, d1, parameters[-2], parameters[-1])
-            modifyParameters.append(d13)
+            modifyParameters.append(dnsv[-1])
             modifyValueLabels.append(Node.VALUE_LABEL_D2_DS1DS3)
         setPathParameters(region, modifyValueLabels, modifyParameters, editGroupName)
         return False, True  # settings not changed, nodes changed
@@ -181,9 +184,11 @@ class MeshType_1d_path1(Scaffold_base):
             ("Make side derivatives normal...",
                 { 'Make D2 normal': True,
                   'Make D3 normal': True },
-                lambda region, options, functionOptions, editGroupName: cls.makeSideDerivativesNormal(region, options, functionOptions, editGroupName)),
+                lambda region, options, constructionObject, functionOptions, editGroupName:
+                    cls.makeSideDerivativesNormal(region, options, constructionObject, functionOptions, editGroupName)),
             ("Smooth side cross derivatives...",
                 { 'Smooth D12' : True,
                   'Smooth D13' : True },
-                lambda region, options, functionOptions, editGroupName: cls.smoothSideCrossDerivatives(region, options, functionOptions, editGroupName))
+                lambda region, options, constructionObject, functionOptions, editGroupName:
+                    cls.smoothSideCrossDerivatives(region, options, constructionObject, functionOptions, editGroupName))
         ]
