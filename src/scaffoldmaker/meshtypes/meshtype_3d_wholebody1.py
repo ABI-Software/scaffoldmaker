@@ -50,13 +50,13 @@ Generates body coordinates using a solid cylinder of all cube elements,
                 ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
+                [[
                     (1, [[0.0, 0.0, 0.0], set_magnitude(axis1, cylinder1Settings['Length']), set_magnitude(axis2, 0.5),
                          [0.0, 0.0, 0.0], set_magnitude(axis3, 0.5), [0.0, 0.0, 0.0]]),
                     (2, [set_magnitude(axis1, cylinder1Settings['Length']),
                          set_magnitude(axis1, cylinder1Settings['Length']),
                          set_magnitude(axis2, 0.5), [0.0, 0.0, 0.0], set_magnitude(axis3, 0.5), [0.0, 0.0, 0.0]])
-                ])
+                ]])
         })
     }
 

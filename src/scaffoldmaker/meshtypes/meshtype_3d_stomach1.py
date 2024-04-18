@@ -9,7 +9,7 @@ from __future__ import division
 import copy
 import math
 
-from cmlibs.maths.vectorops import cross, dot, magnitude, normalize, set_magnitude, sub
+from cmlibs.maths.vectorops import cross, magnitude, normalize, set_magnitude, sub
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_element_identifier, \
     get_maximum_node_identifier
@@ -1816,7 +1816,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nxR, nd1R, nd2R, nd3R = \
         trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
             nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=
-            vector.magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod]))[0:-1]
+            magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod]))[0:-1]
 
     # Replace the values in xEllipseAroundAll at quadrants
     for n in range(len(nxR)):
@@ -1845,8 +1845,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nxR, nd1R, nd2R, nd3R = \
         trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
             nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=
-            vector.magnitude(
-                d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod + elementsAroundHalfDuod]))[0:-1]
+            magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod + elementsAroundHalfDuod]))[0:-1]
 
     for n in range(len(nxR)):
         xEllipseAroundAll[sectionIdx[1]][elementsAroundHalfDuod + 1 + n] = nxR[n]
@@ -1907,7 +1906,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 d2Uniform = \
                     trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions)[1]
                 startDerivative = d2Uniform[0]
-                startDerivativeMag = vector.magnitude(startDerivative)
+                startDerivativeMag = magnitude(startDerivative)
 
                 # Sample from apex to annulus
                 bPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxMinusOne[count]]
@@ -2062,7 +2061,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongGC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
             d2SmoothedAlongGCB4Change = copy.deepcopy(d2SmoothedAlongGC)
-            d2SmoothedAlongGC[-1] = set_magnitude(d2AnnulusOuter[0], vector.magnitude(d2SmoothedAlongGC[-1]))
+            d2SmoothedAlongGC[-1] = set_magnitude(d2AnnulusOuter[0], magnitude(d2SmoothedAlongGC[-1]))
             d2AnnulusNew[0] = d2SmoothedAlongGC[-1]
 
             nx = []

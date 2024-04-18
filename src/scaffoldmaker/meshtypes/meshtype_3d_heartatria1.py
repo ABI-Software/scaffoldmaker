@@ -2709,7 +2709,7 @@ class MeshType_3d_heartatria1(Scaffold_base):
             vcEndDerivative = vcDerivativeFactor*vcLength/elementsCountAlongVCInlet
             ocxPosition = raTrackSurface.createPositionProportion(proportion1, proportion2)
             ocx, d1, d2 = raTrackSurface.evaluateCoordinates(ocxPosition, derivatives = True)
-            ocd1, ocd2, ocd3 = calculate_surface_axes(d1, d2, vector.normalise(d1))
+            ocd1, ocd2, ocd3 = calculate_surface_axes(d1, d2, normalize(d1))
             vcx, vd1, vd2, vd3 = getCircleProjectionAxes(ocx, ocd1, ocd2, ocd3, vcLength, vcAngle1Radians, vcAngle2Radians)
             vcd1 = vd1
             vcd2 = [ -d for d in vd2 ]
@@ -2719,7 +2719,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
             vcvd2 = [ None, None ]
             for n3 in range(2):
                 radius = vcInnerRadius if (n3 == 0) else vcOuterRadius
-                px, pd1 = createCirclePoints(vcx, vector.setMagnitude(vcd1, radius), vector.setMagnitude(vcd2, radius), elementsCountAroundVC, startRadians)
+                px, pd1 = createCirclePoints(vcx, set_magnitude(vcd1, radius), set_magnitude(vcd2, radius),
+                                             elementsCountAroundVC, startRadians)
                 vcvx [n3] = px
                 vcvd1[n3] = pd1
                 vcvd2[n3] = [ vcd3 ]*elementsCountAroundVC
@@ -2902,8 +2903,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         laamx, d1, d2 = laTrackSurface.evaluateCoordinates(position, derivatives = True)
         # force d2 to be vertical, d3, d1 to be horizontal
         laamd2 = [ 0.0, 0.0, 1.0 ]
-        laamd3 = vector.normalise(vector.crossproduct3(d2, laamd2))
-        laamd1 = vector.crossproduct3(laamd2, laamd3)
+        laamd3 = normalize(cross(d2, laamd2))
+        laamd1 = cross(laamd2, laamd3)
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
@@ -3082,8 +3083,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
         raamx, d1, d2 = raTrackSurface.evaluateCoordinates(position, derivatives = True)
         # force d2 to be vertical, d3, d1 to be horizontal
         raamd2 = [ 0.0, 0.0, 1.0 ]
-        raamd3 = vector.normalise(vector.crossproduct3(raamd2, d2))
-        raamd1 = vector.crossproduct3(raamd2, raamd3)
+        raamd3 = normalize(cross(raamd2, d2))
+        raamd1 = cross(raamd2, raamd3)
         if False:
             node = nodes.createNode(nodeIdentifier, nodetemplate)
             cache.setNode(node)
@@ -3265,8 +3266,8 @@ class MeshType_3d_heartatria1(Scaffold_base):
                 result, epid2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
                 result, epid3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
                 if result != RESULT_OK:
-                    epid3 = vector.crossproduct3(epid1, epid2)
-                fatx = add(epix, vector.setMagnitude(epid3, epicardiumLayerMinimumThickness))
+                    epid3 = cross(epid1, epid2)
+                fatx = add(epix, set_magnitude(epid3, epicardiumLayerMinimumThickness))
                 epifx = None
 
                 epifPosition = fpTrackSurface.findNearestPosition(epix, startPosition=None)

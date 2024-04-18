@@ -6,7 +6,7 @@ numbers of elements around, along and through wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import add, mult
+from cmlibs.maths.vectorops import add, cross, magnitude, mult, normalize, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
@@ -21,7 +21,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, \
     get_bifurcation_triple_point
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
@@ -505,7 +504,7 @@ def findDerivativeBetweenPoints(v1, v2):
     """
     d = [v2[c] - v1[c] for c in range(3)]
     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-    d = [c * arcLengthAround for c in vector.normalise(d)]
+    d = [c * arcLengthAround for c in normalize(d)]
 
     return d
 
@@ -1099,8 +1098,8 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
     for n2 in range(elementsCountAlongTube + 1):
         d3Around = []
         for n1 in range(elementsCountAround):
-            d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledTube[n2][n1]), vector.normalise(d2SampledTube[n2][n1]))))
+            d3Around.append(normalize(
+                cross(normalize(d1SampledTube[n2][n1]), normalize(d2SampledTube[n2][n1]))))
         d3Tube.append(d3Around)
 
     xInner = []
@@ -1758,25 +1757,25 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     d3lList = []
     for n in range(len(cx_tube_group[0])):
         x = cx_tube_group[0][n]
-        v2r = vector.normalise(cx_tube_group[2][n])
-        v3r = vector.normalise(cx_tube_group[4][n])
-        d2Mag = vector.magnitude(cx_tube_group[2][n])
+        v2r = normalize(cx_tube_group[2][n])
+        v3r = normalize(cx_tube_group[4][n])
+        d2Mag = magnitude(cx_tube_group[2][n])
         r2 = (d2Mag - distance - wallThickness) / 2
         # d3Mag = vector.magnitude(cx_tube_group[4][n])
         # r3 = (d3Mag - wallThickness)
-        v_trans = vector.setMagnitude(v2r, distance + r2)
+        v_trans = set_magnitude(v2r, distance + r2)
 
         x_right = [x[c] + v_trans[c] for c in range(3)]
         xrList.append(x_right)
-        d2rList.append(vector.setMagnitude(v2r, r2))
-        d3rList.append(vector.setMagnitude(v3r, r2))
+        d2rList.append(set_magnitude(v2r, r2))
+        d3rList.append(set_magnitude(v3r, r2))
 
         x_left = [x[c] - v_trans[c] for c in range(3)]
         v2l = [-v2r[c] for c in range(3)]
         v3l = [-v3r[c] for c in range(3)]
         xlList.append(x_left)
-        d2lList.append(vector.setMagnitude(v2l, r2))
-        d3lList.append(vector.setMagnitude(v3l, r2))
+        d2lList.append(set_magnitude(v2l, r2))
+        d3lList.append(set_magnitude(v3l, r2))
     cx_tube_group_right = [xrList, cx_tube_group[1], d2rList, [], d3rList]
     cx_tube_group_left = [xlList, cx_tube_group[1], d2lList, [], d3lList]
 

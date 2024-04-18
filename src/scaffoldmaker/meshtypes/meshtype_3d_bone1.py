@@ -7,6 +7,7 @@ from __future__ import division
 
 import copy
 
+from cmlibs.maths.vectorops import add_vectors, cross, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field
@@ -14,7 +15,6 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.shieldmesh import ShieldMesh3D
@@ -202,7 +202,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         sphere_centre = sphere_base.centre
         sphere_radius_3 = options['Lower scale_Z']
         axes = [sphere_base.majorAxis, sphere_base.minorAxis,
-                vector.setMagnitude(vector.crossproduct3(sphere_base.majorAxis, sphere_base.minorAxis),
+                set_magnitude(cross(sphere_base.majorAxis, sphere_base.minorAxis),
                                     sphere_radius_3)]
         elementsCountAcross = [cylinder1._elementsCountAcrossMajor, cylinder1._elementsCountAcrossMinor,
                                cylinder1._elementsCountAcrossMajor]
@@ -235,7 +235,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                 for n1 in range(elementsCountAcross[1] + 1):
                     if n3 < elementsCountAcross[2] // 2:
                         if sphere1._shield3D.px[n3][n2][n1]:
-                            hemisphere.px[n3][n2][n1] = vector.addVectors([sphere1._shield3D.px[n3][n2][n1],
+                            hemisphere.px[n3][n2][n1] = add_vectors([sphere1._shield3D.px[n3][n2][n1],
                                                                             sphere_centre], [1, 1])
                     #cylinder end
                     elif n3 == elementsCountAcross[2] // 2:
@@ -292,7 +292,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
         sphere_centre = sphere_base.centre
         sphere_radius_3 = options['Upper scale_Z']
         axes = [sphere_base.majorAxis, sphere_base.minorAxis,
-                vector.setMagnitude(vector.crossproduct3(sphere_base.majorAxis, sphere_base.minorAxis),
+                set_magnitude(cross(sphere_base.majorAxis, sphere_base.minorAxis),
                                     sphere_radius_3)]
         elementsCountAcross = [cylinder1._elementsCountAcrossMajor, cylinder1._elementsCountAcrossMinor,
                                cylinder1._elementsCountAcrossMajor]
@@ -326,7 +326,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                 for n1 in range(elementsCountAcross[1] + 1):
                     if n3 > elementsCountAcross[2] // 2:
                         if sphere2._shield3D.px[n3][n2][n1]:
-                            hemisphere2.px[n3][n2][n1] = vector.addVectors([sphere2._shield3D.px[n3][n2][n1],
+                            hemisphere2.px[n3][n2][n1] = add_vectors([sphere2._shield3D.px[n3][n2][n1],
                                                                             sphere_centre], [1, 1])
                     #cylinder end
                     elif n3 == elementsCountAcross[2] // 2:
