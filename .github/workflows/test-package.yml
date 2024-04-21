@@ -11,6 +11,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    if: github.repository == 'ABI-Software/scaffoldmaker'
     strategy:
       fail-fast: false
       matrix:
