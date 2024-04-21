@@ -18,18 +18,18 @@ from scaffoldmaker.utils import vector
 
 
 class ScaffoldPackage:
-    '''
+    """
     Class packaging a scaffold type, options and modifications.
-    '''
+    """
 
     def __init__(self, scaffoldType, dct={}, defaultParameterSetName='Default'):
-        '''
+        """
         :param scaffoldType: A scaffold type derived from Scaffold_base.
         :param dct: Dictionary containing other scaffold settings. Key names and meanings:
             scaffoldSettings: The options dict for the scaffold, or None to generate defaults.
             meshEdits: A Zinc model file as a string e.g. containing edited node parameters, or None.
         :param defaultParameterSetName: Parameter set name from scaffoldType to get defaults from.
-        '''
+        """
         #print('ScaffoldPackage.__init__',dct)
         assert issubclass(scaffoldType, Scaffold_base), 'ScaffoldPackage:  Invalid scaffold type'
         self._scaffoldType = scaffoldType
@@ -71,9 +71,9 @@ class ScaffoldPackage:
         self._nextNodeIdentifier = 1
 
     def __eq__(self, other):
-        '''
+        """
         Need equality operator to determine if custom options are in use.
-        '''
+        """
         if isinstance(other, ScaffoldPackage):
             return (self._scaffoldType == other._scaffoldType) \
                 and (self._scaffoldSettings == other._scaffoldSettings) \
@@ -85,18 +85,18 @@ class ScaffoldPackage:
         return NotImplemented
 
     def __deepcopy__(self, memo):
-        '''
+        """
         Deep copies object in deserialised, pre-generated form.
-        '''
+        """
         return ScaffoldPackage(self._scaffoldType, self.toDict())
 
     def toDict(self):
-        '''
+        """
         Encodes object into a dictionary for JSON serialisation.
         Key names are described in __init__().
         Scaffold type is encoded separately.
         :return: Dictionary containing object encoding.
-        '''
+        """
         dct = {
             'rotation' : self._rotation,
             'scaffoldTypeName' : self._scaffoldType.getName(),
@@ -112,11 +112,11 @@ class ScaffoldPackage:
         return dct
 
     def updateUserAnnotationGroups(self):
-        '''
+        """
         Ensure user annotation groups are present in serialised form (dict).
         Only done if scaffold has been generated.
         :param force: If not True,
-        '''
+        """
         if self._isGenerated:
             self._userAnnotationGroupsDict = [ annotationGroup.toDict() for annotationGroup in self._userAnnotationGroups ]
 
@@ -151,10 +151,10 @@ class ScaffoldPackage:
         return self._rotation
 
     def setRotation(self, rotation):
-        '''
+        """
         :param rotation: list of 3 rotation angles about z, y', x'', in degrees.
         :return: True if value changed, otherwise False.
-        '''
+        """
         assert len(rotation) == 3
         if self._rotation != rotation:
             self._rotation = rotation
@@ -165,10 +165,10 @@ class ScaffoldPackage:
         return self._scale
 
     def setScale(self, scale):
-        '''
+        """
         :param scale: list of 3 scales for x, y, z.
         :return: True if value changed, otherwise False.
-        '''
+        """
         assert len(scale) == 3
         if self._scale != scale:
             self._scale = scale
@@ -179,10 +179,10 @@ class ScaffoldPackage:
         return self._translation
 
     def setTranslation(self, translation):
-        '''
+        """
         :param translation: list of 3 translation values for x, y, z.
         :return: True if value changed, otherwise False.
-        '''
+        """
         assert len(translation) == 3
         if self._translation != translation:
             self._translation = translation
@@ -190,10 +190,10 @@ class ScaffoldPackage:
         return False
 
     def getTransformationMatrix(self):
-        '''
+        """
         :return: 4x4 row-major transformation matrix with first index down rows, second across columns,
         suitable for multiplication p' = Mp where p = [ x, y, z, h ], or None if identity.
-        '''
+        """
         # apply transformation in order: scale then rotation then translation
         if not all((v == 0.0) for v in self._rotation):
             rotationMatrix = euler_to_rotation_matrix([ deg*math.pi/180.0 for deg in self._rotation ])
@@ -211,12 +211,12 @@ class ScaffoldPackage:
         return None
 
     def applyTransformation(self, editCoordinatesField):
-        '''
+        """
         If rotation, scale or transformation are set, transform node coordinates.
         Only call after generate().
         :param editCoordinatesField: Coordinates field in which transformation is applied to.
         :return: True if a non-identity transformation has been applied, False if not. Return None if field is invalid.
-        '''
+        """
         assert self._region
         fieldmodule = self._region.getFieldmodule()
         if not editCoordinatesField.isValid():
@@ -225,7 +225,7 @@ class ScaffoldPackage:
         with ChangeManager(fieldmodule):
             componentsCount = editCoordinatesField.getNumberOfComponents()
             # pad with zeros if componentsCount < 3
-            newCoordinates = targetCoordinates = editCoordinatesField if (componentsCount >= 3) else fieldmodule.createFieldConcatenate([ editCoordinates ] + [ fieldmodule.createFieldConstant([ 0.0 ]*(3 - componentsCount)) ])
+            newCoordinates = targetCoordinates = editCoordinatesField if (componentsCount >= 3) else fieldmodule.createFieldConcatenate([ editCoordinatesField ] + [ fieldmodule.createFieldConstant([ 0.0 ]*(3 - componentsCount)) ])
 
             # apply scale first so variable scaling in x, y, z doesn't interplay with rotation
             if not all((v == 1.0) for v in self._scale):
@@ -249,11 +249,11 @@ class ScaffoldPackage:
         return doApply
 
     def generate(self, region, applyTransformation=True):
-        '''
+        """
         Generate the finite element scaffold and define annotation groups.
         :param applyTransformation: If True (default) apply scale, rotation and translation to
         node coordinates. Specify False if client will transform, e.g. with graphics transformations.
-        '''
+        """
         self._region = region
         with ChangeManager(region.getFieldmodule()):
             self._autoAnnotationGroups, self._constructionObject = \
@@ -372,21 +372,21 @@ class ScaffoldPackage:
         return self._nextNodeIdentifier
 
     def getAnnotationGroups(self):
-        '''
+        """
         Empty until after call to generate().
         :return: Alphabetically sorted list of annotation groups.
-        '''
+        """
         return sorted(self._autoAnnotationGroups + self._userAnnotationGroups, key=AnnotationGroup.getName)
 
     def findAnnotationGroupByName(self, name):
-        '''
+        """
         Invalid until after call to generate().
         :return: Annotation group with the given name or None.
-        '''
+        """
         return findAnnotationGroupByName(self._autoAnnotationGroups + self._userAnnotationGroups, name)
 
     def createUserAnnotationGroup(self, term=None, isMarker=False):
-        '''
+        """
         Create a new, empty user annotation group.
         Only call after generate().
         :param term: Identifier for anatomical term, a tuple of (name, id), or None
@@ -398,7 +398,7 @@ class ScaffoldPackage:
         :param isMarker: Set to true if group will be used for a single marker point; must call
         createMarkerNode immediately afterwards.
         :return: New AnnotationGroup.
-        '''
+        """
         assert self._region
         if term is not None:
             assert isinstance(term, tuple) and (len(term) == 2) and all(isinstance(s, str) for s in term),\
@@ -418,10 +418,10 @@ class ScaffoldPackage:
         return annotationGroup
 
     def deleteAnnotationGroup(self, annotationGroup):
-        '''
+        """
         Delete the annotation group. Must be a user annotation group.
         :return: True on success, otherwise False
-        '''
+        """
         if annotationGroup and self.isUserAnnotationGroup(annotationGroup):
             annotationGroup.clear()
             self._userAnnotationGroups.remove(annotationGroup)
@@ -429,8 +429,8 @@ class ScaffoldPackage:
         return False
 
     def isUserAnnotationGroup(self, annotationGroup):
-        '''
+        """
         Invalid until after call to generate().
         :return: True if annotationGroup is user-created and editable.
-        '''
+        """
         return annotationGroup in self._userAnnotationGroups

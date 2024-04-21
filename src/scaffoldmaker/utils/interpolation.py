@@ -1278,7 +1278,8 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
     MIN_CURVATURE = 0.1 / max(xRange)  # minimum to consider
     MAX_CURVATURE_FACTOR = 100.0
     x = None
-    MAX_ITERS = 100
+    mag_adxi = -1
+    it = MAX_ITERS = 100
     for it in range(MAX_ITERS):
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, loop, derivative=True)
         mag_d = magnitude(d)
@@ -1332,7 +1333,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
                 print("getNearestLocationOnCurve:  Converged in", it + 1, "iterations, dxi", mag_adxi)
             break
     else:
-        print("getNearestLocationOnCurve:  Reached max iterations", it + 1, "closeness in xi", mag_dxi)
+        print("getNearestLocationOnCurve:  Reached max iterations", it + 1, "closeness in xi", mag_adxi)
     return location, x
 
 
