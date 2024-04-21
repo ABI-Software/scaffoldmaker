@@ -181,8 +181,8 @@ class DerivativeSmoothing:
                 derivativeOffsets = []
                 derivativeOffset = 1
                 for functionType in functionTypes:
-                    # Future add: Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY):
-                    if functionType in (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE,):
+                    if functionType in (Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE,
+                                        Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY):
                         useDirections.append(True)
                         if (functionType == Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE) and (len(derivativeOffsets) == 2):
                             derivativeOffset += 1

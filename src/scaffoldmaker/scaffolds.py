@@ -12,8 +12,10 @@ from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
 from scaffoldmaker.meshtypes.meshtype_2d_tubebifurcation1 import MeshType_2d_tubebifurcation1
+from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
+from scaffoldmaker.meshtypes.meshtype_3d_bone1 import MeshType_3d_bone1
 from scaffoldmaker.meshtypes.meshtype_3d_box1 import MeshType_3d_box1
 from scaffoldmaker.meshtypes.meshtype_3d_boxhole1 import MeshType_3d_boxhole1
 from scaffoldmaker.meshtypes.meshtype_3d_boxnetwork1 import MeshType_3d_boxnetwork1
@@ -22,6 +24,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
 from scaffoldmaker.meshtypes.meshtype_3d_esophagus1 import MeshType_3d_esophagus1
+from scaffoldmaker.meshtypes.meshtype_3d_gastrointestinaltract1 import MeshType_3d_gastrointestinaltract1
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
 from scaffoldmaker.meshtypes.meshtype_3d_heart2 import MeshType_3d_heart2
 from scaffoldmaker.meshtypes.meshtype_3d_heartarterialroot1 import MeshType_3d_heartarterialroot1
@@ -38,6 +41,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.meshtypes.meshtype_3d_musclefusiform1 import MeshType_3d_musclefusiform1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
+from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
@@ -48,7 +52,10 @@ from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
+from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
+from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
+from scaffoldmaker.meshtypes.meshtype_3d_uterus2 import MeshType_3d_uterus2
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
@@ -66,8 +73,10 @@ class Scaffolds(object):
             MeshType_2d_tube1,
             MeshType_2d_tubebifurcation1,
             #MeshType_2d_tubebifurcationtree1,
+            MeshType_2d_tubenetwork1,
             MeshType_3d_bladder1,
             MeshType_3d_bladderurethra1,
+            MeshType_3d_bone1,
             MeshType_3d_box1,
             MeshType_3d_boxhole1,
             MeshType_3d_boxnetwork1,
@@ -76,6 +85,7 @@ class Scaffolds(object):
             MeshType_3d_colon1,
             MeshType_3d_colonsegment1,
             MeshType_3d_esophagus1,
+            MeshType_3d_gastrointestinaltract1,
             MeshType_3d_heart1,
             MeshType_3d_heart2,
             MeshType_3d_heartarterialroot1,
@@ -92,6 +102,7 @@ class Scaffolds(object):
             MeshType_3d_lung2,
             MeshType_3d_musclefusiform1,
             MeshType_3d_ostium1,
+            MeshType_3d_ostium2,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,
@@ -102,7 +113,10 @@ class Scaffolds(object):
             MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
             MeshType_3d_tube1,
+            MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
+            MeshType_3d_uterus1,
+            MeshType_3d_uterus2,
             MeshType_3d_wholebody1
             ]
 

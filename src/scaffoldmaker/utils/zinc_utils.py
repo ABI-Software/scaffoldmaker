@@ -1,11 +1,12 @@
 """
 Utility functions for easing use of Zinc API.
 """
-
+from cmlibs.maths.vectorops import mult
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
+from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
-from cmlibs.zinc.element import MeshGroup
+from cmlibs.zinc.element import Element, Elementbasis, MeshGroup
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, Nodeset
@@ -430,16 +431,17 @@ def print_node_field_parameters(value_labels, node_field_parameters, format_stri
 
 
 def exnode_string_from_nodeset_field_parameters(
+        field_names=["coordinates"],
         value_labels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1],
-        node_field_parameters = [
+        node_field_parameters = [[
             (1, [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            (2, [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-        ],
+            (2, [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])]],
         group_name = 'meshEdits'):
     """
     Return a string in Zinc EX format defining nodes with the supplied identifiers
     and coordinate field parameters.
     Works in a private zinc context.
+    :param field_names: List of fields defining fields for node_field_parameters.
     :param value_labels: List of Node.ValueLabels supplied for each node.
     :param node_field_parameters: List of tuples of node identifier and parameters for
     each of the node values supplied. Versions may be supplied for any node/value
@@ -454,55 +456,66 @@ def exnode_string_from_nodeset_field_parameters(
     # following requires at least one value label and node, assumes consistent values and components counts
     value_labels_count = len(value_labels)
     assert len(node_field_parameters) > 0
-    node_parameters = node_field_parameters[0][1]
+    node_parameters = node_field_parameters[0][0][1]
     components_count = \
         len(node_parameters[0][0]) if isinstance(node_parameters[0][0], list) else len(node_parameters[0])
     context = Context('exnode_string_from_nodeset_field_parameters')
     region = context.getDefaultRegion()
     fieldmodule = region.getFieldmodule()
+    allCoordinates = []
     with ChangeManager(fieldmodule):
         fieldcache = fieldmodule.createFieldcache()
-        coordinates = find_or_create_field_coordinates(fieldmodule, components_count=components_count)
+        for i in range(len(field_names)):
+            allCoordinates.append(find_or_create_field_coordinates(fieldmodule, field_names[i],
+                                                                   components_count=components_count))
+
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         group = fieldmodule.createFieldGroup()
         group.setName(group_name)
         nodeset_group = group.createNodesetGroup(nodes)
-        # dict mapping from tuple of derivative versions to nodetemplate
-        nodetemplates = {}
+
         # create nodes
-        for node_identifier, node_parameters in node_field_parameters:
-            value_labels_versions = []
-            for d in range(value_labels_count):
-                if isinstance(node_parameters[d][0], list):
-                    value_labels_versions.append(len(node_parameters[d]))
-                else:
-                    value_labels_versions.append(1)
-            value_labels_versions = tuple(value_labels_versions)  # must be tuple to use as dict key
-            nodetemplate = nodetemplates.get(value_labels_versions)
-            if not nodetemplate:
-                nodetemplate = nodes.createNodetemplate()
-                nodetemplate.defineField(coordinates)
-                if not Node.VALUE_LABEL_VALUE in value_labels:
-                    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+        for i in range(len(node_field_parameters)):
+            nodetemplates = {} # dict mapping from tuple of derivative versions to nodetemplate
+            for node_identifier, node_parameters in node_field_parameters[i]:
+                value_labels_versions = []
                 for d in range(value_labels_count):
-                    nodetemplate.setValueNumberOfVersions(coordinates, -1, value_labels[d], value_labels_versions[d])
-                nodetemplates[value_labels_versions] = nodetemplate
-            node = nodeset_group.createNode(node_identifier, nodetemplate)
-            fieldcache.setNode(node)
-            for d in range(value_labels_count):
-                if isinstance(node_parameters[d][0], list):
-                    for v in range(value_labels_versions[d]):
-                        coordinates.setNodeParameters(fieldcache, -1, value_labels[d], v + 1, node_parameters[d][v])
+                    if isinstance(node_parameters[d][0], list):
+                        value_labels_versions.append(len(node_parameters[d]))
+                    else:
+                        value_labels_versions.append(1)
+                value_labels_versions = tuple(value_labels_versions)  # must be tuple to use as dict key
+                nodetemplate = nodetemplates.get(value_labels_versions)
+
+                if not nodetemplate:
+                    nodetemplate = nodes.createNodetemplate()
+                    nodetemplate.defineField(allCoordinates[i])
+                    if not Node.VALUE_LABEL_VALUE in value_labels:
+                        nodetemplate.setValueNumberOfVersions(allCoordinates[i], -1, Node.VALUE_LABEL_VALUE, 0)
+                    for d in range(value_labels_count):
+                        nodetemplate.setValueNumberOfVersions(allCoordinates[i], -1, value_labels[d], value_labels_versions[d])
+                    nodetemplates[value_labels_versions] = nodetemplate
+                if i == 0:
+                    node = nodeset_group.createNode(node_identifier, nodetemplate)
                 else:
-                    coordinates.setNodeParameters(fieldcache, -1, value_labels[d], 1, node_parameters[d])
+                    node = nodes.findNodeByIdentifier(node_identifier)
+                    node.merge(nodetemplate)
+                fieldcache.setNode(node)
+                for d in range(value_labels_count):
+                    if isinstance(node_parameters[d][0], list):
+                        for v in range(value_labels_versions[d]):
+                            allCoordinates[i].setNodeParameters(fieldcache, -1, value_labels[d], v + 1, node_parameters[d][v])
+                    else:
+                        allCoordinates[i].setNodeParameters(fieldcache, -1, value_labels[d], 1, node_parameters[d])
+
         # serialise to string
         sir = region.createStreaminformationRegion()
         srm = sir.createStreamresourceMemory()
         sir.setResourceGroupName(srm, group_name)
         region.write(sir)
         result, exString = srm.getBuffer()
-    return exString
 
+    return exString
 
 def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGroup2, nextNodeIdentifier):
     """
@@ -579,3 +592,95 @@ def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGrou
             element = elemiter.next()
 
     return nextNodeIdentifier, list(copyIdentifiersMap.values())
+
+
+def clearRegion(region):
+    """
+    Destroy all elements, nodes, datapoints in region and unmanage all fields.
+    Remove all child regions.
+    Some fields may remain due to external references being held.
+    :param region: Region to clear.
+    """
+    with HierarchicalChangeManager(region):
+        child = region.getFirstChild()
+        while child.isValid():
+            nextSibling = child.getNextSibling()
+            region.removeChild(child)
+            child = nextSibling
+        fieldmodule = region.getFieldmodule()
+        for dimension in range(3, 0, -1):
+            mesh = fieldmodule.findMeshByDimension(dimension)
+            mesh.destroyAllElements()
+        for fieldDomainType in [Field.DOMAIN_TYPE_NODES, Field.DOMAIN_TYPE_DATAPOINTS]:
+            nodeset = fieldmodule.findNodesetByFieldDomainType(fieldDomainType)
+            nodeset.destroyAllNodes()
+        fieldIter = fieldmodule.createFielditerator()
+        field = fieldIter.next()
+        while field.isValid():
+            field.setManaged(False)
+            field = fieldIter.next()
+
+
+def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, startElementIdentifier=None,
+                      coordinate_field_name="coordinates", group_name=None):
+    """
+    Generate a set of 1-D elements with Hermite basis
+    :param region: Zinc Region.
+    :param nx: Coordinates along curve.
+    :param nd1: Derivatives along curve.
+    :param loop: True if curve loops back to first point, False if not.
+    :param startNodeIdentifier: Optional first node identifier to use.
+    :param startElementIdentifier: Optional first 1D element identifier to use.
+    :param coordinate_field_name: Optional name of coordinate field to define, if omitted use "coordinates".
+    :param group_name: Optional name of group to put new nodes and elements in.
+    :return: next node identifier, next 2D element identifier
+    """
+    fieldmodule = region.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        coordinates = find_or_create_field_coordinates(fieldmodule, name=coordinate_field_name)
+        group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
+
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
+            max(get_maximum_node_identifier(nodes), 0) + 1
+
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
+
+        mesh = fieldmodule.findMeshByDimension(1)
+        elementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
+            max(get_maximum_element_identifier(mesh), 0) + 1
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
+        cubicHermiteBasis = fieldmodule.createElementbasis(
+            1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
+        elementtemplate.defineField(coordinates, -1, eft)
+
+        fieldcache = fieldmodule.createFieldcache()
+        nids = []
+        nCount = len(nx)
+        nodeset_group = group.getOrCreateNodesetGroup(nodes) if group else None
+        for n in range(nCount):
+            node = nodes.createNode(nodeIdentifier, nodetemplate)
+            nids.append(nodeIdentifier)
+            fieldcache.setNode(node)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n])
+            if nodeset_group:
+                nodeset_group.addNode(node)
+            nodeIdentifier += 1
+        eCount = nCount if loop else nCount - 1
+        if loop:
+            nids.append(nids[0])
+        mesh_group = group.getOrCreateMeshGroup(mesh) if group else None
+        for e in range(eCount):
+            element = mesh.createElement(elementIdentifier, elementtemplate)
+            element.setNodesByIdentifier(eft, nids[e:e + 2])
+            if mesh_group:
+                mesh_group.addElement(element)
+            elementIdentifier += 1
+
+    return nodeIdentifier, elementIdentifier
+
