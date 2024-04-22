@@ -67,6 +67,7 @@ def getEllipseArcLength(a, b, angle1Radians, angle2Radians, method='line segment
         # Max 100 segments around ellipse
         segmentCount = int(math.ceil(50*(angle2-angle1)/math.pi))
         length = 0.0
+        lastX = None
         for i in range(segmentCount + 1):
             r = i/segmentCount
             angle = r*angle1 + (1.0 - r)*angle2

@@ -1259,6 +1259,10 @@ def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifie
     d2Extrude = []
     d3UnitExtrude = []
 
+    d1LastTwoFaces = None
+    d2LastTwoFaces = None
+    xLastTwoFaces = None
+
     # Create object
     smallIntestineSegmentTubeMeshOuterPoints = CylindricalSegmentTubeMeshOuterPoints(
         elementsCountAround, elementsCountAlongSegment, segmentLength,

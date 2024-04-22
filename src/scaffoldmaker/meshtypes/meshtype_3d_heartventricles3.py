@@ -841,6 +841,7 @@ class MeshType_3d_heartventricles3(Scaffold_base):
         nodeIdentifier = startNodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
 
         if False:
+            nodetemplate12 = None
             for n in range((elementsCountUpLVTrackSurface + 1)*elementsCountAroundLVTrackSurface):
                 node = nodes.createNode(nodeIdentifier, nodetemplate12)
                 cache.setNode(node)

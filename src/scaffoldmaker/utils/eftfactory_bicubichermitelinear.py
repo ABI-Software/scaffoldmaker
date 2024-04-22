@@ -1,25 +1,25 @@
-'''
+"""
 Definitions of standard element field templates using bicubic Hermite x linear Lagrange basis.
-'''
+"""
 from cmlibs.zinc.element import Elementbasis
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 
 
 class eftfactory_bicubichermitelinear:
-    '''
+    """
     Factory class for creating element field templates for a 3-D mesh using bicubic Hermite x linear Lagrange basis.
-    '''
+    """
 
     def __init__(self, mesh, useCrossDerivatives, linearAxis = 3,
             d_ds1 = Node.VALUE_LABEL_D_DS1, d_ds2 = Node.VALUE_LABEL_D_DS2):
-        '''
+        """
         :param mesh:  Zinc mesh to create element field templates in.
         :param useCrossDerivatives: Set to True if you want cross derivative terms.
         :param linearAxis: 1, 2, or 3.
         :param d_ds1: Node derivative to use in Hermite axis 1: Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2.
         :param d_ds2: Node derivative to use in Hermite axis 2, > d_ds1: Node.VALUE_LABEL_D_DS2 or Node.VALUE_LABEL_D_DS3.
-        '''
+        """
         assert mesh.getDimension() == 3, 'eftfactory_bicubichermitelinear: not a 3-D Zinc mesh'
         assert linearAxis in [ 1, 2, 3 ], 'eftfactory_bicubichermitelinear: linearAxis must be 1, 2 or 3'
         assert d_ds1 in [ Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2 ], 'eftfactory_bicubichermitelinear: invalid d_ds1'
@@ -37,11 +37,11 @@ class eftfactory_bicubichermitelinear:
         self._basis.setFunctionType(linearAxis, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
 
     def _remapDefaultNodeDerivatives(self, eft):
-        '''
+        """
         Remap the Hermite node derivatives to those chosen in __init__.
         Use only on first create.
         :param eft: The element field template to remap.
-        '''
+        """
         # must do d_ds2 first!
         if self._d_ds2 != Node.VALUE_LABEL_D_DS2:
             remapEftNodeValueLabel(eft, range(1, 9), Node.VALUE_LABEL_D_DS2, [ (self._d_ds2, []) ])
@@ -54,11 +54,11 @@ class eftfactory_bicubichermitelinear:
         return self._basis
 
     def createEftBasic(self):
-        '''
+        """
         Create the basic biicubic Hermite x linear Lagrange element template with 1:1 mappings to
         node derivatives ds1 & ds2, with or without cross derivatives accordinate as initialised.
         :return: Element field template
-        '''
+        """
         if not self._useCrossDerivatives:
             return self.createEftNoCrossDerivatives()
         eft = self._mesh.createElementfieldtemplate(self._basis)
@@ -67,11 +67,11 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftNoCrossDerivatives(self):
-        '''
+        """
         Create a basic tricubic hermite element template with 1:1 mappings to
         node derivatives ds1 & ds2, without cross derivatives.
         :return: Element field template
-        '''
+        """
         eft = self._mesh.createElementfieldtemplate(self._basis)
         for n in range(8):
             eft.setFunctionNumberOfTerms(n*4 + 4, 0)
@@ -80,7 +80,7 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftShellPoleBottom(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
-        '''
+        """
         Create a bicubic hermite linear element field for closing bottom pole of a shell.
         Element is collapsed in xi1 on xi2 = 0.
         Each collapsed node has 3 scale factors giving the cos, sin coefficients
@@ -92,7 +92,7 @@ class eftfactory_bicubichermitelinear:
         :param nodeScaleFactorOffset0: offset of node scale factors at pole on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at pole on xi1=1
         :return: Element field template
-        '''
+        """
         # start with full bicubic hermite linear to remap D2_DS1DS2 at pole
         eft = self._mesh.createElementfieldtemplate(self._basis)
         if not self._useCrossDerivatives:
@@ -128,7 +128,7 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftShellPoleTop(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
-        '''
+        """
         Create a bicubic hermite linear element field for closing top pole of a shell.
         Element is collapsed in xi1 on xi2 = 1.
         Each collapsed node has 3 scale factors giving the cos, sin coefficients
@@ -140,7 +140,7 @@ class eftfactory_bicubichermitelinear:
         :param nodeScaleFactorOffset0: offset of node scale factors at pole on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at pole on xi1=1
         :return: Element field template
-        '''
+        """
         # start with full bicubic hermite linear to remap D2_DS1DS2 at pole
         eft = self._mesh.createElementfieldtemplate(self._basis)
         if not self._useCrossDerivatives:
@@ -176,14 +176,14 @@ class eftfactory_bicubichermitelinear:
         return eft
         
     def createEftSplitXi1RightStraight(self):
-        '''
+        """
         Create an element field template suitable for the inner elements of the
         join between left and right chambers, with xi1 bifurcating to right.
         Straight through version.
         Only works with linearAxis 2.
         :return: Element field template
-        '''
-        assert linearAxis == 2, 'eftfactory_bicubichermitelinear.createEftSplitXi1RightStraight:  Not linearAxis 2'
+        """
+        assert self._linearAxis == 2, 'eftfactory_bicubichermitelinear.createEftSplitXi1RightStraight:  Not linearAxis 2'
         eft = self.createEftNoCrossDerivatives()
         setEftScaleFactorIds(eft, [1], [])
         remapEftNodeValueLabel(eft, [ 5, 7 ], self._d_ds1, [ (self._d_ds1, []), (self._d_ds2, [1]) ])
@@ -192,14 +192,14 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftSplitXi1RightOut(self):
-        '''
+        """
         Create an element field template suitable for the outer elements of the
         join between left and right chambers, with xi1 bifurcating to right.
         Right out version i.e. xi1 heading to right. h-shape.
         Only works with linearAxis 2.
         :return: Element field template
-        '''
-        assert linearAxis == 2, 'eftfactory_bicubichermitelinear.createEftSplitXi1RightOut:  Not linearAxis 2'
+        """
+        assert self._linearAxis == 2, 'eftfactory_bicubichermitelinear.createEftSplitXi1RightOut:  Not linearAxis 2'
         eft = self.createEftNoCrossDerivatives()
         setEftScaleFactorIds(eft, [1], [])
         remapEftNodeValueLabel(eft, [ 1, 3 ], self._d_ds1, [ (self._d_ds1, [1]) ])
@@ -209,13 +209,13 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftOpenTube(self):
-        '''
+        """
         Create a basic bicubic hermite linear element template for elements
         along boundary where a tube is opened on xi1 = 1 for a flat preparation.
         Could eventually have 6 variants. Retain node numbering with two versions
         for boundary nodes.
         :return: Element field template
-        '''
+        """
         eft = self.createEftBasic()
         for n in [ 1, 3, 5, 7 ]:
             ln = n + 1
@@ -229,11 +229,11 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftWedgeXi1One(self):
-        '''
+        """
         Create a basic bicubic hermite linear element template for elements
         along boundary of tenia coli where nodes on xi1 = 1 are collapsed.
         :return: Element field template
-        '''
+        """
         eft = self.createEftBasic()
         ln_map = [ 1, 2, 3, 4, 5, 2, 6, 4 ]
         remapEftLocalNodes(eft, 6, ln_map)
@@ -241,11 +241,11 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftWedgeXi1Zero(self):
-        '''
+        """
         Create a basic bicubic hermite linear element template for elements
         along boundary of tenia coli where nodes on xi1 = 0 are collapsed.
         :return: Element field template
-        '''
+        """
         eft = self.createEftBasic()
         ln_map = [ 1, 2, 3, 4, 1, 5, 3, 6 ]
         remapEftLocalNodes(eft, 6, ln_map)
@@ -253,13 +253,13 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftWedgeCollapseXi1Quadrant(self, collapseNodes):
-        '''
+        """
         Create a bicubic hermite linear element field for a wedge element collapsed in xi1.
         :param collapseNodes: As the element can be collapsed in xi1 at either ends of xi2 or xi3, collapseNodes
         are the local indices of nodes whose d2 (for elements collapse at either ends of xi2) or
         d3 (for elements collapse at either ends of xi3) are remapped with d1 before collapsing the nodes.
         :return: Element field template
-        '''
+        """
         eft = self.createEftBasic()
         
         valid = True
@@ -313,13 +313,13 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftWedgeCollapseXi2Quadrant(self, collapseNodes):
-        '''
+        """
         Create a bicubic hermite linear element field for a wedge element collapsed in xi2.
         :param collapseNodes: As the element can be collapsed in xi2 at either ends of xi1 or xi3, collapseNodes
         are the local indices of nodes whose d1 (for elements collapse at either ends of xi1) or
         d3 (for elements collapse at either ends of xi3) are remapped with d2 before collapsing the nodes.
         :return: Element field template
-        '''
+        """
         eft = self.createEftBasic()
 
         valid = True
@@ -371,12 +371,12 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftWedgeXi1ZeroOpenTube(self):
-        '''
+        """
         Create a basic bicubic hermite linear element template for elements
         along boundary of tenia coli where nodes on xi1 = 0 are collapsed
         where a tube is opened on xi1 = 1 for a flat preparation.
         :return: Element field template
-        '''
+        """
         eft = self.createEftBasic()
         for n in [ 1, 3, 5, 7 ]:
             ln = n + 1
@@ -391,7 +391,7 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftTetrahedronXi1One(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
-        '''
+        """
         Create a bicubic hermite linear element field for a solid tetrahedron for the apex of cecum,
         with xi1 and xi3 collapsed on xi2 = 0, and xi3 collapsed on xi1 = 1 and xi2 = 1.
         Each collapsed node on xi2 = 0 has 3 scale factors giving the cos, sin coefficients of
@@ -403,7 +403,7 @@ class eftfactory_bicubichermitelinear:
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
         :return: Element field template
-        '''
+        """
         # start with full bicubic hermite linear
         eft = self._mesh.createElementfieldtemplate(self._basis)
 
@@ -447,7 +447,7 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftTetrahedronXi1Zero(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
-        '''
+        """
         Create a bicubic hermite linear element field for a solid tetrahedron for the apex of cecum,
         with xi1 and xi3 collapsed on xi2 = 0, and xi3 collapsed on xi1 = 0, xi2 = 1.
         Each collapsed node on xi2 = 0 has 3 scale factors giving the cos, sin coefficients of
@@ -459,7 +459,7 @@ class eftfactory_bicubichermitelinear:
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
         :return: Element field template
-        '''
+        """
         # start with full bicubic hermite linear
         eft = self._mesh.createElementfieldtemplate(self._basis)
         for n in [ 2, 3, 6, 7 ]:
@@ -502,7 +502,7 @@ class eftfactory_bicubichermitelinear:
         return eft
 
     def createEftPyramidBottomSimple(self, nodeScaleFactorOffset0, nodeScaleFactorOffset1):
-        '''
+        """
         Create a bicubic hermite linear element field for a solid pyramid for elements within
         a tenia coli joining to the cecal apex, with xi1 and xi3 collapsed on xi2 = 0.
         Each collapsed node has 3 scale factors giving the cos, sin coefficients of the
@@ -513,7 +513,7 @@ class eftfactory_bicubichermitelinear:
         :param nodeScaleFactorOffset0: offset of node scale factors at axis on xi1=0
         :param nodeScaleFactorOffset1: offset of node scale factors at axis on xi1=1
         :return: Element field template
-        '''
+        """
         # start with full bicubic hermite linear
         eft = self._mesh.createElementfieldtemplate(self._basis)
         for n in [ 2, 3, 6, 7 ]:

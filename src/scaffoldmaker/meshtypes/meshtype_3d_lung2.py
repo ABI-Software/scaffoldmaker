@@ -1113,6 +1113,7 @@ def createLungNodes(spaceFromCentre, lengthUnit, widthUnit, heightUnit,
     obl += tx[1:]
     obl_d2 += td2[1:]
 
+    lower_row1 = None
     # rows up dorsal edge
     for n3 in range(lElementsCount3):
         if n3 == 0:
