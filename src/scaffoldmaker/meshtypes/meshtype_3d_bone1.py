@@ -80,7 +80,25 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (3, [[-9.341713e-01,-6.580989e-01, 1.537421e-01], [ 1.589471e-01,-5.608755e-02, 8.047271e-01], [ 2.196727e-01, 2.198117e-02, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-2.156681e-02, 2.155317e-01, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
                     (4, [[-8.515940e-01,-6.576398e-01, 6.944961e-01], [ 6.039198e-03, 5.546106e-02, 2.692810e-01], [ 2.174544e-01, 6.164221e-02, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-6.445803e-02, 2.273877e-01, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]])
                 ])
-        })
+        }),
+
+        'Tibia 1': ScaffoldPackage(MeshType_1d_path1, {
+            'scaffoldSettings': {
+                'Coordinate dimensions': 3,
+                'D2 derivatives': True,
+                'D3 derivatives': True,
+                'Length': 3.0,
+                'Number of elements': 3
+            },
+            'meshEdits': exnode_string_from_nodeset_field_parameters(
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    (1, [[ 5.478874e-02,-2.031468e-02,-9.043539e+00], [ 1.707559e-01,-5.112576e-02, 5.609759e+00], [ 7.943801e-01,-7.964818e-02,-7.322865e-03], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 9.087504e-02, 1.136004e+00, 7.587069e-03], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (2, [[ 6.058305e-02,-9.069170e-02,-3.895807e+00], [-1.109146e-01, 5.163967e-02, 5.480916e+00], [ 5.653736e-01,-1.230512e-01, 1.260054e-02], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 1.389491e-01, 6.380904e-01,-3.200067e-03], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (3, [[-1.877598e-01, 1.107110e-02, 1.514034e+00], [-4.509590e-02, 6.698397e-02, 5.530504e+00], [ 7.153731e-01,-1.353970e-01, 7.473066e-03], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 1.388781e-01, 7.333377e-01,-7.749571e-03], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]]),
+                    (4, [[-2.093406e-02, 4.163051e-02, 7.155221e+00], [ 3.783990e-01,-5.859759e-03, 5.746579e+00], [ 1.346095e+00,-1.457858e-01,-8.878590e-02], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [ 2.337453e-01, 2.166286e+00,-1.318264e-02], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]])
+                ])
+        }),
 
     }
 
@@ -167,15 +185,16 @@ with variable numbers of elements in major, minor, shell and axial directions.
             options['Central path'] = cls.getOptionScaffoldPackage('Central path', MeshType_1d_path1)
         dependentChanges = False
 
-        if options['Number of elements across major'] < 4:
-            options['Number of elements across major'] = 4
+        if options['Number of elements across major'] < 6:
+            options['Number of elements across major'] = 6
         if options['Number of elements across major'] % 2:
             options['Number of elements across major'] += 1
 
-        if options['Number of elements across minor'] < 4:
-            options['Number of elements across minor'] = 4
+        if options['Number of elements across minor'] < 6:
+            options['Number of elements across minor'] = 6
         if options['Number of elements across minor'] % 2:
             options['Number of elements across minor'] += 1
+        options['Number of elements across minor'] = options['Number of elements across major' ] 
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
         if options['Number of elements across transition'] < 1:
@@ -199,7 +218,10 @@ with variable numbers of elements in major, minor, shell and axial directions.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
-
+        parameterSetName = options['Base parameter set']
+        isRadius = 'Radius 1' in parameterSetName
+        isUlna = 'Ulna 1' in parameterSetName
+        isTibia = 'Tibia 1' in parameterSetName
         centralPath = options['Central path']
         full = not options['Lower half']
         elementsCountAcrossMajor = options['Number of elements across major']
@@ -413,7 +435,130 @@ with variable numbers of elements in major, minor, shell and axial directions.
                                                          rangeOfRequiredElements)
 
 
-        annotationGroup = []
+        #annotationGroup = []
+        cancellousGroup = AnnotationGroup(region, get_bone_term("Cancellous bone"))
+
+        cancellousMeshGroup = cancellousGroup.getMeshGroup(mesh)
+        #annotationGroup = [cancellousGroup]
+
+
+        corticalGroup = AnnotationGroup(region, get_bone_term("Cortical bone"))
+
+        corticalMeshGroup = corticalGroup.getMeshGroup(mesh)
+        annotationGroup = [cancellousGroup,corticalGroup]
+
+        array2 = [1,2,7,14,15,22,27,28]
+        array1 = [1,2,5,10,11,16,19,20]
+
+        More_elements = array1 if elementsCountAcrossMajor == 6 else array2 if elementsCountAcrossMajor == 8 else None
+        addition = elementsCountAcrossMajor-2 if elementsCountAcrossMajor == 6 else elementsCountAcrossMajor if elementsCountAcrossMajor == 8 else None
+
+        number_of_elements_per_layer = max(More_elements) #(elementsCountAcrossMajor-1)*4
+
+        outer_element_trunk = [x+number_of_elements_per_layer*i for i in range(0,elementsCountAlong) for x in More_elements]
+        print(outer_element_trunk)
+        max_value = max(outer_element_trunk)
+        dome1=[max_value + i for i in range(1,5)]
+        print(dome1)
+        dome1_final = dome1 + [x+max(dome1)+addition for x in More_elements]
+        print(dome1_final)
+        max_value = max(dome1_final)
+
+        dome2 = [x + max_value for x in More_elements]
+        max_value = max(dome2)
+        print(dome2)
+        dome2_final = dome2 + [max_value + i+addition for i in range(1,5)]
+        print(dome2_final)
+        final_outer = outer_element_trunk+dome1_final+dome2_final
+
+
+        final_inner = []
+
+        for number in range (1,max(final_outer)-1):
+            if number not in final_outer:
+                final_inner.append(number)
+
+
+
+        for key in final_inner:
+            element = mesh.findElementByIdentifier(int(key))
+            cancellousMeshGroup.addElement(element)
+
+        for key in final_outer:
+            element = mesh.findElementByIdentifier(int(key))
+            corticalMeshGroup.addElement(element)
+
+        top_elem = max(final_outer)
+        bottom_elem = number_of_elements_per_layer*elementsCountAlong+1
+        lateral_elem = int(number_of_elements_per_layer*(elementsCountAlong/2-1)+More_elements[3])
+        medial_elem = int(number_of_elements_per_layer*(elementsCountAlong/2-1)+More_elements[4])
+
+
+        # markers with element number and xi position
+        allMarkersRadius = {"Greater tuberosity of radius": {"elementID": top_elem, "xi": [1.0, 0.0, 0.5]},
+                      "Lateral epicondyle of radius": {"elementID": medial_elem, "xi": [1.0, 0.0, 1.0]},
+                      "Medial epicondyle of radius": {"elementID": bottom_elem, "xi": [0.0, 0.0, 0.0]},
+                      "Epiphysial plate of radius": {"elementID": lateral_elem, "xi": [0.0, 0.0, 0.0]},
+        }
+
+        allMarkersUlna = {"Greater tuberosity of radius": {"elementID": top_elem, "xi": [1.0, 0.0, 0.5]},
+                      "Lateral epicondyle of radius": {"elementID": bottom_elem, "xi": [1.0, 0.0, 1.0]},
+        }
+
+        allMarkersTibia = {"Intercondylar eminence of tibia": {"elementID": top_elem, "xi": [0.0,1.0,0.0]},
+                           "Inferior articular surface of tibia": {"elementID": bottom_elem, "xi": [1.0,0.0,1.0]},
+                           "Medial surface of tibia": {"elementID": medial_elem, "xi": [1.0,1.0,1.0]},
+                           "Lateral surface of tibia": {"elementID": lateral_elem, "xi":[1.0,1.0,1.0]},
+
+        }
+
+        markerGroup = findOrCreateFieldGroup(fm, "marker")
+        markerName = findOrCreateFieldStoredString(fm, name="marker_name")
+        markerLocation = findOrCreateFieldStoredMeshLocation(fm, mesh, name="marker_location")
+
+        markerPoints = markerGroup.getOrCreateNodesetGroup(nodes)
+        markerTemplateInternal = nodes.createNodetemplate()
+        markerTemplateInternal.defineField(markerName)
+        markerTemplateInternal.defineField(markerLocation)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)+10
+
+        #annotation fiducial point
+        if isRadius:
+            for key in allMarkersRadius:
+                xi = allMarkersRadius[key]["xi"]
+                addMarker = {"name": key, "xi": allMarkersRadius[key]["xi"]}
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                elementID = allMarkersRadius[key]["elementID"]
+                element = mesh.findElementByIdentifier(elementID)
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+
+        elif isUlna:
+            for key in allMarkersUlna:
+                xi = allMarkersUlna[key]["xi"]
+                addMarker = {"name": key, "xi": allMarkersUlna[key]["xi"]}
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                elementID = allMarkersRadius[key]["elementID"]
+                element = mesh.findElementByIdentifier(elementID)
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+
+        elif isTibia:
+            for key in allMarkersTibia:
+                xi = allMarkersTibia[key]["xi"]
+                addMarker = {"name": key, "xi": allMarkersTibia[key]["xi"]}
+                markerPoint = markerPoints.createNode(nodeIdentifier, markerTemplateInternal)
+                nodeIdentifier += 1
+                cache.setNode(markerPoint)
+                markerName.assignString(cache, addMarker["name"])
+                elementID = allMarkersTibia[key]["elementID"]
+                element = mesh.findElementByIdentifier(elementID)
+                markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
         return annotationGroup, None
 
     @classmethod
