@@ -411,7 +411,7 @@ def determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights
                     derivative = nodeParameters[n][nd + 1]
                     magDerivative = magnitude(derivative)
                     cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
-                    magnitudeSimilarity = math.exp(-math.fabs(magDerivative - magDelta))
+                    magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
                     similarity = cosineSimilarity * magnitudeSimilarity
                     if math.fabs(similarity) > math.fabs(greatestSimilarity):
                         greatestSimilarity = similarity
