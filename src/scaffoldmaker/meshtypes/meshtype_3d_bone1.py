@@ -47,7 +47,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (4, [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
                 ])
         })
-             'Ulna 1': ScaffoldPackage(MeshType_1d_path1, {
+        'Ulna 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
                 'D2 derivatives': True,
