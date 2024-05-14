@@ -44,6 +44,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
+from scaffoldmaker.meshtypes.meshtype_3d_solidcylindernetwork1 import MeshType_3d_solidcylindernetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
@@ -57,6 +58,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubesept
 from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
 from scaffoldmaker.meshtypes.meshtype_3d_uterus2 import MeshType_3d_uterus2
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
+from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
@@ -105,6 +107,7 @@ class Scaffolds(object):
             MeshType_3d_ostium2,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
+            MeshType_3d_solidcylindernetwork1,
             MeshType_3d_solidsphere1,
             MeshType_3d_solidsphere2,
             MeshType_3d_sphereshell1,
@@ -117,7 +120,8 @@ class Scaffolds(object):
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
             MeshType_3d_uterus2,
-            MeshType_3d_wholebody1
+            MeshType_3d_wholebody1,
+            MeshType_3d_wholebody2
             ]
 
     def findScaffoldTypeByName(self, name):
