@@ -7,7 +7,8 @@ from __future__ import division
 
 import copy
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, findOrCreateFieldStoredString, \
+    findOrCreateFieldStoredMeshLocation
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -22,7 +23,7 @@ from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
-
+from scaffoldmaker.annotation.bone_terms import get_bone_term
 
 class MeshType_3d_bone1 (Scaffold_base):
     """
@@ -46,7 +47,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (3, [[0.0, 0.0, 2.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]),
                     (4, [[0.0, 0.0, 3.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
                 ])
-        })
+        }),
         'Ulna 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -81,7 +82,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     (4, [[-8.515940e-01,-6.576398e-01, 6.944961e-01], [ 6.039198e-03, 5.546106e-02, 2.692810e-01], [ 2.174544e-01, 6.164221e-02, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00], [-6.445803e-02, 2.273877e-01, 0.000000e+00], [ 0.000000e+00, 0.000000e+00, 0.000000e+00]])
                 ])
         }),
-
         'Tibia 1': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': {
                 'Coordinate dimensions': 3,
@@ -105,15 +105,41 @@ with variable numbers of elements in major, minor, shell and axial directions.
     @staticmethod
     def getName():
         return '3D Bone 1'
+    @staticmethod
+    def getParameterSetNames():
+        return [
+            'Default',
+            'Bone 1',
+            'Ulna 1',
+            'Radius 1',
+            'Tibia 1',
+        ]
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-        centralPathOption = cls.centralPathDefaultScaffoldPackages['Cylinder 1']
+
+
+        if parameterSetName == 'Default':
+            parameterSetName = 'Bone 1'
+
+        if 'Bone 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Bone 1']
+        elif 'Ulna 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Ulna 1']
+        elif 'Radius 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Radius 1']
+        elif 'Tibia 1' in parameterSetName:
+            centralPathOption = cls.centralPathDefaultScaffoldPackages['Tibia 1']
+
+
+
+
+
         options = {
             'Central path': copy.deepcopy(centralPathOption),
-            'Number of elements across major': 6,
-            'Number of elements across minor': 6,
-            'Number of elements across shell': 1,
+            'Number of elements across major': 8,
+            'Number of elements across minor': 8,
+            'Number of elements across shell': 2,
             'Number of elements across transition': 1,
             'Number of elements along': 4,
             'Shell element thickness proportion': 1.0,
@@ -127,6 +153,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Lower scale': 1.0,
             'Lower scale_Z': 1.0
         }
+
+        options['Base parameter set'] = parameterSetName
         return options
 
     @staticmethod
@@ -139,6 +167,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
             'Number of elements across transition',
             'Number of elements along',
             'Shell element thickness proportion',
+            # 'Lower half',
             'Refine',
             'Refine number of elements across major',
             'Refine number of elements along',
@@ -190,23 +219,33 @@ with variable numbers of elements in major, minor, shell and axial directions.
         if options['Number of elements across major'] % 2:
             options['Number of elements across major'] += 1
 
-        if options['Number of elements across minor'] < 6:
-            options['Number of elements across minor'] = 6
-        if options['Number of elements across minor'] % 2:
-            options['Number of elements across minor'] += 1
-        options['Number of elements across minor'] = options['Number of elements across major' ] 
+        #if options['Number of elements across minor'] < 6:
+        #    options['Number of elements across minor'] = 6
+        #if options['Number of elements across minor'] % 2:
+        #    options['Number of elements across minor'] += 1
+        options['Number of elements across minor'] = options['Number of elements across major' ]
+        #if options['Number of elements across minor'] != options['Number of elements across major']:
+        #    options['number of elements across minor'] = options['number of elements across major']
         if options['Number of elements along'] < 1:
             options['Number of elements along'] = 1
         if options['Number of elements across transition'] < 1:
             options['Number of elements across transition'] = 1
+
         Rcrit = min(options['Number of elements across major']-4, options['Number of elements across minor']-4)//2
         if options['Number of elements across shell'] + options['Number of elements across transition'] - 1 > Rcrit:
             dependentChanges = True
             options['Number of elements across shell'] = Rcrit
             options['Number of elements across transition'] = 1
+            if options['Number of elements across major'] == 8:
+                options['Number of elements across shell'] = 2
 
         if options['Shell element thickness proportion'] < 0.15:
             options['Shell element thickness proportion'] = 1.0
+
+        parameterSetName = options['Base parameter set']
+        isRadius = 'Radius 1' in parameterSetName
+        isUlna = 'Ulna 1' in parameterSetName
+        isTibia = 'Tibia 1' in parameterSetName
 
         return dependentChanges
 
@@ -252,6 +291,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fm.findMeshByDimension(3)
+        cache = fm.createFieldcache()
 
         sphere_shape = SphereShape.SPHERE_SHAPE_FULL
         sphere_base = cylinder1._ellipses[0]
@@ -275,6 +315,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         # get hemisphere nodes from both cylinder end and top of the sphere and mix them
         hemisphere._boxDerivatives = sphere1._shield3D._boxDerivatives
+
         hemisphere._boxMapping = sphere1._shield3D._boxMapping
         hemisphere._box_deriv_mapping = sphere1._shield3D._box_deriv_mapping
         hemisphere._element_needs_scale_factor = sphere1._shield3D._element_needs_scale_factor
@@ -310,7 +351,6 @@ with variable numbers of elements in major, minor, shell and axial directions.
                         if cylinder1._shield.nodeId[0][n2c][n1c]:
                             nodesIdCylinderProximalEnd.append(cylinder1._shield.nodeId[0][n2c][n1c])
 
-        # ******************************************************************************************************************************
         # generate hemisphere extra nodes.
         rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]],
                                    [0, int(0.5 * elementsCountAcross[2]) - 1]]
@@ -334,6 +374,7 @@ with variable numbers of elements in major, minor, shell and axial directions.
                     hemisphereNodesToDelete.append(hemisphere.nodeId[elementsCountAcross[2] // 2][n2][n1])
                     hemisphere.nodeId[elementsCountAcross[2] // 2][n2][n1] = nodesIdCylinderProximalEnd[count]
                     count += 1
+
 
         # generate hemisphere elements.
         rangeOfRequiredElements = [[0, elementsCountAcross[0]], [0, elementsCountAcross[1]],
@@ -435,11 +476,12 @@ with variable numbers of elements in major, minor, shell and axial directions.
                                                          rangeOfRequiredElements)
 
 
-        #annotationGroup = []
+
+
+
         cancellousGroup = AnnotationGroup(region, get_bone_term("Cancellous bone"))
 
         cancellousMeshGroup = cancellousGroup.getMeshGroup(mesh)
-        #annotationGroup = [cancellousGroup]
 
 
         corticalGroup = AnnotationGroup(region, get_bone_term("Cortical bone"))
@@ -447,11 +489,14 @@ with variable numbers of elements in major, minor, shell and axial directions.
         corticalMeshGroup = corticalGroup.getMeshGroup(mesh)
         annotationGroup = [cancellousGroup,corticalGroup]
 
+
         array2 = [1,2,7,14,15,22,27,28]
         array1 = [1,2,5,10,11,16,19,20]
 
         More_elements = array1 if elementsCountAcrossMajor == 6 else array2 if elementsCountAcrossMajor == 8 else None
         addition = elementsCountAcrossMajor-2 if elementsCountAcrossMajor == 6 else elementsCountAcrossMajor if elementsCountAcrossMajor == 8 else None
+
+
 
         number_of_elements_per_layer = max(More_elements) #(elementsCountAcrossMajor-1)*4
 
@@ -496,8 +541,8 @@ with variable numbers of elements in major, minor, shell and axial directions.
 
         # markers with element number and xi position
         allMarkersRadius = {"Greater tuberosity of radius": {"elementID": top_elem, "xi": [1.0, 0.0, 0.5]},
-                      "Lateral epicondyle of radius": {"elementID": medial_elem, "xi": [1.0, 0.0, 1.0]},
-                      "Medial epicondyle of radius": {"elementID": bottom_elem, "xi": [0.0, 0.0, 0.0]},
+                      "Lateral epicondyle of radius": {"elementID": bottom_elem, "xi": [1.0, 0.0, 1.0]},
+                      "Medial epicondyle of radius": {"elementID": medial_elem, "xi": [0.0, 0.0, 0.0]},
                       "Epiphysial plate of radius": {"elementID": lateral_elem, "xi": [0.0, 0.0, 0.0]},
         }
 
@@ -559,6 +604,27 @@ with variable numbers of elements in major, minor, shell and axial directions.
                 elementID = allMarkersTibia[key]["elementID"]
                 element = mesh.findElementByIdentifier(elementID)
                 markerLocation.assignMeshLocation(cache, element, addMarker["xi"])
+
+
+#         # AnnotationGroup.createMarkerNode(startNodeIdentifier=1, materialCoordinatesField: FieldFiniteElement = None, materialCoordinates = None, element = None, xi = [0.0, 0.0, 0.0])
+#
+#
+#         # markerTermNameBoneCoordinatesMap = {
+#         #     'tibial tuberosity': [-5.076472492200136e+01, -4.592226612078402e+01, -1.261953033704384e+03],
+#         # }
+#         # annotationGroups = []
+#         # nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+#         # nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes) + 1)
+#         # print(nodeIdentifier)
+#         # for termName, boneCoordinatesValues in markerTermNameBoneCoordinatesMap.items():
+#         #     annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ('tibia point', 'FM:63'))
+#         #     annotationGroup.createMarkerNode(nodeIdentifier, coordinates, boneCoordinatesValues)
+#         #     nodeIdentifier += 1
+
+        # smoothing = DerivativeSmoothing(region, coordinates)
+        # smoothing.smooth(True)
+
+        #annotationGroup = []
         return annotationGroup, None
 
     @classmethod
