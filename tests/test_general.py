@@ -20,6 +20,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
 from scaffoldmaker.utils.bifurcation import SegmentTubeData
+from scaffoldmaker.utils.eft_utils import determineTricubicHermiteEft
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDerivatives, evaluateCoordinatesOnCurve, \
@@ -1856,6 +1857,122 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(targetAngle, actualAngle, delta=ANGLE_TOL)
             self.assertAlmostEqual(targetLength, actualLength, delta=LENGTH_TOL)
             # print("xi", xi, "length", actualLength, "angle", actualAngle, targetAngle)
+
+    def test_determineHermiteSerendipityEft(self):
+        """
+        Test algorithm for determining hermite serendipity eft from node derivative directions.
+        """
+        context = Context("test_determineHermiteSerendipityEft")
+        region = context.getDefaultRegion()
+        fieldmodule = region.getFieldmodule()
+        mesh3d = fieldmodule.findMeshByDimension(3)
+
+        nodeParameters = [
+            [[-1.064, 0.152, 0.035], [0.776, -0.051, -0.204], [0.000, 3.000, 0.000], [0.000, 0.000, 1.000]],
+            [[-0.227, -0.113, 0.004], [0.069, -0.003, 0.880], [0.000, 3.000, 0.000], [-0.920, 0.188, 0.028]],
+            [[0.000, 3.000, 0.000], [1.000, 0.000, 0.000], [0.000, 3.000, 0.000], [0.000, 0.000, 1.000]],
+            [[0.700, 2.967, -0.194], [0.075, -0.196, -0.726], [0.000, 3.000, 0.000], [0.793, 0.064, 0.082]],
+            [[-1.033, 0.135, 1.042], [-0.196, 2.329, 0.099], [-0.330, -0.052, 0.698], [0.785, -0.320, -0.149]],
+            [[-0.174, 0.001, 0.883], [1.000, 0.000, 0.000], [0.000, 3.000, 0.000], [0.000, 0.000, 1.000]],
+            [[-0.904, 2.968, 1.362], [1.657, -0.955, -0.204], [-1.299, 2.712, 0.142], [0.000, 0.000, 1.000]],
+            [[0.337, 3.541, 1.461], [1.000, 0.000, 0.000], [-0.681, 2.850, -0.167], [0.000, 0.000, 1.000]]
+        ]
+        nodeDerivativeFixedWeights = [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [None, [-1.0, 1.0]],
+            []
+        ]
+        eft, scalefactors = determineTricubicHermiteEft(mesh3d, nodeParameters, nodeDerivativeFixedWeights,
+                                                        serendipity=True)
+        regularTermExpressions =\
+            [[(Node.VALUE_LABEL_D_DS1, [])], [(Node.VALUE_LABEL_D_DS2, [])], [(Node.VALUE_LABEL_D_DS3, [])]]
+        expectedNodeTermExpressions = [
+            regularTermExpressions,
+            [[(Node.VALUE_LABEL_D_DS3, [1])], [(Node.VALUE_LABEL_D_DS2, [])], [(Node.VALUE_LABEL_D_DS1, [])]],
+            regularTermExpressions,
+            [[(Node.VALUE_LABEL_D_DS3, [])], [(Node.VALUE_LABEL_D_DS2, [])], [(Node.VALUE_LABEL_D_DS1, [1])]],
+            [[(Node.VALUE_LABEL_D_DS3, [])], [(Node.VALUE_LABEL_D_DS1, [])], [(Node.VALUE_LABEL_D_DS2, [])]],
+            regularTermExpressions,
+            [[(Node.VALUE_LABEL_D_DS1, [])], [(Node.VALUE_LABEL_D_DS1, [1]), (Node.VALUE_LABEL_D_DS2, [])],
+             [(Node.VALUE_LABEL_D_DS3, [])]],
+            regularTermExpressions
+        ]
+        self.assertEqual(scalefactors, [-1.0])
+        self.assertEqual(eft.getNumberOfLocalScaleFactors(), 1)
+        self.assertEqual(eft.getScaleFactorType(1), eft.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        self.assertEqual(eft.getScaleFactorIdentifier(1), 1)
+        for n in range(8):
+            ln = n + 1
+            for ed in range(3):
+                functionNumber = n * 4 + ed + 2
+                expectedTermExpression = expectedNodeTermExpressions[n][ed]
+                expectedTermCount = len(expectedTermExpression)
+                self.assertEqual(eft.getFunctionNumberOfTerms(functionNumber), expectedTermCount)
+                for t in range(expectedTermCount):
+                    term = t + 1
+                    self.assertEqual(eft.getTermLocalNodeIndex(functionNumber, term), ln)
+                    self.assertEqual(eft.getTermNodeValueLabel(functionNumber, term), expectedTermExpression[t][0])
+                    self.assertEqual(eft.getTermNodeVersion(functionNumber, term), 1)
+                    expectedScaleCount = len(expectedTermExpression[t][1])
+                    actualScaleCount, scalefactorIndexes = eft.getTermScaling(functionNumber, term, expectedScaleCount)
+                    self.assertEqual(actualScaleCount, expectedScaleCount)
+                    if expectedScaleCount == 1:
+                        self.assertEqual(scalefactorIndexes, 1)
+                    else:
+                        for s in range(expectedScaleCount):
+                            self.assertEqual(scalefactorIndexes[s], 1)
+
+        # test mapping cross derivatives for full tricubic Hermite
+        eft, scalefactors = determineTricubicHermiteEft(mesh3d, nodeParameters, nodeDerivativeFixedWeights,
+                                                        serendipity=False, mapCrossDerivatives=True)
+
+        regularCrossTermExpressions =\
+            [[(Node.VALUE_LABEL_D2_DS1DS2, [])], [(Node.VALUE_LABEL_D2_DS1DS3, [])],
+             [(Node.VALUE_LABEL_D2_DS2DS3, [])], [(Node.VALUE_LABEL_D3_DS1DS2DS3, [])]]
+        expectedNodeCrossTermExpressions = [
+            regularCrossTermExpressions,
+            [[(Node.VALUE_LABEL_D2_DS2DS3, [1])], [(Node.VALUE_LABEL_D2_DS1DS3, [1])],
+             [(Node.VALUE_LABEL_D2_DS1DS2, [])],  [(Node.VALUE_LABEL_D3_DS1DS2DS3, [1])]],
+            regularCrossTermExpressions,
+            [[(Node.VALUE_LABEL_D2_DS2DS3, [])], [(Node.VALUE_LABEL_D2_DS1DS3, [1])],
+             [(Node.VALUE_LABEL_D2_DS1DS2, [1])], [(Node.VALUE_LABEL_D3_DS1DS2DS3, [1])]],
+            [[(Node.VALUE_LABEL_D2_DS1DS3, [])], [(Node.VALUE_LABEL_D2_DS2DS3, [])],
+             [(Node.VALUE_LABEL_D2_DS1DS2, [])], [(Node.VALUE_LABEL_D3_DS1DS2DS3, [])]],
+            regularCrossTermExpressions,
+            [[], [(Node.VALUE_LABEL_D2_DS1DS3, [])], [], []],
+            regularCrossTermExpressions
+        ]
+        crossDerivativeLabels = [Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3,
+                                 Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+        self.assertEqual(scalefactors, [-1.0])
+        self.assertEqual(eft.getNumberOfLocalScaleFactors(), 1)
+        self.assertEqual(eft.getScaleFactorType(1), eft.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
+        self.assertEqual(eft.getScaleFactorIdentifier(1), 1)
+        for n in range(8):
+            ln = n + 1
+            for cd in range(4):
+                functionNumber = n * 8 + crossDerivativeLabels[cd]
+                expectedTermExpression = expectedNodeCrossTermExpressions[n][cd]
+                expectedTermCount = len(expectedTermExpression)
+                self.assertEqual(eft.getFunctionNumberOfTerms(functionNumber), expectedTermCount)
+                for t in range(expectedTermCount):
+                    term = t + 1
+                    self.assertEqual(eft.getTermLocalNodeIndex(functionNumber, term), ln)
+                    self.assertEqual(eft.getTermNodeValueLabel(functionNumber, term), expectedTermExpression[t][0])
+                    self.assertEqual(eft.getTermNodeVersion(functionNumber, term), 1)
+                    expectedScaleCount = len(expectedTermExpression[t][1])
+                    actualScaleCount, scalefactorIndexes = eft.getTermScaling(functionNumber, term, expectedScaleCount)
+                    self.assertEqual(actualScaleCount, expectedScaleCount)
+                    if expectedScaleCount == 1:
+                        self.assertEqual(scalefactorIndexes, 1)
+                    else:
+                        for s in range(expectedScaleCount):
+                            self.assertEqual(scalefactorIndexes[s], 1)
 
 
 if __name__ == "__main__":

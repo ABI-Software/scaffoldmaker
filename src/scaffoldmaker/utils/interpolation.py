@@ -26,7 +26,7 @@ gaussWt4 = (
 
 def getCubicHermiteBasis(xi):
     """
-    :return: 4 basis functions for x1, d1, x2, d2
+    :return: 4 cubic Hermite basis function values for x1, d1, x2, d2 at xi.
     """
     xi2 = xi*xi
     xi3 = xi2*xi
@@ -54,7 +54,7 @@ def interpolateCubicHermite(v1, d1, v2, d2, xi):
 
 def getCubicHermiteBasisDerivatives(xi):
     """
-    :return: 4 derivatives of basis functions for x1, d1, x2, d2
+    :return: 4 cubic Hermite basis function first derivative values for x1, d1, x2, d2 at xi.
     """
     xi2 = xi*xi
     df1 = -6.0*xi + 6.0*xi2

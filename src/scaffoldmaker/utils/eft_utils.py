@@ -1,9 +1,11 @@
 '''
 Utility functions for element field templates shared by mesh generators.
 '''
-from cmlibs.utils.zinc.finiteelement import getElementNodeIdentifiers
-from cmlibs.zinc.element import Elementfieldtemplate
+from cmlibs.maths.vectorops import add, dot, magnitude, mult, sub
+from cmlibs.zinc.element import Elementbasis, Elementfieldtemplate
+from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
+import math
 
 
 def getEftTermScaling(eft, functionIndex, termIndex):
@@ -320,4 +322,137 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNod
     if eft is not eftStd:
         assert eft.validate(), "Element " + str(elementIn.getIdentifier()) + " eft not validated"
 
+    return eft, scalefactors
+
+
+def determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights=None, serendipity=False,
+                                mapCrossDerivatives=False):
+    """
+    Determine the tricubic Hermite normal/serendipity element field template for
+    interpolating node parameters at corners of a cube, by matching deltas
+    between corners with node derivatives.
+    Node lists use zinc ordering which varies nodes fastest over lower element coordinate.
+    :param mesh: A Zinc mesh of dimension 3.
+    :param nodeParameters: List over 8 local nodes in Zinc ordering of 4 parameter
+    vectors x, d1, d2, d3 each with 3 components.
+    :param nodeDerivativeFixedWeights: Optional list over 8 local nodes in Zinc ordering of
+    list of up to 3 derivatives each containing weights for global d1, d2, d3 to fix that
+    derivative, or None to use default search.
+    Example: [[], [None, [0.0, -1.0, 1.0]], [], [], [], [], [], []]
+    Local nodes 1, 3-8 use the standard search for all derivatives.
+    Local node 2 forces d/dxi2 = -d2 + d3, d/dxi1 and d/dxi3 use the standard search.
+    :param serendipity: Set to True for serendipity basis.
+    :param mapCrossDerivatives: For non-serendipity Hermite basis, map cross derivatives
+    as appropriate for first derivatives. For example, if d/dxi1 = d2 and d/dxi2 = d3,
+    d2/dxi1dxi2 should map to -d23. If any element derivative is a sum of node derivatives,
+    eliminate cross derivatives which use that direction.
+    :return: eft, scale factors list [-1.0] or None. Returned eft can be further modified.
+    """
+    if nodeDerivativeFixedWeights is None:
+        nodeDerivativeFixedWeights = [[]] * 8
+    assert mesh.getDimension() == 3
+    assert len(nodeParameters) == 8
+    assert len(nodeParameters[0]) == 4
+    assert len(nodeDerivativeFixedWeights) == 8
+    assert not (serendipity and mapCrossDerivatives)
+    delta12 = sub(nodeParameters[1][0], nodeParameters[0][0])
+    delta34 = sub(nodeParameters[3][0], nodeParameters[2][0])
+    delta56 = sub(nodeParameters[5][0], nodeParameters[4][0])
+    delta78 = sub(nodeParameters[7][0], nodeParameters[6][0])
+    delta13 = sub(nodeParameters[2][0], nodeParameters[0][0])
+    delta24 = sub(nodeParameters[3][0], nodeParameters[1][0])
+    delta57 = sub(nodeParameters[6][0], nodeParameters[4][0])
+    delta68 = sub(nodeParameters[7][0], nodeParameters[5][0])
+    delta15 = sub(nodeParameters[4][0], nodeParameters[0][0])
+    delta26 = sub(nodeParameters[5][0], nodeParameters[1][0])
+    delta37 = sub(nodeParameters[6][0], nodeParameters[2][0])
+    delta48 = sub(nodeParameters[7][0], nodeParameters[3][0])
+    deltas = [
+        [delta12, delta13, delta15],
+        [delta12, delta24, delta26],
+        [delta34, delta13, delta37],
+        [delta34, delta24, delta48],
+        [delta56, delta57, delta15],
+        [delta56, delta68, delta26],
+        [delta78, delta57, delta37],
+        [delta78, delta68, delta48]
+    ]
+    fieldmodule = mesh.getFieldmodule()
+    tricubicHermiteBasis = fieldmodule.createElementbasis(
+        3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
+        else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+    eft = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+    scalefactors = None
+    derivativeLabels = [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]
+    crossDerivativeLabels = [Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3,
+                             Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+    for n in range(8):
+        ln = n + 1
+        derivativeExpressionTerms = []
+        for ed in range(3):
+            if mapCrossDerivatives:
+                functionNumber = n * 8 + derivativeLabels[ed]
+            else:
+                functionNumber = n * 4 + ed + 2
+            expressionTerms = []
+            if nodeDerivativeFixedWeights[n] and (ed < len(nodeDerivativeFixedWeights[n])):
+                weights = nodeDerivativeFixedWeights[n][ed]
+                if weights is not None:
+                    for nd in range(len(weights)):
+                        weight = weights[nd]
+                        if weight:
+                            expressionTerms.append((derivativeLabels[nd], [1] if (weight < 0.0) else []))
+            if not expressionTerms:
+                delta = deltas[n][ed]  # delta side coordinates for nominal derivative direction
+                magDelta = magnitude(delta)
+                greatestSimilarity = 0.0  # can be negative in which can
+                derivativeLabel = None
+                for nd in range(3):
+                    derivative = nodeParameters[n][nd + 1]
+                    magDerivative = magnitude(derivative)
+                    cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
+                    magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
+                    similarity = cosineSimilarity * magnitudeSimilarity
+                    if math.fabs(similarity) > math.fabs(greatestSimilarity):
+                        greatestSimilarity = similarity
+                        derivativeLabel = derivativeLabels[nd]
+                expressionTerms.append((derivativeLabel, [1] if (greatestSimilarity < 0.0) else []))
+            termCount = len(expressionTerms)
+            if termCount != 1:
+                eft.setFunctionNumberOfTerms(functionNumber, termCount)
+            for t in range(termCount):
+                term = t + 1
+                eft.setTermNodeParameter(functionNumber, term, ln, expressionTerms[t][0], 1)
+                scaling = expressionTerms[t][1]
+                if scaling:
+                    if not scalefactors:
+                        # assumes only
+                        setEftScaleFactorIds(eft, [1], [])
+                        scalefactors = [-1.0]
+                    eft.setTermScaling(functionNumber, term, scaling)
+            if mapCrossDerivatives:
+                derivativeExpressionTerms.append(expressionTerms)
+        if mapCrossDerivatives:
+            for cd in range(4):
+                functionNumber = n * 8 + crossDerivativeLabels[cd]
+                derivativeIndexes = \
+                    [0, 1] if (cd == 0) else \
+                    [0, 2] if (cd == 1) else \
+                    [1, 2] if (cd == 2) else \
+                    [0, 1, 2]
+                sign = 1.0
+                crossDerivativeLabel = Node.VALUE_LABEL_VALUE
+                for ed in derivativeIndexes:
+                    if len(derivativeExpressionTerms[ed]) != 1:
+                        crossDerivativeLabel = Node.VALUE_LABEL_VALUE
+                        break
+                    crossDerivativeLabel += derivativeExpressionTerms[ed][0][0] - Node.VALUE_LABEL_VALUE
+                    if derivativeExpressionTerms[ed][0][1]:
+                        sign *= -1.0
+                if crossDerivativeLabel == Node.VALUE_LABEL_VALUE:
+                    eft.setFunctionNumberOfTerms(functionNumber, 0)
+                else:
+                    eft.setTermNodeParameter(functionNumber, 1, ln, crossDerivativeLabel, 1)
+                    if sign < 0.0:
+                        eft.setTermScaling(functionNumber, 1, [1])
     return eft, scalefactors
