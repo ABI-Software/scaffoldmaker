@@ -44,6 +44,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
+from scaffoldmaker.meshtypes.meshtype_3d_solidcylindernetwork1 import MeshType_3d_solidcylindernetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
@@ -105,6 +106,7 @@ class Scaffolds(object):
             MeshType_3d_ostium2,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
+            MeshType_3d_solidcylindernetwork1,
             MeshType_3d_solidsphere1,
             MeshType_3d_solidsphere2,
             MeshType_3d_sphereshell1,

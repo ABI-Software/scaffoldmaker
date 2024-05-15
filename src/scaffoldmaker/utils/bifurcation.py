@@ -9,7 +9,10 @@ from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
+from scaffoldmaker.utils import vector, geometry
+from scaffoldmaker.utils.cylindermesh import Ellipse2D
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, \
+    determineTricubicHermiteEft
 from scaffoldmaker.utils.geometry import createCirclePoints
 from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, computeCubicHermiteDerivativeScaling, \
     DerivativeScalingMode, getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, \
@@ -18,9 +21,12 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, comp
     smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_delta_xi
-from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.vector import crossproduct3, dotproduct, normalise
+from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters, \
+    get_nodeset_path_field_parameters
 import copy
 import math
+import numpy as np
 
 
 def get_curve_circle_points(x1, xd1, x2, xd2, r1, rd1, r2, rd2, xi, dmag, side, elementsCountAround):
@@ -434,9 +440,10 @@ def getTubeBifurcationCoordinates2D(tCoords, inCount):
 
 
 def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
-                 region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier,
-                 startSkipCount: int=0, endSkipCount:int=0, startNodeIds: list=None, endNodeIds: list=None,
-                 annotationMeshGroups=[], loop=False, serendipity=False):
+                 region, fieldcache, coordinates: Field, nodeIdentifier, elementIdentifier, segmentIdentifier,
+                 innerTubeData, ellipseParameters: list = None, nodeParametersList: list = None,
+                 startSkipCount: int = 0, endSkipCount: int = 0, startNodeIds: list = None, endNodeIds: list = None,
+                 annotationMeshGroups=[], loop=False, serendipity=False, isCore=False):
     """
     Generate a 2D or 3D thick walled tube from supplied coordinates.
     Assumes client has active ChangeManager(fieldmodule).
@@ -449,6 +456,11 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     :param coordinates: Finite element coordinate field to define.
     :param nodeIdentifier: First node identifier to use.
     :param elementIdentifier: First 2D element identifier to use.
+    :param segmentIdentifier: Identifier used to track tube segments.
+    :param innerTubeData: Segment tube data containing inner path parameters.
+    :param ellipseParameters: A list of parameters needed to generate an ellipse using Ellipse2D.
+    [elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossTransition, elementsCountAlong]
+    :param nodeParametersList: A list of node parameters used to determine eft [nodeIdentifier, x, d1, d2, d3]
     :param startSkipCount: Number of element rows to skip along at start.
     :param endSkipCount: Number of element rows to skip along at end.
     :param startNodeIds: Optional existing node identifiers [wall outward][around] to use at start, or None.
@@ -456,6 +468,7 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     :param annotationMeshGroups: Mesh groups to add elements to.
     :param loop: Set to true to loop back to start coordinates at end.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
+    :param isCore: True for generating a solid core inside the tube, False for regular tube network
     :return: next node identifier, next element identifier, startNodeIds, endNodeIds
     """
     ox, od1, od2, od12 = outerTubeCoordinates
@@ -466,22 +479,46 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
     nodesCountThroughWall = (elementsCountThroughWall + 1) if (dimension == 3) else 1
     elementsCountAlong = len(ox) - 1
     elementsCountAround = len(ox[0])
+    if isCore:
+        ellipseParameters[3] = elementsCountAlong
+        n = 1 if ellipseParameters[2] > 1 else 0
+        coreNodeCount = int(
+            (ellipseParameters[0] - n - 2 ** (ellipseParameters[2] - 1)) *
+            (ellipseParameters[1] - n - 2 ** (ellipseParameters[2] - 1)) +
+            elementsCountAround * ellipseParameters[2])
+        coreElementsCount = ((ellipseParameters[0] - 2 * ellipseParameters[2]) *
+                             (ellipseParameters[1] - 2 * ellipseParameters[2]))
+
+        corex, cored1, cored2, cored3 = findCoreCoordinates(coreNodeCount, ellipseParameters, innerTubeData,
+                                                            ox, ix, od1, segmentIdentifier)
+
+        # Add od3 and id3
+        od3 = []
+        for n1 in range(len(od2)):
+            od3.append([])
+            for n2 in range(len(od2[n1])):
+                d3 = crossproduct3(od1[n1][n2], od2[n1][n2])
+                od3[n1].append(d3)
+
     assert (not loop) or ((startSkipCount == 0) and (endSkipCount == 0))
 
     fieldmodule = region.getFieldmodule()
 
-    # create nodes
-
+    # Create nodes
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
     nodetemplate.defineField(coordinates)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
     if od12 and not serendipity:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
 
     tubeNodeIds = []
     oFactor = iFactor = 0.0
+    if isCore:
+        coreNodeIds, coreRimNodeIds = [], []
+        nodeParametersList = [] if not nodeParametersList else nodeParametersList
     for n2 in range(elementsCountAlong + 1):
         if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount):
             tubeNodeIds.append(None)
@@ -496,40 +533,86 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
             tubeNodeIds.append(tubeNodeIds[0])
             continue
         tubeNodeIds.append([])
+        if isCore:
+            coreNodeIds.append([])
+
         for n3 in range(nodesCountThroughWall):
             ringNodeIds = []
-            otx, otd1, otd2 = (ox[n2], od1[n2], od2[n2])
+            if not isCore:
+                otx, otd1, otd2 = (ox[n2], od1[n2], od2[n2])
+            else:
+                otx, otd1, otd2, otd3 = (ox[n2], od1[n2], od2[n2], od3[n2])
             otd12 = od12[n2] if (od12 and not serendipity) else None
             itx, itd1, itd2 = (ix[n2], id1[n2], id2[n2]) if innerTubeCoordinates else (None, None, None)
+            ctx, ctd1, ctd2, ctd3 = (corex[n2], cored1[n2], cored2[n2], cored3[n2]) if isCore else (
+                None, None, None, None)
             itd12 = id12[n2] if (innerTubeCoordinates and otd12) else None
+
+            # This needs checking
+            # ctd12 = cd12[n2] if (innerTubeCoordinates and otd12 and isCore) else None
+
             if innerTubeCoordinates:
                 oFactor = n3 / elementsCountThroughWall
                 iFactor = 1.0 - oFactor
-            for n1 in range(elementsCountAround):
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                fieldcache.setNode(node)
-                if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall):
-                    rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
-                elif n3 == 0:
-                    rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
-                else:
-                    rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
-                    rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
-                    rd2 = add(mult(otd2[n1], oFactor), mult(itd2[n1], iFactor))
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
-                if otd12:
-                    rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall)) else \
-                        itd12[n1] if (n3 == 0) else \
-                        add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
-                ringNodeIds.append(nodeIdentifier)
-                nodeIdentifier += 1
-            tubeNodeIds[-1].append(ringNodeIds)
+            if n3 == 0 and isCore:
+                nodeIds = []
+                # Create nodes for the core
+                for n1 in range(coreNodeCount):
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
 
-    # create elements
+                    rx, rd1, rd2, rd3 = ctx[n1], ctd1[n1], ctd2[n1], ctd3[n1]
 
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3)
+                    # if itd12:
+                    #     rd12 = ctd12[n1]
+                    #     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+                    nodeIds.append(nodeIdentifier)
+                    nodeParametersList.append([nodeIdentifier, rx, rd1, rd2, rd3])
+
+                    nodeIdentifier += 1
+
+                coreNodeIds, coreRimNodeIds, tubeNodeIds = getCoreTubeNodeIds(coreNodeCount, ellipseParameters,
+                        elementsCountAround, coreNodeIds, nodeIds, ringNodeIds, tubeNodeIds, coreRimNodeIds)
+            else:
+                # Create nodes for non-core layers
+                for n1 in range(elementsCountAround):
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
+                    if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall):
+                        rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
+                        rd3 = otd3[n1] if isCore else None
+                    elif n3 == 0:
+                        rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
+                    else:
+                        rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
+                        rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
+                        rd2 = add(mult(otd2[n1], oFactor), mult(itd2[n1], iFactor))
+                        rd3 = crossproduct3(rd1, rd2) if isCore else None
+
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    if isCore:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3)
+                    if otd12:
+                        rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall + 1)) else \
+                            itd12[n1] if (n3 == 0) else \
+                                add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+                    ringNodeIds.append(nodeIdentifier)
+                    if isCore:
+                        nodeParametersList.append([nodeIdentifier, rx, rd1, rd2, rd3])
+
+                    nodeIdentifier += 1
+
+                tubeNodeIds[-1].append(ringNodeIds)
+
+    # Create elements
+    # element template for bicubic hermite
     mesh = fieldmodule.findMeshByDimension(dimension)
     elementtemplate = mesh.createElementtemplate()
     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE if (dimension == 3) else Element.SHAPE_TYPE_SQUARE)
@@ -545,31 +628,777 @@ def generateTube(outerTubeCoordinates, innerTubeCoordinates, elementsCountThroug
         remapEftNodeValueLabel(eft, ln, Node.VALUE_LABEL_D2_DS1DS2, [])
     elementtemplate.defineField(coordinates, -1, eft)
 
+    # Generate elements
     for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
-        for e3 in range(elementsCountThroughWall):
-            for e1 in range(elementsCountAround):
-                e2p = e2 + 1
-                e1p = (e1 + 1) % elementsCountAround
-                nids = []
-                for n3 in [e3, e3 + 1] if (dimension == 3) else [0]:
-                    nids += [tubeNodeIds[e2][n3][e1], tubeNodeIds[e2][n3][e1p],
-                             tubeNodeIds[e2p][n3][e1], tubeNodeIds[e2p][n3][e1p]]
-                element = mesh.createElement(elementIdentifier, elementtemplate)
-                element.setNodesByIdentifier(eft, nids)
-                # print("Tube element", elementIdentifier, "nodes", nids)
-                for annotationMeshGroup in annotationMeshGroups:
-                    annotationMeshGroup.addElement(element)
-                elementIdentifier += 1
+        for e3 in range(elementsCountThroughWall + 1 + ellipseParameters[2] if isCore else elementsCountThroughWall):
+            if e3 == 0 and isCore:
+                # Generate elements for the core
+                for e1 in range(coreElementsCount):
+                    nids, nodeParameters = determineCoreElementNids(e1, e2, e3, ellipseParameters, tubeNodeIds,
+                                                                    nodeParametersList)
+                    elementIdentifier = generateCoreElements(mesh, coordinates, nids, nodeParameters, elementIdentifier)
+            elif e3 == 1 and isCore:
+                # Generate elements for the core rim
+                for e1 in range(elementsCountAround):
+                    nids, nodeParameters = determineCoreRimElementsNids(e1, e2, e3, ellipseParameters,
+                            elementsCountAround, tubeNodeIds, nodeParametersList)
+
+                    elementIdentifier = generateCoreRimElements(e1, ellipseParameters, elementsCountAround,
+                            elementIdentifier, mesh, coordinates, nids, nodeParameters)
+            elif e3 > 1 and isCore:
+                # Generate elements for the outer shell
+                for e1 in range(elementsCountAround):
+                    e2p = e2 + 1
+                    e1p = (e1 + 1) % elementsCountAround
+                    nids = []
+                    n3range = [e3, e3 + 1]
+
+                    for n3 in n3range:
+                        nids += [tubeNodeIds[e2][n3][e1], tubeNodeIds[e2][n3][e1p],
+                                 tubeNodeIds[e2p][n3][e1], tubeNodeIds[e2p][n3][e1p]]
+
+                    nodeParameters = []
+                    for id in nids:
+                        for n in range(len(nodeParametersList)):
+                            if id == nodeParametersList[n][0]:
+                                nodeParameters.append(nodeParametersList[n][1:])
+
+                    # Determine eft and scalefactors
+                    eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters, serendipity=True)
+
+                    elementtemplateShell = mesh.createElementtemplate()
+                    elementtemplateShell.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+                    elementtemplateShell.defineField(coordinates, -1, eftShell)
+                    element = mesh.createElement(elementIdentifier, elementtemplateShell)
+                    element.setNodesByIdentifier(eftShell, nids)
+                    element.setScaleFactors(eftShell, scalefactorsShell) if scalefactorsShell else "-"
+
+                    elementIdentifier += 1
+            else:
+                # Create elements for non-core layers
+                for e1 in range(elementsCountAround):
+                    e2p = e2 + 1
+                    e1p = (e1 + 1) % elementsCountAround
+                    nids = []
+                    n3range = [e3, e3 + 1]
+
+                    for n3 in n3range if (dimension == 3) else [0]:
+                        nids += [tubeNodeIds[e2][n3][e1], tubeNodeIds[e2][n3][e1p],
+                                 tubeNodeIds[e2p][n3][e1], tubeNodeIds[e2p][n3][e1p]]
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
+                    elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier, tubeNodeIds[startSkipCount], \
-        tubeNodeIds[elementsCountAlong - endSkipCount]
+        tubeNodeIds[elementsCountAlong - endSkipCount], nodeParametersList
+
+
+def findCoreCentre(ox, ix):
+    """
+    Finds cartesian coordinates for the centre of the solid core.
+    A number of direction vectors (straight lines) are projected based on the outer and inner coordinates of the tube.
+    Then the function finds the intersection point of these direction vectors using least squares method.
+    :param ox: a list of outer tube coordinates.
+    :param ix: a list of inner tube coordinates.
+    :return: coordinates at the centre of the core.
+    """
+    P0 = []
+    P1 = []
+    elementsCountAround = len(ox[0]) if isinstance(ox[0], list) else len(ox)
+
+    for n3 in range(elementsCountAround):
+        P0.append(ox[n3])
+        P1.append(ix[n3])
+    P0 = np.array(P0)
+    P1 = np.array(P1)
+
+    # generate all line direction vectors
+    n = (P1 - P0) / np.linalg.norm(P1 - P0, axis=1)[:, np.newaxis]
+
+    # generate the array of all projectors
+    projs = np.eye(n.shape[1]) - n[:, :, np.newaxis] * n[:, np.newaxis]
+
+    # generate R matrix and q vector
+    R = projs.sum(axis=0)
+    q = (projs @ P0[:, :, np.newaxis]).sum(axis=0)
+
+    # solve the least squares problem for the intersection point p: Rp = q
+    p = np.linalg.lstsq(R, q, rcond=None)[0]
+
+    Px = p[0][0]
+    Py = p[1][0]
+    Pz = p[2][0]
+
+    return Px, Py, Pz
+
+
+def findCoreCoordinates(coreNodeCount, ellipseParameters, pathParameters, ox, ix, od1, segmentIdentifier):
+    """
+    Blackbox function for generating core coordinates and derivatives using Ellipse2D.
+    Steps are:
+    1. Find direction vector of the 1D network, centre points of the tube, and major/minor axes for the 2D ellipse.
+    2. Generate 2D ellipses.
+    3. Extract coordinates and derivatives from 2D ellipses generated in the previous step.
+    4. Adjust (rotate and/or scale) derivatives to get the correct direction and magnitude.
+    :param coreNodeCount: number of nodes that form the solid core, including the rim layer, e.g. for 8 elements around
+    and 4 elements across major axis, there are 17 core nodes (9 nodes forming the square mesh, and 8 rim nodes).
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param pathParameters: parameters describing a path formed by 1D network layout.
+    :param ox, ix, od1: outer tube coordinates, inner tube coordinates, and outer tube D1 derivatives, respectively.
+    :param segmentIdentifier: An identifier tracking tube segments.
+    :return: Core coordinates and derivatives - corex, cored1, cored2, cored3
+    """
+
+    # Find directionVector of a tube
+    directionVector = findDirectionVector(pathParameters)
+
+    # Find centre points
+    centres = []
+    for n2 in range(ellipseParameters[3] + 1):
+        centre = [0.0, 0.0, 0.0]
+        centre[0], centre[1], centre[2] = findCoreCentre(ox[n2], ix[n2])
+        centres.append(centre)
+
+    # Find major and minor axes for the ellipse
+    majorAxes = []
+    minorAxes = []
+
+    for n2 in range(ellipseParameters[3] + 1):
+        majorAxes.append([])
+        minorAxes.append([])
+        for lft in [0, 1]:
+            majorAxis, minorAxis = findEllipseAxes(ix[n2], centres[n2], lft)
+            majorAxes[-1].append(majorAxis)
+            minorAxes[-1].append(minorAxis)
+
+    # Generate ellipses
+    lftEllipses = []
+    rhtEllipses = []
+
+    for n2 in range(ellipseParameters[3] + 1):
+        # Find coreRadii
+        coreMajorRadius, coreMinorRadius = findEllipseRadii(ix[n2], centres[n2])
+
+        # Generate ellipse using Ellipse2D
+        for lft in [0, 1]:
+            ellipse = Ellipse2D(centres[n2], majorAxes[n2][lft], minorAxes[n2][lft],
+                                ellipseParameters[0], ellipseParameters[1], 0,
+                                ellipseParameters[2], 1.0,
+                                coreMajorRadius, coreMinorRadius, isCore=True)
+
+            lftEllipses.append(ellipse) if lft == 0 else rhtEllipses.append(ellipse)
+
+    # Get core coordinates and derivatives from ellipses
+    corex, cored1, cored2, cored3 = ([] for i in range(4))
+
+    for n2 in range(ellipseParameters[3] + 1):
+        cx, cd1, cd2, cd3 = extractCoordinatesFromEllipse(ellipseParameters, lftEllipses[n2], rhtEllipses[n2])
+        [x.append(y) for x, y in zip([corex, cored1, cored2, cored3], [cx, cd1, cd2, cd3])]
+
+    # Adjust D1 and D2 derivatives to correct angles and magnitudes - Needs fixing for trifurcation
+    for n2 in range(ellipseParameters[3] + 1):
+        cored1[n2] = adjustD1Derivatives(cored1[n2], ellipseParameters, coreNodeCount, od1[n2], segmentIdentifier)
+        cored2[n2] = adjustD2Derivatives(cored2[n2], ellipseParameters[3], directionVector)
+
+    return corex, cored1, cored2, cored3
+
+
+def findDirectionVector(innerTubeData):
+    """
+    Calculates a direction vector for a particular network segment.
+    :param innerTubeData: Segment tube data containing inner path parameters.
+    :return: direction vector describing the direction of a tube segment.
+    """
+    pathParameters = innerTubeData.getPathParameters()
+    cpx = pathParameters[0]
+    directionVector = (vector.addVectors([cpx[1], cpx[0]], [1, -1]))
+
+    return directionVector  # May no longer need alongAxis
+
+
+def findEllipseRadii(ix, centre, mode=0):
+    """
+    Calculates major / minor radii for ellipses along the tube.
+    :param ix: inner tube coordinates.
+    :param centre: centre point of a tube at a specific section along a tube.
+    :param mode: 0: for half-ellipse on the left-hand side of a tube; 1: right-hand side; 2: special mode used for
+    mid-section of a bifurcation.
+    :return: major and minor radii of an ellipse
+    """
+    # Calculate coreMajorRadius and coreMinorRadius
+    elementsCount = len(ix)
+    if mode == 0:
+        r2 = 0
+        r1 = elementsCount // 4
+    elif mode == 1:
+        r2 = elementsCount // 4 * 2
+        r1 = elementsCount // 4 * 3
+    elif mode == 2:
+        r2 = elementsCount // 2
+        r1 = 0
+
+    majorRadius = vector.magnitude(vector.addVectors([ix[r2], centre], [1, -1]))
+    minorRadius = vector.magnitude(vector.addVectors([ix[r1], centre], [1, -1]))
+
+    return majorRadius, minorRadius
+
+
+def findEllipseAxes(ix, centre, mode=0, coreMajorRadius=None, coreMinorRadius=None):
+    """
+    Calculates major and minor axes of an ellipse.
+    :param ix: inner tube coordinates.
+    :param centre: centre point of a tube at a specific section along a tube.
+    :param mode: for half-ellipse on the left-hand side of a tube; 1: right-hand side; 2: special mode used for
+    mid-section of a bifurcation.
+    :param coreMajorRadius: major radius of an ellipse that forms the solid core.
+    :param coreMinorRadius: minor radius of an ellipse that forms the solid core.
+    :return: major and minor axes of an ellipse.
+    """
+    elementsCount = len(ix)
+    assert mode in [0, 1, 2]
+
+    if mode == 0:
+        a1 = 0
+        a2 = elementsCount // 4
+        scaleFactor = 1
+    elif mode == 1:
+        a1 = elementsCount // 4 * 2
+        a2 = elementsCount // 4 * 3
+        scaleFactor = -1
+    elif mode == 2:
+        a1 = elementsCount // 2
+        a2 = 0
+        scaleFactor = 1
+
+    # Calculate coreMajorRadius and coreMinorRadius if it doesn't exist
+    if coreMajorRadius == None and coreMinorRadius == None:
+        coreMajorRadius, coreMinorRadius = findEllipseRadii(ix, centre, mode)
+    else:
+        coreMajorRadius = coreMajorRadius
+        coreMinorRadius = coreMinorRadius
+
+    majorAxis = vector.addVectors([ix[a1], centre], [1, -1])
+    minorAxis = [0, 0, coreMinorRadius * scaleFactor]
+
+    return majorAxis, minorAxis
+
+
+def extractCoordinatesFromEllipse(ellipseParameters, lftEllipse, rhtEllipse):
+    """
+    Extracts coordinates and derivatives from ellipses generated using Ellipse2D.
+    Two ellipses are generated (left-hand side and right-hand side) for each slice along the tube.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param lftEllipse: A 2D ellipse object on the left-hand side of a tube.
+    :param rhtEllipse: A 2D ellipse object on the right-hand side of a tube.
+    :return: coordinates and derivatives - cx, cd1, cd2, cd3
+    """
+    # Left-hand side half ellipse
+    x, d1, d2, d3 = [], [], [], []
+
+    for n2 in range(ellipseParameters[0] + 1):
+        for n1 in range(ellipseParameters[1] + 1):
+            if lftEllipse.px[n2][n1]:
+                x.append(lftEllipse.px[n2][n1])
+                d1.append(lftEllipse.pd1[n2][n1])
+                d2.append(lftEllipse.pd2[n2][n1])
+                d3.append(lftEllipse.pd3[n2][n1])
+
+    lftx, lftd1, lftd2, lftd3 = x, d1, d2, d3
+
+    # Right-hand side half ellipse
+    x, d1, d2, d3 = [], [], [], []
+    lst = (list(range(0, ellipseParameters[2])) +
+           list(range(ellipseParameters[1] - (ellipseParameters[2] - 1), ellipseParameters[1] + 1)))
+
+    for n2 in range(ellipseParameters[0] + 1):
+        for n1 in range(ellipseParameters[1] + 1):
+            if rhtEllipse.px[n2][n1]:
+                # switch direction of D1 and D3 derivatives to match the D1 and D3 on left-hand side
+                if n2 > ellipseParameters[2] - 1 and n1 not in lst:
+                    rhtEllipse.pd1[n2][n1] = vector.scaleVector(rhtEllipse.pd1[n2][n1], -1)
+                    rhtEllipse.pd3[n2][n1] = vector.scaleVector(rhtEllipse.pd3[n2][n1], -1)
+
+                x.append(rhtEllipse.px[n2][n1])
+                d1.append(rhtEllipse.pd1[n2][n1])
+                d2.append(rhtEllipse.pd2[n2][n1])
+                d3.append(rhtEllipse.pd3[n2][n1])
+
+    # reverse the order of the list and slice only the nodes not already included on the left-hand side
+    [lst.reverse() for lst in [x, d1, d2, d3]]
+
+    idx = int(ellipseParameters[1] + 1)
+    x, d1, d2, d3 = x[idx:], d1[idx:], d2[idx:], d3[idx:]
+
+    rhtx, rhtd1, rhtd2, rhtd3 = x, d1, d2, d3
+    cx, cd1, cd2, cd3 = (lftx + rhtx), (lftd1 + rhtd1), (lftd2 + rhtd2), (lftd3 + rhtd3)
+
+    return cx, cd1, cd2, cd3
+
+
+def adjustD2Derivatives(cd2, elementsCountAlong, directionVector):
+    """
+    Rotates and/or scales d2 derivatives of tube core to match d2 derivatives of surrounding inner tube layer.
+    :param cd2: D2 derivatives of tube core.
+    :param elementsCountAlong: A number of elements along a tube.
+    :param directionVector: A vector describing the direction of a 1D network layout that form the tube.
+    :return: cd2
+    """
+    # Adjust d2 derivatives to correct angles and magnitudes
+    nodeCount = len(cd2)
+
+    for n2 in range(nodeCount):
+        d2 = vector.normalise(cd2[n2])
+        angleD2 = vector.angleBetweenVectors(d2, directionVector)
+        if angleD2 > 0:
+            normD2 = directionVector
+            scaleD2 = vector.scaleVector(normD2, 1 / elementsCountAlong)
+            cd2[n2] = scaleD2
+        else:
+            cd2[n2] = vector.scaleVector(cd2[n2], 1 / elementsCountAlong)
+
+    return cd2
+
+
+def adjustD1Derivatives(cd1, ellipseParameters, coreNodeCount, od1, segmentIdentifier):
+    """
+    Rotates d1 derivatives of tube core to match d1 derivatives of surrounding inner tube layer.
+    :param cd1: D1 derivatives of tube core.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param coreNodeCount: A number of nodes that form the solid core, including the rim layer.
+    :param od1: D1 derivatives of outer tube, used as a reference point.
+    :param segmentIdentifier: An identifier tracking tube segments.
+    :return: d1 derivatives of tube core - cd1
+    """
+    start = int(coreNodeCount // 2 - (ellipseParameters[1] / 2 - (ellipseParameters[2] - 1)))
+    end = start + (ellipseParameters[1] - (ellipseParameters[2] - 1)) + 1
+    pos1 = len(od1) // 4
+    pos2 = pos1 * 3
+
+    for n2 in range(start, end):
+        d1 = cd1[n2]
+        if start < n2 < end:
+            if dotproduct(normalise(d1), normalise(od1[pos1])) > 1.0:
+                angleD1 = 0
+            else:
+                angleD1 = vector.angleBetweenVectors(d1, od1[pos1])
+            k = [0, 0, 1] if segmentIdentifier > 1 else [0, 0, -1]
+            scaleFactor = 1
+        elif n2 == end:
+            if dotproduct(normalise(d1), normalise(od1[pos1])) > 1.0:
+                angleD1 = 0
+            else:
+                angleD1 = vector.angleBetweenVectors(d1, od1[pos1])
+            k = [0, 0, -1] if segmentIdentifier > 1 else [0, 0, 1]
+            scaleFactor = -1
+        else:
+            # if normalise(od1[pos2]) == normalise(d1):
+            if dotproduct(normalise(od1[pos2]), normalise(d1)) > 1.0:
+                angleD1 = 0
+            else:
+                angleD1 = vector.angleBetweenVectors(od1[pos2], d1)
+            k = [0, 0, -1] if segmentIdentifier > 1 else [0, 0, 1]
+            scaleFactor = -1
+        if angleD1 > 0:
+            rotateD1 = vector.rotateVectorAroundVector(d1, k, angleD1 * scaleFactor)
+            cd1[n2] = rotateD1
+
+    return cd1
+
+
+def findRingNodeIndicesForSorting(coreNodeCount, ellipseParameters, halfEllipse=False):
+    """
+    Determines indices of nodeIds list, which are used to sort coreNodeIds and ringNodeIds from more general nodeIds list.
+    :param coreNodeCount: A number of nodes that form the solid core, including the rim layer.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param halfEllipse: True if an ellipse is half-shaped, false if an ellipse is full-shaped.
+    :return: A list of indices indicating which nodes are core nodes and which are ring nodes.
+    """
+    indicesList = []
+    idx = ellipseParameters[1] - 1 - 2 * (ellipseParameters[2] - 1)
+
+    for k in range(ellipseParameters[2]):
+        end1 = coreNodeCount - 1 - (idx * k)
+        start1 = end1 - idx + 1 if not halfEllipse else end1 - 1
+
+        for i in range(coreNodeCount):
+            if idx * k <= i < idx * (1 + k):
+                indicesList.append(i)
+            elif start1 <= i <= end1 and not halfEllipse:
+                indicesList.append(i)
+            else:
+                start2 = (ellipseParameters[1] - 1 - 2 * (ellipseParameters[2] - 1)) * (1 + ellipseParameters[2])
+                for j in range(ellipseParameters[0] - 3 - 2 * (ellipseParameters[2] - 1)):
+                    start2p = start2 + k + (ellipseParameters[1] + 1) * j
+                    end2 = start2p + (ellipseParameters[1] - 2 * k)
+                    if i in [start2p, end2]:
+                        indicesList.append(i)
+
+    return indicesList
+
+
+def sortCoreNodeIds(indexList, coreNodeCount, coreNodeIds, nodeIds):
+    """
+    A helper function for sorting between core node ids and rim node ids in a general list of node ids.
+    :param indexList: A list of indices indicating which nodes are core nodes and which are ring nodes, determined from
+    findRingNodeIndicesForSorting function.
+    :param coreNodeCount: A number of nodes that form the solid core, including the rim layer.
+    :param coreNodeIds: A list of node ids that form the solid core. Initially empty.
+    :nodeIds: A flat list of all node ids excluding the node ids that form the outer layer.
+    :return: coreNodeIds contain all ids that collectively form the solid core. tmpNodeIds are appended to ringNodeIds
+    at a later stage.
+    """
+    tmpNodeIds = [None for i in range(len(indexList))]
+
+    for i in range(coreNodeCount):
+        if i in indexList:
+            tmpNodeIds[indexList.index(i)] = nodeIds[i]
+        else:
+            coreNodeIds[-1].append(nodeIds[i])
+
+    return tmpNodeIds, coreNodeIds
+
+
+def rearrangeNodeIds(nodeIds, ellipseParameters):
+    """
+    A helper function for rearranging node ids in a list to be circular, similar to other tube node ids rotating in a
+    clockwise direction.
+    :param nodeIds: A list of node ids.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :return: A list of node ids rearranged in a circular format.
+    """
+    idx = ellipseParameters[1] - 1 - 2 * (ellipseParameters[2] - 1)
+    lst = nodeIds[-idx::]
+    lst.reverse()
+    nodeIds[-idx::] = lst
+
+    start = ellipseParameters[0] - 4 - 2 * (ellipseParameters[2] - 1)
+    for j in range(int(start), -1, -1):
+        nodeIds.append(nodeIds.pop(idx + 2 * j))
+
+    nloop = int(ellipseParameters[1] / 2 - ellipseParameters[2])
+    for i in range(nloop):
+        nodeIds.insert(len(nodeIds), nodeIds.pop(0))
+
+    return nodeIds
+
+
+def rearrangeMidNodeIds(nodeIds, ellipseParameters):
+    """
+    A helper function for rearranging node ids in a list to be circular. This works in a similar way to
+    rearrangeNodeIds function but only used specifically for mid-section nodes in a bifurcation.
+    :param nodeIds: A list of node ids.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :return: A list of node ids rearranged in a circular format.
+    """
+    idx = ellipseParameters[1] - 2 * (ellipseParameters[2] - 1)
+    nodeIds.reverse()
+    end = ellipseParameters[0] // 2 - ellipseParameters[2]
+    end = 1 if end <= 0 else end
+
+    for j in range(int(end)):
+        nodeIds.append(nodeIds.pop(-idx - 2 * j))
+
+    return nodeIds
+
+
+def createCoreRimIdsList(coreNodeIds, ellipseParameters, mid=False):
+    """
+    A helper function for creating a list of node ids that collectively form the rim layer around the core. These are
+    the nodes that form the outer boundaris of a square mesh. e.g. for the simplest 2 x 2 solid core, the rim node ids
+    will be all core node ids excluding the node id at the centre.
+        r - r - r
+        r - c - r
+        r - r - r
+    :param coreNodeIds: A list of core node ids.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param mid: False if it is a tube, True if it is a mid-section of a bifurcation.
+    :return: A list of rim node ids.
+    """
+    elementsCountAcrossMajor = ellipseParameters[0]
+    elementsCountAcrossMinor = ellipseParameters[1]
+    rimNodeIds = coreNodeIds[-1].copy()
+    boundaryIndices = []
+    em = elementsCountAcrossMinor - 1
+
+    if not mid or elementsCountAcrossMajor == 4:
+        eM = elementsCountAcrossMajor - 2
+        eS = 2 * (ellipseParameters[2] - 1)
+    else:
+        eM = elementsCountAcrossMajor // 2
+        eS = (ellipseParameters[2] - 1)
+
+    for i in range(1, eM - eS):
+        r1 = (em - 2 * (ellipseParameters[2] - 1)) * i + 1
+        r2 = r1 + (em - 2 - 2 * (ellipseParameters[2] - 1))
+        boundaryIndices += list(range(r1, r2))
+
+    for idx in sorted(boundaryIndices, reverse=True):
+        if rimNodeIds[idx]:
+            del rimNodeIds[idx]
+
+    return rimNodeIds
+
+
+def getCoreTubeNodeIds(coreNodeCount, ellipseParameters, elementsCountAround, coreNodeIds, nodeIds, ringNodeIds,
+                       tubeNodeIds, coreRimNodeIds, s=None, isMid=False):
+    """
+    Sorts and rearranges node ids and returns three sets of node id lists required for generating elements.
+    :param coreNodeCount: Number of nodes that form the solid core, including the rim layer
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param elementsCountAround: Number of elements around the solid core.
+    :param coreNodeIds, nodeIds, ringNodeIds, tubeNodeIds, coreRimNodeIds: Lists containing node ids.
+    :param s: segment identifier. This is not used for a straight cylinder.
+    :param isMid: False if generating a straight cylinder, True if generating bifurcation.
+    :return: Three sets of node ids lists - coreNodeIds, coreRimNodeIds, tubeNodeIds
+    """
+    # Rearrange nodes
+    sortedNodeIndices = findRingNodeIndicesForSorting(coreNodeCount, ellipseParameters)
+    tmpNodeIds, coreNodeIds = sortCoreNodeIds(sortedNodeIndices, coreNodeCount, coreNodeIds, nodeIds)
+
+    for k in range(ellipseParameters[2]):
+        ringNodeIds.append([])
+        for i in range(elementsCountAround):
+            ringNodeIds[k].insert(i, tmpNodeIds.pop(0))
+    del tmpNodeIds
+
+    for k in range(ellipseParameters[2]):
+        ringNodeIds[k] = rearrangeNodeIds(ringNodeIds[k], ellipseParameters)
+
+    # Create a new list for core boundary nodes
+    tmpBoundaryIds = createCoreRimIdsList(coreNodeIds, ellipseParameters)
+    rearrangedBoundaryIds = rearrangeNodeIds(tmpBoundaryIds, ellipseParameters)
+    coreRimNodeIds.append(rearrangedBoundaryIds)
+
+    m = -1 if not isMid else s
+    tubeNodeIds[m].append(coreNodeIds[-1])
+    tubeNodeIds[m].append(coreRimNodeIds[-1])
+
+    for k in range((ellipseParameters[2] - 1), -1, -1):
+        tubeNodeIds[m].append(ringNodeIds[k])
+
+    return coreNodeIds, coreRimNodeIds, tubeNodeIds
+
+
+def determineCoreElementNids(e1, e2, e3, ellipseParameters, tubeNodeIds, nodeParametersList):
+    """
+    Determines a set of 8 node ids required to form a solid core element, and searches for node parameters matching
+    the selected set of node ids from nodeParametersList.
+    :param e1, e2, e3: index for elementsCountAround, elementsCountAlong, and elementsCountThrough, respectively.
+    :param ellipseParameters: A list of parameters needed to generate an ellipse.
+    :param tubeNodeIds: A list of tube node ids.
+    :param nodeParametersList: A list of node parameters.
+    :return: a set of node ids and their node parameter values
+    """
+    # Determine 8 node ids that form elements of the core
+    nodeParameters = []
+    e1p = int(e1 + e1 // (ellipseParameters[1] - 2 * (ellipseParameters[2])))
+    skipIndex = ellipseParameters[1] - 2 * ellipseParameters[2] + 1
+
+    n1 = tubeNodeIds[e2][e3][e1p]
+    n2 = tubeNodeIds[e2][e3][e1p + skipIndex]
+    n3 = tubeNodeIds[e2 + 1][e3][e1p]
+    n4 = tubeNodeIds[e2 + 1][e3][e1p + skipIndex]
+
+    n1p = tubeNodeIds[e2][e3][e1p + 1]
+    n2p = tubeNodeIds[e2][e3][e1p + skipIndex + 1]
+    n3p = tubeNodeIds[e2 + 1][e3][e1p + 1]
+    n4p = tubeNodeIds[e2 + 1][e3][e1p + skipIndex + 1]
+
+    nids = [n1, n2, n3, n4, n1p, n2p, n3p, n4p]
+
+    for id in nids:
+        for n in range(len(nodeParametersList)):
+            if id == nodeParametersList[n][0]:
+                nodeParameters.append(nodeParametersList[n][1:])
+
+    return nids, nodeParameters
+
+def generateCoreElements(mesh, coordinates, nids, nodeParameters, elementIdentifier):
+    """
+    First determines the required eft and scalefactors using determineTricubicHermite function based on nodeParameters,
+    and then generates a core element for a given set of node ids.
+    :param mesh:  A Zinc mesh of dimension 3.
+    :param coordinates: Finite element coordinate field to define.
+    :param nids: A set of 8 node ids that forms an element.
+    :param nodeParameters: A list of node parameters for given set of nids.
+    :param elementIdentifier: First 2D element identifier to use.
+    :return: elementIdentifier for the next element to be generated.
+    """
+    # Determine eft and scalefactors
+    eftCore, scalefactorsCore = determineTricubicHermiteEft(mesh, nodeParameters, serendipity=True)
+
+    # Create element template
+    elementtemplateCore = mesh.createElementtemplate()
+    elementtemplateCore.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+    elementtemplateCore.defineField(coordinates, -1, eftCore)
+
+    # Generate core elements
+    element = mesh.createElement(elementIdentifier, elementtemplateCore)
+    result1 = element.setNodesByIdentifier(eftCore, nids)
+    result2 = element.setScaleFactors(eftCore, scalefactorsCore) if scalefactorsCore else "-"
+
+    elementIdentifier += 1
+
+    return elementIdentifier
+
+
+def determineCoreRimElementsNids(e1, e2, e3, ellipseParameters, elementsCountAround, tubeNodeIds, nodeParametersList):
+    """
+    Determines a set of 8 node ids required to form a core rim element, and searches for node parameters matching
+    the selected set of node ids from nodeParametersList.
+    :param e1, e2, e3: index for elementsCountAround, elementsCountAlong, and elementsCountThrough, respectively.
+    :param ellipseParameters: A list of parameters needed to generate an ellipse.
+    :param elementsCountAround: Number of elements around solid core.
+    :param tubeNodeIds: A list of tube node ids.
+    :param nodeParametersList: A list of node parameters.
+    :return: a set of node ids and their node parameter values
+    """
+    em = (ellipseParameters[1] - 2) // 2 - (ellipseParameters[2] - 1)
+    eM = (ellipseParameters[0] - 2) // 2 - (ellipseParameters[2] - 1)
+    ec = elementsCountAround // 4
+
+    topRowElements = list(range(0, ec - eM)) + list(range(3 * ec + eM, elementsCountAround))
+    btmRowElements = list((range(2 * ec - em, 2 * ec + em)))
+    lftColumnElements = list(range(3 * ec - eM, 3 * ec + eM))
+    rhtColumnElements = list(range(ec - eM, ec + eM))
+
+    nodeParameters = []
+
+    # Find nids for the core rim elements
+    n1 = tubeNodeIds[e2][e3 + 1][e1]
+    n2 = tubeNodeIds[e2][e3 + 1][(e1 + 1) % elementsCountAround]
+    n3 = tubeNodeIds[e2 + 1][e3 + 1][e1]
+    n4 = tubeNodeIds[e2 + 1][e3 + 1][(e1 + 1) % elementsCountAround]
+
+    n1p = tubeNodeIds[e2][e3][e1]
+    n2p = tubeNodeIds[e2][e3][(e1 + 1) % elementsCountAround]
+    n3p = tubeNodeIds[e2 + 1][e3][e1]
+    n4p = tubeNodeIds[e2 + 1][e3][(e1 + 1) % elementsCountAround]
+
+    if e1 in topRowElements:
+        nids = [n1, n1p, n3, n3p, n2, n2p, n4, n4p]
+    elif e1 in btmRowElements:
+        nids = [n2p, n2, n4p, n4, n1p, n1, n3p, n3]
+    elif e1 in lftColumnElements:
+        nids = [n2, n1, n4, n3, n2p, n1p, n4p, n3p]
+    elif e1 in rhtColumnElements:
+        nids = [n1p, n2p, n3p, n4p, n1, n2, n3, n4]
+
+    for id in nids:
+        for n in range(len(nodeParametersList)):
+            if id == nodeParametersList[n][0]:
+                nodeParameters.append(nodeParametersList[n][1:])
+
+    return nids, nodeParameters
+
+
+def generateCoreRimElements(e1, ellipseParameters, elementsCountAround, elementIdentifier, mesh, coordinates,
+                            nids, nodeParameters):
+    """
+    First determines the required eft and scalefactors using determineTricubicHermite function based on nodeParameters,
+    and then generates a core rim element for a given set of node ids.
+    :param e1: index for elementsCountAround
+    :param ellipseParameters: A list of parameters needed to generate an ellipse.
+    :param elementsCountAround: Number of elements around solid core.
+    :param elementIdentifier: First 2D element identifier to use.
+    :param mesh:  A Zinc mesh of dimension 3.
+    :param coordinates: Finite element coordinate field to define.
+    :param nids: A set of 8 node ids that forms an element.
+    :param nodeParameters: A list of node parameters for given set of nids.
+    :return: elementIdentifier for the next element to be generated.
+    """
+    em = (ellipseParameters[1] - 2) // 2 - (ellipseParameters[2] - 1)
+    eM = (ellipseParameters[0] - 2) // 2 - (ellipseParameters[2] - 1)
+    ec = elementsCountAround // 4
+
+    topRowElements = list(range(0, ec - eM)) + list(range(3 * ec + eM, elementsCountAround))
+    btmRowElements = list((range(2 * ec - em, 2 * ec + em)))
+    lftColumnElements = list(range(3 * ec - eM, 3 * ec + eM))
+    rhtColumnElements = list(range(ec - eM, ec + eM))
+
+    # Top row rim elements of the solid core
+    if e1 in topRowElements:
+        idx = len(topRowElements) // 2
+        if e1 == topRowElements[idx]:
+            nodeDerivativeFixedWeights = [[], [[1.0, 0.0, 1.0]], [], [[1.0, 0.0, 1.0]],
+                                          [], [], [], []]
+        elif e1 == topRowElements[idx - 1]:
+            nodeDerivativeFixedWeights = [[], [], [], [],
+                                          [], [[1.0, 0.0, -1.0]], [], [[1.0, 0.0, -1.0]]]
+        else:
+            nodeDerivativeFixedWeights = None
+
+        # Determine eft and scalefactors
+        eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+    # Bottom row rim elements of the solid core
+    elif e1 in btmRowElements:
+        if e1 == btmRowElements[0]:
+            nodeDerivativeFixedWeights = [[], [], [], [],
+                                          [[1.0, 0.0, 1.0]], [], [[1.0, 0.0, 1.0]], []]
+        elif e1 == btmRowElements[-1]:
+            nodeDerivativeFixedWeights = [[[1.0, 0.0, -1.0]], [], [[1.0, 0.0, -1.0]], [],
+                                          [], [], [], []]
+        else:
+            nodeDerivativeFixedWeights = None
+
+        # Determine eft and scalefactors
+        eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+    # Left-hand side column elements of the solid core
+    elif e1 in lftColumnElements:
+        if e1 == lftColumnElements[0]:
+            nodeDerivativeFixedWeights = [[], [], [], [],
+                                          [], [None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]]]
+        elif e1 == lftColumnElements[-1]:
+                nodeDerivativeFixedWeights = [[], [], [], [],
+                                              [None, None, [1.0, 0.0, 1.0]], [], [None, None, [1.0, 0.0, 1.0]], []]
+        else:
+            nodeDerivativeFixedWeights = None
+
+        # Determine eft and scalefactors
+        eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+    # Right-hand side column elements of the solid core
+    elif e1 in rhtColumnElements:
+        if e1 == rhtColumnElements[0]:
+            nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]], [],
+                                          [], [], [], []]
+        elif e1 == rhtColumnElements[-1]:
+            nodeDerivativeFixedWeights = [[], [None, None, [1.0, 0.0, 1.0]], [], [None, None, [1.0, 0.0, 1.0]],
+                                          [], [], [], []]
+        else:
+            nodeDerivativeFixedWeights = None
+
+        # Determine eft and scalefactors
+        eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+
+    elementtemplateCoreRim = mesh.createElementtemplate()
+    elementtemplateCoreRim.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    elementtemplateCoreRim.defineField(coordinates, -1, eftCoreRim)
+    element = mesh.createElement(elementIdentifier, elementtemplateCoreRim)
+    element.setNodesByIdentifier(eftCoreRim, nids)
+    element.setScaleFactors(eftCoreRim, scalefactorsCoreRim) if scalefactorsCoreRim else "-"
+
+    elementIdentifier += 1
+
+    return elementIdentifier
 
 
 def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
                             outerMidCoordinates, innerMidCoordinates, crossIndexes,
                             region, fieldcache, coordinates: Field,
                             nodeIdentifier, elementIdentifier, tubeNodeIds,
-                            annotationMeshGroups, serendipity=False):
+                            segmentIdentifier, outerTubeData,
+                            annotationMeshGroups, ellipseParameters: list = None, nodeParametersList : list = None,
+                            serendipity=False, isCore=False):
     """
     Generate a 2D tube bifurcation as elements connecting 3 rings of coordinates, optionally using existing nodes.
     Assumes client has active ChangeManager(fieldmodule).
@@ -593,9 +1422,16 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
     :param elementIdentifier: First 2D element identifier to use.
     :param tubeNodeIds: List over 3 tubes of existing node identifiers [wall outward][around] to use at that inlet/outlet,
     any of which may be None. On return, None indexes are filled with new node identifiers.
+    :param segmentIdentifier: Identifier used to track tube segments.
+    :param outerTubeData: Segment tube data containing outer tube path parameters.
     :param annotationMeshGroups: List over 3 tubes of lists of meshGroups to add elements to for the part of the
     bifurcation that is part of that segment.
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
+    between the first generated tube and the bifurcation. The value is None for regular tubes.
+    :param ellipseParameters:A list of parameters needed to generate an ellipse using Ellipse2D.
+    [elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossTransition, elementsCountAlong]
+    :param nodeParametersList: A list of node parameters used to determine eft [nodeIdentifier, x, d1, d2, d3]
+    :param isCore: True for generating a solid core inside the tube, False for regular tube network
     :return: next node identifier, next element identifier
     """
     dimension = 3 if innerTubeCoordinates else 2
@@ -605,7 +1441,30 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
 
     fieldmodule = region.getFieldmodule()
 
-    # create nodes
+    segmentCount = len(outerTubeCoordinates)
+    aroundCounts = [len(outerTubeCoordinates[s][0]) for s in range(segmentCount)]
+    connectionCounts = get_tube_bifurcation_connection_elements_counts(aroundCounts)
+
+    if isCore:
+        isMid = True
+        coreElementsCount = ((ellipseParameters[0] - 2 * ellipseParameters[2]) *
+                             (ellipseParameters[1] - 2 * ellipseParameters[2]))
+        coreElementsCountHalf = coreElementsCount // 2
+        coreCentre = getCoreMidCentre(outerMidCoordinates, innerMidCoordinates)
+
+        coreNodeCount = []
+        n = 1 if ellipseParameters[2] > 1 else 0
+        for s in range(segmentCount):
+            nodeCount = int((ellipseParameters[0] - n - 2 ** (ellipseParameters[2] - 1)) *
+                            (ellipseParameters[1] - n - 2 ** (ellipseParameters[2] - 1)) +
+                            aroundCounts[s] * ellipseParameters[2])
+            coreNodeCount.append(nodeCount)
+
+        # Find coordinates and derivatives for mid core nodes
+        coremx, coremd1, coremd2, coremd3 = findMidCoreCoordinates(coreCentre, innerMidCoordinates, ellipseParameters,
+                                                                   segmentCount, inward)
+
+    # Create nodes
 
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodetemplate = nodes.createNodetemplate()
@@ -613,6 +1472,7 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
     if (not serendipity) and (len(outerTubeCoordinates[0]) > 3):
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D2_DS1DS2, 1)
     nodetemplateCross = nodes.createNodetemplate()
@@ -620,11 +1480,14 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
     nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
     nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
     nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
+    nodetemplateCross.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
     midNodeIds = []
     oFactor = iFactor = 0.0
-    for s in range(3):
-
+    if isCore:
+        coreTubeNodeIds, coreTubeRimNodeIds, coreMidNodeIds, coreMidRimNodeIds = [], [], [], []
+        midColumnNodeIds = None
+    for s in range(segmentCount):
         # ensure tube nodes are supplied or create here
         if not tubeNodeIds[s]:
             tubeNodeIds[s] = []
@@ -634,35 +1497,74 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
             itx, itd1, itd2 = innerTubeCoordinates[s][:3] if innerTubeCoordinates else (None, None, None)
             itd12 = None if ((not innerTubeCoordinates) or serendipity or (len(innerTubeCoordinates[s]) == 3)) \
                 else innerTubeCoordinates[s][3]
-            elementsCountAround = len(otx)
+
+            if isCore:
+                ctx, ctd1, ctd2, ctd3 = findCoreTubeCoordinates(coreTubeNodeIds, otx, otd1, itx, ellipseParameters,
+                        aroundCounts[s], outerTubeData[s], segmentCount, coreNodeCount[s])
+
             for n3 in range(nodesCountThroughWall):
                 ringNodeIds = []
                 if innerTubeCoordinates:
                     oFactor = n3 / elementsCountThroughWall
                     iFactor = 1.0 - oFactor
-                for n1 in range(elementsCountAround):
-                    node = nodes.createNode(nodeIdentifier, nodetemplate)
-                    fieldcache.setNode(node)
-                    if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall):
-                        rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
-                    elif n3 == 0:
-                        rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
-                    else:
-                        rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
-                        rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
-                        rd2 = add(mult(otd2[n1], oFactor), mult(itd2[n1], iFactor))
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
-                    if otd12:
-                        rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall)) else \
-                            itd12[n1] if (n3 == 0) else add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
-                    ringNodeIds.append(nodeIdentifier)
-                    nodeIdentifier += 1
-                tubeNodeIds[s].append(ringNodeIds)
 
-        # create nodes around middle half rings
+                if n3 == 0 and isCore:
+                    nodeIds = []
+                    # Create nodes for tube core
+                    for n1 in range(coreNodeCount[s]):
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        fieldcache.setNode(node)
+
+                        rx, rd1, rd2, rd3 = ctx[n1], ctd1[n1], ctd2[n1], ctd3[n1]
+
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3)
+
+                        nodeIds.append(nodeIdentifier)
+                        nodeParametersList.append([nodeIdentifier, rx, rd1, rd2, rd3])
+
+                        nodeIdentifier += 1
+
+                    coreTubeNodeIds, coreTubeRimNodeIds, tubeNodeIds = getCoreTubeNodeIds(coreNodeCount[s],
+                            ellipseParameters, aroundCounts[s], coreTubeNodeIds, nodeIds, ringNodeIds, tubeNodeIds,
+                            coreTubeRimNodeIds, s, isMid)
+                else:
+                    # Create nodes for non-core layers
+                    for n1 in range(aroundCounts[s]):
+                        node = nodes.createNode(nodeIdentifier, nodetemplate)
+                        fieldcache.setNode(node)
+                        if (not innerTubeCoordinates) or (n3 == elementsCountThroughWall):
+                            rx, rd1, rd2 = otx[n1], otd1[n1], otd2[n1]
+                            rd3 = crossproduct3(rd1, rd2) if isCore else None
+                        elif n3 == 0:
+                            rx, rd1, rd2 = itx[n1], itd1[n1], itd2[n1]
+                        else:
+                            rx = add(mult(otx[n1], oFactor), mult(itx[n1], iFactor))
+                            rd1 = add(mult(otd1[n1], oFactor), mult(itd1[n1], iFactor))
+                            rd2 = add(mult(otd2[n1], oFactor), mult(itd2[n1], iFactor))
+                            rd3 = crossproduct3(rd1, rd2) if isCore else None
+
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                        if isCore:
+                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3)
+                        if otd12:
+                            rd12 = otd12[n1] if ((not innerTubeCoordinates) or (n3 == elementsCountThroughWall)) else \
+                                itd12[n1] if (n3 == 0) else add(mult(otd12[n1], oFactor), mult(itd12[n1], iFactor))
+                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+
+                        ringNodeIds.append(nodeIdentifier)
+                        if isCore:
+                            nodeParametersList.append([nodeIdentifier, rx, rd1, rd2, rd3])
+
+                        nodeIdentifier += 1
+
+                    tubeNodeIds[s].append(ringNodeIds)
+
+        # Create nodes around middle half rings
         midNodeIds.append([])
         omx, omd1, omd2 = outerMidCoordinates[s][:3]
         omd12 = None if (serendipity or (len(outerMidCoordinates[s]) == 3)) else outerMidCoordinates[s][3]
@@ -670,45 +1572,89 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
         imd12 = None if ((not innerMidCoordinates) or serendipity or (len(innerMidCoordinates[s]) == 3)) \
             else innerMidCoordinates[s][3]
         elementsCountAroundHalf = len(omx) - 1
+        if isCore:
+            coreMidNodeIds.append([])
+            cmx, cmd1, cmd2, cmd3 = coremx[s], coremd1[s], coremd2[s], coremd3[s]
+            # Adjust d1 & d2 derivatives
+            cmd1, cmd2 = adjustMidCoreDerivatives(ellipseParameters[1], cmd1, cmd2, imd1, imd2, s, inward)
+
         for n3 in range(nodesCountThroughWall):
             ringNodeIds = []
             if innerTubeCoordinates:
                 oFactor = n3 / elementsCountThroughWall
                 iFactor = 1.0 - oFactor
-            for n1 in range(elementsCountAroundHalf + 1):
-                cross1 = n1 == 0
-                cross2 = n1 == elementsCountAroundHalf
-                if s > 0:
-                    if cross1:
-                        ringNodeIds.append(midNodeIds[0][n3][0])
-                        continue
-                    if cross2:
-                        ringNodeIds.append(midNodeIds[0][n3][-1])
-                        continue
-                node = nodes.createNode(nodeIdentifier, nodetemplateCross if (cross1 or cross2) else nodetemplate)
-                fieldcache.setNode(node)
-                if (not innerMidCoordinates) or (n3 == elementsCountThroughWall):
-                    rx, rd1, rd2 = omx[n1], omd1[n1], omd2[n1]
-                elif n3 == 0:
-                    rx, rd1, rd2 = imx[n1], imd1[n1], imd2[n1]
-                else:
-                    rx = add(mult(omx[n1], oFactor), mult(imx[n1], iFactor))
-                    rd1 = add(mult(omd1[n1], oFactor), mult(imd1[n1], iFactor))
-                    rd2 = add(mult(omd2[n1], oFactor), mult(imd2[n1], iFactor))
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
-                if omd12 and not (cross1 or cross2):
-                    rd12 = omd12[n1] if ((not innerMidCoordinates) or (n3 == elementsCountThroughWall)) else \
-                        imd12[n1] if (n3 == 0) else add(mult(omd12[n1], oFactor), mult(imd12[n1], iFactor))
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
-                ringNodeIds.append(nodeIdentifier)
-                nodeIdentifier = nodeIdentifier + 1
+            if n3 == 0 and isCore:
+                # Create mid nodes for the core
+                nodeIds = []
+                coreMidNodeCount = len(cmx)
+                for n1 in range(coreMidNodeCount):
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
 
-            midNodeIds[s].append(ringNodeIds)
+                    rx, rd1, rd2, rd3 = cmx[n1], cmd1[n1], cmd2[n1], cmd3[n1]
 
-    # create elements
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3)
 
+                    nodeIds.append(nodeIdentifier)
+                    nodeParametersList.append([nodeIdentifier, rx, rd1, rd2, rd3])
+
+                    nodeIdentifier = nodeIdentifier + 1
+
+                # Rearrange nodes for generating elements
+                coreMidNodeIds, coreMidRimNodeIds, midColumnNodeIds, midNodeIds = getCoreMidNodeIds(s, ellipseParameters,
+                        coreMidNodeCount, coreMidNodeIds, coreMidRimNodeIds, midColumnNodeIds, nodeIds, midNodeIds,
+                        ringNodeIds, connectionCounts)
+
+            # Create nodes for non-core layers
+            else:
+                for n1 in range(elementsCountAroundHalf + 1):
+                    cross1 = n1 == 0
+                    cross2 = n1 == elementsCountAroundHalf
+                    if s > 0:
+                        n3p = n3 + (ellipseParameters[2] - 1) if isCore else n3
+                        if cross1:
+                            ringNodeIds.append(midNodeIds[0][n3p][0])
+                            continue
+                        if cross2:
+                            ringNodeIds.append(midNodeIds[0][n3p][-1])
+                            continue
+                    node = nodes.createNode(nodeIdentifier, nodetemplateCross if (cross1 or cross2) else nodetemplate)
+                    fieldcache.setNode(node)
+                    if (not innerMidCoordinates) or (n3 == elementsCountThroughWall):
+                        rx, rd1, rd2 = omx[n1], omd1[n1], omd2[n1]
+                        rd3 = crossproduct3(rd1, rd2) if isCore else None
+                    elif n3 == 0:
+                        rx, rd1, rd2 = imx[n1], imd1[n1], imd2[n1]
+                    else:
+                        rx = add(mult(omx[n1], oFactor), mult(imx[n1], iFactor))
+                        rd1 = add(mult(omd1[n1], oFactor), mult(imd1[n1], iFactor))
+                        rd2 = add(mult(omd2[n1], oFactor), mult(imd2[n1], iFactor))
+                        rd3 = crossproduct3(rd1, rd2) if isCore else None
+
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2)
+                    if isCore:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3)
+
+                    if omd12 and not (cross1 or cross2):
+                        rd12 = omd12[n1] if ((not innerMidCoordinates) or (n3 == elementsCountThroughWall)) else \
+                            imd12[n1] if (n3 == 0) else add(mult(omd12[n1], oFactor), mult(imd12[n1], iFactor))
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, rd12)
+
+                    ringNodeIds.append(nodeIdentifier)
+                    if isCore:
+                        nodeParametersList.append([nodeIdentifier, rx, rd1, rd2, rd3])
+
+                    nodeIdentifier = nodeIdentifier + 1
+
+                midNodeIds[s].append(ringNodeIds)
+
+    # Create elements
+    # element template for bicubic hermite
     mesh = fieldmodule.findMeshByDimension(dimension)
     elementtemplateStd = mesh.createElementtemplate()
     elementtemplateMidInward = mesh.createElementtemplate()
@@ -739,9 +1685,11 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
                             [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
     elementtemplateMidOutward.defineField(coordinates, -1, eftMidOutward)
 
+    # Creating element templates for cross elements
     eftCrossForward = []
     eftCrossForwardScalefactors = []
-    for s in range(3):
+
+    for s in range(segmentCount):
         eftCrossForward.append([])
         eftCrossForwardScalefactors.append([])
         for ce in range(2):  # cross end 0 or 1
@@ -826,7 +1774,8 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
 
     eftCrossReverse = []
     eftCrossReverseScalefactors = []
-    for s in range(3):
+
+    for s in range(segmentCount):
         eftCrossReverse.append([])
         eftCrossReverseScalefactors.append([])
         for ce in range(2):  # cross end 0 or 1
@@ -910,106 +1859,1033 @@ def generateTubeBifurcation(outerTubeCoordinates, innerTubeCoordinates, inward, 
                 scaleEftNodeValueLabels(eft, lnOther, [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2], [1])
             eftCrossReverse[s].append(eft)
 
-    aroundCounts = [len(outerTubeCoordinates[s][0]) for s in range(3)]
-    connectionCounts = get_tube_bifurcation_connection_elements_counts(aroundCounts)
+    for s in range(segmentCount):
+        # Create elements for the core
+        if isCore:
+            # Forward connections
+            for e3 in range(2):
+                if e3 == 0:
+                    # Core elements
+                    pass
+                    for e1 in range(coreElementsCountHalf):
+                        nids, nodeParameters = determineMidCoreElementsNids(e1, e3, s, ellipseParameters, inward,
+                                                coreElementsCountHalf, tubeNodeIds, coreMidNodeIds, nodeParametersList)
+                        elementIdentifier = generateMidCoreElements(s, mesh, coordinates, nids, nodeParameters,
+                                                                    elementIdentifier, inward)
+                elif e3 == 1:
+                    # Rim elements
+                    pass
+                    for e1 in range(connectionCounts[s]):
+                        nids, nodeParameters = determineMidCoreRimElementsNids(e1, e3, s, inward, crossIndexes,
+                                aroundCounts, tubeNodeIds, coreMidRimNodeIds, midNodeIds, nodeParametersList)
+                        elementIdentifier = generateMidCoreRimElements(e1, s, connectionCounts, mesh, coordinates, nids,
+                                                                       nodeParameters, elementIdentifier)
+            # Shell elements
+            elementsCountThrough = elementsCountThroughWall + (ellipseParameters[2] - 1)
+            for e3 in range(elementsCountThrough):
+                for e1 in range(connectionCounts[s]):
+                    nids, nodeParameters = determineMidCoreOuterShellNids(s, e1, e3, inward, crossIndexes, aroundCounts,
+                            connectionCounts, tubeNodeIds, midNodeIds, nodeParametersList)
+                    elementIdentifier = generateMidCoreOuterShellElements(e1, s, connectionCounts, mesh, coordinates,
+                                                                          nids, nodeParameters, elementIdentifier)
+            # Reverse connections
+            for e3 in range(2):
+                isForward = False
+                if e3 == 0:
+                    pass
+                    for e1 in range(coreElementsCountHalf):
+                        nids, nodeParameters = determineMidCoreElementsNids(e1, e3, s, ellipseParameters, inward,
+                                                coreElementsCountHalf, tubeNodeIds, coreMidNodeIds, nodeParametersList,
+                                                isForward)
+                        elementIdentifier = generateMidCoreElements(s, mesh, coordinates, nids, nodeParameters,
+                                                                    elementIdentifier, inward, isForward)
+                elif e3 == 1:
+                    pass
+                    for e1 in range(connectionCounts[s]):
+                        nids, nodeParameters = determineMidCoreRimElementsNids(e1, e3, s, inward, crossIndexes,
+                                aroundCounts, tubeNodeIds, coreMidRimNodeIds, midNodeIds, nodeParametersList,
+                                isForward)
+                        elementIdentifier = generateMidCoreRimElements(e1, s, connectionCounts, mesh, coordinates, nids,
+                                                                       nodeParameters, elementIdentifier, isForward)
+            # Shell elements
+            elementsCountThrough = elementsCountThroughWall + (ellipseParameters[2] - 1)
+            for e3 in range(elementsCountThrough):
+                for e1 in range(connectionCounts[s]):
+                    nids, nodeParameters = determineMidCoreOuterShellNids(s, e1, e3, inward, crossIndexes, aroundCounts,
+                            connectionCounts, tubeNodeIds, midNodeIds, nodeParametersList, isForward)
+                    elementIdentifier = generateMidCoreOuterShellElements(e1, s, connectionCounts, mesh, coordinates,
+                                                                          nids, nodeParameters, elementIdentifier, isForward)
 
-    for s in range(3):
-
+        # Non-core elements
         # forward connections
+        else:
+            eftMid = eftStd
+            elementtemplateMid = elementtemplateStd
+            scalefactorsMid = None
+            if not inward[s]:
+                eftMid = eftMidOutward
+                elementtemplateMid = elementtemplateMidOutward
+                scalefactorsMid = [-1.0]
 
-        eftMid = eftStd
-        elementtemplateMid = elementtemplateStd
-        scalefactorsMid = None
-        if not inward[s]:
-            eftMid = eftMidOutward
-            elementtemplateMid = elementtemplateMidOutward
-            scalefactorsMid = [-1.0]
+            for e3 in range(elementsCountThroughWall):
+                for e1 in range(connectionCounts[s]):
+                    eft = eftMid
+                    elementtemplate = elementtemplateMid
+                    scalefactors = scalefactorsMid
 
-        for e3 in range(elementsCountThroughWall):
-            for e1 in range(connectionCounts[s]):
-                eft = eftMid
-                elementtemplate = elementtemplateMid
-                scalefactors = scalefactorsMid
+                    if e1 == 0:
+                        eft = eftCrossForward[s][0]
+                        elementtemplateCross.defineField(coordinates, -1, eft)
+                        elementtemplate = elementtemplateCross
+                        scalefactors = eftCrossForwardScalefactors[s][0]
+                    elif e1 == (connectionCounts[s] - 1):
+                        eft = eftCrossForward[s][1]
+                        elementtemplateCross.defineField(coordinates, -1, eft)
+                        elementtemplate = elementtemplateCross
+                        scalefactors = eftCrossForwardScalefactors[s][1]
 
-                if e1 == 0:
-                    eft = eftCrossForward[s][0]
-                    elementtemplateCross.defineField(coordinates, -1, eft)
-                    elementtemplate = elementtemplateCross
-                    scalefactors = eftCrossForwardScalefactors[s][0]
-                elif e1 == (connectionCounts[s] - 1):
-                    eft = eftCrossForward[s][1]
-                    elementtemplateCross.defineField(coordinates, -1, eft)
-                    elementtemplate = elementtemplateCross
-                    scalefactors = eftCrossForwardScalefactors[s][1]
+                    nids = []
+                    for n3 in ([0] if (dimension == 2) else [e3, e3 + 1]):
+                        n3p = n3 + 2 if isCore else n3
+                        if inward[s]:
+                            nStart = crossIndexes[s] - aroundCounts[s]
+                            nids += [tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1],
+                                     midNodeIds[s][n3][e1], midNodeIds[s][n3][e1 + 1]]
+                        else:
+                            nStart = crossIndexes[s] - connectionCounts[s]
+                            re1 = connectionCounts[s] - e1
+                            nids += [midNodeIds[s][n3][re1], midNodeIds[s][n3][re1 - 1],
+                                     tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1]]
 
-                nids = []
-                for n3 in ([0] if (dimension == 2) else [e3, e3 + 1]):
-                    if inward[s]:
-                        nStart = crossIndexes[s] - aroundCounts[s]
-                        nids += [tubeNodeIds[s][n3][nStart + e1], tubeNodeIds[s][n3][nStart + e1 + 1],
-                                 midNodeIds[s][n3][e1], midNodeIds[s][n3][e1 + 1]]
-                    else:
-                        nStart = crossIndexes[s] - connectionCounts[s]
-                        re1 = connectionCounts[s] - e1
-                        nids += [midNodeIds[s][n3][re1], midNodeIds[s][n3][re1 - 1],
-                                 tubeNodeIds[s][n3][nStart + e1], tubeNodeIds[s][n3][nStart + e1 + 1]]
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    result1 = element.setNodesByIdentifier(eft, nids)
+                    result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else "-"
+                    # print('create element tube bifurcation forward s', s, elementIdentifier, element.isValid(), result1, result2, nids)
+                    for meshGroup in annotationMeshGroups[s]:
+                        meshGroup.addElement(element)
+                    elementIdentifier += 1
 
-                element = mesh.createElement(elementIdentifier, elementtemplate)
-                result1 = element.setNodesByIdentifier(eft, nids)
-                result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else "-"
-                # print('create element tube bifurcation forward s', s, elementIdentifier, element.isValid(), result1, result2, nids)
-                for meshGroup in annotationMeshGroups[s]:
-                    meshGroup.addElement(element)
-                elementIdentifier += 1
+            # Non-core elements
+            # reverse connections
 
-        # reverse connections
+            eftMid = eftStd
+            elementtemplateMid = elementtemplateStd
+            scalefactorsMid = None
+            if inward[s]:
+                eftMid = eftMidInward
+                elementtemplateMid = elementtemplateMidInward
+                scalefactorsMid = [-1.0]
 
-        eftMid = eftStd
-        elementtemplateMid = elementtemplateStd
-        scalefactorsMid = None
-        if inward[s]:
-            eftMid = eftMidInward
-            elementtemplateMid = elementtemplateMidInward
-            scalefactorsMid = [-1.0]
+            for e3 in range(elementsCountThroughWall):
+                for e1 in range(connectionCounts[s - 1]):
+                    eft = eftMid
+                    elementtemplate = elementtemplateMid
+                    scalefactors = scalefactorsMid
 
-        for e3 in range(elementsCountThroughWall):
-            for e1 in range(connectionCounts[s - 1]):
-                eft = eftMid
-                elementtemplate = elementtemplateMid
-                scalefactors = scalefactorsMid
+                    if e1 == 0:
+                        eft = eftCrossReverse[s][0]
+                        elementtemplateCross.defineField(coordinates, -1, eft)
+                        elementtemplate = elementtemplateCross
+                        scalefactors = eftCrossReverseScalefactors[s][0]
+                    elif e1 == (connectionCounts[s - 1] - 1):
+                        eft = eftCrossReverse[s][1]
+                        elementtemplateCross.defineField(coordinates, -1, eft)
+                        elementtemplate = elementtemplateCross
+                        scalefactors = eftCrossReverseScalefactors[s][1]
 
-                if e1 == 0:
-                    eft = eftCrossReverse[s][0]
-                    elementtemplateCross.defineField(coordinates, -1, eft)
-                    elementtemplate = elementtemplateCross
-                    scalefactors = eftCrossReverseScalefactors[s][0]
-                elif e1 == (connectionCounts[s - 1] - 1):
-                    eft = eftCrossReverse[s][1]
-                    elementtemplateCross.defineField(coordinates, -1, eft)
-                    elementtemplate = elementtemplateCross
-                    scalefactors = eftCrossReverseScalefactors[s][1]
+                    nids = []
+                    for n3 in ([0] if (dimension == 2) else [e3, e3 + 1]):
+                        n3p = n3 + 2 if isCore else n3
+                        if inward[s]:
+                            nStart = crossIndexes[s] - connectionCounts[s - 1]
+                            re1 = connectionCounts[s - 1] - e1
+                            nids += [tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1],
+                                     midNodeIds[s - 1][n3][re1], midNodeIds[s - 1][n3][re1 - 1]]
+                        else:
+                            nStart = crossIndexes[s] - aroundCounts[s]
+                            nids += [midNodeIds[s - 1][n3][e1], midNodeIds[s - 1][n3][e1 + 1],
+                                     tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1]]
 
-                nids = []
-                for n3 in ([0] if (dimension == 2) else [e3, e3 + 1]):
-                    if inward[s]:
-                        nStart = crossIndexes[s] - connectionCounts[s - 1]
-                        re1 = connectionCounts[s - 1] - e1
-                        nids += [tubeNodeIds[s][n3][nStart + e1], tubeNodeIds[s][n3][nStart + e1 + 1],
-                                 midNodeIds[s - 1][n3][re1], midNodeIds[s - 1][n3][re1 - 1]]
-                    else:
-                        nStart = crossIndexes[s] - aroundCounts[s]
-                        nids += [midNodeIds[s - 1][n3][e1], midNodeIds[s - 1][n3][e1 + 1],
-                                 tubeNodeIds[s][n3][nStart + e1], tubeNodeIds[s][n3][nStart + e1 + 1]]
-
-                element = mesh.createElement(elementIdentifier, elementtemplate)
-                result1 = element.setNodesByIdentifier(eft, nids)
-                result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else "-"
-                # print('Tube bifurcation element reverse s', s, elementIdentifier, element.isValid(), result1, result2, nids)
-                for meshGroup in annotationMeshGroups[s]:
-                    meshGroup.addElement(element)
-                elementIdentifier += 1
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    result1 = element.setNodesByIdentifier(eft, nids)
+                    result2 = element.setScaleFactors(eft, scalefactors) if scalefactors else "-"
+                    # print('Tube bifurcation element reverse s', s, elementIdentifier, element.isValid(), result1, result2, nids)
+                    for meshGroup in annotationMeshGroups[s]:
+                        meshGroup.addElement(element)
+                    elementIdentifier += 1
 
     return nodeIdentifier, elementIdentifier
+
+
+def getCoreMidCentre(outerMidCoordinates, innerMidCoordinates):
+    """
+    Get the centre coordinates of the core at the bifurcation using outer and inner bifurcation coordinates.
+    :param outerMidCoordinates: A list of outer bifurcation coordinates.
+    :param innerMidCoordinates: A list of inner bifurcation coordinates.
+    :return: Centre coordinates for the core within the bifurcation.
+    """
+    P0 = []
+    P1 = []
+
+    P0.append(outerMidCoordinates[0][0][0])
+    P0.append(outerMidCoordinates[0][0][-1])
+    P1.append(innerMidCoordinates[0][0][0])
+    P1.append(innerMidCoordinates[0][0][-1])
+
+    P0 = np.array(P0)
+    P1 = np.array(P1)
+
+    # generate all line direction vectors
+    n = (P1 - P0) / np.linalg.norm(P1 - P0, axis=1)[:, np.newaxis]  # normalized
+
+    # generate the array of all projectors
+    projs = np.eye(n.shape[1]) - n[:, :, np.newaxis] * n[:, np.newaxis]  # I - n*n.T
+
+    # generate R matrix and q vector
+    R = projs.sum(axis=0)
+    q = (projs @ P0[:, :, np.newaxis]).sum(axis=0)
+
+    # solve the least squares problem for the intersection point p: Rp = q
+    p = np.linalg.lstsq(R, q, rcond=None)[0]
+
+    Px = p[0][0]
+    Py = p[1][0]
+    Pz = p[2][0]
+
+    centre = [Px, Py, Pz]
+
+    return centre
+
+
+def findMidCoreCoordinates(coreCentre, innerMidCoordinates, ellipseParameters, segmentCount, inward):
+    """
+    Blackbox function for generating core coordinates and derivatives at the mid-section of a bifurcation
+    using Ellipse2D.
+    Steps are:
+    1. Find direction vector of the 1D network, centre points of the tube, and major/minor axes for the 2D ellipse.
+    2. Generate 2D ellipses.
+    3. Extract coordinates and derivatives from 2D ellipses generated in the previous step.
+    4. Adjust (rotate and/or scale) derivatives to get the correct direction and magnitude.
+    :param coreCentre: Coordinates for the core centre within the bifurcation.
+    :param innerMidCoordinates: List of 3 middle half rings between tubes 1-2, 2-3 and 3-1 of inner coordinates
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param segmentCount: An identifier tracking tube segments.
+    :param inward: List over 3 tubes of True if inward, False if not. All inward tubes precede outward.
+    :return: Core coordinates and derivatives - coremx, coremd1, coremd2, coremd3
+    """
+    midMajorAxes = []
+    midMinorAxes = []
+    coreMidMajorRadii = []
+    coreMidMinorRadii = []
+
+    for s in range(segmentCount):
+        imx, _, imd2 = innerMidCoordinates[s][:3]
+
+        # Calculate midMajorRadius and midMinorRadius
+        midMajorRadius, midMinorRadius = findEllipseRadii(imx, coreCentre, mode=2)
+
+        # Calculate major and minor axes for mid section
+        majorAxis, minorAxis = findEllipseAxes(imx, coreCentre, mode=2)
+        midMajorAxes.append(majorAxis)
+        midMinorAxes.append(minorAxis)
+
+        coreMidMajorRadii.append(midMajorRadius)
+        coreMidMinorRadii.append(midMinorRadius)
+
+    # Generate ellipses for mid-section
+    ellipses = []
+    for s in range(segmentCount):
+        ellipse = Ellipse2D(coreCentre, midMajorAxes[s], midMinorAxes[s], ellipseParameters[0], ellipseParameters[1],
+                            0, ellipseParameters[2], 1.0, coreMidMajorRadii[s],
+                            coreMidMinorRadii[s], isCore=True)
+        ellipses.append(ellipse)
+
+    # Extract coordinates and derivatives
+    x, d1, d2, d3 = ([] for i in range(4))
+    for s in range(segmentCount):
+        [lst.append([]) for lst in [x, d1, d2, d3]]
+        for n2 in range(ellipseParameters[0] + 1):
+            for n1 in range(ellipseParameters[1] + 1):
+                if ellipses[s].px[n2][n1]:
+                    [lst.append(value) for lst, value in zip([x[s], d1[s], d2[s], d3[s]],
+                                                             [ellipses[s].px[n2][n1], ellipses[s].pd1[n2][n1],
+                                                              ellipses[s].pd2[n2][n1], ellipses[s].pd3[n2][n1]])]
+
+    coremx, coremd1, coremd2, coremd3 = ([] for i in range(4))
+    for s in range(segmentCount):
+        endIndex = len(x[s]) if s == 0 else (len(x[s]) - ellipseParameters[1] - 1)
+        [x.append(y) for x, y in zip([coremx, coremd1, coremd2, coremd3],
+                                     [x[s][0:endIndex], d1[s][0:endIndex], d2[s][0:endIndex], d3[s][0:endIndex]])]
+
+    for s in range(segmentCount):
+        for n2 in range(len(coremd2[s])):
+            d2 = coremd2[s][n2]
+            _, _, imd2 = innerMidCoordinates[s][:3]
+            scalefactor = vector.magnitude(imd2[len(imd2) // 2])
+            d2 = vector.scaleVector(d2, -scalefactor)
+            coremd2[s][n2] = d2
+
+    return coremx, coremd1, coremd2, coremd3
+
+
+def findCoreTubeCoordinates(coreTubeNodeIds, otx, otd1, itx, ellipseParameters, elementsCountAlong, outerTubeData,
+                            segmentCount, coreNodeCount):
+    """
+    Blackbox function for generating core coordinates and derivatives at the starting ends of child tubes that connect
+    with the bifurcation using Ellipse2D.
+    Steps are:
+    1. Find direction vector of the 1D network, centre points of the tube, and major/minor axes for the 2D ellipse.
+    2. Generate 2D ellipses.
+    3. Extract coordinates and derivatives from 2D ellipses generated in the previous step.
+    4. Adjust (rotate and/or scale) derivatives to get the correct direction and magnitude.
+    :param coreTubeNodeIds: A list of core node ids within a straight tube.
+    :param otx, otd1, itx: outer tube coordinates, outer tube d1 derivatives, and inner tube coordinates, respectively.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param elementsCountAlong: Number of elements along the tube.
+    :param outerTubeData: Segment tube data containing outer tube path parameters.
+    :param segmentCount: An identifier tracking tube segments.
+    :param coreNodeCount: Number of nodes that form the solid core, including the rim layer.
+    :return: Core coordinates and derivatives - ctx, ctd1, ctd2, ctd3
+    """
+    coreTubeNodeIds.append([])
+
+    # find tube core coordinates and derivatives
+    centre = [0, 0, 0]
+    centre[0], centre[1], centre[2] = findCoreCentre(otx, itx)
+
+    # Find directionVector of a tube
+    directionVector = findDirectionVector(outerTubeData)
+
+    for lft in [0, 1]:
+        majorRadius, minorRadius = findEllipseRadii(itx, centre, lft)
+        majorAxis, minorAxis = findEllipseAxes(itx, centre, lft, majorRadius, minorRadius)
+
+        ellipse = Ellipse2D(centre, majorAxis, minorAxis, ellipseParameters[0], ellipseParameters[1],
+                            0, ellipseParameters[2], 1.0, majorRadius, minorRadius,
+                            isCore=True)
+        if lft == 0:
+            lftEllipse = ellipse
+        elif lft == 1:
+            rhtEllipse = ellipse
+
+    ctx, ctd1, ctd2, ctd3 = extractCoordinatesFromEllipse(ellipseParameters, lftEllipse, rhtEllipse)
+
+    ctd1 = adjustD1Derivatives(ctd1, ellipseParameters, coreNodeCount, otd1, segmentCount)
+    ctd2 = adjustD2Derivatives(ctd2, ellipseParameters[3], directionVector)
+
+    return ctx, ctd1, ctd2, ctd3
+
+
+def adjustMidCoreDerivatives(elementsCountAcrossMinor, cmd1, cmd2, imd1, imd2, s, inward):
+    """
+    Rotates d2 derivatives of the solid core within the bifurcation to match d2 derivatives of surrounding inner layer.
+    :param elementsCountAcrossMinor: Number of elements across minor axis of an ellipse.
+    :param cmd1, cmd2, imd1, imd2: D1 and D2 derivatives for the core and inner bifurcation, respectively.
+    :param s: Segment count.
+    :param inward: List over 3 tubes of True if inward, False if not.
+    :return: d2 derivatives of solid core within bifurcation - cmd2
+    """
+    segmentCount = len(inward)
+    if segmentCount == 3 and inward[1] == True:
+        isConverging = True
+    elif segmentCount == 4 and inward[1] == True and inward[2] == True:
+        isConverging = True
+    else:
+        isConverging = False
+
+    coreMidNodeCount = len(cmd1)
+
+    # Adjust d1 & d2 derivatives
+    end = coreMidNodeCount - 1
+    start = end - elementsCountAcrossMinor
+
+    # Adjust d1 derivatives to fit the right-hand rule convention
+    for n2 in range(0, elementsCountAcrossMinor-1):
+        cmd1[n2] = vector.scaleVector(cmd1[n2], -1)
+
+    # # d1 derivatives
+    # if s == 0:
+    #     for n in [start, end]:
+    #         d1 = cmd1[n]
+    #         if not isConverging:
+    #             pos = -1 if n == start else 0
+    #         else:
+    #             pos = 0 if n == start else -1
+    #         cmd1[n] = imd1[pos]
+
+    # d2 derivatives
+    for n2 in range(len(cmd2)):
+        d2 = cmd2[n2]
+        if s == 0:
+            if n2 == start:
+                pos1 = len(imd2) - 1
+            elif n2 == end:
+                pos1 = 0
+            else:
+                pos1 = 1
+        else:
+            pos1 = 2
+        if vector.magnitude(imd2[pos1]) != 0:
+            angleD2 = vector.angleBetweenVectors(d2, imd2[pos1])
+        else:
+            angleD2 = 0
+
+        if s == 0:
+            k = [0, 0, 1] if n2 != start else [0, 0, -1]
+        else:
+            if not isConverging:
+                k = [0,0,-1]
+            else:
+                k = [0, 0, 1] if not inward[s] else [0, 0, -1]
+        scaleFactor = 1
+
+        if angleD2 > 0:
+            rotateD2 = vector.rotateVectorAroundVector(d2, k, angleD2 * scaleFactor)
+            cmd2[n2] = rotateD2
+
+    if s == 0:
+        for n in range(start, end + 1):
+        # for n in range(start + 1, end):
+            v = cmd1[n]
+            k = [0,1,0]
+            mirror_d2 = [(v[c] - 2 * vector.dotproduct(v, k) * k[c]) for c in range(3)]
+            cmd2[n] = mirror_d2
+
+    return cmd1, cmd2
+
+
+def getCoreMidNodeIds(s, ellipseParameters, coreMidNodeCount, coreMidNodeIds, coreMidRimNodeIds, midColumnNodeIds,
+                      nodeIds, midNodeIds, ringNodeIds, connectionCounts):
+    """
+    Sorts and rearranges node ids and returns four sets of node id lists required for generating elements at the
+    mid-section of a bifurcation.
+    :param s: Segment count.
+    :param ellipseParameters: A list of parameters required to form an ellipse.
+    :param coreMidNodeCount: Number of nodes that form the solid core, including the rim layer at the mid-section.
+    :param coreMidNodeIds, coreMidRimNodeIds: Lists of core node ids at the mid-section.
+    :param midColumnNodeIds: A list of core node ids that form a column through the centre of a bifurcation.
+    :param nodeIds: A flat list of all node ids, excluding nodes at the outer layer.
+    :param midNodeIds, ringNodeIds: Lists of node ids that are used to form the shell surrounding the core.
+    :param connectionCounts: A list of number of connecting elements for each segment pair, 1-2, 2-3, and 3-1.
+    :return: Four sets of node ids lists - coreMidNodeIds, coreMidRimNodeIds, midColumnNodeIds, midNodeIds
+    """
+    # Rearrange nodes for generating elements
+    sortedMidNodeIndices = findRingNodeIndicesForSorting(coreMidNodeCount, ellipseParameters,
+                                                         halfEllipse=True)
+    tmpNodeIds, coreMidNodeIds = sortCoreNodeIds(sortedMidNodeIndices, coreMidNodeCount, coreMidNodeIds,
+                                                 nodeIds)
+    if s == 0:
+        nColumnNodes = ellipseParameters[1] + 1
+        midColumnNodeIds = nodeIds[-nColumnNodes::]
+    else:
+        idx1 = ellipseParameters[2]
+        coreMidNodeIds[s] += midColumnNodeIds[idx1:-idx1]
+        em = connectionCounts[s] - 1
+
+        for i in range(idx1):
+            value = midColumnNodeIds[i]
+            # idx2 = (ellipseParameters[0] - 1 - 2 * (ellipseParameters[2] - 1)) * (i + 1) + i
+            idx2 = em + (em + 1) * i
+            tmpNodeIds.insert(idx2, value)
+        for i in range(idx1):
+            value = midColumnNodeIds[-(i + 1)]
+            # idx2 = (ellipseParameters[0] - 2 * (ellipseParameters[2] - 1)) * (i + 1) + i
+            idx2 = (em + 1) + (em + 2) * i
+            tmpNodeIds.insert(idx2, value)
+    for k in range(ellipseParameters[2]):
+        ringNodeIds.append([])
+        for i in range(connectionCounts[s] + 1):
+            ringNodeIds[k].insert(i, tmpNodeIds.pop(0))
+    del tmpNodeIds
+
+    for k in range(ellipseParameters[2]):
+        ringNodeIds[k] = rearrangeMidNodeIds(ringNodeIds[k], ellipseParameters)
+    for k in range((ellipseParameters[2] - 1), -1, -1):
+        midNodeIds[-1].append(ringNodeIds[k])
+
+    # Create a new list for mid core rim nodes
+    tmpRimIds = createCoreRimIdsList(coreMidNodeIds, ellipseParameters, mid=True)
+    rearrangedRimIds = rearrangeMidNodeIds(tmpRimIds, ellipseParameters)
+    coreMidRimNodeIds.append(rearrangedRimIds)
+
+    return coreMidNodeIds, coreMidRimNodeIds, midColumnNodeIds, midNodeIds
+
+
+def determineMidCoreElementsNids(e1, e3, s, ellipseParameters, inward, coreElementsCountHalf,
+                                 tubeNodeIds, coreMidNodeIds, nodeParametersList, isForward=True):
+    """
+    Determines a set of 8 node ids required to form a solid core element, and searches for node parameters matching
+    the selected set of node ids from nodeParametersList.
+    :param e1, e2, s: index for elementsCountAround, elementsCountAlong, and segmentCount, respectively.
+    :param ellipseParameters: A list of parameters needed to generate an ellipse.
+    :param inward: List over 3 tubes of True if inward, False if not.
+    :param coreElementCountHalf: Half the number of elements that form the solid core.
+    :param tubeNodeIds, coreMidNodeIds: A list of tube node ids and core node ids, respectively.
+    :param nodeParametersList: A list of node parameters.
+    :param isForward: True if the connection is in the forward direction, False if in reverse.
+    :return: a set of node ids and their node parameter values
+    """
+    segmentCount = len(inward)
+    if segmentCount == 3 and inward[1] == True:
+        isConverging = True
+    elif segmentCount == 4 and inward[1] == True and inward[2] == True:
+        isConverging = True
+    else:
+        isConverging = False
+
+    e1p = int(e1 + e1 // (ellipseParameters[1] - 2 * ellipseParameters[2]))
+    skipIndex = ellipseParameters[1] - 1 - 2 * (ellipseParameters[2] - 1)
+    eS = 2 * (ellipseParameters[2] - 1)
+
+    # nStart & cStart
+    if isForward:
+        # Forward connection
+        cStart = -(ellipseParameters[1] - 1 - eS) if not isConverging else 0
+        if inward[s]:
+            if (ellipseParameters[0] - eS) > 4:
+                nStart = int((ellipseParameters[1] - 1 - eS) * (ellipseParameters[0] // 2 - ellipseParameters[2]))
+                if not isConverging:
+                    cStart += int(cStart * (e1 // (ellipseParameters[1] - 2 * ellipseParameters[2])))
+                else:
+                    cStart += int((ellipseParameters[1] - 1 - eS) * (e1 // (coreElementsCountHalf / 2)))
+                e1c = e1 % (coreElementsCountHalf // (ellipseParameters[0] // 2 - ellipseParameters[2]))
+            else:
+                nStart = int(ellipseParameters[1] - 1 - eS)
+                e1c = e1
+            if isConverging:
+                nStart = 0
+        else:
+            cStart = -(ellipseParameters[1] - 1 - eS)
+            skipIndex = skipIndex if isConverging else -skipIndex
+            e1c = (e1 % (coreElementsCountHalf // 2)) if (ellipseParameters[0] - eS) > 4 else e1
+            if (ellipseParameters[0] - eS) > 4:
+                cStart += int(cStart * (e1 // (coreElementsCountHalf / 2)))
+            nStart = int((ellipseParameters[1] - 1 - eS) * (ellipseParameters[0] // 2 - ellipseParameters[2]))
+
+    else:
+        # Reverse connection
+        if inward[s]:
+            if not isConverging:
+                nStart = 0
+                cStart = 0
+                if (ellipseParameters[0] - eS) > 4:
+                    cStart += int((ellipseParameters[1] - 1 - eS) * (e1 // (coreElementsCountHalf / 2)))
+                e1c = (e1 % (coreElementsCountHalf // 2)) if (ellipseParameters[0] - eS) > 4 else e1
+            else:
+                nStart = int((ellipseParameters[1] - 1 - eS) * (ellipseParameters[0] // 2 - ellipseParameters[2]))
+                cStart = -(ellipseParameters[1] - 1 - eS)
+                if (ellipseParameters[0] - eS) > 4:
+                    cStart += int(cStart * (e1 // (coreElementsCountHalf / 2)))
+                e1c = (e1 % (coreElementsCountHalf // 2)) if (ellipseParameters[0] - eS) > 4 else e1
+                skipIndex = -skipIndex
+        else:
+            cStart = -(ellipseParameters[1] - 1 - eS) if not isConverging else 0
+            skipIndex = -skipIndex if isConverging else skipIndex
+            e1c = (e1 % (coreElementsCountHalf // 2)) if (ellipseParameters[0] - eS) > 4 else e1
+            if (ellipseParameters[0] - eS) > 4:
+                cStart += int(cStart * (e1 // (coreElementsCountHalf / 2))) if not isConverging \
+                    else int((ellipseParameters[1] - 1 - eS) * (e1 // (coreElementsCountHalf / 2)))
+                nStart = int((ellipseParameters[1] - 1 - eS) * (ellipseParameters[0] - 3 - ellipseParameters[2]))
+            else:
+                nStart = int(ellipseParameters[1] - 1 - eS)
+            if isConverging:
+                nStart = 0
+
+    # nids
+    if isForward:
+        # Foward connection
+        scalefactor = -1 if isConverging else 1
+        if inward[s]:
+            nids = [tubeNodeIds[s][e3][nStart + e1p], tubeNodeIds[s][e3][nStart + e1p + skipIndex],
+                    coreMidNodeIds[s][cStart + e1c], coreMidNodeIds[s][cStart + e1c - skipIndex*scalefactor],
+                    tubeNodeIds[s][e3][nStart + e1p + 1], tubeNodeIds[s][e3][nStart + e1p + skipIndex + 1],
+                    coreMidNodeIds[s][cStart + e1c + 1], coreMidNodeIds[s][cStart + e1c - skipIndex*scalefactor + 1]]
+        else:
+            nids = [coreMidNodeIds[s][cStart+e1c], coreMidNodeIds[s][cStart+e1c-skipIndex],
+                    tubeNodeIds[s][e3][nStart+e1p], tubeNodeIds[s][e3][nStart+e1p+skipIndex],
+                    coreMidNodeIds[s][cStart+e1c+1], coreMidNodeIds[s][cStart+e1c-skipIndex+1],
+                    tubeNodeIds[s][e3][nStart+e1p+1], tubeNodeIds[s][e3][nStart+e1p+skipIndex+1]]
+    else:
+        # Reverse connection
+        scalefactor = -1 if isConverging else 1
+        if inward[s]:
+            nids = [tubeNodeIds[s][0][nStart+e1p], tubeNodeIds[s][0][nStart+e1p+skipIndex*scalefactor],
+                    coreMidNodeIds[s-1][cStart+e1c], coreMidNodeIds[s-1][cStart+e1c+skipIndex],
+                    tubeNodeIds[s][0][nStart+e1p+1], tubeNodeIds[s][0][nStart+e1p+skipIndex*scalefactor+1],
+                    coreMidNodeIds[s-1][cStart+e1c+1], coreMidNodeIds[s-1][cStart+e1c+skipIndex+1]]
+        else:
+            nids = [coreMidNodeIds[s-1][cStart+e1c], coreMidNodeIds[s-1][cStart+e1c-skipIndex],
+                    tubeNodeIds[s][0][nStart+e1p], tubeNodeIds[s][0][nStart+e1p+skipIndex*scalefactor],
+                    coreMidNodeIds[s-1][cStart+e1c+1], coreMidNodeIds[s-1][cStart+e1c-skipIndex+1],
+                    tubeNodeIds[s][0][nStart+e1p+1], tubeNodeIds[s][0][nStart+e1p+skipIndex*scalefactor+1]]
+
+    nodeParameters = []
+    for id in nids:
+        for n in range(len(nodeParametersList)):
+            if id == nodeParametersList[n][0]:
+                nodeParameters.append(nodeParametersList[n][1:])
+
+    return nids, nodeParameters
+
+
+def generateMidCoreElements(s, mesh, coordinates, nids, nodeParameters, elementIdentifier, inward, isForward=True):
+    """
+    First determines the required eft and scalefactors using determineTricubicHermite function based on nodeParameters,
+    and then generates a core element at the mid-section of a bifurcation for a given set of node ids.
+    :param s: segment count.
+    :param mesh:  A Zinc mesh of dimension 3.
+    :param coordinates: Finite element coordinate field to define.
+    :param nids: A set of 8 node ids that forms an element.
+    :param nodeParameters: A list of node parameters for given set of nids.
+    :param elementIdentifier: First 2D element identifier to use.
+    :param segmentCount:
+    :param inward:
+    :param isForward:
+    :return: elementIdentifier for the next element to be generated.
+    """
+    segmentCount = len(inward)
+    if segmentCount == 3 and inward[1] == True:
+        isConverging = True
+    elif segmentCount == 4 and inward[1] == True and inward[2] == True:
+        isConverging = True
+    else:
+        isConverging = False
+
+    # Create element template
+    if s == 0:
+        if not isConverging:
+            if isForward:
+                nodeDerivativeFixedWeights = [[], [], [None, [1.0, 1.0, 0.0]], [], [], [], [None, [1.0, 1.0, 0.0]], []]
+            else:
+                nodeDerivativeFixedWeights = [[], [], [], [None, [1.0, 1.0, 0.0]], [], [], [], [None, [1.0, 1.0, 0.0]]]
+        else:
+            nodeDerivativeFixedWeights = None
+        eftCore, scalefactorsCore = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+    elif s == 1:
+        if not isConverging:
+            if isForward:
+                nodeDerivativeFixedWeights = [[[1.0, 1.0, 0.0]], [], [], [], [[1.0, 1.0, 0.0]], [], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+        else:
+            nodeDerivativeFixedWeights = None
+        eftCore, scalefactorsCore = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+    else:
+        if not isConverging:
+            if isForward:
+                nodeDerivativeFixedWeights = None
+            else:
+                nodeDerivativeFixedWeights = [[[1.0, 1.0, 0.0]], [], [], [], [[1.0, 1.0, 0.0]], [], [], []]
+        else:
+            nodeDerivativeFixedWeights = None
+        eftCore, scalefactorsCore = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                      serendipity=True)
+
+    elementtemplateCore = mesh.createElementtemplate()
+    elementtemplateCore.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    elementtemplateCore.defineField(coordinates, -1, eftCore)
+    element = mesh.createElement(elementIdentifier, elementtemplateCore)
+    element.setNodesByIdentifier(eftCore, nids)
+    element.setScaleFactors(eftCore, scalefactorsCore) if scalefactorsCore else "-"
+
+    elementIdentifier += 1
+
+    return elementIdentifier
+
+
+def determineMidCoreRimElementsNids(e1, e3, s, inward, crossIndexes, aroundCounts, tubeNodeIds, coreMidRimNodeIds,
+                                    midNodeIds, nodeParametersList, isForward=True):
+    """
+    Determines a set of 8 node ids required to form a rim element around the solid core, and searches for node
+    parameters matching the selected set of node ids from nodeParametersList.
+    :param e1, e2, s: index for connectionCounts, elementsCountAlong, and segmentCount, respectively.
+    :param inward: List over 3 tubes of True if inward, False if not.
+    :param crossIndexes: A list of indexes that are at cross junction of a bifurcation.
+    :param aroundCounts: Number of elements around bifurcation.
+    :param tubeNodeIds, coreMidRimNodeIds, midNodeIds: A list of tube node ids, core rim node ids, and
+     mid-section node ids, respectively.
+    :param nodeParametersList: A list of node parameters.
+    :param isForward: True if the connection is in the forward direction, False if in reverse.
+    :return: a set of node ids and their node parameter values
+    """
+    if isForward:
+        # Forward connection
+        if inward[s]:
+            nStart = crossIndexes[s] - aroundCounts[s]
+            nids = [tubeNodeIds[s][e3][nStart+e1], tubeNodeIds[s][e3][nStart+e1+1],
+                    coreMidRimNodeIds[s][e1], coreMidRimNodeIds[s][e1+1],
+                    tubeNodeIds[s][e3+1][nStart+e1], tubeNodeIds[s][e3+1][nStart+e1+1],
+                    midNodeIds[s][e3-1][e1], midNodeIds[s][e3-1][e1+1]]
+
+        else:
+            nStart = crossIndexes[s]
+            nids = [coreMidRimNodeIds[s][e1+1], coreMidRimNodeIds[s][e1],
+                    tubeNodeIds[s][e3][nStart-e1-1], tubeNodeIds[s][e3][nStart-e1],
+                    midNodeIds[s][e3-1][e1+1], midNodeIds[s][e3-1][e1],
+                    tubeNodeIds[s][e3+1][nStart-e1-1], tubeNodeIds[s][e3+1][nStart-e1]]
+    else:
+        # Reverse connection
+        if inward[s]:
+            nStart = crossIndexes[s] - aroundCounts[s]
+            e1t = (nStart - e1) % aroundCounts[s]
+            nids = [tubeNodeIds[s][e3][e1t], tubeNodeIds[s][e3][e1t - 1],
+                    coreMidRimNodeIds[s - 1][e1], coreMidRimNodeIds[s - 1][e1 + 1],
+                    tubeNodeIds[s][e3 + 1][e1t], tubeNodeIds[s][e3 + 1][e1t - 1],
+                    midNodeIds[s - 1][e3 - 1][e1], midNodeIds[s - 1][e3 - 1][e1 + 1]]
+        else:
+            nStart = crossIndexes[s]
+            e1t = (nStart + e1) % aroundCounts[s]
+            # print("e1t", e1t)
+            nids = [coreMidRimNodeIds[s - 1][e1], coreMidRimNodeIds[s - 1][e1 + 1],
+                    tubeNodeIds[s][e3][e1t], tubeNodeIds[s][e3][(e1t + 1)],
+                    midNodeIds[s - 1][e3 - 1][e1], midNodeIds[s - 1][e3 - 1][e1 + 1],
+                    tubeNodeIds[s][e3 + 1][e1t], tubeNodeIds[s][e3 + 1][(e1t + 1)]]
+        # print("s", s, "nids", nids)
+    nodeParameters = []
+    for id in nids:
+        for n in range(len(nodeParametersList)):
+            if id == nodeParametersList[n][0]:
+                nodeParameters.append(nodeParametersList[n][1:])
+
+    return nids, nodeParameters
+
+
+def generateMidCoreRimElements(e1, s, connectionCounts, mesh, coordinates, nids, nodeParameters, elementIdentifier,
+                               isForward=True):
+    """
+    First determines the required eft and scalefactors using determineTricubicHermite function based on nodeParameters,
+    and then generates a core rim element for a given set of node ids.
+    :param e1, s: index for elementsCountAround and segment count, respectively.
+    :param connectionCounts: A list of number of connecting elements for each segment pair, 1-2, 2-3, and 3-1.
+    :param mesh:  A Zinc mesh of dimension 3.
+    :param coordinates: Finite element coordinate field to define.
+    :param nids: A set of 8 node ids that forms an element.
+    :param nodeParameters: A list of node parameters for given set of nids.
+    :param elementIdentifier: First 2D element identifier to use.
+    :param isForward: True if the connection is in the forward direction, False if in reverse.
+    :return: elementIdentifier for the next element to be generated.
+    """
+
+    # Forward elements
+    if isForward:
+        # Create element template
+        if s == 0:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [None, None, [1.0, 0.0, 1.0]],
+                                              [None, [1.0, 1.0, 0.0]], [None, None, [-1.0, 0.0, 1.0]],
+                                              [], [], [None, [1.0, 1.0, 0.0]], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [None, None, [1.0, 0.0, -1.0]], [], [None, None, [-1.0, 0.0, -1.0]],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [1.0, 0.0, -1.0]], [],
+                                              [None, None, [-1.0, 0.0, -1.0]], [None, [1.0, 1.0, 0.0]],
+                                              [], [], [], [None, [-1.0, -1.0, 0.0]]]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters,
+                    nodeDerivativeFixedWeights, serendipity=True)
+        elif s == 1:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, 1.0]], [[-1.0, -1.0, 0.0]],
+                                              [None, None, [-1.0, 0.0, 1.0]], [],
+                                              [], [[-1.0, -1.0, 0.0]], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]],
+                                              [[-1.0, 0.0, 0.0]], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, -1.0]], [], [None, None, [-1.0, 0.0, -1.0]], [],
+                                              [], [[-1.0, 0.0, 0.0]], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[[1.0, 1.0, 0.0]], [None, None, [-1.0, 0.0, -1.0]],
+                                              [], [None, None, [-1.0, 0.0, -1.0]],
+                                              [[-1.0, -1.0, 0.0]], [], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+        else:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]], [],
+                                              [], [], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, -1.0]], [], [None, None, [-1.0, 0.0, -1.0]], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, -1.0]], [], [None, None, [-1.0, 0.0, -1.0]],
+                                              [], [], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+            eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+    # Reverse elements
+    else:
+        if s == 0:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]],
+                                              [], [], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, 1.0]], [], [None, None, [-1.0, 0.0, 1.0]], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, -1.0]], [], [None, None, [-1.0, 0.0, -1.0]],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, -1.0]], [], [None, None, [-1.0, 0.0, -1.0]], [],
+                                              [], [], [], [None, [-1.0, -1.0, 0.0]]]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters,
+                    nodeDerivativeFixedWeights, serendipity=True)
+
+            setEftScaleFactorIds(eftCoreRim, [1], [])
+            if e1 == 0:
+                remapEftNodeValueLabel(eftCoreRim, [3,7], Node.VALUE_LABEL_D_DS1,
+                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+            elif e1 == (connectionCounts[s] - 1):
+                remapEftNodeValueLabel(eftCoreRim, [4], Node.VALUE_LABEL_D_DS1,
+                                       [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
+        elif s == 1:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, 1.0]], [], [None, None, [1.0, 0.0, 1.0]],
+                                              [], [], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, 1.0]], [], [None, None, [1.0, 0.0, 1.0]], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, -1.0]], [], [None, None, [1.0, 0.0, -1.0]],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, -1.0]], [], [None, None, [1.0, 0.0, -1.0]], [],
+                                              [], [], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters,
+                    nodeDerivativeFixedWeights, serendipity=True)
+        else:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[[1.0, 1.0, 0.0]], [None, None, [-1.0, 0.0, 1.0]],
+                                              [], [None, None, [1.0, 0.0, 1.0]],
+                                              [[1.0, 1.0, 0.0]], [], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, 1.0]], [], [None, None, [1.0, 0.0, 1.0]], [],
+                                              [], [[1.0, 0.0, 0.0]], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [None, None, [-1.0, 0.0, -1.0]], [], [None, None, [1.0, 0.0, -1.0]],
+                                              [[1.0, 0.0, 0.0]], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [-1.0, 0.0, -1.0]], [[-1.0, -1.0, 0.0]],
+                                              [None, None, [1.0, 0.0, -1.0]], [],
+                                              [], [[1.0, 1.0, 0.0]], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftCoreRim, scalefactorsCoreRim = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+
+    elementtemplateCoreRim = mesh.createElementtemplate()
+    elementtemplateCoreRim.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    elementtemplateCoreRim.defineField(coordinates, -1, eftCoreRim)
+    element = mesh.createElement(elementIdentifier, elementtemplateCoreRim)
+    element.setNodesByIdentifier(eftCoreRim, nids)
+    element.setScaleFactors(eftCoreRim, scalefactorsCoreRim) if scalefactorsCoreRim else "-"
+
+    elementIdentifier += 1
+
+    return elementIdentifier
+
+
+def determineMidCoreOuterShellNids(s, e1, e3, inward, crossIndexes, aroundCounts, connectionCounts, tubeNodeIds, midNodeIds,
+                              nodeParametersList, isForward=True):
+    """
+    Determines a set of 8 node ids required to form an outer shell element, and searches for node parameters matching
+    the selected set of node ids from nodeParametersList.
+    :param s, e1, e3: index for segmentCount, connectionCounts, and elementsCountThrough, respectively.
+    :param inward: List over 3 tubes of True if inward, False if not.
+    :param crossIndexes: A list of indexes that are at cross junction of a bifurcation.
+    :param aroundCounts: Number of elements around bifurcation.
+    :param connectionCounts: A list of number of connecting elements for each segment pair, 1-2, 2-3, and 3-1.
+    :param tubeNodeIds, midNodeIds: A list of tube node ids, and mid-section node ids, respectively.
+    :param nodeParametersList: A list of node parameters.
+    :param isForward: True if the connection is in the forward direction, False if in reverse.
+    :return: a set of node ids and their node parameter values
+    """
+    nids = []
+    if isForward:
+        for n3 in [e3, e3 + 1]:
+            n3p = n3 + 2
+            if inward[s]:
+                nStart = crossIndexes[s] - aroundCounts[s]
+                nids += [tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1],
+                         midNodeIds[s][n3][e1], midNodeIds[s][n3][e1 + 1]]
+            else:
+                nStart = crossIndexes[s] - connectionCounts[s]
+                re1 = connectionCounts[s] - e1
+                nids += [midNodeIds[s][n3][re1], midNodeIds[s][n3][re1 - 1],
+                         tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1]]
+    else:
+        for n3 in [e3, e3 + 1]:
+            n3p = n3 + 2
+            if inward[s]:
+                nStart = crossIndexes[s] - connectionCounts[s - 1]
+                re1 = connectionCounts[s - 1] - e1
+                nids += [tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1],
+                         midNodeIds[s - 1][n3][re1], midNodeIds[s - 1][n3][re1 - 1]]
+            else:
+                nStart = crossIndexes[s] - aroundCounts[s]
+                nids += [midNodeIds[s - 1][n3][e1], midNodeIds[s - 1][n3][e1 + 1],
+                         tubeNodeIds[s][n3p][nStart + e1], tubeNodeIds[s][n3p][nStart + e1 + 1]]
+
+    nodeParameters = []
+    for id in nids:
+        for n in range(len(nodeParametersList)):
+            if id == nodeParametersList[n][0]:
+                nodeParameters.append(nodeParametersList[n][1:])
+
+    return nids, nodeParameters
+
+
+def generateMidCoreOuterShellElements(e1, s, connectionCounts, mesh, coordinates, nids, nodeParameters,
+                                      elementIdentifier, isForward=True):
+    """
+
+    """
+    # Forward elements
+    if isForward:
+        if s == 0:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [], [None, [1.0, 1.0, 0.0]], [None, None, [0.0, 0.0, 1.0]],
+                                              [], [], [None, [1.0, 1.0, 0.0]], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[], [], [None, None, [0.0, 0.0, 1.0]], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [], [], [None, None, [0.0, 0.0, 1.0]],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[], [], [None, None, [0.0, 0.0, 1.0]], [None, [-1.0, -1.0, 0.0]],
+                                              [], [], [], [None, [1.0, 1.0, 0.0]]]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters,
+                    nodeDerivativeFixedWeights, serendipity=True)
+        elif s == 1:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[[-1.0, -1.0, 0.0]], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [[1.0, 1.0, 0.0]], [None, None, [0.0, 0.0, 1.0]], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [[-1.0, 0.0, 0.0]], [], [],
+                                              [None, None, [0.0, 0.0, 1.0]], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[[-1.0, 0.0, 0.0]], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [], [None, None, [0.0, 0.0, 1.0]], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [[-1.0, -1.0, 0.0]], [], [],
+                                              [None, None, [0.0, 0.0, 1.0]], [[-1.0, -1.0, 0.0]], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+        else:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [], [], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [], [], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [], [], [],
+                                              [], [], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+            eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+    # Reverse elements
+    else:
+        if s == 0:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [], [None, [-1.0, -1.0, 0.0]], [None, None, [0.0, 0.0, 1.0]],
+                                              [], [], [None, [1.0, 1.0, 0.0]], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[], [], [None, None, [0.0, 0.0, 1.0]], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [], [], [None, None, [0.0, 0.0, 1.0]],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[], [], [None, None, [0.0, 0.0, 1.0]], [None, [1.0, 1.0, 0.0]],
+                                              [], [], [], [None, [1.0, 1.0, 0.0]]]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters,
+                    nodeDerivativeFixedWeights, serendipity=True)
+        elif s == 2:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[[1.0, 1.0, 0.0]], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [[1.0, 1.0, 0.0]], [None, None, [0.0, 0.0, 1.0]], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]], [], [],
+                                              [None, None, [0.0, 0.0, 1.0]], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[[1.0, 0.0, 0.0]], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [], [None, None, [0.0, 0.0, 1.0]], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [[1.0, 1.0, 0.0]], [], [],
+                                              [None, None, [0.0, 0.0, 1.0]], [[-1.0, -1.0, 0.0]], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+
+            eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+        else:
+            if e1 == 0:
+                nodeDerivativeFixedWeights = [[], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [], [], [], []]
+            elif e1 == 1:
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [], [], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 2):
+                nodeDerivativeFixedWeights = [[], [None, None, [0.0, 0.0, 1.0]], [], [],
+                                              [], [], [], []]
+            elif e1 == (connectionCounts[s] - 1):
+                nodeDerivativeFixedWeights = [[None, None, [0.0, 0.0, 1.0]], [], [], [],
+                                              [], [], [], []]
+            else:
+                nodeDerivativeFixedWeights = None
+            eftShell, scalefactorsShell = determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights,
+                                                                          serendipity=True)
+
+    elementtemplateShell = mesh.createElementtemplate()
+    elementtemplateShell.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+    elementtemplateShell.defineField(coordinates, -1, eftShell)
+    element = mesh.createElement(elementIdentifier, elementtemplateShell)
+    element.setNodesByIdentifier(eftShell, nids)
+    element.setScaleFactors(eftShell, scalefactorsShell) if scalefactorsShell else "-"
+
+    elementIdentifier += 1
+
+    return elementIdentifier
 
 
 class SegmentTubeData:
@@ -1552,6 +3428,7 @@ class TubeBifurcationData:
         # print("mag", magnitude(f1d2), "-", magnitude(f2d2))
         mx = interpolateCubicHermite(p1x, f1d2, p2x, f2d2, 0.5)
         md2 = interpolateCubicHermiteDerivative(p1x, f1d2, p2x, f2d2, 0.5)
+
         return mx, md2
 
     def _interpolateCrossPoint(self, crossIndexes, swap23):
@@ -1705,9 +3582,10 @@ def blendNetworkNodeCoordinates(networkNode, segmentTubeDataList):
 
 def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
                                 defaultElementsCountAround: int, targetElementDensityAlongLongestSegment: float,
-                                elementsCountThroughWall: int, layoutAnnotationGroups: list=[],
-                                annotationElementsCountsAround: list=[],
-                                serendipity=False, showTrimSurfaces=False):
+                                elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
+                                annotationElementsCountsAround: list = [], annotationElementsCountsAcrossMajor: list = [],
+                                ellipseParameters: list = [],
+                                serendipity=False, showTrimSurfaces=False, isCore=False):
     """
     Generate a 2D, or 3D (thick walled) tube bifurcation tree mesh.
     :param networkMesh: Specification of network path and lateral sizes.
@@ -1723,8 +3601,11 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     :param layoutAnnotationGroups: Optional list of annotations defined on layout mesh for networkMesh.
     :param annotationElementsCountsAround: Optional list of elements around annotation groups in the same order as
     layoutAnnotationGroups. A value 0 means ignore; a shorter list means assume 0 for all remaining annotation groups.
+    :param ellipseParameters: A list of parameters needed to generate an ellipse using Ellipse2D.
+    [elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossTransition, elementsCountAlong]
     :param serendipity: True to use Hermite serendipity basis, False for regular Hermite with zero cross derivatives.
     :param showTrimSurfaces: Set to True to make surfaces from inter-tube trim surfaces. For diagnostic use.
+    :param isCore: True to generate a solid core inside the tube, False for regular tube network
     :return: next node identifier, next element identifier, annotationGroups.
     """
     layoutRegion = networkMesh.getRegion()
@@ -1742,7 +3623,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     mesh = fieldmodule.findMeshByDimension(dimension)
     fieldcache = fieldmodule.createFieldcache()
 
-    # make tube mesh annotation groups from 1D network layout annotation groups
+    # make 2D annotation groups from 1D network layout annotation groups
     annotationGroups = []
     layoutAnnotationMeshGroupMap = []  # List of tuples of layout annotation mesh group to final mesh group
     for layoutAnnotationGroup in layoutAnnotationGroups:
@@ -1758,7 +3639,7 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
         Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
 
     networkSegments = networkMesh.getNetworkSegments()
-
+    segmentCount = len(networkSegments)
     # map from NetworkSegment to SegmentTubeData
     outerSegmentTubeData = {}
     innerSegmentTubeData = {} if layoutInnerCoordinates else None
@@ -1874,6 +3755,9 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
     del blendedNetworkNodes
 
     completedBifurcations = set()  # record so only done once
+    segmentIdentifier = 1
+    nodeParametersList = None
+
     with ChangeManager(fieldmodule):
         for networkSegment in networkSegments:
             segmentNodes = networkSegment.getNetworkNodes()
@@ -1913,13 +3797,14 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                             outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
                     loop = (len(startInSegments) == 1) and (startInSegments[0] is networkSegment) and \
                            (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
-                    nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
-                        outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
-                        region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
-                        startSkipCount=startSkipCount, endSkipCount=endSkipCount,
+
+                    nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds, nodeParametersList = generateTube(
+                        outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall, region, fieldcache,
+                        coordinates, nodeIdentifier, elementIdentifier, segmentIdentifier, innerTubeData,
+                        ellipseParameters, nodeParametersList, startSkipCount=startSkipCount, endSkipCount=endSkipCount,
                         startNodeIds=startNodeIds, endNodeIds=endNodeIds,
-                        annotationMeshGroups=outerTubeData.getAnnotationMeshGroups(),
-                        loop=loop, serendipity=serendipity)
+                        annotationMeshGroups=outerTubeData.getAnnotationMeshGroups(), loop=loop,
+                        serendipity=serendipity, isCore=isCore)
                     outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
                     outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
 
@@ -1931,6 +3816,8 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                         # copy endNodesIds to start of next segment
                         outTubeData = outerSegmentTubeData[endOutSegments[0]]
                         outTubeData.setStartNodeIds(endNodeIds, 0)
+
+                    segmentIdentifier += 1
                 else:
                     # start, end bifurcation
                     outerTubeBifurcationData = outerNodeTubeBifurcationData.get(
@@ -1971,8 +3858,20 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                         outerMidCoordinates = outerTubeBifurcationData.getMidCoordinates()
                         inward = outerTubeBifurcationData.getSegmentsIn()
                         outerTubeData = outerTubeBifurcationData.getTubeData()
-                        tubeNodeIds = [outerTubeData[s].getEndNodeIds(1) if inward[s] else \
+                        tubeNodeIds = [outerTubeData[s].getEndNodeIds(1) if inward[s] else
                                        outerTubeData[s].getStartNodeIds(1) for s in range(3)]
+
+                        if isCore:
+                            tmpNodeParametersList = []
+                            for i in range(len(tubeNodeIds[0])):
+                                for j in range(len(nodeParametersList)):
+                                    if i == 1:
+                                        pass
+                                    else:
+                                        if nodeParametersList[j][0] in tubeNodeIds[0][i]:
+                                            tmpNodeParametersList.append(nodeParametersList[j])
+                            nodeParametersList = tmpNodeParametersList
+
                         innerTubeCoordinates = None
                         innerMidCoordinates = None
                         if innerTubeBifurcationData:
@@ -1983,7 +3882,9 @@ def generateTubeBifurcationTree(networkMesh: NetworkMesh, region, coordinates, n
                             outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
                             outerMidCoordinates, innerMidCoordinates, crossIndexes,
                             region, fieldcache, coordinates, nodeIdentifier, elementIdentifier, tubeNodeIds,
-                            annotationMeshGroups, serendipity=serendipity)
+                            segmentIdentifier, outerTubeData,
+                            annotationMeshGroups, ellipseParameters, nodeParametersList,
+                            serendipity=serendipity, isCore=isCore)
 
                         for s in range(3):
                             if inward[s]:
