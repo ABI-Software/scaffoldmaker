@@ -42,7 +42,9 @@ class MeshType_3d_vagus1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
-            'Number of elements along the trunk': 45
+            'Number of elements along the trunk': 45,
+            'Apply fitting': True,
+            'Add branches': True
         }
         return options
 
@@ -50,6 +52,8 @@ class MeshType_3d_vagus1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             'Number of elements along the trunk',
+            'Apply fitting',
+            'Add branches'
         ]
 
     @classmethod
@@ -69,33 +73,9 @@ class MeshType_3d_vagus1(Scaffold_base):
         :return: list of AnnotationGroup, None
         """
 
-        applyFitting = True
-        addBranches = True
+        applyFitting = options['Apply fitting']
+        addBranches = options['Add branches']
         xmlData = False
-
-        marker_TermNameVagusLengthList = {
-            "level of exiting brainstem": 0.0,  # note this term is not on the list of annotations
-            "level of superior border of the jugular foramen on the vagal trunk": 8.6342,
-            "level of inferior border of the jugular foramen on the vagal trunk": 16.7227,
-            "level of C1 transverse process on the vagal trunk": 32.1129,
-            "level of angle of mandible on the vagal trunk": 42.2450,
-            "level of tubercles of the greater horn of hyoid bone on the vagal trunk": 45.6122,
-            "level of carotid bifurcation on the vagal trunk": 48.3581,
-            "level of laryngeal prominence on the vagal trunk": 68.8431,
-            "level of superior border of clavicle on the vagal trunk": 117.5627,
-            "level of jugular notch on the vagal trunk": 124.6407,
-            "level of sternal angle on the vagal trunk": 151.2352,
-            "1 cm superior to esophageal plexus on the vagal trunk": 165.5876,
-            "level of esophageal hiatus on the vagal trunk": 254.32879,
-            "level of aortic hiatus on the vagal trunk": 291.3695,
-            "level of end of trunk on Japanese dataset": 312.5 # note this term is also not on the list of annotations
-        }
-
-        lengthToDiameterRatio = 312.5 # calculated from total length of nerve/average diameter of nerve
-        rescaled_lengthToDiameterRatio = 100.0
-        rescaledmarker_TermNameVagusLengthList = {}
-        for term in marker_TermNameVagusLengthList:
-            rescaledmarker_TermNameVagusLengthList[term] = marker_TermNameVagusLengthList[term] / lengthToDiameterRatio * rescaled_lengthToDiameterRatio
 
         # load data from file
         if xmlData:
@@ -103,12 +83,6 @@ class MeshType_3d_vagus1(Scaffold_base):
         else:
             trunk_group_name, trunk_data, marker_data, branch_data = load_data(region)
         assert len(marker_data) >= 2, f"At least two landmarks are expected in the data."
-
-        # choose markers for building initial scaffold
-        use_marker_names = [list(marker_data.keys())[0],
-                            list(marker_data.keys())[-1]]
-        assert [name.lower() in marker_data for name in use_marker_names] and \
-               [name.lower() in rescaledmarker_TermNameVagusLengthList for name in use_marker_names]
 
         # setup
         fieldmodule = region.getFieldmodule()
@@ -190,12 +164,42 @@ class MeshType_3d_vagus1(Scaffold_base):
         vagusElementtemplateBranchRoot.setElementShapeType(Element.SHAPE_TYPE_LINE)
         vagusElementtemplateBranchRoot.defineField(vagusCoordinates, -1, eftNVvagus)
 
-        # build initial 1d trunk line
+        termNameVagusLengthList = {
+            # "level of exiting brainstem": 0.0,  # note this term is not on the list of annotations
+            "level of superior border of jugular foramen on the vagus nerve": 8.6342,
+            "level of inferior border of jugular foramen on the vagus nerve": 16.7227,
+            "level of C1 transverse process on the vagus nerve": 32.1129,
+            "level of angle of mandible on the vagus nerve": 42.2450,
+            "level of greater horn of hyoid on the vagus nerve": 45.6122,
+            "level of carotid bifurcation on the vagus nerve": 48.3581,
+            "level of laryngeal prominence on the vagus nerve": 68.8431,
+            "level of superior border of the clavicle on the vagus nerve": 117.5627,
+            "level of jugular notch on the vagus nerve": 124.6407,
+            "level of sternal angle on the vagus nerve": 151.2352,
+            "1 cm superior to start of esophageal plexus on the vagus nerve": 165.5876,
+            "level of esophageal hiatus on the vagus nerve": 254.32879,
+            "level of aortic hiatus on the vagus nerve": 291.3695,
+            # "level of end of trunk on Japanese dataset": 312.5 # note this term is also not on the list of annotations
+        }
+
+        lengthToDiameterRatio = 312.5  # calculated from total length of nerve/average diameter of nerve
+        rescaledlengthToDiameterRatio = 100.0
+        rescaledTermNameVagusLengthList = {}
+        for term in termNameVagusLengthList:
+            rescaledTermNameVagusLengthList[term] = termNameVagusLengthList[term] \
+                                                    / lengthToDiameterRatio * rescaledlengthToDiameterRatio
+
+        # choose markers for building initial scaffold
+        use_marker_names = [list(marker_data.keys())[0],
+                            list(marker_data.keys())[-1]]
+        assert [name.lower() in marker_data for name in use_marker_names] and \
+               [name.lower() in rescaledTermNameVagusLengthList for name in use_marker_names]
+
+        # build 1d trunk centroid line
         elementsAlongTrunk = options['Number of elements along the trunk']
-        step = rescaled_lengthToDiameterRatio / (elementsAlongTrunk - 1)
-        trunk_nodes, trunk_ld1, vagus_trunk_nodes, vagus_trunk_ld1 = \
-            evaluate_trunk_coordinates(elementsAlongTrunk, step, use_marker_names, marker_data,
-                                       rescaledmarker_TermNameVagusLengthList)
+        elementLength = rescaledlengthToDiameterRatio / (elementsAlongTrunk - 1)
+        trunk_nodes, trunk_ld1, vagus_trunk_nodes, vagus_trunk_ld1 = estimate_trunk_coordinates(
+            elementsAlongTrunk, elementLength, marker_data, rescaledTermNameVagusLengthList)
 
         # annotations
         annotationGroups = []
@@ -340,11 +344,9 @@ class MeshType_3d_vagus1(Scaffold_base):
                 branch_start_coordinate = interpolateHermiteLagrange(v1, d1, v2, branch_root_xi)
                 vagus_branch_start_coordinate = interpolateHermiteLagrange(v_v1, v_d1, v_v2, branch_root_xi)
                 branch_length = magnitude(sub(branch_start_coordinate, branch_end_coordinate))
-                elementsAlongBranch = int(branch_length/step)
+                elementsAlongBranch = int(branch_length / elementLength)
                 if elementsAlongBranch < 3:
                     elementsAlongBranch = 3
-                if elementsAlongBranch > 7:
-                    elementsAlongBranch = 7
                 branch_coordinates = []
                 vagus_branch_coordinates = []
                 dx, dy, dz = div(sub(branch_end_coordinate, branch_start_coordinate), (elementsAlongBranch - 1))
@@ -449,24 +451,37 @@ class MeshType_3d_vagus1(Scaffold_base):
         return annotationGroups, None
 
 
-def evaluate_trunk_coordinates(elementsAlongTrunk, step, use_marker_names, marker_data, termNameVagusLengthList):
+def estimate_trunk_coordinates(elementsAlongTrunk, step, marker_data, termNameVagusLengthList):
     """
 
     """
-    trunk_nodes = []
-    vagus_trunk_nodes = []
+
+    # choose markers for building initial scaffold
+    # for now just use 1st and last markers from the list,
+    # later should be using markers corresponding to either left or right vagus
+    use_marker_names = [list(marker_data.keys())[0],
+                        list(marker_data.keys())[-1]]
+    assert [name.lower() in termNameVagusLengthList for name in use_marker_names] or \
+           ['left ' + name.lower() in termNameVagusLengthList for name in use_marker_names] or \
+           ['right ' + name.lower() in termNameVagusLengthList for name in use_marker_names]
+
     x1, y1, z1 = marker_data[use_marker_names[0]]
     x2, y2, z2 = marker_data[use_marker_names[1]]
-    t1 = termNameVagusLengthList[use_marker_names[0]]
-    t2 = termNameVagusLengthList[use_marker_names[1]]
-    dx, dy, dz = [(x2 - x1) / (t2 - t1), (y2 - y1) / (t2 - t1), (z2 - z1) / (t2 - t1)]
+    t1 = termNameVagusLengthList[use_marker_names[0].replace('left ', '', 1).replace('right ', '', 1)]
+    t2 = termNameVagusLengthList[use_marker_names[1].replace('left ', '', 1).replace('right ', '', 1)]
+
+    dx, dy, dz = [(x2 - x1) / (t2 - t1),
+                  (y2 - y1) / (t2 - t1),
+                  (z2 - z1) / (t2 - t1)]
     trunk_ld1 = [dx * step, dy * step, dz * step]
+
+    trunk_nodes = []
+    vagus_trunk_nodes = []
     vagus_trunk_ld1 = [0, 0, step]
     for i in range(elementsAlongTrunk):
-        trunk_nodes.append([
-            x1 + dx * (i * step - t1),
-            y1 + dy * (i * step - t1),
-            z1 + dz * (i * step - t1)])
+        trunk_nodes.append([x1 + dx * (i * step - t1),
+                            y1 + dy * (i * step - t1),
+                            z1 + dz * (i * step - t1)])
         vagus_trunk_nodes.append([0, 0, i * step])
 
     return trunk_nodes, trunk_ld1, vagus_trunk_nodes, vagus_trunk_ld1
@@ -548,6 +563,14 @@ def fit_trunk_model(modelfile, datafile, trunk_group_name = None):
     fitter.setMarkerGroupByName('marker')  # not necessary, it's marker by default
     fitter.setDiagnosticLevel(0)
 
+    # align step
+    align = FitterStepAlign()
+    align.setAlignMarkers(True)
+    align.setAlignGroups(True)
+    align.setScaleProportion(1.0)
+    fitter.addFitterStep(align)
+    align.run()
+
     # fit step 1
     fit1 = FitterStepFit()
     fit1.setGroupDataWeight('marker', 200.0)
@@ -565,15 +588,6 @@ def fit_trunk_model(modelfile, datafile, trunk_group_name = None):
     fit2.setNumberOfIterations(5)
     fit2.setUpdateReferenceState(True)
     fitter.addFitterStep(fit2)
-
-
-    # align step
-    # align = FitterStepAlign()
-    # align.setAlignMarkers(True)
-    # align.setAlignGroups(True)
-    # align.setScaleProportion(1.0)
-    # fitter.addFitterStep(align)
-    # align.run()
 
     # fit step 1
     # fit1 = FitterStepFit()

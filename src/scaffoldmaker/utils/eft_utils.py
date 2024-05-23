@@ -170,11 +170,11 @@ def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIn
                     eft.setTermScaling(f, t, scaleFactorIndexes)
 
 
-def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
+def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds, elementScaleFactorCount = 0):
     '''
-    Set general followed by node scale factor identifiers.
+    Set general followed by node scale factor and element scale factor identifiers.
     '''
-    eft.setNumberOfLocalScaleFactors(len(globalScaleFactorIds) + len(nodeScaleFactorIds))
+    eft.setNumberOfLocalScaleFactors(len(globalScaleFactorIds) + len(nodeScaleFactorIds) + elementScaleFactorCount)
     s = 1
     for id in globalScaleFactorIds:
         eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_GLOBAL_GENERAL)
@@ -183,6 +183,9 @@ def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
     for id in nodeScaleFactorIds:
         eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
         eft.setScaleFactorIdentifier(s, id)
+        s += 1
+    for e in range(elementScaleFactorCount):
+        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_ELEMENT_GENERAL)
         s += 1
 
 

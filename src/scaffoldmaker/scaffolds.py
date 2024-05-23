@@ -57,6 +57,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubesept
 from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
 from scaffoldmaker.meshtypes.meshtype_3d_vagus1 import MeshType_3d_vagus1
 from scaffoldmaker.meshtypes.meshtype_3d_vagus_box1 import MeshType_3d_vagus_box1
+from scaffoldmaker.meshtypes.meshtype_3d_vagus_box2 import MeshType_3d_vagus_box2
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
@@ -119,6 +120,7 @@ class Scaffolds(object):
             MeshType_3d_uterus1,
             MeshType_3d_vagus1,
             MeshType_3d_vagus_box1,
+            MeshType_3d_vagus_box2,
             MeshType_3d_wholebody1
             ]
 
