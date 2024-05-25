@@ -1,6 +1,7 @@
 import math
 import unittest
 
+from cmlibs.maths.vectorops import magnitude
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.group import identifier_ranges_to_string, mesh_group_add_identifier_ranges, \
@@ -339,6 +340,38 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
             expectedSurfaceArea = 6 * 0.2 * 0.2 + 4 * 0.2 * (1.0 + 2 * L2)
             self.assertAlmostEqual(surfaceArea, expectedSurfaceArea, delta=X_TOL)
+
+    def test_3d_box_network_smooth(self):
+        """
+        Test 3-D box network derivative smoothing is working between segments sharing a version.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_boxnetwork1)
+        settings = scaffoldPackage.getScaffoldSettings()
+        settings["Target element density along longest segment"] = 1.0
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        networkLayoutSettings["Structure"] = "1-2-3,3-4"  # 2 unequal-sized segments
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+
+        fieldmodule = region.getFieldmodule()
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(3, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+        node2 = nodes.findNodeByIdentifier(2)
+        self.assertTrue(node2.isValid())
+
+        # test magnitude of d1 between segments is harmonic mean of element sizes
+        fieldcache = fieldmodule.createFieldcache()
+        fieldcache.setNode(node2)
+        result, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        self.assertEqual(result, RESULT_OK)
+        d1Mag = magnitude(d1)
+        self.assertAlmostEqual(4.0 / 3.0, d1Mag, delta=1.0E-12)
 
     def test_3d_tube_network_loop(self):
         """
