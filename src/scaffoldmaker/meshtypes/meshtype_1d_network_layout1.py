@@ -8,7 +8,7 @@ from cmlibs.utils.zinc.scene import scene_get_selection_group
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.networkmesh import NetworkMesh
+from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
 from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.zinc_utils import clearRegion, get_nodeset_field_parameters, \
     get_nodeset_path_ordered_field_parameters, make_nodeset_derivatives_orthogonal, \
@@ -261,10 +261,6 @@ class MeshType_1d_network_layout1(Scaffold_base):
             if not selectionMeshGroup.isValid():
                 print("Assign coordinates:  Selection contains no elements. Clear it to assign globally.")
                 return False, False
-        valueLabels = [
-            Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-            Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
 
         with ChangeManager(fieldmodule):
             # get all node parameters (from selection if any)
@@ -277,10 +273,10 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
                 tmpMeshGroup.addElementsConditional(selectionGroup)
                 editNodeset = tmpGroup.getNodesetGroup(nodes)
-                _, originalNodeParameters = get_nodeset_field_parameters(editNodeset, toCoordinates, valueLabels)
+                _, originalNodeParameters = get_nodeset_field_parameters(editNodeset, toCoordinates, pathValueLabels)
                 del tmpMeshGroup
                 del tmpGroup
-            _, nodeParameters = get_nodeset_field_parameters(editNodeset, fromCoordinates, valueLabels)
+            _, nodeParameters = get_nodeset_field_parameters(editNodeset, fromCoordinates, pathValueLabels)
 
             modifyVersions = None  # default is to modify all versions
             if selectionGroup:
@@ -324,7 +320,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
                         for d in range(2, 6):
                             nNodeParameters[d][v] = oNodeParameters[d][v]
 
-            set_nodeset_field_parameters(editNodeset, toCoordinates, valueLabels, nodeParameters, editGroupName)
+            set_nodeset_field_parameters(editNodeset, toCoordinates, pathValueLabels, nodeParameters, editGroupName)
             del editNodeset
 
         return False, True  # settings not changed, nodes changed
