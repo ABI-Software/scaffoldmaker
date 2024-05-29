@@ -578,6 +578,7 @@ class NetworkMeshGenerateData:
         self._region = region
         self._fieldmodule = region.getFieldmodule()
         self._fieldcache = self._fieldmodule.createFieldcache()
+        self._meshDimension = meshDimension
         self._mesh = self._fieldmodule.findMeshByDimension(meshDimension)
         self._nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self._coordinates = find_or_create_field_coordinates(self._fieldmodule, coordinateFieldName)
@@ -604,6 +605,12 @@ class NetworkMeshGenerateData:
         """
         return self._mesh
 
+    def getMeshDimension(self):
+        """
+        :return: Dimension of elements being built.
+        """
+        return self._meshDimension
+
     def getNodes(self):
         """
         :return: Zinc Nodeset for nodes being built.
@@ -617,6 +624,13 @@ class NetworkMeshGenerateData:
         """
         return self._nodeIdentifier, self._elementIdentifier
 
+    def setNodeElementIdentifiers(self, nodeIdentifier, elementIdentifier):
+        """
+        Set next node and element identifiers after generating objects with external code.
+        """
+        self._nodeIdentifier = nodeIdentifier
+        self._elementIdentifier = elementIdentifier
+
     def nextNodeIdentifier(self):
         nodeIdentifier = self._nodeIdentifier
         self._nodeIdentifier += 1
@@ -626,6 +640,9 @@ class NetworkMeshGenerateData:
         elementIdentifier = self._elementIdentifier
         self._elementIdentifier += 1
         return elementIdentifier
+
+    def getRegion(self):
+        return self._region
 
     def getAnnotationGroups(self):
         return self._annotationGroups
@@ -663,6 +680,8 @@ class NetworkMeshSegment(ABC):
         """
         self._networkSegment = networkSegment
         self._pathParametersList = pathParametersList
+        self._pathsCount = len(pathParametersList)
+        self._dimension = 3 if (self._pathsCount > 1) else 2
         self._length = getCubicHermiteCurvesLength(pathParametersList[0][0], pathParametersList[0][1])
         self._annotationTerms = []
         self._junctions = []  # start, end junctions. Set when junctions are created.
@@ -688,16 +707,16 @@ class NetworkMeshSegment(ABC):
         """
         return self._networkSegment
 
-    def getPathParameters(self, index=0):
+    def getPathParameters(self, pathIndex=0):
         """
-        GRC needed?
-        Get path parameters for
-        :param index:
-        :return: Path parameters x, d1, d2,
+        :return: Path parameters (x, d1, d2, d12, d3, d13) for path index.
         """
-        if index > len(self._pathParametersList):
+        if pathIndex > len(self._pathParametersList):
             return None
-        return self._pathParameters[index]
+        return self._pathParametersList[pathIndex]
+
+    def getPathsCount(self):
+        return self._pathsCount
 
     def getJunctions(self):
         """
@@ -753,10 +772,9 @@ class NetworkMeshJunction(ABC):
         self._inNetworkSegments = inNetworkSegments
         self._outNetworkSegments = outNetworkSegments
         self._networkSegments = inNetworkSegments + outNetworkSegments
-        segmentsCount = len(self._networkSegments)
-        assert segmentsCount > 0
+        self._segmentsCount = len(self._networkSegments)
         self._segments = [networkMeshSegments[networkSegment] for networkSegment in self._networkSegments]
-        self._segmentsIn = [self._networkSegments[s] in self._inNetworkSegments for s in range(segmentsCount)]
+        self._segmentsIn = [self._networkSegments[s] in self._inNetworkSegments for s in range(self._segmentsCount)]
 
     def getNetworkSegments(self):
         """
@@ -765,7 +783,7 @@ class NetworkMeshJunction(ABC):
         return self._networkSegments
 
     def getSegmentsCount(self):
-        return len(self._networkSegments)
+        return self._segmentsCount
 
     def getSegmentsIn(self):
         """

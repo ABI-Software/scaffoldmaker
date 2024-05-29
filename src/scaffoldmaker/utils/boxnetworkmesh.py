@@ -90,7 +90,6 @@ class BoxNetworkMeshSegment(NetworkMeshSegment):
         """
         super(BoxNetworkMeshSegment, self).__init__(networkSegment, pathParametersList)
         self._sampledBoxCoordinates = None
-        self._sampledNodeIdentifiers = []
 
     def sample(self, targetElementLength):
         elementsCountAlong = max(1, math.ceil(self._length / targetElementLength))
@@ -101,7 +100,6 @@ class BoxNetworkMeshSegment(NetworkMeshSegment):
         sd2, sd12 = interpolateSampleCubicHermite(pathParameters[2], pathParameters[3], pe, pxi, psf)
         sd3, sd13 = interpolateSampleCubicHermite(pathParameters[4], pathParameters[5], pe, pxi, psf)
         self._sampledBoxCoordinates = (sx, sd1, sd2, sd12, sd3, sd13)
-        self._sampledNodeIdentifiers = [None] * len(self._sampledBoxCoordinates[0])
 
     def getSampledD1(self, nodeIndex):
         return self._sampledBoxCoordinates[1][nodeIndex]
@@ -110,7 +108,6 @@ class BoxNetworkMeshSegment(NetworkMeshSegment):
         self._sampledBoxCoordinates[1][nodeIndex] = d1
 
     def generateMesh(self, generateData: BoxNetworkMeshGenerateData):
-        boxData = self
         segmentNodes = self._networkSegment.getNetworkNodes()
         layoutNodeVersions = self._networkSegment.getNodeVersions()
         sx, sd1, sd2, sd12, sd3, sd13 = self._sampledBoxCoordinates

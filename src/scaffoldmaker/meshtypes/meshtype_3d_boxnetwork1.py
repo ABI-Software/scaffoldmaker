@@ -85,7 +85,6 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
 
         layoutRegion = region.createRegion()
-        layoutFieldmodule = layoutRegion.getFieldmodule()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()

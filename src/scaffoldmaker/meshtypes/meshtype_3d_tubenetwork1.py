@@ -10,7 +10,7 @@ from cmlibs.zinc.field import Field
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.bifurcation import generateTubeBifurcationTree
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 
 
 class MeshType_3d_tubenetwork1(Scaffold_base):
@@ -36,7 +36,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count through wall": 1,
             "Annotation elements counts around": [0],
             "Target element density along longest segment": 4.0,
-            "Serendipity": True,
+            "Linear through wall": False,
             "Show trim surfaces": False
         }
         return options
@@ -49,7 +49,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count through wall",
             "Annotation elements counts around",
             "Target element density along longest segment",
-            "Serendipity",
+            "Linear through wall",
             "Show trim surfaces"
         ]
 
@@ -120,25 +120,20 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         elementsCountThroughWall = options["Elements count through wall"]
         annotationElementsCountsAround = options["Annotation elements counts around"]
         targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
-        serendipity = options["Serendipity"]
+        linearThroughWall = options["Linear through wall"]
 
         layoutRegion = region.createRegion()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
-
-        fieldmodule = region.getFieldmodule()
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        coordinates = find_or_create_field_coordinates(fieldmodule)
-        nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
-        mesh = fieldmodule.findMeshByDimension(2)
-        elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
-
         networkMesh = networkLayout.getConstructionObject()
 
-        nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
-            networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementDensityAlongLongestSegment, elementsCountThroughWall,
-            layoutAnnotationGroups, annotationElementsCountsAround,
-            serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
+        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
+            networkMesh, targetElementDensityAlongLongestSegment, elementsCountAround, elementsCountThroughWall,
+            layoutAnnotationGroups, annotationElementsCountsAround)
+        tubeNetworkMeshBuilder.build()
+        generateData = TubeNetworkMeshGenerateData(
+            region, 3, linearThroughWall, options["Show trim surfaces"])
+        tubeNetworkMeshBuilder.generateMesh(generateData)
+        annotationGroups = generateData.getAnnotationGroups()
 
         return annotationGroups, None
