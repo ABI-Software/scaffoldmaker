@@ -1761,7 +1761,7 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
         v3r = normalize(cx_tube_group[4][n])
         d2Mag = magnitude(cx_tube_group[2][n])
         r2 = (d2Mag - distance - wallThickness) / 2
-        # d3Mag = vector.magnitude(cx_tube_group[4][n])
+        # d3Mag = magnitude(cx_tube_group[4][n])
         # r3 = (d3Mag - wallThickness)
         v_trans = set_magnitude(v2r, distance + r2)
 

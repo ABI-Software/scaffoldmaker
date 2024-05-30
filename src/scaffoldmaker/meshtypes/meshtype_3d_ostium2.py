@@ -566,7 +566,7 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
     #     nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
     #     px, pd2, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd2, elementsCountAcross)[0:4]
     #     pd1 = interp.interpolateSampleLinear(nd1, pe, pxi)
-    #     pd3 = [set_magnitude(vector.crossproduct3(pd1[n2], pd2[n2]), commonOstiumWallThickness)
+    #     pd3 = [set_magnitude(cross(pd1[n2], pd2[n2]), commonOstiumWallThickness)
     #            for n2 in range(elementsCountAcross + 1)]
     #     for n3 in range(elementsCountThroughWall + 1):
     #         xi3 = 1 - commonOstiumWallThicknessXi3List[n3]
@@ -579,8 +579,8 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
     #         od2[n3][oa] = [-d for d in ld2[0]]
     #         od2[n3][ob] = ld2[-1]
     #         if useCubicHermiteThroughOstiumWall:
-    #             pd3Element = [set_magnitude(vector.crossproduct3(pd1[n2], pd2[n2]),
-    #                                               commonOstiumWallThickness * commonOstiumWallThicknessProportions[n3])
+    #             pd3Element = [set_magnitude(cross(pd1[n2], pd2[n2]),
+    #                                         commonOstiumWallThickness * commonOstiumWallThicknessProportions[n3])
     #                           for n2 in range(elementsCountAcross + 1)]
     #             xd3[iv][n3] = copy.deepcopy(pd3Element[1:elementsCountAcross])
     #
