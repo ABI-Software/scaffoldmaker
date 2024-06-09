@@ -16,7 +16,7 @@ from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 from testutils import assertAlmostEqualList
 
 
-class StomachScaffoldTestCase(unittest.TestCase):
+class UterusScaffoldTestCase(unittest.TestCase):
 
     def test_uterus1(self):
         """

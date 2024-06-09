@@ -656,6 +656,8 @@ class NetworkMeshGenerateData:
         annotationGroup = self._annotationGroupMap.get(annotationTerm)
         if not annotationGroup:
             annotationGroup = AnnotationGroup(self._region, annotationTerm)
+            self._annotationGroups.append(annotationGroup)
+            self._annotationGroupMap[annotationTerm] = annotationGroup
         return annotationGroup.getMeshGroup(self._mesh)
 
     def getAnnotationMeshGroups(self, annotationTerms):
@@ -693,6 +695,9 @@ class NetworkMeshSegment(ABC):
         :param annotationTerm: Annotation term (name: str, ontId: str)
         """
         self._annotationTerms.append(annotationTerm)
+
+    def getAnnotationTerms(self):
+        return self._annotationTerms
 
     def getLength(self):
         """
@@ -763,18 +768,14 @@ class NetworkMeshJunction(ABC):
     Base class for building a mesh at a junction between segments, some in, some out.
     """
 
-    def __init__(self, inNetworkSegments: list, outNetworkSegments: list, networkMeshSegments):
+    def __init__(self, inSegments: list, outSegments: list):
         """
-        :param inNetworkSegments: List of input segments.
-        :param outNetworkSegments: List of output segments.
-        :param networkMeshSegments: dict NetworkSegment -> NetworkMeshSegment-derived object.
+        :param inSegments: List of inward NetworkMeshSegment-derived objects.
+        :param outSegments: List of outward NetworkMeshSegment-derived objects.
         """
-        self._inNetworkSegments = inNetworkSegments
-        self._outNetworkSegments = outNetworkSegments
-        self._networkSegments = inNetworkSegments + outNetworkSegments
-        self._segmentsCount = len(self._networkSegments)
-        self._segments = [networkMeshSegments[networkSegment] for networkSegment in self._networkSegments]
-        self._segmentsIn = [self._networkSegments[s] in self._inNetworkSegments for s in range(self._segmentsCount)]
+        self._segments = inSegments + outSegments
+        self._segmentsCount = len(self._segments)
+        self._segmentsIn = [segment in inSegments for segment in self._segments]
 
     def getNetworkSegments(self):
         """
@@ -864,13 +865,12 @@ class NetworkMeshBuilder(ABC):
             self._targetElementLength = self._longestSegmentLength / self._targetElementDensityAlongLongestSegment
 
     @abstractmethod
-    def createJunction(self, inNetworkSegments, outNetworkSegments, networkMeshSegments):
+    def createJunction(self, inSegments, outSegments):
         """
         Factory method for creating a NetworkMeshJunction.
         Override in concrete class to create a derived Junction for building the mesh of required type.
-        :param inNetworkSegments: List of input segments.
-        :param outNetworkSegments: List of output segments.
-        :param networkMeshSegments: dict NetworkSegment -> NetworkMeshSegment-derived object.
+        :param inSegments: List of inward NetworkMeshSegment-derived objects.
+        :param outSegments: List of outward NetworkMeshSegment-derived objects.
         :return: An object derived from NetworkMeshJunction.
         """
         return None
@@ -889,9 +889,9 @@ class NetworkMeshBuilder(ABC):
                 segmentNode = segmentNodes[nodeIndex]
                 junction = self._junctions.get(segmentNode)
                 if not junction:
-                    inNetworkSegments = segmentNode.getInSegments()
-                    outNetworkSegments = segmentNode.getOutSegments()
-                    junction = self.createJunction(inNetworkSegments, outNetworkSegments, self._segments)
+                    inSegments = [self._segments[networkSegment] for networkSegment in segmentNode.getInSegments()]
+                    outSegments = [self._segments[networkSegment] for networkSegment in segmentNode.getOutSegments()]
+                    junction = self.createJunction(inSegments, outSegments)
                     self._junctions[segmentNode] = junction
                 segmentJunctions.append(junction)
             segment.setJunctions(segmentJunctions)

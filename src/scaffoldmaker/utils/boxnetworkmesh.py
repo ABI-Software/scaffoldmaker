@@ -169,14 +169,12 @@ class BoxNetworkMeshJunction(NetworkMeshJunction):
     Describes junction between multiple segments, some in, some out.
     """
 
-    def __init__(self, inNetworkSegments: list, outNetworkSegments: list, networkMeshSegments):
+    def __init__(self, inSegments: list, outSegments: list):
         """
-        :param inNetworkSegments: List of inward segments.
-        :param outNetworkSegments: List of outward segments.
-        :param networkMeshSegments: dict NetworkSegment -> BoxNetworkMeshSegment.
+        :param inSegments: List of inward BoxNetworkMeshSegment.
+        :param outSegments: List of outward BoxNetworkMeshSegment.
         """
-        super(BoxNetworkMeshJunction, self).__init__(
-            inNetworkSegments, outNetworkSegments, networkMeshSegments)
+        super(BoxNetworkMeshJunction, self).__init__(inSegments, outSegments)
         self._nodeIdentifier = None  # set by adjacent segment
 
     def getNodeIdentifier(self):
@@ -246,11 +244,10 @@ class BoxNetworkMeshBuilder(NetworkMeshBuilder):
             networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())]
         return BoxNetworkMeshSegment(networkSegment, pathParametersList)
 
-    def createJunction(self, inNetworkSegments, outNetworkSegments, networkMeshSegments):
+    def createJunction(self, inSegments, outSegments):
         """
-        :param inNetworkSegments: List of input segments.
-        :param outNetworkSegments: List of output segments.
-        :param networkMeshSegments: dict NetworkSegment -> NetworkMeshSegment-derived object.
+        :param inSegments: List of inward BoxNetworkMeshSegment.
+        :param outSegments: List of outward BoxNetworkMeshSegment.
         :return: A BoxNetworkMeshJunction.
         """
-        return BoxNetworkMeshJunction(inNetworkSegments, outNetworkSegments, networkMeshSegments)
+        return BoxNetworkMeshJunction(inSegments, outSegments)

@@ -89,11 +89,10 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(6, len(settings))
+        self.assertEqual(5, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertTrue(settings["Serendipity"])
         settings["Target element density along longest segment"] = 7.5
         MeshType_2d_tubenetwork1.checkOptions(settings)
         self.assertEqual(7.5, settings["Target element density along longest segment"])
@@ -136,11 +135,10 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(6, len(settings))
+        self.assertEqual(5, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertTrue(settings["Serendipity"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -198,6 +196,72 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(surfaceArea, 4.057905325323945, delta=X_TOL)
 
+    def test_3d_tube_network_bifurcation(self):
+        """
+        Test bifurcation 3-D tube network is generated correctly.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Bifurcation")
+        settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertTrue(networkLayoutSettings["Define inner coordinates"])
+        self.assertEqual(7, len(settings))
+        self.assertEqual(8, settings["Elements count around"])
+        self.assertEqual(1, settings["Elements count through wall"])
+        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertFalse(settings["Linear through wall"])
+        self.assertFalse(settings["Show trim surfaces"])
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+
+        fieldmodule = region.getFieldmodule()
+        mesh3d = fieldmodule.findMeshByDimension(3)
+
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(8 * 4 * 3, mesh3d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual((8 * 4 * 3 + 3 * 3 + 2) * 2, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        X_TOL = 1.0E-6
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [0.0, -0.5894427190999916, -0.10000000000000002], X_TOL)
+        assertAlmostEqualList(self, maximums, [2.044721359549996, 0.5894427190999916, 0.10000000000000002], X_TOL)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_0 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(volume, 0.073893736757101, delta=X_TOL)
+
+            outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
+            outerSurfaceAreaField.setNumbersOfPoints(4)
+            result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(outerSurfaceArea, 1.932568882906849, delta=X_TOL)
+
+            innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
+            innerSurfaceAreaField.setNumbersOfPoints(4)
+            result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(innerSurfaceArea, 1.0014200100128765, delta=X_TOL)
+
     def test_3d_tube_network_sphere_cube(self):
         """
         Test sphere cube 3-D tube network is generated correctly.
@@ -212,8 +276,10 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1, settings["Elements count through wall"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertTrue(settings["Serendipity"])
+        self.assertFalse(settings["Linear through wall"])
+        self.assertFalse(settings["Show trim surfaces"])
         settings["Elements count through wall"] = 2
+        settings["Linear through wall"] = True
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -245,11 +311,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         scaffoldPackage.generate(region)
 
         fieldmodule = region.getFieldmodule()
-        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(32 * 12 * 2, mesh3d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self.assertEqual(8 * 3 * 12 * 3 + (2 + 3 * 3) * 8 * 3, nodes.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(32 * 12 * 5 + 24 * 12 * 2 + 12 * 8 * 2, mesh2d.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
 
