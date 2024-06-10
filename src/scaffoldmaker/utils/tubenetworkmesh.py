@@ -51,7 +51,12 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._standardEft = self._mesh.createElementfieldtemplate(elementbasis)
         self._standardElementtemplate.defineField(self._coordinates, -1, self._standardEft)
 
+        d3Defined = (meshDimension == 3) and not isLinearThroughWall
         self._nodeLayoutManager = HermiteNodeLayoutManager()
+        self._nodeLayout6Way = self._nodeLayoutManager.getNodeLayout6Way12(d3Defined)
+        self._nodeLayoutFlipD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
+            d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
+            else [None, [[0.0, 1.0], [0.0, -1.0]]])
 
     def getStandardEft(self):
         return self._standardEft
@@ -59,8 +64,12 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
     def getStandardElementtemplate(self):
         return self._standardElementtemplate
 
-    def getNodeLayoutManager(self):
-        return self._nodeLayoutManager
+    def getNodeLayout6Way(self):
+        return self._nodeLayout6Way
+
+    def getNodeLayoutFlipD2(self):
+        return self._nodeLayoutFlipD2
+
     def getNodetemplate(self):
         return self._nodetemplate
 
@@ -504,21 +513,20 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             for s2 in range(s1 + 1, segmentsCount):
                 hd2s2 = [-d for d in hd2[s2]]
                 mx.append(interpolateCubicHermite(hx[s1], hd2[s1], hx[s2], hd2s2, xi))
-                md1.append(mult(add(hd1[s1], [-d for d in hd1[s2]]), 0.5 if segmentsIn[s1] else -0.5))
+                md1.append(mult(add(hd1[s1], [-d for d in hd1[s2]]), 0.5))
                 md2.append(interpolateCubicHermiteDerivative(hx[s1], hd2[s1], hx[s2], hd2s2, xi))
                 if d3Defined:
                     md3.append(mult(add(hd3[s1], hd3[s2]), 0.5))
-        if len(segmentsIn) == 2:
+        if segmentsCount == 2:
             if not segmentsIn[0]:
+                md1[0] = [-d for d in md1[0]]
                 md2[0] = [-d for d in md2[0]]
             return mx[0], md1[0], md2[0], md3[0] if d3Defined else None
         cx = [sum(x[c] for x in mx) / segmentsCount for c in range(3)]
-        cd3 = [sum(d3[c] for d3 in md3) for c in range(3)] if d3Defined else None
+        cd3 = [sum(d3[c] for d3 in md3) / segmentsCount for c in range(3)] if d3Defined else None
         ns12 = [0.0, 0.0, 0.0]
         for m in range(len(md1)):
             cp12 = normalize(cross(md1[m], md2[m]))
-            if d3Defined and (dot(cp12, cd3) < 0.0):
-                cp12 = [-d for d in cp12]
             for c in range(3):
                 ns12[c] += cp12[c]
         ns12 = normalize(ns12)
@@ -536,7 +544,26 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         if segmentsIn.count(True) == 2:
             # reverse so matches inward directions
             td = [[-c for c in d] for d in td]
-        cd1, cd2 = (sub(d, mult(ns12, dot(d, ns12))) for d in td)
+        td = [sub(d, mult(ns12, dot(d, ns12))) for d in td]
+        # get magnitude of d1, d2 at 6-way point by taking mean with the aligned straight-through d1
+        md1Norm = [normalize(d) for d in md1]
+        for d in range(2):
+            tdMag = magnitude(td[d])
+            mMaxMag = 0.0
+            mIndex = None
+            dNorm = normalize(td[d])
+            for m in range(segmentsCount):
+                dp = dot(dNorm, md1Norm[m])
+                dpMag = math.fabs(dp)
+                if dpMag > mMaxMag:
+                    mMaxMag = dpMag
+                    mIndex = m
+            # arithmetic mean is a reasonable compromise
+            newMag = 0.5 * (tdMag + magnitude(md1[mIndex]))
+            # harmonic mean tends to be too low
+            # newMag = 2.0 / ((1.0 / tdMag) + (1.0 / magnitude(md1[mIndex])))
+            td[d] = mult(td[d], newMag / tdMag)
+        cd1, cd2 = td
         if dot(cross(cd1, cd2), ns12) < 0.0:
             cd1, cd2 = cd2, cd1
         return cx, cd1, cd2, cd3
@@ -656,8 +683,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 rx[n3][rimIndex], rd1[n3][rimIndex], rd2[n3][rimIndex], rd3[n3][rimIndex] = \
                     self._sampleMidPoint(segmentsParameterLists)
 
-        # smooth rim coordinates
-
     def generateMesh(self, generateData: TubeNetworkMeshGenerateData):
         if generateData.isShowTrimSurfaces():
             dimension = generateData.getMeshDimension()
@@ -693,7 +718,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
         d3Defined = (meshDimension == 3) and not isLinearThroughWall
 
-        nodeLayoutManager = generateData.getNodeLayoutManager()
+        nodeLayout6Way = generateData.getNodeLayout6Way()
+        nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
 
         # nodes and elements are generated in order of segments
         for s in range(self._segmentsCount):
@@ -755,9 +781,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                          self._rimCoordinates[2][n3][rimIndex],
                                          self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
                                     segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
-                                    nodeLayouts.append(
-                                        nodeLayoutManager.getNodeLayout6Way12(d3Defined) if (segmentNodesCount == 3)
-                                        else nodeLayoutManager.getNodeLayoutRegularPermuted(d3Defined))
+                                    nodeLayouts.append(nodeLayout6Way if (segmentNodesCount == 3)
+                                                       else nodeLayoutFlipD2)
                             if not self._segmentsIn[s]:
                                 for a in [nids, nodeParameters, nodeLayouts] if (e3 == 0) else [nids]:
                                     a[-4], a[-2] = a[-2], a[-4]

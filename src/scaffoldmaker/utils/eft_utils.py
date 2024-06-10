@@ -465,25 +465,42 @@ class HermiteNodeLayout:
     possible permutations of them giving a right-handed corner without other directions inside them.
     """
 
-    def __init__(self, directions):
+    def __init__(self, directions, baseNodeLayout=None, limitDirections=None):
         """
+        Construct a new node layout from either directions, or baseNodeLayout with limitDirections.
         :param directions: List of allowed directions as weighted sums of d1, d2, or d1, d2, d3.
-        Special value [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]] sets up the
-        regular, single permutation layout. Lists with 2 weights are for bicubic; with each weight
-        paired with the following in the list to make valid permutations.
+        Lists with 2 weights are for bicubic; with each weight paired with the following
+        in the list to make valid permutations. Do not supply if baseNodeLayout is supplied.
+        :param baseNodeLayout: Optional base node layout to copy direections and permutations from
+        when supplying limitDirections.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with no d3, [None, [[0.0, 1.0], [0.0, -1.0]]] places no limit on the first
+        derivative, but derivative 2 must be [0, +/-1].
         """
-        self._directions = directions
-        self._cubicDimensions = len(directions[0])
+        assert (directions and not baseNodeLayout) or (baseNodeLayout and limitDirections and not directions)
+        self._directions = directions if directions else baseNodeLayout.getDirections()
+        self._limitDirections = limitDirections if limitDirections else []
+        self._cubicDimensions = len(self._directions[0])
         assert self._cubicDimensions in (2, 3)
-        self._permutations = []
-        directionsCount = len(directions)
+        self._permutations = baseNodeLayout.getPermutations() if baseNodeLayout else self._determinePermutations()
+
+    def _determinePermutations(self):
+        """
+        Determine permutations of weights from directions.
+        :return: Permutations list.
+        """
+        permutations = []
+        directionsCount = len(self._directions)
         if self._cubicDimensions == 2:
             for i in range(directionsCount):
                 j = (i + 1) % directionsCount
-                self._permutations.append((directions[i], directions[j]))
-                self._permutations.append((directions[j], directions[i]))
+                permutations.append((self._directions[i], self._directions[j]))
+                # disallowing reverse as messes up bifurcations with 6, 10, 14 etc. around
+                # would be needed for moebius strip
+                # permutations.append((directions[j], directions[i]))
         else:
-            normDir = [normalize(dir) for dir in directions]
+            normDir = [normalize(dir) for dir in self._directions]
             for i in range(directionsCount - 2):
                 for j in range(i + 1, directionsCount - 1):
                     if dot(normDir[i], normDir[j]) < -0.9:
@@ -508,12 +525,16 @@ class HermiteNodeLayout:
                                 break  # another direction is within i j k region
                         else:
                             ii, jj, kk = (i, k, j) if swizzle else (i, j, k)
-                            self._permutations.append((directions[ii], directions[jj], directions[kk]))
-                            self._permutations.append((directions[jj], directions[kk], directions[ii]))
-                            self._permutations.append((directions[kk], directions[ii], directions[jj]))
+                            permutations.append((self._directions[ii], self._directions[jj], self._directions[kk]))
+                            permutations.append((self._directions[jj], self._directions[kk], self._directions[ii]))
+                            permutations.append((self._directions[kk], self._directions[ii], self._directions[jj]))
+        return permutations
 
     def getDirections(self):
         return self._directions
+
+    def getPermutations(self):
+        return self._permutations
 
     def getDerivativeWeightsList(self, nodeDeltas, nodeDerivatives, localNodeIndex):
         """
@@ -530,62 +551,55 @@ class HermiteNodeLayout:
             flipCount = sum(1 for flip in flips if flip)
             swizzle = (flipCount % 2) == 1
             swizzleIndexes = [1, 0] if swizzle else [0, 1]
-            # modify deltas to point inward towards opposite node
-            inwardNodeDeltas = [[-d for d in nodeDeltas[i]] if flips[i] else nodeDeltas[i] for i in swizzleIndexes]
-            derivativeWeightsList = None
-            greatestSimilarity = 0.0
-            for permutation in self._permutations:
-                similarity = 0.0
-                for d in range(derivativesPerNode):
-                    weights = permutation[d]
-                    derivative = [0.0, 0.0, 0.0]
-                    for i in range(derivativesPerNode):
-                        if weights[i]:
-                            weight = weights[i]
-                            nodeDerivative = nodeDerivatives[i]
-                            for c in range(3):
-                                derivative[c] += weight * nodeDerivative[c]
-                    delta = inwardNodeDeltas[d]
-                    magDelta = magnitude(delta)
-                    magDerivative = magnitude(derivative)
-                    if magDerivative > 0.0:
-                        cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
-                        # magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
-                        similarity += cosineSimilarity  # * magnitudeSimilarity
-                if similarity > greatestSimilarity:
-                    greatestSimilarity = similarity
-                    derivativeWeightsList = permutation
         else:
             flips = [localNodeIndex in [1, 3, 5, 7], localNodeIndex in [2, 3, 6, 7], localNodeIndex in [4, 5, 6, 7]]
             # need to swizzle indexes if odd number of flips, to keep right-handed layout
             flipCount = sum(1 for flip in flips if flip)
             swizzle = (flipCount % 2) == 1
             swizzleIndexes = [0, 2, 1] if swizzle else [0, 1, 2]
-            # modify deltas to point inward towards opposite node
-            inwardNodeDeltas = [[-d for d in nodeDeltas[i]] if flips[i] else nodeDeltas[i] for i in swizzleIndexes]
-            derivativeWeightsList = None
-            greatestSimilarity = 0.0
-            for permutation in self._permutations:
-                similarity = 0.0
-                for d in range(derivativesPerNode):
-                    weights = permutation[d]
-                    derivative = [0.0, 0.0, 0.0]
-                    for i in range(derivativesPerNode):
-                        if weights[i]:
-                            weight = weights[i]
-                            nodeDerivative = nodeDerivatives[i]
-                            for c in range(3):
-                                derivative[c] += weight * nodeDerivative[c]
-                    delta = inwardNodeDeltas[d]
-                    magDelta = magnitude(delta)
-                    magDerivative = magnitude(derivative)
-                    if magDerivative > 0.0:
-                        cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
-                        # magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
-                        similarity += cosineSimilarity  # * magnitudeSimilarity
-                if similarity > greatestSimilarity:
-                    greatestSimilarity = similarity
-                    derivativeWeightsList = permutation
+
+        # modify deltas to point inward towards opposite node
+        inwardNodeDeltas = [[-d for d in nodeDeltas[i]] if flips[i] else nodeDeltas[i] for i in swizzleIndexes]
+        derivativeWeightsList = None
+        greatestSimilarity = -1.0
+        for permutation in self._permutations:
+            # skip permutations using directions not in any supplied limitDirections
+            skipPermutation = False
+            limitIndex = 0
+            for limitDirections in self._limitDirections:
+                if limitDirections:
+                    weights = permutation[swizzleIndexes[limitIndex]]
+                    if flips[limitIndex]:
+                        weights = [-wt for wt in weights]
+                    for limitDirection in limitDirections:
+                        if magnitude(sub(weights, limitDirection)) < 1.0E-6:
+                            break
+                    else:
+                        skipPermutation = True
+                        break
+                limitIndex += 1
+            if skipPermutation:
+                continue
+            similarity = 0.0
+            for d in range(derivativesPerNode):
+                weights = permutation[d]
+                derivative = [0.0, 0.0, 0.0]
+                for i in range(derivativesPerNode):
+                    if weights[i]:
+                        weight = weights[i]
+                        nodeDerivative = nodeDerivatives[i]
+                        for c in range(3):
+                            derivative[c] += weight * nodeDerivative[c]
+                delta = inwardNodeDeltas[d]
+                magDelta = magnitude(delta)
+                magDerivative = magnitude(derivative)
+                if magDerivative > 0.0:
+                    cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
+                    # magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
+                    similarity += cosineSimilarity  # * magnitudeSimilarity
+            if similarity > greatestSimilarity:
+                greatestSimilarity = similarity
+                derivativeWeightsList = permutation
         finalWeightsList = [
             [-w for w in derivativeWeightsList[swizzleIndexes[i]]] if flips[i]
             else derivativeWeightsList[swizzleIndexes[i]] for i in range(derivativesPerNode)
@@ -610,13 +624,21 @@ class HermiteNodeLayoutManager:
              [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
         self._nodeLayouts = [self._nodeLayoutRegularPermuted, self._nodeLayout6Way12]
 
-    def getNodeLayoutRegularPermuted(self, d3Defined):
+    def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
         """
-        Get node layout for all permutations of +/- d1, d2, d3
+        Get node layout for permutations of +/- d1, d2, d3, optionally limiting some directions.
+        Note that variants using limitDirections are not currently stored so client should hold them if reusing.
         :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with d3, [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] places no
+        limits on the first derivative, but derivative 2 must be [0, +/-1, 0] and d3 must be [0, 0, 1].
         :return: HermiteNodeLayout.
         """
-        return self._nodeLayoutRegularPermuted_d3Defined if d3Defined else self._nodeLayoutRegularPermuted
+        nodeLayout = self._nodeLayoutRegularPermuted_d3Defined if d3Defined else self._nodeLayoutRegularPermuted
+        if limitDirections:
+            nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
+        return nodeLayout
 
     def getNodeLayout6Way12(self, d3Defined):
         """

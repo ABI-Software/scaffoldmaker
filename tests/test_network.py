@@ -124,7 +124,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 1.9292133611202664, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 1.929948527935057, delta=X_TOL)
 
     def test_2d_tube_network_sphere_cube(self):
         """
@@ -184,8 +184,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5663822833834603, -0.5965021612010701, -0.598179822484941], X_TOL)
-        assertAlmostEqualList(self, maximums, [0.5663822151894911, 0.5965021612010702, 0.5981798465355403], X_TOL)
+        assertAlmostEqualList(self, minimums, [-0.5673051566416462, -0.5965021612010702, -0.5982661752265279], X_TOL)
+        assertAlmostEqualList(self, maximums, [0.5673051548109973, 0.5965021612010704, 0.5982661859679167], X_TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -194,7 +194,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 4.057905325323945, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.047867293298667, delta=X_TOL)
 
     def test_3d_tube_network_bifurcation(self):
         """
@@ -248,19 +248,19 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.073893736757101, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.0737846724120861, delta=X_TOL)
 
             outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             outerSurfaceAreaField.setNumbersOfPoints(4)
             result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(outerSurfaceArea, 1.932568882906849, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 1.930244259414532, delta=X_TOL)
 
             innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
             innerSurfaceAreaField.setNumbersOfPoints(4)
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(innerSurfaceArea, 1.0014200100128765, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 0.9956412125792156, delta=X_TOL)
 
     def test_3d_tube_network_sphere_cube(self):
         """
@@ -323,8 +323,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5663822833834603, -0.5965021612010702, -0.598179822484941], X_TOL)
-        assertAlmostEqualList(self, maximums, [0.5663822151894911, 0.5965021612010702, 0.5981798465355403], X_TOL)
+        assertAlmostEqualList(self, minimums, [-0.5673051566416462, -0.5965021612010702, -0.5982661752265279], X_TOL)
+        assertAlmostEqualList(self, maximums, [0.5673051548109974, 0.5965021612010702, 0.5982661859679167], X_TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -340,19 +340,19 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.074451650669961, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.0742111141371212, delta=X_TOL)
 
             outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             outerSurfaceAreaField.setNumbersOfPoints(4)
             result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(outerSurfaceArea, 4.057905325323947, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 4.047867293298671, delta=X_TOL)
 
             innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
             innerSurfaceAreaField.setNumbersOfPoints(4)
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(innerSurfaceArea, 3.347440907189292, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 3.335293036032086, delta=X_TOL)
 
     def test_3d_box_network_bifurcation(self):
         """
