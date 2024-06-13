@@ -6,6 +6,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
@@ -19,7 +20,6 @@ from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicub
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.matrix import rotateAboutZAxis
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.vector import setMagnitude
 
 
 class MeshType_3d_stellate1(Scaffold_base):
@@ -682,7 +682,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elem
                         ds1 = [dcent[0], -dcent[1], dcent[2]]
                     elif (e1 == 0) and ((e2 == 0) or (e2 == elementsCount2)):
                         ds2 = [dcent[0], -dcent[1], dcent[2]] if (e2 == 0) else dcent
-                        ds2 = setMagnitude(ds2, dipMag)
+                        ds2 = set_magnitude(ds2, dipMag)
                         ds1 = rotateAboutZAxis(ds2, -math.pi / 2)
                     elif e1 == elementsCount1 and e2 == elementsCount2-1: # armEnd
                         ds1 = [elementWidth,0,0]

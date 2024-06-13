@@ -5,14 +5,13 @@ from __future__ import division
 
 import math
 
-from cmlibs.maths.vectorops import magnitude
+from cmlibs.maths.vectorops import magnitude, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, getCubicHermiteArcLength, \
     interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
-from scaffoldmaker.utils.vector import setMagnitude
 
 
 class EdgeCurve:
@@ -355,7 +354,7 @@ class DerivativeSmoothing:
                         if mag <= 0.0:
                             print('Node', nodeIdentifier, 'value', nodeValueLabel, 'version', nodeVersion,
                                   'has negative mag', mag)
-                        x = setMagnitude(x, mag)
+                        x = set_magnitude(x, mag)
                         self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
                 for derivativeKey, derivativeEdges in self._derivativeMap.items():
                     edgeCount = len(derivativeEdges)
@@ -403,7 +402,7 @@ class DerivativeSmoothing:
                             if mag <= 0.0:
                                 print('Derivative smoothing: Node', nodeIdentifier, 'label', nodeValueLabel,
                                       'version', nodeVersion, 'has negative magnitude', mag)
-                        x = setMagnitude(x, mag)
+                        x = set_magnitude(x, mag)
                         self._field.setNodeParameters(fieldcache, -1, nodeValueLabel, nodeVersion, x)
             # record modified nodes while ChangeManager is in effect
             if self._editNodesetGroup:

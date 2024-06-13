@@ -6,11 +6,10 @@ from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from cmlibs.maths.vectorops import cross, magnitude, normalize, sub
+from cmlibs.maths.vectorops import cross, normalize, sub, vector_rejection
 from scaffoldmaker.utils.interpolation import interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,\
     smoothCubicHermiteDerivativesLoop
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.vector import vectorRejection
 
 import math
 import sys
@@ -553,7 +552,7 @@ def resampleTubeCoordinates(rawTubeCoordinates, elementsCountAlong,
         # first smooth to get d1 with new directions not tangential to surface
         td1 = smoothCubicHermiteDerivativesLoop(sx[p], sd1[p])
         # constraint to be tangential to surface
-        td1 = [vectorRejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
+        td1 = [vector_rejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
         # smooth magnitudes only
         sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
 

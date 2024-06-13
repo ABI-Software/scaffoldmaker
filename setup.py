@@ -25,7 +25,7 @@ readme.append('')
 # into the 'requirements.txt' file.
 requires = [
     # minimal requirements listing
-    "cmlibs.maths >= 0.3",
+    "cmlibs.maths >= 0.6",
     "cmlibs.utils >= 0.6",
     "cmlibs.zinc >= 4.1",
     "scipy",
