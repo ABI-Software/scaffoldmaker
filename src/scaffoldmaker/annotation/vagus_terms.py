@@ -4,6 +4,7 @@ Common resource for vagus annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 vagus_terms = [
+    # marker names
     ("level of superior border of jugular foramen on the vagus nerve", "ILX:0794617"),
     ("right level of superior border of jugular foramen on the vagus nerve", "ILX:0794618"),
     ("left level of superior border of jugular foramen on the vagus nerve", "ILX:0794619"),
@@ -60,7 +61,8 @@ vagus_terms = [
     ("right level of aortic hiatus on the vagus nerve", "ILX:0794657"),
     ("left level of aortic hiatus on the vagus nerve", "ILX:0794658"),
 
-
+    # branch names - in use at the moment
+    ()
 ]
 
 
