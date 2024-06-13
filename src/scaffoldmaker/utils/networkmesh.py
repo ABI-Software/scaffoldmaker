@@ -617,6 +617,9 @@ class NetworkMeshGenerateData:
         """
         return self._nodes
 
+    def getRegion(self):
+        return self._region
+
     def getNodeElementIdentifiers(self):
         """
         Get next node and element identifiers without incrementing, to call at end of generation.
@@ -647,17 +650,21 @@ class NetworkMeshGenerateData:
     def getAnnotationGroups(self):
         return self._annotationGroups
 
+    def getOrCreateAnnotationGroup(self, annotationTerm):
+        annotationGroup = self._annotationGroupMap.get(annotationTerm)
+        if not annotationGroup:
+            annotationGroup = AnnotationGroup(self._region, annotationTerm)
+            self._annotationGroups.append(annotationGroup)
+            self._annotationGroupMap[annotationTerm] = annotationGroup
+        return annotationGroup
+
     def _getAnnotationMeshGroup(self, annotationTerm):
         """
         Get mesh group to add elements to for term.
         :param annotationTerm: Annotation term (name, ontId).
         :return: Zinc MeshGroup.
         """
-        annotationGroup = self._annotationGroupMap.get(annotationTerm)
-        if not annotationGroup:
-            annotationGroup = AnnotationGroup(self._region, annotationTerm)
-            self._annotationGroups.append(annotationGroup)
-            self._annotationGroupMap[annotationTerm] = annotationGroup
+        annotationGroup = self.getOrCreateAnnotationGroup(annotationTerm)
         return annotationGroup.getMeshGroup(self._mesh)
 
     def getAnnotationMeshGroups(self, annotationTerms):

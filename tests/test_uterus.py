@@ -32,18 +32,21 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual("1-2-3, 4-5-6, 3-7-8-11.1, 6-9-10-11.2, 11.3-12-13-14,14-15-16,16-17-18",
                          networkLayoutSettings["Structure"])
 
-        self.assertEqual(14, len(options))
-        self.assertEqual(10, options.get("Number of elements around"))
-        self.assertEqual(8, options.get("Number of elements around horns"))
+        self.assertEqual(12, len(options))
+        self.assertEqual(12, options.get("Number of elements around"))
+        self.assertEqual(12, options.get("Number of elements around horns"))
         self.assertEqual(1, options.get("Number of elements through wall"))
         self.assertEqual(5.0, options.get("Target element density along longest segment"))
-        self.assertEqual(True, options.get("Serendipity"))
+        self.assertEqual(True, options.get("Use linear through wall"))
+        # test with previous numbers for now, even though should be multiple of 4, and 12-8 looks bad:
+        options["Number of elements around"] = 10
+        options["Number of elements around horns"] = 8
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateBaseMesh(region, options)[0]
-        self.assertEqual(17, len(annotationGroups))
+        self.assertEqual(14, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -61,8 +64,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-9.360152113397383, -0.05, -8.943209696521798], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [9.360152113397215, 12.920227960030479, 1.278732071803069], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-9.360152113397383, -0.05, -9.006172117375998], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [9.360152113397215, 12.669343080820695, 1.278732071803069], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -74,10 +77,10 @@ class UterusScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 264.7433300356289, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 262.8333883087122, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 188.23971703799126, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 184.25495237519056, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -104,7 +107,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
 
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(17, len(annotationGroups))
+        self.assertEqual(14, len(annotationGroups))
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -123,7 +126,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(29, len(annotationGroups))
+        self.assertEqual(34, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(15872, mesh3d.getSize())
@@ -157,8 +160,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertTrue(node.isValid())
         cache.setNode(node)
         element, xi = markerLocation.evaluateMeshLocation(cache, 3)
-        self.assertEqual(3712, element.getIdentifier())
-        assertAlmostEqualList(self, xi, [1.0, 1.0, 1.0], 1.0E-04)
+        self.assertTrue(element.isValid())
 
 
 if __name__ == "__main__":

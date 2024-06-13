@@ -30,7 +30,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count through wall": 1,
             "Annotation elements counts around": [0],
             "Target element density along longest segment": 4.0,
-            "Linear through wall": False,
+            "Use linear through wall": False,
             "Show trim surfaces": False
         }
         return options
@@ -43,7 +43,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count through wall",
             "Annotation elements counts around",
             "Target element density along longest segment",
-            "Linear through wall",
+            "Use linear through wall",
             "Show trim surfaces"
         ]
 
@@ -124,7 +124,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Linear through wall"],
+            isLinearThroughWall=options["Use linear through wall"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()

@@ -210,7 +210,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1, settings["Elements count through wall"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Linear through wall"])
+        self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
 
         context = Context("Test")
@@ -276,10 +276,10 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1, settings["Elements count through wall"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Linear through wall"])
+        self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
         settings["Elements count through wall"] = 2
-        settings["Linear through wall"] = True
+        settings["Use linear through wall"] = True
 
         context = Context("Test")
         region = context.getDefaultRegion()

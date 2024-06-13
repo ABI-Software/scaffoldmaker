@@ -108,6 +108,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._sampledTubeCoordinates = [None for p in range(self._pathsCount)]
         self._rimCoordinates = None
         self._rimNodeIds = None
+        self._rimElementIds = None  # [e2][e3][e1]
 
     def getElementsCountAround(self):
         return self._elementsCountAround
@@ -166,6 +167,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                             r[n2][n3].append(value)
             self._rimCoordinates = rx, rd1, rd2, rd3
         self._rimNodeIds = [None] * (elementsCountAlong + 1)
+        self._rimElementIds = [None] * elementsCountAlong
 
     @classmethod
     def blendSampledCoordinates(cls, segment1 , nodeIndexAlong1, segment2, nodeIndexAlong2):
@@ -189,7 +191,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 s2d2[n1] = d2
 
     def getSampledElementsCountAlong(self):
-        return len(self._sampledTubeCoordinates[0][0])
+        return len(self._sampledTubeCoordinates[0][0]) - 1
 
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
         """
@@ -244,6 +246,29 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :return: Node identifier.
         """
         return self._rimNodeIds[n2][n3][n1]
+
+    def getRimElementId(self, e1, e2, e3):
+        """
+        Get a rim element ID.
+        :param e1: Element index around.
+        :param e2: Element index along segment.
+        :param e3: Element index from inner to outer rim.
+        :return: Element identifier.
+        """
+        return self._rimElementIds[e2][e3][e1]
+
+    def setRimElementId(self, e1, e2, e3, elementIdentifier):
+        """
+        Set a rim element ID. Only called by adjacent junctions.
+        :param e1: Element index around.
+        :param e2: Element index along segment.
+        :param e3: Element index from inner to outer rim.
+        :param elementIdentifier: Element identifier.
+        """
+        if not self._rimElementIds[e2]:
+            elementsCountRim = self.getElementsCountRim()
+            self._rimElementIds[e2] = [[None] * self._elementsCountAround for _ in range(elementsCountRim)]
+        self._rimElementIds[e2][e3][e1] = elementIdentifier
 
     def getRimNodeIdsSlice(self, n2):
         """
@@ -321,10 +346,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         elementtemplateStd = generateData.getStandardElementtemplate()
         eftStd = generateData.getStandardEft()
         for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
+            self._rimElementIds[e2] = []
             e2p = e2 + 1
 
             # create rim elements
             for e3 in range(elementsCountRim):
+                ringElementIds = []
                 for e1 in range(self._elementsCountAround):
                     e1p = (e1 + 1) % self._elementsCountAround
                     nids = []
@@ -336,6 +363,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     element.setNodesByIdentifier(eftStd, nids)
                     for annotationMeshGroup in annotationMeshGroups:
                         annotationMeshGroup.addElement(element)
+                    ringElementIds.append(elementIdentifier)
+                self._rimElementIds[e2].append(ringElementIds)
 
 
 class TubeNetworkMeshJunction(NetworkMeshJunction):
@@ -724,7 +753,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         # nodes and elements are generated in order of segments
         for s in range(self._segmentsCount):
             segment = self._segments[s]
-            n2 = (segment.getSampledElementsCountAlong() - 2) if self._segmentsIn[s] else 1
+            elementsCountAlong = segment.getSampledElementsCountAlong()
+            e2 = (elementsCountAlong - 1) if self._segmentsIn[s] else 0
+            n2 = (elementsCountAlong - 1) if self._segmentsIn[s] else 1
             segment.generateMesh(generateData, n2Only=n2)
 
             elementsCountAround = segment.getElementsCountAround()
@@ -797,6 +828,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         elementtemplate.defineField(coordinates, -1, eft)
                         elementIdentifier = generateData.nextElementIdentifier()
                         element = mesh.createElement(elementIdentifier, elementtemplate)
+                        segment.setRimElementId(e1, e2, e3, elementIdentifier)
                         element.setNodesByIdentifier(eft, nids)
                         if scalefactors:
                             element.setScaleFactors(eft, scalefactors)
