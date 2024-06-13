@@ -6,7 +6,7 @@ from enum import Enum
 
 import math
 
-from cmlibs.maths.vectorops import add_vectors, angle_between_vectors, cross, magnitude, normalize, \
+from cmlibs.maths.vectorops import add_vectors, angle, cross, magnitude, normalize, \
     rotate_vector_around_vector, scale_vector, set_magnitude, vector_rejection
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field
@@ -1201,8 +1201,7 @@ def calculate_arc_length(x1, x2, origin):
     r1 = add_vectors([x1, origin], [1, -1])
     r2 = add_vectors([x2, origin], [1, -1])
     radius = magnitude(r1)
-    angle = angle_between_vectors(r1, r2)
-    return radius * angle
+    return radius * angle(r1, r2)
 
 
 def sample_curves_on_sphere(x1, x2, origin, elementsOut):
@@ -1216,8 +1215,7 @@ def sample_curves_on_sphere(x1, x2, origin, elementsOut):
     r2 = add_vectors([x2, origin], [1, -1])
     deltax = add_vectors([r1, r2], [-1, 1])
     normal = cross(r1, deltax)
-    angle = angle_between_vectors(r1, r2)
-    anglePerElement = angle/elementsOut
+    anglePerElement = angle(r1, r2)/elementsOut
     arcLengthPerElement = calculate_arc_length(x1, x2, origin)/elementsOut
 
     nx = []
@@ -1283,9 +1281,9 @@ def intersection_of_two_great_circles_on_sphere(p1, q1, p2, q2):
         sx = None
     else:
         sx = set_magnitude(planes_intersection_vector, magnitude(p1))
-        p1q1_angle = angle_between_vectors(p1, q1)
-        p1s_angle = angle_between_vectors(p1, sx)
-        p2s_angle = angle_between_vectors(p2, sx)
+        p1q1_angle = angle(p1, q1)
+        p1s_angle = angle(p1, sx)
+        p2s_angle = angle(p2, sx)
         if p1s_angle > p1q1_angle or p2s_angle > p1q1_angle:
             sx = scale_vector(sx, -1)
 

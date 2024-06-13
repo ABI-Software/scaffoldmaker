@@ -5,7 +5,7 @@ Generates a 3-D bladder mesh along the central line, with variable numbers of el
 import copy
 import math
 
-from cmlibs.maths.vectorops import angle_between_vectors, cross, magnitude, normalize, set_magnitude
+from cmlibs.maths.vectorops import angle, cross, magnitude, normalize, set_magnitude
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -1049,7 +1049,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     # Find the angle at the bottom of the bladder neck
     v1 = [0.0, 0.0, bladderLength]
     v2 = [urethraOpeningRadius, 0.0, bladderLength]
-    alpha = angle_between_vectors(v1, v2)
+    alpha = angle(v1, v2)
 
     # Find apex to urethra arcLength in minor radius
     xApexInner = xFinal[0]

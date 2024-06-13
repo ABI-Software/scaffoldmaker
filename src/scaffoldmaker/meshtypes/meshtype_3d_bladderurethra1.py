@@ -7,7 +7,7 @@ wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import angle_between_vectors, cross, magnitude, normalize, set_magnitude
+from cmlibs.maths.vectorops import angle, cross, magnitude, normalize, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
@@ -1594,7 +1594,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     # Find the angle at the bottom of the bladder neck
     v1 = [0.0, 0.0, bladderLength]
     v2 = [0.5 * neckDiameter1, 0.0, bladderLength]
-    alpha = angle_between_vectors(v1, v2)
+    alpha = angle(v1, v2)
 
     # Find apex to urethra arcLength in minor radius
     minorNodeAlong_x.insert(0, xApexInner)
