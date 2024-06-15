@@ -82,38 +82,48 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(volume, 184.25495237519056, delta=1.0E-6)
 
-        # check some annotationGroups:
+        fieldmodule.defineAllFaces()
+        for annotationGroup in annotationGroups:
+            annotationGroup.addSubelements()
+        scaffold.defineFaceAnnotations(region, options, annotationGroups)
+        self.assertEqual(34, len(annotationGroups))
+
+        # check some annotation groups
         expectedSizes3d = {
             "body of uterus": 130,
             "left uterine tube": 24,
             "uterine cervix": 20,
             "vagina": 50,
+            'left broad ligament of uterus': 14,
+            'right broad ligament of uterus': 14,
             "uterus": 248
             }
 
+        meshes = [mesh1d, mesh2d, mesh3d]
         for name in expectedSizes3d:
             term = get_uterus_term(name)
-            group = getAnnotationGroupForTerm(annotationGroups, term)
-            size = group.getMeshGroup(mesh3d).getSize()
+            annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
+            size = annotationGroup.getMeshGroup(meshes[annotationGroup.getDimension() - 1]).getSize()
             self.assertEqual(expectedSizes3d[name], size, name)
 
-        # refine 4x4x4 and check result
-        # first remove any surface annotation groups as they are re-added by defineFaceAnnotations
+        # refine 2x2x2 and check result
+        # first remove faces/lines and any surface annotation groups as they are re-added by defineFaceAnnotations
         removeAnnotationGroups = []
         for annotationGroup in annotationGroups:
-            if (not annotationGroup.hasMeshGroup(mesh3d)) and \
-                    (annotationGroup.hasMeshGroup(mesh2d) or annotationGroup.hasMeshGroup(mesh1d)):
+            if annotationGroup.getDimension() in [1, 2]:
                 removeAnnotationGroups.append(annotationGroup)
-
         for annotationGroup in removeAnnotationGroups:
             annotationGroups.remove(annotationGroup)
         self.assertEqual(14, len(annotationGroups))
+        # also remove all faces and lines as not needed for refinement
+        mesh2d.destroyAllElements()
+        mesh1d.destroyAllElements()
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
-        options['Refine number of elements along'] = 4
-        options['Refine number of elements around'] = 4
-        options['Refine number of elements through wall'] = 4
+        options['Refine number of elements along'] = 2
+        options['Refine number of elements around'] = 2
+        options['Refine number of elements through wall'] = 2
         meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
         scaffold.refineMesh(meshrefinement, options)
         annotationGroups = meshrefinement.getAnnotationGroups()
@@ -129,22 +139,24 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(34, len(annotationGroups))
 #
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(15872, mesh3d.getSize())
+        self.assertEqual(1984, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(51792, mesh2d.getSize())
+        self.assertEqual(6996, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(56016, mesh1d.getSize())
+        self.assertEqual(8064, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(20097, nodes.getSize())
+        self.assertEqual(3053, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         # check some refined annotationGroups:
+        meshes = [mesh1d, mesh2d, mesh3d]
+        sizeScales = [2, 4, 8]
         for name in expectedSizes3d:
             term = get_uterus_term(name)
-            group = getAnnotationGroupForTerm(annotationGroups, term)
-            size = group.getMeshGroup(mesh3d).getSize()
-            self.assertEqual(expectedSizes3d[name]*64, size, name)
+            annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
+            size = annotationGroup.getMeshGroup(meshes[annotationGroup.getDimension() - 1]).getSize()
+            self.assertEqual(expectedSizes3d[name] * sizeScales[annotationGroup.getDimension() - 1], size, name)
 
         # test finding a marker in refined scaffold
         markerGroup = refineFieldmodule.findFieldByName("marker").castGroup()

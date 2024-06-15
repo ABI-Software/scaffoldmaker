@@ -2,29 +2,18 @@
 Generates a 3-D uterus mesh from a 1-D network layout, with variable
 numbers of elements around, along and through wall.
 """
-
-import math
-
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
-from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers
-from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
-    findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.uterus_terms import get_uterus_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.bifurcation import SegmentTubeData, \
-    TubeBifurcationData, generateTube, generateTubeBifurcation, generateCurveMesh, blendNetworkNodeCoordinates
-from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, pathValueLabels, \
-    resampleTubeCoordinates
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
-    TubeNetworkMeshSegment
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
-from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.networkmesh import NetworkMesh
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, group_add_connected_elements
 
 
 class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
@@ -570,6 +559,7 @@ class MeshType_3d_uterus2(Scaffold_base):
 
         mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
@@ -693,11 +683,27 @@ class MeshType_3d_uterus2(Scaffold_base):
             leftBroadLigament = findOrCreateAnnotationGroupForTerm(
                 annotationGroups, region, get_uterus_term("left broad ligament of uterus"))
             leftBroadLigament.getMeshGroup(mesh1d).addElementsConditional(is_leftBroadLigament)
+            # add connected edges from left uterine tube, avoiding adding dorsal-ventral edges on the superior edge
+            leftBroadLigament.addSubelements()  # need current nodes in ligament for group_add_connected_elements
+            tmpGroup = fm.createFieldGroup()
+            tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
+            tmpMeshGroup.addElementsConditional(fm.createFieldAnd(is_leftUterineTube, is_leftDorsalVentralSerosa))
+            group_add_connected_elements(leftBroadLigament.getGroup(), tmpMeshGroup)
+            del tmpMeshGroup
+            del tmpGroup
 
             is_rightBroadLigament = fm.createFieldAnd(is_bodyNotFundus, is_rightDorsalVentralSerosa)
             rightBroadLigament = findOrCreateAnnotationGroupForTerm(
                 annotationGroups, region, get_uterus_term("right broad ligament of uterus"))
             rightBroadLigament.getMeshGroup(mesh1d).addElementsConditional(is_rightBroadLigament)
+            # add connected edges from right uterine tube, avoiding adding dorsal-ventral edges on the superior edge
+            rightBroadLigament.addSubelements()  # need current nodes in ligament for group_add_connected_elements
+            tmpGroup = fm.createFieldGroup()
+            tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
+            tmpMeshGroup.addElementsConditional(fm.createFieldAnd(is_rightUterineTube, is_rightDorsalVentralSerosa))
+            group_add_connected_elements(rightBroadLigament.getGroup(), tmpMeshGroup)
+            del tmpMeshGroup
+            del tmpGroup
 
             # Transverse cervical ligament
             is_leftTransverseCervicalLigament = fm.createFieldAnd(cervixGroup.getGroup(), is_leftDorsalVentralSerosa)
