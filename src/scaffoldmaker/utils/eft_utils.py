@@ -622,7 +622,12 @@ class HermiteNodeLayoutManager:
         self._nodeLayout6Way12_d3Defined = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
              [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
-        self._nodeLayouts = [self._nodeLayoutRegularPermuted, self._nodeLayout6Way12]
+        self._nodeLayout8Way12 = HermiteNodeLayout(
+            [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0], [1.0, -1.0]])
+        self._nodeLayout8Way12_d3Defined = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 1.0, 0.0],
+             [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [1.0, -1.0, 0.0],
+             [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
 
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
         """
@@ -647,6 +652,14 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         return self._nodeLayout6Way12_d3Defined if d3Defined else self._nodeLayout6Way12
+
+    def getNodeLayout8Way12(self, d3Defined):
+        """
+        Get node layout for 8-way junction in 1-2 plane, including d1 + d2, -d1 + d2, -d1 - d2, d1 - d2.
+        :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayout8Way12_d3Defined if d3Defined else self._nodeLayout8Way12
 
 
 def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):

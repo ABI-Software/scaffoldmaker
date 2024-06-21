@@ -5,9 +5,9 @@ from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, 
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
-from scaffoldmaker.utils.interpolation import DerivativeScalingMode, evaluateCoordinatesOnCurve, \
-    interpolateCubicHermite, interpolateCubicHermiteDerivative, interpolateLagrangeHermiteDerivative, \
-    smoothCubicHermiteDerivativesLoop, smoothCurveSideCrossDerivatives
+from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, DerivativeScalingMode, \
+    evaluateCoordinatesOnCurve, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
+    interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLoop, smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.networkmesh import NetworkMesh, NetworkMeshBuilder, NetworkMeshGenerateData, \
     NetworkMeshJunction, NetworkMeshSegment, getPathRawTubeCoordinates, pathValueLabels, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface
@@ -54,6 +54,7 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         d3Defined = (meshDimension == 3) and not isLinearThroughWall
         self._nodeLayoutManager = HermiteNodeLayoutManager()
         self._nodeLayout6Way = self._nodeLayoutManager.getNodeLayout6Way12(d3Defined)
+        self._nodeLayout8Way = self._nodeLayoutManager.getNodeLayout8Way12(d3Defined)
         self._nodeLayoutFlipD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
@@ -66,6 +67,9 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def getNodeLayout6Way(self):
         return self._nodeLayout6Way
+
+    def getNodeLayout8Way(self):
+        return self._nodeLayout8Way
 
     def getNodeLayoutFlipD2(self):
         return self._nodeLayoutFlipD2
@@ -523,6 +527,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         hx = []
         hd1 = []
         hd2 = []
+        hn = []  # normal hd1 x hd2
         hd3 = [] if d3Defined else None
         for s in range(segmentsCount):
             params = segmentsParameterLists[s]
@@ -530,6 +535,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             hx.append(interpolateCubicHermite(params[0][0], hd2m[0], params[0][1], hd2m[1], xi))
             hd1.append(mult(add(params[1][0], params[1][1]), 0.5 if segmentsIn[s] else -0.5))
             hd2.append(interpolateCubicHermiteDerivative(params[0][0], hd2m[0], params[0][1], hd2m[1], xi))
+            hn.append(normalize(cross(hd1[-1], hd2[-1])))
             if d3Defined:
                 hd3.append(mult(add(params[3][0], params[3][1]), 0.5))
         # get lists of mid-point parameters for all segment permutations
@@ -538,12 +544,26 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         md2 = []
         md3 = [] if d3Defined else None
         xi = 0.5
+        sideFactor = 1.0
+        outFactor = 0.5
         for s1 in range(segmentsCount - 1):
             for s2 in range(s1 + 1, segmentsCount):
+                hd2s1 = hd2[s1]
                 hd2s2 = [-d for d in hd2[s2]]
-                mx.append(interpolateCubicHermite(hx[s1], hd2[s1], hx[s2], hd2s2, xi))
+                if sideFactor > 0.0:
+                    # compromise with direct connection respecting surface tangents
+                    sideDirection = sub(hx[s2], hx[s1])
+                    side1 = sub(sideDirection, mult(sideDirection, dot(sideDirection, hn[s1])))
+                    side2 = sub(sideDirection, mult(sideDirection, dot(sideDirection, hn[s2])))
+                    sideScaling = computeCubicHermiteDerivativeScaling(hx[s1], side1, hx[s2], side2)
+                    hd2s1 = add(mult(hd2s1, outFactor), mult(side1, sideScaling * sideFactor))
+                    hd2s2 = add(mult(hd2s2, outFactor), mult(side2, sideScaling * sideFactor))
+                scaling = computeCubicHermiteDerivativeScaling(hx[s1], hd2s1, hx[s2], hd2s2)
+                hd2s1 = mult(hd2s1, scaling)
+                hd2s2 = mult(hd2s2, scaling)
+                mx.append(interpolateCubicHermite(hx[s1], hd2s1, hx[s2], hd2s2, xi))
                 md1.append(mult(add(hd1[s1], [-d for d in hd1[s2]]), 0.5))
-                md2.append(interpolateCubicHermiteDerivative(hx[s1], hd2[s1], hx[s2], hd2s2, xi))
+                md2.append(interpolateCubicHermiteDerivative(hx[s1], hd2s1, hx[s2], hd2s2, xi))
                 if d3Defined:
                     md3.append(mult(add(hd3[s1], hd3[s2]), 0.5))
         if segmentsCount == 2:
@@ -551,47 +571,107 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 md1[0] = [-d for d in md1[0]]
                 md2[0] = [-d for d in md2[0]]
             return mx[0], md1[0], md2[0], md3[0] if d3Defined else None
-        cx = [sum(x[c] for x in mx) / segmentsCount for c in range(3)]
-        cd3 = [sum(d3[c] for d3 in md3) / segmentsCount for c in range(3)] if d3Defined else None
+        mCount = len(mx)
+        cx = [sum(x[c] for x in mx) / mCount for c in range(3)]
+        cd3 = [sum(d3[c] for d3 in md3) / mCount for c in range(3)] if d3Defined else None
         ns12 = [0.0, 0.0, 0.0]
         for m in range(len(md1)):
             cp12 = normalize(cross(md1[m], md2[m]))
             for c in range(3):
                 ns12[c] += cp12[c]
         ns12 = normalize(ns12)
-        # maintain symmetry of bifurcations
-        if (segmentsIn == [True, True, False]) or (segmentsIn == [False, False, True]):
-            si = (0, 1)
-        elif (segmentsIn == [True, False, True]) or (segmentsIn == [False, True, False]):
-            si = (2, 0)
+
+        # get best fit directions with these 360/segmentsCount degrees apart
+
+        # get preferred derivatives for all segments
+        rd = [interpolateLagrangeHermiteDerivative(
+            cx, segmentsParameterLists[s][0][0], [-d for d in segmentsParameterLists[s][2][0]] if segmentsIn[s]
+            else segmentsParameterLists[s][2][0], 0.0) for s in range(segmentsCount)]
+        # get orthonormal axes with ns12, axis1 in direction of first preferred derivative
+        axis1 = normalize(cross(cross(ns12, rd[0]), ns12))
+        axis2 = cross(ns12, axis1)
+        # get angles and sequence around normal, starting at axis1
+        angles = [0.0]
+        for s in range(1, segmentsCount):
+            angle = math.atan2(dot(rd[s], axis2), dot(rd[s], axis1))
+            angles.append((2.0 * math.pi + angle) if (angle < 0.0) else angle)
+        angle = 0.0
+        sequence = [0]
+        for s in range(1, segmentsCount):
+            nextAngle = math.pi * 4.0
+            nexts = 0
+            for t in range(1, segmentsCount):
+                if angle < angles[t] < nextAngle:
+                    nextAngle = angles[t]
+                    nexts = t
+            angle = nextAngle
+            sequence.append(nexts)
+
+        angleIncrement = 2.0 * math.pi / segmentsCount
+        deltaAngle = 0.0
+        angle = 0.0
+        magSum = 0.0
+        for s in range(1, segmentsCount):
+            angle += angleIncrement
+            deltaAngle += angles[sequence[s]] - angle
+            magSum += 1.0 / magnitude(rd[sequence[s]])
+        deltaAngle = deltaAngle / segmentsCount
+        d2Mean = segmentsCount / magSum
+
+        angle = deltaAngle
+        sd = [None] * segmentsCount
+        for s in range(segmentsCount):
+            x1 = d2Mean * math.cos(angle)
+            x2 = d2Mean * math.sin(angle)
+            sd[sequence[s]] = add(mult(axis1, x1), mult(axis2, x2))
+            angle += angleIncrement
+
+        if segmentsCount == 3:
+            # get through score for pairs of directions
+            maxThroughScore = 0.0
+            si = None
+            for s1 in range(segmentsCount - 1):
+                dir1 = normalize(segmentsParameterLists[s1][2][1])
+                for s2 in range(s1 + 1, segmentsCount):
+                    dir2 = normalize(segmentsParameterLists[s2][2][1])
+                    throughScore = abs(dot(dir1, dir2))
+                    if throughScore > maxThroughScore:
+                        maxThroughScore = throughScore
+                        si = (s1, s2)
+            if maxThroughScore < 0.9:
+                # maintain symmetry of bifurcations
+                if (segmentsIn == [True, True, False]) or (segmentsIn == [False, False, True]):
+                    si = (0, 1)
+                elif (segmentsIn == [True, False, True]) or (segmentsIn == [False, True, False]):
+                    si = (2, 0)
+                else:
+                    si = (1, 2)
+
+        elif segmentsCount == 4:
+            if sequence == [0, 1, 2, 3]:
+                si == (1, 2)
+            else:
+                si = (1, 3)
         else:
+            print("TubeNetworkMeshJunction._sampleMidPoint not fully implemented for segmentsCount =", segmentsCount)
             si = (1, 2)
-        params = [segmentsParameterLists[s] for s in si]
-        td = [interpolateLagrangeHermiteDerivative(
-            cx, params[s][0][0], [-d for d in params[s][2][0]] if segmentsIn[si[s]] else params[s][2][0], 0.0)
-            for s in range(2)]
+
+        # get harmonic mean of d1 around midpoints
+        magSum = 0.0
+        for s in range(segmentsCount):
+            magSum += 1.0 / magnitude(md1[s])
+        d1Mean = segmentsCount / magSum
+        # overall harmonic mean of derivatives to handle diagonal derivatives
+        dMean = 2.0 / (1.0 / d1Mean + 1.0 / d2Mean)
+
+        # td = [sd[j] for j in si]
+        # compromise between preferred directions rd and equal spaced directions sd
+        td = [mult(normalize(add(rd[j], sd[j])), dMean) for j in si]
         if segmentsIn.count(True) == 2:
             # reverse so matches inward directions
             td = [[-c for c in d] for d in td]
-        td = [sub(d, mult(ns12, dot(d, ns12))) for d in td]
-        # get magnitude of d1, d2 at 6-way point by taking mean with the aligned straight-through d1
-        md1Norm = [normalize(d) for d in md1]
-        for d in range(2):
-            tdMag = magnitude(td[d])
-            mMaxMag = 0.0
-            mIndex = None
-            dNorm = normalize(td[d])
-            for m in range(segmentsCount):
-                dp = dot(dNorm, md1Norm[m])
-                dpMag = math.fabs(dp)
-                if dpMag > mMaxMag:
-                    mMaxMag = dpMag
-                    mIndex = m
-            # arithmetic mean is a reasonable compromise
-            newMag = 0.5 * (tdMag + magnitude(md1[mIndex]))
-            # harmonic mean tends to be too low
-            # newMag = 2.0 / ((1.0 / tdMag) + (1.0 / magnitude(md1[mIndex])))
-            td[d] = mult(td[d], newMag / tdMag)
+        # td = [sub(d, mult(ns12, dot(d, ns12))) for d in td]
+
         cd1, cd2 = td
         if dot(cross(cd1, cd2), ns12) < 0.0:
             cd1, cd2 = cd2, cd1
@@ -603,6 +683,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         Sample junction coordinates between second-from-end segment coordinates.
         :param targetElementLength: Ignored here as always 2 elements across junction.
         """
+        if self._segmentsCount == 1:
+            return
         if self._segmentsCount == 2:
             TubeNetworkMeshSegment.blendSampledCoordinates(
                 self._segments[0], -1 if self._segmentsIn[0] else 0,
@@ -614,6 +696,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         if self._segmentsCount == 3:
             # numbers of elements directly connecting pairs of segments
+            # sequence = [0, 1, 2]
             connectionCounts = [(aroundCounts[s] + aroundCounts[s - 2] - aroundCounts[s - 1]) // 2 for s in range(3)]
             for s in range(3):
                 if aroundCounts[s] != (connectionCounts[s - 1] + connectionCounts[s]):
@@ -650,10 +733,102 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                             segmentNodeList.insert(index, [s1, nodeIndex1])
                         self._segmentNodeToRimIndex[s1][nodeIndex1] = rimIndex
 
+        elif self._segmentsCount == 4:
+            # only support plus + shape for now, not tetrahedral
+            # determine plus + sequence [0, 1, 2, 3] or [0, 1, 3, 2]
+            outDirections = []
+            for s in range(self._segmentsCount):
+                d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
+                outDirections.append(normalize([-d for d in d1] if self._segmentsIn[s] else d1))
+            sequence = [0, 1, 2, 3]
+            if dot(cross(outDirections[1], outDirections[2]), cross(outDirections[2], outDirections[3])) < 0.0:
+                sequence = [0, 1, 3, 2]
+            pairCount02 = aroundCounts[sequence[0]] + aroundCounts[sequence[2]]
+            pairCount13 = aroundCounts[sequence[1]] + aroundCounts[sequence[3]]
+            throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
+            throughCount13 = ((pairCount13 - pairCount02) // 2) if (pairCount13 > pairCount02) else 0
+            throughCounts = [throughCount02, throughCount13, throughCount02, throughCount13]
+            # numbers of elements directly connecting pairs of segments
+            # for s in range(self._segmentsCount):
+            #     print(s, ":", sequence[s], "=", aroundCounts[sequence[s]], sequence[(s - 1) % self._segmentsCount], '=',
+            #           aroundCounts[sequence[(s - 1) % self._segmentsCount]], sequence[s - 1], "=", aroundCounts[sequence[s - 1]], throughCounts[s], (s % 2))
+            connectionCounts = [
+                ((aroundCounts[sequence[s]] + aroundCounts[sequence[(s - 1) % self._segmentsCount]]
+                 - aroundCounts[sequence[s - 1]] - throughCounts[s] + (s % 2)) // 2)
+                for s in range(self._segmentsCount)]
+            # print("aroundCounts", aroundCounts)
+            # print("sequence", sequence)
+            # print("throughCounts", throughCounts)
+            # print("connectionCounts", connectionCounts)
+            for s in range(self._segmentsCount):
+                # print(s, ":", connectionCounts[s - 1], throughCounts[s], connectionCounts[s])
+                if (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s])):
+                    print("Can't make tube junction between elements counts around", aroundCounts)
+                    return
+
+            self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment index, node index around)]
+            self._segmentNodeToRimIndex = [[None] * aroundCounts[s] for s in range(self._segmentsCount)]
+            for os1 in range(self._segmentsCount):
+                os2 = (os1 + 1) % self._segmentsCount
+                sa = sequence[os1]
+                s2 = sequence[os2]
+                s3 = sequence[(os1 + 2) % self._segmentsCount]
+                halfThroughCount = throughCounts[os1] // 2
+                aStartNodeIndex = (aroundCounts[sa] - connectionCounts[sa]) // 2
+                startNodeIndex2 = connectionCounts[sa] // -2
+                startNodeIndex3 = connectionCounts[s2] // -2
+
+                aConnectionCount = connectionCounts[sa]
+                for n in range(-halfThroughCount, aConnectionCount + 1 + halfThroughCount):
+                    na = aStartNodeIndex + (n if self._segmentsIn[sa] else (aConnectionCount - n))
+                    segmentIndexes = [sa]
+                    nodeIndexes = [na]
+                    if 0 <= n <= aConnectionCount:
+                        nb = startNodeIndex2 + ((connectionCounts[sa] - n) if self._segmentsIn[s2] else n)
+                        segmentIndexes.append(s2)
+                        nodeIndexes.append(nb)
+                    if halfThroughCount and ((n <= 0) or (n >= aConnectionCount)):
+                        nt = startNodeIndex3 + ((2 * connectionCounts[s2] - aConnectionCount - n) if self._segmentsIn[s3] else n)
+                        segmentIndexes.append(s3)
+                        nodeIndexes.append(nt)
+                    rimIndex = None
+                    for i in range(len(segmentIndexes)):
+                        ri = self._segmentNodeToRimIndex[segmentIndexes[i]][nodeIndexes[i]]
+                        if ri is not None:
+                            rimIndex = ri
+                            break
+                    if rimIndex is None:
+                        # new rim index
+                        rimIndex = rimIndexesCount
+                        rimIndexesCount += 1
+                        segmentNodeList = []
+                        self._rimIndexToSegmentNodeList.append(segmentNodeList)
+                    else:
+                        segmentNodeList = self._rimIndexToSegmentNodeList[rimIndex]
+                    # build maps: rim index <--> segment index, node index
+                    for i in range(len(segmentIndexes)):
+                        segmentIndex = segmentIndexes[i]
+                        nodeIndex = nodeIndexes[i]
+                        if self._segmentNodeToRimIndex[segmentIndex][nodeIndex] is None:
+                            # keep segment node list in order from lowest segment index
+                            index = 0
+                            for j in range(len(segmentNodeList)):
+                                if segmentIndex < segmentNodeList[j][0]:
+                                    break
+                                index += 1
+                            segmentNodeList.insert(index, [segmentIndex, nodeIndex])
+                            self._segmentNodeToRimIndex[segmentIndex][nodeIndex] = rimIndex
+        else:
+            print("Tube network mesh not implemented for", self._segmentsCount, "segments at junction")
+            return
+
         if not rimIndexesCount:
             return
 
-        # get node indexes giving lowest sum of distances between adjoining points on outer sampled tubes
+        # for rimIndex in range(rimIndexesCount):
+        #     print("rim index", rimIndex, self._rimIndexToSegmentNodeList[rimIndex])
+
+        # get node indexes giving the lowest sum of distances between adjoining points on outer sampled tubes
         permutationCount = 1
         for count in aroundCounts:
             permutationCount *= count
@@ -671,7 +846,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     s1, n1 = segmentNodeList[i]
                     nodeIndex1 = (n1 + indexes[s1]) % aroundCounts[s1]
                     x1 = rings[s1][nodeIndex1]
-                    for j in range(s1 + 1, sCount):
+                    for j in range(i + 1, sCount):
                         s2, n2 = segmentNodeList[j]
                         nodeIndex2 = (n2 + indexes[s2]) % aroundCounts[s2]
                         x2 = rings[s2][nodeIndex2]
@@ -685,6 +860,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 if indexes[s] < aroundCounts[s]:
                     break
                 indexes[s] = 0
+
+        # print("minIndexes", minIndexes)
 
         # offset node indexes by minIndexes
         for rimIndex in range(rimIndexesCount):
@@ -748,6 +925,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         d3Defined = (meshDimension == 3) and not isLinearThroughWall
 
         nodeLayout6Way = generateData.getNodeLayout6Way()
+        nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
 
         # nodes and elements are generated in order of segments
@@ -812,8 +990,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                          self._rimCoordinates[2][n3][rimIndex],
                                          self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
                                     segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
-                                    nodeLayouts.append(nodeLayout6Way if (segmentNodesCount == 3)
-                                                       else nodeLayoutFlipD2)
+                                    nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
+                                                       nodeLayout6Way if (segmentNodesCount == 3) else
+                                                       nodeLayout8Way)
                             if not self._segmentsIn[s]:
                                 for a in [nids, nodeParameters, nodeLayouts] if (e3 == 0) else [nids]:
                                     a[-4], a[-2] = a[-2], a[-4]
