@@ -196,6 +196,37 @@ def getCubicHermiteCurvesLengthLoop(cx, cd1):
         totalLength += arcLength
     return totalLength
 
+
+def getCubicHermiteTrimmedCurvesLengths(cx, cd1, startLocation=None, endLocation=None):
+    """
+    Get trimmed lengths of curve: before start, between start and end, and after end, lengths to nodes
+    :param cx: coordinates along the curve.
+    :param cd1: d1 derivatives.
+    :param startLocation: Optional tuple of 'in' (element, xi) to start curve at.
+    :param endLocation: Optional tuple of 'out' (element, xi) to end curve at.
+    :return: Length before start, length between start and end, length after end, list of lengths to nodes.
+    """
+    elementsCount = len(cx) - 1
+    lengthToNode = [0.0]
+    length = 0.0
+    for e in range(elementsCount):
+        length += getCubicHermiteArcLength(cx[e], cd1[e], cx[e + 1], cd1[e + 1])
+        lengthToNode.append(length)
+    startLength = 0.0
+    if startLocation:
+        e = startLocation[0]
+        startLength = (lengthToNode[e] +
+                       getCubicHermiteArcLengthToXi(cx[e], cd1[e], cx[e + 1], cd1[e + 1], startLocation[1]))
+        length -= startLength
+    endLength = 0.0
+    if endLocation:
+        e = endLocation[0]
+        endLength = (lengthToNode[-1] - lengthToNode[e] -
+                     getCubicHermiteArcLengthToXi(cx[e], cd1[e], cx[e + 1], cd1[e + 1], endLocation[1]))
+        length -= endLength
+    return startLength, length, endLength, lengthToNode
+
+
 def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
     :param v1, v2: Values at xi = 0.0 and xi = 1.0, respectively.
@@ -453,22 +484,8 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     elementsCountIn = len(nx) - 1
     assert (elementsCountIn > 0) and (len(nd1) == (elementsCountIn + 1)) and (elementsCountOut > 0), \
         "sampleCubicHermiteCurvesSmooth.  Invalid arguments"
-    lengthToNodeIn = [0.0]
-    length = 0.0
-    for e in range(elementsCountIn):
-        length += getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1])
-        lengthToNodeIn.append(length)
-    startDistance = 0.0
-    if startLocation:
-        e = startLocation[0]
-        startDistance = lengthToNodeIn[e] + \
-            getCubicHermiteArcLengthToXi(nx[e], nd1[e], nx[e + 1], nd1[e + 1], startLocation[1])
-        length -= startDistance
-    if endLocation:
-        e = endLocation[0]
-        endDistance = lengthToNodeIn[-1] - lengthToNodeIn[e] - \
-            getCubicHermiteArcLengthToXi(nx[e], nd1[e], nx[e + 1], nd1[e + 1], endLocation[1])
-        length -= endDistance
+    startLength, length, endLength, lengthToNodeIn =\
+        getCubicHermiteTrimmedCurvesLengths(nx, nd1, startLocation, endLocation)
     hasStartDerivative = derivativeMagnitudeStart is not None
     hasEndDerivative = derivativeMagnitudeEnd is not None
     if hasStartDerivative and hasEndDerivative:
@@ -480,9 +497,9 @@ def sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountOut,
     else:
         derivativeMagnitudeStart = derivativeMagnitudeEnd = length / elementsCountOut
     # sample over length to get distances to elements boundaries
-    x1 = startDistance
+    x1 = startLength
     d1 = derivativeMagnitudeStart * elementsCountOut
-    x2 = startDistance + length
+    x2 = startLength + length
     d2 = derivativeMagnitudeEnd * elementsCountOut
     nodeDistances = []
     nodeDerivativeMagnitudes = []

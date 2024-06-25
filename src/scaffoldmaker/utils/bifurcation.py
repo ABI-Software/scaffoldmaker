@@ -19,8 +19,9 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, comp
     interpolateCubicHermite, interpolateCubicHermiteDerivative, interpolateCubicHermiteSecondDerivative, \
     interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, \
     smoothCurveSideCrossDerivatives
-from scaffoldmaker.utils.networkmesh import NetworkMesh, getPathRawTubeCoordinates, resampleTubeCoordinates
+from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_delta_xi
+from scaffoldmaker.utils.tubenetworkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.vector import crossproduct3, dotproduct, normalise
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters, \
     get_nodeset_path_field_parameters

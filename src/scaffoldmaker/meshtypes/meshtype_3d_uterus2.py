@@ -438,7 +438,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             if options[key] < 4:
                 options[key] = 4
             elif (options[key] % 4) > 0:
-                options[key] = (options[key] + 3) // 4
+                options[key] += options[key] % 4
         if options["Number of elements through wall"] < 1:
             options["Number of elements through wall"] = 1
 

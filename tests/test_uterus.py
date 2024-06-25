@@ -64,8 +64,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-9.360152113397383, -0.05, -8.923602801800289], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [9.360152113397215, 12.669343080820695, 1.278732071803069], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-9.360152113397383, -0.05, -8.93472997290321], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [9.360152113397215, 12.55924286003816, 1.278732071803069], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -77,10 +77,10 @@ class UterusScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 262.09799856685385, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 262.04412985827156, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 182.89947226113057, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 183.31187159039473, delta=1.0E-6)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:

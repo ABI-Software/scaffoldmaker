@@ -5,12 +5,15 @@ from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, 
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
-from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, DerivativeScalingMode, \
-    evaluateCoordinatesOnCurve, interpolateCubicHermite, interpolateCubicHermiteDerivative, \
-    interpolateLagrangeHermiteDerivative, smoothCubicHermiteDerivativesLoop, smoothCurveSideCrossDerivatives
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteDerivativeScaling, DerivativeScalingMode, evaluateCoordinatesOnCurve,
+    getCubicHermiteTrimmedCurvesLengths, interpolateCubicHermite, interpolateCubicHermiteDerivative,
+    interpolateLagrangeHermiteDerivative, interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,
+    smoothCubicHermiteDerivativesLoop, smoothCurveSideCrossDerivatives)
 from scaffoldmaker.utils.networkmesh import NetworkMesh, NetworkMeshBuilder, NetworkMeshGenerateData, \
-    NetworkMeshJunction, NetworkMeshSegment, getPathRawTubeCoordinates, pathValueLabels, resampleTubeCoordinates
+    NetworkMeshJunction, NetworkMeshSegment, pathValueLabels
 from scaffoldmaker.utils.tracksurface import TrackSurface
+from scaffoldmaker.utils.vector import vectorRejection
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
 import copy
 import math
@@ -122,17 +125,17 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def sample(self, targetElementLength):
         trimSurfaces = [self._junctions[j].getTrimSurfaces(self) for j in range(2)]
-        elementsCountAlong = max(1, math.ceil(self._length / targetElementLength))
-        if ((elementsCountAlong == 1) and
-                (self._junctions[0].getSegmentsCount() > 2) and
-                (self._junctions[1].getSegmentsCount() > 2)):
-            elementsCountAlong = 2  # at least 2 segments if bifurcating at both ends
-        elif self._isLoop and (elementsCountAlong < 2):
-            elementsCountAlong = 2
+        minimumElementsCountAlong = 2 if (self._isLoop or ((self._junctions[0].getSegmentsCount() > 2) and
+                (self._junctions[1].getSegmentsCount() > 2))) else 1
+        elementsCountAlong = None
         for p in range(self._pathsCount):
+            # determine elementsCountAlong for first/outer tube then fix for inner tubes
             self._sampledTubeCoordinates[p] = resampleTubeCoordinates(
-                self._rawTubeCoordinatesList[p], elementsCountAlong,
+                self._rawTubeCoordinatesList[p], fixedElementsCountAlong=elementsCountAlong,
+                targetElementLength=targetElementLength, minimumElementsCountAlong=minimumElementsCountAlong,
                 startSurface=trimSurfaces[0][p], endSurface=trimSurfaces[1][p])
+            if not elementsCountAlong:
+                elementsCountAlong = len(self._sampledTubeCoordinates[0][0]) - 1
 
         if self._dimension == 2:
             # copy first sampled tube coordinates, but insert single-entry 'n3' index after n2
@@ -404,39 +407,63 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             return
         pathsCount = self._segments[0].getPathsCount()
         # get directions at end of segments' paths:
-        dirEnd = [[] for s in range(self._segmentsCount)]
+        outDirs = [[] for s in range(self._segmentsCount)]
         for s in range(self._segmentsCount):
             endIndex = -1 if self._segmentsIn[s] else 0
             for p in range(pathsCount):
                 pathParameters = self._segments[s].getPathParameters(p)
-                dirEnd[s].append(normalize(pathParameters[1][endIndex]))
+                outDir = normalize(pathParameters[1][endIndex])
+                if self._segmentsIn[s]:
+                    outDir = [-d for d in outDir]
+                outDirs[s].append(outDir)
 
         trimPointsCountAround = 6
+        trimAngle = 2.0 * math.pi / trimPointsCountAround
         for s in range(self._segmentsCount):
             endIndex = -1 if self._segmentsIn[s] else 0
             for p in range(pathsCount):
-                # get index of other segment most normal to this segment
-                osMax = None
-                osDotMax = 0.0
-                for os in range(self._segmentsCount):
-                    if os == s:
-                        continue
-                    osDot = math.fabs(dot(dirEnd[s][p], dirEnd[os][p]))
-                    if osDot > osDotMax:
-                        osMax = os
-                        osDotMax = osDot
                 pathParameters = self._segments[s].getPathParameters(p)
-                # get components of osMax end direction aligned with d2, d3 and compute initial phase
                 xEnd = pathParameters[0][endIndex]  # used as centre trim surface radiates out from
                 d2End = pathParameters[2][endIndex]
                 d3End = pathParameters[4][endIndex]
                 endEllipseNormal = normalize(cross(d2End, d3End))
-                osDirEnd = dirEnd[osMax][p]
-                if self._segmentsIn[osMax]:
-                    osDirEnd = [-d for d in osDirEnd]
-                dx = dot(osDirEnd, d2End)
-                dy = dot(osDirEnd, d3End)
-                phaseAngle = math.atan2(dy, dx)
+                sOutDir = outDirs[s][p]
+                # get phase angles and weights of other segments
+                angles = []
+                weights = []
+                sumWeights = 0.0
+                maxWeight = 0.0
+                phaseAngle =  None
+                for os in range(self._segmentsCount):
+                    if os == s:
+                        continue
+                    osOutDir = outDirs[os][p]
+                    dx = dot(osOutDir, d2End)
+                    dy = dot(osOutDir, d3End)
+                    if (dx == 0.0) and (dy == 0.0):
+                        angle = 0.0
+                        weight = 0.0
+                    else:
+                        angle = math.atan2(dy, dx)
+                        if angle < 0.0:
+                            angle += 2.0 * math.pi
+                        weight = math.pi - math.acos(dot(sOutDir, osOutDir))
+                        if weight > maxWeight:
+                            maxWeight = weight
+                            phaseAngle = angle
+                        sumWeights += weight
+                    weights.append(weight)
+                    angles.append(angle)
+                # get correction to phase angle
+                weightedSumDeltaAngles = 0.0
+                for os in range(len(angles)):
+                    angle = angles[os] - phaseAngle
+                    if angle < 0.0:
+                        angle += 2.0 * math.pi
+                    nearestAngle = math.floor(angle / trimAngle + 0.5) * trimAngle
+                    deltaAngle = nearestAngle - angle
+                    weightedSumDeltaAngles += weights[os] * deltaAngle
+                phaseAngle += weightedSumDeltaAngles / sumWeights
                 lx, ld1, ld2, ld12 = getPathRawTubeCoordinates(
                     pathParameters, trimPointsCountAround, radius=1.0, phaseAngle=phaseAngle)
                 pointsCountAlong = len(pathParameters[0])
@@ -446,7 +473,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 rd1 = []
                 trim = False
                 for n1 in range(trimPointsCountAround):
-                    # proportion1 = n1 / trimPointsCountAround
                     cx = [lx[n2][n1] for n2 in range(pointsCountAlong)]
                     cd1 = [ld1[n2][n1] for n2 in range(pointsCountAlong)]
                     cd2 = [ld2[n2][n1] for n2 in range(pointsCountAlong)]
@@ -1060,3 +1086,199 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         :return: A TubeNetworkMeshJunction.
         """
         return TubeNetworkMeshJunction(inSegments, outSegments)
+
+
+def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0, phaseAngle=0.0):
+    """
+    Generate coordinates around and along a tube in parametric space around the path parameters,
+    at xi2^2 + xi3^2 = radius at the same density as path parameters.
+    :param pathParameters: List over nodes of 6 parameters vectors [cx, cd1, cd2, cd12, cd3, cd13] giving
+    coordinates cx along path centre, derivatives cd1 along path, cd2 and cd3 giving side vectors,
+    and cd12, cd13 giving rate of change of side vectors. Parameters have 3 components.
+    Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
+    :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
+    :param radius: Radius of tube in xi space.
+    :param phaseAngle: Starting angle around ellipse, where 0.0 is at d2, pi/2 is at d3.
+    :return: px[][], pd1[][], pd2[][], pd12[][] with first index in range(pointsCountAlong),
+    second inner index in range(elementsCountAround)
+    """
+    assert len(pathParameters) == 6
+    pointsCountAlong = len(pathParameters[0])
+    assert pointsCountAlong > 1
+    assert len(pathParameters[0][0]) == 3
+
+    # sample around circle in xi space, later smooth and re-sample to get even spacing in geometric space
+    ellipsePointCount = 16
+    aroundScale = 2.0 * math.pi / ellipsePointCount
+    sxi = []
+    sdxi = []
+    angleBetweenPoints = 2.0 * math.pi / ellipsePointCount
+    for q in range(ellipsePointCount):
+        theta = phaseAngle + q * angleBetweenPoints
+        xi2 = radius * math.cos(theta)
+        xi3 = radius * math.sin(theta)
+        sxi.append([xi2, xi3])
+        dxi2 = -xi3 * aroundScale
+        dxi3 = xi2 * aroundScale
+        sdxi.append([dxi2, dxi3])
+
+    px = []
+    pd1 = []
+    pd2 = []
+    pd12 = []
+    for p in range(pointsCountAlong):
+        cx, cd1, cd2, cd12, cd3, cd13 = [cp[p] for cp in pathParameters]
+        tx = []
+        td1 = []
+        for q in range(ellipsePointCount):
+            xi2 = sxi[q][0]
+            xi3 = sxi[q][1]
+            x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+            tx.append(x)
+            dxi2 = sdxi[q][0]
+            dxi3 = sdxi[q][1]
+            d1 = [(dxi2 * cd2[c] + dxi3 * cd3[c]) for c in range(3)]
+            td1.append(d1)
+        # smooth to get reasonable derivative magnitudes
+        td1 = smoothCubicHermiteDerivativesLoop(tx, td1, fixAllDirections=True)
+        # resample to get evenly spaced points around loop, temporarily adding start point to end
+        ex, ed1, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(tx + tx[:1], td1 + td1[:1], elementsCountAround)
+        exi, edxi = interpolateSampleCubicHermite(sxi + sxi[:1], sdxi + sdxi[:1], pe, pxi, psf)
+        ex.pop()
+        ed1.pop()
+        exi.pop()
+        edxi.pop()
+
+        # check closeness of x(exi[i]) to ex[i]
+        # find nearest xi2, xi3 if above is finite error
+        # a small but non-negligible error, but results look fine so not worrying
+        # dxi = []
+        # for i in range(len(ex)):
+        #     xi2 = exi[i][0]
+        #     xi3 = exi[i][1]
+        #     xi23 = xi2 * xi3
+        #     x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+        #     dxi.append(sub(x, ex[i]))
+        # print("error", p, "=", [magnitude(v) for v in dxi])
+
+        # calculate d2, d12 at exi
+        ed2 = []
+        ed12 = []
+        for i in range(len(ex)):
+            xi2 = exi[i][0]
+            xi3 = exi[i][1]
+            d2 = [(cd1[c] + xi2 * cd12[c] + xi3 * cd13[c]) for c in range(3)]
+            ed2.append(d2)
+            dxi2 = edxi[i][0]
+            dxi3 = edxi[i][1]
+            d12 = [(dxi2 * cd12[c] + dxi3 * cd13[c]) for c in range(3)]
+            ed12.append(d12)
+
+        px.append(ex)
+        pd1.append(ed1)
+        pd2.append(ed2)
+        pd12.append(ed12)
+
+    return px, pd1, pd2, pd12
+
+
+def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
+                            targetElementLength=None, minimumElementsCountAlong=1,
+                            startSurface: TrackSurface=None, endSurface: TrackSurface=None):
+    """
+    Generate new tube coordinates along raw tube coordinates, optionally trimmed to start/end surfaces.
+    Untrimmed tube elements are even sized along each longitudinal curve.
+    Trimmed tube elements adjust derivatives at trimmed ends to transition from distorted to regular spacing.
+    Can specify either fixedElementsCountAlong or targetElementLength.
+    :param rawTubeCoordinates: (px, pd1, pd2, pd12) returned by getPathRawTubeCoordinates().
+    :param fixedElementsCountAlong: Number of elements in resampled coordinates, or None to use targetElementLength.
+    :param targetElementLength: Target element length or None to use fixedElementsCountAlong.
+    Length is compared with mean trimmed length to determine number along, subject to specified minimum.
+    :param minimumElementsCountAlong: Minimum number along when targetElementLength is used.
+    :param startSurface: Optional TrackSurface specifying start of tube at intersection with it.
+    :param endSurface: Optional TrackSurface specifying end of tube at intersection with it.
+    :return: sx[][], sd1[][], sd2[][], sd12[][] with first index in range(elementsCountAlong + 1),
+    second inner index in range(elementsCountAround)
+    """
+    assert fixedElementsCountAlong or targetElementLength
+    px, pd1, pd2, pd12 = rawTubeCoordinates
+    pointsCountAlong = len(px)
+    elementsCountAround = len(px[0])
+
+    # work out lengths of longitudinal curves, raw and trimmed
+    rawLengths = []
+    lengths = []
+    sumLengths = 0.0
+    startCurveLocations = []
+    startLengths = []
+    endCurveLocations = []
+    endLengths = []
+    for q in range(elementsCountAround):
+        cx = [px[p][q] for p in range(pointsCountAlong)]
+        cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
+        startCurveLocation = None
+        if startSurface:
+            startSurfacePosition, startCurveLocation, startIntersects = startSurface.findNearestPositionOnCurve(cx, cd2)
+            if not startIntersects:
+                startCurveLocation = None
+        startCurveLocations.append(startCurveLocation)
+        endCurveLocation = None
+        if endSurface:
+            endSurfacePosition, endCurveLocation, endIntersects = endSurface.findNearestPositionOnCurve(cx, cd2)
+            if not endIntersects:
+                endCurveLocation = None
+        endCurveLocations.append(endCurveLocation)
+        startLength, length, endLength =\
+            getCubicHermiteTrimmedCurvesLengths(cx, cd2, startCurveLocation, endCurveLocation)[0:3]
+        sumLengths += length
+        rawLengths.append(startLength + length + endLength)
+        lengths.append(length)
+        startLengths.append(startLength)
+        endLengths.append(endLength)
+
+    meanLength = sumLengths / elementsCountAround
+    if fixedElementsCountAlong:
+        elementsCountAlong = fixedElementsCountAlong
+    else:
+        # small fudge factor so whole numbers chosen on centroid don't go one higher:
+        elementsCountAlong = max(minimumElementsCountAlong, math.ceil(meanLength * 0.999 / targetElementLength))
+
+    # resample along, with variable spacing where ends are trimmed
+    sx = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd1 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd2 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    sd12 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
+    for q in range(elementsCountAround):
+        cx = [px[p][q] for p in range(pointsCountAlong)]
+        cd1 = [pd1[p][q] for p in range(pointsCountAlong)]
+        cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
+        cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
+        derivativeMagnitudeStart = None
+        derivativeMagnitudeEnd = None
+        if startCurveLocations[q] or endCurveLocations[q]:
+            derivativeMagnitudeStart = (rawLengths[q] - 2.0 * startLengths[q]) / elementsCountAlong
+            derivativeMagnitudeEnd = (rawLengths[q] - 2.0 * endLengths[q]) / elementsCountAlong
+        qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
+            cx, cd2, elementsCountAlong, derivativeMagnitudeStart, derivativeMagnitudeEnd,
+            startLocation=startCurveLocations[q], endLocation=endCurveLocations[q])
+        qd1, qd12 = interpolateSampleCubicHermite(cd1, cd12, pe, pxi, psf)
+        # swizzle
+        for p in range(elementsCountAlong + 1):
+            sx[p][q] = qx[p]
+            sd1[p][q] = qd1[p]
+            sd2[p][q] = qd2[p]
+            sd12[p][q] = qd12[p]
+
+    # recalculate d1 around intermediate rings, but still in plane
+    # normally looks fine, but d1 derivatives are wavy when very distorted
+    pStart = 0 if startSurface else 1
+    pLimit = elementsCountAlong + 1 if endSurface else elementsCountAlong
+    for p in range(pStart, pLimit):
+        # first smooth to get d1 with new directions not tangential to surface
+        td1 = smoothCubicHermiteDerivativesLoop(sx[p], sd1[p])
+        # constraint to be tangential to surface
+        td1 = [vectorRejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
+        # smooth magnitudes only
+        sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
+
+    return sx, sd1, sd2, sd12

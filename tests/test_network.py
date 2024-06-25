@@ -93,9 +93,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        settings["Target element density along longest segment"] = 7.5
+        settings["Target element density along longest segment"] = 3.4
         MeshType_2d_tubenetwork1.checkOptions(settings)
-        self.assertEqual(7.5, settings["Target element density along longest segment"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -105,9 +104,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(8 * (2 * 8 + 7), mesh2d.getSize())
+        self.assertEqual(88, mesh2d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(8 * 3 * 8 + 3, nodes.getSize())
+        self.assertEqual(99, nodes.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
 
@@ -124,7 +123,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 1.9301100552322827, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 1.940705213792179, delta=X_TOL)
 
     def test_2d_tube_network_sphere_cube(self):
         """
@@ -248,19 +247,19 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.07453049339358872, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.0742327850949779, delta=X_TOL)
 
             outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             outerSurfaceAreaField.setNumbersOfPoints(4)
             result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(outerSurfaceArea, 1.937317298974792, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9363057642249473, delta=X_TOL)
 
             innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
             innerSurfaceAreaField.setNumbersOfPoints(4)
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(innerSurfaceArea, 1.0075358662485736, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 1.0059175161980691, delta=X_TOL)
 
     def test_3d_tube_network_sphere_cube(self):
         """

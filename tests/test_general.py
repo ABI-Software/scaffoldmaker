@@ -25,8 +25,8 @@ from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCo
     getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDerivatives, evaluateCoordinatesOnCurve, \
     getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, interpolateCubicHermite
-from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
+from scaffoldmaker.utils.tubenetworkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
 
 from testutils import assertAlmostEqualList
