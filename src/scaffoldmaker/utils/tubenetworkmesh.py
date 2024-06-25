@@ -675,7 +675,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         elif segmentsCount == 4:
             if sequence == [0, 1, 2, 3]:
-                si == (1, 2)
+                si = (1, 2)
             else:
                 si = (1, 3)
         else:

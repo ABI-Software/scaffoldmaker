@@ -1144,13 +1144,17 @@ class TrackSurface:
                 if instrument:
                     print("TrackSurface.findNearestPositionOnCurve:  Found intersection: ", curveLocation, "on iter", it + 1)
                 return surfacePosition, curveLocation, True
-            n = normalize(cross(cross(d, r), d))
-            r_dot_n = dot(r, n)
-            if r_dot_n < 0:
-                # flip normal to be towards other x
-                n = [-s for s in n]
-                r_dot_n = -r_dot_n
-            rNormal = mult(n, r_dot_n)
+            cross_dr = cross(d, r)
+            if magnitude(cross_dr) < (1.0E-6 * magnitude(d)):
+                rNormal = [0.0, 0.0, 0.0]
+            else:
+                n = normalize(cross(cross_dr, d))
+                r_dot_n = dot(r, n)
+                if r_dot_n < 0.0:
+                    # flip normal to be towards other x
+                    n = [-s for s in n]
+                    r_dot_n = -r_dot_n
+                rNormal = mult(n, r_dot_n)
             rTangent = sub(r, rNormal)
             mag_ri = magnitude(rTangent)
             mag_ro = magnitude(rNormal)
@@ -1182,7 +1186,7 @@ class TrackSurface:
             mag_u = magnitude(u) * curvatureFactor
             # never go further than parallel, based on curvature from initial angle
             parallelFactor = 1.0
-            if curvature > 0.0:
+            if (mag_ro > 0.0) and (curvature > 0.0):
                 max_u = math.atan(mag_ri / mag_ro) / curvature
                 if mag_u > max_u:
                     parallelFactor = max_u / mag_u
