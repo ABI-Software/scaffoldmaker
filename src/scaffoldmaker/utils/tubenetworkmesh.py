@@ -9,7 +9,7 @@ from scaffoldmaker.utils.interpolation import (
     computeCubicHermiteDerivativeScaling, DerivativeScalingMode, evaluateCoordinatesOnCurve,
     getCubicHermiteTrimmedCurvesLengths, interpolateCubicHermite, interpolateCubicHermiteDerivative,
     interpolateLagrangeHermiteDerivative, interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,
-    smoothCubicHermiteDerivativesLoop, smoothCurveSideCrossDerivatives)
+    smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, smoothCurveSideCrossDerivatives)
 from scaffoldmaker.utils.networkmesh import NetworkMesh, NetworkMeshBuilder, NetworkMeshGenerateData, \
     NetworkMeshJunction, NetworkMeshSegment, pathValueLabels
 from scaffoldmaker.utils.tracksurface import TrackSurface
@@ -423,7 +423,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             endIndex = -1 if self._segmentsIn[s] else 0
             for p in range(pathsCount):
                 pathParameters = self._segments[s].getPathParameters(p)
-                xEnd = pathParameters[0][endIndex]  # used as centre trim surface radiates out from
                 d2End = pathParameters[2][endIndex]
                 d3End = pathParameters[4][endIndex]
                 endEllipseNormal = normalize(cross(d2End, d3End))
@@ -472,6 +471,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 rx = []
                 rd1 = []
                 trim = False
+                lowestMaxProportionFromEnd = 1.0
                 for n1 in range(trimPointsCountAround):
                     cx = [lx[n2][n1] for n2 in range(pointsCountAlong)]
                     cd1 = [ld1[n2][n1] for n2 in range(pointsCountAlong)]
@@ -502,25 +502,39 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                 on = cross(od1, od2)  # normal to other surface
                                 d1 = cross(n, on)
                                 maxProportionFromEnd = proportionFromEnd
-                    # ensure d1 directions go around in same direction as loop
-                    if dot(endEllipseNormal, cross(sub(x, xEnd), d1)) < 0.0:
-                        d1 = [-d for d in d1]
+                    if maxProportionFromEnd < lowestMaxProportionFromEnd:
+                        lowestMaxProportionFromEnd = maxProportionFromEnd
                     rx.append(x)
                     rd1.append(d1)
 
                 if trim:
+                    # centre of trim surfaces is at lowestMaxProportionFromEnd
+                    if lowestMaxProportionFromEnd == 0.0:
+                        xCentre = pathParameters[0][endIndex]
+                    else:
+                        proportion = (1.0 - lowestMaxProportionFromEnd) if self._segmentsIn[s]\
+                            else lowestMaxProportionFromEnd
+                        e = int(proportion)
+                        curveLocation = (e, proportion - e)
+                        xCentre = evaluateCoordinatesOnCurve(pathParameters[0], pathParameters[1], curveLocation)
+                    # ensure d1 directions go around in same direction as loop
+                    for n1 in range(trimPointsCountAround):
+                        d1 = rd1[n1]
+                        if dot(endEllipseNormal, cross(sub(rx[n1], xCentre), d1)) < 0.0:
+                            for c in range(3):
+                                d1[c] = -d1[c]
                     rd1 = smoothCubicHermiteDerivativesLoop(rx, rd1, fixAllDirections=True,
                                                             magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-                    rd2 = [sub(rx[n1], xEnd) for n1 in range(trimPointsCountAround)]
+                    rd2 = [sub(rx[n1], xCentre) for n1 in range(trimPointsCountAround)]
                     rd12 = smoothCurveSideCrossDerivatives(rx, rd1, [rd2], loop=True)[0]
                     nx = []
                     nd1 = []
                     nd2 = []
                     nd12 = []
-                    for factor in (0.5, 1.5):
+                    for factor in (0.75, 1.25):
                         for n1 in range(trimPointsCountAround):
-                            d2 = sub(rx[n1], xEnd)
-                            x = add(xEnd, mult(d2, factor))
+                            d2 = sub(rx[n1], xCentre)
+                            x = add(xCentre, mult(d2, factor))
                             d1 = mult(rd1[n1], factor)
                             d12 = mult(rd12[n1], factor)
                             nx.append(x)
@@ -573,6 +587,10 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         sideFactor = 1.0
         outFactor = 0.5
         for s1 in range(segmentsCount - 1):
+            # fxs1 = segmentsParameterLists[s1][0][0]
+            # fd2s1 = segmentsParameterLists[s1][2][0]
+            # if segmentsIn[s1]:
+            #     fd2s1 = [-d for d in fd2s1]
             for s2 in range(s1 + 1, segmentsCount):
                 hd2s1 = hd2[s1]
                 hd2s2 = [-d for d in hd2[s2]]
@@ -587,9 +605,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 scaling = computeCubicHermiteDerivativeScaling(hx[s1], hd2s1, hx[s2], hd2s2)
                 hd2s1 = mult(hd2s1, scaling)
                 hd2s2 = mult(hd2s2, scaling)
-                mx.append(interpolateCubicHermite(hx[s1], hd2s1, hx[s2], hd2s2, xi))
+                cx = interpolateCubicHermite(hx[s1], hd2s1, hx[s2], hd2s2, xi)
+                cd2 = interpolateCubicHermiteDerivative(hx[s1], hd2s1, hx[s2], hd2s2, xi)
+                mx.append(cx)
                 md1.append(mult(add(hd1[s1], [-d for d in hd1[s2]]), 0.5))
-                md2.append(interpolateCubicHermiteDerivative(hx[s1], hd2s1, hx[s2], hd2s2, xi))
+                md2.append(cd2)
+                # smooth smx, smd2 with 2nd row from end coordinates and derivatives
+                # fxs2 = segmentsParameterLists[s2][0][0]
+                # fd2s2 = segmentsParameterLists[s2][2][0]
+                # if not segmentsIn[s1]:
+                #     fd2s2 = [-d for d in fd2s1]
+                # tmd2 = smoothCubicHermiteDerivativesLine(
+                #     [fxs1, cx, fxs2], [fd2s1, cd2, fd2s2], fixStartDerivative=True, fixEndDerivative=True)
+                # md2.append(tmd2[1])
                 if d3Defined:
                     md3.append(mult(add(hd3[s1], hd3[s2]), 0.5))
         if segmentsCount == 2:
@@ -674,10 +702,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     si = (1, 2)
 
         elif segmentsCount == 4:
-            if sequence == [0, 1, 2, 3]:
-                si = (1, 2)
-            else:
-                si = (1, 3)
+            si = sequence[1:3]
         else:
             print("TubeNetworkMeshJunction._sampleMidPoint not fully implemented for segmentsCount =", segmentsCount)
             si = (1, 2)
@@ -1206,33 +1231,37 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
     elementsCountAround = len(px[0])
 
     # work out lengths of longitudinal curves, raw and trimmed
-    rawLengths = []
-    lengths = []
     sumLengths = 0.0
     startCurveLocations = []
     startLengths = []
+    meanStartProportion = 0.0
     endCurveLocations = []
     endLengths = []
+    meanEndProportion = 0.0
     for q in range(elementsCountAround):
         cx = [px[p][q] for p in range(pointsCountAlong)]
         cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
         startCurveLocation = None
         if startSurface:
             startSurfacePosition, startCurveLocation, startIntersects = startSurface.findNearestPositionOnCurve(cx, cd2)
-            if not startIntersects:
+            if startIntersects:
+                meanStartProportion += startCurveLocation[0] + startCurveLocation[1]
+            else:
                 startCurveLocation = None
         startCurveLocations.append(startCurveLocation)
         endCurveLocation = None
         if endSurface:
             endSurfacePosition, endCurveLocation, endIntersects = endSurface.findNearestPositionOnCurve(cx, cd2)
-            if not endIntersects:
+            if endIntersects:
+                meanEndProportion += endCurveLocation[0] + endCurveLocation[1]
+            else:
                 endCurveLocation = None
+        if not endCurveLocation:
+            meanEndProportion += 1.0
         endCurveLocations.append(endCurveLocation)
         startLength, length, endLength =\
             getCubicHermiteTrimmedCurvesLengths(cx, cd2, startCurveLocation, endCurveLocation)[0:3]
         sumLengths += length
-        rawLengths.append(startLength + length + endLength)
-        lengths.append(length)
         startLengths.append(startLength)
         endLengths.append(endLength)
 
@@ -1242,6 +1271,12 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
     else:
         # small fudge factor so whole numbers chosen on centroid don't go one higher:
         elementsCountAlong = max(minimumElementsCountAlong, math.ceil(meanLength * 0.999 / targetElementLength))
+    meanStartProportion /= elementsCountAround
+    e = min(int(meanStartProportion), pointsCountAlong - 2)
+    meanStartCurveLocation = (e, meanStartProportion - e)
+    meanEndProportion /= elementsCountAround
+    e = min(int(meanEndProportion), pointsCountAlong - 2)
+    meanEndCurveLocation = (e, meanEndProportion - e)
 
     # resample along, with variable spacing where ends are trimmed
     sx = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
@@ -1253,11 +1288,13 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         cd1 = [pd1[p][q] for p in range(pointsCountAlong)]
         cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
         cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
+        meanStartLength, meanLength, meanEndLength = \
+            getCubicHermiteTrimmedCurvesLengths(cx, cd2, meanStartCurveLocation, meanEndCurveLocation)[0:3]
         derivativeMagnitudeStart = None
         derivativeMagnitudeEnd = None
         if startCurveLocations[q] or endCurveLocations[q]:
-            derivativeMagnitudeStart = (rawLengths[q] - 2.0 * startLengths[q]) / elementsCountAlong
-            derivativeMagnitudeEnd = (rawLengths[q] - 2.0 * endLengths[q]) / elementsCountAlong
+            derivativeMagnitudeStart = (meanLength + 2.0 * (meanStartLength - startLengths[q])) / elementsCountAlong
+            derivativeMagnitudeEnd = (meanLength + 2.0 * (meanEndLength - endLengths[q])) / elementsCountAlong
         qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
             cx, cd2, elementsCountAlong, derivativeMagnitudeStart, derivativeMagnitudeEnd,
             startLocation=startCurveLocations[q], endLocation=endCurveLocations[q])

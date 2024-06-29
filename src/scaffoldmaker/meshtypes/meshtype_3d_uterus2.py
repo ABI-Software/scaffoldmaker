@@ -368,6 +368,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         }
         if 'Mouse' in parameterSetName:
             options['Number of elements around'] = 8
+            options['Number of elements around horns'] = 8
             options['Target element density along longest segment'] = 10.0
 
         return options

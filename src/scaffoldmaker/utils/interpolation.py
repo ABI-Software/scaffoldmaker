@@ -734,6 +734,8 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
             # fixed directions, equal magnitude
             arcLength = computeCubicHermiteArcLength(nx[0], nd1[0], nx[1], nd1[1], rescaleDerivatives=True)
             return [ vector.setMagnitude(nd1[0], arcLength), vector.setMagnitude(nd1[1], arcLength) ]
+    # fixStartMag = magnitude(md1[0]) if fixStartDerivative else 0.0
+    # fixEndMag = magnitude(md1[-1]) if fixEndDerivative else 0.0
     tol = 1.0E-6
     if instrument:
         print('iter 0', md1)
@@ -760,10 +762,17 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
                 wm = arcLengths[n ]/arcLengthmp
                 wp = arcLengths[nm]/arcLengthmp
                 md1[n] = [ (wm*dirm[c] + wp*dirp[c]) for c in componentRange ]
+            dnm = arcLengths[nm]
+            dn = arcLengths[n]
+            # future: 2nd nodes from end need to work in with fixed end derivatives
+            # if fixStartDerivative and (n == 1):
+            #     dnm = 2.0 * dnm - fixStartMag
+            # if fixEndDerivative and (n == (nodesCount - 2)):
+            #     dn = 2.0 * dn - fixEndMag
             if arithmeticMeanMagnitude:
-                mag = 0.5*(arcLengths[nm] + arcLengths[n])
+                mag = 0.5 * (dnm + dn)
             else: # harmonicMeanMagnitude
-                mag = 2.0/(1.0/arcLengths[nm] + 1.0/arcLengths[n])
+                mag = 2.0 / (1.0 / dnm + 1.0 / dn)
             md1[n] = vector.setMagnitude(md1[n], mag)
         # end
         if not fixEndDerivative:
