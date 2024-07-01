@@ -750,7 +750,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             # sequence = [0, 1, 2]
             connectionCounts = [(aroundCounts[s] + aroundCounts[s - 2] - aroundCounts[s - 1]) // 2 for s in range(3)]
             for s in range(3):
-                if aroundCounts[s] != (connectionCounts[s - 1] + connectionCounts[s]):
+                if (connectionCounts[s] < 1) or (aroundCounts[s] != (connectionCounts[s - 1] + connectionCounts[s])):
                     print("Can't make tube bifurcation between elements counts around", aroundCounts)
                     return
 
@@ -803,16 +803,25 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             # for s in range(self._segmentsCount):
             #     print(s, ":", sequence[s], "=", aroundCounts[sequence[s]], sequence[(s - 1) % self._segmentsCount], '=',
             #           aroundCounts[sequence[(s - 1) % self._segmentsCount]], sequence[s - 1], "=", aroundCounts[sequence[s - 1]], throughCounts[s], (s % 2))
-            connectionCounts = [
-                ((aroundCounts[sequence[s]] + aroundCounts[sequence[(s - 1) % self._segmentsCount]]
-                 - aroundCounts[sequence[s - 1]] - throughCounts[s] + (s % 2)) // 2)
-                for s in range(self._segmentsCount)]
+            freeAroundCounts = [aroundCounts[sequence[s]] - throughCounts[s] for s in range(self._segmentsCount)]
+            if freeAroundCounts[0] == freeAroundCounts[2]:
+                count03 = freeAroundCounts[3] // 2
+                count12 = freeAroundCounts[1] // 2
+                connectionCounts = [count03, count12, count12, count03]
+            elif freeAroundCounts[1] == freeAroundCounts[3]:
+                count03 = freeAroundCounts[0] // 2
+                count12 = freeAroundCounts[2] // 2
+                connectionCounts = [count03, count12, count12, count03]
+            else:
+                connectionCounts = [((freeAroundCounts[s] + freeAroundCounts[(s + 1) % self._segmentsCount]
+                                       - freeAroundCounts[s - 1] + (s % 2)) // 2) for s in range(self._segmentsCount)]
             # print("aroundCounts", aroundCounts)
             # print("sequence", sequence)
             # print("throughCounts", throughCounts)
+            # print("freeAroundCounts", freeAroundCounts)
             # print("connectionCounts", connectionCounts)
             for s in range(self._segmentsCount):
-                # print(s, ":", connectionCounts[s - 1], throughCounts[s], connectionCounts[s])
+                # print("s", s, "around", aroundCounts[sequence[s]], "connL", connectionCounts[s - 1], "through", throughCounts[s], "connR", connectionCounts[s])
                 if (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s])):
                     print("Can't make tube junction between elements counts around", aroundCounts)
                     return
@@ -821,32 +830,52 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             self._segmentNodeToRimIndex = [[None] * aroundCounts[s] for s in range(self._segmentsCount)]
             for os1 in range(self._segmentsCount):
                 os2 = (os1 + 1) % self._segmentsCount
-                sa = sequence[os1]
+                s1 = sequence[os1]
                 s2 = sequence[os2]
                 s3 = sequence[(os1 + 2) % self._segmentsCount]
                 halfThroughCount = throughCounts[os1] // 2
-                aStartNodeIndex = (aroundCounts[sa] - connectionCounts[sa]) // 2
-                startNodeIndex2 = connectionCounts[sa] // -2
-                startNodeIndex3 = connectionCounts[s2] // -2
+                os1ConnectionCount = connectionCounts[os1]
+                os2ConnectionCount = connectionCounts[os2]
+                if self._segmentsIn[s1]:
+                    startNodeIndex1 = (aroundCounts[s1] - os1ConnectionCount) // 2
+                else:
+                    startNodeIndex1 = os1ConnectionCount // -2
+                if self._segmentsIn[s2]:
+                    startNodeIndex2 = os1ConnectionCount // -2
+                else:
+                    startNodeIndex2 = (aroundCounts[s2] - os1ConnectionCount) // 2
+                if self._segmentsIn[s3]:
+                    startNodeIndex3h = os2ConnectionCount // -2
+                    startNodeIndex3l = startNodeIndex3h - (os2ConnectionCount - os1ConnectionCount)
+                else:
+                    startNodeIndex3l = (aroundCounts[s3] - os2ConnectionCount) // 2
+                    startNodeIndex3h = startNodeIndex3l + (os2ConnectionCount - os1ConnectionCount)
 
-                aConnectionCount = connectionCounts[sa]
-                for n in range(-halfThroughCount, aConnectionCount + 1 + halfThroughCount):
-                    na = aStartNodeIndex + (n if self._segmentsIn[sa] else (aConnectionCount - n))
-                    segmentIndexes = [sa]
-                    nodeIndexes = [na]
-                    if 0 <= n <= aConnectionCount:
-                        nb = startNodeIndex2 + ((connectionCounts[sa] - n) if self._segmentsIn[s2] else n)
+                # print(os1, "half", halfThroughCount, "start", startNodeIndex1,
+                #       "in1", self._segmentsIn[s1], "in2", self._segmentsIn[s2], "in3", self._segmentsIn[s3])
+                for n in range(-halfThroughCount, os1ConnectionCount + 1 + halfThroughCount):
+                    n1 = startNodeIndex1 + (n if self._segmentsIn[s1] else (os1ConnectionCount - n))
+                    segmentIndexes = [s1]
+                    nodeIndexes = [n1 % aroundCounts[s1]]
+                    if 0 <= n <= os1ConnectionCount:
+                        n2 = startNodeIndex2 + ((os1ConnectionCount - n) if self._segmentsIn[s2] else n)
                         segmentIndexes.append(s2)
-                        nodeIndexes.append(nb)
-                    if halfThroughCount and ((n <= 0) or (n >= aConnectionCount)):
-                        nt = startNodeIndex3 + ((2 * connectionCounts[s2] - aConnectionCount - n) if self._segmentsIn[s3] else n)
+                        nodeIndexes.append(n2 % aroundCounts[s2])
+                    if halfThroughCount and ((n <= 0) or (n >= os1ConnectionCount)):
+                        n3 = ((startNodeIndex3l if n <= 0 else startNodeIndex3h) +
+                              ((os2ConnectionCount - n) if self._segmentsIn[s3] else n))
                         segmentIndexes.append(s3)
-                        nodeIndexes.append(nt)
+                        nodeIndexes.append(n3 % aroundCounts[s3])
+                    # print("seg node", [[segmentIndexes[i], nodeIndexes[i]] for i in range(len(segmentIndexes))])
                     rimIndex = None
                     for i in range(len(segmentIndexes)):
                         ri = self._segmentNodeToRimIndex[segmentIndexes[i]][nodeIndexes[i]]
                         if ri is not None:
                             rimIndex = ri
+                            # for j in range(len(segmentIndexes)):
+                            #     sn = [segmentIndexes[j], nodeIndexes[j]]
+                            #     if sn not in self._rimIndexToSegmentNodeList[rimIndex]:
+                            #         print("  add", sn, "to rim index", ri, "segment nodes", self._rimIndexToSegmentNodeList[rimIndex])
                             break
                     if rimIndex is None:
                         # new rim index
