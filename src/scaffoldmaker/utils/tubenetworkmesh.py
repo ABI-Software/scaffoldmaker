@@ -585,7 +585,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         md3 = [] if d3Defined else None
         xi = 0.5
         sideFactor = 1.0
-        outFactor = 0.5
+        outFactor = 0.5  # only used if sideFactor is non-zero
         for s1 in range(segmentsCount - 1):
             # fxs1 = segmentsParameterLists[s1][0][0]
             # fd2s1 = segmentsParameterLists[s1][2][0]
@@ -596,9 +596,13 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 hd2s2 = [-d for d in hd2[s2]]
                 if sideFactor > 0.0:
                     # compromise with direct connection respecting surface tangents
-                    sideDirection = sub(hx[s2], hx[s1])
-                    side1 = sub(sideDirection, mult(sideDirection, dot(sideDirection, hn[s1])))
-                    side2 = sub(sideDirection, mult(sideDirection, dot(sideDirection, hn[s2])))
+                    sideDirection = normalize(sub(hx[s2], hx[s1]))
+                    side1d1 = dot(normalize(hd1[s1]), sideDirection)
+                    side1d2 = dot(normalize(hd2[s1]), sideDirection)
+                    side1 = add(mult(hd1[s1], side1d1), mult(hd2[s1], side1d2))
+                    side2d1 = dot(normalize(hd1[s2]), sideDirection)
+                    side2d2 = dot(normalize(hd2[s2]), sideDirection)
+                    side2 = add(mult(hd1[s2], side2d1), mult(hd2[s2], side2d2))
                     sideScaling = computeCubicHermiteDerivativeScaling(hx[s1], side1, hx[s2], side2)
                     hd2s1 = add(mult(hd2s1, outFactor), mult(side1, sideScaling * sideFactor))
                     hd2s2 = add(mult(hd2s2, outFactor), mult(side2, sideScaling * sideFactor))
@@ -1257,16 +1261,17 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
     assert fixedElementsCountAlong or targetElementLength
     px, pd1, pd2, pd12 = rawTubeCoordinates
     pointsCountAlong = len(px)
+    endPointLocation = float(pointsCountAlong - 1)
     elementsCountAround = len(px[0])
 
     # work out lengths of longitudinal curves, raw and trimmed
     sumLengths = 0.0
     startCurveLocations = []
     startLengths = []
-    meanStartProportion = 0.0
+    meanStartLocation = 0.0
     endCurveLocations = []
     endLengths = []
-    meanEndProportion = 0.0
+    meanEndLocation = 0.0
     for q in range(elementsCountAround):
         cx = [px[p][q] for p in range(pointsCountAlong)]
         cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
@@ -1274,7 +1279,7 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         if startSurface:
             startSurfacePosition, startCurveLocation, startIntersects = startSurface.findNearestPositionOnCurve(cx, cd2)
             if startIntersects:
-                meanStartProportion += startCurveLocation[0] + startCurveLocation[1]
+                meanStartLocation += startCurveLocation[0] + startCurveLocation[1]
             else:
                 startCurveLocation = None
         startCurveLocations.append(startCurveLocation)
@@ -1282,11 +1287,11 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         if endSurface:
             endSurfacePosition, endCurveLocation, endIntersects = endSurface.findNearestPositionOnCurve(cx, cd2)
             if endIntersects:
-                meanEndProportion += endCurveLocation[0] + endCurveLocation[1]
+                meanEndLocation += endCurveLocation[0] + endCurveLocation[1]
             else:
                 endCurveLocation = None
         if not endCurveLocation:
-            meanEndProportion += 1.0
+            meanEndLocation += endPointLocation
         endCurveLocations.append(endCurveLocation)
         startLength, length, endLength =\
             getCubicHermiteTrimmedCurvesLengths(cx, cd2, startCurveLocation, endCurveLocation)[0:3]
@@ -1300,12 +1305,12 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
     else:
         # small fudge factor so whole numbers chosen on centroid don't go one higher:
         elementsCountAlong = max(minimumElementsCountAlong, math.ceil(meanLength * 0.999 / targetElementLength))
-    meanStartProportion /= elementsCountAround
-    e = min(int(meanStartProportion), pointsCountAlong - 2)
-    meanStartCurveLocation = (e, meanStartProportion - e)
-    meanEndProportion /= elementsCountAround
-    e = min(int(meanEndProportion), pointsCountAlong - 2)
-    meanEndCurveLocation = (e, meanEndProportion - e)
+    meanStartLocation /= elementsCountAround
+    e = min(int(meanStartLocation), pointsCountAlong - 2)
+    meanStartCurveLocation = (e, meanStartLocation - e)
+    meanEndLocation /= elementsCountAround
+    e = min(int(meanEndLocation), pointsCountAlong - 2)
+    meanEndCurveLocation = (e, meanEndLocation - e)
 
     # resample along, with variable spacing where ends are trimmed
     sx = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
