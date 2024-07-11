@@ -32,13 +32,15 @@ class MeshType_3d_lung3(Scaffold_base):
             "Number of elements normal": 8,
             "Number of elements oblique": 8,
             "Number of elements shell": 0,
-            "Disc breadth": 0.8,
+            "Diaphragm angle degrees": 60.0,
+            "Diaphragm proportion": 0.3,
+            "Disc breadth": 0.7,
             "Disc height": 1.0,
-            "Disc depth": 0.4,
+            "Disc depth": 0.35,
             "Impression breadth proportion": 0.8,
             "Impression height proportion": 0.8,
             "Impression depth proportion": 0.25,
-            "Lateral shear rate": 0.5,
+            "Lateral shear rate": 0.75,
             "Oblique slope degrees": 45.0,
             "Refine": False,
             "Refine number of elements": 4,
@@ -52,6 +54,8 @@ class MeshType_3d_lung3(Scaffold_base):
             "Number of elements normal",
             "Number of elements oblique",
             "Number of elements shell",
+            "Diaphragm angle degrees",
+            "Diaphragm proportion",
             "Disc breadth",
             "Disc height",
             "Disc depth",
@@ -91,6 +95,7 @@ class MeshType_3d_lung3(Scaffold_base):
             if options[dimension] <= 0.0:
                 options[dimension] = 1.0
         for dimension in [
+            "Diaphragm proportion",
             "Impression depth proportion",
             "Impression height proportion",
             "Impression breadth proportion"]:
@@ -113,6 +118,8 @@ class MeshType_3d_lung3(Scaffold_base):
         elementsCountOblique = options["Number of elements oblique"]
         elementsCountShell = options["Number of elements shell"]
         elementsCountTransition = 1
+        diaphragm_angle_radians = math.radians(options["Diaphragm angle degrees"])
+        diaphragm_proportion = options["Diaphragm proportion"]
         disc_breadth = options["Disc breadth"]
         disc_height = options["Disc height"]
         disc_depth = options["Disc depth"]
@@ -160,6 +167,10 @@ class MeshType_3d_lung3(Scaffold_base):
             form_mediastinal_surface(fieldmodule, coordinates, disc_breadth, disc_height, disc_depth,
                                      impression_breadth_proportion, impression_height_proportion,
                                      impression_depth_proportion, lateral_shear_rate)
+
+        if (diaphragm_angle_radians != 0.0) and (diaphragm_proportion > 0.0):
+            form_diaphragm_surface(fieldmodule, coordinates, diaphragm_angle_radians,
+                                   (diaphragm_proportion - 0.5) * disc_height)
 
         return annotationGroups, None
 
@@ -263,6 +274,43 @@ def form_mediastinal_surface(fieldmodule, coordinates, disc_breadth, disc_height
     new_y = bcy + rb * sinb
 
     new_coordinates = fieldmodule.createFieldConcatenate([new_x, new_y, z])
+
+    fieldassignment = coordinates.createFieldassignment(new_coordinates)
+    fieldassignment.assign()
+
+
+def form_diaphragm_surface(fieldmodule, coordinates, diaphragm_angle_radians, diaphragm_bend_z):
+    """
+    Form diaphragm surface by bending model up, phasing out to nothing at the apex.
+    :param fieldmodule: Field module being worked with.
+    :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param diaphragm_angle_radians: Angle of diaphragm from down mediastinal surface.
+    :param diaphragm_bend_z: Z coordinate if centre of diaphragm bend.
+    :return: None.
+    """
+    x = fieldmodule.createFieldComponent(coordinates, 1)
+    y = fieldmodule.createFieldComponent(coordinates, 2)
+    z = fieldmodule.createFieldComponent(coordinates, 3)
+    bend_z = fieldmodule.createFieldConstant(diaphragm_bend_z)
+    minus_1 = fieldmodule.createFieldConstant(-1.0)
+    nx = x * minus_1
+    mz = z - bend_z
+    nx_mz = fieldmodule.createFieldConcatenate([nx, mz])
+    r = fieldmodule.createFieldMagnitude(nx_mz)
+
+    theta = fieldmodule.createFieldAtan2(mz, nx)
+    zero = fieldmodule.createFieldConstant(0.0)
+    r_zero = fieldmodule.createFieldEqualTo(r, zero)
+    safe_theta = fieldmodule.createFieldIf(r_zero, zero, theta)
+    pi__2 = fieldmodule.createFieldConstant(0.5 * math.pi)
+    delta_theta = (pi__2 - safe_theta) * fieldmodule.createFieldConstant(diaphragm_angle_radians / math.pi)
+    new_theta = safe_theta + delta_theta
+    cos_new_theta = fieldmodule.createFieldCos(new_theta) * minus_1
+    sin_new_theta = fieldmodule.createFieldSin(new_theta)
+    new_x = r * cos_new_theta
+    new_z = bend_z + r * sin_new_theta
+
+    new_coordinates = fieldmodule.createFieldConcatenate([new_x, y, new_z])
 
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
     fieldassignment.assign()
