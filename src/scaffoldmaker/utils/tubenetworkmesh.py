@@ -120,6 +120,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
     def getElementsCountAround(self):
         return self._elementsCountAround
 
+    def getRawTubeCoordinates(self, pathIndex=0):
+        return self._rawTubeCoordinatesList[pathIndex]
+
     def getRawTrackSurface(self, pathIndex=0):
         return self._rawTrackSurfaceList[pathIndex]
 

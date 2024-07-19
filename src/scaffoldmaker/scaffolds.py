@@ -11,7 +11,6 @@ from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
 from scaffoldmaker.meshtypes.meshtype_2d_tube1 import MeshType_2d_tube1
-from scaffoldmaker.meshtypes.meshtype_2d_tubebifurcation1 import MeshType_2d_tubebifurcation1
 from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.meshtypes.meshtype_3d_bladderurethra1 import MeshType_3d_bladderurethra1
@@ -44,7 +43,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
-from scaffoldmaker.meshtypes.meshtype_3d_solidcylindernetwork1 import MeshType_3d_solidcylindernetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
@@ -72,8 +70,6 @@ class Scaffolds(object):
             MeshType_2d_platehole1,
             MeshType_2d_sphere1,
             MeshType_2d_tube1,
-            MeshType_2d_tubebifurcation1,
-            #MeshType_2d_tubebifurcationtree1,
             MeshType_2d_tubenetwork1,
             MeshType_3d_bladder1,
             MeshType_3d_bladderurethra1,
@@ -106,7 +102,6 @@ class Scaffolds(object):
             MeshType_3d_ostium2,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
-            MeshType_3d_solidcylindernetwork1,
             MeshType_3d_solidsphere1,
             MeshType_3d_solidsphere2,
             MeshType_3d_sphereshell1,
