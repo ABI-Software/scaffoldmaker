@@ -1235,7 +1235,7 @@ class TrackSurface:
                 break
         else:
             print('TrackSurface.findNearestPositionOnCurve did not converge:  Reached max iterations', it + 1,
-                  'closeness in xi', mag_dxi)
+                  'closeness in xi', mag_dxi, 'distance tangent', mag_ri, 'normal', mag_ro)
         return surfacePosition, curveLocation, False
 
     def trackVector(self, startPosition, direction, trackDistance):

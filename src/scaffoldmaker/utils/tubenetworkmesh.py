@@ -462,7 +462,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nearestAngle = math.floor(angle / trimAngle + 0.5) * trimAngle
                     deltaAngle = nearestAngle - angle
                     weightedSumDeltaAngles += weights[os] * deltaAngle
-                phaseAngle += weightedSumDeltaAngles / sumWeights
+                phaseAngle -= weightedSumDeltaAngles / sumWeights
                 lx, ld1, ld2, ld12 = getPathRawTubeCoordinates(
                     pathParameters, trimPointsCountAround, radius=1.0, phaseAngle=phaseAngle)
                 pointsCountAlong = len(pathParameters[0])
@@ -1324,11 +1324,8 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
         meanStartLength, meanLength, meanEndLength = \
             getCubicHermiteTrimmedCurvesLengths(cx, cd2, meanStartCurveLocation, meanEndCurveLocation)[0:3]
-        derivativeMagnitudeStart = None
-        derivativeMagnitudeEnd = None
-        if startCurveLocations[q] or endCurveLocations[q]:
-            derivativeMagnitudeStart = (meanLength + 2.0 * (meanStartLength - startLengths[q])) / elementsCountAlong
-            derivativeMagnitudeEnd = (meanLength + 2.0 * (meanEndLength - endLengths[q])) / elementsCountAlong
+        derivativeMagnitudeStart = (meanLength + 2.0 * (meanStartLength - startLengths[q])) / elementsCountAlong
+        derivativeMagnitudeEnd = (meanLength + 2.0 * (meanEndLength - endLengths[q])) / elementsCountAlong
         qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
             cx, cd2, elementsCountAlong, derivativeMagnitudeStart, derivativeMagnitudeEnd,
             startLocation=startCurveLocations[q], endLocation=endCurveLocations[q])
