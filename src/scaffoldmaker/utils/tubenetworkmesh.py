@@ -644,7 +644,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         # get best fit directions with these 360/segmentsCount degrees apart
 
-        # get preferred derivatives for all segments
+        # get preferred derivative at centre out to each segment
         rd = [interpolateLagrangeHermiteDerivative(
             cx, segmentsParameterLists[s][0][0], [-d for d in segmentsParameterLists[s][2][0]] if segmentsIn[s]
             else segmentsParameterLists[s][2][0], 0.0) for s in range(segmentsCount)]
@@ -710,25 +710,30 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         elif segmentsCount == 4:
             si = sequence[1:3]
+            # print("sequence", sequence, "si", si)
         else:
             print("TubeNetworkMeshJunction._sampleMidPoint not fully implemented for segmentsCount =", segmentsCount)
             si = (1, 2)
 
-        # get harmonic mean of d1 around midpoints
+        # get harmonic mean of d1 magnitude around midpoints
         magSum = 0.0
         for s in range(segmentsCount):
             magSum += 1.0 / magnitude(md1[s])
         d1Mean = segmentsCount / magSum
-        # overall harmonic mean of derivatives to handle diagonal derivatives
+        # overall harmonic mean of derivatives to err on the low side for the diagonal derivatives
         dMean = 2.0 / (1.0 / d1Mean + 1.0 / d2Mean)
 
-        # td = [sd[j] for j in si]
-        # compromise between preferred directions rd and equal spaced directions sd
-        td = [mult(normalize(add(rd[j], sd[j])), dMean) for j in si]
-        if segmentsIn.count(True) == 2:
-            # reverse so matches inward directions
-            td = [[-c for c in d] for d in td]
-        # td = [sub(d, mult(ns12, dot(d, ns12))) for d in td]
+        if segmentsCount == 4:
+            # use the equal spaced directions
+            td = [mult(normalize(sd[j]), dMean) for j in si]
+        else:
+            # td = [sd[j] for j in si]
+            # compromise between preferred directions rd and equal spaced directions sd
+            td = [mult(normalize(add(rd[j], sd[j])), dMean) for j in si]
+            if segmentsIn.count(True) == 2:
+                # reverse so matches inward directions
+                td = [[-c for c in d] for d in td]
+            # td = [sub(d, mult(ns12, dot(d, ns12))) for d in td]
 
         cd1, cd2 = td
         if dot(cross(cd1, cd2), ns12) < 0.0:
@@ -793,20 +798,42 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         elif self._segmentsCount == 4:
             # only support plus + shape for now, not tetrahedral
-            # determine plus + sequence [0, 1, 2, 3] or [0, 1, 3, 2]
+            # determine plus + sequence [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3] or [0, 2, 3, 1]
             outDirections = []
             for s in range(self._segmentsCount):
                 d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
                 outDirections.append(normalize([-d for d in d1] if self._segmentsIn[s] else d1))
-            sequence = [0, 1, 2, 3]
-            if dot(cross(outDirections[1], outDirections[2]), cross(outDirections[2], outDirections[3])) < 0.0:
-                sequence = [0, 1, 3, 2]
+            ms = None
+            for s in range(1, self._segmentsCount):
+                if dot(outDirections[0], outDirections[s]) > -0.9:
+                    ns = cross(outDirections[0], outDirections[s])
+                    break
+            # get orthonormal axes with ns12, axis1 in direction of first preferred derivative
+            axis1 = normalize(cross(cross(ns, outDirections[0]), ns))
+            axis2 = normalize(cross(ns, axis1))
+            # get angles and sequence around normal, starting at axis1
+            angles = [0.0]
+            for s in range(1, self._segmentsCount):
+                angle = math.atan2(dot(outDirections[s], axis2), dot(outDirections[s], axis1))
+                angles.append((2.0 * math.pi + angle) if (angle < 0.0) else angle)
+            angle = 0.0
+            sequence = [0]
+            for s in range(1, self._segmentsCount):
+                nextAngle = math.pi * 4.0
+                nexts = 0
+                for t in range(1, self._segmentsCount):
+                    if angle < angles[t] < nextAngle:
+                        nextAngle = angles[t]
+                        nexts = t
+                angle = nextAngle
+                sequence.append(nexts)
             pairCount02 = aroundCounts[sequence[0]] + aroundCounts[sequence[2]]
             pairCount13 = aroundCounts[sequence[1]] + aroundCounts[sequence[3]]
             throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
             throughCount13 = ((pairCount13 - pairCount02) // 2) if (pairCount13 > pairCount02) else 0
             throughCounts = [throughCount02, throughCount13, throughCount02, throughCount13]
             # numbers of elements directly connecting pairs of segments
+            # print("sample sequence", sequence)
             # for s in range(self._segmentsCount):
             #     print(s, ":", sequence[s], "=", aroundCounts[sequence[s]], sequence[(s - 1) % self._segmentsCount], '=',
             #           aroundCounts[sequence[(s - 1) % self._segmentsCount]], sequence[s - 1], "=", aroundCounts[sequence[s - 1]], throughCounts[s], (s % 2))
