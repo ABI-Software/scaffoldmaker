@@ -775,10 +775,14 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
             else:
                 elementDerivative = nodeDerivatives[ed]
             # update delta to equal the exact derivative
+            oldDeltaMagnitude = magnitude(deltas[n][ed])
             deltas[n][ed] = elementDerivative
             # get other node index interpolated with this element derivative
             on = n ^ (1 << ed)
             if nodeOrder.index(on) > nodeOrder.index(n):
+                derivativeMagnitude = magnitude(elementDerivative)
+                newMagnitude = 2.0 / ((1.0 / oldDeltaMagnitude) + (1.0 / derivativeMagnitude))
+                elementDerivative = mult(elementDerivative, newMagnitude / derivativeMagnitude)
                 # update other node delta to work in with this derivative
                 otherElementDerivative = (
                     interpolateHermiteLagrangeDerivative(nodeParameters[n][0], elementDerivative, nodeParameters[on][0], 1.0)
