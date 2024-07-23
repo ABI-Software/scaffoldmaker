@@ -7,7 +7,7 @@ wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import set_magnitude, cross, normalize, magnitude, angle
+from cmlibs.maths.vectorops import set_magnitude, cross, normalize, magnitude, angle, rotate_about_z_axis
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
@@ -771,7 +771,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         innerNodes_x = []
         innerNodes_d1 = []
         innerNodes_d2 = []
-        nd1 = matrix.rotateAboutZAxis(nd2_max[0], 0.5 * math.pi)
+        nd1 = rotate_about_z_axis(nd2_max[0], 0.5 * math.pi)
         innerNodes_d1 += [nd1] * elementsCountAround
         for n1 in range(0, len(nx_max)):
             xAround, d1Around = createEllipsePoints([0.0, 0.0, nx_max[n1][2]], 2 * math.pi, [nx_max[n1][1], 0.0, 0.0],

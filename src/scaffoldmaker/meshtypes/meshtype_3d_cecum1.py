@@ -7,7 +7,7 @@ variable radius and thickness along.
 import copy
 import math
 
-from cmlibs.maths.vectorops import set_magnitude, normalize, magnitude, cross, dot
+from cmlibs.maths.vectorops import set_magnitude, normalize, magnitude, cross, dot, rotate_about_z_axis
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -451,7 +451,7 @@ def getApexSegmentForCecum(xOuter, d1Outer, d2Outer, elementsCountAroundHalfHaus
             xFirstSegmentSampled.append(x)
             d2FirstSegmentSampled.append(d2)
             if n2 == 0:
-                d1 = matrix.rotateAboutZAxis(d2, math.pi*0.5)
+                d1 = rotate_about_z_axis(d2, math.pi*0.5)
                 d1FirstSegmentSampled.append(d1)
 
         if n2 > 0:
