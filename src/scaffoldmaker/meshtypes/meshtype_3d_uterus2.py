@@ -2,26 +2,125 @@
 Generates a 3-D uterus mesh from a 1-D network layout, with variable
 numbers of elements around, along and through wall.
 """
-
-import math
-
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
-from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers
-from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
-    findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.uterus_terms import get_uterus_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.bifurcation import SegmentTubeData, \
-    TubeBifurcationData, generateTube, generateTubeBifurcation, generateCurveMesh, blendNetworkNodeCoordinates
-from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
-from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.networkmesh import NetworkMesh
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, group_add_connected_elements
+
+
+class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
+
+    def __init__(self, region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
+            coordinateFieldName="coordinates", startNodeIdentifier=1, startElementIdentifier=1):
+        """
+        :param isLinearThroughWall: Callers should only set if 3-D with no core.
+        :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
+        """
+        super(UterusTubeNetworkMeshGenerateData, self).__init__(
+            region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
+            coordinateFieldName, startNodeIdentifier, startElementIdentifier)
+        self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
+        self._leftGroup = self.getOrCreateAnnotationGroup(("left uterus", "None"))
+        self._rightGroup = self.getOrCreateAnnotationGroup(("right uterus", "None"))
+        self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal uterus", "None"))
+        self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral uterus", "None"))
+
+    def getFundusMeshGroup(self):
+        return self._fundusGroup.getMeshGroup(self._mesh)
+
+    def getLeftMeshGroup(self):
+        return self._leftGroup.getMeshGroup(self._mesh)
+
+    def getRightMeshGroup(self):
+        return self._rightGroup.getMeshGroup(self._mesh)
+
+    def getDorsalMeshGroup(self):
+        return self._dorsalGroup.getMeshGroup(self._mesh)
+
+    def getVentralMeshGroup(self):
+        return self._ventralGroup.getMeshGroup(self._mesh)
+
+class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+
+    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
+                 defaultElementsCountAround: int, elementsCountThroughWall: int,
+                 layoutAnnotationGroups: list = [], annotationElementsCountsAround: list = []):
+        super(UterusTubeNetworkMeshBuilder, self).__init__(
+            networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
+            elementsCountThroughWall, layoutAnnotationGroups, annotationElementsCountsAround)
+
+    def generateMesh(self, generateData):
+        super(UterusTubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build temporary left/right dorsal/ventral groups
+        mesh = generateData.getMesh()
+        fundusMeshGroup = generateData.getFundusMeshGroup()
+        leftMeshGroup = generateData.getLeftMeshGroup()
+        rightMeshGroup = generateData.getRightMeshGroup()
+        dorsalMeshGroup = generateData.getDorsalMeshGroup()
+        ventralMeshGroup = generateData.getVentralMeshGroup()
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            elementsCountRim = segment.getElementsCountRim()
+            elementsCountAlong = segment.getSampledElementsCountAlong()
+            junctions = segment.getJunctions()
+            elementsCountAround = segment.getElementsCountAround()
+            annotationTerms = segment.getAnnotationTerms()
+            preBifurcation = ("pre-bifurcation segments", "None") in annotationTerms
+            allLeft = False
+            allRight = False
+            fundus = preBifurcation and (get_uterus_term("body of uterus") in annotationTerms)
+            if preBifurcation:
+                for annotationTerm in annotationTerms:
+                    if "left" in annotationTerm[0]:
+                        allLeft = True
+                        break
+                    elif "right" in annotationTerm[0]:
+                        allRight = True
+                        break
+                if not (allLeft or allRight):
+                    prevSegment = junctions[0].getSegments()[0]
+                    if prevSegment is not segment:
+                        prevAnnotationTerms = prevSegment.getAnnotationTerms()
+                        for annotationTerm in prevAnnotationTerms:
+                            if "left" in annotationTerm[0]:
+                                allLeft = True
+                                break
+                            elif "right" in annotationTerm[0]:
+                                allRight = True
+                                break
+            e1FundusLimit = elementsCountAround // 2
+            e1RightStart = elementsCountAround // 2
+            e1DVStart = e1RightStart // 2
+            e1DVEnd = elementsCountAround - e1DVStart - 1
+            for e1 in range(elementsCountAround):
+                meshGroups = []
+                if fundus and ((allLeft and (e1 < e1FundusLimit)) or (allRight and (e1 >= e1FundusLimit))):
+                    meshGroups.append(fundusMeshGroup)
+                if allLeft or ((not allRight) and (e1 < e1RightStart)):
+                    meshGroups.append(leftMeshGroup)
+                else:
+                    meshGroups.append(rightMeshGroup)
+                if ((preBifurcation and (e1 >= e1DVStart) and (e1 <= e1DVEnd)) or
+                        ((not preBifurcation) and ((e1 < e1DVStart) or (e1 > e1DVEnd)))):
+                    meshGroups.append(dorsalMeshGroup)
+                else:
+                    meshGroups.append(ventralMeshGroup)
+                for e2 in range(elementsCountAlong):
+                    for e3 in range(elementsCountRim):
+                        elementIdentifier = segment.getRimElementId(e1, e2, e3)
+                        if elementIdentifier is not None:
+                            element = mesh.findElementByIdentifier(elementIdentifier)
+                            for meshGroup in meshGroups:
+                                meshGroup.addElement(element)
+
 
 def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
     assert parameterSetName in cls.getParameterSetNames() # make sure parameter set is in list of parameters of parent scaffold
@@ -33,43 +132,53 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 ["coordinates", "inner coordinates"],
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[                
-                (1, [[-9.16, 10.27,-3.09], [ 0.89, 0.73,-1.15], [ 0.04,-0.23,-0.11], [ 0.08, 0.02, 0.01], [-0.20, 0.03,-0.14], [ 0.08,-0.06,-0.09]]),
-                (2, [[-8.06, 10.64,-4.32], [ 1.27,-0.02,-1.26], [-0.00,-0.25, 0.00], [-0.10, 0.01, 0.14], [-0.17,-0.00,-0.17], [-0.02,-0.00, 0.02]]),
-                (3, [[-6.71, 10.19,-5.51], [ 1.73,-0.52,-0.85], [-0.06,-0.25, 0.03], [-0.11,-0.25,-0.05], [-0.12,-0.00,-0.24], [ 0.12, 0.01,-0.37]]),
-                (4, [[ 9.16, 10.27,-3.09], [-0.89, 0.73,-1.15], [-0.04,-0.23,-0.11], [-0.08, 0.02, 0.01], [-0.20,-0.03, 0.14], [ 0.08, 0.06, 0.09]]),
-                (5, [[ 8.06, 10.64,-4.32], [-1.27,-0.02,-1.26], [ 0.00,-0.25, 0.00], [ 0.10, 0.01, 0.14], [-0.17, 0.00, 0.17], [-0.02, 0.00,-0.02]]),
-                (6, [[ 6.71, 10.19,-5.51], [-1.73,-0.52,-0.85], [ 0.06,-0.25, 0.03], [ 0.11,-0.25,-0.05], [-0.12, 0.00, 0.24], [ 0.12,-0.01, 0.37]]),
-                (7, [[-4.71, 9.65,-5.89], [ 2.18,-0.21,-0.35], [-0.09,-0.77,-0.10], [ 0.27,-1.14,-0.57], [-0.11, 0.11,-0.78], [-0.31, 0.46,-0.76]]),
-                (8, [[-2.42, 9.80,-6.20], [ 2.36, 0.21,-0.17], [ 0.13,-2.36,-1.07], [ 0.04,-0.93,-0.64], [-0.20, 0.80,-1.80], [ 0.22, 0.68,-0.92]]),
-                (9, [[ 4.71, 9.65,-5.89], [-2.18,-0.21,-0.35], [ 0.09,-0.77,-0.10], [-0.27,-1.14,-0.57], [-0.11,-0.11, 0.78], [-0.31,-0.46, 0.76]]),
-                (10, [[ 2.42, 9.80,-6.20], [-2.36, 0.21,-0.17], [-0.13,-2.36,-1.07], [-0.04,-0.93,-0.64], [-0.20,-0.80, 1.80], [ 0.22,-0.68, 0.92]]),
-                (11, [[-0.00, 10.08,-6.23], [[ 2.47, 0.34, 0.11],[-2.47, 0.34, 0.11],[ 0.02,-0.35, 2.81]], [[ 0.42,-2.59,-1.43],[-0.42,-2.59,-1.43],[ 0.03, 2.93, 0.36]], [[ 0.19, 0.45,-0.09],[-0.19, 0.45,-0.09],[ 0.01,-0.22,-0.05]], [[-0.08, 1.42,-2.59],[-0.08,-1.42, 2.59],[-3.52, 0.03, 0.03]], [[-0.16, 0.54,-0.68],[-0.16,-0.54, 0.68],[ 0.47, 0.03,-0.12]]]),
-                (12, [[-0.00, 9.50,-3.62], [ 0.00,-0.81, 2.39], [ 0.02, 2.37, 0.80], [-0.02,-0.82, 0.29], [-3.08, 0.02, 0.01], [ 0.41,-0.03, 0.02]]),
-                (13, [[-0.00, 8.50,-1.48], [ 0.00,-1.16, 1.77], [-0.01, 1.33, 0.87], [-0.01,-0.82, 0.10], [-2.70,-0.01,-0.01], [ 0.29,-0.01,-0.01]]),
-                (14, [[-0.00, 7.27,-0.08], [ 0.00,-1.09, 0.82], [ 0.00, 0.75, 0.99], [ 0.01,-0.49, 0.09], [-2.51, 0.00, 0.00], [ 0.18, 0.01, 0.01]]),
-                (15, [[-0.00, 6.50, 0.28], [ 0.00,-0.83, 0.18], [ 0.00, 0.22, 1.00], [ 0.00,-0.30,-0.20], [-2.34, 0.00, 0.00], [ 0.22, 0.00, 0.00]]),
-                (16, [[-0.00, 5.67, 0.28], [ 0.00,-1.58,-0.05], [ 0.00,-0.03, 0.81], [ 0.00, 0.11,-0.26], [-2.07,-0.00, 0.00], [ 0.63, 0.00, 0.00]]),
-                (17, [[-0.00, 3.35, 0.14], [ 0.00,-2.85,-0.14], [ 0.00,-0.02, 0.46], [ 0.00, 0.02,-0.13], [-1.08,-0.00, 0.00], [ 0.76, 0.00, 0.00]]),
-                (18, [[ 0.00,-0.03, 0.00], [ 0.00,-3.91,-0.13], [ 0.00,-0.02, 0.55], [-0.00,-0.01, 0.31], [-0.55,-0.00, 0.00], [ 0.30,-0.00, 0.00]])], [
-                (1, [[-9.16,10.27,-3.09], [0.89,0.73,-1.15], [0.02,-0.11,-0.06], [0.04,0.01,0.00], [-0.10,0.02,-0.07], [0.04,-0.03,-0.05]]),
-                (2, [[-8.06,10.64,-4.32], [1.27,-0.02,-1.26], [0.00,-0.12,0.00], [-0.05,0.00,0.07], [-0.08,0.00,-0.09], [-0.01,0.00,0.01]]),
-                (3, [[-6.71,10.19,-5.51], [1.73,-0.52,-0.85], [-0.03,-0.13,0.01], [-0.05,-0.13,-0.03], [-0.06,0.00,-0.12], [0.06,0.00,-0.19]]),
-                (4, [[9.16,10.27,-3.09], [-0.89,0.73,-1.15], [-0.02,-0.11,-0.06], [-0.04,0.01,0.00], [-0.10,-0.02,0.07], [0.04,0.03,0.05]]),
-                (5, [[8.06,10.64,-4.32], [-1.27,-0.02,-1.26], [0.00,-0.12,0.00], [0.05,0.00,0.07], [-0.08,0.00,0.09], [-0.01,0.00,-0.01]]),
-                (6, [[6.71,10.19,-5.51], [-1.73,-0.52,-0.85], [0.03,-0.13,0.01], [0.05,-0.13,-0.03], [-0.06,0.00,0.12], [0.06,0.00,0.19]]),
-                (7, [[-4.71,9.65,-5.89], [2.18,-0.21,-0.35], [-0.05,-0.38,-0.05], [0.13,-0.57,-0.28], [-0.06,0.06,-0.39], [-0.15,0.23,-0.38]]),
-                (8, [[-2.42,9.80,-6.20], [2.36,0.21,-0.17], [0.07,-1.18,-0.54], [0.02,-0.53,-0.26], [-0.10,0.40,-0.90], [0.11,0.27,-0.49]]),
-                (9, [[4.71,9.65,-5.89], [-2.18,-0.21,-0.35], [0.05,-0.38,-0.05], [-0.13,-0.57,-0.28], [-0.06,-0.06,0.39], [-0.15,-0.23,0.38]]),
-                (10, [[2.42,9.80,-6.20], [-2.36,0.21,-0.17], [-0.07,-1.18,-0.54], [-0.02,-0.53,-0.26], [-0.10,-0.40,0.90], [0.11,-0.27,0.49]]),
-                (11, [[-0.00,10.08,-6.23], [[2.47,0.34,0.11],[-2.47,0.34,0.11],[0.02,-0.35,2.81]], [[0.21,-1.29,-0.72],[-0.21,-1.29,-0.72],[0.01,1.46,0.18]], [[0.09,0.23,-0.05],[-0.09,0.23,-0.05],[0.00,-0.11,-0.02]], [[-0.04,0.71,-1.30],[-0.04,-0.71,1.30],[-1.76,0.01,0.01]], [[-0.08,0.27,-0.34],[-0.08,-0.27,0.34],[0.23,0.02,-0.06]]]),                (12, [[-0.00,9.50,-3.62], [0.00,-0.81,2.39], [0.01,1.18,0.40], [-0.01,-0.38,0.15], [-1.54,0.01,0.00], [0.20,-0.01,0.01]]),
-                (13, [[-0.00,8.50,-1.48], [0.00,-1.16,1.77], [-0.00,0.67,0.44], [0.00,-0.39,0.06], [-1.35,0.00,0.00], [0.59,0.00,0.00]]),
-                (14, [[-0.00,7.27,-0.08], [0.00,-1.09,0.82], [0.02,0.40,0.53], [0.00,-0.26,0.06], [-0.36,0.01,0.01], [0.47,0.00,0.00]]),
-                (15, [[-0.00,6.50,0.28], [0.00,-0.83,0.18], [-0.00,0.11,0.50], [-0.01,-0.15,-0.12], [-0.41,0.00,0.00], [0.00,0.00,0.00]]),
-                (16, [[-0.00,5.67,0.28], [0.00,-1.58,-0.05], [0.00,-0.01,0.41], [-0.00,0.06,-0.13], [-0.36,0.00,0.00], [-0.07,0.00,0.00]]), 
-                (17, [[-0.00,3.35,0.14], [0.00,-2.85,-0.14], [0.00,-0.01,0.23], [-0.00,0.01,-0.06], [-0.54,0.00,0.00], [0.04,0.00,0.00]]), 
-                (18, [[0.00,-0.03,0.00], [0.00,-3.91,-0.13], [0.00,-0.01,0.28], [0.00,-0.01,0.16], [-0.28,0.00,0.00], [0.48,0.00,0.00]])]]),
-
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
+                (1, [[-9.160,10.270,-3.090], [ 0.889, 0.730,-1.149], [ 0.042,-0.228,-0.113], [ 0.083, 0.023, 0.006], [-0.202, 0.031,-0.137], [ 0.077,-0.062,-0.091]]),
+                (2, [[-8.060,10.640,-4.320], [ 1.271,-0.020,-1.261], [-0.002,-0.250, 0.002], [-0.103, 0.007, 0.139], [-0.169, 0.000,-0.171], [-0.024,-0.002, 0.016]]),
+                (3, [[-6.710,10.190,-5.510], [ 1.730,-0.520,-0.850], [-0.060,-0.250, 0.030], [-0.106,-0.253,-0.053], [-0.118, 0.000,-0.241], [ 0.118, 0.006,-0.372]]),
+                (4, [[ 9.160,10.270,-3.090], [-0.889, 0.730,-1.149], [-0.042,-0.228,-0.113], [-0.083, 0.023, 0.006], [-0.202,-0.031, 0.137], [ 0.077, 0.062, 0.091]]),
+                (5, [[ 8.060,10.640,-4.320], [-1.271,-0.020,-1.261], [ 0.002,-0.250, 0.002], [ 0.103, 0.007, 0.139], [-0.169, 0.000, 0.171], [-0.024, 0.002,-0.016]]),
+                (6, [[ 6.710,10.190,-5.510], [-1.730,-0.520,-0.850], [ 0.060,-0.250, 0.030], [ 0.106,-0.253,-0.053], [-0.118, 0.000, 0.241], [ 0.118,-0.006, 0.372]]),
+                (7, [[-4.710, 9.650,-5.890], [ 2.182,-0.210,-0.350], [-0.090,-0.770,-0.100], [ 0.319,-1.159,-0.237], [-0.114, 0.114,-0.779], [-0.339, 0.211,-0.805]]),
+                (8, [[-2.420, 9.800,-6.200], [ 2.364, 0.210,-0.170], [ 0.188,-2.460,-0.420], [-0.027,-1.024,-0.146], [-0.169, 0.320,-1.950], [ 0.243, 0.218,-1.088]]),
+                (9, [[ 4.710, 9.650,-5.890], [-2.182,-0.210,-0.350], [ 0.090,-0.770,-0.100], [-0.319,-1.159,-0.237], [-0.114,-0.114, 0.779], [-0.339,-0.211, 0.805]]),
+                (10, [[ 2.420, 9.800,-6.200], [-2.364, 0.210,-0.170], [-0.188,-2.460,-0.420], [ 0.027,-1.024,-0.146], [-0.169,-0.320, 1.950], [ 0.243,-0.218, 1.088]]),
+                (11, [[ 0.000,10.080,-6.230],
+                      [[ 2.471, 0.340, 0.110],[-2.471, 0.340, 0.110],[ 0.000,-0.350, 2.812]],
+                      [[ 0.400,-2.761,-0.461],[-0.400,-2.761,-0.461],[ 0.000, 2.929, 0.365]],
+                      [[ 0.196, 0.407, 0.058],[-0.196, 0.407, 0.058],[ 0.000,-0.216,-0.046]],
+                      [[0.062, 0.495, -2.911], [0.062, -0.495, 2.911], [-3.520, 0.000, 0.000]],
+                      [[-0.011, 0.101,-0.853],[-0.011,-0.101, 0.853],[ 0.470, 0.000, 0.000]]]),
+                (12, [[ 0.000, 9.500,-3.620], [ 0.000,-0.810, 2.390], [ 0.000, 2.369, 0.803], [ 0.000,-0.819, 0.290], [-3.080, 0.000, 0.000], [ 0.410, 0.000, 0.000]]),
+                (13, [[ 0.000, 8.500,-1.480], [ 0.000,-1.162, 1.773], [ 0.000, 1.329, 0.871], [ 0.000,-0.823, 0.095], [-2.700, 0.000, 0.000], [ 0.285, 0.000, 0.000]]),
+                (14, [[ 0.000, 7.270,-0.080], [ 0.000,-1.091, 0.821], [ 0.000, 0.747, 0.993], [ 0.000,-0.491, 0.093], [-2.510, 0.000, 0.000], [ 0.180, 0.000, 0.000]]),
+                (15, [[ 0.000, 6.500, 0.280], [ 0.000,-0.828, 0.179], [ 0.000, 0.216, 1.001], [ 0.000,-0.302,-0.201], [-2.340, 0.000, 0.000], [ 0.220, 0.000, 0.000]]),
+                (16, [[ 0.000, 5.670, 0.280], [ 0.000,-1.578,-0.050], [ 0.000,-0.026, 0.810], [ 0.000, 0.109,-0.265], [-2.070, 0.000, 0.000], [ 0.630, 0.000, 0.000]]),
+                (17, [[ 0.000, 3.350, 0.140], [ 0.000,-2.850,-0.140], [ 0.000,-0.023, 0.460], [ 0.000, 0.021,-0.129], [-1.080, 0.000, 0.000], [ 0.760, 0.000, 0.000]]),
+                (18, [[ 0.000,-0.030, 0.000], [ 0.000,-3.910,-0.130], [ 0.000,-0.018, 0.550], [ 0.000,-0.014, 0.309], [-0.550, 0.000, 0.000], [ 0.300, 0.000, 0.000]])], [
+                (1, [[-9.160,10.270,-3.090], [ 0.889, 0.730,-1.149], [ 0.018,-0.112,-0.057], [ 0.043, 0.018, 0.011], [-0.102, 0.018,-0.067], [ 0.040,-0.036,-0.050]]),
+                (2, [[-8.060,10.640,-4.320], [ 1.271,-0.020,-1.261], [-0.001,-0.120, 0.001], [-0.050, 0.000, 0.067], [-0.085, 0.000,-0.085], [-0.012, 0.000, 0.008]]),
+                (3, [[-6.710,10.190,-5.510], [ 1.730,-0.520,-0.850], [-0.033,-0.129, 0.012], [-0.050,-0.127,-0.029], [-0.058, 0.004,-0.121], [ 0.059, 0.004,-0.186]]),
+                (4, [[ 9.160,10.270,-3.090], [-0.889, 0.730,-1.149], [-0.018,-0.112,-0.057], [-0.043, 0.018, 0.011], [-0.102,-0.018, 0.067], [ 0.040, 0.036, 0.050]]),
+                (5, [[ 8.060,10.640,-4.320], [-1.271,-0.020,-1.261], [ 0.001,-0.120, 0.001], [ 0.050, 0.000, 0.067], [-0.085, 0.000, 0.085], [-0.012, 0.000,-0.008]]),
+                (6, [[ 6.710,10.190,-5.510], [-1.730,-0.520,-0.850], [ 0.033,-0.129, 0.012], [ 0.050,-0.127,-0.029], [-0.058,-0.004, 0.121], [ 0.059,-0.004, 0.186]]),
+                (7, [[-4.710, 9.650,-5.890], [ 2.182,-0.210,-0.350], [-0.045,-0.381,-0.051], [ 0.157,-0.594,-0.107], [-0.057, 0.059,-0.391], [-0.172, 0.094,-0.403]]),
+                (8, [[-2.420, 9.800,-6.200], [ 2.364, 0.210,-0.170], [ 0.098,-1.262,-0.191], [-0.014,-0.567,-0.074], [-0.083, 0.141,-0.976], [ 0.121, 0.102,-0.547]]),
+                (9, [[ 4.710, 9.650,-5.890], [-2.182,-0.210,-0.350], [ 0.045,-0.381,-0.051], [-0.157,-0.594,-0.107], [-0.057,-0.059, 0.391], [-0.172,-0.094, 0.403]]),
+                (10, [[ 2.420, 9.800,-6.200], [-2.364, 0.210,-0.170], [-0.098,-1.262,-0.191], [ 0.014,-0.567,-0.074], [-0.083,-0.141, 0.976], [ 0.121,-0.102, 0.547]]),
+                (11, [[ 0.000,10.080,-6.230],
+                      [[ 2.471, 0.340, 0.110],[-2.471, 0.340, 0.110],[ 0.000,-0.350, 2.812]],
+                      [[ 0.215,-1.485,-0.234],[-0.215,-1.485,-0.234],[ 0.000, 1.460, 0.182]],
+                      [[ 0.122, 0.114,-0.016],[-0.122, 0.114,-0.016],[ 0.000,-0.114,-0.024]],
+                      [[ 0.033, 0.235,-1.463],[ 0.033,-0.235, 1.463],[-1.760, 0.000, 0.000]],
+                      [[-0.005, 0.071,-0.436],[-0.005,-0.071, 0.436],[ 0.235, 0.000, 0.000]]]),
+                (12, [[ 0.000, 9.500,-3.620], [ 0.000,-0.810, 2.390], [ 0.000, 1.180, 0.400], [ 0.000,-0.404, 0.146], [-1.540, 0.000, 0.000], [ 0.205, 0.000, 0.000]]),
+                (13, [[ 0.000, 8.500,-1.480], [ 0.000,-1.162, 1.773], [ 0.000, 0.670, 0.439], [ 0.000,-0.393, 0.063], [-1.350, 0.000, 0.000], [ 0.590, 0.000, 0.000]]),
+                (14, [[ 0.000, 7.270,-0.080], [ 0.000,-1.091, 0.821], [ 0.000, 0.399, 0.531], [ 0.000,-0.261, 0.055], [-0.360, 0.000, 0.000], [ 0.470, 0.000, 0.000]]),
+                (15, [[ 0.000, 6.500, 0.280], [ 0.000,-0.828, 0.179], [ 0.000, 0.108, 0.500], [ 0.000,-0.151,-0.120], [-0.410, 0.000, 0.000], [ 0.000, 0.000, 0.000]]),
+                (16, [[ 0.000, 5.670, 0.280], [ 0.000,-1.578,-0.050], [ 0.000,-0.013, 0.410], [ 0.000, 0.055,-0.132], [-0.360, 0.000, 0.000], [-0.065, 0.000, 0.000]]),
+                (17, [[ 0.000, 3.350, 0.140], [ 0.000,-2.850,-0.140], [ 0.000,-0.011, 0.230], [ 0.000, 0.010,-0.064], [-0.540, 0.000, 0.000], [ 0.040, 0.000, 0.000]]),
+                (18, [[ 0.000,-0.030, 0.000], [ 0.000,-3.910,-0.130], [ 0.000,-0.009, 0.280], [ 0.000,-0.007, 0.165], [-0.280, 0.000, 0.000], [ 0.480, 0.000, 0.000]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -239,12 +348,12 @@ class MeshType_3d_uterus2(Scaffold_base):
     Magnitude of D2 and D3 are the radii of the uterus in the respective directions.
     """
 
-    @staticmethod
-    def getName():
+    @classmethod
+    def getName(cls):
         return '3D Uterus 2'
 
-    @staticmethod
-    def getParameterSetNames():
+    @classmethod
+    def getParameterSetNames(cls):
         return [
             'Default',
             'Human 1',
@@ -256,14 +365,12 @@ class MeshType_3d_uterus2(Scaffold_base):
         options = {
             'Base parameter set': parameterSetName,
             'Network layout': getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
-            'Number of elements around': 10,
-            'Number of elements around horns': 8,
+            'Number of elements around': 12,
+            'Number of elements around horns': 12,
             'Number of elements through wall': 1,
-            "Annotation elements counts around": [0],
             'Target element density along longest segment': 5.0,
-            "Serendipity": True,
             'Use linear through wall': True,
-            'Use cross derivatives': False,
+            'Show trim surfaces': False,
             'Refine': False,
             'Refine number of elements along': 4,
             'Refine number of elements around': 4,
@@ -271,19 +378,21 @@ class MeshType_3d_uterus2(Scaffold_base):
         }
         if 'Mouse' in parameterSetName:
             options['Number of elements around'] = 8
+            options['Number of elements around horns'] = 8
             options['Target element density along longest segment'] = 10.0
 
         return options
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         optionNames = [
             'Network layout',
             'Number of elements around',
             'Number of elements around horns',
             'Number of elements through wall',
             'Target element density along longest segment',
-            "Serendipity",
+            'Use linear through wall',
+            'Show trim surfaces',
             'Refine',
             'Refine number of elements along',
             'Refine number of elements around',
@@ -339,8 +448,8 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Number of elements around horns']:
             if options[key] < 4:
                 options[key] = 4
-            if options[key] % 2 > 0:
-                options[key] = options[key] // 2 * 2
+            elif (options[key] % 4) > 0:
+                options[key] += options[key] % 4
         if options["Number of elements through wall"] < 1:
             options["Number of elements through wall"] = 1
 
@@ -352,418 +461,57 @@ class MeshType_3d_uterus2(Scaffold_base):
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
-        Generate the base tricubic Hermite mesh. See also generateMesh().
+        Generate the base tricubic hermite or bicubic hermite-linear mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None
         """
         parameterSetName = options['Base parameter set']
         isHuman = parameterSetName in ("Default", "Human 1")
-        networkLayout = options['Network layout']
-        elementsCountAroundPostBifurcation = options['Number of elements around']
-        elementsCountAroundPreBifurcation = options['Number of elements around horns']
-        elementsCountThroughWall = options['Number of elements through wall']
-        defaultElementsCountAround = elementsCountAroundPostBifurcation
-        annotationElementsCountsAround = [0, 0, elementsCountAroundPostBifurcation, elementsCountAroundPreBifurcation]
-        targetElementDensityAlongLongestSegment = options['Target element density along longest segment']
-        useCrossDerivatives = options['Use cross derivatives']
-        serendipity = options["Serendipity"]
-        showIntersectionCurves = False
-        showTrimSurfaces = False # options["Show trim surfaces"]
 
-        # Geometric coordinates
         layoutRegion = region.createRegion()
+        networkLayout = options["Network layout"]
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
-
-        fieldmodule = region.getFieldmodule()
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        coordinates = findOrCreateFieldCoordinates(fieldmodule)
-        nodeIdentifier = 1
-        elementIdentifier = 1
-
         networkMesh = networkLayout.getConstructionObject()
 
-        layoutRegion = networkMesh.getRegion()
-        layoutFieldmodule = layoutRegion.getFieldmodule()
-        layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        layoutCoordinates = layoutFieldmodule.findFieldByName("coordinates").castFiniteElement()
-        layoutInnerCoordinates = layoutFieldmodule.findFieldByName("inner coordinates").castFiniteElement()
-        if not layoutInnerCoordinates.isValid():
-            layoutInnerCoordinates = None
-        dimension = 3 if layoutInnerCoordinates else 2
-        layoutMesh = layoutFieldmodule.findMeshByDimension(1)
-        assert (elementsCountThroughWall == 1) or (layoutInnerCoordinates and (elementsCountThroughWall >= 1))
+        annotationElementsCountsAround = []
+        for layoutAnnotationGroup in layoutAnnotationGroups:
+            elementsCountAround = 0
+            if layoutAnnotationGroup.getName() == "pre-bifurcation segments":
+                elementsCountAround = options['Number of elements around horns']
+            elif layoutAnnotationGroup.getName() == "post-bifurcation segments":
+                elementsCountAround = options['Number of elements around']
+            annotationElementsCountsAround.append(elementsCountAround)
+
+        uterusTubeNetworkMeshBuilder = UterusTubeNetworkMeshBuilder(
+            networkMesh,
+            targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
+            defaultElementsCountAround=options['Number of elements around'],
+            elementsCountThroughWall=options["Number of elements through wall"],
+            layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAround=annotationElementsCountsAround)
+        uterusTubeNetworkMeshBuilder.build()
+        generateData = UterusTubeNetworkMeshGenerateData(
+            region, 3,
+            isLinearThroughWall=options["Use linear through wall"],
+            isShowTrimSurfaces=options["Show trim surfaces"])
+        uterusTubeNetworkMeshBuilder.generateMesh(generateData)
+        annotationGroups = generateData.getAnnotationGroups()
+        nodeIdentifier, _ = generateData.getNodeElementIdentifiers()
 
         fieldmodule = region.getFieldmodule()
-        mesh = fieldmodule.findMeshByDimension(dimension)
-        fieldcache = fieldmodule.createFieldcache()
+        coordinates = findOrCreateFieldCoordinates(fieldmodule)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        mesh = fieldmodule.findMeshByDimension(3)
 
-        # make 2D annotation groups from 1D network layout annotation groups
-        annotationGroups = []
-        layoutAnnotationMeshGroupMap = []  # List of tuples of layout annotation mesh group to final mesh group
-        for layoutAnnotationGroup in layoutAnnotationGroups:
-            if layoutAnnotationGroup.getDimension() == 1:
-                annotationGroup = AnnotationGroup(region, layoutAnnotationGroup.getTerm())
-                annotationGroups.append(annotationGroup)
-                layoutAnnotationMeshGroupMap.append(
-                    (layoutAnnotationGroup.getMeshGroup(layoutMesh), annotationGroup.getMeshGroup(mesh)))
-
-        valueLabels = [
-            Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-            Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-            Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-
-        networkSegments = networkMesh.getNetworkSegments()
-
-        bodyGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("body of uterus"))
-        bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
-        cervixGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterine cervix"))
-        cervixMeshGroup = cervixGroup.getMeshGroup(mesh)
         uterusGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterus"))
+        myometriumGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_uterus_term("myometrium"))
+        myometriumGroup.getMeshGroup(mesh).addElementsConditional(uterusGroup.getGroup())
 
-        # map from NetworkSegment to SegmentTubeData
-        outerSegmentTubeData = {}
-        innerSegmentTubeData = {} if layoutInnerCoordinates else None
-        longestSegmentLength = 0.0
-        for networkSegment in networkSegments:
-            pathParameters = get_nodeset_path_ordered_field_parameters(
-                layoutNodes, layoutCoordinates, valueLabels,
-                networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
-            elementsCountAround = defaultElementsCountAround
-            i = 0
-            for layoutAnnotationGroup in layoutAnnotationGroups:
-                if i >= len(annotationElementsCountsAround):
-                    break
-                annotationElementsCountAround = annotationElementsCountsAround[i]
-                if annotationElementsCountAround > 0:
-                    if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationGroup.getMeshGroup(layoutMesh)):
-                        elementsCountAround = annotationElementsCountAround
-                        break
-                i += 1
-            outerSegmentTubeData[networkSegment] = tubeData = SegmentTubeData(pathParameters, elementsCountAround)
-            px, pd1, pd2, pd12 = getPathRawTubeCoordinates(pathParameters, elementsCountAround)
-            tubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
-
-            segmentLength = tubeData.getSegmentLength()
-            if segmentLength > longestSegmentLength:
-                longestSegmentLength = segmentLength
-
-            if layoutInnerCoordinates:
-                innerPathParameters = get_nodeset_path_ordered_field_parameters(
-                    layoutNodes, layoutInnerCoordinates, valueLabels,
-                    networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
-                px, pd1, pd2, pd12 = getPathRawTubeCoordinates(innerPathParameters, elementsCountAround)
-                innerSegmentTubeData[networkSegment] = innerTubeData = SegmentTubeData(innerPathParameters,
-                                                                                       elementsCountAround)
-                innerTubeData.setRawTubeCoordinates((px, pd1, pd2, pd12))
-
-            for layoutAnnotationMeshGroup, annotationMeshGroup in layoutAnnotationMeshGroupMap:
-                if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationMeshGroup):
-                    tubeData.addAnnotationMeshGroup(annotationMeshGroup)
-                    if layoutInnerCoordinates:
-                        innerTubeData.addAnnotationMeshGroup(annotationMeshGroup)
-
-        if longestSegmentLength > 0.0:
-            targetElementLength = longestSegmentLength / targetElementDensityAlongLongestSegment
-        else:
-            targetElementLength = 1.0
-
-        # map from NetworkNodes to bifurcation data, resample tube coordinates to fit bifurcation
-        outerNodeTubeBifurcationData = {}
-        innerNodeTubeBifurcationData = {} if layoutInnerCoordinates else None
-
-        allSegmentTubeData = [outerSegmentTubeData]
-        if layoutInnerCoordinates:
-            allSegmentTubeData.append(innerSegmentTubeData)
-
-        for segmentTubeData in allSegmentTubeData:
-            nodeTubeBifurcationData = innerNodeTubeBifurcationData if (segmentTubeData is innerSegmentTubeData) else \
-                outerNodeTubeBifurcationData
-            # count = 0
-            for networkSegment in networkSegments:
-                tubeData = segmentTubeData[networkSegment]
-                rawTubeCoordinates = tubeData.getRawTubeCoordinates()
-                segmentNodes = networkSegment.getNetworkNodes()
-                startSegmentNode = segmentNodes[0]
-                startTubeBifurcationData = nodeTubeBifurcationData.get(startSegmentNode)
-                startSurface = None
-                newBifurcationData = []
-                if not startTubeBifurcationData:
-                    startInSegments = startSegmentNode.getInSegments()
-                    startOutSegments = startSegmentNode.getOutSegments()
-                    if ((len(startInSegments) + len(startOutSegments)) == 3):
-                        startTubeBifurcationData = TubeBifurcationData(startInSegments, startOutSegments, segmentTubeData)
-                        nodeTubeBifurcationData[startSegmentNode] = startTubeBifurcationData
-                        newBifurcationData.append(startTubeBifurcationData)
-
-                if startTubeBifurcationData:
-                    startSurface = startTubeBifurcationData.getSegmentTrimSurface(networkSegment)
-                endSegmentNode = segmentNodes[-1]
-                endTubeBifurcationData = nodeTubeBifurcationData.get(endSegmentNode)
-                endSurface = None
-                createEndBifurcationData = not endTubeBifurcationData
-                if createEndBifurcationData:
-                    endInSegments = endSegmentNode.getInSegments()
-                    endOutSegments = endSegmentNode.getOutSegments()
-                    if ((len(endInSegments) + len(endOutSegments)) == 3):
-                        # print("create end", networkSegment, endSegmentNode.getNodeIdentifier(),
-                        #       len(endInSegments), len(endOutSegments))
-                        endTubeBifurcationData = TubeBifurcationData(endInSegments, endOutSegments, segmentTubeData)
-                        nodeTubeBifurcationData[endSegmentNode] = endTubeBifurcationData
-                        newBifurcationData.append(endTubeBifurcationData)
-                if endTubeBifurcationData:
-                    endSurface = endTubeBifurcationData.getSegmentTrimSurface(networkSegment)
-                if segmentTubeData is outerSegmentTubeData:
-                    segmentLength = tubeData.getSegmentLength()
-                    elementsCountAlong = max(1, math.ceil(segmentLength / targetElementLength))
-                    loop = (len(startSegmentNode.getInSegments()) == 1) and \
-                           (startSegmentNode.getInSegments()[0] is networkSegment) and \
-                           (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
-                    if (elementsCountAlong == 1) and (startTubeBifurcationData and endTubeBifurcationData):
-                        # at least 2 segments if bifurcating at either end, or loop
-                        elementsCountAlong = 1
-                    elif (elementsCountAlong < 3) and loop:
-                        # at least 3 segments around loop; 2 should work, but zinc currently makes incorrect faces
-                        elementsCountAlong = 3
-                else:
-                    # must match count from outer surface!
-                    outerTubeData = outerSegmentTubeData[networkSegment]
-                    elementsCountAlong = outerTubeData.getSampledElementsCountAlong()
-                sx, sd1, sd2, sd12 = resampleTubeCoordinates(
-                    rawTubeCoordinates, elementsCountAlong, startSurface=startSurface, endSurface=endSurface)
-                tubeData.setSampledTubeCoordinates((sx, sd1, sd2, sd12))
-        del segmentTubeData
-
-        # blend coordinates where versions are shared between segments
-        blendedNetworkNodes = set()
-        for networkSegment in networkSegments:
-            segmentNodes = networkSegment.getNetworkNodes()
-            for segmentNode in [segmentNodes[0], segmentNodes[-1]]:
-                if segmentNode not in blendedNetworkNodes:
-                    blendNetworkNodeCoordinates(segmentNode, allSegmentTubeData)
-                    blendedNetworkNodes.add(segmentNode)
-        del blendedNetworkNodes
-
-        completedBifurcations = set()  # record so only done once
-
-        with ChangeManager(fieldmodule):
-            for networkSegment in networkSegments:
-                segmentNodes = networkSegment.getNetworkNodes()
-                startSegmentNode = segmentNodes[0]
-                startInSegments = startSegmentNode.getInSegments()
-                startOutSegments = startSegmentNode.getOutSegments()
-                startSkipCount = 1 if ((len(startInSegments) + len(startOutSegments)) > 2) else 0
-                endSegmentNode = segmentNodes[-1]
-                endInSegments = endSegmentNode.getInSegments()
-                endOutSegments = endSegmentNode.getOutSegments()
-                endSkipCount = 1 if ((len(endInSegments) + len(endOutSegments)) > 2) else 0
-
-                for stage in range(3):
-                    if stage == 1:
-                        # tube
-                        outerTubeData = outerSegmentTubeData[networkSegment]
-                        outerTubeCoordinates = outerTubeData.getSampledTubeCoordinates()
-                        if bodyMeshGroup in outerTubeData.getAnnotationMeshGroups():
-                            elementsAlongBodyDistalSegment = len(outerTubeCoordinates)
-                            elementsAroundBodyDistalSegment = len(outerTubeCoordinates[0][0])
-                        if cervixMeshGroup in outerTubeData.getAnnotationMeshGroups():
-                            elementsAlongCervixSegment = len(outerTubeCoordinates)
-                            elementsAroundCervixSegment = len(outerTubeCoordinates[0][0])
-                        if cervixMeshGroup in outerTubeData.getAnnotationMeshGroups():
-                            elementStartIdxCervix = elementIdentifier
-                        loop = (len(startInSegments) == 1) and (startInSegments[0] is networkSegment) and \
-                               (networkSegment.getNodeVersions()[0] == networkSegment.getNodeVersions()[-1])
-                        innerTubeData = innerSegmentTubeData[networkSegment] if layoutInnerCoordinates else None
-                        innerTubeCoordinates = innerTubeData.getSampledTubeCoordinates() if layoutInnerCoordinates else None
-                        startNodeIds = outerTubeData.getStartNodeIds(startSkipCount)
-                        if (not startNodeIds) and (startSkipCount == 0) and (startInSegments or startOutSegments):
-                            # discover start nodes from single adjacent segment
-                            if startInSegments:
-                                startNodeIds = outerSegmentTubeData[startInSegments[0]].getEndNodeIds(0)
-                            else:
-                                startNodeIds = outerSegmentTubeData[startOutSegments[0]].getStartNodeIds(0)
-                            if startNodeIds:
-                                outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
-                        endNodeIds = outerTubeData.getEndNodeIds(endSkipCount)
-                        if (not endNodeIds) and (endSkipCount == 0) and (endOutSegments or endInSegments):
-                            # discover end nodes from single adjacent segment
-                            if endOutSegments:
-                                endNodeIds = outerSegmentTubeData[endOutSegments[0]].getStartNodeIds(0)
-                            elif endInSegments:
-                                endNodeIds = outerSegmentTubeData[endInSegments[0]].getEndNodeIds(0)
-                            if endNodeIds:
-                                outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
-                        nodeIdentifier, elementIdentifier, startNodeIds, endNodeIds = generateTube(
-                            outerTubeCoordinates, innerTubeCoordinates, elementsCountThroughWall,
-                            region, fieldcache, coordinates, nodeIdentifier, elementIdentifier,
-                            startSkipCount=startSkipCount, endSkipCount=endSkipCount,
-                            startNodeIds=startNodeIds, endNodeIds=endNodeIds,
-                            annotationMeshGroups=outerTubeData.getAnnotationMeshGroups(),
-                            loop=loop, serendipity=serendipity)
-                        outerTubeData.setStartNodeIds(startNodeIds, startSkipCount)
-                        outerTubeData.setEndNodeIds(endNodeIds, endSkipCount)
-
-                        if (len(startInSegments) == 1) and (startSkipCount == 0):
-                            # copy startNodeIds to end of last segment
-                            inTubeData = outerSegmentTubeData[startInSegments[0]]
-                            inTubeData.setEndNodeIds(startNodeIds, 0)
-                        if (len(endOutSegments) == 1) and (endSkipCount == 0):
-                            # copy endNodesIds to start of next segment
-                            outTubeData = outerSegmentTubeData[endOutSegments[0]]
-                            outTubeData.setStartNodeIds(endNodeIds, 0)
-                    else:
-                        # start, end bifurcation
-                        outerTubeBifurcationData = outerNodeTubeBifurcationData.get(
-                            startSegmentNode if (stage == 0) else endSegmentNode)
-                        if outerTubeBifurcationData and not outerTubeBifurcationData in completedBifurcations:
-                            if showIntersectionCurves:
-                                lineIdentifier = None
-                                for s in range(3):
-                                    curve = outerTubeBifurcationData.getIntersectionCurve(s)
-                                    cx, cd1, cProportions, loop = curve
-                                    if cx:
-                                        nodeIdentifier, lineIdentifier = \
-                                            generateCurveMesh(region, cx, cd1, loop, nodeIdentifier, lineIdentifier)
-                            if showTrimSurfaces:
-                                faceIdentifier = elementIdentifier if (dimension == 2) else None
-                                for s in range(3):
-                                    trimSurface = outerTubeBifurcationData.getTrimSurface(s)
-                                    if trimSurface:
-                                        nodeIdentifier, faceIdentifier = \
-                                            trimSurface.generateMesh(region, nodeIdentifier, faceIdentifier)
-                                if dimension == 2:
-                                    elementIdentifier = faceIdentifier
-                            innerTubeBifurcationData = None
-                            if innerNodeTubeBifurcationData:
-                                innerTubeBifurcationData = innerNodeTubeBifurcationData.get(
-                                    startSegmentNode if (stage == 0) else endSegmentNode)
-
-                            crossIndexes = outerTubeBifurcationData.getCrossIndexes()  # only get these from outer
-                            if not crossIndexes:
-                                outerTubeBifurcationData.determineCrossIndexes()
-                                outerTubeBifurcationData.determineMidCoordinates()
-                                if innerTubeBifurcationData:
-                                    innerTubeBifurcationData.determineCrossIndexes()
-                                    innerTubeBifurcationData.determineMidCoordinates()
-                                crossIndexes = outerTubeBifurcationData.getCrossIndexes()
-
-                            outerTubeCoordinates = outerTubeBifurcationData.getConnectingTubeCoordinates()
-                            outerMidCoordinates = outerTubeBifurcationData.getMidCoordinates()
-                            inward = outerTubeBifurcationData.getSegmentsIn()
-                            outerTubeData = outerTubeBifurcationData.getTubeData()
-                            tubeNodeIds = [outerTubeData[s].getEndNodeIds(1) if inward[s] else \
-                                           outerTubeData[s].getStartNodeIds(1) for s in range(3)]
-                            innerTubeCoordinates = None
-                            innerMidCoordinates = None
-                            if innerTubeBifurcationData:
-                                innerTubeCoordinates = innerTubeBifurcationData.getConnectingTubeCoordinates()
-                                innerMidCoordinates = innerTubeBifurcationData.getMidCoordinates()
-                            annotationMeshGroups = [outerTubeData[s].getAnnotationMeshGroups() for s in range(3)]
-                            nodeIdentifier, elementIdentifier = generateTubeBifurcation(
-                                outerTubeCoordinates, innerTubeCoordinates, inward, elementsCountThroughWall,
-                                outerMidCoordinates, innerMidCoordinates, crossIndexes,
-                                region, fieldcache, coordinates, nodeIdentifier, elementIdentifier, tubeNodeIds,
-                                annotationMeshGroups, serendipity=serendipity)
-
-                            for s in range(3):
-                                if inward[s]:
-                                    if not outerTubeData[s].getEndNodeIds(1):
-                                        outerTubeData[s].setEndNodeIds(tubeNodeIds[s], 1)
-                                else:
-                                    if not outerTubeData[s].getStartNodeIds(1):
-                                        outerTubeData[s].setStartNodeIds(tubeNodeIds[s], 1)
-
-                            completedBifurcations.add(outerTubeBifurcationData)
-
-        is_uterus = uterusGroup.getGroup()
-        myometriumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("myometrium"))
-        myometriumGroup.getMeshGroup(mesh).addElementsConditional(is_uterus)
-
-        # Add human specific annotations
         if isHuman:
-            # find elements on left and right edges
-            elementsOnRightMarginVentral = []
-            elementsOnRightMarginDorsal = []
-            elementsOnLeftMarginVentral = []
-            elementsOnLeftMarginDorsal = []
-
-            for i in range(elementsAlongBodyDistalSegment):
-                elementsOnRightMarginVentral.append(elementStartIdxCervix - 1 - i * elementsAroundBodyDistalSegment - (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1))
-                elementsOnRightMarginDorsal.append(elementStartIdxCervix - 1 - i * elementsAroundBodyDistalSegment - (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1) - 1)
-                elementsOnLeftMarginVentral.append(elementStartIdxCervix - (i + 1) * elementsAroundBodyDistalSegment + (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1))
-                elementsOnLeftMarginDorsal.append(elementStartIdxCervix - (i + 1) * elementsAroundBodyDistalSegment + (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1) + 1)
-
-            nearRightMarginDorsalGroup = AnnotationGroup(region, ("elements adjacent to right margin dorsal", "None"))
-            nearRightMarginVentralGroup = AnnotationGroup(region, ("elements adjacent to right margin ventral", "None"))
-            nearLeftMarginDorsalGroup = AnnotationGroup(region, ("elements adjacent to left margin dorsal", "None"))
-            nearLeftMarginVentralGroup = AnnotationGroup(region, ("elements adjacent to left margin ventral", "None"))
-
-            # track backwards to find elements near the margins
-            lastElements = [elementsOnLeftMarginVentral[-1], elementsOnLeftMarginDorsal[-1],
-                            elementsOnRightMarginVentral[-1], elementsOnRightMarginDorsal[-1]]
-            marginGroups = [nearLeftMarginVentralGroup, nearLeftMarginDorsalGroup,
-                            nearRightMarginVentralGroup, nearRightMarginDorsalGroup]
-
-            for i in range(4):
-                adjacentElement = mesh.findElementByIdentifier(lastElements[i])
-                eft = adjacentElement.getElementfieldtemplate(coordinates, -1)
-                lastNode = get_element_node_identifiers(adjacentElement, eft)[4]
-                addElementsToMargin(mesh, coordinates, marginGroups[i], lastNode)
-
-            elementIter = mesh.createElementiterator()
-            element = elementIter.next()
-            while element.isValid():
-                elementIdentifier = element.getIdentifier()
-                if elementIdentifier in elementsOnRightMarginVentral:
-                    nearRightMarginVentralGroup.getMeshGroup(mesh).addElement(element)
-                elif elementIdentifier in elementsOnRightMarginDorsal:
-                    nearRightMarginDorsalGroup.getMeshGroup(mesh).addElement(element)
-                elif elementIdentifier in elementsOnLeftMarginVentral:
-                    nearLeftMarginVentralGroup.getMeshGroup(mesh).addElement(element)
-                elif elementIdentifier in elementsOnLeftMarginDorsal:
-                    nearLeftMarginDorsalGroup.getMeshGroup(mesh).addElement(element)
-                element = elementIter.next()
-
-            annotationGroups.append(nearRightMarginDorsalGroup)
-            annotationGroups.append(nearRightMarginVentralGroup)
-            annotationGroups.append(nearLeftMarginDorsalGroup)
-            annotationGroups.append(nearLeftMarginVentralGroup)
-
-            elementsOnRightMarginVentral = []
-            elementsOnRightMarginDorsal = []
-            elementsOnLeftMarginVentral = []
-            elementsOnLeftMarginDorsal = []
-
-            for i in range(elementsAlongCervixSegment):
-                elementsOnRightMarginDorsal.append(elementStartIdxCervix - 1 + i * elementsAroundCervixSegment - (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1) - 1)
-                elementsOnRightMarginVentral.append(elementStartIdxCervix - 1 + i * elementsAroundCervixSegment - (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1))
-                elementsOnLeftMarginVentral.append(elementStartIdxCervix + (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1) + i * elementsAroundCervixSegment)
-                elementsOnLeftMarginDorsal.append(elementStartIdxCervix + (math.ceil(elementsAroundBodyDistalSegment * 0.25) - 1) + 1 + i * elementsAroundCervixSegment)
-
-            nearRightMarginDorsalCervixGroup = AnnotationGroup(region, ("elements adjacent to right margin dorsal of cervix", "None"))
-            nearRightMarginVentralCervixGroup = AnnotationGroup(region, ("elements adjacent to right margin ventral of cervix", "None"))
-            nearLeftMarginDorsalCervixGroup = AnnotationGroup(region, ("elements adjacent to left margin dorsal of cervix", "None"))
-            nearLeftMarginVentralCervixGroup = AnnotationGroup(region, ("elements adjacent to left margin ventral of cervix", "None"))
-
-            elementIter = mesh.createElementiterator()
-            element = elementIter.next()
-            while element.isValid():
-                elementIdentifier = element.getIdentifier()
-                if elementIdentifier in elementsOnRightMarginVentral:
-                    nearRightMarginVentralCervixGroup.getMeshGroup(mesh).addElement(element)
-                elif elementIdentifier in elementsOnRightMarginDorsal:
-                    nearRightMarginDorsalCervixGroup.getMeshGroup(mesh).addElement(element)
-                elif elementIdentifier in elementsOnLeftMarginVentral:
-                    nearLeftMarginVentralCervixGroup.getMeshGroup(mesh).addElement(element)
-                elif elementIdentifier in elementsOnLeftMarginDorsal:
-                    nearLeftMarginDorsalCervixGroup.getMeshGroup(mesh).addElement(element)
-                element = elementIter.next()
-
-            annotationGroups.append(nearRightMarginDorsalCervixGroup)
-            annotationGroups.append(nearRightMarginVentralCervixGroup)
-            annotationGroups.append(nearLeftMarginDorsalCervixGroup)
-            annotationGroups.append(nearLeftMarginVentralCervixGroup)
+            # add human specific annotations
 
             allMarkers = {"junction of left round ligament with uterus": {"x": [-4.1312, 9.96436, -7.11994]},
                           "junction of right round ligament with uterus": {"x": [4.13116, 9.96438, -7.11997]}}
@@ -777,15 +525,12 @@ class MeshType_3d_uterus2(Scaffold_base):
                 for group in annotationGroups:
                     group.getNodesetGroup(nodes).addNode(markerNode)
 
-        preBifurcationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 ("pre-bifurcation segments", "None"))
-        postBifurcationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                 ("post-bifurcation segments", "None"))
-        annotationGroups.remove(preBifurcationGroup)
-        annotationGroups.remove(postBifurcationGroup)
+        # remove temporary annotation groups
+        for annotationTerms in [("pre-bifurcation segments", "None"), ("post-bifurcation segments", "None")]:
+            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, annotationTerms)
+            annotationGroups.remove(annotationGroup)
 
         return annotationGroups, None
-
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -825,6 +570,7 @@ class MeshType_3d_uterus2(Scaffold_base):
 
         mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         is_exterior = fm.createFieldIsExterior()
         is_exterior_face_xi3_1 = fm.createFieldAnd(is_exterior, fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
@@ -883,6 +629,11 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                            get_uterus_term("lumen of vagina"))
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
+        leftGroup = getAnnotationGroupForTerm(annotationGroups, ("left uterus", "None"))
+        rightGroup = getAnnotationGroupForTerm(annotationGroups, ("right uterus", "None"))
+        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, ("dorsal uterus", "None"))
+        ventralGroup = getAnnotationGroupForTerm(annotationGroups, ("ventral uterus", "None"))
+
         if isHuman:
             leftUterineTubeGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine tube"))
             is_leftUterineTube = leftUterineTubeGroup.getGroup()
@@ -910,19 +661,6 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                                         get_uterus_term("lumen of right uterine tube"))
             lumenOfRightUterineTube.getMeshGroup(mesh2d).addElementsConditional(is_rightUterineTube_inner)
 
-            nearRightMarginDorsalGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                                   ("elements adjacent to right margin dorsal",
-                                                                    "None"))
-            nearRightMarginVentralGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                                    ("elements adjacent to right margin ventral",
-                                                                     "None"))
-            nearLeftMarginDorsalGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                                  ("elements adjacent to left margin dorsal",
-                                                                   "None"))
-            nearLeftMarginVentralGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                                   ("elements adjacent to left margin ventral",
-                                                                    "None"))
-
             is_pubocervical = fm.createFieldAnd(is_body_outer, is_cervix_outer)
             pubocervical = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                             get_uterus_term("pubocervical ligament (TA98)"))
@@ -943,67 +681,53 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                             get_uterus_term("vagina orifice"))
             vaginaOrifice.getMeshGroup(mesh1d).addElementsConditional(is_vagina_orifice)
 
-            # Broad ligament of uterus
-            is_nearLeftMarginDorsal = fm.createFieldAnd(nearLeftMarginDorsalGroup.getGroup(), is_exterior_face_xi3_1)
-            is_nearLeftMarginVentral = fm.createFieldAnd(nearLeftMarginVentralGroup.getGroup(), is_exterior_face_xi3_1)
-            is_leftBroadLigament = fm.createFieldAnd(is_nearLeftMarginDorsal, is_nearLeftMarginVentral)
-            leftBroadLigament = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                              get_uterus_term("left broad ligament of uterus"))
-            leftBroadLigament.getMeshGroup(mesh1d).addElementsConditional(is_leftBroadLigament)
+            # ligaments
+            is_dorsalVentral = fm.createFieldAnd(dorsalGroup.getGroup(), ventralGroup.getGroup())
+            is_dorsalVentralSerosa = fm.createFieldAnd(is_dorsalVentral, is_exterior_face_xi3_1)
+            is_leftDorsalVentralSerosa = fm.createFieldAnd(leftGroup.getGroup(), is_dorsalVentralSerosa)
+            is_rightDorsalVentralSerosa = fm.createFieldAnd(rightGroup.getGroup(), is_dorsalVentralSerosa)
+            fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
+            is_bodyNotFundus = fm.createFieldAnd(bodyGroup.getGroup(), fm.createFieldNot(fundusGroup.getGroup()))
 
-            is_nearRightMarginDorsal = fm.createFieldAnd(nearRightMarginDorsalGroup.getGroup(), is_exterior_face_xi3_1)
-            is_nearRightMarginVentral = fm.createFieldAnd(nearRightMarginVentralGroup.getGroup(), is_exterior_face_xi3_1)
-            is_rightBroadLigament = fm.createFieldAnd(is_nearRightMarginDorsal, is_nearRightMarginVentral)
-            rightBroadLigament = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_uterus_term("right broad ligament of uterus"))
+            # Broad ligament of uterus
+            is_leftBroadLigament = fm.createFieldAnd(is_bodyNotFundus, is_leftDorsalVentralSerosa)
+            leftBroadLigament = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_uterus_term("left broad ligament of uterus"))
+            leftBroadLigament.getMeshGroup(mesh1d).addElementsConditional(is_leftBroadLigament)
+            # add connected edges from left uterine tube, avoiding adding dorsal-ventral edges on the superior edge
+            leftBroadLigament.addSubelements()  # need current nodes in ligament for group_add_connected_elements
+            tmpGroup = fm.createFieldGroup()
+            tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
+            tmpMeshGroup.addElementsConditional(fm.createFieldAnd(is_leftUterineTube, is_leftDorsalVentralSerosa))
+            group_add_connected_elements(leftBroadLigament.getGroup(), tmpMeshGroup)
+            del tmpMeshGroup
+            del tmpGroup
+
+            is_rightBroadLigament = fm.createFieldAnd(is_bodyNotFundus, is_rightDorsalVentralSerosa)
+            rightBroadLigament = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_uterus_term("right broad ligament of uterus"))
             rightBroadLigament.getMeshGroup(mesh1d).addElementsConditional(is_rightBroadLigament)
+            # add connected edges from right uterine tube, avoiding adding dorsal-ventral edges on the superior edge
+            rightBroadLigament.addSubelements()  # need current nodes in ligament for group_add_connected_elements
+            tmpGroup = fm.createFieldGroup()
+            tmpMeshGroup = tmpGroup.createMeshGroup(mesh1d)
+            tmpMeshGroup.addElementsConditional(fm.createFieldAnd(is_rightUterineTube, is_rightDorsalVentralSerosa))
+            group_add_connected_elements(rightBroadLigament.getGroup(), tmpMeshGroup)
+            del tmpMeshGroup
+            del tmpGroup
 
             # Transverse cervical ligament
-            nearRightMarginDorsalCervixGroup = \
-                getAnnotationGroupForTerm(annotationGroups,
-                                          ("elements adjacent to right margin dorsal of cervix", "None"))
-            nearRightMarginVentralCervixGroup = \
-                getAnnotationGroupForTerm(annotationGroups,
-                                          ("elements adjacent to right margin ventral of cervix", "None"))
-            nearLeftMarginDorsalCervixGroup = \
-                getAnnotationGroupForTerm(annotationGroups,
-                                          ("elements adjacent to left margin dorsal of cervix", "None"))
-            nearLeftMarginVentralCervixGroup = \
-                getAnnotationGroupForTerm(annotationGroups,
-                                          ("elements adjacent to left margin ventral of cervix", "None"))
+            is_leftTransverseCervicalLigament = fm.createFieldAnd(cervixGroup.getGroup(), is_leftDorsalVentralSerosa)
+            leftTransverseCervicalLigament = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_uterus_term("left transverse cervical ligament"))
+            leftTransverseCervicalLigament.getMeshGroup(mesh1d).addElementsConditional(
+                is_leftTransverseCervicalLigament)
 
-            is_nearLeftMarginDorsalCervix = fm.createFieldAnd(nearLeftMarginDorsalCervixGroup.getGroup(),
-                                                              is_cervix_outer)
-            is_nearLeftMarginVentralCervix = fm.createFieldAnd(nearLeftMarginVentralCervixGroup.getGroup(),
-                                                               is_cervix_outer)
-            is_leftTransverseCervicalLigament = fm.createFieldAnd(is_nearLeftMarginDorsalCervix,
-                                                                  is_nearLeftMarginVentralCervix)
-            leftTransverseCervicalLigament = \
-                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                   get_uterus_term("left transverse cervical ligament"))
-            leftTransverseCervicalLigament.getMeshGroup(mesh1d).addElementsConditional(is_leftTransverseCervicalLigament)
-
-            is_nearRightMarginDorsalCervix = fm.createFieldAnd(nearRightMarginDorsalCervixGroup.getGroup(),
-                                                              is_cervix_outer)
-            is_nearRightMarginVentralCervix = fm.createFieldAnd(nearRightMarginVentralCervixGroup.getGroup(),
-                                                               is_cervix_outer)
-            is_rightTransverseCervicalLigament = fm.createFieldAnd(is_nearRightMarginDorsalCervix,
-                                                                  is_nearRightMarginVentralCervix)
-            rightTransverseCervicalLigament = \
-                findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                   get_uterus_term("right transverse cervical ligament"))
+            is_rightTransverseCervicalLigament = fm.createFieldAnd(cervixGroup.getGroup(), is_rightDorsalVentralSerosa)
+            rightTransverseCervicalLigament = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_uterus_term("right transverse cervical ligament"))
             rightTransverseCervicalLigament.getMeshGroup(mesh1d).addElementsConditional(
                 is_rightTransverseCervicalLigament)
-
-            annotationGroups.remove(nearRightMarginDorsalGroup)
-            annotationGroups.remove(nearRightMarginVentralGroup)
-            annotationGroups.remove(nearLeftMarginDorsalGroup)
-            annotationGroups.remove(nearLeftMarginVentralGroup)
-
-            annotationGroups.remove(nearRightMarginDorsalCervixGroup)
-            annotationGroups.remove(nearRightMarginVentralCervixGroup)
-            annotationGroups.remove(nearLeftMarginDorsalCervixGroup)
-            annotationGroups.remove(nearLeftMarginVentralCervixGroup)
 
         if isMouse:
             rightHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine horn"))
@@ -1033,25 +757,8 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                                  get_uterus_term("lumen of left horn"))
             lumenOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_inner)
 
-
-def addElementsToMargin(mesh, coordinates, group, nodeId):
-    """
-    Track from the node to find elements Add elements lying on the margin and add them to a group.
-    :param coordinates: Coordinates field.
-    :param group: Group for adding elements lying on the margin.
-    :param nodeId: Node to start tracking from.
-    """
-    elementIter = mesh.createElementiterator()
-    element = elementIter.next()
-    while element.isValid():
-        eft = element.getElementfieldtemplate(coordinates, -1)
-        nodeIdentifiers = get_element_node_identifiers(element, eft)
-        if nodeIdentifiers[6] == nodeId:
-            group.getMeshGroup(mesh).addElement(element)
-            adjacentElement = element
-            eft = adjacentElement.getElementfieldtemplate(coordinates, -1)
-            nodeId = get_element_node_identifiers(adjacentElement, eft)[4]
-            elementIter = mesh.createElementiterator()
-        element = elementIter.next()
-
-    return
+        # keeping these in for now
+        # annotationGroups.remove(leftGroup)
+        # annotationGroups.remove(rightGroup)
+        # annotationGroups.remove(dorsalGroup)
+        # annotationGroups.remove(ventralGroup)

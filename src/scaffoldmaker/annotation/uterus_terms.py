@@ -10,7 +10,7 @@ uterus_terms = [
     ("dorsal top left horn", "None"),
     ("dorsal top right horn", "None"),
     ("external cervical os", "UBERON:0013760", "FMA:76836", "ILX:0736534"),
-    ("fundus", "None"),
+    ("fundus of uterus", "None"),
     ("internal cervical os", "UBERON:0013759", "FMA:17747", "ILX:0729495"),
     ("junction of left round ligament with uterus", "None"),
     ("junction of right round ligament with uterus", "None"),

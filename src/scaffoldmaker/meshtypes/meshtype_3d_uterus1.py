@@ -6,7 +6,7 @@ numbers of elements around, along and through wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import add, mult
+from cmlibs.maths.vectorops import add, cross, mult, normalize, sub
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
@@ -22,12 +22,56 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, \
-    get_bifurcation_triple_point
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.geometry import createEllipsePoints
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteDerivativeScaling, interpolateCubicHermite, interpolateLagrangeHermiteDerivative,
+    smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
+
+
+def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
+    """
+    Get coordinates and derivatives of triple point between p1, p2 and p3 with derivatives.
+    :param p1x..p3d: Point coordinates and derivatives, numbered anticlockwise around triple point.
+    All derivatives point away from triple point.
+    Returned d1 points from triple point to p2, d2 points from triple point to p3.
+    :return: x, d1, d2
+    """
+    scaling12 = computeCubicHermiteDerivativeScaling(p1x, [-d for d in p1d], p2x, p2d)
+    scaling23 = computeCubicHermiteDerivativeScaling(p2x, [-d for d in p2d], p3x, p3d)
+    scaling31 = computeCubicHermiteDerivativeScaling(p3x, [-d for d in p3d], p1x, p1d)
+    trx1 = interpolateCubicHermite(p1x, mult(p1d, -scaling12), p2x, mult(p2d, scaling12), 0.5)
+    trx2 = interpolateCubicHermite(p2x, mult(p2d, -scaling23), p3x, mult(p3d, scaling23), 0.5)
+    trx3 = interpolateCubicHermite(p3x, mult(p3d, -scaling31), p1x, mult(p1d, scaling31), 0.5)
+    trx = [(trx1[c] + trx2[c] + trx3[c]) / 3.0 for c in range(3)]
+    td1 = interpolateLagrangeHermiteDerivative(trx, p1x, p1d, 0.0)
+    td2 = interpolateLagrangeHermiteDerivative(trx, p2x, p2d, 0.0)
+    td3 = interpolateLagrangeHermiteDerivative(trx, p3x, p3d, 0.0)
+    n12 = cross(td1, td2)
+    n23 = cross(td2, td3)
+    n31 = cross(td3, td1)
+    norm = normalize([(n12[c] + n23[c] + n31[c]) for c in range(3)])
+    sd1 = smoothCubicHermiteDerivativesLine([trx, p1x], [normalize(cross(norm, cross(td1, norm))), p1d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    sd2 = smoothCubicHermiteDerivativesLine([trx, p2x], [normalize(cross(norm, cross(td2, norm))), p2d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    sd3 = smoothCubicHermiteDerivativesLine([trx, p3x], [normalize(cross(norm, cross(td3, norm))), p3d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    trd1 = mult(sub(sd2, add(sd3, sd1)), 0.5)
+    trd2 = mult(sub(sd3, add(sd1, sd2)), 0.5)
+    return trx, trd1, trd2
+
+
+def get_tube_bifurcation_connection_elements_counts(tCounts):
+    """
+    Get number of elements directly connecting tubes 1, 2 and 3 from the supplied number around.
+    :param tCounts: Number of elements around tubes in order.
+    :return: List of elements connect tube with its next neighbour, looping back to first.
+    """
+    assert len(tCounts) == 3
+    return [(tCounts[i] + tCounts[i - 2] - tCounts[i - 1]) // 2 for i in range(3)]
 
 
 class MeshType_3d_uterus1(Scaffold_base):

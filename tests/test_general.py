@@ -19,14 +19,14 @@ from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatr
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.scaffolds import Scaffolds
-from scaffoldmaker.utils.bifurcation import SegmentTubeData
 from scaffoldmaker.utils.eft_utils import determineTricubicHermiteEft
 from scaffoldmaker.utils.geometry import getEllipsoidPlaneA, getEllipsoidPolarCoordinatesFromPosition, \
     getEllipsoidPolarCoordinatesTangents
 from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDerivatives, evaluateCoordinatesOnCurve, \
     getCubicHermiteCurvesLength, getNearestLocationBetweenCurves, getNearestLocationOnCurve, interpolateCubicHermite
-from scaffoldmaker.utils.networkmesh import getPathRawTubeCoordinates, resampleTubeCoordinates
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
+from scaffoldmaker.utils.tubenetworkmesh import (
+    TubeNetworkMeshSegment, getPathRawTubeCoordinates, resampleTubeCoordinates)
 from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
 
 from testutils import assertAlmostEqualList
@@ -1593,18 +1593,17 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
             Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-        segmentTubeData = []
+        tubeSegments = []
         trackSurfaces = []
         networkSegments = networkMesh.getNetworkSegments()
         elementsCountAround = 8
         for networkSegment in networkSegments:
             pathParameters = get_nodeset_path_ordered_field_parameters(
                 nodes, coordinates, valueLabels, networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
-            tubeData = SegmentTubeData(pathParameters, elementsCountAround)
-            segmentTubeData.append(tubeData)
-            rawTubeData = getPathRawTubeCoordinates(pathParameters, elementsCountAround=elementsCountAround)
-            tubeData.setRawTubeCoordinates(rawTubeData)
-            trackSurfaces.append(tubeData.getRawTrackSurface())
+            tubeSegment = TubeNetworkMeshSegment(networkSegment, [pathParameters],
+                                                 elementsCountAround=elementsCountAround, elementsCountThroughWall=1)
+            tubeSegments.append(tubeSegment)
+            trackSurfaces.append(tubeSegment.getRawTrackSurface())
 
         XI_TOL = 1.0E-6
         X_TOL = 1.0E-6
@@ -1619,7 +1618,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(nearestPosition.xi1, 0.7937236157191407, delta=XI_TOL)
         self.assertAlmostEqual(nearestPosition.xi2, 0.5, delta=XI_TOL)
 
-        px, pd1, pd2, pd12 = segmentTubeData[0].getRawTubeCoordinates()
+        px, pd1, pd2, pd12 = tubeSegments[0].getRawTubeCoordinates()
         cx = [px[0][4], px[1][4]]
         cd1 = [pd2[0][4], pd2[1][4]]
         nearestPosition, nearestCurveLocation, isIntersection = \
@@ -1646,7 +1645,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(nearestPosition.xi2, 0.0, delta=XI_TOL)
 
         # non-intersecting curve and surface
-        px, _, pd2, _ = segmentTubeData[0].getRawTubeCoordinates()
+        px, _, pd2, _ = tubeSegments[0].getRawTubeCoordinates()
         cx = [px[0][0], px[1][0]]
         cd1 = [pd2[0][0], pd2[1][0]]
         nearestPosition, nearestCurveLocation, isIntersection = \
