@@ -6,9 +6,9 @@ from enum import Enum
 
 import math
 
+from cmlibs.maths.vectorops import magnitude, mult, normalize, add_vectors, set_magnitude, rejection, cross, angle, rotate_vector_around_vector
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.cylindermesh import Ellipse2D, EllipseShape
 from scaffoldmaker.utils.shieldmesh import ShieldMesh3D
@@ -57,7 +57,7 @@ class SphereMesh:
         """
 
         self._axes = axes
-        self._radius = [vector.magnitude(axis) for axis in axes]
+        self._radius = [magnitude(axis) for axis in axes]
         self._coreRadius = []
         self._shield = None
         self._elementsCount = [ec - 2 * elementsCountAcrossShell for ec in elementsCountAcross]
@@ -198,11 +198,11 @@ class SphereMesh:
         if octant_number in [2, 4, 5, 7]:
             boxDerivatives = [boxDerivativesV2[c] * signs[c] for c in range(3)]
             elementsCountAcross = elementsCountAcrossV2
-            axes = [vector.scaleVector(axesV2[c], axesSignsV2[c]) for c in range(3)]
+            axes = [mult(axesV2[c], axesSignsV2[c]) for c in range(3)]
         else:
             boxDerivatives = [boxDerivativesV1[c] * signs[c] for c in range(3)]
             elementsCountAcross = elementsCountAcrossV1
-            axes = [vector.scaleVector(axesV1[c], axesSignsV1[c]) for c in range(3)]
+            axes = [mult(axesV1[c], axesSignsV1[c]) for c in range(3)]
 
         if self._sphereShape == SphereShape.SPHERE_SHAPE_HALF_AAP:
             elementsCountAcross[0] = elementsCountAcross[0]//2
@@ -212,7 +212,7 @@ class SphereMesh:
             elementsCountAcross[1] = elementsCountAcross[1] // 2
             elementsCountAcross[2] = elementsCountAcross[2] // 2
 
-        axes = [vector.normalise(v) for v in axes]
+        axes = [normalize(v) for v in axes]
         return axes, elementsCountAcross, boxDerivatives
 
     def copy_octant_nodes_to_sphere_shield(self, octant, octant_shape):
@@ -474,7 +474,7 @@ class OctantMesh:
          example, is the octant in positive axis1, positive axis2 and positive axis3.
         """
         self._axes = axes
-        self._radius = [vector.magnitude(axis) for axis in axes]
+        self._radius = [magnitude(axis) for axis in axes]
         self._coreRadius = []
         self._shield = None
         self._elementsCount = elementsCountAcross
@@ -815,13 +815,13 @@ class OctantMesh:
 
             if ni < len(dStart):
                 if dStart[ni]:
-                    btd[dStart[ni]][idi[0]][idi[1]][idi[2]] = nd1[nit] if dStart[ni] > 0 else vector.scaleVector(
+                    btd[dStart[ni]][idi[0]][idi[1]][idi[2]] = nd1[nit] if dStart[ni] > 0 else mult(
                         nd1[nit], -1)
                     nit += 1
             elif ni > elementsCount - len(dEnd):
                 nie = ni - elementsCount + len(dEnd) - 1
                 if dEnd[nie]:
-                    btd[abs(dEnd[nie])][idi[0]][idi[1]][idi[2]] = nd1[nit] if dEnd[nie] > 0 else vector.scaleVector(
+                    btd[abs(dEnd[nie])][idi[0]][idi[1]][idi[2]] = nd1[nit] if dEnd[nie] > 0 else mult(
                         nd1[nit], -1)
                     nit += 1
             else:
@@ -832,7 +832,7 @@ class OctantMesh:
                 btd2[idi[0]][idi[1]][idi[2]] = a2  # initialise
                 btd3[idi[0]][idi[1]][idi[2]] = a3  # initialise
 
-                btd[abs(dbetween[0])][idi[0]][idi[1]][idi[2]] = nd1[nit] if dbetween[0] > 0 else vector.scaleVector(
+                btd[abs(dbetween[0])][idi[0]][idi[1]][idi[2]] = nd1[nit] if dbetween[0] > 0 else mult(
                     nd1[nit], -1)
                 nit += 1
 
@@ -880,7 +880,7 @@ class OctantMesh:
                         if dStart[0][ni] > 0:
                             td.append(btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]])
                         else:
-                            td.append(vector.scaleVector(btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]], -1))
+                            td.append(mult(btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]], -1))
                 elif ni > elementsCount[se] - len(dEnd[se]):
                     nie = ni - elementsCount[se] + len(dEnd[se]) - 1
                     if dEnd[se][nie]:
@@ -888,13 +888,13 @@ class OctantMesh:
                         if dEnd[se][nie] > 0:
                             td.append(btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]])
                         else:
-                            td.append(vector.scaleVector(btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]], -1))
+                            td.append(mult(btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]], -1))
                 else:
                     tx.append(btx[ids[0]][ids[1]][ids[2]])
                     if dBetween[se][0] > 0:
                         td.append(btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]])
                     else:
-                        td.append(vector.scaleVector(btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]], -1))
+                        td.append(mult(btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]], -1))
 
         td = smoothCubicHermiteDerivativesLine(tx, td, fixStartDirection=True, fixEndDirection=True)
 
@@ -913,7 +913,7 @@ class OctantMesh:
                         if dStart[0][ni] > 0:
                             btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]] = td[nit]
                         else:
-                            btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
+                            btd[abs(dStart[se][ni])][ids[0]][ids[1]][ids[2]] = mult(td[nit], -1)
                         nit += 1
                 elif ni > elementsCount[se] - len(dEnd[se]):
                     nie = ni - elementsCount[se] + len(dEnd[se]) - 1
@@ -921,13 +921,13 @@ class OctantMesh:
                         if dEnd[se][nie] > 0:
                             btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]] = td[nit]
                         else:
-                            btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
+                            btd[abs(dEnd[se][nie])][ids[0]][ids[1]][ids[2]] = mult(td[nit], -1)
                         nit += 1
                 else:
                     if dBetween[se][0] > 0:
                         btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]] = td[nit]
                     else:
-                        btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]] = vector.scaleVector(td[nit], -1)
+                        btd[abs(dBetween[se][0])][ids[0]][ids[1]][ids[2]] = mult(td[nit], -1)
                     nit += 1
 
     def calculate_interior_quadruple_point(self):
@@ -955,11 +955,11 @@ class OctantMesh:
         n3r0, n2r0, n1r0 = self.get_triple_curves_end_node_parameters(0, cx=cx, index_output=True)
         n3r, n2r, n1r = self.get_triple_curves_end_node_parameters(1, cx=cx, index_output=True)
 
-        ts = vector.magnitude(vector.addVectors([btx[n3r0][n2r0][n1r0], btx[n3r][n2r][n1r]], [1, -1]))
-        ra = vector.addVectors([btx[n3z][0][n1z], self._centre], [1, -1])
-        radius = vector.magnitude(ra)
-        local_x = vector.scaleVector(ra, (1 - ts/radius))
-        x = vector.addVectors([local_x, self._centre], [1, 1])
+        ts = magnitude(add_vectors([btx[n3r0][n2r0][n1r0], btx[n3r][n2r][n1r]], [1, -1]))
+        ra = add_vectors([btx[n3z][0][n1z], self._centre], [1, -1])
+        radius = magnitude(ra)
+        local_x = mult(ra, (1 - ts/radius))
+        x = add_vectors([local_x, self._centre], [1, 1])
         n3r0, n2r0, n1r0 = self.get_triple_curves_end_node_parameters(0, index_output=True)
         n3r1, n2r1, n1r1 = self.get_triple_curves_end_node_parameters(1, index_output=True)
         btx[n3r0][n2r0][n1r0] = x
@@ -1007,8 +1007,8 @@ class OctantMesh:
                     btd1[n3y][n2][n1] = [btx[n3y][1][n1][0] - btx[n3z][0][n1][0], 0.0, 0.0]
                     btd2[n3y][n2][n1] = [0.0, 0.0, -btx[n3y][1][n1][2] + btx[n3z][0][n1][2]]
                 else:
-                    btd1[n3y][n2][n1] = vector.addVectors([btx[n3y][n2][n1], btx[n3y][n2+1][n1]], [-1, 1])
-                    btd2[n3y][n2][n1] = vector.addVectors([btx[n3y][n2][n1], btx[0][n2][n1]], [1, -1])
+                    btd1[n3y][n2][n1] = add_vectors([btx[n3y][n2][n1], btx[n3y][n2+1][n1]], [-1, 1])
+                    btd2[n3y][n2][n1] = add_vectors([btx[n3y][n2][n1], btx[0][n2][n1]], [1, -1])
 
         # sample along curve0_3
         for n2 in range(1, self._elementsCount[0]):
@@ -1027,8 +1027,8 @@ class OctantMesh:
                         btd1[n3][n2][n1] = [btx[n3][n2][n1][0] - btx[n3][n2-1][n1+1][0], 0.0, 0.0]
                         btd3[n3][n2][n1] = [0.0, btx[n3][n2-1][n1+1][1] - btx[n3][n2][n1][1], 0.0]
                     else:
-                        btd1[n3][n2][n1] = vector.addVectors([btx[n3][n2+1][n1], btx[n3][n2][n1]], [1, -1])
-                        btd3[n3][n2][n1] = vector.addVectors([btx[n3][n2][n1+1], btx[n3][n2][n1]], [1, -1])
+                        btd1[n3][n2][n1] = add_vectors([btx[n3][n2+1][n1], btx[n3][n2][n1]], [1, -1])
+                        btd3[n3][n2][n1] = add_vectors([btx[n3][n2][n1+1], btx[n3][n2][n1]], [1, -1])
 
     def smooth_regular_interior_curves(self):
         """
@@ -1061,8 +1061,8 @@ class OctantMesh:
         else:
             for n3 in range(1, self._elementsCount[2]):
                 for n1 in range(1, self._elementsCount[1]):
-                    btd1[n3][1][n1] = vector.addVectors([btx[n3][2][n1], btx[n3][1][n1]], [1, -1])
-                    btd1[n3][2][n1] = vector.setMagnitude(btd1[n3][2][n1], vector.magnitude(btd1[n3][1][n1]))
+                    btd1[n3][1][n1] = add_vectors([btx[n3][2][n1], btx[n3][1][n1]], [1, -1])
+                    btd1[n3][2][n1] = set_magnitude(btd1[n3][2][n1], magnitude(btd1[n3][1][n1]))
 
         # smooth d3 in regular
         if self._elementsCount[1] >= 3:
@@ -1081,8 +1081,8 @@ class OctantMesh:
         else:
             for n3 in range(1, self._elementsCount[2]):
                 for n2 in range(1, self._elementsCount[0]):
-                    btd3[n3][n2][1] = vector.addVectors([btx[n3][n2][1], btx[n3][n2][0]], [1, -1])
-                    btd3[n3][n2][0] = vector.setMagnitude(btd3[n3][n2][0], vector.magnitude(btd3[n3][n2][1]))
+                    btd3[n3][n2][1] = add_vectors([btx[n3][n2][1], btx[n3][n2][0]], [1, -1])
+                    btd3[n3][n2][0] = set_magnitude(btd3[n3][n2][0], magnitude(btd3[n3][n2][1]))
 
         # regular curves d2
         for n2 in range(1, self._elementsCount[0]):
@@ -1097,8 +1097,8 @@ class OctantMesh:
                     for n3 in range(self._elementsCount[2]):
                         btd2[n3][n2][n1] = td2[n3]
                 else:
-                    btd2[1][n2][n1] = vector.addVectors([btx[1][n2][n1], btx[0][n2][n1]], [1, -1])
-                    btd2[0][n2][n1] = vector.setMagnitude(btd2[0][n2][n1], vector.magnitude(btd2[1][n2][n1]))
+                    btd2[1][n2][n1] = add_vectors([btx[1][n2][n1], btx[0][n2][n1]], [1, -1])
+                    btd2[0][n2][n1] = set_magnitude(btd2[0][n2][n1], magnitude(btd2[1][n2][n1]))
 
     def get_triple_curves_end_node_parameters(self, rx, cx=None, index_output=False):
         """
@@ -1182,11 +1182,11 @@ def local_orthogonal_unit_vectors(x, axis3, origin):
     :param axis3: The third axis in Cartesian coordinate system (axis1, axis2, axis3)
     :return: e1, e2, e3. Unit vectors. e3 is normal to the boundary, e2 is in (e3, axis3) plane and e1 normal to them.
     """
-    r = vector.addVectors([x, origin], [1, -1])
-    e3 = vector.normalise(r)
-    e2 = vector.vectorRejection(axis3, e3)
-    e2 = vector.normalise(e2)
-    e1 = vector.crossproduct3(e2, e3)
+    r = add_vectors([x, origin], [1, -1])
+    e3 = normalize(r)
+    e2 = rejection(axis3, e3)
+    e2 = normalize(e2)
+    e1 = cross(e2, e3)
 
     return e1, e2, e3
 
@@ -1197,11 +1197,11 @@ def calculate_arc_length(x1, x2, origin):
     :param x1, x2: points coordinates.
     :return: arc length
     """
-    r1 = vector.addVectors([x1, origin], [1, -1])
-    r2 = vector.addVectors([x2, origin], [1, -1])
-    radius = vector.magnitude(r1)
-    angle = vector.angleBetweenVectors(r1, r2)
-    return radius * angle
+    r1 = add_vectors([x1, origin], [1, -1])
+    r2 = add_vectors([x2, origin], [1, -1])
+    radius = magnitude(r1)
+    theta = angle(r1, r2)
+    return radius * theta
 
 
 def sample_curves_on_sphere(x1, x2, origin, elementsOut):
@@ -1211,21 +1211,21 @@ def sample_curves_on_sphere(x1, x2, origin, elementsOut):
     :param elementsOut:
     :return:
     """
-    r1 = vector.addVectors([x1, origin], [1, -1])
-    r2 = vector.addVectors([x2, origin], [1, -1])
-    deltax = vector.addVectors([r1, r2], [-1, 1])
-    normal = vector.crossproduct3(r1, deltax)
-    angle = vector.angleBetweenVectors(r1, r2)
-    anglePerElement = angle/elementsOut
+    r1 = add_vectors([x1, origin], [1, -1])
+    r2 = add_vectors([x2, origin], [1, -1])
+    deltax = add_vectors([r1, r2], [-1, 1])
+    normal = cross(r1, deltax)
+    theta = angle(r1, r2)
+    anglePerElement = theta / elementsOut
     arcLengthPerElement = calculate_arc_length(x1, x2, origin)/elementsOut
 
     nx = []
     nd1 = []
     for n1 in range(elementsOut + 1):
         radiansAcross = n1 * anglePerElement
-        r = vector.rotateVectorAroundVector(r1, normal, radiansAcross)
-        x = vector.addVectors([r, origin], [1, 1])
-        d1 = vector.setMagnitude(vector.crossproduct3(normal, r), arcLengthPerElement)
+        r = rotate_vector_around_vector(r1, normal, radiansAcross)
+        x = add_vectors([r, origin], [1, 1])
+        d1 = set_magnitude(cross(normal, r), arcLengthPerElement)
         nx.append(x)
         nd1.append(d1)
 
@@ -1246,7 +1246,7 @@ def cartesian_to_spherical(x):
     """
     :return: [r, theta, phi].
     """
-    r = vector.magnitude(x)
+    r = magnitude(x)
     theta = math.atan2(x[1], x[0])
     phi = math.acos(x[2]/r)
     return r, theta, phi
@@ -1264,8 +1264,8 @@ def local_to_global_coordinates(local_x, local_axes, local_origin=None):
     """
     if local_origin is None:
         local_origin = [0.0, 0.0, 0.0]
-    normalised_axes = [vector.normalise(v) for v in local_axes]
-    return vector.addVectors([vector.addVectors(normalised_axes, local_x), local_origin])
+    normalised_axes = [normalize(v) for v in local_axes]
+    return add_vectors([add_vectors(normalised_axes, local_x), local_origin])
 
 
 def intersection_of_two_great_circles_on_sphere(p1, q1, p2, q2):
@@ -1274,19 +1274,19 @@ def intersection_of_two_great_circles_on_sphere(p1, q1, p2, q2):
     :param p1, q1, p2, q2: arcs extremities coordinates.
     :return: Point Sx, intersection between the arcs.
     """
-    normal_to_plane_OP1Q1 = vector.crossproduct3(p1, q1)
-    normal_to_plane_OP2Q2 = vector.crossproduct3(p2, q2)
+    normal_to_plane_OP1Q1 = cross(p1, q1)
+    normal_to_plane_OP2Q2 = cross(p2, q2)
 
-    planes_intersection_vector = vector.crossproduct3(normal_to_plane_OP1Q1, normal_to_plane_OP2Q2)
-    if vector.magnitude(planes_intersection_vector) == 0:
+    planes_intersection_vector = cross(normal_to_plane_OP1Q1, normal_to_plane_OP2Q2)
+    if magnitude(planes_intersection_vector) == 0:
         sx = None
     else:
-        sx = vector.setMagnitude(planes_intersection_vector, vector.magnitude(p1))
-        p1q1_angle = vector.angleBetweenVectors(p1, q1)
-        p1s_angle = vector.angleBetweenVectors(p1, sx)
-        p2s_angle = vector.angleBetweenVectors(p2, sx)
+        sx = set_magnitude(planes_intersection_vector, magnitude(p1))
+        p1q1_angle = angle(p1, q1)
+        p1s_angle = angle(p1, sx)
+        p2s_angle = angle(p2, sx)
         if p1s_angle > p1q1_angle or p2s_angle > p1q1_angle:
-            sx = vector.scaleVector(sx, -1)
+            sx = mult(sx, -1)
 
     return sx
 
@@ -1297,4 +1297,4 @@ def point_projection_on_sphere(p1, radius):
     :param p1: point.
     :return:
     """
-    return vector.setMagnitude(p1, radius)
+    return set_magnitude(p1, radius)

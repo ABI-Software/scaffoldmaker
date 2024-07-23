@@ -7,13 +7,13 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import normalize, magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
@@ -209,7 +209,7 @@ class MeshType_3d_solidsphere1(Scaffold_base):
                 cubicArcLength = cubicArcLengthList[n2]
                 v1 = [0.0, 0.0, -radius+n2*2.0*radius/elementsCountUp]
                 d1 = [math.cos(math.pi/2.0), math.sin(math.pi/2.0), 0.0]
-                d1 = vector.normalise(d1)
+                d1 = normalize(d1)
                 d1 = [d*cubicArcLength for d in d1]
                 v2 = [
                      radius*math.cos(math.pi/2.0)*sinRadiansUp,
@@ -217,7 +217,7 @@ class MeshType_3d_solidsphere1(Scaffold_base):
                      -radius*cosRadiansUp
                     ]     
                 d2 = [math.cos(math.pi/2.0)*sinRadiansUp,math.sin(math.pi/2.0)*sinRadiansUp,-cosRadiansUp]
-                d2 = vector.normalise(d2)
+                d2 = normalize(d2)
                 d2 = [d*cubicArcLength for d in d2]
                 x = interp.interpolateCubicHermite(v1, d1, v2, d2, xi)
 
@@ -238,7 +238,7 @@ class MeshType_3d_solidsphere1(Scaffold_base):
                     # Calculate node coordinates on arc using cubic hermite interpolation
                     v1 = [0.0, 0.0, -radius+n2*2.0*radius/elementsCountUp]
                     d1 = [cosRadiansAround, sinRadiansAround, 0.0]
-                    d1 = vector.normalise(d1)
+                    d1 = normalize(d1)
                     d1 = [d*cubicArcLength for d in d1]
                     v2 = [
                          radius*cosRadiansAround*sinRadiansUp,
@@ -246,12 +246,12 @@ class MeshType_3d_solidsphere1(Scaffold_base):
                         -radius*cosRadiansUp
                     ]
                     d2 = [cosRadiansAround*sinRadiansUp,sinRadiansAround*sinRadiansUp,-cosRadiansUp]
-                    d2 = vector.normalise(d2)
+                    d2 = normalize(d2)
                     d2 = [d*cubicArcLength for d in d2]
                     x = interp.interpolateCubicHermite(v1, d1, v2, d2, xi)
 
                     # For dx_ds1 - Calculate radius wrt origin where interpolated points lie on
-                    orthoRadius = vector.magnitude(x)
+                    orthoRadius = magnitude(x)
                     orthoRadiansUp = math.pi - math.acos(x[2]/orthoRadius)
                     sinOrthoRadiansUp = math.sin(orthoRadiansUp)
                     cosOrthoRadiansUp = math.cos(orthoRadiansUp)
@@ -275,7 +275,7 @@ class MeshType_3d_solidsphere1(Scaffold_base):
                     ]
 
                     dx_ds3 = interp.interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
-                    dx_ds3 = vector.normalise(dx_ds3)
+                    dx_ds3 = normalize(dx_ds3)
                     dx_ds3 = [d*cubicArcLength/elementsCountRadial for d in dx_ds3]
 
                     node = nodes.createNode(nodeIdentifier, nodetemplate)

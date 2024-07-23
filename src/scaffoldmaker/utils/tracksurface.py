@@ -5,7 +5,7 @@ Utility class for representing surfaces on which features can be located.
 import copy
 from enum import Enum
 import math
-from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub, set_magnitude
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
@@ -18,7 +18,6 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteArcLength, eval
     interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurves, \
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop, \
     updateCurveLocationToFaceNumber
-from scaffoldmaker.utils import vector
 
 
 class TrackSurfacePosition:
@@ -316,12 +315,12 @@ class TrackSurface:
             f1 = dproportions[n][0] * self._elementsCount1
             f2 = dproportions[n][1] * self._elementsCount2
             d1 = [(f1*sd1[c] + f2*sd2[c]) for c in range(3)]
-            d3 = vector.crossproduct3(sd1, sd2)
+            d3 = cross(sd1, sd2)
             # handle zero magnitude of d3
             mag = math.sqrt(sum(d3[c]*d3[c] for c in range(3)))
             if mag > 0.0:
                 d3 = [(d3[c]/mag) for c in range(3)]
-            d2 = vector.crossproduct3(d3, d1)
+            d2 = cross(d3, d1)
             nx .append(x)
             nd2.append(d2)
             nd1.append(d1)
@@ -339,19 +338,19 @@ class TrackSurface:
         # print(nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)
         nx, nd1 = sampleCubicHermiteCurvesSmooth(
             nx, nd1, elementsCount, derivativeMagnitudeStart, derivativeMagnitudeEnd)[0:2]
-        mag2 = vector.magnitude(nd2[0])
+        mag2 = magnitude(nd2[0])
         if mag2 > 0.0:
-            nd2[0] = vector.setMagnitude(nd2[0], vector.magnitude(nd1[0]))
+            nd2[0] = set_magnitude(nd2[0], magnitude(nd1[0]))
         for n in range(1, elementsCount):
             p = self.findNearestPosition(nx[n], self.createPositionProportion(*nProportions[n]))
             nProportions[n] = self.getProportion(p)
             _, sd1, sd2 = self.evaluateCoordinates(p, derivatives=True)
-            _, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(nd1[n]))
-            nd2[n] = vector.setMagnitude(d2, vector.magnitude(nd1[n]))
+            _, d2, d3 = calculate_surface_axes(sd1, sd2, normalize(nd1[n]))
+            nd2[n] = set_magnitude(d2, magnitude(nd1[n]))
             nd3[n] = d3
-        mag2 = vector.magnitude(nd2[-1])
+        mag2 = magnitude(nd2[-1])
         if mag2 > 0.0:
-            nd2[-1] = vector.setMagnitude(nd2[-1], vector.magnitude(nd1[-1]))
+            nd2[-1] = set_magnitude(nd2[-1], magnitude(nd1[-1]))
         return nx, nd1, nd2, nd3, nProportions
 
     def positionOnBoundary(self, position: TrackSurfacePosition):
@@ -1293,8 +1292,8 @@ class TrackSurface:
             ad = [proportion*(adxi1*ad1[c] + adxi2*ad2[c]) for c in range(3)]
             bd = [proportion*(bdxi1*bd1[c] + bdxi2*bd2[c]) for c in range(3)]
             arcLength = getCubicHermiteArcLength(ax, ad, bx, bd)
-            # print('scales', vector.magnitude([ (bx[c] - ax[c]) for c in range(3) ]),
-            #       vector.magnitude(ad), vector.magnitude(bd), 'arc length', arcLength)
+            # print('scales', magnitude([ (bx[c] - ax[c]) for c in range(3) ]),
+            #       magnitude(ad), magnitude(bd), 'arc length', arcLength)
             if (distance + arcLength) >= distanceLimit:
                 # limit to useTrackDistance, approximately, and finish
                 r = proportion*(useTrackDistance - distance)/arcLength
@@ -1475,17 +1474,17 @@ def calculate_surface_delta_xi(d1, d2, direction):
         delta_xi2 = inva[1][0]*b[0] + inva[1][1]*b[1]
     else:
         # at pole: assume direction is inline with d1 or d2 and other is zero
-        delta_xi2 = vector.dotproduct(d2, direction)
+        delta_xi2 = dot(d2, direction)
         if math.fabs(delta_xi2) > 0.0:
             delta_xi1 = 0.0
-            delta_xi2 = (1.0 if (delta_xi2 > 0.0) else -1.0)*vector.magnitude(direction)/vector.magnitude(d2)
+            delta_xi2 = (1.0 if (delta_xi2 > 0.0) else -1.0)*magnitude(direction)/magnitude(d2)
         else:
-            delta_xi1 = vector.dotproduct(d1, direction)
+            delta_xi1 = dot(d1, direction)
             if math.fabs(delta_xi1) > 0.0:
-                delta_xi1 = (1.0 if (delta_xi1 > 0.0) else -1.0)*vector.magnitude(direction)/vector.magnitude(d1)
+                delta_xi1 = (1.0 if (delta_xi1 > 0.0) else -1.0)*magnitude(direction)/magnitude(d1)
                 delta_xi2 = 0.0
     # delx = [ (delta_xi1*d1[c] + delta_xi2*d2[c]) for c in range(3) ]
-    # print('delx', delx, 'dir', direction, 'diff', vector.magnitude([ (delx[c] - direction[c]) for c in range(3) ]))
+    # print('delx', delx, 'dir', direction, 'diff', magnitude([ (delx[c] - direction[c]) for c in range(3) ]))
     return delta_xi1, delta_xi2
 
 
@@ -1496,12 +1495,12 @@ def calculate_surface_axes(d1, d2, direction):
     Vectors all have unit magnitude.
     """
     delta_xi1, delta_xi2 = calculate_surface_delta_xi(d1, d2, direction)
-    ax1 = vector.normalise([delta_xi1*d1[c] + delta_xi2*d2[c] for c in range(3)])
-    ax3 = vector.crossproduct3(d1, d2)
-    mag3 = vector.magnitude(ax3)
+    ax1 = normalize([delta_xi1*d1[c] + delta_xi2*d2[c] for c in range(3)])
+    ax3 = cross(d1, d2)
+    mag3 = magnitude(ax3)
     if mag3 > 0.0:
         ax3 = [s/mag3 for s in ax3]
-        ax2 = vector.normalise(vector.crossproduct3(ax3, ax1))
+        ax2 = normalize(cross(ax3, ax1))
     else:
         ax3 = [0.0, 0.0, 0.0]
         ax2 = [0.0, 0.0, 0.0]

@@ -6,6 +6,7 @@ wall, with variable radius and thickness along.
 
 import copy
 
+from cmlibs.maths.vectorops import normalize, cross, magnitude
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -17,7 +18,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshOuterPoints
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
@@ -1178,7 +1178,7 @@ def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifie
                                                             lengthFractionStart=lengthFraction)
     sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
-    outerRadiusListCP = [vector.magnitude(c) for c in cd2]
+    outerRadiusListCP = [magnitude(c) for c in cd2]
     dOuterRadiusListCP = []
     for n in range(len(outerRadiusListCP) - 1):
         dOuterRadiusListCP.append(outerRadiusListCP[n + 1] - outerRadiusListCP[n])
@@ -1304,8 +1304,8 @@ def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifie
                                                               fixEndDerivative = True)[1]
                 d2Extrude.append(d2)
                 d3Unit = \
-                    vector.normalise(vector.crossproduct3(vector.normalise(d1LastTwoFaces[n1 + elementsCountAround]),
-                                                          vector.normalise(d2)))
+                    normalize(cross(normalize(d1LastTwoFaces[n1 + elementsCountAround]),
+                                                          normalize(d2)))
                 d3UnitExtrude.append(d3Unit)
             d2Extrude = d2Extrude + \
                         (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else
