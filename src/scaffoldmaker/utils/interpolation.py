@@ -2,13 +2,12 @@
 Interpolation functions shared by mesh generators.
 """
 
-from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub, set_magnitude
 import copy
 import math
 from collections.abc import Sequence
 from enum import Enum
 
-from scaffoldmaker.utils import vector
 
 gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )
 gaussWt3 = ( 5.0/18.0, 4.0/9.0, 5.0/18.0 )
@@ -105,8 +104,8 @@ def computeCubicHermiteArcLength(v1, d1, v2, d2, rescaleDerivatives):
         lastArcLength = math.sqrt(sum((v2[i] - v1[i])*(v2[i] - v1[i]) for i in range(len(v1))))
     else:
         lastArcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
-    d1 = vector.normalise(d1)
-    d2 = vector.normalise(d2)
+    d1 = normalize(d1)
+    d2 = normalize(d2)
     tol = 1.0E-6
     for iters in range(100):
         #print('iter',iters,'=',lastArcLength)
@@ -237,9 +236,9 @@ def getCubicHermiteCurvature(v1, d1, v2, d2, radialVector, xi):
     """
     tangent = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
     dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
-    #tangentVector = vector.normalise(tangent)
-    #tangentCurvature = vector.dotproduct(dTangent, tangentVector)
-    radialCurvature = vector.dotproduct(dTangent, radialVector)
+    #tangentVector = normalize(tangent)
+    #tangentCurvature = dot(dTangent, tangentVector)
+    radialCurvature = dot(dTangent, radialVector)
     magTangent = magnitude(tangent)
     curvature = radialCurvature/(magTangent*magTangent)
 
@@ -256,7 +255,7 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     mag_tangent = magnitude(tangent)
     if mag_tangent > 0.0:
         dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
-        cp = vector.crossproduct3(tangent, dTangent)
+        cp = cross(tangent, dTangent)
         curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
     else:
         curvature = 0.0
@@ -331,7 +330,7 @@ def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop=False):
     """
     maxPointIndex = len(nx) - 1
     assert (0 <= n <= maxPointIndex), 'projectHermiteCurvesThroughWall.  Invalid index'
-    unitNormal = vector.normalise(vector.crossproduct3(nd1[n], nd2[n]))
+    unitNormal = normalize(cross(nd1[n], nd2[n]))
     x  = [ (nx[n][c] + wallThickness*unitNormal[c]) for c in range(3) ]
     # calculate inner d1 from curvature around
     curvature = 0.0
@@ -346,7 +345,7 @@ def projectHermiteCurvesThroughWall(nx, nd1, nd2, n, wallThickness, loop=False):
     factor = 1.0 - curvature*wallThickness
     d1 = [ factor*c for c in nd1[n] ]
     d2 = copy.deepcopy(nd2[n])  # magnitude can't be determined here
-    d3 = vector.setMagnitude(unitNormal, math.fabs(wallThickness))
+    d3 = set_magnitude(unitNormal, math.fabs(wallThickness))
     return x, d1, d2, d3
 
 
@@ -383,8 +382,8 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     for e in range(elementsCountIn):
         if arcLengthDerivatives:
             arcLength = computeCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1], rescaleDerivatives = True)
-            nd1a.append(vector.setMagnitude(nd1[e], arcLength))
-            nd1b.append(vector.setMagnitude(nd1[e + 1], arcLength))
+            nd1a.append(set_magnitude(nd1[e], arcLength))
+            nd1b.append(set_magnitude(nd1[e + 1], arcLength))
         else:
             arcLength = getCubicHermiteArcLength(nx[e], nd1[e], nx[e + 1], nd1[e + 1])
         length += arcLength
@@ -733,7 +732,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         if fixAllDirections or (fixStartDirection and fixEndDirection):
             # fixed directions, equal magnitude
             arcLength = computeCubicHermiteArcLength(nx[0], nd1[0], nx[1], nd1[1], rescaleDerivatives=True)
-            return [ vector.setMagnitude(nd1[0], arcLength), vector.setMagnitude(nd1[1], arcLength) ]
+            return [ set_magnitude(nd1[0], arcLength), set_magnitude(nd1[1], arcLength) ]
     # fixStartMag = magnitude(md1[0]) if fixStartDerivative else 0.0
     # fixEndMag = magnitude(md1[-1]) if fixEndDerivative else 0.0
     tol = 1.0E-6
@@ -746,7 +745,7 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
         if not fixStartDerivative:
             if fixAllDirections or fixStartDirection:
                 mag = 2.0*arcLengths[0] - magnitude(lastmd1[1])
-                md1[0] = vector.setMagnitude(nd1[0], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
+                md1[0] = set_magnitude(nd1[0], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
             else:
                 md1[0] = interpolateLagrangeHermiteDerivative(nx[0], nx[1], lastmd1[1], 0.0)
         # middle
@@ -773,12 +772,12 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
                 mag = 0.5 * (dnm + dn)
             else: # harmonicMeanMagnitude
                 mag = 2.0 / (1.0 / dnm + 1.0 / dn)
-            md1[n] = vector.setMagnitude(md1[n], mag)
+            md1[n] = set_magnitude(md1[n], mag)
         # end
         if not fixEndDerivative:
             if fixAllDirections or fixEndDirection:
                 mag = 2.0*arcLengths[-1] - magnitude(lastmd1[-2])
-                md1[-1] = vector.setMagnitude(nd1[-1], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
+                md1[-1] = set_magnitude(nd1[-1], mag) if (mag > 0.0) else [ 0.0, 0.0, 0.0 ]
             else:
                 md1[-1] = interpolateHermiteLagrangeDerivative(nx[-2], lastmd1[-2], nx[-1], 1.0)
         if instrument:
@@ -1002,7 +1001,7 @@ def smoothCubicHermiteDerivativesLoop(nx, nd1,
                 mag = 0.5*(arcLengths[nm] + arcLengths[n])
             else: # harmonicMeanMagnitude
                 mag = 2.0/(1.0/arcLengths[nm] + 1.0/arcLengths[n])
-            md1[n] = vector.setMagnitude(md1[n], mag)
+            md1[n] = set_magnitude(md1[n], mag)
         if instrument:
             print('iter', iter + 1, md1)
         dtol = tol*sum(arcLengths)/len(arcLengths)
@@ -1037,7 +1036,7 @@ def getDoubleCubicHermiteCurvesMidDerivative(ax, ad1, mx, bx, bd1):
     maga = magnitude(ad1)
     magb = magnitude(bd1)
     magm = arcLengtha + arcLengthb - 0.5*(maga + magb)
-    return vector.setMagnitude(md1, magm)
+    return set_magnitude(md1, magm)
 
 def sampleParameterAlongLine(lengthList, paramList, elementsCountOut):
     """

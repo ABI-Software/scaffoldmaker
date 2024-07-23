@@ -3,12 +3,12 @@ Definitions of standard element field templates shared by mesh generators.
 '''
 import math
 
+from cmlibs.maths.vectorops import normalize, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getElementNodeIdentifiers
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import mapEftFunction1Node1Term, remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 
 
@@ -1497,19 +1497,19 @@ class eftfactory_tricubichermite:
         result, fc = coordinates.evaluateReal(cache, 3)
         resulta, a = coordinates.evaluateDerivative(diff1, cache, 3)
         resultb, b = coordinates.evaluateDerivative(diff2, cache, 3)
-        n = vector.normalise(vector.crossproduct3(a, b))
-        t = vector.normalise(a if (inclineAxis == 1) else b)
+        n = normalize(cross(a, b))
+        t = normalize(a if (inclineAxis == 1) else b)
         n = [ (math.cos(inclineRadians)*n[c] + math.sin(inclineRadians)*t[c]) for c in range(3) ]
         #print(resulta, 'a =', a, ',', resultb, ' b=', b, ' fc=', fc, ' n=',n)
         ic = [ (fc[i] + tubeLength*n[i]) for i in range(3) ]
         if inclineAxis == 2:
-            na = vector.normalise(a)
-            nb = vector.normalise(vector.crossproduct3(n, a))
+            na = normalize(a)
+            nb = normalize(cross(n, a))
         else:
-            nb = vector.normalise(b)
-            na = vector.normalise(vector.crossproduct3(b, n))
-        a = vector.normalise([ -(na[i] + nb[i]) for i in range(3) ])
-        b = vector.normalise(vector.crossproduct3(a, n))
+            nb = normalize(b)
+            na = normalize(cross(b, n))
+        a = normalize([ -(na[i] + nb[i]) for i in range(3) ])
+        b = normalize(cross(a, n))
 
         zero = [ 0.0, 0.0, 0.0 ]
         nodeIdentifier = startNodeId
@@ -1615,8 +1615,8 @@ class eftfactory_tricubichermite:
         fm.beginChange()
         cache = fm.createFieldcache()
         coordinates = findOrCreateFieldCoordinates(fm)
-        a = vector.normalise(inletSide)
-        b = vector.normalise(vector.crossproduct3(inletAxis, inletSide))
+        a = normalize(inletSide)
+        b = normalize(cross(inletAxis, inletSide))
 
         zero = [ 0.0, 0.0, 0.0 ]
         nodeIdentifier = startNodeId
