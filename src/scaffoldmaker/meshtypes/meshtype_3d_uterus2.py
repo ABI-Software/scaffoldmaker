@@ -461,7 +461,7 @@ class MeshType_3d_uterus2(Scaffold_base):
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
-        enerate the base tricubic hermite or bicubic hermite-linear mesh. See also generateMesh().
+        Generate the base tricubic hermite or bicubic hermite-linear mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: None

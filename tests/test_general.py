@@ -1600,7 +1600,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         for networkSegment in networkSegments:
             pathParameters = get_nodeset_path_ordered_field_parameters(
                 nodes, coordinates, valueLabels, networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions())
-            tubeSegment = TubeNetworkMeshSegment(networkSegment, [pathParameters], elementsCountAround, 1)
+            tubeSegment = TubeNetworkMeshSegment(networkSegment, [pathParameters],
+                                                 elementsCountAround=elementsCountAround, elementsCountThroughWall=1)
             tubeSegments.append(tubeSegment)
             trackSurfaces.append(tubeSegment.getRawTrackSurface())
 

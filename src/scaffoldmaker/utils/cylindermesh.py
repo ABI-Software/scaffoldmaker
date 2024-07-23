@@ -425,8 +425,7 @@ class Ellipse2D:
     def __init__(self, centre, majorAxis, minorAxis,
                  elementsCountAcrossMajor, elementsCountAcrossMinor, elementsCountAcrossShell,
                  elementsCountAcrossTransition, shellProportion, coreMajorRadius, coreMinorRadius,
-                 ellipseShape=EllipseShape.Ellipse_SHAPE_FULL,
-                 isCore=False):
+                 ellipseShape=EllipseShape.Ellipse_SHAPE_FULL):
         """
         :param centre: Ellipse centre.
         :param majorAxis: A vector for ellipse major axis.
@@ -434,7 +433,6 @@ class Ellipse2D:
         :param elementsCountAcrossMajor:
         :param elementsCountAcrossMinor:
         :param ellipseShape: The shape of the ellipse which can be full or lower half.
-        :param isCore: True if the class is used to create a solid core.
         """
         self.centre = centre
         self.majorAxis = majorAxis
@@ -463,7 +461,7 @@ class Ellipse2D:
         self.pd2 = shield.pd2[0]
         self.pd3 = shield.pd3[0]
         self.__shield = shield
-        self.ellipseShape = ellipseShape if not isCore else EllipseShape.Ellipse_SHAPE_LOWER_HALF
+        self.ellipseShape = ellipseShape
         # generate the ellipse
         self.generate2DEllipseMesh()
 
