@@ -6,6 +6,7 @@ variable radius and thickness along.
 
 import copy
 
+from cmlibs.maths.vectorops import magnitude
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
