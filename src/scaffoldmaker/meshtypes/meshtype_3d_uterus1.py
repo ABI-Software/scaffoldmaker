@@ -6,7 +6,7 @@ numbers of elements around, along and through wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import add, cross, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, mult, normalize, sub, magnitude, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
