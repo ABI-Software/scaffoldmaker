@@ -7,6 +7,7 @@ variable radius and thickness along.
 import copy
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, normalize, magnitude, cross, dot
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field

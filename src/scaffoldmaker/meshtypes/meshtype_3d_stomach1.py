@@ -9,7 +9,7 @@ from __future__ import division
 import copy
 import math
 
-from cmlibs.maths.vectorops import cross, sub
+from cmlibs.maths.vectorops import cross, sub, set_magnitude, normalize, magnitude
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_element_identifier, \
     get_maximum_node_identifier

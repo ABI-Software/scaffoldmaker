@@ -7,7 +7,7 @@ from __future__ import division
 
 import copy
 
-from cmlibs.maths.vectorops import add_vectors
+from cmlibs.maths.vectorops import add_vectors, set_magnitude, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field

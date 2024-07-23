@@ -9,6 +9,7 @@ from __future__ import division
 import copy
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, cross, magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier

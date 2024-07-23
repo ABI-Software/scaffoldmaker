@@ -5,7 +5,7 @@ Generates a 3-D bladder mesh along the central line, with variable numbers of el
 import copy
 import math
 
-from cmlibs.maths.vectorops import angle
+from cmlibs.maths.vectorops import angle, set_magnitude, normalize, magnitude, cross
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node

@@ -7,6 +7,7 @@ wall.
 import copy
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, cross, normalize, magnitude, angle
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
