@@ -8,6 +8,7 @@ and thickness along.
 import copy
 import math
 
+from cmlibs.maths.vectorops import normalize, set_magnitude, magnitude, dot
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field

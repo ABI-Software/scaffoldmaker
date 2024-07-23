@@ -7,6 +7,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import normalize, magnitude, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element, Elementbasis

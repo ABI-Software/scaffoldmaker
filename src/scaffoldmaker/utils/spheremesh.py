@@ -1215,8 +1215,8 @@ def sample_curves_on_sphere(x1, x2, origin, elementsOut):
     r2 = add_vectors([x2, origin], [1, -1])
     deltax = add_vectors([r1, r2], [-1, 1])
     normal = cross(r1, deltax)
-    angle = angle(r1, r2)
-    anglePerElement = angle/elementsOut
+    theta = angle(r1, r2)
+    anglePerElement = theta / elementsOut
     arcLengthPerElement = calculate_arc_length(x1, x2, origin)/elementsOut
 
     nx = []

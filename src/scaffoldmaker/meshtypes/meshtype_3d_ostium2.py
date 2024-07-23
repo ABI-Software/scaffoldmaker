@@ -7,6 +7,7 @@ from __future__ import division
 import copy
 import math
 
+from cmlibs.maths.vectorops import normalize, magnitude, set_magnitude, dot, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
