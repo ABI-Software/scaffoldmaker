@@ -8,7 +8,7 @@ from __future__ import division
 
 import math
 
-from cmlibs.maths.vectorops import eulerToRotationMatrix3
+from cmlibs.maths.vectorops import eulerToRotationMatrix3, magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element

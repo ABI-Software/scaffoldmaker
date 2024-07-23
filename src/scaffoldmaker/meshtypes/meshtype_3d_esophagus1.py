@@ -7,6 +7,7 @@ wall, with variable radius and thickness along.
 import copy
 import math
 
+from cmlibs.maths.vectorops import magnitude, normalize
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
     findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
