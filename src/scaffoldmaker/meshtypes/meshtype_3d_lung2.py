@@ -4,7 +4,7 @@ Generates a 3D generic lung mesh.
 
 import copy
 import math
-from cmlibs.maths.vectorops import cross, dot, mult, normalize, sub
+from cmlibs.maths.vectorops import cross, dot, mult, normalize, sub, magnitude
 from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
@@ -20,7 +20,6 @@ from scaffoldmaker.utils.geometry import sampleEllipsePoints, getEllipsoidPlaneA
 from scaffoldmaker.utils.interpolation import computeCubicHermiteDerivativeScaling, interpolateCubicHermite, \
     interpolateCubicHermiteDerivative
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.vector import magnitude
 from scaffoldmaker.utils.zinc_utils import disconnectFieldMeshGroupBoundaryNodes
 
 

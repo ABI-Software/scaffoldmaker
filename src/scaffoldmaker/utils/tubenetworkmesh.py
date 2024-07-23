@@ -1,7 +1,7 @@
 """
 Specialisation of Network Mesh for building 2-D and 3-D tube mesh networks.
 """
-from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub, rejection
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
@@ -13,7 +13,6 @@ from scaffoldmaker.utils.interpolation import (
 from scaffoldmaker.utils.networkmesh import NetworkMesh, NetworkMeshBuilder, NetworkMeshGenerateData, \
     NetworkMeshJunction, NetworkMeshSegment, pathValueLabels
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.vector import vectorRejection
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
 import copy
 import math
@@ -1375,7 +1374,7 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         # first smooth to get d1 with new directions not tangential to surface
         td1 = smoothCubicHermiteDerivativesLoop(sx[p], sd1[p])
         # constraint to be tangential to surface
-        td1 = [vectorRejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
+        td1 = [rejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
         # smooth magnitudes only
         sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
 
