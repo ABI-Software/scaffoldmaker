@@ -7,7 +7,7 @@ variable radius and thickness along.
 import copy
 import math
 
-from cmlibs.maths.vectorops import set_magnitude, normalize, magnitude, cross, dot, rotate_about_z_axis
+from cmlibs.maths.vectorops import set_magnitude, normalize, magnitude, cross, dot, rotate_about_z_axis, axis_angle_to_rotation_matrix
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -22,7 +22,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
@@ -1217,12 +1216,12 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
     # sample along the midline of ostium
     rotAngle = math.pi
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(d3ApexUnit, rotAngle)
+    rotFrame = axis_angle_to_rotation_matrix(d3ApexUnit, rotAngle)
     d1A = [rotFrame[j][0] * d1Cecum[1][0] + rotFrame[j][1] * d1Cecum[1][1] +
            rotFrame[j][2] * d1Cecum[1][2] for j in range(3)]
 
     rotAngle = math.pi
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(normalize(d3Annulus[0]), rotAngle)
+    rotFrame = axis_angle_to_rotation_matrix(normalize(d3Annulus[0]), rotAngle)
     d2B = [rotFrame[j][0] * d1AnnulusOuter[0][0] + rotFrame[j][1] * d1AnnulusOuter[0][1] +
            rotFrame[j][2] * d1AnnulusOuter[0][2] for j in range(3)]
 

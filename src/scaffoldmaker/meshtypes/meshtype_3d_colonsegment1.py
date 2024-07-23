@@ -19,7 +19,6 @@ from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.annotation.cecum_terms import get_cecum_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite

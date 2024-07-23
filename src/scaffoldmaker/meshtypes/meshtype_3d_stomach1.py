@@ -9,7 +9,7 @@ from __future__ import division
 import copy
 import math
 
-from cmlibs.maths.vectorops import cross, sub, set_magnitude, normalize, magnitude
+from cmlibs.maths.vectorops import cross, sub, set_magnitude, normalize, magnitude, axis_angle_to_rotation_matrix
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_element_identifier, \
     get_maximum_node_identifier
@@ -27,7 +27,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -1505,7 +1504,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2ApexAround = [cross(cross(rotAxisApex, sub(tpx, cxApex)), rotAxisApex) for tpx in px]
 
     rotAngle = -math.pi * 0.5
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
+    rotFrame = axis_angle_to_rotation_matrix(rotAxisApex, rotAngle)
     for n in range(len(px)):
         d1ApexAround.append([rotFrame[j][0] * d2ApexAround[n][0] + rotFrame[j][1] * d2ApexAround[n][1] +
                              rotFrame[j][2] * d2ApexAround[n][2] for j in range(3)])
@@ -1912,7 +1911,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 # Sample from apex to annulus
                 bPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxMinusOne[count]]
                 d = d2AnnulusOuter[annulusIdxAtBodyStartIdxMinusOne[count]]
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdxAtBodyStartIdxMinusOne[count]],
+                rotFrame = axis_angle_to_rotation_matrix(d3Annulus[annulusIdxAtBodyStartIdxMinusOne[count]],
                                                                  math.pi)
                 endDerivative = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2]
                                  for j in range(3)]
@@ -1941,7 +1940,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             # Rotate nd2
             for m in range(len(nx)):
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(nd3[m], math.pi)
+                rotFrame = axis_angle_to_rotation_matrix(nd3[m], math.pi)
                 nd2[m] = [rotFrame[j][0] * nd2[m][0] + rotFrame[j][1] * nd2[m][1] +
                           rotFrame[j][2] * nd2[m][2] for j in range(3)]
 
@@ -1956,7 +1955,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 elif n1 == elementsAroundHalfDuod - 1:
                     for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                         annulusIdx = m + 2
-                        rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdx], math.pi)
+                        rotFrame = axis_angle_to_rotation_matrix(d3Annulus[annulusIdx], math.pi)
                         d2 = d2AnnulusOuter[annulusIdx]
                         d2 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2]
                               for j in range(3)]
@@ -1968,7 +1967,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 elif n1 == elementsAroundHalfDuod + 1:
                     for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                         annulusIdx = -2 - m
-                        rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdx], math.pi)
+                        rotFrame = axis_angle_to_rotation_matrix(d3Annulus[annulusIdx], math.pi)
                         d1 = d1AnnulusOuter[annulusIdx]
                         d1 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2]
                               for j in range(3)]

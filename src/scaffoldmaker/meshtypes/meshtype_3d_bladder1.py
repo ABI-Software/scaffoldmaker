@@ -5,7 +5,7 @@ Generates a 3-D bladder mesh along the central line, with variable numbers of el
 import copy
 import math
 
-from cmlibs.maths.vectorops import angle, set_magnitude, normalize, magnitude, cross
+from cmlibs.maths.vectorops import angle, set_magnitude, normalize, magnitude, cross, axis_angle_to_rotation_matrix
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -16,7 +16,6 @@ from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1, get_nod
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.tracksurface import TrackSurface
@@ -812,7 +811,7 @@ def findNodesAlongBladderDome(sx_dome_group, elementsCountAround, elementsCountA
         rotAngle = n1 * 2.0 * math.pi / elementsCountAround
         rotAxis = normalize(cross(normalize(sx_dome_group[2][0]),
                                                         normalize(sx_dome_group[4][0])))
-        rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxis, rotAngle)
+        rotFrame = axis_angle_to_rotation_matrix(rotAxis, rotAngle)
         d2Rot = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2] for j in range(3)]
         d2Apex.append(d2Rot)
 

@@ -6,14 +6,13 @@ from __future__ import division
 
 import math
 
-from cmlibs.maths.vectorops import normalize, dot, cross, magnitude, set_magnitude
+from cmlibs.maths.vectorops import normalize, dot, cross, magnitude, set_magnitude, axis_angle_to_rotation_matrix
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import mergeAnnotationGroups
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
@@ -124,14 +123,14 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
         if magnitude(cp)> 0.0: # path tangent not parallel to segment axis
             axisRot = normalize(cp)
             thetaRot = math.acos(dot(segmentAxis, unitTangent))
-            rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
+            rotFrame = axis_angle_to_rotation_matrix(axisRot, thetaRot)
             centroidRot = [rotFrame[j][0]*centroid[0] + rotFrame[j][1]*centroid[1] + rotFrame[j][2]*centroid[2] for j in range(3)]
 
         else: # path tangent parallel to segment axis (z-axis)
             if dp == -1.0: # path tangent opposite direction to segment axis
                 thetaRot = math.pi
                 axisRot = [1.0, 0, 0]
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(axisRot, thetaRot)
+                rotFrame = axis_angle_to_rotation_matrix(axisRot, thetaRot)
                 centroidRot = [rotFrame[j][0] * centroid[0] + rotFrame[j][1] * centroid[1] + rotFrame[j][2] * centroid[2] for j in range(3)]
 
             else: # segment axis in same direction as unit tangent
@@ -167,7 +166,7 @@ def warpSegmentPoints(xList, d1List, d2List, segmentAxis, sx, sd1, sd2, elements
                         thetaRot2 = math.acos(
                             dot(normalize(vectorToFirstNode), normalize(sd2[nAlongSegment])))
                         axisRot2 = unitTangent
-                        rotFrame2 = matrix.getRotationMatrixFromAxisAngle(axisRot2, signThetaRot2*thetaRot2)
+                        rotFrame2 = axis_angle_to_rotation_matrix(axisRot2, signThetaRot2*thetaRot2)
                     else:
                         rotFrame2 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
                 else:
