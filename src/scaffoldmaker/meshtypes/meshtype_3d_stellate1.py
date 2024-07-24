@@ -6,7 +6,7 @@ from __future__ import division
 
 import math
 
-from cmlibs.maths.vectorops import set_magnitude
+from cmlibs.maths.vectorops import set_magnitude, rotate_about_z_axis
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
@@ -18,7 +18,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds, remapEftLocalNodes
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
-from scaffoldmaker.utils.matrix import rotateAboutZAxis
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
@@ -683,7 +682,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elem
                     elif (e1 == 0) and ((e2 == 0) or (e2 == elementsCount2)):
                         ds2 = [dcent[0], -dcent[1], dcent[2]] if (e2 == 0) else dcent
                         ds2 = set_magnitude(ds2, dipMag)
-                        ds1 = rotateAboutZAxis(ds2, -math.pi / 2)
+                        ds1 = rotate_about_z_axis(ds2, -math.pi / 2)
                     elif e1 == elementsCount1 and e2 == elementsCount2-1: # armEnd
                         ds1 = [elementWidth,0,0]
                         ds2 = [0, 1 * (elementLength + elementWidth), 0]
@@ -707,7 +706,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elem
     # rotate entire arm about origin by armAngle except for centre nodes
     tol = 1e-12
     for j, n in enumerate(x):
-        xynew = rotateAboutZAxis(n, armAngle)
+        xynew = rotate_about_z_axis(n, armAngle)
         [xnew, ynew] = [r for r in xynew][:2]
         if (abs(xnew) < tol):
             xnew = 0
@@ -715,7 +714,7 @@ def createArm(halfArmArcAngleRadians, elementLengths, elementLengthCentral, elem
             ynew = 0
         x[j] = [xnew, ynew, x[j][2]]
 
-        xnodes_ds1[j] = rotateAboutZAxis(xnodes_ds1[j], armAngle)
-        xnodes_ds2[j] = rotateAboutZAxis(xnodes_ds2[j], armAngle)
+        xnodes_ds1[j] = rotate_about_z_axis(xnodes_ds1[j], armAngle)
+        xnodes_ds2[j] = rotate_about_z_axis(xnodes_ds2[j], armAngle)
 
     return (x, xnodes_ds1, xnodes_ds2, rmVertexNodes)

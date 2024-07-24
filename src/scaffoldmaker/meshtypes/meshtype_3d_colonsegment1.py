@@ -8,7 +8,7 @@ and thickness along.
 import copy
 import math
 
-from cmlibs.maths.vectorops import normalize, set_magnitude, magnitude, dot, cross
+from cmlibs.maths.vectorops import normalize, set_magnitude, magnitude, dot, cross, rotate_about_z_axis
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -19,7 +19,6 @@ from scaffoldmaker.annotation.colon_terms import get_colon_term
 from scaffoldmaker.annotation.cecum_terms import get_cecum_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -706,9 +705,9 @@ def getColonSegmentOuterPoints(region, elementsCountAroundTC, elementsCountAroun
                 if n1 > elementsCountAroundTC * 0.5:
                     # Non tenia coli
                     # Rotate about segment axis (z-axis)
-                    d2StartRot = matrix.rotateAboutZAxis(d2Start, radiansAround)
-                    d2MidRot = matrix.rotateAboutZAxis(d2Mid, radiansAround)
-                    d2EndRot = matrix.rotateAboutZAxis(d2End, radiansAround)
+                    d2StartRot = rotate_about_z_axis(d2Start, radiansAround)
+                    d2MidRot = rotate_about_z_axis(d2Mid, radiansAround)
+                    d2EndRot = rotate_about_z_axis(d2End, radiansAround)
 
                     d1 = [c * segmentLengthEndDerivativeFactor for c in d2StartRot]
                     d2 = [c * segmentLengthMidDerivativeFactor for c in d2MidRot]
