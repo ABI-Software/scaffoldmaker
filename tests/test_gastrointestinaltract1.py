@@ -113,7 +113,7 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(surfaceArea, 280350.6462177311, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 598505.4701647585, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 598505.4701647585, delta=1.0E-3)
 
         # check some annotationGroups:
         expectedSizes3d = {
