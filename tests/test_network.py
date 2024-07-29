@@ -248,13 +248,17 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(7, len(settings))
+        self.assertEqual(11, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual(1, settings["Elements count through wall"])
         self.assertEqual([0], settings["Annotation elements counts around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
+        self.assertFalse(settings["Core"])
+        self.assertEqual(4, settings["Number of elements across major"])
+        self.assertEqual(1, settings["Number of elements across transition"])
+        self.assertEqual([0], settings["Annotation elements counts across major"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -315,7 +319,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(7, len(settings))
+        self.assertEqual(11, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual(1, settings["Elements count through wall"])
         self.assertEqual([0], settings["Annotation elements counts around"])
@@ -408,7 +412,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(7, len(settings))
+        self.assertEqual(11, len(settings))
         self.assertEqual(8, settings["Elements count around"])
         self.assertEqual(1, settings["Elements count through wall"])
         self.assertEqual([0], settings["Annotation elements counts around"])
