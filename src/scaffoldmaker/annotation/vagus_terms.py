@@ -45,6 +45,10 @@ vagus_terms = [
     ("right level of jugular notch on the vagus nerve", "ILX:0794645"),
     ("left level of jugular notch on the vagus nerve", "ILX:0794646"),
 
+    ("level of carina on the vagus nerve", ""),
+    ("right level of carina on the vagus nerve", ""),
+    ("left level of carina on the vagus nerve", ""),
+
     ("level of sternal angle on the vagus nerve", "ILX:0794647"),
     ("right level of sternal angle on the vagus nerve", "ILX:0794648"),
     ("left level of sternal angle on the vagus nerve", "ILX:0794649"),
@@ -62,7 +66,7 @@ vagus_terms = [
     ("left level of aortic hiatus on the vagus nerve", "ILX:0794658"),
 
     # branch names - in use at the moment
-    ()
+
 ]
 
 
