@@ -143,9 +143,6 @@ def load_exf_data(data_region):
     separate out data related to vagus trunk, vagus branches, fascicles, markers (anatomical landmarks)
     """
 
-    #data_region = region.getParent().findChildByName('data')
-    #assert data_region.isValid()
-
     fm = data_region.getFieldmodule()
     fc = fm.createFieldcache()
 
@@ -187,16 +184,15 @@ def load_exf_data(data_region):
             marker_data[marker_name] = x
             marker_node = marker_node_iter.next()
 
-    # extract trunk data - coordinates, nodes, radius
-    # assumes at the moment only one trunk group is used
-    print('  ', trunk_group_name)
+    # extract trunk data - coordinates, nodes, radius - assume only one trunk group is used
+    #print('  ', trunk_group_name)
     trunk_coordinates, trunk_nodes = get_nodeset_fieldgroup_parameters(nodes, coordinates, trunk_group_name, [Node.VALUE_LABEL_VALUE])
     if radius.isValid():
         trunk_radius, _ = get_nodeset_fieldgroup_parameters(nodes, radius, trunk_group_name, [Node.VALUE_LABEL_VALUE])
     else:
         trunk_radius = [2 for i in range(1, len(trunk_coordinates))]
 
-    # project markers onto trunk
+    # TODO: project markers onto trunk
 
 
     # extract branch data - name, coordinates, nodes, radius
@@ -231,7 +227,7 @@ def load_exf_data(data_region):
                     parent_name = parent_branch_name
                     break
         branch_parents[branch_name] = parent_name
-        print('  ', branch_name, ' -> ', parent_name)
+        # print('  ', branch_name, ' -> ', parent_name)
 
     # write all data in a file for geometry fitter
     sir = data_region.createStreaminformationRegion()

@@ -2,25 +2,23 @@
 Generates a hermite x bilinear 1-D central line mesh for a vagus nerve with branches
 """
 
-import copy
 import math
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, get_group_list, find_or_create_field_group
-from cmlibs.utils.zinc.field import Field, findOrCreateFieldCoordinates, findOrCreateFieldStoredString,\
-    findOrCreateFieldGroup
+from cmlibs.utils.zinc.field import get_group_list, find_or_create_field_group, findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.group import group_add_group_local_contents
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 
-from cmlibs.maths.vectorops import add, sub, mult, div, dot, matrix_det, matrix_mult, matrix_inv, normalize
+from cmlibs.maths.vectorops import add, sub, mult, div, dot, matrix_mult, matrix_inv
 from scaffoldmaker.utils.vector import magnitude_squared, magnitude, crossproduct3, vectorRejection, setMagnitude
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
-    findAnnotationGroupByName, getAnnotationGroupForTerm
+    getAnnotationGroupForTerm
 from scaffoldmaker.annotation.vagus_terms import get_vagus_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelVersion, \
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, \
     remapEftNodeValueLabelWithNodes, setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import getCubicHermiteBasis, getCubicHermiteBasisDerivatives, \
     interpolateCubicHermite, interpolateHermiteLagrange, smoothCurveSideCrossDerivatives
@@ -28,12 +26,9 @@ from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, set_nod
     make_nodeset_derivatives_orthogonal
 from scaffoldmaker.utils.read_vagus_data import load_csv_data, load_exf_data, load_exf_data_contours_japanese_dataset
 
-
 from scaffoldfitter.fitter import Fitter
 from scaffoldfitter.fitterstepalign import FitterStepAlign
 from scaffoldfitter.fitterstepfit import FitterStepFit
-
-
 
 class MeshType_3d_vagus_box1(Scaffold_base):
     """
@@ -151,7 +146,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         #                 remapEftNodeValueLabel(eft3d, [ln], Node.VALUE_LABEL_D_DS1,
         #                                        [(Node.VALUE_LABEL_D_DS1, []),
         #                                         (Node.VALUE_LABEL_D2_DS1DS2, s2),
-        #                                         (Node.VALUE_LABEL_D2_DS1DS3, s3)])
+        #                                         (Node.VALUE_LABEL_D2_DS1DS3ё s3)])
         #                 ln += 1
         #             else:
         #                 # local nodes 1, 3, 5, 7
@@ -228,7 +223,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         linetemplate.defineField(coordinates, -1, eft1d)
 
         # vagus centroid (1d) branch root
-        cubicHermiteBasis = fieldmodule.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+        #cubicHermiteBasis = fieldmodule.createElementbasis(1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
         eft1dNV = mesh1d.createElementfieldtemplate(hermiteBasis)
         eft1dNV.setNumberOfLocalNodes(3)
         eft1dNV.setNumberOfLocalScaleFactors(24)
@@ -396,8 +391,6 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
 
         elementsAlongTrunk = options['Number of elements along the trunk']
-        iterationsNumber = options['Iterations (fit trunk)']
-        applyFitting = options['Apply fitting']
         addBranches = options['Add branches']
         add3D = options['Add 3D box']
 
@@ -461,10 +454,10 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         sd12, sd13 = smoothCurveSideCrossDerivatives(sx, sd1, [sd2, sd3])
 
         #  trunk annotation groups
-        trunkCentroidGroup = AnnotationGroup(region, (trunk_group_name + " centroid", ""))
-        annotationGroups.append(trunkCentroidGroup)
-        trunkCentroidMeshGroup = trunkCentroidGroup.getMeshGroup(mesh1d)
-        trunkCentroidNodesetGroup = trunkCentroidGroup.getNodesetGroup(nodes)
+        #trunkCentroidGroup = AnnotationGroup(region, (trunk_group_name + " centroid", ""))
+        #annotationGroups.append(trunkCentroidGroup)
+        #trunkCentroidMeshGroup = trunkCentroidGroup.getMeshGroup(mesh1d)
+        #trunkCentroidNodesetGroup = trunkCentroidGroup.getNodesetGroup(nodes)
         if add3D:
             trunkBoxGroup = AnnotationGroup(region, (trunk_group_name, 'None'))
             annotationGroups.append(trunkBoxGroup)
@@ -487,7 +480,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12[n])
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, sd3[n])
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sd13[n])
-            trunkCentroidNodesetGroup.addNode(node)
+            #trunkCentroidNodesetGroup.addNode(node)
             nodeIdentifier += 1
 
         # create elements
@@ -497,7 +490,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
             line = mesh1d.createElement(lineIdentifier, linetemplate)
             line.setNodesByIdentifier(eft1d, nids)
-            trunkCentroidMeshGroup.addElement(line)
+            #trunkCentroidMeshGroup.addElement(line)
             vagusCentroidMeshGroup.addElement(line)
             lineIdentifier += 1
 
@@ -626,9 +619,9 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                                    0, 0, 0, 0, dfns[2], dfns[3]]
 
                 # branch annotation groups
-                #branchCentroidGroup = AnnotationGroup(region, (branch_name + " centroid", 'None'))
-                #annotationGroups.append(branchCentroidGroup)
-                #branchCentroidMeshGroup = branchCentroidGroup.getMeshGroup(mesh1d)
+                # branchCentroidGroup = AnnotationGroup(region, (branch_name + " centroid", 'None'))
+                # annotationGroups.append(branchCentroidGroup)
+                # branchCentroidMeshGroup = branchCentroidGroup.getMeshGroup(mesh1d)
 
                 # create nodes (excluding branch root)
                 for n in range(elementsAlongBranch - 1):
@@ -678,9 +671,9 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
                 # create elements
                 if add3D:
-                    branchBoxTrunkGroup = AnnotationGroup(region, (branch_name, 'None'))
-                    annotationGroups.append(branchBoxTrunkGroup)
-                    branchBoxMeshGroup = branchBoxTrunkGroup.getMeshGroup(mesh3d)
+                    branchBoxGroup = AnnotationGroup(region, (branch_name, 'None'))
+                    annotationGroups.append(branchBoxGroup)
+                    branchBoxMeshGroup = branchBoxGroup.getMeshGroup(mesh3d)
 
                     for n in range(0, elementsAlongBranch - 1):
                         node_id = node_map[sn[n]]
@@ -763,13 +756,124 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                                 vagusEpineuriumMeshGroup.addElement(face)
                                 faceIdentifier += 1
 
+                    # remove trunk nodes from branch group
+                    parentFieldGroup = find_or_create_field_group(fieldmodule, branch_parents[branch_name])
+                    branchNodesetGroup = branchBoxGroup.getNodesetGroup(nodes)
+                    if branchNodesetGroup.isValid():
+                        branchNodesetGroup.removeNodesConditional(parentFieldGroup)
+
         # set markers
-        print('Adding anatomical landmarks..')
+        print('Adding anatomical landmarks...')
         for marker_name, marker_coordinate in marker_data.items():
             annotationGroup = findOrCreateAnnotationGroupForTerm(
                 annotationGroups, region, get_vagus_term(marker_name), isMarker=True)
             annotationGroup.createMarkerNode(nodeIdentifier, coordinates, marker_coordinate)
             nodeIdentifier += 1
+
+        print('Adding material coordinates...')
+
+        # add material coordinates
+        coordinates.setName("vagus coordinates")  # temporarily rename
+        sir = region.createStreaminformationRegion()
+        srm = sir.createStreamresourceMemory()
+        region.write(sir)
+        result, buffer = srm.getBuffer()
+        coordinates.setName("coordinates")  # restore name before reading vagus coordinates back in
+        sir = region.createStreaminformationRegion()
+        sir.createStreamresourceMemoryBuffer(buffer)
+        region.read(sir)  # read and merge with region, thus having coordinates and vagus coordinates in the region together
+        vagus_coordinates = fieldmodule.findFieldByName("vagus coordinates").castFiniteElement()
+
+        rescaledVagusTrunkLength = 1.0
+        vagusAspectRatio = 0.005  # vagus approx diameter (5mm) / vagus length (85mm)
+        vagusRadius = vagusAspectRatio * rescaledVagusTrunkLength / 2
+
+        # calculate derivatives
+        derivative_xi1 = mesh3d.getChartDifferentialoperator(1, 1)
+        derivative_xi2 = mesh3d.getChartDifferentialoperator(1, 2)
+        derivative_xi3 = mesh3d.getChartDifferentialoperator(1, 3)
+
+        zero = [0.0, 0.0, 0.0]
+
+        # vagus trunk goes along z axis with rescaledVagusTrunkLength as top of the vagus and origin as bottom of the trunk
+        elem_iter = mesh3d.createElementiterator()
+        element = elem_iter.next()
+        while element.isValid():
+            # trunk elements first,
+            # followed by branch elements (with first element having more than 2 local nodes)
+
+            element_id = element.getIdentifier()
+            eft = element.getElementfieldtemplate(coordinates, -1)
+            local_nodes_count = eft.getNumberOfLocalNodes()
+            if local_nodes_count == 2:
+                if element_id == 1:
+                    # first trunk element
+                    x = [0.0, 0.0, 0.0]
+                    d1 = [0, 0, rescaledVagusTrunkLength / (elementsAlongTrunk - 1)]
+                    [d2], [d3] = set_group_nodes_derivatives_orthogonal([d1])
+                    d2 = setMagnitude(d2, vagusRadius)
+                    d3 = setMagnitude(d3, vagusRadius)
+
+                    node = element.getNode(eft, 1)
+                    fieldcache.setNode(node)
+                    vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                    vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+
+                x = add(x, d1)
+
+                node = element.getNode(eft, 2)
+                fieldcache.setNode(node)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+
+            elif local_nodes_count > 2:
+                # first branch element
+                fieldcache.setMeshLocation(element, [0.0, 0.5, 0.5])  # assuming xi1 is along the branch
+                _, x = vagus_coordinates.evaluateReal(fieldcache, 3)
+                _, d1 = vagus_coordinates.evaluateDerivative(derivative_xi1, fieldcache, 3)
+                _, d2 = vagus_coordinates.evaluateDerivative(derivative_xi2, fieldcache, 3)
+                _, d3 = vagus_coordinates.evaluateDerivative(derivative_xi3, fieldcache, 3)
+
+                #[d2], [d3] = set_group_nodes_derivatives_orthogonal([d1])
+                d2 = setMagnitude(d2, vagusRadius)
+                d3 = setMagnitude(d3, vagusRadius)
+                x = add(x, d1)
+
+                node = element.getNode(eft, 2)
+                fieldcache.setNode(node)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
+                vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+
+            element = elem_iter.next()
+
+        # TODO: add interlex ids for all trunk & branch groups
+        # trunk
+        trunkFieldGroup = find_or_create_field_group(fieldmodule, trunk_group_name)
+        term_group_name = get_vagus_term(trunk_group_name)[1]
+        termFieldGroup = find_or_create_field_group(fieldmodule, term_group_name)
+        group_add_group_local_contents(termFieldGroup, trunkFieldGroup)
+
+        # branches
+        for branch_name in branches_order:
+            term_group_name = get_vagus_term(branch_name)[1]
+            if term_group_name != "":
+                branchFieldGroup = find_or_create_field_group(fieldmodule, branch_name)
+                termFieldGroup = find_or_create_field_group(fieldmodule, term_group_name)
+                group_add_group_local_contents(termFieldGroup, branchFieldGroup)
+
+
 
         print('Done')
         sir = region.createStreaminformationRegion()
@@ -815,7 +919,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                 face = faceIterator.next()
 
 
-### supplementary functions
+# supplementary functions
 def find_dataset_endpoints(coordinate_dataset):
     """
     Given list of node coordinates, find two furthest from each other nodes.
@@ -823,6 +927,7 @@ def find_dataset_endpoints(coordinate_dataset):
     """
 
     max_distance_squared = 0
+    ends_points = []
     for node_x in coordinate_dataset:
         for node_y in coordinate_dataset:
             distance_squared = magnitude_squared(sub(node_x, node_y))
@@ -1063,7 +1168,7 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
         queue = [branch for branch in branch_parents.keys() if branch_parents[branch] == trunk_group_name]
         while queue:
             branch_name = queue.pop(0)
-            print(branch_name)
+            #print(branch_name)
 
             if branch_name in visited_branches:
                 continue
@@ -1072,7 +1177,7 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
 
             branch_coordinates = [branch_node[0] for branch_node in branch_data[branch_name]]
             branch_parent_name = branch_parents[branch_name]
-            print('  parent: ', branch_parent_name)
+            #print('  parent: ', branch_parent_name)
 
             # determine branch approximate start and closest trunk node index
             bx, bd1, parent_s_nid, parent_f_nid, parent_group_name, branch_root_xi, elementsAlongBranch = \
@@ -1132,7 +1237,7 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
             fit_region.write(sir)
 
             if applyFitting:
-                print('  ... branch fitting')
+                #print('  ... branch fitting')
                 fitter_data_file = "C:/MAP/output/vagus_scaffold_temp/vagus_data.exf"
                 fitter_model_file = "C:/MAP/output/vagus_scaffold_temp/vagus_model.exf"
                 fitter = fit_branches_model(fitter_model_file, fitter_data_file, branch_name)
@@ -1178,11 +1283,11 @@ def estimate_trunk_coordinates(elementsAlongTrunk, trunk_data, marker_data):
     }
 
     totalVagusLength = 312.5  # calculated from total length of nerve/average diameter of nerve
-    rescaledTotalVagusLength = 100.0
-    rescaledTermNameVagusLengthList = {}
-    for term in termNameVagusLengthList:
-        rescaledTermNameVagusLengthList[term] = termNameVagusLengthList[term] \
-                                                / totalVagusLength * rescaledTotalVagusLength
+    # rescaledTotalVagusLength = 100.0
+    # rescaledTermNameVagusLengthList = {}
+    # for term in termNameVagusLengthList:
+    #     rescaledTermNameVagusLengthList[term] = termNameVagusLengthList[term] \
+    #                                             / totalVagusLength * rescaledTotalVagusLength
 
     use_marker_names = [list(marker_data.keys())[0],
                         list(marker_data.keys())[-1]]
@@ -1196,8 +1301,6 @@ def estimate_trunk_coordinates(elementsAlongTrunk, trunk_data, marker_data):
     t2 = termNameVagusLengthList[use_marker_names[1].replace('left ', '', 1).replace('right ', '', 1)]
 
     step = totalVagusLength / (elementsAlongTrunk - 1)
-    elementLength = abs(t2 - t1) / step
-
     dx, dy, dz = [(ptB[0] - ptA[0]) / (t2 - t1),
                   (ptB[1] - ptA[1]) / (t2 - t1),
                   (ptB[2] - ptA[2]) / (t2 - t1)]
