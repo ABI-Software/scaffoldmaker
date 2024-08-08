@@ -63,7 +63,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
         self._nodeLayout6WayTriplePoint = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
         self._nodeLayoutBifrucation = self._nodeLayoutManager.getNodeLayout6WayBifurcation()
-        self._nodeLayoutTrifurcation = None
         self._nodeLayoutTransition = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
@@ -113,21 +112,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Special node layout for generating core elements for bifurcation.
         """
         return self._nodeLayoutBifrucation
-
-    def getNodeLayoutTrifurcation(self, location):
-        """
-        Special node layout for generating core elements for trifurcation. There are two layouts specific to
-        left-hand side and right-hand side of the solid core cross-section: LHS (location = 1); and RHS (location = 2).
-        :param location: Location identifier.
-        :return: Node layout.
-        """
-        if location == 1: # Left-hand side
-            limitDirections = [None, [[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]], None]
-        elif location == 2: # Right-hand side
-            limitDirections = [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None]
-
-        self._nodeLayoutTrifurcation = self._nodeLayoutManager.getNodeLayout6Way12(True, limitDirections)
-        return self._nodeLayoutTrifurcation
 
     def getNodeLayoutTransition(self):
         """
@@ -1719,7 +1703,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         elif segmentsCount == 4:
             si = sequence[1:3]
-            # print("sequence", sequence, "si", si)
         else:
             print("TubeNetworkMeshJunction._sampleMidPoint not fully implemented for segmentsCount =", segmentsCount)
             si = (1, 2)
@@ -1878,15 +1861,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             self._segmentNodeToBoxIndex = \
                 [[[None for _ in range(nodesCountAcrossMinor)] for _ in range(nodesCountAcrossMajorList[s])]
                  for s in range(self._segmentsCount)]
-
             for s1 in range(3):
                 s2 = (s1 + 1) % 3 if sequence == [0, 1, 2] else (s1 - 1) % 3
                 midIndex1 = midIndexes[s1]
                 midIndex2 = midIndexes[s2]
                 for m in range(connectionCounts[s1]):
                     for n in range(nodesCountAcrossMinor):
-                        m1 = (m + midIndex1) if self._segmentsIn[s1] else (m + midIndex1) % connectionCounts[s1]
-                        m2 = (m + midIndex2) % connectionCounts[s2] if self._segmentsIn[s2] else (m + midIndex2)
+                        m1 = (m + midIndex1) if self._segmentsIn[s1] else (midIndex1 - m) % connectionCounts[s1]
+                        m2 = (midIndex2 - m) % connectionCounts[s2] if self._segmentsIn[s2] else (m + midIndex2)
                         if m1 == midIndex1:
                             indexGroup = [[0, midIndexes[0], n], [1, midIndexes[1], n], [2, midIndexes[2], n]]
                         else:
@@ -2010,6 +1992,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         # sample box junction
         boxIndexesCount = 0
         if self._isCore:
+            pCoord = []
+            for s in range(self._segmentsCount):
+                segment = self._segments[s]
+                n3 = (-1 if self._segmentsIn[s] else 0) if s >= 1 else 0
+                p = segment.getBoxCoordinates(0, -2 if self._segmentsIn[s] else 1, n3)[0]
+                pCoord.append(p)
+            dist12 = magnitude(sub(pCoord[sequence[1]], pCoord[0]))
+            dist13 = magnitude(sub(pCoord[sequence[-1]], pCoord[0]))
+            if sequence == [0, 1, 3, 2]:
+                sequence = [0, 2, 3, 1] if dist12 < dist13 else sequence
+            elif sequence == [0, 1, 2, 3]:
+                sequence = [0, 2, 1, 3] if dist12 < dist13 else sequence
+
             pairCount02 = acrossMajorCounts[sequence[0]] + acrossMajorCounts[sequence[2]]
             pairCount13 = acrossMajorCounts[sequence[1]] + acrossMajorCounts[sequence[3]]
             throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
@@ -2033,7 +2028,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     print("Can't make tube junction between elements counts around", acrossMajorCounts)
                     return
 
-            isConverging = False if self._segmentsIn == [True, False, False, False] else True
             nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
             nodesCountAcrossMajorList = [self._segments[s].getCoreNodesCountAcrossMajor() for s in range(4)]
             midIndexes = [nodesCountAcrossMajor // 2 for nodesCountAcrossMajor in nodesCountAcrossMajorList]
@@ -2062,6 +2056,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 s3 = sequence[(os1 + 2) % self._segmentsCount]
                 s4 = sequence[(os1 + 3) % self._segmentsCount]
                 aStartNodeIndex = midIndexes[s1]
+                nodesCountAcrossMajor1 = nodesCountAcrossMajorList[s1]
                 nodesCountAcrossMajor2 = nodesCountAcrossMajorList[s2]
                 connectingIndexes1 = connectingIndexesList[s1]
                 connectingIndexes2 = connectingIndexesList[s2]
@@ -2070,10 +2065,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     if throughCounts[os1] else [None]
 
                 for m in range(acrossMajorCounts[s1] // 2):
-                    if self._segmentsIn[os1]:
-                        m1 = m if isConverging else (m + aStartNodeIndex)
-                    else:
-                        m1 = (m + aStartNodeIndex) if isConverging else (aStartNodeIndex - m) % connectionCounts[os1]
+                    m1 = (m + aStartNodeIndex) if self._segmentsIn[s1] else (aStartNodeIndex - m) % connectionCounts[s1]
                     for n in range(nodesCountAcrossMinor):
                         if m1 in throughIndexes:
                             m3 = midIndexes[s3]
@@ -2088,14 +2080,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                     m3 = connectingIndexes3[i]
                                     indexGroup = [[s1, m1, n], [s2, m2, n], [s3, m3, n]]
                         else:
-                            if self._segmentsIn[os1] == self._segmentsIn[os2]:
+                            if self._segmentsIn[s1] == self._segmentsIn[s2]:
                                 if throughCounts[os1]:
                                     m2 = nodesCountAcrossMajor2 - m1 - 1
                                 else:
-                                    m2 = nodesCountAcrossMajor2 - m1 - 1
+                                    m2 = nodesCountAcrossMajor2 - (m1 + 1) if not self._segmentsIn[s1] else (
+                                            nodesCountAcrossMajor1 - (m1 + 1))
                             else:
-                                shift = midIndexes[sequence[2]] - midIndexes[sequence[0]] if throughCounts[os1] else 0
-                                m2 = m1 - throughCounts[os1] + shift
+                                m2 = m1 - throughCounts[s1] if self._segmentsIn[s1] else m1
                             indexGroup = [[s1, m1, n], [s2, m2, n]] if s1 < s2 else [[s2, m2, n], [s1, m1, n]]
                         indexGroup = sorted(indexGroup, key=lambda x: (x[0], x[0]), reverse=False)
                         if indexGroup not in self._boxIndexToSegmentNodeList:
@@ -2320,11 +2312,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nids.append(self._boxNodeIds[s][n3][n1])
                         nodeParameters.append(self._getBoxCoordinates(boxIndex))
                         segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
-                        if self._segmentsIn[s] and (segmentNodesCount == 3) and self._segmentsCount == 4:
-                            location = 1 if e3 < boxElementsCountAcrossMajor[s] // 2 else 2
-                            nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
-                            nodeLayouts.append(nodeLayoutTrifurcation)
-                        elif is6WayTriplePoint and (segmentNodesCount == 3) and self._segmentsCount == 3:
+                        if is6WayTriplePoint and (segmentNodesCount == 3) and self._segmentsCount == 3:
                             nodeLayouts.append(nodeLayoutBifurcation)
                         else:
                             nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
@@ -2398,11 +2386,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nodeParameters.append(self._getBoxCoordinates(boxIndex))
                         segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
                         if segmentNodesCount == 3:  # 6-way node
-                            if self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
-                                location = \
-                                    1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
-                                nodeLayout = generateData.getNodeLayoutTrifurcation(location)
-                            elif is6WayTriplePoint: # Special 6-way triple point case
+                            if is6WayTriplePoint: # Special 6-way triple point case
                                 if (n1 in triplePointIndexesList or (s == pSegment and n1 in midIndexes)):
                                     # 6-way AND triple-point node - only applies to bifurcations
                                     location = (midIndexes.index(n1) + 1) if oLocation == 0 else oLocation
