@@ -5,9 +5,9 @@ from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.general import ChangeManager
 
 from cmlibs.zinc.context import Context
+from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 
 from testutils import assertAlmostEqualList
@@ -64,28 +64,30 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-6
-        assertAlmostEqualList(self, minimums, [0.0, -1.976, -0.611351], tol)
-        assertAlmostEqualList(self, maximums, [8.748999, 1.968, 0.703564], tol)
+        assertAlmostEqualList(self, minimums, [0.0, -1.976, -0.6113507244855241], tol)
+        assertAlmostEqualList(self, maximums, [8.748998777022969, 1.968, 0.7035640657448223], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
-            surfaceGroup = AnnotationGroup(region, ("torso", ""))
-            is_exterior = fieldmodule.createFieldIsExterior()
-            surfaceMeshGroup = surfaceGroup.getMeshGroup(mesh2d)
-            surfaceMeshGroup.addElementsConditional(is_exterior)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
 
-            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
-            surfaceAreaField.setNumbersOfPoints(4)
             volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
             volumeField.setNumbersOfPoints(3)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
 
-        fieldcache = fieldmodule.createFieldcache()
-        result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 65.89281954971783, delta=tol)
-        result, volume = volumeField.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 6.419528010968665, delta=tol)
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
+            surfaceAreaField.setNumbersOfPoints(4)
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            self.assertAlmostEqual(volume, 6.419528010968665, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
+
 
     def test_wholebody2_tube(self):
         """
@@ -137,26 +139,34 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-6
-        assertAlmostEqualList(self, minimums, [0.0, -1.976, -0.611351], tol)
-        assertAlmostEqualList(self, maximums, [8.748999, 1.968, 0.703564], tol)
+        assertAlmostEqualList(self, minimums, [0.0, -1.976, -0.6113507244855241], tol)
+        assertAlmostEqualList(self, maximums, [8.748998777022969, 1.968, 0.7035640657448223], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
-            surfaceGroup = AnnotationGroup(region, ("torso", ""))
-            is_exterior = fieldmodule.createFieldIsExterior()
-            surfaceMeshGroup = surfaceGroup.getMeshGroup(mesh2d)
-            surfaceMeshGroup.addElementsConditional(is_exterior)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_0 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
 
-            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
-            surfaceAreaField.setNumbersOfPoints(4)
             volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
             volumeField.setNumbersOfPoints(3)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
 
-        fieldcache = fieldmodule.createFieldcache()
-        result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 69.83501401078989, delta=tol)
-        result, volume = volumeField.evaluateReal(fieldcache, 1)
-        print("volume", volume)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 3.1692513375640607, delta=tol)
+            outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
+            outerSurfaceAreaField.setNumbersOfPoints(4)
+            result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
+            innerSurfaceAreaField.setNumbersOfPoints(4)
+            result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            self.assertAlmostEqual(volume, 3.1692513375640607, delta=tol)
+            self.assertAlmostEqual(outerSurfaceArea, 35.880031911102506, delta=tol)
+            self.assertAlmostEqual(innerSurfaceArea, 25.851093527837623, delta=tol)
