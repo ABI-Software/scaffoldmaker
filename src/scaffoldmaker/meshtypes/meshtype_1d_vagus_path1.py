@@ -552,7 +552,7 @@ class MeshType_1d_vagus_path1(Scaffold_base):
                 # NA: Cardiac branch to deep cardiac
                 # === lit.review flatmaps (Shoffstall, Pelot) ends here ===
                 ['Branch of left vagus nerve to oesophageal nerve plexus', [25, 94]],
-                ['Coeliac branch of posterior vagal trunk', [35, 95]],
+                ['Celiac branch of posterior vagal trunk', [35, 95]],
                 ['Greater posterior gastric nerve', [36, 96, 97]],
                 ['Pyloric branch of greater posterior gastric nerve', [96, 98]],
                 ['Recurrent meningeal branch of left vagus nerve', [4, 99]],

@@ -459,7 +459,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         #trunkCentroidMeshGroup = trunkCentroidGroup.getMeshGroup(mesh1d)
         #trunkCentroidNodesetGroup = trunkCentroidGroup.getNodesetGroup(nodes)
         if add3D:
-            trunkBoxGroup = AnnotationGroup(region, (trunk_group_name, 'None'))
+            trunkBoxGroup = AnnotationGroup(region, get_vagus_term(trunk_group_name))
             annotationGroups.append(trunkBoxGroup)
             trunkBoxMeshGroup = trunkBoxGroup.getMeshGroup(mesh3d)
 
@@ -671,7 +671,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
                 # create elements
                 if add3D:
-                    branchBoxGroup = AnnotationGroup(region, (branch_name, 'None'))
+                    branchBoxGroup = AnnotationGroup(region, get_vagus_term(branch_name))
                     annotationGroups.append(branchBoxGroup)
                     branchBoxMeshGroup = branchBoxGroup.getMeshGroup(mesh3d)
 
@@ -858,20 +858,17 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
             element = elem_iter.next()
 
-        # TODO: add interlex ids for all trunk & branch groups
-        # trunk
-        trunkFieldGroup = find_or_create_field_group(fieldmodule, trunk_group_name)
-        term_group_name = get_vagus_term(trunk_group_name)[1]
-        termFieldGroup = find_or_create_field_group(fieldmodule, term_group_name)
-        group_add_group_local_contents(termFieldGroup, trunkFieldGroup)
-
-        # branches
-        for branch_name in branches_order:
-            term_group_name = get_vagus_term(branch_name)[1]
-            if term_group_name != "":
-                branchFieldGroup = find_or_create_field_group(fieldmodule, branch_name)
-                termFieldGroup = find_or_create_field_group(fieldmodule, term_group_name)
-                group_add_group_local_contents(termFieldGroup, branchFieldGroup)
+        # add interlex ids for all trunk & branch groups
+        # trunkFieldGroup = find_or_create_field_group(fieldmodule, trunk_group_name)
+        # term_group_name = get_vagus_term(trunk_group_name)[1]
+        # termFieldGroup = find_or_create_field_group(fieldmodule, term_group_name)
+        # group_add_group_local_contents(termFieldGroup, trunkFieldGroup)
+        # for branch_name in branches_order:
+        #     term_group_name = get_vagus_term(branch_name)[1]
+        #     if term_group_name != "":
+        #         branchFieldGroup = find_or_create_field_group(fieldmodule, branch_name)
+        #         termFieldGroup = find_or_create_field_group(fieldmodule, term_group_name)
+        #         group_add_group_local_contents(termFieldGroup, branchFieldGroup)
 
 
 
