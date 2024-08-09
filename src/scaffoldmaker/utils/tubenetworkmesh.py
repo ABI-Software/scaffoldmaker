@@ -63,6 +63,7 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
         self._nodeLayout6WayTriplePoint = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
         self._nodeLayoutBifrucation = self._nodeLayoutManager.getNodeLayout6WayBifurcation()
+        self._nodeLayoutTrifurcation = None
         self._nodeLayoutTransition = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
@@ -112,6 +113,21 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Special node layout for generating core elements for bifurcation.
         """
         return self._nodeLayoutBifrucation
+
+    def getNodeLayoutTrifurcation(self, location):
+        """
+        Special node layout for generating core elements for trifurcation. There are two layouts specific to
+        left-hand side and right-hand side of the solid core cross-section: LHS (location = 1); and RHS (location = 2).
+        :param location: Location identifier.
+        :return: Node layout.
+        """
+        if location == 1:  # Left-hand side
+            limitDirections = [None, [[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]], None]
+        elif location == 2:  # Right-hand side
+            limitDirections = [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None]
+
+        self._nodeLayoutTrifurcation = self._nodeLayoutManager.getNodeLayout6Way12(True, limitDirections)
+        return self._nodeLayoutTrifurcation
 
     def getNodeLayoutTransition(self):
         """
@@ -2314,6 +2330,11 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
                         if is6WayTriplePoint and (segmentNodesCount == 3) and self._segmentsCount == 3:
                             nodeLayouts.append(nodeLayoutBifurcation)
+                        elif self._segmentsIn[s] and (segmentNodesCount == 3) and self._segmentsCount == 4:
+                            location = 1 if e3 < boxElementsCountAcrossMajor[s] // 2 else 2
+                            nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
+                            nodeLayouts.append(nodeLayout6Way if self._triSequence == [0, 1, 3, 2] else
+                                               nodeLayoutTrifurcation)
                         else:
                             nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
                                                nodeLayout6Way if (segmentNodesCount == 3) else
@@ -2397,6 +2418,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                     nodeLayout = generateData.getNodeLayout6WayTriplePoint(location)
                                 else:
                                     nodeLayout = nodeLayoutBifurcationTransition
+                            elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
+                                location = \
+                                    1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
+                                nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
+                                nodeLayout = nodeLayout6Way if self._triSequence == [0, 1, 3, 2] else (
+                                    nodeLayoutTrifurcation)
                             else:
                                 nodeLayout = nodeLayout6Way
                         elif segmentNodesCount == 4:  # 8-way node

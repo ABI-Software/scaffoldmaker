@@ -675,13 +675,16 @@ class HermiteNodeLayoutManager:
             nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
         return nodeLayout
 
-    def getNodeLayout6Way12(self, d3Defined):
+    def getNodeLayout6Way12(self, d3Defined, limitDirections=None):
         """
         Get node layout for 6-way junction in 1-2 plane, including d1 + d2, -d1 - d2.
         :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
         :return: HermiteNodeLayout.
         """
-        return self._nodeLayout6Way12_d3Defined if d3Defined else self._nodeLayout6Way12
+        nodeLayout = self._nodeLayout6Way12_d3Defined if d3Defined else self._nodeLayout6Way12
+        if limitDirections:
+            nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
+        return nodeLayout
 
     def getNodeLayout8Way12(self, d3Defined):
         """
