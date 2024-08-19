@@ -9,7 +9,7 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 
-from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, findAnnotationGroupByName
 from scaffoldmaker.annotation.body_terms import get_body_term
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 
@@ -92,28 +92,22 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
 
         # check some annotationGroups:
         expectedSizes2d = {
-            "skin epidermis": 308
+            "skin epidermis": (308, 35.880031911102506)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)
             annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
             size = annotationGroup.getMeshGroup(mesh2d).getSize()
-            self.assertEqual(expectedSizes2d[name], size, name)
+            self.assertEqual(expectedSizes2d[name][0], size, name)
 
-            surfaceGroup = AnnotationGroup(region, term)
-            isExterior = fieldmodule.createFieldIsExterior()
-            isExteriorXi3_1 = fieldmodule.createFieldAnd(
-                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-            surfaceMeshGroup = surfaceGroup.getMeshGroup(mesh2d)
-            surfaceMeshGroup.addElementsConditional(isExteriorXi3_1)
-
+            surfaceMeshGroup = annotationGroup.getMeshGroup(mesh2d)
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
 
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
+            self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
 
 
     def test_wholebody2_tube(self):
@@ -199,28 +193,22 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
 
         # check some annotationGroups:
         expectedSizes2d = {
-            "skin epidermis": 308
+            "skin epidermis": (308, 35.880031911102506)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)
             annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
             size = annotationGroup.getMeshGroup(mesh2d).getSize()
-            self.assertEqual(expectedSizes2d[name], size, name)
+            self.assertEqual(expectedSizes2d[name][0], size, name)
 
-            surfaceGroup = AnnotationGroup(region, term)
-            isExterior = fieldmodule.createFieldIsExterior()
-            isExteriorXi3_1 = fieldmodule.createFieldAnd(
-                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
-            surfaceMeshGroup = surfaceGroup.getMeshGroup(mesh2d)
-            surfaceMeshGroup.addElementsConditional(isExteriorXi3_1)
-
+            surfaceMeshGroup = annotationGroup.getMeshGroup(mesh2d)
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
             surfaceAreaField.setNumbersOfPoints(4)
 
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
+            self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
 
 
 if __name__ == "__main__":
