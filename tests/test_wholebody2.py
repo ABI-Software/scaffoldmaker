@@ -8,6 +8,9 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
+
+from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, AnnotationGroup
+from scaffoldmaker.annotation.body_terms import get_body_term
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 
 from testutils import assertAlmostEqualList
@@ -24,27 +27,26 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium",
                                              "Human 2 Fine"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(16, len(options))
+        self.assertEqual(15, len(options))
         self.assertEqual(12, options["Number of elements around head"])
         self.assertEqual(12, options["Number of elements around torso"])
-        self.assertEqual(8, options["Number of elements around arms"])
-        self.assertEqual(8, options["Number of elements around legs"])
+        self.assertEqual(8, options["Number of elements around arm"])
+        self.assertEqual(8, options["Number of elements around leg"])
         self.assertEqual(1, options["Number of elements through wall"])
         self.assertEqual(5.0, options["Target element density along longest segment"])
-        self.assertEqual(False, options["Use linear through wall"])
         self.assertEqual(False, options["Show trim surfaces"])
         self.assertEqual(True, options["Use Core"])
-        self.assertEqual(6, options["Number of elements across head"])
-        self.assertEqual(6, options["Number of elements across torso"])
-        self.assertEqual(4, options["Number of elements across arms"])
-        self.assertEqual(4, options["Number of elements across legs"])
-        self.assertEqual(1, options["Number of elements across transition"])
+        self.assertEqual(6, options["Number of elements across head core major"])
+        self.assertEqual(6, options["Number of elements across torso core major"])
+        self.assertEqual(4, options["Number of elements across arm core major"])
+        self.assertEqual(4, options["Number of elements across leg core major"])
+        self.assertEqual(1, options["Number of elements across core transition"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(5, len(annotationGroups)) # Needs updating as we add more annotation groups
+        self.assertEqual(5, len(annotationGroups))  # Needs updating as we add more annotation groups
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -88,6 +90,31 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, 6.419528010968665, delta=tol)
             self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
 
+        # check some annotationGroups:
+        expectedSizes2d = {
+            "skin epidermis": 308
+            }
+        for name in expectedSizes2d:
+            term = get_body_term(name)
+            annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
+            size = annotationGroup.getMeshGroup(mesh2d).getSize()
+            self.assertEqual(expectedSizes2d[name], size, name)
+
+            surfaceGroup = AnnotationGroup(region, term)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            surfaceMeshGroup = surfaceGroup.getMeshGroup(mesh2d)
+            surfaceMeshGroup.addElementsConditional(isExteriorXi3_1)
+
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
+            surfaceAreaField.setNumbersOfPoints(4)
+
+            fieldcache = fieldmodule.createFieldcache()
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
+
 
     def test_wholebody2_tube(self):
         """
@@ -98,28 +125,27 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium",
                                              "Human 2 Fine"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(16, len(options))
+        self.assertEqual(15, len(options))
         self.assertEqual(12, options["Number of elements around head"])
         self.assertEqual(12, options["Number of elements around torso"])
-        self.assertEqual(8, options["Number of elements around arms"])
-        self.assertEqual(8, options["Number of elements around legs"])
+        self.assertEqual(8, options["Number of elements around arm"])
+        self.assertEqual(8, options["Number of elements around leg"])
         self.assertEqual(1, options["Number of elements through wall"])
         self.assertEqual(5.0, options["Target element density along longest segment"])
-        self.assertEqual(False, options["Use linear through wall"])
         self.assertEqual(False, options["Show trim surfaces"])
         self.assertEqual(True, options["Use Core"])
-        self.assertEqual(6, options["Number of elements across head"])
-        self.assertEqual(6, options["Number of elements across torso"])
-        self.assertEqual(4, options["Number of elements across arms"])
-        self.assertEqual(4, options["Number of elements across legs"])
-        self.assertEqual(1, options["Number of elements across transition"])
+        self.assertEqual(6, options["Number of elements across head core major"])
+        self.assertEqual(6, options["Number of elements across torso core major"])
+        self.assertEqual(4, options["Number of elements across arm core major"])
+        self.assertEqual(4, options["Number of elements across leg core major"])
+        self.assertEqual(1, options["Number of elements across core transition"])
 
         options["Use Core"] = False
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(5, len(annotationGroups)) # Needs updating as we add more annotation groups
+        self.assertEqual(5, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -170,3 +196,32 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, 3.1692513375640607, delta=tol)
             self.assertAlmostEqual(outerSurfaceArea, 35.880031911102506, delta=tol)
             self.assertAlmostEqual(innerSurfaceArea, 25.851093527837623, delta=tol)
+
+        # check some annotationGroups:
+        expectedSizes2d = {
+            "skin epidermis": 308
+            }
+        for name in expectedSizes2d:
+            term = get_body_term(name)
+            annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
+            size = annotationGroup.getMeshGroup(mesh2d).getSize()
+            self.assertEqual(expectedSizes2d[name], size, name)
+
+            surfaceGroup = AnnotationGroup(region, term)
+            isExterior = fieldmodule.createFieldIsExterior()
+            isExteriorXi3_1 = fieldmodule.createFieldAnd(
+                isExterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            surfaceMeshGroup = surfaceGroup.getMeshGroup(mesh2d)
+            surfaceMeshGroup.addElementsConditional(isExteriorXi3_1)
+
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
+            surfaceAreaField.setNumbersOfPoints(4)
+
+            fieldcache = fieldmodule.createFieldcache()
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
+
+
+if __name__ == "__main__":
+    unittest.main()

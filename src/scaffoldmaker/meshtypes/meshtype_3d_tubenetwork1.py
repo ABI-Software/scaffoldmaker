@@ -10,14 +10,14 @@ from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetw
 def calculateElementsCountAcrossMinor(cls, options):
     # Calculate elementsCountAcrosMinor
     elementsCountAcrossMinor = int(((options["Elements count around"] - 4) / 4 -
-                                    (options['Number of elements across major'] / 2)) * 2 + 6)
+                                    (options['Number of elements across core major'] / 2)) * 2 + 6)
 
     return elementsCountAcrossMinor
 
 def setParametersToDefault(cls, options):
     options["Elements count around"] = 8
-    options["Number of elements across major"] = 4
-    options["Number of elements across transition"] = 1
+    options["Number of elements across core major"] = 4
+    options["Number of elements across core transition"] = 1
 
     return options
 
@@ -30,27 +30,27 @@ def checkCoreParameters(cls, options, dependentChanges=False):
         options["Elements count around"] += 4 - options["Elements count around"] % 4
 
     # Check elements count across major are ok
-    if options['Number of elements across major'] < 4:
-        options['Number of elements across major'] = 4
-    if options['Number of elements across major'] % 2:
-        options['Number of elements across major'] += 1
+    if options['Number of elements across core major'] < 4:
+        options['Number of elements across core major'] = 4
+    if options['Number of elements across core major'] % 2:
+        options['Number of elements across core major'] += 1
 
     # Check elements count across transition
-    if options['Number of elements across transition'] < 1:
-        options['Number of elements across transition'] = 1
+    if options['Number of elements across core transition'] < 1:
+        options['Number of elements across core transition'] = 1
 
     # Calculate elementsCountAcrossMinor based on the current set of elementsCountAround and elementsCountAcrossMajor
     elementsCountAcrossMinor = calculateElementsCountAcrossMinor(cls, options)
 
     # Rcrit check
     Rcrit = max(
-        min(options['Number of elements across major'] - 4, elementsCountAcrossMinor - 4) // 2 + 1, 0)
-    if Rcrit < options['Number of elements across transition']:
+        min(options['Number of elements across core major'] - 4, elementsCountAcrossMinor - 4) // 2 + 1, 0)
+    if Rcrit < options['Number of elements across core transition']:
         dependentChanges = True
-        options['Number of elements across transition'] = Rcrit
+        options['Number of elements across core transition'] = Rcrit
 
     # Number of elements around sanity check
-    eM = options["Number of elements across major"]
+    eM = options["Number of elements across core major"]
     em = elementsCountAcrossMinor
     eC = (eM - 1) * (em - 1) - ((eM - 3) * (em - 3))
     if options["Elements count around"] != eC:
@@ -67,6 +67,10 @@ def checkCoreParameters(cls, options, dependentChanges=False):
                 annotationElementsCountsAround[i] = 0
             elif annotationElementsCountsAround[i] < 4:
                 annotationElementsCountsAround[i] = 4
+
+    if options["Use linear through wall"]:
+        dependentChanges = True
+        options["Use linear through wall"] = False
 
     return options, dependentChanges
 
@@ -101,8 +105,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Use linear through wall": False,
             "Show trim surfaces": False,
             "Core": False,
-            'Number of elements across major': 4,
-            'Number of elements across transition': 1,
+            'Number of elements across core major': 4,
+            'Number of elements across core transition': 1,
             "Annotation elements counts across major": [0]
         }
         return options
@@ -118,8 +122,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Use linear through wall",
             "Show trim surfaces",
             "Core",
-            'Number of elements across major',
-            'Number of elements across transition',
+            'Number of elements across core major',
+            'Number of elements across core transition',
             "Annotation elements counts across major"
         ]
 
@@ -208,8 +212,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             elementsCountThroughWall=options["Elements count through wall"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAround=options["Annotation elements counts around"],
-            defaultElementsCountAcrossMajor=options['Number of elements across major'],
-            elementsCountTransition=options['Number of elements across transition'],
+            defaultElementsCountAcrossMajor=options['Number of elements across core major'],
+            elementsCountTransition=options['Number of elements across core transition'],
             annotationElementsCountsAcrossMajor=options["Annotation elements counts across major"],
             isCore=options["Core"])
 

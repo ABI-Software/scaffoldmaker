@@ -79,8 +79,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '1-3',
-                    'name': 'head',
-                    'ontId': 'None'
+                    'name': get_body_term('head')[0],
+                    'ontId': get_body_term('head')[1]
                 },
                 {
                     '_AnnotationGroup': True,
@@ -93,15 +93,15 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '4,11-13, 5,14-16',
-                    'name': 'arms',
-                    'ontId': 'None'
+                    'name': get_body_term('arm')[0],
+                    'ontId': get_body_term('arm')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '9,17-18-19, 10,20-21-22',
-                    'name': 'legs',
-                    'ontId': 'None'
+                    'name': get_body_term('leg')[0],
+                    'ontId': get_body_term('leg')[1]
                 }
             ]
         })
@@ -168,8 +168,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '1-3',
-                    'name': 'head',
-                    'ontId': 'None'
+                    'name': get_body_term('head')[0],
+                    'ontId': get_body_term('head')[1]
                 },
                 {
                     '_AnnotationGroup': True,
@@ -182,15 +182,15 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '4,11-13, 5,14-16',
-                    'name': 'arms',
-                    'ontId': 'None'
+                    'name': get_body_term('arm')[0],
+                    'ontId': get_body_term('arm')[1]
                 },
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
                     'identifierRanges': '9,17-18-19, 10,20-21-22',
-                    'name': 'legs',
-                    'ontId': 'None'
+                    'name': get_body_term('leg')[0],
+                    'ontId': get_body_term('leg')[1]
                 }
             ]
         })
@@ -223,41 +223,40 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Network layout": getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
             "Number of elements around head": 12,
             "Number of elements around torso": 12,
-            "Number of elements around arms": 8,
-            "Number of elements around legs": 8,
+            "Number of elements around arm": 8,
+            "Number of elements around leg": 8,
             "Number of elements through wall": 1,
             "Target element density along longest segment": 5.0,
-            "Use linear through wall": False,
             "Show trim surfaces": False,
             "Use Core": True,
-            "Number of elements across head": 6,
-            "Number of elements across torso": 6,
-            "Number of elements across arms": 4,
-            "Number of elements across legs": 4,
-            "Number of elements across transition": 1
+            "Number of elements across head core major": 6,
+            "Number of elements across torso core major": 6,
+            "Number of elements across arm core major": 4,
+            "Number of elements across leg core major": 4,
+            "Number of elements across core transition": 1
         }
 
         if "Human 2 Medium" in parameterSetName:
             options["Number of elements around head"] = 16
             options["Number of elements around torso"] = 16
-            options["Number of elements around arms"] = 12
-            options["Number of elements around legs"] = 12
+            options["Number of elements around arm"] = 12
+            options["Number of elements around leg"] = 12
 
-            options["Number of elements across head"] = 8
-            options["Number of elements across torso"] = 8
-            options["Number of elements across arms"] = 6
-            options["Number of elements across legs"] = 6
+            options["Number of elements across head core major"] = 8
+            options["Number of elements across torso core major"] = 8
+            options["Number of elements across arm core major"] = 6
+            options["Number of elements across leg core major"] = 6
 
         elif "Human 2 Fine" in parameterSetName:
             options["Number of elements around head"] = 24
             options["Number of elements around torso"] = 24
-            options["Number of elements around arms"] = 20
-            options["Number of elements around legs"] = 20
+            options["Number of elements around arm"] = 20
+            options["Number of elements around leg"] = 20
 
-            options["Number of elements across head"] = 10
-            options["Number of elements across torso"] = 10
-            options["Number of elements across arms"] = 8
-            options["Number of elements across legs"] = 8
+            options["Number of elements across head core major"] = 10
+            options["Number of elements across torso core major"] = 10
+            options["Number of elements across arm core major"] = 8
+            options["Number of elements across leg core major"] = 8
 
         return options
 
@@ -267,17 +266,16 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Network layout",
             "Number of elements around head",
             "Number of elements around torso",
-            "Number of elements around arms",
-            "Number of elements around legs",
+            "Number of elements around arm",
+            "Number of elements around leg",
             "Number of elements through wall",
             "Target element density along longest segment",
-            "Use linear through wall",
             "Show trim surfaces",
             "Use Core",
-            "Number of elements across head",
-            "Number of elements across torso",
-            "Number of elements across arms",
-            "Number of elements across legs"]
+            "Number of elements across head core major",
+            "Number of elements across torso core major",
+            "Number of elements across arm core major",
+            "Number of elements across leg core major"]
         return optionNames
 
     @classmethod
@@ -318,30 +316,26 @@ class MeshType_3d_wholebody2(Scaffold_base):
         for key in [
             "Number of elements around head",
             "Number of elements around torso",
-            "Number of elements around arms",
-            "Number of elements around legs"
+            "Number of elements around arm",
+            "Number of elements around leg"
         ]:
             if options[key] < 8:
                 options[key] = 8
 
         for key in [
-            "Number of elements across head",
-            "Number of elements across torso",
-            "Number of elements across arms",
-            "Number of elements across legs"
+            "Number of elements across head core major",
+            "Number of elements across torso core major",
+            "Number of elements across arm core major",
+            "Number of elements across leg core major"
         ]:
             if options[key] < 4:
                 options[key] = 4
 
         if options["Number of elements through wall"] < 0:
-            options["Number of elements through wall"] = 0
+            options["Number of elements through wall"] = 1
 
-        if options["Use Core"]:
-            if options["Target element density along longest segment"] < 5.0:
-                options["Target element density along longest segment"] = 5.0
-        else:
-            if options["Target element density along longest segment"] < 1.0:
-                options["Target element density along longest segment"] = 1.0
+        if options["Target element density along longest segment"] < 1.0:
+            options["Target element density along longest segment"] = 1.0
 
         dependentChanges = False
         return dependentChanges
@@ -368,18 +362,10 @@ class MeshType_3d_wholebody2(Scaffold_base):
         for layoutAnnotationGroup in layoutAnnotationGroups:
             elementsCountAround = 0
             elementsCountAcrossMajor = 0
-            if layoutAnnotationGroup.getName() == "head":
-                elementsCountAround = options["Number of elements around head"]
-                elementsCountAcrossMajor = options["Number of elements across head"]
-            elif layoutAnnotationGroup.getName() == "torso":
-                elementsCountAround = options["Number of elements around torso"]
-                elementsCountAcrossMajor = options["Number of elements across torso"]
-            elif layoutAnnotationGroup.getName() == "arms":
-                elementsCountAround = options["Number of elements around arms"]
-                elementsCountAcrossMajor = options["Number of elements across arms"]
-            elif layoutAnnotationGroup.getName() == "legs":
-                elementsCountAround = options["Number of elements around legs"]
-                elementsCountAcrossMajor = options["Number of elements across legs"]
+            name = layoutAnnotationGroup.getName()
+            if name in ["head", "torso", "arm", "leg"]:
+                elementsCountAround = options["Number of elements around " + name]
+                elementsCountAcrossMajor = options["Number of elements across " + name + " core major"]
             annotationElementsCountsAround.append(elementsCountAround)
             annotationElementsCountsAcross.append(elementsCountAcrossMajor)
 
@@ -392,15 +378,15 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elementsCountThroughWall=options["Number of elements through wall"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAround=annotationElementsCountsAround,
-            defaultElementsCountAcrossMajor=options['Number of elements across head'],
-            elementsCountTransition=options['Number of elements across transition'],
+            defaultElementsCountAcrossMajor=options['Number of elements across head core major'],
+            elementsCountTransition=options['Number of elements across core transition'],
             annotationElementsCountsAcrossMajor=annotationElementsCountsAcross,
             isCore=isCore)
 
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through wall"],
+            isLinearThroughWall=False,
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
