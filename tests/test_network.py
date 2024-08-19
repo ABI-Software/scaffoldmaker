@@ -256,8 +256,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across major"])
-        self.assertEqual(1, settings["Number of elements across transition"])
+        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(1, settings["Number of elements across core transition"])
         self.assertEqual([0], settings["Annotation elements counts across major"])
 
         context = Context("Test")
@@ -327,8 +327,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across major"])
-        self.assertEqual(1, settings["Number of elements across transition"])
+        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(1, settings["Number of elements across core transition"])
         self.assertEqual([0], settings["Annotation elements counts across major"])
         settings["Core"] = True
 
@@ -483,8 +483,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across major"])
-        self.assertEqual(1, settings["Number of elements across transition"])
+        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(1, settings["Number of elements across core transition"])
         self.assertEqual([0], settings["Annotation elements counts across major"])
         settings["Elements count through wall"] = 2
         settings["Core"] = True
@@ -667,8 +667,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertFalse(settings["Use linear through wall"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across major"])
-        self.assertEqual(1, settings["Number of elements across transition"])
+        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(1, settings["Number of elements across core transition"])
         self.assertEqual([0], settings["Annotation elements counts across major"])
         settings["Core"] = True
         settings["Annotation elements counts around"] = [12]  # requires annotation group below
