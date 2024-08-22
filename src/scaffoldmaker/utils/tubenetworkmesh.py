@@ -388,14 +388,15 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         n2z = self._elementsCountAround // 2
 
         rscx, rscd1 = [], []
+        tmdd3Delta = sub(ix[n2z], ix[n2a])
         for n in range(2):
             startIndex = [n2a, n2z][n]
             tmdxStart = ix[startIndex] if n == 0 else centre
             tmdxEnd = centre if n == 0 else ix[startIndex]
-            tmdd3 = id3[startIndex]
             rcx = [tmdxStart, tmdxEnd]
-            mag = -1 if n == 0 else 1
-            rcd3 = [set_magnitude(tmdd3, mag), set_magnitude(tmdd3, mag)]
+            tmdd3Start = [-d for d in id3[startIndex]] if n == 0 else tmdd3Delta
+            tmdd3End = tmdd3Delta if n == 0 else id3[startIndex]
+            rcd3 = [normalize(tmdd3Start), normalize(tmdd3End)]
             elementsCountAcross = self._elementsCountAcrossMajor // 2
 
             tx, td1 = sampleCubicHermiteCurves(rcx, rcd3, elementsCountAcross, arcLengthDerivatives=True)[0:2]
@@ -582,19 +583,20 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         lst[n1] = value
 
         # Fix derivatives for core rim
-        nSkip = self._elementsCountAcrossMinor // 2 - (1 + self._elementsCountTransition)
         if ctx:
+            minorSkip = self._elementsCountAcrossMinor // 2 - (1 + self._elementsCountTransition)
+            majorSkip = self._elementsCountAcrossMajor // 2 - (1 + self._elementsCountTransition)
             for n2 in range(self._elementsCountTransition - 1):
-                for n1 in range(-nSkip, nSkip + 1):
+                for n1 in range(-minorSkip, minorSkip + 1):
                     tempd1, tempd3 = copy.copy(ctd1[n2][n1]), copy.copy(ctd3[n2][n1])
                     tempd1 = [-tempd1[c] for c in range(3)]
                     ctd1[n2][n1], ctd3[n2][n1] = tempd3, tempd1
-                for n1 in range(self._elementsCountAround // 2 - nSkip, self._elementsCountAround // 2 + nSkip + 1):
+                for n1 in range(self._elementsCountAround // 2 - minorSkip, self._elementsCountAround // 2 + minorSkip + 1):
                     tempd1, tempd3 = copy.copy(ctd1[n2][n1]), copy.copy(ctd3[n2][n1])
                     tempd3 = [-tempd3[c] for c in range(3)]
                     ctd1[n2][n1], ctd3[n2][n1] = tempd3, tempd1
-                for n1 in range(self._elementsCountAround // 4 * 3 - nSkip,
-                                self._elementsCountAround // 4 * 3 + nSkip + 1):
+                for n1 in range(self._elementsCountAround // 4 * 3 - majorSkip,
+                                self._elementsCountAround // 4 * 3 + majorSkip + 1):
                     tempd1, tempd3 = copy.copy(ctd1[n2][n1]), copy.copy(ctd3[n2][n1])
                     tempd1, tempd3 = [-tempd1[c] for c in range(3)], [-tempd3[c] for c in range(3)]
                     ctd3[n2][n1], ctd1[n2][n1] = tempd3, tempd1

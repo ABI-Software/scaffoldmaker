@@ -87,7 +87,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 6.419528010968665, delta=tol)
+            self.assertAlmostEqual(volume, 6.419531755847021, delta=tol)
             self.assertAlmostEqual(surfaceArea, 35.880031911102506, delta=tol)
 
         # check some annotationGroups:
