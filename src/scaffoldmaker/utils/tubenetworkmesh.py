@@ -177,16 +177,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughWall,
-                 isCore=False, elementsCountAcrossMajor: int = 4, elementsCountAcrossMinor: int = 4,
-                 elementsCountTransition: int = 1):
+                 isCore=False, elementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1):
         """
         :param networkSegment: NetworkSegment this is built from.
         :param pathParametersList: [pathParameters] if 2-D or [outerPathParameters, innerPathParameters] if 3-D
         :param elementsCountAround: Number of elements around this segment.
         :param elementsCountThroughWall: Number of elements between inner and outer tube if 3-D, 1 if 2-D.
         :param isCore: True for generating a solid core inside the tube, False for regular tube network.
-        :param elementsCountAcrossMajor: Number of elements across major axis of an ellipse.
-        :param elementsCountAcrossMinor: Number of elements across minor axis of an ellipse.
+        :param elementsCountAcrossMajor: Number of elements across major axis of core ellipse.
         :param elementsCountTranstion: Number of elements across transition zone between core box elements and
         rim elements.
         """
@@ -194,10 +192,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._isCore = isCore
         self._elementsCountAround = elementsCountAround
         self._elementsCountAcrossMajor = elementsCountAcrossMajor
-        self._elementsCountAcrossMinor = elementsCountAcrossMinor
+        self._elementsCountAcrossMinor = calculateElementsCountAcrossMinor(
+            elementsCountAround, elementsCountTransition, elementsCountAcrossMajor)
         self._elementsCountTransition = elementsCountTransition
-        if self._isCore and self._elementsCountTransition > 1:
-            self._elementsCountAround = (elementsCountAround - 8 * (self._elementsCountTransition - 1))
+
+        # if self._isCore and self._elementsCountTransition > 1:
+        #     self._elementsCountAround = (elementsCountAround - 8 * (self._elementsCountTransition - 1))
         assert elementsCountThroughWall > 0
         self._elementsCountThroughWall = elementsCountThroughWall
         self._rawTubeCoordinatesList = []
@@ -2706,7 +2706,6 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions()))
         elementsCountAround = self._defaultElementsCountAround
         elementsCountAcrossMajor = self._defaultElementsCountAcrossMajor
-        elementsCountAcrossMinor = (((elementsCountAround - 4) // 4 - elementsCountAcrossMajor // 2) * 2 + 6)
 
         i = 0
         for layoutAnnotationGroup in self._layoutAnnotationGroups:
@@ -2727,17 +2726,12 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                     if networkSegment.hasLayoutElementsInMeshGroup(
                             layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
                         elementsCountAcrossMajor = self._annotationElementsCountsAcrossMajor[i]
-                        elementsCountAcrossMinor = (
-                                ((elementsCountAround - 4) // 4 - elementsCountAcrossMajor // 2) * 2 + 6)
-                        annotationElementsCountAcrossMinor.append(elementsCountAcrossMinor)
                         break
                 i += 1
-            # elements count across minor must be the same for all annotation groups
-            assert all(value == annotationElementsCountAcrossMinor[0] for value in annotationElementsCountAcrossMinor)
 
         return TubeNetworkMeshSegment(networkSegment, pathParametersList, elementsCountAround,
                                       self._elementsCountThroughWall, self._isCore, elementsCountAcrossMajor,
-                                      elementsCountAcrossMinor, self._elementsCountTransition)
+                                      self._elementsCountTransition)
 
     def createJunction(self, inSegments, outSegments):
         """
@@ -2952,3 +2946,16 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
 
     return sx, sd1, sd2, sd12
+
+
+def calculateElementsCountAcrossMinor(elementsCountAround, elementsCountTransition, elementsCountAcrossMajor):
+    """
+    Calculate number of elements across minor axis of shield mesh based on number around, number of radial
+    transition elements, and number of elements across major.
+    Assumes these can work together.
+    :param elementsCountAround: Number of elements around the circumference.
+    :param elementsCountTransition: Number of transition layers between the core box and the outside.
+    :param elementsCountAcrossMajor: Number of elements across the major axis.
+    :return: Number of elements across the minor axis.
+    """
+    return elementsCountAround // 2 + 4 * elementsCountTransition - elementsCountAcrossMajor

@@ -4,59 +4,41 @@ Generates a 3-D Hermite bifurcating tube network (with optional solid core).
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.tubenetworkmesh import (
+    calculateElementsCountAcrossMinor, TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData)
 
 
-def calculateElementsCountAcrossMinor(cls, options):
-    # Calculate elementsCountAcrosMinor
-    elementsCountAcrossMinor = int(((options["Elements count around"] - 4) / 4 -
-                                    (options['Number of elements across core major'] / 2)) * 2 + 6)
-
-    return elementsCountAcrossMinor
-
-def setParametersToDefault(cls, options):
-    options["Elements count around"] = 8
-    options["Number of elements across core major"] = 4
-    options["Number of elements across core transition"] = 1
-
-    return options
-
-def checkCoreParameters(cls, options, dependentChanges=False):
+def checkCoreParameters(cls, options, dependentChangesIn=False):
+    dependentChanges = dependentChangesIn
     # Check elements count around are ok
     if options["Elements count around"] < 8:
+        options["Elements count around"] = 8  # core transition and major element counts may also reduce below
         dependentChanges = True
-        options = setParametersToDefault(cls, options)
-    if options["Elements count around"] % 4:
+    elif options["Elements count around"] % 4:
         options["Elements count around"] += 4 - options["Elements count around"] % 4
-
-    # Check elements count across major are ok
-    if options['Number of elements across core major'] < 4:
-        options['Number of elements across core major'] = 4
-    if options['Number of elements across core major'] % 2:
-        options['Number of elements across core major'] += 1
 
     # Check elements count across transition
     if options['Number of elements across core transition'] < 1:
         options['Number of elements across core transition'] = 1
-
-    # Calculate elementsCountAcrossMinor based on the current set of elementsCountAround and elementsCountAcrossMajor
-    elementsCountAcrossMinor = calculateElementsCountAcrossMinor(cls, options)
-
-    # Rcrit check
-    Rcrit = max(
-        min(options['Number of elements across core major'] - 4, elementsCountAcrossMinor - 4) // 2 + 1, 0)
-    if Rcrit < options['Number of elements across core transition']:
+    while True:
+        minElementsCountAcross = 2 + 2 * options['Number of elements across core transition']
+        maxElementsCountAcross = calculateElementsCountAcrossMinor(
+            options["Elements count around"], options['Number of elements across core transition'],
+            minElementsCountAcross)
+        if maxElementsCountAcross >= minElementsCountAcross:
+            break
+        options['Number of elements across core transition'] -= 1
         dependentChanges = True
-        options['Number of elements across core transition'] = Rcrit
 
-    # Number of elements around sanity check
-    eM = options["Number of elements across core major"]
-    em = elementsCountAcrossMinor
-    eC = (eM - 1) * (em - 1) - ((eM - 3) * (em - 3))
-    if options["Elements count around"] != eC:
+    # Check elements count across major are ok
+    if options['Number of elements across core major'] < minElementsCountAcross:
+        options['Number of elements across core major'] = minElementsCountAcross
         dependentChanges = True
-        # Reset parameter values
-        setParametersToDefault(cls, options)
+    elif options['Number of elements across core major'] > maxElementsCountAcross:
+        options['Number of elements across core major'] = maxElementsCountAcross
+        dependentChanges = True
+    elif (options['Number of elements across core major'] % 2):
+        options['Number of elements across core major'] += 1
 
     annotationElementsCountsAround = options["Annotation elements counts around"]
     if len(annotationElementsCountsAround) == 0:
@@ -72,7 +54,7 @@ def checkCoreParameters(cls, options, dependentChanges=False):
         dependentChanges = True
         options["Use linear through wall"] = False
 
-    return options, dependentChanges
+    return dependentChanges
 
 
 class MeshType_3d_tubenetwork1(Scaffold_base):
@@ -166,7 +148,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
 
         # Parameters specific to the core
         if options["Core"] == True:
-            options, dependentChanges = checkCoreParameters(cls, options, dependentChanges)
+            dependentChanges = checkCoreParameters(cls, options, dependentChanges)
 
         # When core option is false
         else:
