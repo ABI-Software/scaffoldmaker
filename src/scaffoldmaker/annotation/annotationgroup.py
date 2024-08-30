@@ -357,7 +357,10 @@ class AnnotationGroup(object):
         markerNode = nodes.findNodeByIdentifier(self._markerIdentifier)
         with ChangeManager(fieldmodule):
             oldMaterialCoordinatesField, oldMaterialCoordinates = self.getMarkerMaterialCoordinates()
-            if materialCoordinatesField != oldMaterialCoordinatesField:
+            # comparing Zinc Field with None fails on some Python implementations:
+            if ((materialCoordinatesField and not oldMaterialCoordinatesField) or
+                (oldMaterialCoordinatesField and not materialCoordinatesField) or
+                (materialCoordinatesField != oldMaterialCoordinatesField)):
                 nodetemplate = nodes.createNodetemplate()
                 if self._markerMaterialCoordinatesField:
                     assert RESULT_OK == nodetemplate.undefineField(self._markerMaterialCoordinatesField)

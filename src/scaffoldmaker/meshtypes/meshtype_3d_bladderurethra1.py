@@ -7,6 +7,7 @@ wall.
 import copy
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, cross, normalize, magnitude, angle, rotate_about_z_axis
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.zinc.element import Element
@@ -20,9 +21,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1, gen
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.geometry import createEllipsePoints
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
@@ -45,7 +44,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
                 },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.0000, 0.0000, 0.0000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (2, [[0.0000, 0.0000, 15.000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (3, [[0.0000, 0.0000, 30.000], [0.0000, 0.0000, 15.000], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
@@ -55,7 +55,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.0000, 3.0500, 89.940], [0.0000, 1.8000, 15.400], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (8, [[0.0000, 5.9800, 107.94], [0.0000, 4.5000, 16.800], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]]),
                     (9, [[0.0000, 12.470, 127.07], [0.0000, 6.6700, 14.800], [0.0000, 0.5000, 0.00000], [0.0000, 0.0000, -0.5000]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -80,7 +80,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.0000,  0.0000, 0.0000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (2, [[0.0000,  0.0000, 20.000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (3, [[0.0000,  0.0000, 40.000], [0.0000,  0.0000, 20.000], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
@@ -90,7 +91,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.0000, -3.8000, 120.30], [0.0000, -0.6000, 18.800], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (8, [[0.0000, -3.6000, 140.50], [0.0000,  2.0000, 18.400], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]]),
                     (9, [[0.0000,  0.0000, 160.00], [0.0000,  4.0000, 15.500], [0.0000, 0.5000, 0.0000], [0.0000, 0.0000, -0.5000]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -115,7 +116,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.000,  0.0000, 0.0000], [0.0000,  0.2107, 19.185], [0.0000, 0.5000,  0.0006], [0.0000, -0.0002, -0.0098]]),
                     (2, [[0.000,  0.1095, 17.595], [0.0000,  0.0083, 16.005], [0.0000, 0.4999, -0.0074], [0.0000, -0.0000, -0.0062]]),
                     (3, [[0.000,  0.0347, 32.009], [0.0000,  0.0042, 13.831], [0.0000, 0.4999, -0.0122], [0.0000,  0.0001,  0.0027]]),
@@ -125,7 +127,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.000, -0.6320, 86.026], [0.0000, -0.5928, 14.006], [0.0000, 0.4997,  0.0193], [0.0000, -0.0027, -0.1007]]),
                     (8, [[0.000, -1.1544, 99.742], [0.0000,  0.7147, 16.377], [0.0000, 0.4961, -0.0620], [0.0000, -0.0226, -0.1114]]),
                     (9, [[0.000,  1.2247, 118.63], [0.0000,  4.0316, 21.331], [0.0000, 0.4719, -0.1653], [0.0000, -0.0498, -0.0958]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -150,7 +152,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.0000,  0.0000, 0.0000], [0.0000,  0.3967, 17.118], [0.0000, 0.4999, -0.0116], [0.0000,  0.0002,  0.0084]]),
                     (2, [[0.0000,  0.2526, 16.482], [0.0000,  0.1084, 15.844], [0.0000, 0.5000, -0.0034], [0.0000,  0.0001,  0.0073]]),
                     (3, [[0.0000,  0.2277, 31.687], [0.0000, -0.1005, 16.250], [0.0000, 0.5000,  0.0031], [0.0000,  0.0180,  0.0030]]),
@@ -160,7 +163,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.0000, -1.3669, 104.42], [0.0000,  0.5462, 17.118], [0.0000, 0.4994, -0.0233], [0.0000, -0.0266, -0.1269]]),
                     (8, [[0.0000, -0.1150, 119.12], [0.0000,  2.7663, 14.068], [0.0000, 0.4902, -0.0980], [0.0000, -0.0116, -0.0490]]),
                     (9, [[0.0000,  4.0321, 132.37], [0.0000,  5.4802, 12.315], [0.0000, 0.4691, -0.1728], [0.0000,  0.0080,  0.0382]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -185,7 +188,8 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2], [[
                     (1, [[0.000,  0.0000, 0.0000], [0.0000, -0.0219, 18.928], [0.0000, 0.5000,  0.0006], [0.0000,  0.0001, -0.0062]]),
                     (2, [[0.000,  0.1095, 17.595], [0.0000,  0.2409, 16.260], [0.0000, 0.4999, -0.0074], [0.0000, -0.0000, -0.0051]]),
                     (3, [[0.000,  0.4589, 32.519], [0.0000,  0.3415, 14.001], [0.0000, 0.4999, -0.0122], [0.0000, -0.0000,  0.0018]]),
@@ -195,7 +199,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
                     (7, [[0.000, -1.6517, 86.875], [0.0000, -0.5654, 14.673], [0.0000, 0.5000,  0.0047], [0.0000, -0.0038, -0.1421]]),
                     (8, [[0.000, -1.3262, 102.46], [0.0000,  1.8796, 15.041], [0.0000, 0.4872, -0.1123], [0.0000, -0.0646, -0.1586]]),
                     (9, [[0.000,  1.9903, 116.76], [0.0000,  4.7166, 13.462], [0.0000, 0.4510, -0.2159], [0.0000, -0.1378, -0.1893]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -766,7 +770,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         innerNodes_x = []
         innerNodes_d1 = []
         innerNodes_d2 = []
-        nd1 = matrix.rotateAboutZAxis(nd2_max[0], 0.5 * math.pi)
+        nd1 = rotate_about_z_axis(nd2_max[0], 0.5 * math.pi)
         innerNodes_d1 += [nd1] * elementsCountAround
         for n1 in range(0, len(nx_max)):
             xAround, d1Around = createEllipsePoints([0.0, 0.0, nx_max[n1][2]], 2 * math.pi, [nx_max[n1][1], 0.0, 0.0],
@@ -866,7 +870,7 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         innerRadiusAlong = []
         for n2 in range(elementsCountAlong + 1):
             firstNodeAlong = innerNodes_x[n2 * elementsCountAround]
-            radius = vector.magnitude(firstNodeAlong[c] - [0.0, 0.0, firstNodeAlong[2]][c] for c in range(3))
+            radius = magnitude(firstNodeAlong[c] - [0.0, 0.0, firstNodeAlong[2]][c] for c in range(3))
             innerRadiusAlong.append(radius)
 
         # Warp points
@@ -902,11 +906,11 @@ class MeshType_3d_bladderurethra1(Scaffold_base):
         # Arclength between apex point and corresponding point on next face
         mag = interp.getCubicHermiteArcLength(xList[0], d2List[0], xList[2 * elementsCountAround],
                                               d2List[2 * elementsCountAround])
-        d2ApexInner = vector.setMagnitude(sd2[0], mag)
-        d1ApexInner = vector.crossproduct3(sd1[0], d2ApexInner)
-        d1ApexInner = vector.setMagnitude(d1ApexInner, mag)
-        d3ApexUnit = vector.normalise(
-            vector.crossproduct3(vector.normalise(d1ApexInner), vector.normalise(d2ApexInner)))
+        d2ApexInner = set_magnitude(sd2[0], mag)
+        d1ApexInner = cross(sd1[0], d2ApexInner)
+        d1ApexInner = set_magnitude(d1ApexInner, mag)
+        d3ApexUnit = normalize(
+            cross(normalize(d1ApexInner), normalize(d2ApexInner)))
         d3ApexInner = [d3ApexUnit[c] * bladderWallThickness / elementsCountThroughWall for c in range(3)]
 
         xFinal = []
@@ -1385,7 +1389,7 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCoun
         ureterElementPositionAround + (1 if ureter1Position.xi1 > 0.5 else 0)
     ureter1StartCornerx = xBladder[endPointStartId1 - 1]
     v1 = [(ureter1StartCornerx[c] - centerUreter1_x[c]) for c in range(3)]
-    ureter1Direction = vector.crossproduct3(td3, v1)
+    ureter1Direction = cross(td3, v1)
     nodeIdentifier, elementIdentifier, (o1_x, o1_d1, o1_d2, _, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter1, ureter1Position, ureter1Direction,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
@@ -1401,7 +1405,7 @@ def generateUreterInlets(region, nodes, mesh, ureterDefaultOptions, elementsCoun
                        elementsCountAround - ureterElementPositionAround + (-1 if ureter1Position.xi1 > 0.5 else 0)
     ureter2StartCornerx = xBladder[endPointStartId2 - 1]
     v2 = [(ureter2StartCornerx[c] - centerUreter2_x[c]) for c in range(3)]
-    ureter2Direction = vector.crossproduct3(ad3, v2)
+    ureter2Direction = cross(ad3, v2)
     nodeIdentifier, elementIdentifier, (o2_x, o2_d1, o2_d2, _, o2_NodeId, o2_Positions) = \
         generateOstiumMesh(region, ureterDefaultOptions, trackSurfaceUreter2, ureter2Position, ureter2Direction,
                            startNodeIdentifier=nodeIdentifier, startElementIdentifier=elementIdentifier,
@@ -1589,7 +1593,7 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     # Find the angle at the bottom of the bladder neck
     v1 = [0.0, 0.0, bladderLength]
     v2 = [0.5 * neckDiameter1, 0.0, bladderLength]
-    alpha = vector.angleBetweenVectors(v1, v2)
+    alpha = angle(v1, v2)
 
     # Find apex to urethra arcLength in minor radius
     minorNodeAlong_x.insert(0, xApexInner)
@@ -1703,8 +1707,8 @@ def obtainBladderFlatNodes(elementsCountAlongBladder, elementsCountAround, eleme
     v3 = xfnListRearranged[elementsCountAround // 2]
     v21 = [v2[c] - v1[c] for c in range(3)]
     v31 = [v3[c] - v1[c] for c in range(3)]
-    d1Mag = vector.magnitude(v21)
-    d2Mag = vector.magnitude(v31)
+    d1Mag = magnitude(v21)
+    d2Mag = magnitude(v31)
 
     # Add apex nodes to the list
     xFlat = []

@@ -7,14 +7,13 @@ from __future__ import division
 import copy
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, normalize, magnitude, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints, getCircleProjectionAxes
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition, calculate_surface_axes
@@ -388,9 +387,9 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
         pd2, pd1, pd3 = calculate_surface_axes(d1, d2, sideDirection)
         # get outer coordinates
         opx = px
-        opd1 = vector.setMagnitude([-d for d in pd1], elementLengthAroundOstiumEnd)
-        opd2 = vector.setMagnitude(pd2, elementLengthAroundOstiumEnd)  # smoothed later
-        opd3 = vector.setMagnitude(pd3, ostiumWallThickness)
+        opd1 = set_magnitude([-d for d in pd1], elementLengthAroundOstiumEnd)
+        opd2 = set_magnitude(pd2, elementLengthAroundOstiumEnd)  # smoothed later
+        opd3 = set_magnitude(pd3, ostiumWallThickness)
 
         ostiumTotalXi3 = 0.0
         vesselTotalXi3 = 0.0
@@ -459,13 +458,13 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             mx, d1, d2 = trackSurface.evaluateCoordinates(position, derivatives=True)
             md1, md2, md3 = calculate_surface_axes(d1, d2, trackDirection1)
             nx .insert(1, [(mx[c] + interVesselHeight * md3[c]) for c in range(3)])
-            nd1.insert(1, vector.setMagnitude(md1, elementLengthAroundOstiumMid if (0 < iv < (vesselsCount - 2)) else
+            nd1.insert(1, set_magnitude(md1, elementLengthAroundOstiumMid if (0 < iv < (vesselsCount - 2)) else
                                                    elementLengthAroundOstiumEnd))
-            nd2.insert(1, vector.setMagnitude(md2, ostiumRadius))
+            nd2.insert(1, set_magnitude(md2, ostiumRadius))
         nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
         px, pd2, pe, pxi = interp.sampleCubicHermiteCurves(nx, nd2, elementsCountAcross)[0:4]
         pd1 = interp.interpolateSampleLinear(nd1, pe, pxi)
-        pd3 = [vector.setMagnitude(vector.crossproduct3(pd1[n2], pd2[n2]), commonOstiumWallThickness)
+        pd3 = [set_magnitude(cross(pd1[n2], pd2[n2]), commonOstiumWallThickness)
                for n2 in range(elementsCountAcross + 1)]
         for n3 in range(elementsCountThroughWall + 1):
             xi3 = 1 - commonOstiumWallThicknessXi3List[n3]
@@ -478,7 +477,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             od2[n3][oa] = [-d for d in ld2[0]]
             od2[n3][ob] = ld2[-1]
             if useCubicHermiteThroughOstiumWall:
-                pd3Element = [vector.setMagnitude(vector.crossproduct3(pd1[n2], pd2[n2]),
+                pd3Element = [set_magnitude(cross(pd1[n2], pd2[n2]),
                                                   commonOstiumWallThickness * commonOstiumWallThicknessProportions[n3])
                               for n2 in range(elementsCountAcross + 1)]
                 xd3[iv][n3] = copy.deepcopy(pd3Element[1:elementsCountAcross])
@@ -513,8 +512,8 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
         vod3.append([])
         for n3 in range(elementsCountThroughWall + 1):
             radius = vesselInnerRadius + vesselWallThicknessXi3List[n3] * vesselWallThickness
-            vAxis1 = vector.setMagnitude(vd1, radius)
-            vAxis2 = vector.setMagnitude(vd2, radius)
+            vAxis1 = set_magnitude(vd1, radius)
+            vAxis2 = set_magnitude(vd2, radius)
             if vesselsCount == 1:
                 startRadians = 0.5 * math.pi
             else:
@@ -526,7 +525,7 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
             vod1[-1].append(pd1)
             vod2[-1].append([vd3] * elementsCountAroundVessel)
             if useCubicHermiteThroughVesselWall:
-                vod3[-1].append([vector.setMagnitude(vector.crossproduct3(d1, vd3),
+                vod3[-1].append([set_magnitude(cross(d1, vd3),
                                                      vesselWallThickness * vesselWallThicknessProportions[n3])
                                  for d1 in pd1])
 
@@ -668,28 +667,28 @@ def generateOstiumMesh(region, options, trackSurface, centrePosition, axis1, sta
                         for c in range(3):
                             mvPointsd1[v][n3][n1][c] = 0.5 * (mvPointsd1[v][n3][n1][c] + sf1 * ndf[c])
                 else:
-                    # print('v', v, 'n3', n3, 'n1', n1, ':', vector.magnitude(ndf), 'vs.', vector.magnitude(nd2[1]),
+                    # print('v', v, 'n3', n3, 'n1', n1, ':', magnitude(ndf), 'vs.', magnitude(nd2[1]),
                     #       'd2Map', d2Map)
                     pass
 
     # calculate inner d2 derivatives around ostium from outer using track surface curvature
     factor = 1.0
     for n1 in range(elementsCountAroundOstium):
-        trackDirection = vector.normalise(od2[elementsCountThroughWall][n1])
-        trackDistance = factor * vector.magnitude(od2[elementsCountThroughWall][n1])
+        trackDirection = normalize(od2[elementsCountThroughWall][n1])
+        trackDistance = factor * magnitude(od2[elementsCountThroughWall][n1])
         tx = [None, ox[elementsCountThroughWall][n1], None]
-        td1 = [None, vector.setMagnitude(od2[elementsCountThroughWall][n1], trackDistance), None]
-        td2 = [None, vector.setMagnitude(od1[elementsCountThroughWall][n1], -trackDistance), None]
+        td1 = [None, set_magnitude(od2[elementsCountThroughWall][n1], trackDistance), None]
+        td2 = [None, set_magnitude(od1[elementsCountThroughWall][n1], -trackDistance), None]
         positionBackward = trackSurface.trackVector(oPositions[n1], trackDirection, -trackDistance)
         tx[0], d1, d2 = trackSurface.evaluateCoordinates(positionBackward, derivatives=True)
         sd1, sd2, sd3 = calculate_surface_axes(d1, d2, trackDirection)
-        td1[0] = vector.setMagnitude(sd1, trackDistance)
-        td2[0] = vector.setMagnitude(sd2, trackDistance)
+        td1[0] = set_magnitude(sd1, trackDistance)
+        td2[0] = set_magnitude(sd2, trackDistance)
         positionForward = trackSurface.trackVector(oPositions[n1], trackDirection, trackDistance)
         tx[2], d1, d2 = trackSurface.evaluateCoordinates(positionForward, derivatives=True)
         sd1, sd2, sd3 = calculate_surface_axes(d1, d2, trackDirection)
-        td1[2] = vector.setMagnitude(sd1, trackDistance)
-        td2[2] = vector.setMagnitude(sd2, trackDistance)
+        td1[2] = set_magnitude(sd1, trackDistance)
+        td2[2] = set_magnitude(sd2, trackDistance)
         for n3 in range(elementsCountThroughWall):
             xi3 = 1 - ostiumWallThicknessXi3List[n3]
             newd2 = interp.projectHermiteCurvesThroughWall(tx, td1, td2, 1, -ostiumWallThickness * xi3)[1]

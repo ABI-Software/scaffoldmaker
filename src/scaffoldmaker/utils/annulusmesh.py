@@ -6,11 +6,11 @@ from __future__ import division
 import copy
 from collections.abc import Sequence
 
+from cmlibs.maths.vectorops import magnitude, set_magnitude, normalize, cross, dot
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -206,11 +206,11 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
     # Find total wall thickness
     thicknessProportions = []
     thicknesses = []
-    thicknesses.append([vector.magnitude([(startPointsx[nodesCountWall - 1][n1][c] - startPointsx[0][n1][c])
+    thicknesses.append([magnitude([(startPointsx[nodesCountWall - 1][n1][c] - startPointsx[0][n1][c])
                                           for c in range(3)]) for n1 in range(nodesCountAround)])
     for n2 in range(1, elementsCountRadial):
         thicknesses.append([None] * nodesCountAround)
-    thicknesses.append([vector.magnitude([(endPointsx[nodesCountWall - 1][n1][c] - endPointsx[0][n1][c])
+    thicknesses.append([magnitude([(endPointsx[nodesCountWall - 1][n1][c] - endPointsx[0][n1][c])
                                           for c in range(3)]) for n1 in range(nodesCountAround)])
 
     for n3 in range(nodesCountWall):
@@ -221,10 +221,10 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                    endPointsd3[n3] if (endPointsd3 is not None) else None]
 
         startThicknessList = \
-            [vector.magnitude([(startPointsx[n3][n1][c] - startPointsx[n3 - (1 if n3 > 0 else 0)][n1][c])
+            [magnitude([(startPointsx[n3][n1][c] - startPointsx[n3 - (1 if n3 > 0 else 0)][n1][c])
                                for c in range(3)]) for n1 in range(len(startPointsx[n3]))]
         endThicknessList = \
-            [vector.magnitude([(endPointsx[n3][n1][c] - endPointsx[n3 - (1 if n3 > 0 else 0)][n1][c])
+            [magnitude([(endPointsx[n3][n1][c] - endPointsx[n3 - (1 if n3 > 0 else 0)][n1][c])
                                for c in range(3)]) for n1 in range(len(endPointsx[n3]))]
         thicknessList = [startThicknessList, endThicknessList]  # thickness of each layer
 
@@ -251,14 +251,14 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
             bd1, bd2 = getMappedD1D2([endPointsd1[n3][n1], endPointsd2[n3][n1]] +
                                      ([endPointsd3[n3][n1]] if endPointsd3 else []),
                                      endDerivativesMap[n3][n1] if endDerivativesMap else None)
-            bd2 = vector.setMagnitude(bd2, vector.magnitude(ad2))
+            bd2 = set_magnitude(bd2, magnitude(ad2))
             scaling = interp.computeCubicHermiteDerivativeScaling(ax, ad2, bx, bd2)
             if fixMinimumStart:
-                mag = vector.magnitude(ad2) * scaling
+                mag = magnitude(ad2) * scaling
                 if (fixStartMagnitude is None) or (mag < fixStartMagnitude):
                     fixStartMagnitude = mag
             else:  # fixMinimumEnd:
-                mag = vector.magnitude(bd2) * scaling
+                mag = magnitude(bd2) * scaling
                 if (fixEndMagnitude is None) or (mag < fixEndMagnitude):
                     fixEndMagnitude = mag
 
@@ -290,17 +290,17 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
 
         # sample between start and end points and derivatives
         # scaling end derivatives to arc length gives even curvature along the curve
-        aMag = vector.magnitude(ad2)
-        bMag = vector.magnitude(bd2)
+        aMag = magnitude(ad2)
+        bMag = magnitude(bd2)
         ad2mag = 0.5 * ((1.0 + sampleBlend) * aMag + (1.0 - sampleBlend) * bMag)
-        ad2Scaled = vector.setMagnitude(ad2, ad2mag) if (aMag > 0.0) else [0.0, 0.0, 0.0]
+        ad2Scaled = set_magnitude(ad2, ad2mag) if (aMag > 0.0) else [0.0, 0.0, 0.0]
         bd2mag = 0.5 * ((1.0 + sampleBlend) * bMag + (1.0 - sampleBlend) * aMag)
-        bd2Scaled = vector.setMagnitude(bd2, bd2mag) if (bMag > 0.0) else [0.0, 0.0, 0.0]
+        bd2Scaled = set_magnitude(bd2, bd2mag) if (bMag > 0.0) else [0.0, 0.0, 0.0]
         scaling = interp.computeCubicHermiteDerivativeScaling(ax, ad2Scaled, bx, bd2Scaled)
         ad2Scaled = [d * scaling for d in ad2Scaled]
         bd2Scaled = [d * scaling for d in bd2Scaled]
-        derivativeMagnitudeStart = None if rescaleStartDerivatives else vector.magnitude(ad2)
-        derivativeMagnitudeEnd = None if rescaleEndDerivatives else vector.magnitude(bd2)
+        derivativeMagnitudeStart = None if rescaleStartDerivatives else magnitude(ad2)
+        derivativeMagnitudeEnd = None if rescaleEndDerivatives else magnitude(bd2)
         if fixStartMagnitude:
             derivativeMagnitudeStart = fixStartMagnitude / elementsCountRadial
         elif fixEndMagnitude:
@@ -345,10 +345,10 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
 
         # set scalefactors if rescaling, make same on inside for now
         if rescaleStartDerivatives:
-            scaleFactor = vector.magnitude(md2[0]) / vector.magnitude(ad2)
+            scaleFactor = magnitude(md2[0]) / magnitude(ad2)
             scaleFactorMapStart[n3].append(scaleFactor)
         if rescaleEndDerivatives:
-            scaleFactor = vector.magnitude(md2[-1]) / vector.magnitude(bd2)
+            scaleFactor = magnitude(md2[-1]) / magnitude(bd2)
             scaleFactorMapEnd[n3].append(scaleFactor)
 
         for n2 in range(1, elementsCountRadial):
@@ -378,7 +378,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
         for n3 in range(0, nodesCountWall - 1):
             for n1 in range(nodesCountAround):
                 xi3 = 1 - xi3List[n3][n2][n1]
-                normal = vector.normalise(vector.crossproduct3(pd1[-1][n2][n1], pd2[-1][n2][n1]))
+                normal = normalize(cross(pd1[-1][n2][n1], pd2[-1][n2][n1]))
                 thickness = thicknesses[n2][n1] * xi3
                 d3 = [d * thickness for d in normal]
                 px[n3][n2][n1] = [(px[-1][n2][n1][c] - d3[c]) for c in range(3)]
@@ -403,7 +403,7 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                 factor = 1.0 + curvature * thickness
                 pd2[n3][n2][n1] = [factor * d for d in pd2[-1][n2][n1]]
                 d2Scaled = [factor * d for d in pd2[-1][n2][n1]]
-                if vector.dotproduct(vector.normalise(pd2[-1][n2][n1]), vector.normalise(d2Scaled)) == -1:
+                if dot(normalize(pd2[-1][n2][n1]), normalize(d2Scaled)) == -1:
                     pd2[n3][n2][n1] = [-factor * d for d in pd2[-1][n2][n1]]
                 if not midLinearXi3:
                     pd3[n3][n2][n1] = pd3[-1][n2][n1] = \
@@ -435,10 +435,10 @@ def createAnnulusMesh3d(nodes, mesh, nextNodeIdentifier, nextElementIdentifier, 
                                                            magnitudeScalingMode=interp.DerivativeScalingMode.
                                                            HARMONIC_MEAN)
             if rescaleStartDerivatives:
-                scaleFactor = vector.magnitude(sd2[0]) / vector.magnitude(md2[0])
+                scaleFactor = magnitude(sd2[0]) / magnitude(md2[0])
                 scaleFactorMapStart[n3].append(scaleFactor)
             if rescaleEndDerivatives:
-                scaleFactor = vector.magnitude(sd2[-1]) / vector.magnitude(md2[-1])
+                scaleFactor = magnitude(sd2[-1]) / magnitude(md2[-1])
                 scaleFactorMapEnd[n3].append(scaleFactor)
 
             for n2 in range(1, elementsCountRadial):

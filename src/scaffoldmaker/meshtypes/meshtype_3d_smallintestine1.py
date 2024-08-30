@@ -6,6 +6,7 @@ wall, with variable radius and thickness along.
 
 import copy
 
+from cmlibs.maths.vectorops import normalize, cross, magnitude
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -17,7 +18,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.tubemesh import CylindricalSegmentTubeMeshOuterPoints
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
@@ -36,7 +36,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                              "137-138-139-140-141-142-143-144-145-146-147-148-149-150-151-152"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [
+                ['coordinates'],
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [[
                 (1, [[-32.281,-136.261,1061.249], [-6.125,11.114,-0.493], [-5.735,-3.374,-4.823], [-2.070,-0.220,-4.520], [-4.630,-2.238,7.071], [-4.400,2.440,0.570]]),
                 (2, [[-40.674,-122.300,1060.850], [-5.403,7.321,-2.629], [-4.779,-4.249,-5.161], [2.360,-0.320,0.120], [-5.138,-1.668,6.875], [-0.250,2.080,-4.500]]),
                 (3, [[-48.346,-108.981,1049.574], [-6.840,19.440,-21.940], [-3.459,-4.108,-5.699], [0.900,0.690,1.570], [-7.043,0.777,3.341], [-0.760,2.950,-2.230]]),
@@ -189,7 +190,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (150, [[-52.380,-100.900,869.760], [4.760,24.010,12.610], [-3.169,0.219,3.447], [-0.280,-0.300,-1.610], [4.600,-0.510,-0.770], [-2.290,1.100,4.280]]),
                 (151, [[-41.730,-76.290,892.900], [-14.020,14.240,19.650], [-3.750,-3.589,-1.622], [3.240,-2.890,0.750], [1.930,-2.620,3.270], [-5.090,5.860,6.610]]),
                 (152, [[-60.630,-80.530,895.250], [-6.170,-10.100,-5.870], [2.660,0.730,-4.050], [2.380,0.990,-1.140], [3.310,-2.970,1.640], [2.380,0.990,-1.140]])
-                ] ),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -250,7 +251,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                              "533-534-535-536-537"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[-502.30,732.10,92.00], [-49.80,-90.70,0.00], [0.00,0.00,12.00], [0.00,0.00,0.00], [-10.52,5.77,0.00], [0.00,0.00,0.00]]),
                 (2, [[-543.10,654.80,92.00], [-31.70,-64.00,0.00], [0.00,0.00,12.00], [0.00,0.00,0.00], [-10.75,5.33,0.00], [0.00,0.00,0.00]]),
                 (3, [[-566.20,605.00,92.00], [-43.40,-40.20,0.00], [0.00,0.00,12.00], [0.00,0.00,0.00], [-8.16,8.81,0.00], [0.00,0.00,0.00]]),
@@ -788,7 +790,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (535, [[-55.20,436.50,11.50], [-50.10,54.50,-0.10], [8.19,8.83,-0.65], [0.24,8.59,-0.86], [-1.11,0.26,-12.00], [0.34,11.63,-1.17]]),
                 (536, [[-121.40,460.30,17.10], [-86.80,60.90,-1.80], [6.07,10.28,-1.54], [0.90,-2.49,-1.08], [-1.49,-0.82,-11.91], [1.24,-3.38,-1.46]]),
                 (537, [[-164.50,536.10,-17.30], [-9.90,55.20,-8.50], [11.44,1.36,-3.37], [8.03,-12.39,-1.98], [-3.05,-2.47,-11.34], [10.93,-16.81,-2.68]])
-                ] ),
+                ]]),
             
             'userAnnotationGroups': [
                 {
@@ -828,7 +830,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                              "33-34-35-36-37-38-39-40-41-42-43-44-45-46"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [
+                ['coordinates'],
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3  ], [[
                 (1, [[-2.30,18.50,-4.40], [-4.20,-0.80,3.70], [0.00,0.70,0.00], [0.00,0.11,0.00], [-0.39,0.01,-0.58], [0.00,0.00,0.50]]),
                 (2, [[-8.60,16.30,-0.40], [-7.10,-2.70,1.60], [0.00,0.83,0.00], [0.00,0.14,0.00], [0.09,0.10,-0.82], [0.00,0.00,0.50]]),
                 (3, [[-18.30,12.60,-1.50], [-6.40,-1.70,-3.80], [0.00,1.00,0.00], [0.00,0.13,0.00], [0.68,0.04,-0.72], [0.00,0.00,0.50]]),
@@ -875,7 +878,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (44, [[-20.50,2.30,-6.10], [3.50,7.20,-2.90], [-1.09,0.10,-0.10], [-0.21,0.77,-0.11], [-0.19,0.13,1.08], [0.00,0.00,0.50]]),
                 (45, [[-11.40,2.60,-10.10], [10.40,1.50,-0.20], [-0.09,0.56,-0.95], [0.49,0.10,-0.38], [-0.11,0.94,0.56], [0.00,0.00,0.50]]),
                 (46, [[-3.80,4.20,-7.30], [3.50,0.90,2.70], [0.08,0.40,-1.02], [-0.19,-0.40,0.24], [-0.80,0.75,0.01], [0.00,0.00,0.50]])
-                ] ),
+                ]]),
                 
             'userAnnotationGroups': [
                 {
@@ -1175,7 +1178,7 @@ def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifie
                                                             lengthFractionStart=lengthFraction)
     sd2, sd12 = interp.interpolateSampleCubicHermite(cd2, cd12, se, sxi, ssf)
 
-    outerRadiusListCP = [vector.magnitude(c) for c in cd2]
+    outerRadiusListCP = [magnitude(c) for c in cd2]
     dOuterRadiusListCP = []
     for n in range(len(outerRadiusListCP) - 1):
         dOuterRadiusListCP.append(outerRadiusListCP[n + 1] - outerRadiusListCP[n])
@@ -1256,6 +1259,10 @@ def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifie
     d2Extrude = []
     d3UnitExtrude = []
 
+    d1LastTwoFaces = None
+    d2LastTwoFaces = None
+    xLastTwoFaces = None
+
     # Create object
     smallIntestineSegmentTubeMeshOuterPoints = CylindricalSegmentTubeMeshOuterPoints(
         elementsCountAround, elementsCountAlongSegment, segmentLength,
@@ -1297,8 +1304,8 @@ def createSmallIntestineMesh3d(region, options, networkLayout, nextNodeIdentifie
                                                               fixEndDerivative = True)[1]
                 d2Extrude.append(d2)
                 d3Unit = \
-                    vector.normalise(vector.crossproduct3(vector.normalise(d1LastTwoFaces[n1 + elementsCountAround]),
-                                                          vector.normalise(d2)))
+                    normalize(cross(normalize(d1LastTwoFaces[n1 + elementsCountAround]),
+                                                          normalize(d2)))
                 d3UnitExtrude.append(d3Unit)
             d2Extrude = d2Extrude + \
                         (d2WarpedList[elementsCountAround:-elementsCountAround] if nSegment < segmentCount - 1 else

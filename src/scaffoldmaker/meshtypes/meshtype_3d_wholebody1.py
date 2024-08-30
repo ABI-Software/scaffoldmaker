@@ -7,6 +7,7 @@ from __future__ import division
 
 import copy
 
+from cmlibs.maths.vectorops import set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers
 from cmlibs.utils.zinc.general import ChangeManager
@@ -23,7 +24,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.cylindermesh import CylinderMesh, CylinderShape, CylinderEnds, CylinderCentralPath
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabelsVersion
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.vector import setMagnitude
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 
 
@@ -47,15 +47,16 @@ Generates body coordinates using a solid cylinder of all cube elements,
         'Default': ScaffoldPackage(MeshType_1d_path1, {
             'scaffoldSettings': cylinder1Settings,
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
                  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3],
-                [
-                    (1, [[0.0, 0.0, 0.0], setMagnitude(axis1, cylinder1Settings['Length']), setMagnitude(axis2, 0.5),
-                         [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]]),
-                    (2, [setMagnitude(axis1, cylinder1Settings['Length']),
-                         setMagnitude(axis1, cylinder1Settings['Length']),
-                         setMagnitude(axis2, 0.5), [0.0, 0.0, 0.0], setMagnitude(axis3, 0.5), [0.0, 0.0, 0.0]])
-                ])
+                [[
+                    (1, [[0.0, 0.0, 0.0], set_magnitude(axis1, cylinder1Settings['Length']), set_magnitude(axis2, 0.5),
+                         [0.0, 0.0, 0.0], set_magnitude(axis3, 0.5), [0.0, 0.0, 0.0]]),
+                    (2, [set_magnitude(axis1, cylinder1Settings['Length']),
+                         set_magnitude(axis1, cylinder1Settings['Length']),
+                         set_magnitude(axis2, 0.5), [0.0, 0.0, 0.0], set_magnitude(axis3, 0.5), [0.0, 0.0, 0.0]])
+                ]])
         })
     }
 

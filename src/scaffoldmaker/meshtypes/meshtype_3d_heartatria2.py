@@ -7,6 +7,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import normalize, magnitude, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element, Elementbasis
@@ -16,7 +17,6 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, getEllipseRadiansToX, updateEllipseAngleByArcLength
@@ -362,7 +362,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
                 aSeptumCentreY = laCentreY + math.cos(laSeptumRadians)*aBaseInnerMajorMag*math.sin(-aMajorAxisRadians) \
                                     + math.sin(laSeptumRadians)*aBaseInnerMinorMag*math.cos(-aMajorAxisRadians)
                 tx1 = [ -0.5*aSeptumThickness, aSeptumCentreY, -aBaseSlopeHeight ]
-                ax1 = vector.normalise([ (sx2[c] - sx1[c]) for c in range(3) ])
+                ax1 = normalize([ (sx2[c] - sx1[c]) for c in range(3) ])
                 ax2 = [ -ax1[1], ax1[0], ax1[2] ]
                 ax3 = [ 0.0, 0.0, 1.0 ]
 
@@ -544,13 +544,13 @@ class MeshType_3d_heartatria2(Scaffold_base):
                                  cosRadiansUp*aEquatorMinorMag*sinMajorAxisRadians,
                                 -cosRadiansUp*aEquatorMinorMag*cosMajorAxisRadians,
                                 -sinRadiansUp*aScaleZ ]
-                            minorScale = elementSizeUpMinor/vector.magnitude(d2Minor)
+                            minorScale = elementSizeUpMinor/magnitude(d2Minor)
                             d2Minor = [ d*minorScale for d in d2Minor ]
                             d2Major = [
                                 -cosRadiansUpMajor*aEquatorMajorMag*cosMajorAxisRadians,
                                 -cosRadiansUpMajor*aEquatorMajorMag*sinMajorAxisRadians,
                                 -sinRadiansUpMajor*aMajorScaleZ ]
-                            majorScale = derivativesUpMajor[n2]/vector.magnitude(d2Major)
+                            majorScale = derivativesUpMajor[n2]/magnitude(d2Major)
                             d2Major = [ d*majorScale for d in d2Major ]
 
                             dx_ds2 = [
@@ -604,13 +604,13 @@ class MeshType_3d_heartatria2(Scaffold_base):
                 result, d3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
                 d3 = [ -d for d in d3 ]
                 arcLength = interp.computeCubicHermiteArcLength(x, dx_ds1, x3, d3, True)
-                scale1 = (2.0*arcLength - vector.magnitude(d3))/vector.magnitude(dx_ds1)
+                scale1 = (2.0*arcLength - magnitude(d3))/magnitude(dx_ds1)
                 dx_ds1 = [ d*scale1 for d in dx_ds1 ]
 
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 apexNodeId.append(nodeIdentifier)
                 cache.setNode(node)
-                #print(n3, i, 'project apex', nid1, nid2, nid3, vector.magnitude(dx_ds1))
+                #print(n3, i, 'project apex', nid1, nid2, nid3, magnitude(dx_ds1))
                 x[2] = aOuterHeight - aFreeWallThickness if (n3 == 0) else aOuterHeight
                 result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
@@ -664,7 +664,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         d1 = [ (xc[c] - x1[c]) for c in range(3) ]
         d2 = [ (xc[c] - x2[c]) for c in range(3) ]
         dx_ds3 = [ d1[0] + d2[0], d1[1] + d2[1], d1[2] + d2[2] ]
-        scale = vector.magnitude(d1)/vector.magnitude(dx_ds3)
+        scale = magnitude(d1)/magnitude(dx_ds3)
         dx_ds3 = [ d*scale for d in dx_ds3 ]
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3 )
 
@@ -687,9 +687,9 @@ class MeshType_3d_heartatria2(Scaffold_base):
         d2 = [ 1.0, 0.0, 0.0 ]
         #print('septum top centre ', x2)
         arcLength = interp.computeCubicHermiteArcLength(x1, d1, x2, d2, True)
-        scale1 = arcLength/vector.magnitude(d1)
+        scale1 = arcLength/magnitude(d1)
         d1 = [ d*scale1 for d in d1 ]
-        scale2 = arcLength/vector.magnitude(d2)
+        scale2 = arcLength/magnitude(d2)
         d2 = [ d*arcLength for d in d2 ]
         # GRC fudge factor:
         xi = 0.7
@@ -697,11 +697,11 @@ class MeshType_3d_heartatria2(Scaffold_base):
         lasmd1 = interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
         scale1 = (1.0 - xi)*2.0
         lasmd1 = [ d*scale1 for d in lasmd1 ]
-        lasmd2 = vector.normalise(vector.crossproduct3([0.0, 0.0, 1.0], lasmd1))
-        lasmd3 = vector.crossproduct3(lasmd1, lasmd2)
-        scale3 = aFreeWallThickness/vector.magnitude(lasmd3)
+        lasmd2 = normalize(cross([0.0, 0.0, 1.0], lasmd1))
+        lasmd3 = cross(lasmd1, lasmd2)
+        scale3 = aFreeWallThickness/magnitude(lasmd3)
         lasmd3 = [ d*scale3 for d in lasmd3 ]
-        lasmCurvature1 = -interp.getCubicHermiteCurvature(x1, d1, x2, d2, vector.normalise(lasmd3), xi)
+        lasmCurvature1 = -interp.getCubicHermiteCurvature(x1, d1, x2, d2, normalize(lasmd3), xi)
 
         for n3 in range(2):
             for n2 in range(2):
@@ -717,7 +717,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         result, laspd3 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
         cache.setNode(nodes.findNodeByIdentifier(laspNodeId[1][n2]))
         result, laspd1_outer =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-        laspCurvature1 = (vector.magnitude(laspd1_outer)/vector.magnitude(laspd1) - 1.0)/aFreeWallThickness
+        laspCurvature1 = (magnitude(laspd1_outer)/magnitude(laspd1) - 1.0)/aFreeWallThickness
         cache.setNode(nodes.findNodeByIdentifier(lasaNodeId[0][n2]))
         result, lasax =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
         result, lasad1 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
@@ -725,7 +725,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
         result, lasad3 =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
         cache.setNode(nodes.findNodeByIdentifier(lasaNodeId[1][n2]))
         result, lasad1_outer =  coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-        lasaCurvature1 = (vector.magnitude(lasad1_outer)/vector.magnitude(lasad1) - 1.0)/aFreeWallThickness
+        lasaCurvature1 = (magnitude(lasad1_outer)/magnitude(lasad1) - 1.0)/aFreeWallThickness
 
         # create points arcing over septum peak
         for n3 in range(2):
@@ -733,10 +733,10 @@ class MeshType_3d_heartatria2(Scaffold_base):
             #print(str(n3) + '. ra septum nodes p', raspNodeId[n3][1],'a', rasaNodeId[n3][1])
             arcLength = interp.computeCubicHermiteArcLength(laspx, laspd2, lasmx, lasmd2, True)
             x1 = laspx
-            scale1 = arcLength/vector.magnitude(laspd2)
+            scale1 = arcLength/magnitude(laspd2)
             d1 = [ d*scale1 for d in laspd2 ]
             x2 = lasmx
-            scale2 = arcLength/vector.magnitude(lasmd2)
+            scale2 = arcLength/magnitude(lasmd2)
             d2 = [ d*scale2 for d in lasmd2 ]
             derivativeScale = arcLength/(elementsCountUpAtria - 1.0)
             for n2 in range(2, elementsCountUpAtria + 1):
@@ -745,16 +745,16 @@ class MeshType_3d_heartatria2(Scaffold_base):
                 x = interp.interpolateCubicHermite(x1, d1, x2, d2, xi)
                 dx_ds1 = [ (xi*lasmd1[c] + xr*laspd1[c]) for c in range(3) ]
                 dx_ds2 = interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
-                scale2 = derivativeScale/vector.magnitude(dx_ds2)
+                scale2 = derivativeScale/magnitude(dx_ds2)
                 dx_ds2 = [ d*scale2 for d in dx_ds2 ]
-                dx_ds3 = vector.crossproduct3(dx_ds1, dx_ds2)
-                scale3 = aFreeWallThickness/vector.magnitude(dx_ds3)
+                dx_ds3 = cross(dx_ds1, dx_ds2)
+                scale3 = aFreeWallThickness/magnitude(dx_ds3)
                 dx_ds3 = [ d*scale3 for d in dx_ds3 ]
                 if n3 == 1:
                     curvature1 = xi*lasmCurvature1 + xr*laspCurvature1
                     curvatureScale1 = 1.0 + aFreeWallThickness*curvature1
                     dx_ds1 = [ d*curvatureScale1 for d in dx_ds1 ]
-                    radialVector = vector.normalise(dx_ds3)
+                    radialVector = normalize(dx_ds3)
                     curvature2 = -interp.getCubicHermiteCurvature(x1, d1, x2, d2, radialVector, xi)
                     curvatureScale2 = 1.0 + aFreeWallThickness*curvature2
                     dx_ds2 = [ d*curvatureScale2 for d in dx_ds2 ]
@@ -785,10 +785,10 @@ class MeshType_3d_heartatria2(Scaffold_base):
 
             arcLength = interp.computeCubicHermiteArcLength(lasax, lasad2, lasmx, lasmd2, True)
             x1 = lasax
-            scale1 = arcLength/vector.magnitude(lasad2)
+            scale1 = arcLength/magnitude(lasad2)
             d1 = [ d*scale1 for d in lasad2 ]
             x2 = lasmx
-            scale2 = -arcLength/vector.magnitude(lasmd2)
+            scale2 = -arcLength/magnitude(lasmd2)
             d2 = [ d*scale2 for d in lasmd2 ]
             derivativeScale = arcLength/(elementsCountUpAtria - 1.0)
             for n2 in range(2, elementsCountUpAtria):
@@ -797,16 +797,16 @@ class MeshType_3d_heartatria2(Scaffold_base):
                 x = interp.interpolateCubicHermite(x1, d1, x2, d2, xi)
                 dx_ds1 = [ (xi*-lasmd1[c] + xr*lasad1[c]) for c in range(3) ]
                 dx_ds2 = interp.interpolateCubicHermiteDerivative(x1, d1, x2, d2, xi)
-                scale2 = derivativeScale/vector.magnitude(dx_ds2)
+                scale2 = derivativeScale/magnitude(dx_ds2)
                 dx_ds2 = [ d*scale2 for d in dx_ds2 ]
-                dx_ds3 = vector.crossproduct3(dx_ds1, dx_ds2)
-                scale3 = aFreeWallThickness/vector.magnitude(dx_ds3)
+                dx_ds3 = cross(dx_ds1, dx_ds2)
+                scale3 = aFreeWallThickness/magnitude(dx_ds3)
                 dx_ds3 = [ d*scale3 for d in dx_ds3 ]
                 if n3 == 1:
                     curvature1 = xi*lasmCurvature1 + xr*lasaCurvature1
                     curvatureScale1 = 1.0 + aFreeWallThickness*curvature1
                     dx_ds1 = [ d*curvatureScale1 for d in dx_ds1 ]
-                    radialVector = vector.normalise(dx_ds3)
+                    radialVector = normalize(dx_ds3)
                     curvature2 = -interp.getCubicHermiteCurvature(x1, d1, x2, d2, radialVector, xi)
                     curvatureScale2 = 1.0 + aFreeWallThickness*curvature2
                     dx_ds2 = [ d*curvatureScale2 for d in dx_ds2 ]
@@ -879,7 +879,7 @@ class MeshType_3d_heartatria2(Scaffold_base):
                 x[2] = aSeptumCentreZ + fossaMagZ*sinRadiansAround
                 dx_ds1[1] = -fossaMagY*sinRadiansAround
                 dx_ds1[2] =  fossaMagZ*cosRadiansAround
-                scale1 = elementSizeAroundFossa/vector.magnitude(dx_ds1)
+                scale1 = elementSizeAroundFossa/magnitude(dx_ds1)
                 dx_ds1[1] *= scale1
                 dx_ds1[2] *= scale1
                 dx_ds2[1] = -fossaMagY*cosRadiansAround
@@ -1367,12 +1367,12 @@ class MeshType_3d_heartatria2(Scaffold_base):
         cache.setMeshLocation(svcElement1, [ 0.5, 1.0, 1.0 ])
         resultx, sx = coordinates.evaluateReal(cache, 3)
         resultd, sd = coordinates.evaluateDerivative(diff1, cache, 3)
-        direction = vector.normalise([ (ix[c] - sx[c]) for c in range(3) ])
+        direction = normalize([ (ix[c] - sx[c]) for c in range(3) ])
 
         ivcInletScale = -ivcInnerRadius
         ivcInletAxis = [ d*ivcInletScale for d in direction ]
-        n = vector.crossproduct3(id, ivcInletAxis)
-        ivcInletSide = vector.crossproduct3(n, ivcInletAxis)
+        n = cross(id, ivcInletAxis)
+        ivcInletSide = cross(n, ivcInletAxis)
         ivcInletDistance = ivcInnerRadius
         ivcInletCentre = [ (ix[c] + direction[c]*ivcInletDistance) for c in range(3) ]
         tricubichermite.replaceTwoElementWithInlet6(ivcElement1, ivcElement2, elementIdentifier, nodetemplate, nodeIdentifier, \
@@ -1382,8 +1382,8 @@ class MeshType_3d_heartatria2(Scaffold_base):
 
         svcInletScale = -svcInnerRadius
         svcInletAxis = [ -d*svcInletScale for d in direction ]
-        n = vector.crossproduct3(sd, svcInletAxis)
-        svcInletSide = vector.crossproduct3(n, svcInletAxis)
+        n = cross(sd, svcInletAxis)
+        svcInletSide = cross(n, svcInletAxis)
         svcInletDistance = svcInnerRadius
         svcInletCentre = [ (sx[c] - direction[c]*svcInletDistance) for c in range(3) ]
         tricubichermite.replaceTwoElementWithInlet6(svcElement1, svcElement2, elementIdentifier, nodetemplate, nodeIdentifier, \

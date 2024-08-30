@@ -39,8 +39,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 8
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.0,0.0,0.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0]]),
                     (2, [[0.0,0.0,1.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0]]),
                     (3, [[0.0,0.0,2.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0]]),
@@ -50,7 +51,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (7, [[0.0,0.0,6.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0]]),
                     (8, [[0.0,0.0,7.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0]]),
                     (9, [[0.0,0.0,8.0], [0.0,0.0,1.0], [1.0,0.0,0.0], [0.0,0.0,0.0], [-0.0,1.0,0.0], [0.0,0.0,0.0]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -83,8 +84,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.0, 10.7,-12.3], [0.0,-3.8,3.1], [4.8,0.0,0.0], [-0.7,0.0,0.0], [-0.0,2.2,2.6], [0.0, 0.5, 0.1]]),
                     (2, [[0.0,  6.8, -8.8], [0.0,-4.0,3.9], [4.5,0.0,0.0], [ 0.1,0.0,0.0], [-0.0,2.7,2.7], [0.0, 0.5, 0.1]]),
                     (3, [[0.0,  2.8, -4.5], [0.0,-3.5,4.2], [5.0,0.0,0.0], [ 1.2,0.0,0.0], [-0.0,3.2,2.8], [0.0, 0.5, 0.0]]),
@@ -92,7 +94,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (5, [[0.0, -2.8,  3.0], [0.0,-1.9,4.1], [6.8,0.0,0.0], [-0.6,0.0,0.0], [-0.0,4.5,2.0], [0.0, 0.3,-0.1]]),
                     (6, [[0.0, -3.8,  7.5], [0.0,-2.7,4.6], [5.5,0.0,0.0], [-0.2,0.0,0.0], [-0.0,4.3,2.5], [0.0,-1.0, 1.0]]),
                     (7, [[0.0, -8.2, 11.5], [0.0,-5.9,3.2], [6.8,0.0,0.0], [ 2.8,0.0,0.0], [-0.0,2.3,4.2], [0.0,-3.1, 2.4]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -125,8 +127,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.0,18.9,-50.7], [0.0,-3.2,15.4], [ 7.8,0.0,0.0], [ 0.5,0.0,0.0], [-0.0, 6.1,1.3], [0.0,0.8, 1.7]]),
                     (2, [[0.0,14.6,-36.3], [0.0,-5.4,13.3], [ 8.5,0.0,0.0], [ 0.9,0.0,0.0], [-0.0, 7.2,2.9], [0.0,1.4, 1.6]]),
                     (3, [[0.0, 8.3,-24.1], [0.0,-6.4,12.5], [ 9.6,0.0,0.0], [ 4.4,0.0,0.0], [-0.0, 8.9,4.6], [0.0,1.3, 0.5]]),
@@ -134,7 +137,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (5, [[0.0,-2.3,  2.4], [0.0,-3.9,13.2], [20.2,0.0,0.0], [-0.4,0.0,0.0], [-0.0,14.1,4.2], [0.0,2.2,-0.5]]),
                     (6, [[0.0,-6.0, 15.0], [0.0,-2.6,12.9], [16.8,0.0,0.0], [-2.4,0.0,0.0], [-0.0,14.4,2.9], [0.0,0.2,-1.9]]),
                     (7, [[0.0,-7.5, 28.0], [0.0,-0.4,13.1], [15.3,0.0,0.0], [-0.6,0.0,0.0], [-0.0,14.5,0.4], [0.0,0.0,-3.1]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -167,8 +170,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.0, 1.5,-3.4], [0.0,-0.1,1.1], [1.4,0.0,0.0], [-0.1,0.0,0.0], [0.0,1.0, 0.1], [0.0, 0.1, 0.9]]),
                     (2, [[0.0, 1.0,-2.3], [0.0,-0.8,1.0], [1.3,0.0,0.0], [ 0.0,0.0,0.0], [0.0,0.8, 0.7], [0.0, 0.0, 0.6]]),
                     (3, [[0.0,-0.1,-1.6], [0.0,-1.2,0.8], [1.5,0.0,0.0], [ 0.4,0.0,0.0], [0.0,0.7, 1.0], [0.0, 0.1, 0.1]]),
@@ -176,7 +180,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (5, [[0.0,-1.5, 0.5], [0.0, 0.1,1.4], [2.0,0.0,0.0], [-0.1,0.0,0.0], [0.0,1.4,-0.1], [0.0, 0.1,-0.1]]),
                     (6, [[0.0,-1.1, 1.9], [0.0,-0.3,1.4], [1.6,0.0,0.0], [-0.1,0.0,0.0], [0.0,1.5, 0.3], [0.0,-0.3, 0.3]]),
                     (7, [[0.0,-2.1, 3.1], [0.0,-1.3,0.8], [2.0,0.0,0.0], [ 0.8,0.0,0.0], [0.0,0.7, 1.2], [0.0,-0.8, 0.7]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -209,8 +213,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.0, 2.9,-5.4], [0.0, 0.5,1.7], [1.9,0.0,0.0], [-0.2,0.0,0.0], [0.0,1.3,-0.4], [-0.0, 0.2, 1.3]]),
                     (2, [[0.0, 2.7,-3.5], [0.0,-0.9,2.0], [1.8,0.0,0.0], [ 0.0,0.0,0.0], [-0.0,1.4,0.6], [-0.0, 0.0, 0.8]]),
                     (3, [[0.0, 1.1,-1.8], [0.0,-1.4,1.7], [2.0,0.0,0.0], [ 0.5,0.0,0.0], [-0.0,1.3,1.1], [ 0.0, 0.1, 0.2]]),
@@ -218,7 +223,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (5, [[0.0,-1.1, 1.2], [0.0,-0.7,1.6], [2.7,0.0,0.0], [-0.2,0.0,0.0], [-0.0,1.8,0.8], [ 0.0, 0.1,-0.1]]),
                     (6, [[0.0,-1.5, 3.0], [0.0,-1.1,1.9], [2.2,0.0,0.0], [-0.1,0.0,0.0], [-0.0,1.7,1.0], [ 0.0,-0.4, 0.4]]),
                     (7, [[0.0,-3.3, 4.6], [0.0,-2.4,1.3], [2.7,0.0,0.0], [ 1.1,0.0,0.0], [-0.0,0.9,1.7], [ 0.0,-1.2, 1.0]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -251,8 +256,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.0, 25.6, -29.3], [0.0, -5.4, 3.5], [4.8, 0.0, 0.0], [-0.7, 0.0, 0.0], [0.0, 1.8, 2.9], [0.0, 1.1, 1.4]]),
                     (2, [[0.0, 19.5, -25.3], [0.0, -6.7, 4.8], [5.7, 0.0, 0.0], [2.5, 0.0, 0.0], [0.0, 2.8, 4.0], [0.0, 0.8, 0.7]]),
                     (3, [[0.0, 12.2, -19.9], [0.0, -6.7, 5.4], [10.1, 0.0, 0.0], [3.0, 0.0, 0.0], [0.0, 3.3, 4.2], [0.0, 1.5, 0.5]]),
@@ -260,7 +266,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (5, [[0.0, 1.5, -7.4], [0.0, -2.8, 7.0], [11.4, 0.0, 0.0], [-0.3, 0.2, 0.0], [0.0, 7.4, 3.0], [-0.2, 2.4, -1.2]]),
                     (6, [[0.0, 0.1, -1.0], [0.0, -1.5, 6.9], [11.2, 0.3, 0.1], [-0.5, 0.1, 0.1], [-0.3, 11.3, 2.5], [-0.1, 1.5, -0.2]]),
                     (7, [[0.0, -1.5, 6.6], [0.0, -2.0, 7.4], [10.3, 0.2, 0.0], [-1.3, -0.2, -0.0], [-0.2, 9.4, 2.5], [0.2, -2.3, 0.9]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -293,8 +299,9 @@ class MeshType_3d_brainstem1(Scaffold_base):
                 'Number of elements': 6
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(  # dimensional.
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[ 0.0, 21.3,-33.2], [ 0.0,-7.5, 6.0], [  4.8, 0.0, 0.0], [ 4.8,-0.0,-0.0], [ 0.0,  2.8, 3.5], [ 0.0, 3.2, 1.3]]),
                     (2, [[ 0.0, 14.5,-26.7], [ 0.0,-6.1, 7.2], [  8.5,-0.0,-0.0], [ 2.6, 0.0, 0.0], [ 0.0,  4.9, 4.1], [-0.0, 1.1, 0.1]]),
                     (3, [[ 0.0,  9.2,-19.0], [ 0.0,-5.2, 7.2], [ 10.1, 0.0, 0.0], [ 1.1,-0.1,-0.0], [ 0.0,  5.0, 3.6], [ 0.1, 0.4,-0.6]]),
@@ -302,7 +309,7 @@ class MeshType_3d_brainstem1(Scaffold_base):
                     (5, [[ 0.0,  2.1, -5.5], [ 0.0,-1.2, 7.6], [  9.4, 0.3, 0.1], [ 0.1, 0.2, 0.1], [-0.2,  6.6, 1.0], [-0.2, 2.2,-0.3]]),
                     (6, [[ 0.0,  1.9,  2.9], [ 0.0,-2.1, 8.8], [ 11.2, 0.2, 0.1], [ 3.3,-0.1,-0.0], [-0.2, 10.4, 2.5], [ 0.1, 0.3, 2.0]]),
                     (7, [[ 0.0, -2.3, 11.4], [ 0.0,-6.2, 8.1], [ 16.2, 0.1, 0.0], [ 6.7,-0.2,-0.0], [-0.0,  6.7, 5.1], [ 0.3,-7.7, 3.2]])
-                ]),
+                ]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,

@@ -7,6 +7,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import magnitude, normalize, cross, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
@@ -15,7 +16,6 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCrea
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, updateEllipseAngleByArcLength
@@ -419,7 +419,7 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             nd2 = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixStartDirection=(n1 == 0),
                                                            fixStartDerivative=(n1 > 0))
             if n1 == 0:
-                mag = vector.magnitude((nd2[0]))
+                mag = magnitude((nd2[0]))
                 lvApexInnerd1 = [mag, 0.0, 0.0]
                 lvApexInnerd2 = [0.0, -mag, 0.0, 0.0]
             for n2 in range(elementsCountUpLV):
@@ -514,8 +514,8 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                     outerx  = vOuterx [n2][n1]
                     outerd1 = vOuterd1[n2][n1]
                     outerd2 = vOuterd2[n2][n1]
-                    unitNormal = vector.normalise(vector.crossproduct3(outerd1, outerd2))
-                    innerd3 = vOuterd3[n2][n1] = vector.setMagnitude(unitNormal, rvFreeWallThickness)
+                    unitNormal = normalize(cross(outerd1, outerd2))
+                    innerd3 = vOuterd3[n2][n1] = set_magnitude(unitNormal, rvFreeWallThickness)
                     innerx = [ (outerx[c] - innerd3[c]) for c in range(3) ]
                     # calculate inner d1 from curvature around
                     n1m = n1 - 1
@@ -573,8 +573,8 @@ class MeshType_3d_heartventricles1(Scaffold_base):
                 for n1 in [ -1, 0 ]:
                     nd1[n1] = [ scale*d for d in nd1[n1] ]
                 px, pd1 = interp.sampleCubicHermiteCurves(nx, nd1, elementsCountAroundVSeptum + 2,
-                    addLengthStart = (0.5/scale)*vector.magnitude(nd1[ 0]), lengthFractionStart = 0.5,
-                    addLengthEnd = (0.5/scale)*vector.magnitude(nd1[-1]), lengthFractionEnd = 0.5,
+                    addLengthStart = (0.5/scale)*magnitude(nd1[ 0]), lengthFractionStart = 0.5,
+                    addLengthEnd = (0.5/scale)*magnitude(nd1[-1]), lengthFractionEnd = 0.5,
                     arcLengthDerivatives = False)[0:2]
                 for n1 in range(elementsCountAroundVSeptum + 1):
                     # d3 at ends of septum is toward adjacent interventricular sulcus, inside septum is across septum to lvInner
@@ -629,8 +629,8 @@ class MeshType_3d_heartventricles1(Scaffold_base):
             bd1 = rvInnerd1[n2][n1]
             bd2 = [ dFactor*d for d in rvInnerd2[n2][n1] ]
             px, pd2, pe, pxi = interp.sampleCubicHermiteCurves([ ax, bx ], [ ad2, bd2 ], elementsCountOut = 2,
-                addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
-                addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
+                addLengthStart = 0.5*magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
+                addLengthEnd = 0.5*magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
             sx .append(px[1])
             sd1.append(interp.interpolateSampleLinear([ ad1, bd1 ], pe[1:2], pxi[1:2])[0])
             sd2.append(pd2[1])
@@ -641,8 +641,8 @@ class MeshType_3d_heartventricles1(Scaffold_base):
         bd1 = [ -d for d in rvInnerd1[n2][elementsCountAroundRVFreeWall] ]
         bd2 = rvInnerd2[n2][elementsCountAroundRVFreeWall]
         px, pd1, pe, pxi = interp.sampleCubicHermiteCurves([ ax ] + sx + [ bx ], [ ad2 ] + sd1 + [ bd2 ], elementsCountAroundVSeptum + 2,
-            addLengthStart = 0.5*vector.magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
-            addLengthEnd = 0.5*vector.magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
+            addLengthStart = 0.5*magnitude(ad2)/dFactor, lengthFractionStart = 0.5,
+            addLengthEnd = 0.5*magnitude(bd2)/dFactor, lengthFractionEnd = 0.5, arcLengthDerivatives = False)[0:4]
         pd2 = interp.interpolateSampleLinear([ ad1 ] + sd2 + [ bd1 ], pe, pxi)
         n2 = elementsCountUpLVApex - 1
         # loop skips first and last in sample:
@@ -1349,7 +1349,7 @@ def getLeftVentricleInnerPoints(lvRadius, midSeptumDisplacement, septumArcAround
             magnitude = elementSizeSep
             distance += elementSizeSep
         hx.append(x)
-        hd.append(vector.setMagnitude(d, magnitude))
+        hd.append(set_magnitude(d, magnitude))
     #distance -= (0.5*elementSizeSep if sepOdd else elementSizeSep)
 
     nx = []
@@ -1450,7 +1450,7 @@ def getVentriclesOuterPoints(lvRadius, widthExtension, sideExtension, addWidthRa
             magnitude = elementSizeRV
             distance += elementSizeRV
         hx.append(x)
-        hd.append(vector.setMagnitude(d, magnitude))
+        hd.append(set_magnitude(d, magnitude))
     #distance -= (0.5*elementSizeRV if rvOdd else elementSizeRV)
 
     nx = []

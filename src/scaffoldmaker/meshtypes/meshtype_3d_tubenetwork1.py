@@ -1,25 +1,91 @@
 """
-Generates a 3-D Hermite bifurcating tube network.
+Generates a 3-D Hermite bifurcating tube network (with optional solid core).
 """
-
-import copy
-
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates
-from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
-from cmlibs.zinc.field import Field
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.bifurcation import generateTubeBifurcationTree
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+
+
+def calculateElementsCountAcrossMinor(cls, options):
+    # Calculate elementsCountAcrosMinor
+    elementsCountAcrossMinor = int(((options["Elements count around"] - 4) / 4 -
+                                    (options['Number of elements across core major'] / 2)) * 2 + 6)
+
+    return elementsCountAcrossMinor
+
+def setParametersToDefault(cls, options):
+    options["Elements count around"] = 8
+    options["Number of elements across core major"] = 4
+    options["Number of elements across core transition"] = 1
+
+    return options
+
+def checkCoreParameters(cls, options, dependentChanges=False):
+    # Check elements count around are ok
+    if options["Elements count around"] < 8:
+        dependentChanges = True
+        options = setParametersToDefault(cls, options)
+    if options["Elements count around"] % 4:
+        options["Elements count around"] += 4 - options["Elements count around"] % 4
+
+    # Check elements count across major are ok
+    if options['Number of elements across core major'] < 4:
+        options['Number of elements across core major'] = 4
+    if options['Number of elements across core major'] % 2:
+        options['Number of elements across core major'] += 1
+
+    # Check elements count across transition
+    if options['Number of elements across core transition'] < 1:
+        options['Number of elements across core transition'] = 1
+
+    # Calculate elementsCountAcrossMinor based on the current set of elementsCountAround and elementsCountAcrossMajor
+    elementsCountAcrossMinor = calculateElementsCountAcrossMinor(cls, options)
+
+    # Rcrit check
+    Rcrit = max(
+        min(options['Number of elements across core major'] - 4, elementsCountAcrossMinor - 4) // 2 + 1, 0)
+    if Rcrit < options['Number of elements across core transition']:
+        dependentChanges = True
+        options['Number of elements across core transition'] = Rcrit
+
+    # Number of elements around sanity check
+    eM = options["Number of elements across core major"]
+    em = elementsCountAcrossMinor
+    eC = (eM - 1) * (em - 1) - ((eM - 3) * (em - 3))
+    if options["Elements count around"] != eC:
+        dependentChanges = True
+        # Reset parameter values
+        setParametersToDefault(cls, options)
+
+    annotationElementsCountsAround = options["Annotation elements counts around"]
+    if len(annotationElementsCountsAround) == 0:
+        options["Annotation elements count around"] = [0]
+    else:
+        for i in range(len(annotationElementsCountsAround)):
+            if annotationElementsCountsAround[i] <= 0:
+                annotationElementsCountsAround[i] = 0
+            elif annotationElementsCountsAround[i] < 4:
+                annotationElementsCountsAround[i] = 4
+
+    if options["Use linear through wall"]:
+        dependentChanges = True
+        options["Use linear through wall"] = False
+
+    return options, dependentChanges
 
 
 class MeshType_3d_tubenetwork1(Scaffold_base):
     """
-    Generates a 3-D hermite bifurcating tube network, with linear basis through wall.
+    Generates a 3-D hermite tube network, with linear or cubic basis through wall.
+    Number of elements generated are primarily controlled by "elements count around" and "elements count across major".
+    The elements count around parameter determines the number of elements around a circular rim.
+    The elements count across major determines the number of elements across the major axis of an ellipse (y-axis in the scaffold).
+    The number of elements across minor axis (z-axis) is calculated internally based on the two elements count parameters.
     """
 
-    @staticmethod
-    def getName():
+    @classmethod
+    def getName(cls):
         return "3D Tube Network 1"
 
     @classmethod
@@ -36,8 +102,12 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count through wall": 1,
             "Annotation elements counts around": [0],
             "Target element density along longest segment": 4.0,
-            "Serendipity": True,
-            "Show trim surfaces": False
+            "Use linear through wall": False,
+            "Show trim surfaces": False,
+            "Core": False,
+            'Number of elements across core major': 4,
+            'Number of elements across core transition': 1,
+            "Annotation elements counts across major": [0]
         }
         return options
 
@@ -49,8 +119,12 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Elements count through wall",
             "Annotation elements counts around",
             "Target element density along longest segment",
-            "Serendipity",
-            "Show trim surfaces"
+            "Use linear through wall",
+            "Show trim surfaces",
+            "Core",
+            'Number of elements across core major',
+            'Number of elements across core transition',
+            "Annotation elements counts across major"
         ]
 
     @classmethod
@@ -88,57 +162,67 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
     def checkOptions(cls, options):
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
-        elementsCountAround = options["Elements count around"]
-        if options["Elements count around"] < 4:
-            options["Elements count around"] = 4
+        dependentChanges = False
+
+        # Parameters specific to the core
+        if options["Core"] == True:
+            options, dependentChanges = checkCoreParameters(cls, options, dependentChanges)
+
+        # When core option is false
+        else:
+            if options["Elements count around"] < 4:
+                options["Elements count around"] = 4
+            annotationElementsCountsAround = options["Annotation elements counts around"]
+            if len(annotationElementsCountsAround) == 0:
+                options["Annotation elements count around"] = [0]
+            else:
+                for i in range(len(annotationElementsCountsAround)):
+                    if annotationElementsCountsAround[i] <= 0:
+                        annotationElementsCountsAround[i] = 0
+                    elif annotationElementsCountsAround[i] < 4:
+                        annotationElementsCountsAround[i] = 4
+
+        # Common parameters
         if options["Elements count through wall"] < 1:
             options["Elements count through wall"] = 1
-        annotationElementsCountsAround = options["Annotation elements counts around"]
-        if len(annotationElementsCountsAround) == 0:
-            options["Annotation elements count around"] = [0]
-        else:
-            for i in range(len(annotationElementsCountsAround)):
-                if annotationElementsCountsAround[i] <= 0:
-                    annotationElementsCountsAround[i] = 0
-                elif annotationElementsCountsAround[i] < 4:
-                    annotationElementsCountsAround[i] = 4
+
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
-        dependentChanges = False
+
         return dependentChanges
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
-        Generate the base hermite-bilinear mesh. See also generateMesh().
+        Generate the base tricubic hermite or bicubic hermite-linear mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        networkLayout = options["Network layout"]
-        elementsCountAround = options["Elements count around"]
-        elementsCountThroughWall = options["Elements count through wall"]
-        annotationElementsCountsAround = options["Annotation elements counts around"]
-        targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
-        serendipity = options["Serendipity"]
-
         layoutRegion = region.createRegion()
+        networkLayout = options["Network layout"]
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
-
-        fieldmodule = region.getFieldmodule()
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        coordinates = find_or_create_field_coordinates(fieldmodule)
-        nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
-        mesh = fieldmodule.findMeshByDimension(2)
-        elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
-
         networkMesh = networkLayout.getConstructionObject()
 
-        nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
-            networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementDensityAlongLongestSegment, elementsCountThroughWall,
-            layoutAnnotationGroups, annotationElementsCountsAround,
-            serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
+        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
+            networkMesh,
+            targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
+            defaultElementsCountAround=options["Elements count around"],
+            elementsCountThroughWall=options["Elements count through wall"],
+            layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAround=options["Annotation elements counts around"],
+            defaultElementsCountAcrossMajor=options['Number of elements across core major'],
+            elementsCountTransition=options['Number of elements across core transition'],
+            annotationElementsCountsAcrossMajor=options["Annotation elements counts across major"],
+            isCore=options["Core"])
+
+        tubeNetworkMeshBuilder.build()
+        generateData = TubeNetworkMeshGenerateData(
+            region, 3,
+            isLinearThroughWall=options["Use linear through wall"],
+            isShowTrimSurfaces=options["Show trim surfaces"])
+        tubeNetworkMeshBuilder.generateMesh(generateData)
+        annotationGroups = generateData.getAnnotationGroups()
 
         return annotationGroups, None

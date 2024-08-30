@@ -9,7 +9,7 @@ from __future__ import division
 import copy
 import math
 
-from cmlibs.maths.vectorops import cross, sub
+from cmlibs.maths.vectorops import cross, sub, set_magnitude, normalize, magnitude, axis_angle_to_rotation_matrix
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_element_node_identifiers, get_maximum_element_identifier, \
     get_maximum_node_identifier
@@ -27,8 +27,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import generateOstiumMesh
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import matrix
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.annulusmesh import createAnnulusMesh3d
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -47,7 +45,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3.2, 4-5-6-7-8-3-9-10-11-12-13-14-15"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[0.000,0.560,0.000], [0.000,-0.070,0.000], [0.060,0.000,0.000], [0.170,0.120,-0.000], [0.000,0.000,0.060], [0.000,0.000,0.110]]),
                 (2, [[0.000,0.390,0.000], [0.000,-0.280,0.000], [0.130,0.000,0.000], [0.020,-0.120,-0.000], [0.000,0.000,0.130], [0.000,0.000,0.170]]),
                 (3, [[0.000,0.000,0.000], [[-0.200,0.000,0.000],[0.000,-0.490,0.000]], [[0.000,-0.400,0.000],[0.130,0.000,0.000]], [[-0.060,0.010,0.000],[-0.010,-0.400,0.000]], [[0.000,0.000,0.430],[0.000,0.000,0.130]], [[0.000,0.000,0.010],[0.000,0.000,0.010]]]),
@@ -63,7 +62,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (13, [[-0.710,0.690,0.000], [0.050,0.170,0.000], [-0.140,0.030,0.000], [0.060,0.050,-0.000], [0.000,0.000,0.180], [0.000,0.000,-0.060]]),
                 (14, [[-0.640,0.830,0.000], [0.100,0.140,0.000], [-0.080,0.060,0.000], [0.030,0.030,-0.000], [0.000,0.000,0.110], [0.000,0.000,-0.030]]),
                 (15, [[-0.510,0.970,0.000], [0.160,0.140,0.000], [-0.080,0.090,0.000], [-0.030,0.030,0.000], [0.000,0.000,0.130], [0.000,0.000,0.070]])
-                ]),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -122,7 +121,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3.2, 4-5-6-7-3-8-9-10-11-12-13-14-15"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[11.750,-111.874,1127.887], [7.636,-5.715,-7.930], [5.678,1.265,4.556], [-8.397,13.092,24.878], [-0.708,-3.530,1.862], [-0.807,-7.995,7.596]]),
                 (2, [[23.789,-117.922,1120.040], [26.354,-6.724,-6.404], [4.223,6.205,10.864], [10.037,1.800,8.968], [-1.192,-11.215,6.869], [-2.926,-13.889,10.204]]),
                 (3, [[63.704,-120.094,1123.374], [[0.500,-9.138,-13.405],[50.106,1.267,11.056]], [[37.742,-3.477,3.778],[-2.509,7.605,10.499]], [[3.190,-0.590,-0.290],[3.190,-0.590,-0.290]], [[-5.452,-34.121,23.056],[-1.379,-10.790,7.486]], [[-0.100,-1.220,0.550],[-0.100,-1.220,0.550]]]),
@@ -138,7 +138,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (13, [[-8.740,-158.280,1057.630], [-17.269,8.027,2.588], [-6.253,-10.164,-10.200], [-2.630,4.430,6.290], [-3.442,-11.913,13.981], [-1.380,7.080,-2.660]]),
                 (14, [[-23.260,-147.620,1060.640], [-11.787,11.369,1.720], [-5.807,-5.321,-4.621], [-0.700,3.020,1.710], [-3.207,-4.764,9.515], [-2.080,5.830,-2.460]]),
                 (15, [[-32.281,-136.261,1061.249], [-6.125,11.114,-0.493], [-5.735,-3.374,-4.823], [-2.070,-0.220,-4.520], [-4.630,-2.238,7.071], [-4.400,2.440,0.570]]) 
-                ]),
+                ]]),
                 
             'userAnnotationGroups': [
                 {
@@ -197,7 +197,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[-0.047,0.617,-0.000], [0.043,-0.123,0.000], [0.065,0.011,0.000], [0.098,-0.016,0.000], [0.000,0.000,0.066], [0.000,0.000,0.124]]),
                 (2, [[-0.010,0.400,-0.000], [0.030,-0.309,0.000], [0.109,0.019,0.000], [0.082,-0.024,0.000], [0.000,-0.000,0.110], [0.000,0.000,0.116]]),
                 (3, [[0.000,0.000,0.000], [[-0.288,-0.009,0.000],[-0.010,-0.490,0.000]], [[0.010,-0.400,0.000],[0.109,0.019,0.000]], [[-0.194,0.007,0.000],[-0.194,0.007,0.000]], [[0.000,0.000,0.380],[0.000,-0.000,0.110]], [[0.000,0.000,-0.015],[0.000,0.000,-0.015]]]),
@@ -212,7 +213,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (12, [[-0.486,0.419,0.000], [-0.008,0.167,0.000], [-0.170,-0.080,0.000], [0.069,0.087,0.000], [0.000,0.000,0.210], [0.000,0.000,-0.109]]),
                 (13, [[-0.480,0.560,0.000], [-0.012,0.142,0.000], [-0.094,-0.025,0.000], [0.030,0.020,0.000], [0.000,0.000,0.102], [0.000,0.000,-0.046]]),
                 (14, [[-0.510,0.700,0.000], [-0.048,0.137,0.000], [-0.110,-0.040,0.000], [-0.062,-0.050,0.000], [0.000,0.000,0.120], [0.000,0.000,0.082]])
-                ]),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -271,7 +272,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3.2, 4-5-6-7-3-8-9-10-11-12-13"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[0.040,0.550,0.000], [0.000,-0.040,-0.000], [0.055,-0.007,0.000], [-0.010,-0.090,0.000], [0.000,0.000,0.0554], [0.000,0.000,0.060]]),
                 (2, [[0.030,0.430,0.000], [-0.020,-0.270,-0.000], [0.118,-0.005,-0.000], [-0.000,-0.100,0.000], [-0.000,0.000,0.118], [0.000,0.000,0.080]]),
                 (3, [[0.000,0.000,0.000], [[-0.210,0.000,0.000],[-0.040,-0.590,-0.000]], [[0.000,-0.431,0.000],[0.118,-0.005,-0.000]], [[-0.020,-0.020,0.000],[-0.020,-0.020,0.000]], [[0.000,0.000,0.400],[-0.000,0.000,0.118]], [[0.000,0.000,0.010],[0.000,0.000,0.010]]]),
@@ -285,7 +287,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (11, [[-0.700,0.520,0.000], [0.120,0.260,0.000], [-0.270,0.050,0.000], [0.100,0.090,0.000], [0.000,0.000,0.180], [0.000,0.000,-0.110]]),
                 (12, [[-0.500,0.700,0.000], [0.140,0.190,0.000], [-0.090,0.030,0.000], [0.080,-0.020,0.000], [0.000,0.000,0.090], [0.000,0.000,-0.040]]),
                 (13, [[-0.410,0.880,0.000], [0.030,0.160,0.000], [-0.090,0.010,0.000], [-0.080,-0.030,0.000], [0.000,0.000,0.090], [0.000,0.000,0.040]])
-                ]),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -344,7 +346,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14-15"
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
-                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    ['coordinates'],
+                    [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[-0.011,0.636,0.000], [0.012,-0.116,0.000], [0.057,0.000,0.000], [0.122,-0.056,0.000], [-0.000,0.000,0.057], [0.000,0.000,0.076]]),
                     (2, [[-0.001,0.419,-0.000], [0.008,-0.318,0.000], [0.108,0.000,0.000], [0.101,-0.066,0.000], [0.000,0.000,0.108], [0.000,0.000,0.084]]),
                     (3, [[0.000,0.000,0.000], [[-0.200,0.002,0.000],[-0.006,-0.520,0.000]], [[0.005,-0.420,0.000],[0.108,0.000,0.000]], [[-0.156,0.003,0.000],[-0.156,0.003,0.000]], [[0.000,0.000,0.360],[0.000,0.000,0.108]], [[0.000,0.000,-0.009],[0.000,0.000,-0.009]]]),
@@ -360,7 +363,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     (13, [[-0.490,0.587,0.000], [-0.018,0.189,-0.000], [-0.152,-0.045,0.000], [0.069,0.049,0.000], [0.000,0.000,0.120], [0.000,0.000,-0.073]]),
                     (14, [[-0.523,0.730,0.000], [-0.032,0.116,0.000], [-0.111,-0.036,0.000], [0.003,-0.002,0.000], [0.000,0.000,0.120], [0.000,0.000,0.018]]),
                     (15, [[-0.552,0.820,0.000], [-0.026,0.063,0.000], [-0.132,-0.045,0.000], [-0.045,-0.016,0.000], [0.000,0.000,0.150], [0.000,0.000,0.042]])
-                    ]),
+                    ]]),
 
                 'userAnnotationGroups': [
                     {
@@ -419,7 +422,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3.2, 4-5-6-7-8-9-3-10-11-12-13-14-15-16-17-18"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[0.000,0.800,0.000], [0.000,-0.200,0.000], [0.080,-0.000,0.000], [0.000,-0.100,0.000], [0.000,0.000,0.080], [0.000,0.000,0.100]]),
                 (2, [[0.000,0.500,0.000], [0.000,-0.400,0.000], [0.150,0.000,0.000], [0.000,-0.110,0.000], [0.000,0.000,0.150], [0.000,0.000,0.110]]),
                 (3, [[0.000,0.000,0.000], [[-0.190,0.000,0.000],[0.000,-0.600,0.000]], [[0.000,-0.500,0.000], [0.210,0.000,0.000]], [[0.000,0.000,0.000],[0.000,0.000,0.000]], [[0.000,0.000,0.500],[0.000,0.000,0.200]], [[0.000,0.000,0.000],[0.000,0.000,0.000]]]),
@@ -438,7 +442,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (16, [[-1.100,0.000,0.000], [-0.100,0.000,0.000], [0.000,-0.200,0.000], [0.000,0.000,0.000], [0.000,0.000,0.200], [0.000,0.000,0.000]]),
                 (17, [[-1.200,0.000,0.000], [-0.100,0.000,0.000], [0.000,-0.200,0.000], [0.000,0.000,0.000], [0.000,0.000,0.200], [0.000,0.000,0.000]]),
                 (18, [[-1.300,0.000,0.000], [-0.100,0.000,0.000], [0.000,-0.200,0.000], [0.000,0.000,0.000], [0.000,0.000,0.200], [0.000,0.000,0.000]])
-                ]),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -1312,7 +1316,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     GEJSettings = updateOstiumOptions(options, ostiumOptions)
     elementsAlongEsophagus = GEJSettings['Number of elements along']
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
-    ostiumRadius = vector.magnitude(networkLayout.cd2Groups[-1][1])
+    ostiumRadius = magnitude(networkLayout.cd2Groups[-1][1])
     limitingRidge = options['Limiting ridge']
     wallThickness = options['Wall thickness']
     GEJSettings['Use linear through ostium wall'] = options['Use linear through wall']
@@ -1448,8 +1452,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         elementsOutSection = math.ceil(arcLengthRatioForGroupsFromFundusApex[i]/targetLengthTS)
         cxSection, cd1Section, pe, pxi, psf = interp.sampleCubicHermiteCurvesSmooth(
             cxGroup, cd1Group, elementsOutSection,
-            derivativeMagnitudeStart=None if (i == 1) else 0.0 if (i == 0) else vector.magnitude(cd1Sections[-1][-1]),
-            derivativeMagnitudeEnd=None if (i != 0) else vector.magnitude(cd1Sections[0][0]))
+            derivativeMagnitudeStart=None if (i == 1) else 0.0 if (i == 0) else magnitude(cd1Sections[-1][-1]),
+            derivativeMagnitudeEnd=None if (i != 0) else magnitude(cd1Sections[0][0]))
         cd2Section = interp.interpolateSampleCubicHermite(cd2Group, cd12Group, pe, pxi, psf)[0]
         cd3Section = interp.interpolateSampleCubicHermite(cd3Group, cd13Group, pe, pxi, psf)[0]
 
@@ -1493,14 +1497,14 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
     d2Apex = cd2PlusSections[0][0]
     d3Apex = cd3PlusSections[0][0]
-    rotAxisApex = vector.normalise(vector.crossproduct3(d3Apex, d2Apex))
+    rotAxisApex = normalize(cross(d3Apex, d2Apex))
 
     px = sampleEllipsePoints(cxPlusSections[0][0], cd2PlusSections[0][0], cd3PlusSections[0][0],
                              0.0, math.pi * 2.0, elementsCountAroundDuod)[0]
     d2ApexAround = [cross(cross(rotAxisApex, sub(tpx, cxApex)), rotAxisApex) for tpx in px]
 
     rotAngle = -math.pi * 0.5
-    rotFrame = matrix.getRotationMatrixFromAxisAngle(rotAxisApex, rotAngle)
+    rotFrame = axis_angle_to_rotation_matrix(rotAxisApex, rotAngle)
     for n in range(len(px)):
         d1ApexAround.append([rotFrame[j][0] * d2ApexAround[n][0] + rotFrame[j][1] * d2ApexAround[n][1] +
                              rotFrame[j][2] * d2ApexAround[n][2] for j in range(3)])
@@ -1547,12 +1551,12 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # Scale d1 and d2 at apex
     for n in range(len(xEllipseAroundAll[0])):
         d1EllipseAroundAll[0][n] = \
-            vector.setMagnitude(d1EllipseAroundAll[0][n],
+            set_magnitude(d1EllipseAroundAll[0][n],
                                 interp.computeCubicHermiteArcLength(xEllipseAroundAll[0][n], d2EllipseAroundAll[0][n],
                                                                     xEllipseAroundAll[1][n], d2EllipseAroundAll[1][n],
                                                                     True))
         d2EllipseAroundAll[0][n] = \
-            vector.setMagnitude(d2EllipseAroundAll[0][n],
+            set_magnitude(d2EllipseAroundAll[0][n],
                                 interp.computeCubicHermiteArcLength(xEllipseAroundAll[0][n], d2EllipseAroundAll[0][n],
                                                                     xEllipseAroundAll[1][n], d2EllipseAroundAll[1][n],
                                                                     True))
@@ -1613,17 +1617,17 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     arcEnd = networkLayout.arcLengthOfGroupsAlong[-1]
     nearestPosition = trackSurfaceStomach.findNearestPosition(cxEso[0])
     xNearestStart = trackSurfaceStomach.evaluateCoordinates(nearestPosition, derivatives=False)
-    distStart = vector.magnitude([cxEso[0][c] - xNearestStart[c] for c in range(3)])
+    distStart = magnitude([cxEso[0][c] - xNearestStart[c] for c in range(3)])
     nearestPosition = trackSurfaceStomach.findNearestPosition(cxEso[-1])
     xNearestEnd = trackSurfaceStomach.evaluateCoordinates(nearestPosition, derivatives=False)
-    distEnd = vector.magnitude([cxEso[-1][c] - xNearestEnd[c] for c in range(3)])
+    distEnd = magnitude([cxEso[-1][c] - xNearestEnd[c] for c in range(3)])
 
     for iter in range(100):
         arcDistance = (arcStart + arcEnd) * 0.5
         x, d1 = interp.getCubicHermiteCurvesPointAtArcDistance(cxEso, cd1Eso, arcDistance)[0:2]
         nearestPosition = trackSurfaceStomach.findNearestPosition(x)
         xNearest = trackSurfaceStomach.evaluateCoordinates(nearestPosition, derivatives=False)
-        dist = vector.magnitude([x[c] - xNearest[c] for c in range(3)])
+        dist = magnitude([x[c] - xNearest[c] for c in range(3)])
 
         if abs(distStart - distEnd) > xTol:
             if distStart < distEnd:
@@ -1635,7 +1639,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
         else:
             xCentre, d1Centre, d2Centre = trackSurfaceStomach.evaluateCoordinates(nearestPosition, derivatives=True)
-            normAxis = vector.normalise([-d for d in d1])
+            normAxis = normalize([-d for d in d1])
             eIdx = interp.getNearestPointIndex(cxEso, xCentre) - 1
             arcLenghtSum = 0.0
             for e in range(eIdx):
@@ -1680,9 +1684,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d1Path = [cd1Eso[0], [-d for d in normAxis]]
     ostiumLength = interp.computeCubicHermiteArcLength(xPath[0], d1Path[0], xPath[1], d1Path[1],
                                                        rescaleDerivatives=True)
-    d1Path[1] = vector.setMagnitude(d1Path[1], ostiumLength*0.1)
+    d1Path[1] = set_magnitude(d1Path[1], ostiumLength*0.1)
     d2Path = [cd2Eso[0], d2Centre]
-    d3Path = [cd3Eso[0], vector.setMagnitude([-d for d in d1Centre], vector.magnitude(d2Centre))]
+    d3Path = [cd3Eso[0], set_magnitude([-d for d in d1Centre], magnitude(d2Centre))]
     d12Path = [cd2Eso[0], [0.0, 0.0, 0.0]]
     d13Path = [cd3Eso[0], [0.0, 0.0, 0.0]]
 
@@ -1714,9 +1718,9 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     d2AnnulusNorm = []
     d2AnnulusOuter = []
     for n1 in range(elementsCountAroundEso):
-        normD2 = vector.normalise(o1_d2[-1][n1])
+        normD2 = normalize(o1_d2[-1][n1])
         d2AnnulusNorm.append(normD2)
-        d2AnnulusOuter.append(vector.setMagnitude(o1_d2[-1][n1], sf))
+        d2AnnulusOuter.append(set_magnitude(o1_d2[-1][n1], sf))
         x = [o1_x[-1][n1][c] + sf * normD2[c] for c in range(3)]
         nearestPosition = trackSurfaceStomach.findNearestPosition(x, startPosition=o1_Positions[n1])
         xAnnulusOuterPosition[n1] = nearestPosition
@@ -1728,13 +1732,13 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
         v2 = xAnnulusOuter[(n + 1) % elementsCountAroundEso]
         d = [v2[c] - v1[c] for c in range(3)]
         arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-        d1 = [c * arcLengthAround for c in vector.normalise(d)]
+        d1 = [c * arcLengthAround for c in normalize(d)]
         d1AnnulusOuter.append(d1)
 
     d1AnnulusOuter = interp.smoothCubicHermiteDerivativesLoop(xAnnulusOuter, d2AnnulusOuter)
     d3Annulus = []
     for n in range(elementsCountAroundEso):
-        d3 = vector.normalise(vector.crossproduct3(vector.normalise(d1AnnulusOuter[n]), d2AnnulusNorm[n]))
+        d3 = normalize(cross(normalize(d1AnnulusOuter[n]), d2AnnulusNorm[n]))
         d3Annulus.append(d3)
     d1AnnulusCurvatureOuter = findCurvatureAroundLoop(xAnnulusOuter, d1AnnulusOuter, d3Annulus)
 
@@ -1811,7 +1815,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nxR, nd1R, nd2R, nd3R = \
         trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
             nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=
-            vector.magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod]))[0:-1]
+            magnitude(d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod]))[0:-1]
 
     # Replace the values in xEllipseAroundAll at quadrants
     for n in range(len(nxR)):
@@ -1840,7 +1844,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     nxR, nd1R, nd2R, nd3R = \
         trackSurfaceStomach.resampleHermiteCurvePointsSmooth(
             nx, nd1, nd2, nd3, proportions, derivativeMagnitudeEnd=
-            vector.magnitude(
+            magnitude(
                 d1EllipseAroundAll[sectionIdx[1]][elementsAroundQuarterDuod + elementsAroundHalfDuod]))[0:-1]
 
     for n in range(len(nxR)):
@@ -1902,12 +1906,12 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 d2Uniform = \
                     trackSurfaceStomach.resampleHermiteCurvePointsSmooth(nx, nd1, nd2, nd3, proportions)[1]
                 startDerivative = d2Uniform[0]
-                startDerivativeMag = vector.magnitude(startDerivative)
+                startDerivativeMag = magnitude(startDerivative)
 
                 # Sample from apex to annulus
                 bPosition = xAnnulusOuterPosition[annulusIdxAtBodyStartIdxMinusOne[count]]
                 d = d2AnnulusOuter[annulusIdxAtBodyStartIdxMinusOne[count]]
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdxAtBodyStartIdxMinusOne[count]],
+                rotFrame = axis_angle_to_rotation_matrix(d3Annulus[annulusIdxAtBodyStartIdxMinusOne[count]],
                                                                  math.pi)
                 endDerivative = [rotFrame[j][0] * d[0] + rotFrame[j][1] * d[1] + rotFrame[j][2] * d[2]
                                  for j in range(3)]
@@ -1936,7 +1940,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             # Rotate nd2
             for m in range(len(nx)):
-                rotFrame = matrix.getRotationMatrixFromAxisAngle(nd3[m], math.pi)
+                rotFrame = axis_angle_to_rotation_matrix(nd3[m], math.pi)
                 nd2[m] = [rotFrame[j][0] * nd2[m][0] + rotFrame[j][1] * nd2[m][1] +
                           rotFrame[j][2] * nd2[m][2] for j in range(3)]
 
@@ -1951,7 +1955,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 elif n1 == elementsAroundHalfDuod - 1:
                     for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                         annulusIdx = m + 2
-                        rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdx], math.pi)
+                        rotFrame = axis_angle_to_rotation_matrix(d3Annulus[annulusIdx], math.pi)
                         d2 = d2AnnulusOuter[annulusIdx]
                         d2 = [rotFrame[j][0] * d2[0] + rotFrame[j][1] * d2[1] + rotFrame[j][2] * d2[2]
                               for j in range(3)]
@@ -1963,7 +1967,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 elif n1 == elementsAroundHalfDuod + 1:
                     for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                         annulusIdx = -2 - m
-                        rotFrame = matrix.getRotationMatrixFromAxisAngle(d3Annulus[annulusIdx], math.pi)
+                        rotFrame = axis_angle_to_rotation_matrix(d3Annulus[annulusIdx], math.pi)
                         d1 = d1AnnulusOuter[annulusIdx]
                         d1 = [rotFrame[j][0] * d1[0] + rotFrame[j][1] * d1[1] + rotFrame[j][2] * d1[2]
                               for j in range(3)]
@@ -2057,7 +2061,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongGC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
             d2SmoothedAlongGCB4Change = copy.deepcopy(d2SmoothedAlongGC)
-            d2SmoothedAlongGC[-1] = vector.setMagnitude(d2AnnulusOuter[0], vector.magnitude(d2SmoothedAlongGC[-1]))
+            d2SmoothedAlongGC[-1] = set_magnitude(d2AnnulusOuter[0], magnitude(d2SmoothedAlongGC[-1]))
             d2AnnulusNew[0] = d2SmoothedAlongGC[-1]
 
             nx = []
@@ -2067,8 +2071,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                 nd2.append(d2SampledAroundAlong[n2][n1])
             d2SmoothedAlongLC = interp.smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True)
             d2SmoothedAlongLCB4Change = copy.deepcopy(d2SmoothedAlongLC)
-            d2SmoothedAlongLC[0] = vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso],
-                                                       vector.magnitude(d2SmoothedAlongLC[0]))
+            d2SmoothedAlongLC[0] = set_magnitude(d2AnnulusOuter[elementsAroundHalfEso],
+                                                       magnitude(d2SmoothedAlongLC[0]))
             d2AnnulusNew[elementsAroundHalfEso] = d2SmoothedAlongLC[0]
             d2Smoothed = d2SmoothedAlongGC + \
                          [[0.0, 1.0, 0.0] for n in range(2 * (elementsAroundQuarterEso - 2) + 1)] + \
@@ -2086,36 +2090,36 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             if n1 == elementsAroundHalfDuod - 1:
                 d2Smoothed[annulusFundusOpenRingIdx - 1] = \
-                    vector.setMagnitude(d2AnnulusOuter[1], vector.magnitude(nd2[annulusFundusOpenRingIdx - 1]))
+                    set_magnitude(d2AnnulusOuter[1], magnitude(nd2[annulusFundusOpenRingIdx - 1]))
                 d2AnnulusNew[1] = d2Smoothed[annulusFundusOpenRingIdx - 1]
 
                 for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                     annulusIdx = m + 2
                     d2Smoothed[annulusFundusOpenRingIdx + m] = \
-                        vector.setMagnitude(d2AnnulusOuter[annulusIdx],
-                                            vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
+                        set_magnitude(d2AnnulusOuter[annulusIdx],
+                                            magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
                     d2AnnulusNew[annulusIdx] = d2Smoothed[annulusFundusOpenRingIdx + m]
 
                 d2Smoothed[annulusBodyOpenRingIdx + 1] = \
-                    vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso - 1],
-                                        vector.magnitude(nd2[annulusBodyOpenRingIdx + 1]))
+                    set_magnitude(d2AnnulusOuter[elementsAroundHalfEso - 1],
+                                        magnitude(nd2[annulusBodyOpenRingIdx + 1]))
                 d2AnnulusNew[elementsAroundHalfEso - 1] = d2Smoothed[annulusBodyOpenRingIdx + 1]
 
             if n1 == elementsAroundHalfDuod + 1:
                 d2Smoothed[annulusFundusOpenRingIdx - 1] = \
-                    vector.setMagnitude(d2AnnulusOuter[-1], vector.magnitude(nd2[annulusFundusOpenRingIdx - 1]))
+                    set_magnitude(d2AnnulusOuter[-1], magnitude(nd2[annulusFundusOpenRingIdx - 1]))
                 d2AnnulusNew[-1] = d2Smoothed[annulusFundusOpenRingIdx - 1]
 
                 for m in range(2 * (elementsAroundQuarterEso - 2) + 1):
                     annulusIdx = -(m + 2)
                     d2Smoothed[annulusFundusOpenRingIdx + m] = \
-                        vector.setMagnitude(d2AnnulusOuter[annulusIdx],
-                                            vector.magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
+                        set_magnitude(d2AnnulusOuter[annulusIdx],
+                                            magnitude(d1SampledAroundAlong[annulusFundusOpenRingIdx + m][n1]))
                     d2AnnulusNew[annulusIdx] = d2Smoothed[annulusFundusOpenRingIdx + m]
 
                 d2Smoothed[annulusBodyOpenRingIdx + 1] = \
-                    vector.setMagnitude(d2AnnulusOuter[elementsAroundHalfEso + 1],
-                                        vector.magnitude(nd2[annulusBodyOpenRingIdx + 1]))
+                    set_magnitude(d2AnnulusOuter[elementsAroundHalfEso + 1],
+                                        magnitude(nd2[annulusBodyOpenRingIdx + 1]))
                 d2AnnulusNew[elementsAroundHalfEso + 1] = d2Smoothed[annulusBodyOpenRingIdx + 1]
 
         for n2 in range(len(d2Smoothed)):
@@ -2147,8 +2151,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # calculate d3
     for n2 in range(len(xSampledAroundAlong)):
         for n1 in range(len(xSampledAroundAlong[n2])):
-            d3SampledAroundAlong[n2][n1] = vector.normalise(vector.crossproduct3(
-                vector.normalise(d1SampledAroundAlong[n2][n1]), vector.normalise(d2SampledAroundAlong[n2][n1])))
+            d3SampledAroundAlong[n2][n1] = normalize(cross(
+                normalize(d1SampledAroundAlong[n2][n1]), normalize(d2SampledAroundAlong[n2][n1])))
 
     # for n2 in range(len(xSampledAroundAlong)):
     #     for n1 in range(len(xSampledAroundAlong[n2])):
@@ -2196,7 +2200,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # Calculate curvature along
     d2AnnulusCurvature = []
     for n in range(elementsCountAroundEso):
-        d2AnnulusCurvature.append(interp.getCubicHermiteCurvature(o1_x[-1][n], vector.setMagnitude(o1_d2[-1][n], sf),
+        d2AnnulusCurvature.append(interp.getCubicHermiteCurvature(o1_x[-1][n], set_magnitude(o1_d2[-1][n], sf),
                                                                   xAnnulusOuter[n], d2AnnulusNew[n], d3Annulus[n], 1.0))
 
     d2CurvatureAroundAlong = [[[] for n1 in range(len(xSampledAroundAlong[n2]))]
@@ -2282,8 +2286,8 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
                                                     xSampledAroundAlong[1][elementsAroundQuarterDuod],
                                                     d2SampledAroundAlong[1][elementsAroundQuarterDuod],
                                                     rescaleDerivatives=True)
-    d1SampledAroundAlong[0][0] = vector.setMagnitude(d1SampledAroundAlong[0][0], arcLength)
-    d2SampledAroundAlong[0][0] = vector.setMagnitude(d2SampledAroundAlong[0][0], arcLength)
+    d1SampledAroundAlong[0][0] = set_magnitude(d1SampledAroundAlong[0][0], arcLength)
+    d2SampledAroundAlong[0][0] = set_magnitude(d2SampledAroundAlong[0][0], arcLength)
 
     # Replace d1Curvature with d2Curvature
     d1CurvatureAroundAlong[0][0] = d2CurvatureAroundAlong[0][0]
@@ -2339,7 +2343,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
 
             for n1 in range(len(xSampledAroundAlong[n2])):
                 # Coordinates
-                norm = vector.normalise(d3SampledAroundAlong[n2][n1])
+                norm = normalize(d3SampledAroundAlong[n2][n1])
                 xOut = xSampledAroundAlong[n2][n1]
                 xIn = [xOut[i] - norm[i] * wallThickness for i in range(3)]
                 dWall = [wallThickness * c for c in norm]

@@ -6,7 +6,7 @@ numbers of elements around, along and through wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import add, mult
+from cmlibs.maths.vectorops import add, cross, mult, normalize, sub, magnitude, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
@@ -21,13 +21,56 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, \
-    get_bifurcation_triple_point
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.geometry import createEllipsePoints
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteDerivativeScaling, interpolateCubicHermite, interpolateLagrangeHermiteDerivative,
+    smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
+
+
+def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
+    """
+    Get coordinates and derivatives of triple point between p1, p2 and p3 with derivatives.
+    :param p1x..p3d: Point coordinates and derivatives, numbered anticlockwise around triple point.
+    All derivatives point away from triple point.
+    Returned d1 points from triple point to p2, d2 points from triple point to p3.
+    :return: x, d1, d2
+    """
+    scaling12 = computeCubicHermiteDerivativeScaling(p1x, [-d for d in p1d], p2x, p2d)
+    scaling23 = computeCubicHermiteDerivativeScaling(p2x, [-d for d in p2d], p3x, p3d)
+    scaling31 = computeCubicHermiteDerivativeScaling(p3x, [-d for d in p3d], p1x, p1d)
+    trx1 = interpolateCubicHermite(p1x, mult(p1d, -scaling12), p2x, mult(p2d, scaling12), 0.5)
+    trx2 = interpolateCubicHermite(p2x, mult(p2d, -scaling23), p3x, mult(p3d, scaling23), 0.5)
+    trx3 = interpolateCubicHermite(p3x, mult(p3d, -scaling31), p1x, mult(p1d, scaling31), 0.5)
+    trx = [(trx1[c] + trx2[c] + trx3[c]) / 3.0 for c in range(3)]
+    td1 = interpolateLagrangeHermiteDerivative(trx, p1x, p1d, 0.0)
+    td2 = interpolateLagrangeHermiteDerivative(trx, p2x, p2d, 0.0)
+    td3 = interpolateLagrangeHermiteDerivative(trx, p3x, p3d, 0.0)
+    n12 = cross(td1, td2)
+    n23 = cross(td2, td3)
+    n31 = cross(td3, td1)
+    norm = normalize([(n12[c] + n23[c] + n31[c]) for c in range(3)])
+    sd1 = smoothCubicHermiteDerivativesLine([trx, p1x], [normalize(cross(norm, cross(td1, norm))), p1d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    sd2 = smoothCubicHermiteDerivativesLine([trx, p2x], [normalize(cross(norm, cross(td2, norm))), p2d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    sd3 = smoothCubicHermiteDerivativesLine([trx, p3x], [normalize(cross(norm, cross(td3, norm))), p3d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    trd1 = mult(sub(sd2, add(sd3, sd1)), 0.5)
+    trd2 = mult(sub(sd3, add(sd1, sd2)), 0.5)
+    return trx, trd1, trd2
+
+
+def get_tube_bifurcation_connection_elements_counts(tCounts):
+    """
+    Get number of elements directly connecting tubes 1, 2 and 3 from the supplied number around.
+    :param tCounts: Number of elements around tubes in order.
+    :return: List of elements connect tube with its next neighbour, looping back to first.
+    """
+    assert len(tCounts) == 3
+    return [(tCounts[i] + tCounts[i - 2] - tCounts[i - 1]) // 2 for i in range(3)]
 
 
 class MeshType_3d_uterus1(Scaffold_base):
@@ -42,8 +85,9 @@ class MeshType_3d_uterus1(Scaffold_base):
                 "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10-11, 11-12-13, 13-14"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[24.20, 0.00, 36.56], [-2.53, 0.00, -14.75], [2.42, 0.00, -0.41], [0.13, 0.00, -0.34], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (2, [[20.88, 0.00, 23.34], [-4.10, 0.00, -11.62], [2.47, 0.00, -0.87], [-0.03, 0.00, -0.57], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (3, [[16.28, 0.00, 13.37], [-5.76, 0.00, -8.94], [2.38, 0.00, -1.54], [-0.41, 0.00, -0.56], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
@@ -59,7 +103,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (11, [[0.00, 0.00, -7.37], [0.00, 0.00, -3.46], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (12, [[0.00, 0.00, -10.98], [0.00, 0.00, -3.31], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
                     (13, [[0.00, 0.00, -14.00], [0.00, 0.00, -3.51], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]]),
-                    (14, [[0.00, 0.00, -18.00], [0.00, 0.00, -4.49], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]])]),
+                    (14, [[0.00, 0.00, -18.00], [0.00, 0.00, -4.49], [2.50, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.50, 0.00], [0.00, 0.00, 0.00]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -102,8 +146,9 @@ class MeshType_3d_uterus1(Scaffold_base):
                 "Structure": "1-2-3-4-5, 6-7-8-9-5.2, 5.3-10, 10-11, 11-12-13-14-15-16"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[25.00, 0.00, 43.53], [0.06, 0.00, -11.85], [2.27, 0.09, 0.01], [0.15, -0.06, -0.57], [0.09, -2.33, 0.00], [-0.08, 0.74, -0.01]]),
                     (2, [[23.55, 0.00, 31.29], [-2.96, 0.00, -12.51], [2.27, 0.04, -0.54], [-0.15, -0.04, -0.53], [0.03, -1.91, -0.01], [-0.04, 0.10, 0.00]]),
                     (3, [[19.03, 0.00, 18.76], [-6.24, 0.00, -11.75], [1.96, 0.01, -1.04], [-0.29, 0.01, -0.58], [0.01, -2.16, 0.00], [0.00, -0.20, -0.01]]),
@@ -121,7 +166,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (13, [[0.00, 0.00, -16.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]]),
                     (14, [[0.00, 0.00, -20.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]]),
                     (15, [[0.00, 0.00, -24.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]]),
-                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]])]),
+                    (16, [[0.00, 0.00, -28.00], [0.00, 0.00, -4.00], [4.65, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -2.60, 0.00], [0.00, 0.00, 0.00]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -164,7 +209,8 @@ class MeshType_3d_uterus1(Scaffold_base):
                 "Structure": "1-2-3, 4-5-3.2, 3.3-6, 6-7, 7-8-9"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[2.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (2, [[1.00, 0.00, 0.00], [-1.00, 0.00, 0.00], [0.00, 0.00, -0.30], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (3, [[0.00, 0.00, 0.00], [[-1.00, 0.00, 0.00], [1.00, 0.00, 0.00], [0.00, 0.00, -1.00]],
@@ -175,7 +221,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                     (6, [[0.00, 0.00, -1.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.12, 0.00, -0.12], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (7, [[0.00, 0.00, -2.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
                     (8, [[0.00, 0.00, -3.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]]),
-                    (9, [[0.00, 0.00, -4.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]])]),
+                    (9, [[0.00, 0.00, -4.00], [0.00, 0.00, -1.00], [0.30, 0.00, 0.00], [0.00, 0.00, 0.00], [0.00, -0.30, 0.00], [0.00, 0.00, 0.00]])]]),
             'userAnnotationGroups': [
                 {
                     '_AnnotationGroup': True,
@@ -460,11 +506,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
 
         serosaOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_uterus_term("serosa of uerine cervix"))
+                                                            get_uterus_term("serosa of uterine cervix"))
         serosaOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of uerine cervix"))
+                                                           get_uterus_term("lumen of uterine cervix"))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
 
         serosaOfRightHorn = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -502,7 +548,7 @@ def findDerivativeBetweenPoints(v1, v2):
     """
     d = [v2[c] - v1[c] for c in range(3)]
     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-    d = [c * arcLengthAround for c in vector.normalise(d)]
+    d = [c * arcLengthAround for c in normalize(d)]
 
     return d
 
@@ -1096,8 +1142,8 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
     for n2 in range(elementsCountAlongTube + 1):
         d3Around = []
         for n1 in range(elementsCountAround):
-            d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledTube[n2][n1]), vector.normalise(d2SampledTube[n2][n1]))))
+            d3Around.append(normalize(
+                cross(normalize(d1SampledTube[n2][n1]), normalize(d2SampledTube[n2][n1]))))
         d3Tube.append(d3Around)
 
     xInner = []
@@ -1118,7 +1164,7 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
         tubemesh.extrudeSurfaceCoordinates(xInner, d1Inner, d2Inner, d3Inner,
                                            [wallThickness] * (elementsCountAlongTube + 1), relativeThicknessList,
                                            elementsCountAround, elementsCountAlongTube, elementsCountThroughWall,
-                                           transitElementList, outward=False)
+                                           transitElementList, outward=False)[0:5]
 
     coordinatesList = [xList, d1List, d2List, d3List]
 
@@ -1755,25 +1801,25 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     d3lList = []
     for n in range(len(cx_tube_group[0])):
         x = cx_tube_group[0][n]
-        v2r = vector.normalise(cx_tube_group[2][n])
-        v3r = vector.normalise(cx_tube_group[4][n])
-        d2Mag = vector.magnitude(cx_tube_group[2][n])
+        v2r = normalize(cx_tube_group[2][n])
+        v3r = normalize(cx_tube_group[4][n])
+        d2Mag = magnitude(cx_tube_group[2][n])
         r2 = (d2Mag - distance - wallThickness) / 2
-        # d3Mag = vector.magnitude(cx_tube_group[4][n])
+        # d3Mag = magnitude(cx_tube_group[4][n])
         # r3 = (d3Mag - wallThickness)
-        v_trans = vector.setMagnitude(v2r, distance + r2)
+        v_trans = set_magnitude(v2r, distance + r2)
 
         x_right = [x[c] + v_trans[c] for c in range(3)]
         xrList.append(x_right)
-        d2rList.append(vector.setMagnitude(v2r, r2))
-        d3rList.append(vector.setMagnitude(v3r, r2))
+        d2rList.append(set_magnitude(v2r, r2))
+        d3rList.append(set_magnitude(v3r, r2))
 
         x_left = [x[c] - v_trans[c] for c in range(3)]
         v2l = [-v2r[c] for c in range(3)]
         v3l = [-v3r[c] for c in range(3)]
         xlList.append(x_left)
-        d2lList.append(vector.setMagnitude(v2l, r2))
-        d3lList.append(vector.setMagnitude(v3l, r2))
+        d2lList.append(set_magnitude(v2l, r2))
+        d3lList.append(set_magnitude(v3l, r2))
     cx_tube_group_right = [xrList, cx_tube_group[1], d2rList, [], d3rList]
     cx_tube_group_left = [xlList, cx_tube_group[1], d2lList, [], d3lList]
 

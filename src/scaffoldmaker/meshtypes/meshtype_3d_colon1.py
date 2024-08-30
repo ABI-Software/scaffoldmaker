@@ -6,6 +6,7 @@ variable radius and thickness along.
 
 import copy
 
+from cmlibs.maths.vectorops import magnitude
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -20,7 +21,6 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
     get_nodeset_path_field_parameters
 
@@ -32,7 +32,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     "Structure": "1-2-3-4-5-6-7-8-9"
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
-                    [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    ['coordinates'],
+                    [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.00,0.00,0.00], [-50.70,178.20,0.00], [-40.03,-10.00,-20.01], [-6.86,-11.39,-2.36], [-19.62,-4.20,41.24], [-14.00,-1.00,-12.00]]),
                     (2, [[-47.40,188.60,0.00], [-19.30,177.10,0.00], [-37.98,-6.91,-13.80], [11.23,17.36,14.31], [-13.43,-4.23,38.50], [-4.00,19.00,22.00]]),
                     (3, [[-4.40,396.50,0.00], [206.00,40.10,0.00], [-14.88,29.77,11.90], [13.54,-1.87,21.51], [-6.48,-13.39,32.07], [-6.00,0.00,51.00]]),
@@ -42,7 +43,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     (7, [[475.20,168.00,0.00], [-0.80,-112.40,0.00], [22.45,0.00,-22.45], [-2.41,-19.32,-15.36], [22.45,-0.00,22.45], [15.00,-1.00,-10.00]]),
                     (8, [[432.60,-32.30,0.00], [-90.50,-59.00,0.00], [10.89,-16.33,-25.41], [-9.58,-7.07,-2.37], [14.04,-21.18,19.63], [8.00,-11.00,-13.00]]),
                     (9, [[272.40,7.50,0.00], [-79.00,47.40,0.00], [1.53,-16.88,-27.61], [-7.76,6.05,-1.75], [-5.63,-28.82,13.68], [4.00,-12.00,-12.00]])
-                    ]),
+                    ]]),
 
                 'userAnnotationGroups': [
                 {
@@ -80,7 +81,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     "Structure": "1-2-3-4-5-6-7-8-9"
                 },
                 'meshEdits': exnode_string_from_nodeset_field_parameters(
-                    [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                    ['coordinates'],
+                    [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.00,0.00,0.00], [-56.81,105.14,-38.05], [-40.03,-10.00,-20.01], [-3.67,-11.77,-1.56], [-22.35,6.24,39.56], [-14.00,-1.00,-12.00]]),
                     (2, [[-34.50,114.00,-18.10], [-9.51,117.91,3.65], [-35.93,-6.53,-13.07], [12.13,18.49,14.99], [-13.40,-4.92,36.05], [-4.00,19.00,22.00]]),
                     (3, [[-19.10,218.50,5.50], [79.23,66.40,77.49], [-14.71,29.43,11.78], [14.61,7.18,21.72], [-24.58,-18.69,16.37], [-6.00,0.00,51.00]]),
@@ -90,7 +92,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     (7, [[354.00,105.30,-24.40], [-20.59,-269.54,30.48], [22.54,0.00,-22.54], [-2.92,-19.10,-14.61], [22.47,6.25,21.72], [15.00,-1.00,-10.00]]),
                     (8, [[296.50,-121.20,-0.60], [-170.98,-102.19,-18.39], [10.95,-16.42,-25.54], [-9.48,-6.06,-2.33], [14.12,-21.29,19.73], [8.00,-11.00,-13.00]]),
                     (9, [[169.80,-73.40,-33.50], [-42.47,101.91,-24.43], [1.54,-16.94,-27.72], [-7.96,5.07,-1.75], [-18.03,-23.55,13.36], [4.00,-12.00,-12.00]])
-                    ] ),
+                    ]]),
 
                 'userAnnotationGroups': [
                     {
@@ -129,7 +131,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                              "33-34-35-36-37-38-39-40-41-42-43-44-45-46-47-48-49"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[-87.210,-111.060,890.540], [-4.750,0.410,12.390], [23.270,-3.130,7.880], [2.460,-0.390,-2.950], [3.090,24.460,0.450], [1.830,0.460,-4.310]]),
                 (2, [[-89.990,-110.570,902.650], [-2.050,0.530,12.720], [24.710,-3.280,4.130], [0.070,0.140,-2.810], [3.420,25.000,-0.640], [0.430,0.100,-3.970]]),
                 (3, [[-91.250,-110.010,915.920], [-0.550,0.530,13.390], [23.610,-2.820,1.080], [-1.460,0.550,-1.920], [2.850,23.610,-0.910], [-1.420,0.540,-2.130]]),
@@ -179,7 +182,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (47, [[18.390,-75.310,835.820], [-8.420,10.080,-2.660], [-7.370,-0.990,19.530], [-0.560,0.610,0.800], [16.030,10.170,6.780], [-0.360,-0.280,1.590]]),
                 (48, [[9.350,-65.880,832.920], [-11.900,13.240,-4.280], [-8.470,-0.620,21.630], [-0.850,0.480,1.280], [17.760,11.500,7.330], [-1.390,-0.780,1.040]]),
                 (49, [[-5.120,-48.680,827.110], [-17.030,21.160,-7.340], [-8.980,0.200,21.430], [-0.080,1.010,-1.640], [17.760,11.500,7.330], [-1.390,-0.780,1.040]])
-                ] ),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -219,7 +222,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                              "33-34-35-36-37-38-39-40-41-42-43-44-45-46-47-48-49-50-51-52-53"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ], [
+                ['coordinates'],
+                [ Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3 ], [[
                 (1, [[-245.30,444.60,-49.10], [-267.70,-53.10,-20.20], [0.00,0.00,38.02], [0.00,0.00,-4.41], [-7.40,37.29,0.00], [0.00,0.00,-4.41]]),
                 (2, [[-380.30,484.80,-45.00], [24.50,102.70,15.70], [0.00,0.00,34.49], [0.00,0.00,-2.65], [33.55,-8.00,0.00], [0.00,0.00,-2.65]]),
                 (3, [[-298.10,510.40,-36.80], [73.60,9.90,-16.40], [0.00,0.00,32.36], [-12.52,-3.10,-14.34], [4.31,-32.07,0.00], [-12.52,-3.10,-14.34]]),
@@ -273,7 +277,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (51, [[-318.10,641.90,-8.50], [166.70,17.60,5.50], [0.89,-3.82,-11.58], [-2.15,-0.82,-0.11], [-1.09,11.54,-3.89], [-2.15,-0.82,-0.11]]),
                 (52, [[-158.30,634.70,-1.90], [176.50,-14.00,10.80], [-1.43,-3.83,-11.56], [-0.81,0.27,-0.12], [1.15,11.54,-3.97], [-0.81,0.27,-0.12]]),
                 (53, [[32.70,611.70,13.60], [205.50,-32.20,20.00], [-1.01,-3.02,-11.90], [1.46,0.96,-0.42], [2.15,11.71,-3.15], [1.46,0.96,-0.42]])
-                ] ),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -311,7 +315,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3-4-5-6-7-8"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[0.00,0.00,0.00], [6.00,12.00,-2.00], [1.04,0.51,1.04], [-0.03,0.95,-0.68], [1.33,0.06,-0.79], [6.00,0.00,3.00]]),
                 (2, [[-2.00,11.00,-3.00], [-8.00,4.00,9.00], [1.01,1.01,0.50], [-0.03,-0.34,-0.02], [-0.58,1.04,-0.91], [0.00,1.00,2.00]]),
                 (3, [[-3.00,2.00,3.00], [-4.00,-8.00,0.00], [0.98,-0.48,0.98], [-0.15,-0.65,0.01], [-0.88,0.43,1.09], [1.00,0.00,2.00]]),
@@ -320,7 +325,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (6, [[-7.00,-8.00,0.00], [5.00,-1.00,-14.00], [0.00,-1.25,0.00], [0.03,0.04,-0.12], [-1.14,-0.00,-0.50], [0.00,0.00,0.50]]),
                 (7, [[-1.00,-6.00,-1.00], [2.00,-2.00,9.00], [0.38,-1.13,-0.38], [0.12,0.11,-0.23], [1.15,0.45,-0.20], [0.00,0.00,0.50]]),
                 (8, [[-2.00,-14.00,5.00], [-2.00,-4.00,2.00], [0.41,-0.84,-0.84], [-0.08,0.22,-0.28], [0.95,-0.30,0.75], [0.00,0.00,0.50]])
-                ] ),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -358,13 +363,14 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3-4-5"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[0.00,0.00,0.00], [0.00,0.00,13.00], [0.00,-1.55,0.00], [0.00,0.03,0.00], [1.55,-0.00,0.00], [0.00,0.00,0.50]]),
                 (2, [[0.00,0.00,13.00], [0.00,2.00,28.00], [0.00,-1.51,0.00], [0.00,0.05,0.00], [1.50,-0.00,-0.11], [0.00,0.00,0.50]]),
                 (3, [[-14.00,-2.00,13.00], [0.00,-3.00,-19.00], [0.00,-1.43,0.00], [0.00,0.13,0.00], [-1.41,-0.03,-0.23], [0.00,0.00,0.50]]),
                 (4, [[-14.00,-1.00,-10.00], [1.00,1.00,-17.00], [0.00,-1.25,0.00], [0.00,0.08,0.00], [-1.25,-0.00,-0.00], [0.00,0.00,0.50]]),
                 (5, [[-14.00,0.00,-28.00], [0.00,0.00,-11.00], [0.00,-1.25,0.00], [0.00,-0.08,0.00], [-1.25,-0.00,0.00], [0.00,0.00,0.50]])
-                ] ),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -403,7 +409,8 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                              "33-34-35-36-37-38-39-40"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                ['coordinates'],
+                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,  Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                 (1, [[-7.20,83.30,-20.70], [-65.20,-8.10,7.60], [0.00,0.00,38.25], [0.00,0.00,-0.50], [-9.02,37.17,0.51], [0.00,0.00,-0.50]]),
                 (2, [[-68.50,52.80,-9.60], [-40.10,-36.10,10.70], [0.00,0.00,37.69], [0.00,0.00,-0.63], [-30.08,22.66,1.43], [0.00,0.00,-0.63]]),
                 (3, [[-97.40,-26.30,5.70], [18.00,-93.20,13.70], [0.00,0.00,36.98], [0.00,0.00,-0.67], [-34.95,-12.07,0.76], [0.00,0.00,-0.67]]),
@@ -444,7 +451,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 (38, [[-20.90,15.30,-77.90], [-51.20,-30.60,21.10], [4.73,-5.14,8.14], [-1.12,2.71,-1.85], [-3.33,7.50,6.91], [-1.44,3.31,-2.27]]),
                 (39, [[-47.60,33.90,-112.20], [32.60,30.70,-27.80], [-10.59,-0.41,-1.32], [-7.25,2.76,-6.03], [-4.75,2.85,9.12], [-8.97,3.42,-7.45]]),
                 (40, [[19.60,96.00,-167.50], [19.90,19.10,-18.40], [-8.87,0.91,-5.71], [9.97,-0.68,-0.89], [-3.77,7.41,6.56], [12.30,-0.82,-1.11]])
-                ] ),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -823,7 +830,7 @@ def createColonMesh3d(region, options, networkLayout, nextNodeIdentifier, nextEl
                   arcLengthOfGroupsAlong[1] + arcLengthOfGroupsAlong[2],
                   arcLengthOfGroupsAlong[0]]
 
-    outerRadiusListCP = [vector.magnitude(c) for c in cd2]
+    outerRadiusListCP = [magnitude(c) for c in cd2]
     dOuterRadiusListCP = []
     for n in range(len(outerRadiusListCP) - 1):
         dOuterRadiusListCP.append(outerRadiusListCP[n + 1] - outerRadiusListCP[n])

@@ -7,6 +7,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, magnitude, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element, Elementbasis
@@ -16,7 +17,6 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, createCirclePoints
@@ -166,7 +166,7 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         elementsCountAround = 6
         radiansPerElementAround = 2.0*math.pi/elementsCountAround
-        axisSide2 = vector.crossproduct3(axisUp, axisSide1)
+        axisSide2 = cross(axisUp, axisSide1)
         outerRadius = innerRadius + wallThickness
         cuspOuterLength2 = 0.5*getApproximateEllipsePerimeter(innerRadius, cuspHeight)
         cuspOuterWallArcLength = cuspOuterLength2*innerRadius/(innerRadius + cuspHeight)
@@ -275,13 +275,13 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
             n2m = n1m*2 + 1
             n2p = n1p*2 - 1
             ax, ad1 = interp.sampleCubicHermiteCurves([ upperx[0][n2m], sinusx[n1] ], [ [ -scaled1*d for d in upperd2[0][n2m] ], [ scaled1*d for d in sinusd1[n1] ] ],
-                elementsCountOut=2, addLengthStart=0.5*vector.magnitude(upperd2[0][n2m]), lengthFractionStart=0.5,
-                addLengthEnd=0.5*vector.magnitude(sinusd1[n1]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
+                elementsCountOut=2, addLengthStart=0.5*magnitude(upperd2[0][n2m]), lengthFractionStart=0.5,
+                addLengthEnd=0.5*magnitude(sinusd1[n1]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
             arcx .append(ax [1])
             arcd1.append(ad1[1])
             ax, ad1 = interp.sampleCubicHermiteCurves([ sinusx[n1], upperx[0][n2p], ], [ [ scaled1*d for d in sinusd1[n1] ], [ scaled1*d for d in upperd2[0][n2p] ] ],
-                elementsCountOut=2, addLengthStart=0.5*vector.magnitude(sinusd1[n1]), lengthFractionStart=0.5,
-                addLengthEnd=0.5*vector.magnitude(upperd2[0][n2p]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
+                elementsCountOut=2, addLengthStart=0.5*magnitude(sinusd1[n1]), lengthFractionStart=0.5,
+                addLengthEnd=0.5*magnitude(upperd2[0][n2p]), lengthFractionEnd=0.5, arcLengthDerivatives=False)[0:2]
             arcx .append(ax [1])
             arcd1.append(ad1[1])
         if nMidCusp == 0:
@@ -307,13 +307,13 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
             noduled1[0].append([ noduleOuterRadialArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ])
-            noduled1[1].append(vector.setMagnitude(noduled1[0][i], noduleInnerRadialArcLength))
+            noduled1[1].append(set_magnitude(noduled1[0][i], noduleInnerRadialArcLength))
             n1 = i*2 + 1 + nMidCusp
             radiansAround = n1*radiansPerElementAround
             cosRadiansAround = math.cos(radiansAround)
             sinRadiansAround = math.sin(radiansAround)
             noduled2[0].append([ noduleOuterRadialArcLength*(cosRadiansAround*axisSide1[c] + sinRadiansAround*axisSide2[c]) for c in range(3) ])
-            noduled2[1].append(vector.setMagnitude(noduled2[0][i], noduleInnerRadialArcLength))
+            noduled2[1].append(set_magnitude(noduled2[0][i], noduleInnerRadialArcLength))
             noduled3[0].append([ noduleOuterAxialArcLength*axisUp[c] for c in range(3) ])
             noduled3[1].append([ noduleInnerAxialArcLength*axisUp[c] for c in range(3) ])
 
@@ -551,8 +551,8 @@ def getSemilunarValveSinusPoints(centre, axisSide1, axisSide2, radius, sinusRadi
         pd1.append([ radiansPerElementAround*(-rsinRadiansAround*axisSide1[c] + rcosRadiansAround*axisSide2[c]) for c in range(3) ])
     # smooth to get derivative in sinus
     sd1 = interp.smoothCubicHermiteDerivativesLine(px[1 - nMidCusp:3 - nMidCusp], pd1[1 - nMidCusp:3 - nMidCusp], fixStartDerivative=True, fixEndDirection=True)
-    magSinus = vector.magnitude(sd1[1])
+    magSinus = magnitude(sd1[1])
     for n in range(nMidCusp, elementsCountAround, 2):
-        pd1[n] = vector.setMagnitude(pd1[n], magSinus)
+        pd1[n] = set_magnitude(pd1[n], magSinus)
 
     return px, pd1

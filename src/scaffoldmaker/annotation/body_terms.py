@@ -17,6 +17,8 @@ body_terms = [
     ( "core", "" ),
     ( "non core", "" ),
     ( "core boundary", "" ),
+    ( "arm", "UBERON:0001460"),
+    ( "leg", "UBERON:0000978")
     ]
 
 def get_body_term(name : str):

@@ -1,9 +1,13 @@
 '''
 Utility functions for element field templates shared by mesh generators.
 '''
-from cmlibs.utils.zinc.finiteelement import getElementNodeIdentifiers
-from cmlibs.zinc.element import Elementfieldtemplate
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.zinc.element import Elementbasis, Elementfieldtemplate
+from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
+from scaffoldmaker.utils.interpolation import interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
+import copy
+import math
 
 
 def getEftTermScaling(eft, functionIndex, termIndex):
@@ -322,5 +326,537 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNod
         eft.setNumberOfLocalScaleFactors(0)
     if eft is not eftStd:
         assert eft.validate(), "Element " + str(elementIn.getIdentifier()) + " eft not validated"
+
+    return eft, scalefactors
+
+
+def determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights=None, serendipity=False,
+                                mapCrossDerivatives=False):
+    """
+    Determine the tricubic Hermite normal/serendipity element field template for
+    interpolating node parameters at corners of a cube, by matching deltas
+    between corners with node derivatives.
+    Node lists use zinc ordering which varies nodes fastest over lower element coordinate.
+    :param mesh: A Zinc mesh of dimension 3.
+    :param nodeParameters: List over 8 local nodes in Zinc ordering of 4 parameter
+    vectors x, d1, d2, d3 each with 3 components.
+    :param nodeDerivativeFixedWeights: Optional list over 8 local nodes in Zinc ordering of
+    list of up to 3 derivatives each containing weights for global d1, d2, d3 to fix that
+    derivative, or None to use default search.
+    Example: [[], [None, [0.0, -1.0, 1.0]], [], [], [], [], [], []]
+    Local nodes 1, 3-8 use the standard search for all derivatives.
+    Local node 2 forces d/dxi2 = -d2 + d3, d/dxi1 and d/dxi3 use the standard search.
+    :param serendipity: Set to True for serendipity basis.
+    :param mapCrossDerivatives: For non-serendipity Hermite basis, map cross derivatives
+    as appropriate for first derivatives. For example, if d/dxi1 = d2 and d/dxi2 = d3,
+    d2/dxi1dxi2 should map to -d23. If any element derivative is a sum of node derivatives,
+    eliminate cross derivatives which use that direction.
+    :return: eft, scale factors list [-1.0] or None. Returned eft can be further modified.
+    """
+    if nodeDerivativeFixedWeights is None:
+        nodeDerivativeFixedWeights = [[]] * 8
+    assert mesh.getDimension() == 3
+    assert len(nodeParameters) == 8
+    assert len(nodeParameters[0]) == 4
+    assert len(nodeDerivativeFixedWeights) == 8
+    assert not (serendipity and mapCrossDerivatives)
+    delta12 = sub(nodeParameters[1][0], nodeParameters[0][0])
+    delta34 = sub(nodeParameters[3][0], nodeParameters[2][0])
+    delta56 = sub(nodeParameters[5][0], nodeParameters[4][0])
+    delta78 = sub(nodeParameters[7][0], nodeParameters[6][0])
+    delta13 = sub(nodeParameters[2][0], nodeParameters[0][0])
+    delta24 = sub(nodeParameters[3][0], nodeParameters[1][0])
+    delta57 = sub(nodeParameters[6][0], nodeParameters[4][0])
+    delta68 = sub(nodeParameters[7][0], nodeParameters[5][0])
+    delta15 = sub(nodeParameters[4][0], nodeParameters[0][0])
+    delta26 = sub(nodeParameters[5][0], nodeParameters[1][0])
+    delta37 = sub(nodeParameters[6][0], nodeParameters[2][0])
+    delta48 = sub(nodeParameters[7][0], nodeParameters[3][0])
+    deltas = [
+        [delta12, delta13, delta15],
+        [delta12, delta24, delta26],
+        [delta34, delta13, delta37],
+        [delta34, delta24, delta48],
+        [delta56, delta57, delta15],
+        [delta56, delta68, delta26],
+        [delta78, delta57, delta37],
+        [delta78, delta68, delta48]
+    ]
+    fieldmodule = mesh.getFieldmodule()
+    tricubicHermiteBasis = fieldmodule.createElementbasis(
+        3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY if serendipity
+        else Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
+    eft = mesh.createElementfieldtemplate(tricubicHermiteBasis)
+    scalefactors = None
+    derivativeLabels = [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]
+    crossDerivativeLabels = [Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3,
+                             Node.VALUE_LABEL_D2_DS2DS3, Node.VALUE_LABEL_D3_DS1DS2DS3]
+    for n in range(8):
+        ln = n + 1
+        derivativeExpressionTerms = []
+        for ed in range(3):
+            if mapCrossDerivatives:
+                functionNumber = n * 8 + derivativeLabels[ed]
+            else:
+                functionNumber = n * 4 + ed + 2
+            expressionTerms = []
+            if nodeDerivativeFixedWeights[n] and (ed < len(nodeDerivativeFixedWeights[n])):
+                weights = nodeDerivativeFixedWeights[n][ed]
+                if weights is not None:
+                    for nd in range(len(weights)):
+                        weight = weights[nd]
+                        if weight:
+                            expressionTerms.append((derivativeLabels[nd], [1] if (weight < 0.0) else []))
+            if not expressionTerms:
+                delta = deltas[n][ed]  # delta side coordinates for nominal derivative direction
+                magDelta = magnitude(delta)
+                greatestSimilarity = 0.0  # can be negative in which can
+                derivativeLabel = None
+                for nd in range(3):
+                    derivative = nodeParameters[n][nd + 1]
+                    magDerivative = magnitude(derivative)
+                    cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
+                    magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
+                    similarity = cosineSimilarity * magnitudeSimilarity
+                    if math.fabs(similarity) > math.fabs(greatestSimilarity):
+                        greatestSimilarity = similarity
+                        derivativeLabel = derivativeLabels[nd]
+                expressionTerms.append((derivativeLabel, [1] if (greatestSimilarity < 0.0) else []))
+            termCount = len(expressionTerms)
+            if termCount != 1:
+                eft.setFunctionNumberOfTerms(functionNumber, termCount)
+            for t in range(termCount):
+                term = t + 1
+                eft.setTermNodeParameter(functionNumber, term, ln, expressionTerms[t][0], 1)
+                scaling = expressionTerms[t][1]
+                if scaling:
+                    if not scalefactors:
+                        # assumes only
+                        setEftScaleFactorIds(eft, [1], [])
+                        scalefactors = [-1.0]
+                    eft.setTermScaling(functionNumber, term, scaling)
+            if mapCrossDerivatives:
+                derivativeExpressionTerms.append(expressionTerms)
+        if mapCrossDerivatives:
+            for cd in range(4):
+                functionNumber = n * 8 + crossDerivativeLabels[cd]
+                derivativeIndexes = \
+                    [0, 1] if (cd == 0) else \
+                    [0, 2] if (cd == 1) else \
+                    [1, 2] if (cd == 2) else \
+                    [0, 1, 2]
+                sign = 1.0
+                crossDerivativeLabel = Node.VALUE_LABEL_VALUE
+                for ed in derivativeIndexes:
+                    if len(derivativeExpressionTerms[ed]) != 1:
+                        crossDerivativeLabel = Node.VALUE_LABEL_VALUE
+                        break
+                    crossDerivativeLabel += derivativeExpressionTerms[ed][0][0] - Node.VALUE_LABEL_VALUE
+                    if derivativeExpressionTerms[ed][0][1]:
+                        sign *= -1.0
+                if crossDerivativeLabel == Node.VALUE_LABEL_VALUE:
+                    eft.setFunctionNumberOfTerms(functionNumber, 0)
+                else:
+                    eft.setTermNodeParameter(functionNumber, 1, ln, crossDerivativeLabel, 1)
+                    if sign < 0.0:
+                        eft.setTermScaling(functionNumber, 1, [1])
+    return eft, scalefactors
+
+
+class HermiteNodeLayout:
+    """
+    From the allowable derivative directions expressed as weighted sums, determines all
+    possible permutations of them giving a right-handed corner without other directions inside them.
+    """
+
+    def __init__(self, directions, baseNodeLayout=None, limitDirections=None):
+        """
+        Construct a new node layout from either directions, or baseNodeLayout with limitDirections.
+        :param directions: List of allowed directions as weighted sums of d1, d2, or d1, d2, d3.
+        Lists with 2 weights are for bicubic; with each weight paired with the following
+        in the list to make valid permutations. Do not supply if baseNodeLayout is supplied.
+        :param baseNodeLayout: Optional base node layout to copy direections and permutations from
+        when supplying limitDirections.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with no d3, [None, [[0.0, 1.0], [0.0, -1.0]]] places no limit on the first
+        derivative, but derivative 2 must be [0, +/-1].
+        """
+        assert (directions and not baseNodeLayout) or (baseNodeLayout and limitDirections and not directions)
+        self._directions = directions if directions else baseNodeLayout.getDirections()
+        self._limitDirections = limitDirections if limitDirections else []
+        self._cubicDimensions = len(self._directions[0])
+        assert self._cubicDimensions in (2, 3)
+        self._permutations = baseNodeLayout.getPermutations() if baseNodeLayout else self._determinePermutations()
+
+    def _determinePermutations(self):
+        """
+        Determine permutations of weights from directions.
+        :return: Permutations list.
+        """
+        permutations = []
+        directionsCount = len(self._directions)
+        if self._cubicDimensions == 2:
+            for i in range(directionsCount):
+                j = (i + 1) % directionsCount
+                permutations.append((self._directions[i], self._directions[j]))
+                # disallowing reverse as messes up bifurcations with 6, 10, 14 etc. around
+                # would be needed for moebius strip
+                # permutations.append((directions[j], directions[i]))
+        else:
+            normDir = [normalize(dir) for dir in self._directions]
+            for i in range(directionsCount - 2):
+                for j in range(i + 1, directionsCount - 1):
+                    if dot(normDir[i], normDir[j]) < -0.9:
+                        continue
+                    ijCross = cross(normDir[i], normDir[j])
+                    for k in range(j + 1, directionsCount):
+                        if (dot(normDir[i], normDir[k]) < -0.9) or (dot(normDir[j], normDir[k]) < -0.9):
+                            continue
+                        dotCross = dot(ijCross, normDir[k])
+                        if dotCross == 0.0:
+                            continue
+                        swizzle = dotCross < 0.0
+                        midSide1 = normalize(add(normDir[i], normDir[j]))
+                        midSide2 = normalize(add(normDir[j], normDir[k]))
+                        midSide3 = normalize(add(normDir[k], normDir[i]))
+                        middle = normalize([midSide1[c] + midSide2[c] + midSide3[c] for c in range(3)])
+                        maxDot = 0.9 * max(dot(normDir[i], middle), dot(normDir[j], middle), dot(normDir[k], middle))
+                        for m in range(directionsCount):
+                            if m in [i, j, k]:
+                                continue
+                            if dot(normDir[m], middle) > maxDot:
+                                break  # another direction is within i j k region
+                        else:
+                            ii, jj, kk = (i, k, j) if swizzle else (i, j, k)
+                            permutations.append((self._directions[ii], self._directions[jj], self._directions[kk]))
+                            permutations.append((self._directions[jj], self._directions[kk], self._directions[ii]))
+                            permutations.append((self._directions[kk], self._directions[ii], self._directions[jj]))
+        return permutations
+
+    def getComplexity(self):
+        """
+        :return: Integer complexity equal to number of axis permutations in node layout.
+        """
+        return len(self._permutations)
+
+    def getDirections(self):
+        return self._directions
+
+    def getPermutations(self):
+        return self._permutations
+
+    def getDerivativeWeightsList(self, nodeDeltas, nodeDerivatives, localNodeIndex):
+        """
+        Get derivative weights for permutation making nodeDerivatives closest to nodeDeltas.
+        :param nodeDeltas: List of 3 delta side coordinates to match.
+        :param nodeDerivatives: List of [d1, d2, d3] parameters from node. d3 is None if linear through wall or 2-D.
+        :param localNodeIndex: Local node index from 0 to 7 in Zinc order, which flips allowable directions.
+        :return: List of weights for d1, d2, d3 to give d/dxi1, d/dxi2, d/dxi3.
+        """
+        derivativesPerNode = self._cubicDimensions
+        if self._cubicDimensions == 2:
+            flips = [localNodeIndex in [1, 3, 5, 7], localNodeIndex in [2, 3, 6, 7]]
+            # need to swizzle indexes if odd number of flips, to keep right-handed layout
+            flipCount = sum(1 for flip in flips if flip)
+            swizzle = (flipCount % 2) == 1
+            swizzleIndexes = [1, 0] if swizzle else [0, 1]
+        else:
+            flips = [localNodeIndex in [1, 3, 5, 7], localNodeIndex in [2, 3, 6, 7], localNodeIndex in [4, 5, 6, 7]]
+            # need to swizzle indexes if odd number of flips, to keep right-handed layout
+            flipCount = sum(1 for flip in flips if flip)
+            swizzle = (flipCount % 2) == 1
+            swizzleIndexes = [0, 2, 1] if swizzle else [0, 1, 2]
+
+        # modify deltas to point inward towards opposite node
+        inwardNodeDeltas = [[-d for d in nodeDeltas[i]] if flips[i] else nodeDeltas[i] for i in swizzleIndexes]
+        derivativeWeightsList = None
+        greatestSimilarity = -1.0
+        for permutation in self._permutations:
+            # skip permutations using directions not in any supplied limitDirections
+            skipPermutation = False
+            limitIndex = 0
+            for limitDirections in self._limitDirections:
+                if limitDirections:
+                    weights = permutation[swizzleIndexes[limitIndex]]
+                    if flips[limitIndex]:
+                        weights = [-wt for wt in weights]
+                    for limitDirection in limitDirections:
+                        if magnitude(sub(weights, limitDirection)) < 1.0E-6:
+                            break
+                    else:
+                        skipPermutation = True
+                        break
+                limitIndex += 1
+            if skipPermutation:
+                continue
+            similarity = 0.0
+            for d in range(derivativesPerNode):
+                weights = permutation[d]
+                derivative = [0.0, 0.0, 0.0]
+                for i in range(derivativesPerNode):
+                    if weights[i]:
+                        weight = weights[i]
+                        nodeDerivative = nodeDerivatives[i]
+                        for c in range(3):
+                            derivative[c] += weight * nodeDerivative[c]
+                delta = inwardNodeDeltas[d]
+                magDelta = magnitude(delta)
+                magDerivative = magnitude(derivative)
+                if magDerivative > 0.0:
+                    cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
+                    # magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
+                    similarity += cosineSimilarity  # * magnitudeSimilarity
+            if similarity > greatestSimilarity:
+                greatestSimilarity = similarity
+                derivativeWeightsList = permutation
+        finalWeightsList = [
+            [-w for w in derivativeWeightsList[swizzleIndexes[i]]] if flips[i]
+            else derivativeWeightsList[swizzleIndexes[i]] for i in range(derivativesPerNode)
+        ]
+        return finalWeightsList
+
+
+class HermiteNodeLayoutManager:
+    """
+    Managers permutations of hermite node layouts for easy recall.
+    """
+
+    def __init__(self):
+        self._nodeLayoutRegularPermuted = HermiteNodeLayout(
+            [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]])
+        self._nodeLayoutRegularPermuted_d3Defined = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayout6Way12 = HermiteNodeLayout(
+            [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0]])
+        self._nodeLayout6Way12_d3Defined = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
+             [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayout6WayBifurcation = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
+             [0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
+        self._nodeLayout6WayBifurcationTransition = HermiteNodeLayout(
+            [[0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
+        self._nodeLayout6WayTriplePointTop1 = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
+             [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+        self._nodeLayout6WayTriplePointTop2 = HermiteNodeLayout(
+            [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+        self._nodeLayout6WayTriplePointBottom1 = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
+             [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+        self._nodeLayout6WayTriplePointBottom2 = HermiteNodeLayout(
+            [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+        self._nodeLayout8Way12 = HermiteNodeLayout(
+            [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0], [1.0, -1.0]])
+        self._nodeLayout8Way12_d3Defined = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 1.0, 0.0],
+             [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [1.0, -1.0, 0.0],
+             [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayoutTriplePointTopLeft = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
+        self._nodeLayoutTriplePointTopRight = HermiteNodeLayout(
+            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
+        self._nodeLayoutTriplePointBottomLeft = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
+        self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
+            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+
+    def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
+        """
+        Get node layout for permutations of +/- d1, d2, d3, optionally limiting some directions.
+        Note that variants using limitDirections are not currently stored so client should hold them if reusing.
+        :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with d3, [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] places no
+        limits on the first derivative, but derivative 2 must be [0, +/-1, 0] and d3 must be [0, 0, 1].
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayoutRegularPermuted_d3Defined if d3Defined else self._nodeLayoutRegularPermuted
+        if limitDirections:
+            nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
+        return nodeLayout
+
+    def getNodeLayout6Way12(self, d3Defined, limitDirections=None):
+        """
+        Get node layout for 6-way junction in 1-2 plane, including d1 + d2, -d1 - d2.
+        :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with d3, [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] places no
+        limits on the first derivative, but derivative 2 must be [0, +/-1, 0] and d3 must be [0, 0, 1].
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayout6Way12_d3Defined if d3Defined else self._nodeLayout6Way12
+        if limitDirections:
+            nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
+        return nodeLayout
+
+    def getNodeLayout8Way12(self, d3Defined):
+        """
+        Get node layout for 8-way junction in 1-2 plane, including d1 + d2, -d1 + d2, -d1 - d2, d1 - d2.
+        :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayout8Way12_d3Defined if d3Defined else self._nodeLayout8Way12
+
+    def getNodeLayoutTriplePoint(self):
+        """
+        Get node layout for triple-point corners of core box elements. There are four corners (Top Left, Top Right,
+        Bottom Left, and Bottom Right) each with its specific node layout.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayouts = [self._nodeLayoutTriplePointTopLeft, self._nodeLayoutTriplePointTopRight,
+                       self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]
+        return nodeLayouts
+
+    def getNodeLayout6WayBifurcation(self):
+        """
+        Get node layout for a special case of 6-way bifurcation, used in conjunction with a node layout for
+        6-way bifurcation transition and a node layout for 6-way triple point.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayout6WayBifurcation
+
+    def getNodeLayout6WayBifurcationTransition(self):
+        """
+        Get node layout for a special case of 6-way bifurcation transition, used in conjunction with a node layout for
+        6-way bifurcation and a node layout for 6-way triple point.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayout6WayBifurcationTransition
+
+    def getNodeLayout6WayTriplePoint(self):
+        """
+        Get node layout for a special case where a node is located at both 6-way junction and one of the triple-point
+        corners of core box elements. Used in conjunction with 6-way bifurcation and 6-way bifurcation transition node
+        layouts. There are two corners (Top, and Bottom) each with its specific pair of node layouts.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayouts = [self._nodeLayout6WayTriplePointTop1, self._nodeLayout6WayTriplePointTop2,
+                       self._nodeLayout6WayTriplePointBottom1, self._nodeLayout6WayTriplePointBottom2]
+        return nodeLayouts
+
+def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
+    """
+    Determine the bicubic or tricubic Hermite serendipity element field template for
+    interpolating node parameters at corners of a square or cube, by matching deltas
+    between corners with node derivatives.
+    Node lists use zinc ordering which varies nodes fastest over lower element coordinate.
+    :param mesh: A Zinc mesh of dimension 2 or 3.
+    :param nodeParameters: List over 4 (2-D) or 8 (3-D) local nodes in Zinc ordering of
+    4 parameter vectors x, d1, d2, d3 each with 3 components. d3 is not used in 2-D, and in
+    3-d if d3 is omitted the basis is linear in that direction.
+    :param nodeLayouts: List over 4 or 8 local nodes of HermiteNodeLayout objects describing the
+    list of allowable derivative combinations for each corner node. None value for a node
+    keeps the standard, regular layout.
+    :return: eft, scale factors list [-1.0] or None. Returned eft can be further modified.
+    """
+    meshDimension = mesh.getDimension()
+    nodesCount = len(nodeParameters)
+    assert ((meshDimension == 2) and (nodesCount == 4)) or ((meshDimension == 3) and (nodesCount == 8))
+    assert len(nodeParameters[0]) == 4
+    d3Defined = (meshDimension == 3) and (nodeParameters[0][3] is not None)
+    assert len(nodeLayouts) == nodesCount
+    delta12 = sub(nodeParameters[1][0], nodeParameters[0][0])
+    delta34 = sub(nodeParameters[3][0], nodeParameters[2][0])
+    delta13 = sub(nodeParameters[2][0], nodeParameters[0][0])
+    delta24 = sub(nodeParameters[3][0], nodeParameters[1][0])
+    if meshDimension == 3:
+        delta15 = sub(nodeParameters[4][0], nodeParameters[0][0])
+        delta26 = sub(nodeParameters[5][0], nodeParameters[1][0])
+        delta37 = sub(nodeParameters[6][0], nodeParameters[2][0])
+        delta48 = sub(nodeParameters[7][0], nodeParameters[3][0])
+    else:
+        delta15 = delta26 = delta37 = delta48 = [0.0, 0.0, 0.0]
+    deltas = [
+        [delta12, delta13, delta15],
+        [delta12, delta24, delta26],
+        [delta34, delta13, delta37],
+        [delta34, delta24, delta48]
+    ]
+    if meshDimension == 3:
+        delta56 = sub(nodeParameters[5][0], nodeParameters[4][0])
+        delta78 = sub(nodeParameters[7][0], nodeParameters[6][0])
+        delta57 = sub(nodeParameters[6][0], nodeParameters[4][0])
+        delta68 = sub(nodeParameters[7][0], nodeParameters[5][0])
+        deltas += [
+            [delta56, delta57, delta15],
+            [delta56, delta68, delta26],
+            [delta78, delta57, delta37],
+            [delta78, delta68, delta48]
+        ]
+    fieldmodule = mesh.getFieldmodule()
+    elementbasis = fieldmodule.createElementbasis(meshDimension, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY)
+    if (meshDimension == 3) and not d3Defined:
+        elementbasis.setFunctionType(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
+    eft = mesh.createElementfieldtemplate(elementbasis)
+    scalefactors = None
+    derivativeLabels = [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]
+    derivativesPerNode = 3 if d3Defined else 2
+    functionsPerNode = 1 + derivativesPerNode
+    # order local nodes from default then simplest to most complex node layout
+    nodeOrder = []
+    for n in range(nodesCount):
+        if not nodeLayouts[n]:
+            nodeOrder.append(n)
+    while len(nodeOrder) < nodesCount:
+        lowestComplexity = 0
+        next_n = None
+        for n in range(nodesCount):
+            if n in nodeOrder:
+                continue
+            complexity = nodeLayouts[n].getComplexity()
+            if (next_n is None) or (complexity < lowestComplexity):
+                lowestComplexity = complexity
+                next_n = n
+        nodeOrder.append(next_n)
+    for n in nodeOrder:
+        ln = n + 1
+        nodeLayout = nodeLayouts[n]
+        nodeDerivatives = [
+            nodeParameters[n][1],
+            nodeParameters[n][2],
+            nodeParameters[n][3] if d3Defined else None]
+        derivativeWeightsList =\
+            nodeLayout.getDerivativeWeightsList(deltas[n], nodeDerivatives, n) if nodeLayout else None
+        for ed in range(derivativesPerNode):
+            if nodeLayout:
+                derivativeWeights = derivativeWeightsList[ed]
+                functionNumber = n * functionsPerNode + ed + 2
+                termsCount = sum(1 for wt in derivativeWeights if wt != 0.0)
+                eft.setFunctionNumberOfTerms(functionNumber, termsCount)
+                term = 0
+                elementDerivative = [0.0, 0.0, 0.0]
+                for i in range(derivativesPerNode):
+                    weight = derivativeWeights[i]
+                    if weight:
+                        term += 1
+                        eft.setTermNodeParameter(functionNumber, term, ln, derivativeLabels[i], 1)
+                        if weight < 0.0:
+                            if not scalefactors:
+                                setEftScaleFactorIds(eft, [1], [])
+                                scalefactors = [-1.0]
+                            eft.setTermScaling(functionNumber, term, [1])
+                        for c in range(3):
+                            elementDerivative[c] += weight * nodeDerivatives[i][c]
+            else:
+                elementDerivative = nodeDerivatives[ed]
+            # update delta to equal the exact derivative
+            oldDeltaMagnitude = magnitude(deltas[n][ed])
+            deltas[n][ed] = elementDerivative
+            # get other node index interpolated with this element derivative
+            on = n ^ (1 << ed)
+            if nodeOrder.index(on) > nodeOrder.index(n):
+                derivativeMagnitude = magnitude(elementDerivative)
+                newMagnitude = 2.0 / ((1.0 / oldDeltaMagnitude) + (1.0 / derivativeMagnitude))
+                elementDerivative = mult(elementDerivative, newMagnitude / derivativeMagnitude)
+                # update other node delta to work in with this derivative
+                otherElementDerivative = (
+                    interpolateHermiteLagrangeDerivative(nodeParameters[n][0], elementDerivative, nodeParameters[on][0], 1.0)
+                    if (on > n) else
+                    interpolateLagrangeHermiteDerivative(nodeParameters[on][0], nodeParameters[n][0], elementDerivative, 0.0))
+                deltas[on][ed] = otherElementDerivative
 
     return eft, scalefactors

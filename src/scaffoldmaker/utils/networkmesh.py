@@ -2,18 +2,23 @@
 Utility class for defining network meshes from 1-D connectivity and lateral axes, with continuity control.
 """
 
-from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.maths.vectorops import cross, magnitude, normalize, sub
-from scaffoldmaker.utils.interpolation import interpolateSampleCubicHermite, sampleCubicHermiteCurvesSmooth,\
-    smoothCubicHermiteDerivativesLoop
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.utils.interpolation import getCubicHermiteCurvesLength
 from scaffoldmaker.utils.tracksurface import TrackSurface
-from scaffoldmaker.utils.vector import vectorRejection
-
+from abc import ABC, abstractmethod
 import math
 import sys
+
+
+pathValueLabels = [
+    Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+    Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
+    Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
 
 
 class NetworkNode:
@@ -313,7 +318,7 @@ class NetworkMesh:
         """
         self._region = region
         fieldmodule = region.getFieldmodule()
-        coordinates = findOrCreateFieldCoordinates(fieldmodule)
+        coordinates = find_or_create_field_coordinates(fieldmodule)
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplates = [None]
@@ -406,155 +411,389 @@ class NetworkMesh:
                 elementIdentifier += 1
 
 
-def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0, phaseAngle=0.0):
+class NetworkMeshGenerateData:
     """
-    Generate coordinates around and along a tube in parametric space around the path parameters,
-    at xi2^2 + xi3^2 = radius at the same density as path parameters.
-    :param pathParameters: List over nodes of 6 parameters vectors [cx, cd1, cd2, cd12, cd3, cd13] giving
-    coordinates cx along path centre, derivatives cd1 along path, cd2 and cd3 giving side vectors,
-    and cd12, cd13 giving rate of change of side vectors. Parameters have 3 components.
-    Same format as output of zinc_utils get_nodeset_path_ordered_field_parameters().
-    :param elementsCountAround: Number of elements & nodes to create around tube. First location is at +d2.
-    :param radius: Radius of tube in xi space.
-    :param phaseAngle: Starting angle around ellipse, where 0.0 is at d2, pi/2 is at d3.
-    :return: px[][], pd1[][], pd2[][], pd12[][] with first index in range(pointsCountAlong),
-    second inner index in range(elementsCountAround)
+    Data for passing to NetworkMesh generateMesh functions.
+    Maintains Zinc region, field, node and element information, and output annotation groups.
+    Derive from this class to pass additional data.
     """
-    assert len(pathParameters) == 6
-    pointsCountAlong = len(pathParameters[0])
-    assert pointsCountAlong > 1
-    assert len(pathParameters[0][0]) == 3
 
-    # sample around circle in xi space, later smooth and re-sample to get even spacing in geometric space
-    ellipsePointCount = 16
-    aroundScale = 2.0 * math.pi / ellipsePointCount
-    sxi = []
-    sdxi = []
-    angleBetweenPoints = 2.0 * math.pi / ellipsePointCount
-    for q in range(ellipsePointCount):
-        theta = phaseAngle + q * angleBetweenPoints
-        xi2 = radius * math.cos(theta)
-        xi3 = radius * math.sin(theta)
-        sxi.append([xi2, xi3])
-        dxi2 = -xi3 * aroundScale
-        dxi3 = xi2 * aroundScale
-        sdxi.append([dxi2, dxi3])
+    def __init__(self, region, meshDimension, coordinateFieldName, startNodeIdentifier=1, startElementIdentifier=1):
+        self._region = region
+        self._fieldmodule = region.getFieldmodule()
+        self._fieldcache = self._fieldmodule.createFieldcache()
+        self._meshDimension = meshDimension
+        self._mesh = self._fieldmodule.findMeshByDimension(meshDimension)
+        self._nodes = self._fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self._coordinates = find_or_create_field_coordinates(self._fieldmodule, coordinateFieldName)
+        self._nodeIdentifier = startNodeIdentifier
+        self._elementIdentifier = startElementIdentifier
+        self._annotationGroups = []  # list of AnnotationGroup to return for mesh's scaffold
+        self._annotationGroupMap = {}  # map from annotation term (name, ontId) to AnnotationGroup in output region
 
-    px = []
-    pd1 = []
-    pd2 = []
-    pd12 = []
-    for p in range(pointsCountAlong):
-        cx, cd1, cd2, cd12, cd3, cd13 = [cp[p] for cp in pathParameters]
-        tx = []
-        td1 = []
-        for q in range(ellipsePointCount):
-            xi2 = sxi[q][0]
-            xi3 = sxi[q][1]
-            x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
-            tx.append(x)
-            dxi2 = sdxi[q][0]
-            dxi3 = sdxi[q][1]
-            d1 = [(dxi2 * cd2[c] + dxi3 * cd3[c]) for c in range(3)]
-            td1.append(d1)
-        # smooth to get reasonable derivative magnitudes
-        td1 = smoothCubicHermiteDerivativesLoop(tx, td1, fixAllDirections=True)
-        # resample to get evenly spaced points around loop, temporarily adding start point to end
-        ex, ed1, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(tx + tx[:1], td1 + td1[:1], elementsCountAround)
-        exi, edxi = interpolateSampleCubicHermite(sxi + sxi[:1], sdxi + sdxi[:1], pe, pxi, psf)
-        ex.pop()
-        ed1.pop()
-        exi.pop()
-        edxi.pop()
+    def getCoordinates(self):
+        """
+        :return: Zinc Finite Element coordinate field being defined.
+        """
+        return self._coordinates
 
-        # check closeness of x(exi[i]) to ex[i]
-        # find nearest xi2, xi3 if above is finite error
-        # a small but non-negligible error, but results look fine so not worrying
-        # dxi = []
-        # for i in range(len(ex)):
-        #     xi2 = exi[i][0]
-        #     xi3 = exi[i][1]
-        #     xi23 = xi2 * xi3
-        #     x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
-        #     dxi.append(sub(x, ex[i]))
-        # print("error", p, "=", [magnitude(v) for v in dxi])
+    def getFieldcache(self):
+        """
+        :return: Zinc Fieldcache for assigning field parameters with.
+        """
+        return self._fieldcache
 
-        # calculate d2, d12 at exi
-        ed2 = []
-        ed12 = []
-        for i in range(len(ex)):
-            xi2 = exi[i][0]
-            xi3 = exi[i][1]
-            d2 = [(cd1[c] + xi2 * cd12[c] + xi3 * cd13[c]) for c in range(3)]
-            ed2.append(d2)
-            dxi2 = edxi[i][0]
-            dxi3 = edxi[i][1]
-            d12 = [(dxi2 * cd12[c] + dxi3 * cd13[c]) for c in range(3)]
-            ed12.append(d12)
+    def getMesh(self):
+        """
+        :return: Zinc Mesh for elements being built.
+        """
+        return self._mesh
 
-        px.append(ex)
-        pd1.append(ed1)
-        pd2.append(ed2)
-        pd12.append(ed12)
+    def getMeshDimension(self):
+        """
+        :return: Dimension of elements being built.
+        """
+        return self._meshDimension
 
-    return px, pd1, pd2, pd12
+    def getNodes(self):
+        """
+        :return: Zinc Nodeset for nodes being built.
+        """
+        return self._nodes
+
+    def getRegion(self):
+        return self._region
+
+    def getNodeElementIdentifiers(self):
+        """
+        Get next node and element identifiers without incrementing, to call at end of generation.
+        :return: Next node identifier, next element identifier.
+        """
+        return self._nodeIdentifier, self._elementIdentifier
+
+    def setNodeElementIdentifiers(self, nodeIdentifier, elementIdentifier):
+        """
+        Set next node and element identifiers after generating objects with external code.
+        """
+        self._nodeIdentifier = nodeIdentifier
+        self._elementIdentifier = elementIdentifier
+
+    def nextNodeIdentifier(self):
+        nodeIdentifier = self._nodeIdentifier
+        self._nodeIdentifier += 1
+        return nodeIdentifier
+
+    def nextElementIdentifier(self):
+        elementIdentifier = self._elementIdentifier
+        self._elementIdentifier += 1
+        return elementIdentifier
+
+    def getRegion(self):
+        return self._region
+
+    def getAnnotationGroups(self):
+        return self._annotationGroups
+
+    def getOrCreateAnnotationGroup(self, annotationTerm):
+        annotationGroup = self._annotationGroupMap.get(annotationTerm)
+        if not annotationGroup:
+            annotationGroup = AnnotationGroup(self._region, annotationTerm)
+            self._annotationGroups.append(annotationGroup)
+            self._annotationGroupMap[annotationTerm] = annotationGroup
+        return annotationGroup
+
+    def _getAnnotationMeshGroup(self, annotationTerm):
+        """
+        Get mesh group to add elements to for term.
+        :param annotationTerm: Annotation term (name, ontId).
+        :return: Zinc MeshGroup.
+        """
+        annotationGroup = self.getOrCreateAnnotationGroup(annotationTerm)
+        return annotationGroup.getMeshGroup(self._mesh)
+
+    def getAnnotationMeshGroups(self, annotationTerms):
+        """
+        Get mesh groups for all annotation terms to add segment elements to, creating as needed.
+        :param annotationTerms: List of annotation terms (name, ontId).
+        :return: List of Zinc MeshGroup.
+        """
+        return [self._getAnnotationMeshGroup(annotationTerm) for annotationTerm in annotationTerms]
 
 
-def resampleTubeCoordinates(rawTubeCoordinates, elementsCountAlong,
-                            startSurface: TrackSurface=None, endSurface: TrackSurface=None):
+class NetworkMeshSegment(ABC):
     """
-    Generate new tube coordinates evenly spaced along raw tube coordinates, optionally
-    starting or ending at intersections at start/end track surfaces.
-    :param rawTubeCoordinates: (px, pd1, pd2, pd12) returned by getPathRawTubeCoordinates().
-    :param elementsCountAlong: Number of elements in resampled coordinates.
-    :param startSurface: Optional TrackSurface specifying start of tube at intersection with it.
-    :param endSurface: Optional TrackSurface specifying end of tube at intersection with it.
-    :return: sx[][], sd1[][], sd2[][], sd12[][] with first index in range(elementsCountAlong + 1),
-    second inner index in range(elementsCountAround)
+    Base class for building a mesh from a NetworkSegment.
     """
-    px, pd1, pd2, pd12 = rawTubeCoordinates
-    pointsCountAlong = len(px)
-    elementsCountAround = len(px[0])
-    # resample at even spacing along
-    sx = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
-    sd1 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
-    sd2 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
-    sd12 = [[None] * elementsCountAround for _ in range(elementsCountAlong + 1)]
-    for q in range(elementsCountAround):
-        cx = [px[p][q] for p in range(pointsCountAlong)]
-        cd1 = [pd1[p][q] for p in range(pointsCountAlong)]
-        cd2 = [pd2[p][q] for p in range(pointsCountAlong)]
-        cd12 = [pd12[p][q] for p in range(pointsCountAlong)]
-        startCurveLocation = None
-        if startSurface:
-            startSurfacePosition, startCurveLocation, startIntersects = startSurface.findNearestPositionOnCurve(cx, cd2)
-            if not startIntersects:
-                startCurveLocation = None
-        endCurveLocation = None
-        if endSurface:
-            endSurfacePosition, endCurveLocation, endIntersects = endSurface.findNearestPositionOnCurve(cx, cd2)
-            if not endIntersects:
-                endCurveLocation = None
-        qx, qd2, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
-            cx, cd2, elementsCountAlong, startLocation=startCurveLocation, endLocation=endCurveLocation)
-        qd1, qd12 = interpolateSampleCubicHermite(cd1, cd12, pe, pxi, psf)
-        # swizzle
-        for p in range(elementsCountAlong + 1):
-            sx[p][q] = qx[p]
-            sd1[p][q] = qd1[p]
-            sd2[p][q] = qd2[p]
-            sd12[p][q] = qd12[p]
 
-    # recalculate d1 around intermediate rings, but still in plane
-    # normally looks fine, but d1 derivatives are wavy when very distorted
-    pStart = 0 if startSurface else 1
-    pLimit = elementsCountAlong + 1 if endSurface else elementsCountAlong
-    for p in range(pStart, pLimit):
-        # first smooth to get d1 with new directions not tangential to surface
-        td1 = smoothCubicHermiteDerivativesLoop(sx[p], sd1[p])
-        # constraint to be tangential to surface
-        td1 = [vectorRejection(td1[q], normalize(cross(sd1[p][q], sd2[p][q]))) for q in range(elementsCountAround)]
-        # smooth magnitudes only
-        sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
+    def __init__(self, networkSegment, pathParametersList):
+        """
+        :param networkSegment: NetworkSegment this is built from.
+        :param pathParametersList: [pathParameters] or [outerPathParameters, innerPathParameters]
+        Segment length is determined from the first/primary path only.
+        """
+        self._networkSegment = networkSegment
+        self._pathParametersList = pathParametersList
+        self._pathsCount = len(pathParametersList)
+        self._dimension = 3 if (self._pathsCount > 1) else 2
+        self._length = getCubicHermiteCurvesLength(pathParametersList[0][0], pathParametersList[0][1])
+        self._annotationTerms = []
+        self._junctions = []  # start, end junctions. Set when junctions are created.
+        self._isLoop = False
 
-    return sx, sd1, sd2, sd12
+    def addAnnotationTerm(self, annotationTerm):
+        """
+        Add annotation term to this segment. Should not already be present; this is not checked.
+        :param annotationTerm: Annotation term (name: str, ontId: str)
+        """
+        self._annotationTerms.append(annotationTerm)
+
+    def getAnnotationTerms(self):
+        return self._annotationTerms
+
+    def getLength(self):
+        """
+        Get length of the segment's primary path.
+        :return: Real length.
+        """
+        return self._length
+
+    def getNetworkSegment(self):
+        """
+        :return: Original NetworkSegment this is building from.
+        """
+        return self._networkSegment
+
+    def getPathParameters(self, pathIndex=0):
+        """
+        :return: Path parameters (x, d1, d2, d12, d3, d13) for path index.
+        """
+        if pathIndex > len(self._pathParametersList):
+            return None
+        return self._pathParametersList[pathIndex]
+
+    def getPathsCount(self):
+        return self._pathsCount
+
+    def getJunctions(self):
+        """
+        Get the junctions at start and end of segment.
+        :return: List of NetworkMeshJunction-derived objects.
+        """
+        return self._junctions
+
+    def setJunctions(self, junctions):
+        """
+        Called by NetworkMeshBuilder so segment knows how it starts and ends.
+        :param junctions: list of 2 NetworkMeshJunctions-derived objects at start and end of segment.
+        """
+        self._junctions = junctions
+        self._isLoop = junctions[0] == junctions[1]
+
+    def isLoop(self):
+        """
+        Only valid after call to self.setJunctions()
+        :return: True if segment is a loop, otherwise False.
+        """
+        return self._isLoop
+
+    @abstractmethod
+    def sample(self, targetElementLength):
+        """
+        Override to resample curve/raw data to final coordinates.
+        :param targetElementLength: Target element size along length of segment/junction.
+        """
+        pass
+
+    @abstractmethod
+    def generateMesh(self, generateData: NetworkMeshGenerateData):
+        """
+        Override to generate mesh for segment.
+        :param generateData: NetworkMeshGenerateData-derived object.
+        :return:
+        """
+        pass
+
+
+class NetworkMeshJunction(ABC):
+    """
+    Base class for building a mesh at a junction between segments, some in, some out.
+    """
+
+    def __init__(self, inSegments: list, outSegments: list):
+        """
+        :param inSegments: List of inward NetworkMeshSegment-derived objects.
+        :param outSegments: List of outward NetworkMeshSegment-derived objects.
+        """
+        self._segments = inSegments + outSegments
+        self._segmentsCount = len(self._segments)
+        self._segmentsIn = [segment in inSegments for segment in self._segments]
+
+    def getNetworkSegments(self):
+        """
+        :return: List of network segments at junction in order with "in" segments first.
+        """
+        return self._networkSegments
+
+    def getSegmentsCount(self):
+        return self._segmentsCount
+
+    def getSegmentsIn(self):
+        """
+        :return: List of boolean true if segment is inward, false if not, in supplied order.
+        """
+        return self._segmentsIn
+
+    def getSegments(self):
+        """
+        :return: List of NetworkMeshSegment-derived objects joined at junction, in supplied order.
+        """
+        return self._segments
+
+    @abstractmethod
+    def sample(self, targetElementLength):
+        """
+        Override to resample curve/raw data to final coordinates.
+        :param targetElementLength: Target element size along length of segment/junction.
+        """
+        pass
+
+    @abstractmethod
+    def generateMesh(self, generateData: NetworkMeshGenerateData):
+        """
+        Override to generate mesh for junction.
+        :param generateData: NetworkMeshGenerateData-derived object.
+        :return:
+        """
+        pass
+
+
+class NetworkMeshBuilder(ABC):
+    """
+    Abstract base class for building meshes from a NetworkMesh network layout.
+    """
+
+    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
+                 layoutAnnotationGroups):
+        self._networkMesh = networkMesh
+        self._targetElementDensityAlongLongestSegment = targetElementDensityAlongLongestSegment
+        self._layoutAnnotationGroups = layoutAnnotationGroups
+        self._layoutRegion = networkMesh.getRegion()
+        layoutFieldmodule = self._layoutRegion.getFieldmodule()
+        self._layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self._layoutCoordinates = layoutFieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self._layoutMesh = layoutFieldmodule.findMeshByDimension(1)
+        self._segments = {}  # map from NetworkSegment to NetworkMeshSegment-derived object
+        self._longestSegmentLength = 0.0
+        self._targetElementLength = 1.0
+        self._junctions = {}  # map from NetworkNode to NetworkMeshJunction-derived object
+
+    @abstractmethod
+    def createSegment(self, networkSegment):
+        """
+        Factory method for creating a NetworkMeshSegment.
+        Override in concrete class to create a derived Segment for building the mesh of required type.
+        :param networkSegment: A network segment from the underlying NetworkMesh
+        :return: An object derived from NetworkMeshSegment.
+        """
+        return None
+
+    def _createSegments(self):
+        """
+        Create objects for building segment meshes.
+        """
+        self._segments = {}
+        self._longestSegmentLength = 0.0
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            # derived class makes the segment of its required type
+            self._segments[networkSegment] = segment = self.createSegment(networkSegment)
+            segmentLength = segment.getLength()
+            if segmentLength > self._longestSegmentLength:
+                self._longestSegmentLength = segmentLength
+            for layoutAnnotationGroup in self._layoutAnnotationGroups:
+                if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                    segment.addAnnotationTerm(layoutAnnotationGroup.getTerm())
+        if self._longestSegmentLength > 0.0:
+            self._targetElementLength = self._longestSegmentLength / self._targetElementDensityAlongLongestSegment
+
+    @abstractmethod
+    def createJunction(self, inSegments, outSegments):
+        """
+        Factory method for creating a NetworkMeshJunction.
+        Override in concrete class to create a derived Junction for building the mesh of required type.
+        :param inSegments: List of inward NetworkMeshSegment-derived objects.
+        :param outSegments: List of outward NetworkMeshSegment-derived objects.
+        :return: An object derived from NetworkMeshJunction.
+        """
+        return None
+
+    def _createJunctions(self):
+        """
+        Create objects for building junction meshes between segments.
+        Must have called self.createSegments() first.
+        """
+        self._junctions = {}
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            segmentNodes = networkSegment.getNetworkNodes()
+            segmentJunctions = []
+            for nodeIndex in (0, -1):
+                segmentNode = segmentNodes[nodeIndex]
+                junction = self._junctions.get(segmentNode)
+                if not junction:
+                    inSegments = [self._segments[networkSegment] for networkSegment in segmentNode.getInSegments()]
+                    outSegments = [self._segments[networkSegment] for networkSegment in segmentNode.getOutSegments()]
+                    junction = self.createJunction(inSegments, outSegments)
+                    self._junctions[segmentNode] = junction
+                segmentJunctions.append(junction)
+            segment.setJunctions(segmentJunctions)
+
+    def _sampleSegments(self):
+        """
+        Sample coordinates in segments to fit surrounding junctions.
+        Must have called self.createJunctions() first.
+        """
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            segment.sample(self._targetElementLength)
+
+    def _sampleJunctions(self):
+        """
+        Sample coordinates in junctions to fit surrounding junctions.
+        Optionally blend common derivatives across simple junctions.
+        Must have called self.sampleSegments() first.
+        """
+        sampledJunctions = set()
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            for junction in segment.getJunctions():
+                if junction not in sampledJunctions:
+                    junction.sample(self._targetElementLength)
+                    sampledJunctions.add(junction)
+
+    def build(self):
+        """
+        Build coordinates for network mesh.
+        """
+        self._createSegments()
+        self._createJunctions()
+        self._sampleSegments()
+        self._sampleJunctions()
+
+    def generateMesh(self, generateData: NetworkMeshGenerateData):
+        """
+        Generate mesh from segments and junctions, in order of segments.
+        Must have called self.build() first.
+        Assumes ChangeManager active for region/fieldmodule.
+        :param generateData: NetworkMeshGenerateData-derived object.
+        """
+        generatedJunctions = set()
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            junctions = segment.getJunctions()
+            if junctions[0] not in generatedJunctions:
+                junctions[0].generateMesh(generateData)
+                generatedJunctions.add(junctions[0])
+            segment.generateMesh(generateData)
+            if junctions[1] not in generatedJunctions:
+                junctions[1].generateMesh(generateData)
+                generatedJunctions.add(junctions[1])

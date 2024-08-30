@@ -7,8 +7,7 @@ from __future__ import division
 import copy
 import math
 
-from cmlibs.maths.vectorops import magnitude, mult
-from scaffoldmaker.utils import vector
+from cmlibs.maths.vectorops import magnitude, mult, normalize, cross, set_magnitude
 from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 
 
@@ -67,6 +66,7 @@ def getEllipseArcLength(a, b, angle1Radians, angle2Radians, method='line segment
         # Max 100 segments around ellipse
         segmentCount = int(math.ceil(50*(angle2-angle1)/math.pi))
         length = 0.0
+        lastX = None
         for i in range(segmentCount + 1):
             r = i/segmentCount
             angle = r*angle1 + (1.0 - r)*angle2
@@ -215,11 +215,11 @@ def createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround, eleme
     nx  = []
     nd1 = []
     nd2 = []
-    magPoleAxis = vector.magnitude(poleAxis)
-    magSideAxis = vector.magnitude(sideAxis)
-    unitPoleAxis = vector.normalise(poleAxis)
-    unitSideAxis1 = vector.normalise(sideAxis)
-    unitSideAxis2 = vector.normalise(vector.crossproduct3(sideAxis, poleAxis))
+    magPoleAxis = magnitude(poleAxis)
+    magSideAxis = magnitude(sideAxis)
+    unitPoleAxis = normalize(poleAxis)
+    unitSideAxis1 = normalize(sideAxis)
+    unitSideAxis2 = normalize(cross(sideAxis, poleAxis))
     useHeight = min(max(0.0, height), 2.0*magPoleAxis)
     totalRadiansUp = getEllipseRadiansToX(magPoleAxis, 0.0, magPoleAxis - useHeight, initialTheta = 0.5*math.pi*useHeight/magPoleAxis)
     radiansUp = 0.0
@@ -230,7 +230,7 @@ def createEllipsoidPoints(centre, poleAxis, sideAxis, elementsCountAround, eleme
         cosRadiansUp = math.cos(radiansUp)
         sinRadiansUp = math.sin(radiansUp)
         radius = sinRadiansUp*magSideAxis
-        d2r, d2z = vector.setMagnitude([ cosRadiansUp*magSideAxis, sinRadiansUp*magPoleAxis ], elementLengthUp)
+        d2r, d2z = set_magnitude([ cosRadiansUp*magSideAxis, sinRadiansUp*magPoleAxis ], elementLengthUp)
         cx = [ (centre[c] + cosRadiansUp*poleAxis[c]) for c in range(3) ]
         elementLengthAround = radius*radiansPerElementAround
         radiansAround = 0.0
@@ -441,9 +441,9 @@ def getCircleProjectionAxes(ax, ad1, ad2, ad3, length, angle1radians, angle2radi
         w2 = br*math.sin(angleAroundRadians)  # f2/fh
         w3 = arcRadius*math.sin(arcAngleRadians)
         bx = [ (ax[c] + w1*ad1[c] + w2*ad2[c] + w3*ad3[c]) for c in range(3) ]
-        bd3 = vector.normalise([ (f1*ad1[c] + f2*ad2[c] + f3*ad3[c]) for c in range(3) ])
-        bd1 = vector.normalise(vector.crossproduct3(ad2, bd3))
-        bd2 = vector.crossproduct3(bd3, bd1)
+        bd3 = normalize([ (f1*ad1[c] + f2*ad2[c] + f3*ad3[c]) for c in range(3) ])
+        bd1 = normalize(cross(ad2, bd3))
+        bd2 = cross(bd3, bd1)
     if angle3radians:
         cosAngle3 = math.cos(angle3radians)
         sinAngle3 = math.sin(angle3radians)
@@ -469,8 +469,8 @@ def getSurfaceProjectionAxes(ax, ad1, ad2, ad3, angle1radians, angle2radians, le
     f3 = cosAngle1*cosAngle2
     bd3 = [ (f1*ad1[c] + f2*ad2[c] + f3*ad3[c]) for c in range (3) ]
     bx = [ (ax[c] + length*bd3[c]) for c in range(3) ]
-    bd1 = vector.crossproduct3(ad2, bd3)
-    bd2 = vector.crossproduct3(bd3, bd1)
+    bd1 = cross(ad2, bd3)
+    bd2 = cross(bd3, bd1)
     return bx, bd1, bd2, bd3
 
 def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadians = 0.0):
@@ -487,16 +487,16 @@ def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadi
     '''
     px = []
     pd1 = []
-    magAxis1 = vector.magnitude(axis1)
-    magAxis2 = vector.magnitude(axis2)
+    magAxis1 = magnitude(axis1)
+    magAxis2 = magnitude(axis2)
     totalEllipsePerimeter = getApproximateEllipsePerimeter(magAxis1, magAxis2)
     partOfEllipsePerimeter = radian * totalEllipsePerimeter / (2 * math.pi)
     elementLength = partOfEllipsePerimeter / elementsCountAround
     if radian != 2 * math.pi:
         elementsCountAround = elementsCountAround + 1
 
-    unitSideAxis1 = vector.normalise(axis1)
-    unitSideAxis2 = vector.normalise(axis2)
+    unitSideAxis1 = normalize(axis1)
+    unitSideAxis2 = normalize(axis2)
     for n in range(elementsCountAround):
         angle = startRadians
         arcLength = n * elementLength
@@ -510,7 +510,7 @@ def createEllipsePoints(cx, radian, axis1, axis2, elementsCountAround, startRadi
         ]
         px.append(x)
         rd1 = [magAxis1 * (-sinRadiansAround * unitSideAxis1[c]) + magAxis2 * (cosRadiansAround * unitSideAxis2[c]) for c in range(3)]
-        rd1Norm = vector.normalise(rd1)
+        rd1Norm = normalize(rd1)
         pd1.append([elementLength * (rd1Norm[c])for c in range(3)])
 
     return px, pd1

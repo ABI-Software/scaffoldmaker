@@ -7,6 +7,7 @@ wall, with variable radius and thickness along.
 import copy
 import math
 
+from cmlibs.maths.vectorops import magnitude, normalize
 from cmlibs.utils.zinc.field import findOrCreateFieldGroup, findOrCreateFieldStoredString, \
     findOrCreateFieldStoredMeshLocation
 from cmlibs.zinc.element import Element
@@ -21,7 +22,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters,\
     get_nodeset_path_field_parameters
 
@@ -33,14 +33,15 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 "Structure": "1-2-3-4-5"
             },
             'meshEdits': exnode_string_from_nodeset_field_parameters(
+                ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [
+                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
                     (1, [[0.394, -100.872, 1402.818], [-0.035, 12.367, -48.020], [8.730, -0.526, -0.142], [0.613, -0.153, -0.037], [-0.272, -4.224, -1.088], [-0.169, -1.491, -0.564]]),
                     (2, [[0.520, -86.043, 1340.066], [0.501, 16.682, -77.602], [9.142, -0.799, -0.113], [0.212, -0.392, 0.096], [-0.465, -5.159, -1.112], [-0.215, -0.377, 0.515]]),
                     (3, [[1.368, -67.733, 1247.932], [0.235, -3.685, -89.672], [9.061, -1.366, 0.080], [-0.833, -0.231, 0.187], [-0.714, -4.722, 0.192], [-0.167, 0.445, 1.659]]),
                     (4, [[0.361, -91.057, 1165.531], [-2.499, -24.560, -49.102], [7.540, -1.290, 0.261], [-0.809, 1.514, 2.095], [-0.806, -4.269, 2.176], [0.001, 0.896, 0.910]]),
                     (5, [[11.750, -111.874, 1127.887], [7.636, -5.715, -7.930], [5.678, 1.265, 4.556], [-8.397, 13.092, 24.878], [-0.708, -3.530, 1.862], [-0.807, -7.995, 7.596]])
-                ]),
+                ]]),
 
             'userAnnotationGroups': [
                 {
@@ -365,8 +366,8 @@ def createEsophagusMesh3d(region, options, networkLayout, nextNodeIdentifier, ne
     for n2 in range(elementsCountAlong + 1):
         # Create inner points
         cx = [0.0, 0.0, elementAlongLength * n2]
-        axis1 = [vector.magnitude(majorRadiusElementList[n2]), 0.0, 0.0]
-        axis2 = [0.0, vector.magnitude(minorRadiusElementList[n2]), 0.0]
+        axis1 = [magnitude(majorRadiusElementList[n2]), 0.0, 0.0]
+        axis2 = [0.0, magnitude(minorRadiusElementList[n2]), 0.0]
         xInner, d1Inner = geometry.createEllipsePoints(cx, 2 * math.pi, axis1, axis2,
                                                        elementsCountAround, startRadians=0.0)
         xToSample += xInner
@@ -412,7 +413,7 @@ def createEsophagusMesh3d(region, options, networkLayout, nextNodeIdentifier, ne
             v2 = xAround[(n1 + 1) % elementsCountAround]
             d1 = d2 = [v2[c] - v1[c] for c in range(3)]
             arcLengthAround = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-            dx_ds1 = [c * arcLengthAround for c in vector.normalise(d1)]
+            dx_ds1 = [c * arcLengthAround for c in normalize(d1)]
             d1Around.append(dx_ds1)
         d1Smoothed = interp.smoothCubicHermiteDerivativesLoop(xAround, d1Around)
 
@@ -449,7 +450,7 @@ def createEsophagusMesh3d(region, options, networkLayout, nextNodeIdentifier, ne
     for n2 in range(elementsCountAlong + 1):
         firstNodeAlong = xToWarp[n2 * elementsCountAround]
         midptSegmentAxis = [0.0, 0.0, elementAlongLength * n2]
-        radius = vector.magnitude(firstNodeAlong[c] - midptSegmentAxis[c] for c in range(3))
+        radius = magnitude(firstNodeAlong[c] - midptSegmentAxis[c] for c in range(3))
         innerRadiusAlong.append(radius)
 
     xWarpedList, d1WarpedList, d2WarpedList, d3WarpedUnitList = \

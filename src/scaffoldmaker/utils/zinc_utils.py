@@ -1,7 +1,7 @@
 """
 Utility functions for easing use of Zinc API.
 """
-from cmlibs.maths.vectorops import mult
+from cmlibs.maths.vectorops import rejection, set_magnitude, magnitude, cross, normalize
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
@@ -9,10 +9,9 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.element import Element, Elementbasis, MeshGroup
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.fieldmodule import Fieldmodule
-from cmlibs.zinc.node import Node, Nodeset
+from cmlibs.zinc.node import Node, NodesetGroup
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 
 
 def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
@@ -46,9 +45,9 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
     d2c = [ cross_scale2*d for d in d2c ]
 
     arcLength = interp.computeCubicHermiteArcLength(v1, d1, v2, d2, True)
-    mag = arcLength/vector.magnitude(d1)
+    mag = arcLength/magnitude(d1)
     d1 = [ mag*d for d in d1 ]
-    mag = arcLength/vector.magnitude(d2)
+    mag = arcLength/magnitude(d2)
     d2 = [ mag*d for d in d2 ]
 
     xr = 1.0 - xi
@@ -58,7 +57,7 @@ def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
     dx_ds = [ scale*d for d in dx_ds ]
     dx_ds_cross = [ (xr*d1c[c] + xi*d2c[c]) for c in range(3) ]
 
-    radialVector = vector.normalise(vector.crossproduct3(dx_ds_cross, dx_ds))
+    radialVector = normalize(cross(dx_ds_cross, dx_ds))
     dx_ds_normal = [ normal_scale*d for d in radialVector ]
 
     return x, dx_ds, dx_ds_cross, dx_ds_normal
@@ -262,16 +261,16 @@ def make_nodeset_derivatives_orthogonal(nodeset, field, make_d2_normal: bool=Tru
             d1 = node_parameters[d1_index][v]
             d2 = node_parameters[d2_index][v] if (d2_index is not None) else None
             if make_d2_normal:
-                td2 = vector.vectorRejection(d2, d1)
-                td2 = vector.setMagnitude(td2, vector.magnitude(d2))
+                td2 = rejection(d2, d1)
+                td2 = set_magnitude(td2, magnitude(d2))
                 d2 = node_parameters[d2_index][v] = td2
             if make_d3_normal:
                 d3 = node_parameters[d3_index][v]
                 if d2:
-                    td3 = vector.crossproduct3(d1, d2)
+                    td3 = cross(d1, d2)
                 else:
-                    td3 = vector.vectorRejection(d3, d1)
-                td3 = vector.setMagnitude(td3, vector.magnitude(d3))
+                    td3 = rejection(d3, d1)
+                td3 = set_magnitude(td3, magnitude(d3))
                 d3 = node_parameters[d3_index][v] = td3
     remove_indexes = [d1_index]
     if (d2_index is not None) and (not make_d2_normal):
@@ -431,16 +430,17 @@ def print_node_field_parameters(value_labels, node_field_parameters, format_stri
 
 
 def exnode_string_from_nodeset_field_parameters(
+        field_names=["coordinates"],
         value_labels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1],
-        node_field_parameters = [
+        node_field_parameters = [[
             (1, [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            (2, [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
-        ],
+            (2, [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])]],
         group_name = 'meshEdits'):
     """
     Return a string in Zinc EX format defining nodes with the supplied identifiers
     and coordinate field parameters.
     Works in a private zinc context.
+    :param field_names: List of fields defining fields for node_field_parameters.
     :param value_labels: List of Node.ValueLabels supplied for each node.
     :param node_field_parameters: List of tuples of node identifier and parameters for
     each of the node values supplied. Versions may be supplied for any node/value
@@ -455,55 +455,66 @@ def exnode_string_from_nodeset_field_parameters(
     # following requires at least one value label and node, assumes consistent values and components counts
     value_labels_count = len(value_labels)
     assert len(node_field_parameters) > 0
-    node_parameters = node_field_parameters[0][1]
+    node_parameters = node_field_parameters[0][0][1]
     components_count = \
         len(node_parameters[0][0]) if isinstance(node_parameters[0][0], list) else len(node_parameters[0])
     context = Context('exnode_string_from_nodeset_field_parameters')
     region = context.getDefaultRegion()
     fieldmodule = region.getFieldmodule()
+    allCoordinates = []
     with ChangeManager(fieldmodule):
         fieldcache = fieldmodule.createFieldcache()
-        coordinates = find_or_create_field_coordinates(fieldmodule, components_count=components_count)
+        for i in range(len(field_names)):
+            allCoordinates.append(find_or_create_field_coordinates(fieldmodule, field_names[i],
+                                                                   components_count=components_count))
+
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         group = fieldmodule.createFieldGroup()
         group.setName(group_name)
         nodeset_group = group.createNodesetGroup(nodes)
-        # dict mapping from tuple of derivative versions to nodetemplate
-        nodetemplates = {}
+
         # create nodes
-        for node_identifier, node_parameters in node_field_parameters:
-            value_labels_versions = []
-            for d in range(value_labels_count):
-                if isinstance(node_parameters[d][0], list):
-                    value_labels_versions.append(len(node_parameters[d]))
-                else:
-                    value_labels_versions.append(1)
-            value_labels_versions = tuple(value_labels_versions)  # must be tuple to use as dict key
-            nodetemplate = nodetemplates.get(value_labels_versions)
-            if not nodetemplate:
-                nodetemplate = nodes.createNodetemplate()
-                nodetemplate.defineField(coordinates)
-                if not Node.VALUE_LABEL_VALUE in value_labels:
-                    nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 0)
+        for i in range(len(node_field_parameters)):
+            nodetemplates = {} # dict mapping from tuple of derivative versions to nodetemplate
+            for node_identifier, node_parameters in node_field_parameters[i]:
+                value_labels_versions = []
                 for d in range(value_labels_count):
-                    nodetemplate.setValueNumberOfVersions(coordinates, -1, value_labels[d], value_labels_versions[d])
-                nodetemplates[value_labels_versions] = nodetemplate
-            node = nodeset_group.createNode(node_identifier, nodetemplate)
-            fieldcache.setNode(node)
-            for d in range(value_labels_count):
-                if isinstance(node_parameters[d][0], list):
-                    for v in range(value_labels_versions[d]):
-                        coordinates.setNodeParameters(fieldcache, -1, value_labels[d], v + 1, node_parameters[d][v])
+                    if isinstance(node_parameters[d][0], list):
+                        value_labels_versions.append(len(node_parameters[d]))
+                    else:
+                        value_labels_versions.append(1)
+                value_labels_versions = tuple(value_labels_versions)  # must be tuple to use as dict key
+                nodetemplate = nodetemplates.get(value_labels_versions)
+
+                if not nodetemplate:
+                    nodetemplate = nodes.createNodetemplate()
+                    nodetemplate.defineField(allCoordinates[i])
+                    if not Node.VALUE_LABEL_VALUE in value_labels:
+                        nodetemplate.setValueNumberOfVersions(allCoordinates[i], -1, Node.VALUE_LABEL_VALUE, 0)
+                    for d in range(value_labels_count):
+                        nodetemplate.setValueNumberOfVersions(allCoordinates[i], -1, value_labels[d], value_labels_versions[d])
+                    nodetemplates[value_labels_versions] = nodetemplate
+                if i == 0:
+                    node = nodeset_group.createNode(node_identifier, nodetemplate)
                 else:
-                    coordinates.setNodeParameters(fieldcache, -1, value_labels[d], 1, node_parameters[d])
+                    node = nodes.findNodeByIdentifier(node_identifier)
+                    node.merge(nodetemplate)
+                fieldcache.setNode(node)
+                for d in range(value_labels_count):
+                    if isinstance(node_parameters[d][0], list):
+                        for v in range(value_labels_versions[d]):
+                            allCoordinates[i].setNodeParameters(fieldcache, -1, value_labels[d], v + 1, node_parameters[d][v])
+                    else:
+                        allCoordinates[i].setNodeParameters(fieldcache, -1, value_labels[d], 1, node_parameters[d])
+
         # serialise to string
         sir = region.createStreaminformationRegion()
         srm = sir.createStreamresourceMemory()
         sir.setResourceGroupName(srm, group_name)
         region.write(sir)
         result, exString = srm.getBuffer()
-    return exString
 
+    return exString
 
 def disconnectFieldMeshGroupBoundaryNodes(coordinateFields, meshGroup1, meshGroup2, nextNodeIdentifier):
     """
@@ -672,3 +683,75 @@ def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, sta
 
     return nodeIdentifier, elementIdentifier
 
+
+def mesh_get_element_nodes_map(mesh):
+    """
+    Get the nodes used by each element in mesh, in no particular order.
+    Supports face and line meshes which inherit field from higher-level elements.
+    This is quite expensive for large meshes as relies on group sub-element handling.
+    Zinc issue: nodes list is only based on the first coordinate field.
+    :param mesh: A Zinc mesh or mesh group containing the elements to query.
+    :return: dict element identifier -> list(node identifiers)
+    """
+    fieldmodule = mesh.getFieldmodule()
+    elementid_to_nodeids = {}
+    with ChangeManager(fieldmodule):
+        group = fieldmodule.createFieldGroup()
+        group.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+        mesh_group = group.createMeshGroup(mesh)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodeset_group = group.createNodesetGroup(nodes)
+        elementiterator = mesh.createElementiterator()
+        element = elementiterator.next()
+        while element.isValid():
+            mesh_group.addElement(element)
+            nodeiterator = nodeset_group.createNodeiterator()
+            node = nodeiterator.next()
+            nodeIds = []
+            while node.isValid():
+                nodeIds.append(node.getIdentifier())
+                node = nodeiterator.next()
+            nodeset_group.removeAllNodes()
+            del nodeiterator
+            elementid_to_nodeids[element.getIdentifier()] = nodeIds
+            element = elementiterator.next()
+        del elementiterator
+        del mesh_group
+        del nodeset_group
+        del group
+    return elementid_to_nodeids
+
+def group_add_connected_elements(group: FieldGroup, other_mesh_group: MeshGroup):
+    """
+    Add to group the elements from other_mesh_group which use a node from the group's
+    node group, or are connected to an element which does.
+    Note this can be quite expensive for large meshes.
+    :param group: Zinc FieldGroup to add elements to. The group's NodeGroup must
+    contain at least one node to connect to, and nodes from connected elements are
+    added to it
+    :param other_mesh_group: Other mesh group containing candidate elements to add.
+    """
+    fieldmodule = group.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        old_subelement_mode = group.getSubelementHandlingMode()
+        group.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        mesh_group = group.getOrCreateMeshGroup(other_mesh_group)
+        assert mesh_group.isValid()
+        nodeset_group = group.getNodesetGroup(nodes)
+        assert nodeset_group.isValid()
+        elementid_to_nodeids = mesh_get_element_nodes_map(other_mesh_group)
+        connected = True
+        while connected:
+            connected = False
+            for elementid, nodeids in elementid_to_nodeids.items():
+                for nodeid in nodeids:
+                    node = nodeset_group.findNodeByIdentifier(nodeid)
+                    if node.isValid():
+                        connected = True
+                        break
+                if connected:
+                    mesh_group.addElement(other_mesh_group.findElementByIdentifier(elementid))
+                    del elementid_to_nodeids[elementid]
+                    break
+        group.setSubelementHandlingMode(old_subelement_mode)
