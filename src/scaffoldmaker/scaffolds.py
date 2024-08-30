@@ -7,7 +7,6 @@ import json
 from scaffoldmaker.meshtypes.meshtype_1d_bifurcationtree1 import MeshType_1d_bifurcationtree1
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_1d_path1 import MeshType_1d_path1
-from scaffoldmaker.meshtypes.meshtype_1d_vagus_path1 import MeshType_1d_vagus_path1
 from scaffoldmaker.meshtypes.meshtype_2d_plate1 import MeshType_2d_plate1
 from scaffoldmaker.meshtypes.meshtype_2d_platehole1 import MeshType_2d_platehole1
 from scaffoldmaker.meshtypes.meshtype_2d_sphere1 import MeshType_2d_sphere1
@@ -56,7 +55,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
-from scaffoldmaker.meshtypes.meshtype_3d_vagus1 import MeshType_3d_vagus1
 from scaffoldmaker.meshtypes.meshtype_3d_vagus_box1 import MeshType_3d_vagus_box1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -69,7 +67,6 @@ class Scaffolds(object):
             MeshType_1d_bifurcationtree1,
             MeshType_1d_network_layout1,
             MeshType_1d_path1,
-            MeshType_1d_vagus_path1,
             MeshType_2d_plate1,
             MeshType_2d_platehole1,
             MeshType_2d_sphere1,
@@ -119,7 +116,6 @@ class Scaffolds(object):
             MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
-            MeshType_3d_vagus1,
             MeshType_3d_vagus_box1,
             MeshType_3d_wholebody1
             ]
