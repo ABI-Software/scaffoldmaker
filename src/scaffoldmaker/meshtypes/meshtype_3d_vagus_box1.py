@@ -4,14 +4,13 @@ Generates a hermite x bilinear 1-D central line mesh for a vagus nerve with bran
 
 import math
 
-from cmlibs.utils.zinc.field import get_group_list, find_or_create_field_group, findOrCreateFieldCoordinates
-from cmlibs.utils.zinc.group import group_add_group_local_contents
+from cmlibs.utils.zinc.field import find_or_create_field_group, findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 
-from cmlibs.maths.vectorops import add, sub, mult, div, dot, matrix_mult, matrix_inv
-from scaffoldmaker.utils.vector import magnitude_squared, magnitude, crossproduct3, vectorRejection, setMagnitude
+from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, matrix_mult, matrix_inv, mult, rejection, \
+    set_magnitude, sub
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
@@ -773,8 +772,8 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                     x = [0.0, 0.0, 0.0]
                     d1 = [0, 0, rescaledVagusTrunkLength / (elementsAlongTrunk - 1)]
                     [d2], [d3] = set_group_nodes_derivatives_orthogonal([d1])
-                    d2 = setMagnitude(d2, vagusRadius)
-                    d3 = setMagnitude(d3, vagusRadius)
+                    d2 = set_magnitude(d2, vagusRadius)
+                    d3 = set_magnitude(d3, vagusRadius)
 
                     node = element.getNode(eft, 1)
                     fieldcache.setNode(node)
@@ -805,8 +804,8 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                 _, d3 = vagus_coordinates.evaluateDerivative(derivative_xi3, fieldcache, 3)
 
                 #[d2], [d3] = set_group_nodes_derivatives_orthogonal([d1])
-                d2 = setMagnitude(d2, vagusRadius)
-                d3 = setMagnitude(d3, vagusRadius)
+                d2 = set_magnitude(d2, vagusRadius)
+                d3 = set_magnitude(d3, vagusRadius)
                 x = add(x, d1)
 
                 node = element.getNode(eft, 2)
@@ -863,6 +862,14 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
 
 # supplementary functions
+def magnitude_squared(v):
+    '''
+    return: squared scalar magnitude of vector v
+    '''
+
+    # TODO: proposed function to cmlibs.maths
+    return sum(c * c for c in v)
+
 def find_dataset_endpoints(coordinate_dataset):
     """
     Given list of node coordinates, find two furthest from each other nodes.
@@ -920,12 +927,12 @@ def set_group_nodes_derivatives_orthogonal(d1):
     d2 = []
     d3 = []
     for i in range(len(d1)):
-        td2 = vectorRejection(yx, d1[i])
-        td2 = setMagnitude(td2, magnitude(yx)) # change magnitude later with radius
+        td2 = rejection(yx, d1[i])
+        td2 = set_magnitude(td2, magnitude(yx)) # change magnitude later with radius
         d2.append(td2)
 
-        td3 = crossproduct3(d1[i], td2)
-        td3 = setMagnitude(td3, magnitude(zx)) # change magnitude later with radius
+        td3 = cross(d1[i], td2)
+        td3 = set_magnitude(td3, magnitude(zx)) # change magnitude later with radius
         d3.append(td3)
 
     return d2, d3
