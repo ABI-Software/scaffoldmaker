@@ -8,139 +8,11 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 
 
-def load_csv_data(root_path):
-    """
-    :param root_path: path to the folder that contains csv files
-    """
-
-    # get all csv files from root_path
-    csv_files = [os.path.join(root_path, f) for f in os.listdir(root_path) if f.endswith('.csv')]
-
-    marker_data = {}
-    trunk_group_name = None
-    trunk_coordinates = []
-    branch_coordinates_data = {}
-
-    trunk_radius = []
-    branch_radius_data = {}
-
-    for csv_file in csv_files:
-        group_name = csv_file.split('-')[-1].split('.')[0].replace('_', ' ')
-
-        if group_name == 'vagal levels':
-            # read anatomical landmarks as markers
-            with open(csv_file, 'r') as csvfile:
-
-                plots = csv.reader(csvfile, delimiter=',')
-                next(plots, None)  # skip the headers
-                for row in plots:
-                    marker_name = row[0]
-                    marker_point = [float(row[1]), float(row[2]), float(row[3])]
-                    marker_data[marker_name] = marker_point
-        else:
-            trunk_keywords = ['trunk', 'left vagus nerve', 'right vagus nerve']
-            branch_keywords = ['branch', 'nerve']
-
-            branch_group_names = []
-            if any([keyword in group_name.lower() for keyword in trunk_keywords]) and 'branch' not in group_name.lower():
-                trunk_group_name = group_name
-            if any([keyword in group_name.lower() for keyword in branch_keywords]) and group_name != trunk_group_name:
-                branch_group_names.append(group_name)
-
-            coordinates = []
-            with open(csv_file, 'r') as csvfile:
-                plots = csv.reader(csvfile, delimiter=',')
-                next(plots, None)  # skip headers
-                for row in plots:
-                    coordinates.append([float(row[1]), float(row[2]), float(row[3])])
-            if group_name == trunk_group_name:
-                trunk_coordinates = coordinates[:]
-                trunk_radius = [2 for i in range(1, len(coordinates))]
-            elif group_name in branch_group_names:
-                branch_coordinates_data[group_name] = coordinates[:]
-                branch_radius_data[group_name] = [1 for i in range(1, len(coordinates))]
-
-        # Ignore for now, this step will be done after stitching
-        # find branch parents - by default, let all branches start off trunk for now
-        branch_parents = {}
-        for branch_name, branch_coordinates in branch_coordinates_data.items():
-            parent_name = trunk_group_name
-            branch_parents[branch_name] = parent_name
-
-        # set up zinc region
-        context = Context("data_region")
-        data_region = context.getDefaultRegion()
-        fieldmodule = data_region.getFieldmodule()
-        fieldcache = fieldmodule.createFieldcache()
-
-        # add markers to zinc region
-        datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        coordinates = findOrCreateFieldCoordinates(fieldmodule).castFiniteElement()
-        marker_names = findOrCreateFieldStoredString(fieldmodule, name="marker_name")
-
-        dnodetemplate = datapoints.createNodetemplate()
-        dnodetemplate.defineField(coordinates)
-        dnodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        dnodetemplate.defineField(marker_names)
-
-        marker_fieldgroup = findOrCreateFieldGroup(fieldmodule, 'marker')
-        marker_nodesetgroup = marker_fieldgroup.createNodesetGroup(datapoints)
-
-        markerNodeIdentifier = 1
-        for marker_name, marker_point in marker_data.items():
-            print(marker_name, ': ', marker_point)
-            node = datapoints.createNode(markerNodeIdentifier, dnodetemplate)
-            fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, marker_point)
-            marker_names.assignString(fieldcache, marker_name)
-            marker_nodesetgroup.addNode(node)
-            markerNodeIdentifier += 1
-
-        # add nodes to zinc region
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        coordinates = findOrCreateFieldCoordinates(fieldmodule).castFiniteElement()
-
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-
-        # add trunk nodes
-        nodeIdentifier = 1
-        print(trunk_group_name)
-        trunk_field_group = findOrCreateFieldGroup(fieldmodule, trunk_group_name)
-        trunk_nodeset = trunk_field_group.createNodesetGroup(nodes)
-        for trunk_point in trunk_coordinates:
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, trunk_point)
-            trunk_nodeset.addNode(node)
-            nodeIdentifier += 1
-
-        # add branch nodes
-        for branch_name, branch_coordinates in branch_coordinates_data.items():
-            print(branch_name)
-            branch_field_group = findOrCreateFieldGroup(fieldmodule, branch_name)
-            branch_nodeset = branch_field_group.createNodesetGroup(nodes)
-            for branch_point in branch_coordinates:
-                node = nodes.createNode(nodeIdentifier, nodetemplate)
-                fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, branch_point)
-                branch_nodeset.addNode(node)
-                nodeIdentifier += 1
-
-        # write all data in an exf file
-        output_file_full_path = "C:/MAP/output/vagus_scaffold_temp/vagus_data.exf"
-        sir = data_region.createStreaminformationRegion()
-        srf = sir.createStreamresourceFile(output_file_full_path)
-        data_region.write(sir)
-
-        return marker_data, trunk_group_name, trunk_coordinates, trunk_radius, branch_coordinates_data, branch_parents, branch_radius_data
-
-
 def load_exf_data(data_region):
     """
-    Extract data from supplied datafile (converted from xml file),
-    separate out data related to vagus trunk, vagus branches, fascicles, markers (anatomical landmarks)
+    Extract data related to vagus from supplied exf file,
+    separate out data related to vagus trunk, vagus branches, markers (anatomical landmarks),
+    does not extract fascicle data at the moment
     """
 
     fm = data_region.getFieldmodule()
@@ -150,7 +22,7 @@ def load_exf_data(data_region):
     group_map = {}
     trunk_group_name = None
     branch_group_names = []
-    trunk_keywords = ['trunk', 'left vagus nerve', 'right vagus nerve']
+    trunk_keywords = ['vagus x nerve trunk', 'left vagus nerve', 'right vagus nerve']
     branch_keywords = ['branch', 'nerve']
     for group in group_list:
         group_name = group.getName()
@@ -185,14 +57,15 @@ def load_exf_data(data_region):
             marker_node = marker_node_iter.next()
 
     # extract trunk data - coordinates, nodes, radius - assume only one trunk group is used
-    #print('  ', trunk_group_name)
     trunk_coordinates, trunk_nodes = get_nodeset_fieldgroup_parameters(nodes, coordinates, trunk_group_name, [Node.VALUE_LABEL_VALUE])
     if radius.isValid():
         trunk_radius, _ = get_nodeset_fieldgroup_parameters(nodes, radius, trunk_group_name, [Node.VALUE_LABEL_VALUE])
     else:
         trunk_radius = [2 for i in range(1, len(trunk_coordinates))]
 
-    # TODO: project markers onto trunk
+    # TODO:
+    # project markers onto trunk if markers are projectable between first and last trunk node
+    # if they are higher or lower, leave them where they are
 
 
     # extract branch data - name, coordinates, nodes, radius
@@ -216,7 +89,7 @@ def load_exf_data(data_region):
     for branch_name, branch_nodes in branch_nodeslist.items():
         branch_first_node = sorted(branch_nodes)[0]
 
-        #  check if trunk is a parent
+        #  check if trunk is a parent by searching for a common node
         parent_name = ''
         if branch_first_node in trunk_nodes:
             parent_name = trunk_group_name
