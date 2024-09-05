@@ -1038,9 +1038,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         if not self._rimElementIds[e2]:
             elementsCountRim = self.getElementsCountRim()
             self._rimElementIds[e2] = [[None] * self._elementsCountAround for _ in range(elementsCountRim)]
-        if e3 >= len(self._rimElementIds[e2]):
-            print("setRimElementId e3", e3, "size", len(self._rimElementIds[e2]))
-            return
         self._rimElementIds[e2][e3][e1] = elementIdentifier
 
     def getRimNodeIdsSlice(self, n2):
@@ -1277,8 +1274,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         self._boxCoordinates = None # [nAlong][nAcrossMajor][nAcrossMinor]
         self._transitionCoordinates = None
         self._boxNodeIds = None
-        self._biSequence = None # sequence for bifurcation - either [1, 2, 3] or [1, 3, 2]
-        self._triSequence = None # sequence for trifurcation
+        # sequence of segment indexes for bifurcation or trifurcation, proceding in increasing angle around a plane.
+        # See: self._determineJunctionSequence()
+        self._sequence = None
         self._boxIndexToSegmentNodeList = []
         # list[box index] giving list[(segment number, node index across major axis, node index across minor axis)]
         self._segmentNodeToBoxIndex = []
@@ -1626,35 +1624,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
     def _determineJunctionSequence(self):
         """
-        Determines the sequence of a junction. Currently only works for bifurcation and trifurcation.
-        There are two possible sequences for bifurcation - [0,1,2] and [0,2,1]. Sequence [0,1,2] indicates the second
-        segment is located on the right-hand side of the first segment, and [0,2,1] indicates the second segment is
-        located on the left-hand side of the first segment.
-        2    1             1    2
-         \  /               \  /
-          0     [0,1,2]      0    [0,2,1]
-        For trifurcation, only + shape is currently supported, not tetrahedral. The function determines plus sequence
-        [0,1,2,3], [0,1,3,2] or [0,2,3,1].
+        Determines the sequence of a junction, the order of segment indexes around a circle in a plane.
+        Currently only works for bifurcation and trifurcation.
+        Bifurcation is always sequence [0, 1, 2].
+        For trifurcation, only + (plus) shape is currently supported, not tetrahedral.
+        The function determines plus sequence [0, 1, 2, 3], [0, 1, 3, 2] or [0, 2, 1, 3].
         """
-
         assert self._segmentsCount == 3 or self._segmentsCount == 4
 
         if self._segmentsCount == 3 and self._isCore:
-            # # Find sequence order for bifurcation - only applies when core option is enabled:
-            # # counter-clockwise sequence is [1, 2, 3] and clockwise sequence is [1, 3, 2]
-            # pCoord = []
-            # for s in range(self._segmentsCount):
-            #     segment = self._segments[s]
-            #     n3 = -1 if ((s > 0) and self._segmentsIn[s]) else 0
-            #     p = segment.getBoxCoordinates(0, -2 if self._segmentsIn[s] else 1, n3)[0]
-            #     pCoord.append(p)
-            # dist12 = magnitude(sub(pCoord[1], pCoord[0]))
-            # dist13 = magnitude(sub(pCoord[2], pCoord[0]))
-            # self._biSequence = [0, 1, 2] if dist12 > dist13 else [0, 2, 1]
-            self._biSequence = [0, 1, 2]
+            self._sequence = [0, 1, 2]
         elif self._segmentsCount == 4:
             # only support plus + shape for now, not tetrahedral
-            # determine plus + sequence [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3] or [0, 2, 3, 1]
+            # determine plus + sequence [0, 1, 2, 3], [0, 1, 3, 2], or [0, 2, 1, 3]
             outDirections = []
             for s in range(self._segmentsCount):
                 d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
@@ -1683,7 +1665,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nexts = t
                 angle = nextAngle
                 sequence.append(nexts)
-            self._triSequence = sequence
+            self._sequence = sequence
         else:
             return
 
@@ -1705,7 +1687,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         for s in range(3):
             if (connectionCounts[s] < 1) or (aroundCounts[s] != (connectionCounts[s - 1] + connectionCounts[s])):
                 print("Can't make tube bifurcation between elements counts around", aroundCounts)
-                return
+                return 0, 0
 
         self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment index, node index around)]
         self._segmentNodeToRimIndex = [[None] * aroundCounts[s] for s in range(self._segmentsCount)]
@@ -1749,15 +1731,25 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         boxIndexesCount = 0
         if self._isCore:
             elementsCountTransition = self._segments[0].getElementsCountTransition()
-            sequence = self._biSequence
+            sequence = self._sequence
             majorBoxCounts = [acrossMajorCounts[s] - 2 * elementsCountTransition for s in range(3)]
             majorConnectionCounts = [(majorBoxCounts[s] + majorBoxCounts[s - 2] - majorBoxCounts[s - 1]) // 2 for s
                                 in range(3)]
             midIndexes = [majorBoxCounts[s] - majorConnectionCounts[s - 1] for s in range(3)]
+            # check compatible numbers of elements across major and minor directions
+            lastAcrossMinorCount = None
             for s in range(3):
+                acrossMinorCount = self._segments[s].getElementsCountAcrossMinor()
+                if lastAcrossMinorCount:
+                    if acrossMinorCount != lastAcrossMinorCount:
+                        print("Can't make core bifurcation between different element counts across minor axis",
+                              acrossMinorCount, "vs", lastAcrossMinorCount)
+                        return 0, 0
+                else:
+                    lastAcrossMinorCount = acrossMinorCount
                 if majorBoxCounts[s] != (majorConnectionCounts[s - 1] + majorConnectionCounts[s]):
                     print("Can't make core bifurcation between elements counts across major axis", acrossMajorCounts)
-                    return
+                    return 0, 0
 
             nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
             nodesCountAcrossMajorList = [self._segments[s].getCoreNodesCountAcrossMajor() for s in range(3)]
@@ -1800,7 +1792,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         # sample rim junction
         rimIndexesCount = 0
-        sequence = self._triSequence
+        sequence = self._sequence
         pairCount02 = aroundCounts[sequence[0]] + aroundCounts[sequence[2]]
         pairCount13 = aroundCounts[sequence[1]] + aroundCounts[sequence[3]]
         throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
@@ -1823,7 +1815,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         for s in range(self._segmentsCount):
             if (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s])):
                 print("Can't make tube junction between elements counts around", aroundCounts)
-                return
+                return 0, 0
 
         self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment index, node index around)]
         self._segmentNodeToRimIndex = [[None] * aroundCounts[s] for s in range(self._segmentsCount)]
@@ -1897,20 +1889,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         if self._isCore:
             elementsCountTransition = self._segments[0].getElementsCountTransition()
             majorBoxCounts = [acrossMajorCounts[s] - 2 * elementsCountTransition for s in range(4)]
-
-            # pCoord = []
-            # for s in range(self._segmentsCount):
-            #     segment = self._segments[s]
-            #     n3 = (-1 if self._segmentsIn[s] else 0) if s >= 1 else 0
-            #     p = segment.getBoxCoordinates(0, -2 if self._segmentsIn[s] else 1, n3)[0]
-            #     pCoord.append(p)
-            # dist12 = magnitude(sub(pCoord[sequence[1]], pCoord[0]))
-            # dist13 = magnitude(sub(pCoord[sequence[-1]], pCoord[0]))
-            # if sequence == [0, 1, 3, 2]:
-            #     sequence = [0, 2, 3, 1] if dist12 < dist13 else sequence
-            # elif sequence == [0, 1, 2, 3]:
-            #     sequence = [0, 2, 1, 3] if dist12 < dist13 else sequence
-
             pairCount02 = majorBoxCounts[sequence[0]] + majorBoxCounts[sequence[2]]
             pairCount13 = majorBoxCounts[sequence[1]] + majorBoxCounts[sequence[3]]
             throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
@@ -1928,11 +1906,22 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             else:
                 majorConnectionCounts = [((freeAcrossCounts[s] + freeAcrossCounts[(s + 1) % self._segmentsCount]
                                       - freeAcrossCounts[s - 1] + (s % 2)) // 2) for s in range(self._segmentsCount)]
+
+            # check compatible numbers of elements across major and minor directions
+            lastAcrossMinorCount = None
             for s in range(self._segmentsCount):
+                acrossMinorCount = self._segments[s].getElementsCountAcrossMinor()
+                if lastAcrossMinorCount:
+                    if acrossMinorCount != lastAcrossMinorCount:
+                        print("Can't make core trifurcation between different element counts across minor axis",
+                              acrossMinorCount, "vs", lastAcrossMinorCount)
+                        return 0, 0
+                else:
+                    lastAcrossMinorCount = acrossMinorCount
                 if (majorBoxCounts[sequence[s]] != (
                         majorConnectionCounts[s - 1] + throughCounts[s] + majorConnectionCounts[s])):
                     print("Can't make tube core box junction between major box counts", majorBoxCounts)
-                    return
+                    return 0, 0
 
             nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
             nodesCountAcrossMajorList = [self._segments[s].getCoreNodesCountAcrossMajor() for s in range(4)]
@@ -2107,8 +2096,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         else:  # segmentRotationCases[s] == 3:
                             m2 = segmentMinorBoxSizes[s] - n
                             n2 = m
-                        if n2 >= len(self._segmentNodeToBoxIndex[s][m2]):
-                            print("n2", n2)
                         self._segmentNodeToBoxIndex[s][m2][n2] = boxIndex
                         segmentNode[1] = m2
                         segmentNode[2] = n2
@@ -2280,7 +2267,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         elif self._segmentsIn[s] and (segmentNodesCount == 3) and self._segmentsCount == 4:
                             location = 1 if e3 < boxElementsCountAcrossMajor[s] // 2 else 2
                             nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
-                            nodeLayouts.append(nodeLayout6Way if self._triSequence == [0, 1, 3, 2] else
+                            nodeLayouts.append(nodeLayout6Way if self._sequence == [0, 1, 3, 2] else
                                                nodeLayoutTrifurcation)
                         else:
                             nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
@@ -2371,7 +2358,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         location = \
                             1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
                         nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
-                        nodeLayout = nodeLayout6Way if self._triSequence == [0, 1, 3, 2] else (
+                        nodeLayout = nodeLayout6Way if self._sequence == [0, 1, 3, 2] else (
                             nodeLayoutTrifurcation)
                     else:
                         nodeLayout = nodeLayout6Way
@@ -2380,7 +2367,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 elif n1 in triplePointIndexesList:  # triple-point node
                     location = oLocation
                     if self._segmentsCount == 3: # bifurcation
-                        sequence = self._biSequence
+                        sequence = self._sequence
                         condition1 = oLocation > 0
                         condition2 = oLocation < 0
                         if self._segmentsIn.count(True) == 0:
@@ -2396,7 +2383,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                             condition = condition2 if sequence == [0, 2, 1] else condition1
                             location *= -1 if (s == 1 and condition) or (s == 2) else 1
                     elif self._segmentsCount == 4: # trifurcation
-                        sequence = self._triSequence
+                        sequence = self._sequence
                         s0 = (s - 1) % self._segmentsCount
                         s1 = (s + 1) % self._segmentsCount
                         if sequence == [0, 1, 3, 2]:
@@ -2468,6 +2455,10 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         if self._segmentsCount < 3:
             return
 
+        if (not self._rimCoordinates) or (self._isCore and not self._boxCoordinates):
+            # incompatible number around or across core
+            return
+
         rimIndexesCount = len(self._rimIndexToSegmentNodeList)
         elementsCountTransition = self._segments[0].getElementsCountTransition()
         nodesCountRim = self._segments[0].getNodesCountRim() + (elementsCountTransition - 1) if self._isCore else (
@@ -2509,7 +2500,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             elementsCountAround = segment.getElementsCountAround()
 
             # Create nodes
-            if self._boxCoordinates:
+            if self._isCore:
                 # create box nodes
                 bx, bd1, bd2, bd3 = (self._boxCoordinates[0], self._boxCoordinates[1],
                                      self._boxCoordinates[2], self._boxCoordinates[3])
@@ -2517,8 +2508,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 for n3 in range(nodesCountAcrossMajor):
                     for n1 in range(nodesCountAcrossMinor):
                         boxIndex = self._segmentNodeToBoxIndex[s][n3][n1]
-                        if boxIndex == None:
-                            print("boxIndex", None)
                         segmentNodeList = self._boxIndexToSegmentNodeList[boxIndex]
                         nodeIdentifiersCheck = []
                         for segmentNodes in segmentNodeList:
@@ -2540,28 +2529,27 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
                 boxBoundaryNodeIds, boxBoundaryNodeToBoxId = self._createBoxBoundaryNodeIdsList(s)
 
-            if self._rimCoordinates:
-                # create rim nodes (including core transition nodes)
-                for n3 in range(nodesCountRim):
-                    rx = self._rimCoordinates[0][n3]
-                    rd1 = self._rimCoordinates[1][n3]
-                    rd2 = self._rimCoordinates[2][n3]
-                    rd3 = self._rimCoordinates[3][n3] if d3Defined else None
-                    layerNodeIds = self._rimNodeIds[n3]
-                    for n1 in range(elementsCountAround):
-                        rimIndex = self._segmentNodeToRimIndex[s][n1]
-                        nodeIdentifier = self._rimNodeIds[n3][rimIndex]
-                        if nodeIdentifier is not None:
-                            continue
-                        nodeIdentifier = generateData.nextNodeIdentifier()
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        fieldcache.setNode(node)
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[rimIndex])
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[rimIndex])
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[rimIndex])
-                        if rd3:
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[rimIndex])
-                        layerNodeIds[rimIndex] = nodeIdentifier
+            # create rim nodes (including core transition nodes)
+            for n3 in range(nodesCountRim):
+                rx = self._rimCoordinates[0][n3]
+                rd1 = self._rimCoordinates[1][n3]
+                rd2 = self._rimCoordinates[2][n3]
+                rd3 = self._rimCoordinates[3][n3] if d3Defined else None
+                layerNodeIds = self._rimNodeIds[n3]
+                for n1 in range(elementsCountAround):
+                    rimIndex = self._segmentNodeToRimIndex[s][n1]
+                    nodeIdentifier = self._rimNodeIds[n3][rimIndex]
+                    if nodeIdentifier is not None:
+                        continue
+                    nodeIdentifier = generateData.nextNodeIdentifier()
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[rimIndex])
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[rimIndex])
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[rimIndex])
+                    if rd3:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[rimIndex])
+                    layerNodeIds[rimIndex] = nodeIdentifier
 
             # Create elements
             if self._isCore:
@@ -2571,60 +2559,59 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 self._generateTransitionElements(s, n2, mesh, elementtemplate, coordinates, segment, generateData,
                     elementsCountAround, boxBoundaryNodeIds, boxBoundaryNodeToBoxId)
 
-            if self._rimCoordinates:
-                # create regular rim elements
-                elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
-                annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
-                eftList = [None] * elementsCountAround
-                scalefactorsList = [None] * elementsCountAround
-                for e3 in range(elementsCountRimRegular):
-                    for e1 in range(elementsCountAround):
-                        n1p = (e1 + 1) % elementsCountAround
-                        nids = []
-                        nodeParameters = []
-                        nodeLayouts = []
-                        for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
-                            for n1 in [e1, n1p]:
-                                nids.append(self._segments[s].getRimNodeId(n1, n2, n3))
-                                if e3 == 0:
-                                    rimCoordinates = self._segments[s].getRimCoordinates(n1, n2, n3)
-                                    nodeParameters.append(rimCoordinates if d3Defined else
-                                                          (rimCoordinates[0], rimCoordinates[1], rimCoordinates[2],
-                                                           None))
-                                    nodeLayouts.append(None)
-                            for n1 in [e1, n1p]:
-                                rimIndex = self._segmentNodeToRimIndex[s][n1]
-                                nids.append(self._rimNodeIds[n3][rimIndex])
-                                if e3 == 0:
-                                    nodeParameters.append(
-                                        (self._rimCoordinates[0][n3][rimIndex],
-                                         self._rimCoordinates[1][n3][rimIndex],
-                                         self._rimCoordinates[2][n3][rimIndex],
-                                         self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
-                                    segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
-                                    nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
-                                                       nodeLayout6Way if (segmentNodesCount == 3) else
-                                                       nodeLayout8Way)
-                            if not self._segmentsIn[s]:
-                                for a in [nids, nodeParameters, nodeLayouts] if (e3 == 0) else [nids]:
-                                    a[-4], a[-2] = a[-2], a[-4]
-                                    a[-3], a[-1] = a[-1], a[-3]
-                        # exploit efts being same through the wall
-                        eft = eftList[e1]
-                        scalefactors = scalefactorsList[e1]
-                        if not eft:
-                            eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                            eftList[e1] = eft
-                            scalefactorsList[e1] = scalefactors
-                        elementtemplate.defineField(coordinates, -1, eft)
-                        elementIdentifier = generateData.nextElementIdentifier()
-                        element = mesh.createElement(elementIdentifier, elementtemplate)
-                        segment.setRimElementId(e1, e2, e3, elementIdentifier)
-                        element.setNodesByIdentifier(eft, nids)
-                        if scalefactors:
-                            element.setScaleFactors(eft, scalefactors)
-                        for annotationMeshGroup in annotationMeshGroups:
-                            annotationMeshGroup.addElement(element)
+            # create regular rim elements
+            elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
+            annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
+            eftList = [None] * elementsCountAround
+            scalefactorsList = [None] * elementsCountAround
+            for e3 in range(elementsCountRimRegular):
+                for e1 in range(elementsCountAround):
+                    n1p = (e1 + 1) % elementsCountAround
+                    nids = []
+                    nodeParameters = []
+                    nodeLayouts = []
+                    for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
+                        for n1 in [e1, n1p]:
+                            nids.append(self._segments[s].getRimNodeId(n1, n2, n3))
+                            if e3 == 0:
+                                rimCoordinates = self._segments[s].getRimCoordinates(n1, n2, n3)
+                                nodeParameters.append(rimCoordinates if d3Defined else
+                                                      (rimCoordinates[0], rimCoordinates[1], rimCoordinates[2],
+                                                       None))
+                                nodeLayouts.append(None)
+                        for n1 in [e1, n1p]:
+                            rimIndex = self._segmentNodeToRimIndex[s][n1]
+                            nids.append(self._rimNodeIds[n3][rimIndex])
+                            if e3 == 0:
+                                nodeParameters.append(
+                                    (self._rimCoordinates[0][n3][rimIndex],
+                                     self._rimCoordinates[1][n3][rimIndex],
+                                     self._rimCoordinates[2][n3][rimIndex],
+                                     self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
+                                segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
+                                nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
+                                                   nodeLayout6Way if (segmentNodesCount == 3) else
+                                                   nodeLayout8Way)
+                        if not self._segmentsIn[s]:
+                            for a in [nids, nodeParameters, nodeLayouts] if (e3 == 0) else [nids]:
+                                a[-4], a[-2] = a[-2], a[-4]
+                                a[-3], a[-1] = a[-1], a[-3]
+                    # exploit efts being same through the wall
+                    eft = eftList[e1]
+                    scalefactors = scalefactorsList[e1]
+                    if not eft:
+                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                        eftList[e1] = eft
+                        scalefactorsList[e1] = scalefactors
+                    elementtemplate.defineField(coordinates, -1, eft)
+                    elementIdentifier = generateData.nextElementIdentifier()
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    segment.setRimElementId(e1, e2, e3, elementIdentifier)
+                    element.setNodesByIdentifier(eft, nids)
+                    if scalefactors:
+                        element.setScaleFactors(eft, scalefactors)
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
 
 
 class TubeNetworkMeshBuilder(NetworkMeshBuilder):
