@@ -1281,6 +1281,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         # list[box index] giving list[(segment number, node index across major axis, node index across minor axis)]
         self._segmentNodeToBoxIndex = []
         # list[segment number][node index across major axis][node index across minor axis] to boxIndex
+        self._triplePointLocationsList = []
+        # list[[node Id, location], ...] used to match ETFs at triple points
 
     def _calculateTrimSurfaces(self):
         """
@@ -2337,7 +2339,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 nodeLayouts.append(nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList
                                    else nodeLayoutTransition)
             for n1 in [e1, n1p]:
-                nids.append(boxBoundaryNodeIds[n1])
+                nid = boxBoundaryNodeIds[n1]
+                nids.append(nid)
                 n3c, n1c = boxBoundaryNodeToBoxId[n1]
                 boxIndex = self._segmentNodeToBoxIndex[s][n3c][n1c]
                 nodeParameters.append(self._getBoxCoordinates(boxIndex))
@@ -2366,35 +2369,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nodeLayout = nodeLayout8Way
                 elif n1 in triplePointIndexesList:  # triple-point node
                     location = oLocation
-                    if self._segmentsCount == 3: # bifurcation
-                        sequence = self._sequence
-                        condition1 = oLocation > 0
-                        condition2 = oLocation < 0
-                        if self._segmentsIn.count(True) == 0:
-                            condition = condition1 if sequence == [0, 2, 1] else condition2
-                            location *= -1 if s == 2 or (s == 1 and condition) else 1
-                        elif self._segmentsIn.count(True) == 1:
-                            condition = condition1 if sequence == [0, 2, 1] else condition2
-                            location *= -1 if s == 2 and condition else 1
-                        elif self._segmentsIn.count(True) == 2:
-                            condition = condition2 if sequence == [0, 2, 1] else condition1
-                            location *= -1 if s == 1 and condition else 1
-                        elif self._segmentsIn.count(True) == 3:
-                            condition = condition2 if sequence == [0, 2, 1] else condition1
-                            location *= -1 if (s == 1 and condition) or (s == 2) else 1
-                    elif self._segmentsCount == 4: # trifurcation
-                        sequence = self._sequence
-                        s0 = (s - 1) % self._segmentsCount
-                        s1 = (s + 1) % self._segmentsCount
-                        if sequence == [0, 1, 3, 2]:
-                            if self._segmentsIn == [True, False, False, False] and self._segmentsIn[s1]:
-                                location = (oLocation) * -1
-                            elif self._segmentsIn == [True, True, False, False] and \
-                                self._segmentsIn[s] != self._segmentsIn[s1]:
-                                location = abs(oLocation)
-                        elif sequence == [0, 1, 2, 3] and \
-                                (self._segmentsIn[s1] or all(not self._segmentsIn[n] for n in [s, s0, s1])):
-                            location = abs(oLocation)
+                    if ((s < segmentNodesCount - 1) and n1 == n1p or
+                            not any(nid in sl for sl in self._triplePointLocationsList)):
+                        self._triplePointLocationsList.append([nid, location])
+                    if s > 0:
+                        for sl in self._triplePointLocationsList:
+                            location = sl[1] if nid == sl[0] else location
                     nodeLayout = generateData.getNodeLayoutTransitionTriplePoint(location)
                 else:
                     nodeLayout = nodeLayoutTransition
