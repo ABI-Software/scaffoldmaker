@@ -27,7 +27,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium",
                                              "Human 2 Fine"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(15, len(options))
+        self.assertEqual(12, len(options))
         self.assertEqual(12, options["Number of elements around head"])
         self.assertEqual(12, options["Number of elements around torso"])
         self.assertEqual(8, options["Number of elements around arm"])
@@ -36,10 +36,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(5.0, options["Target element density along longest segment"])
         self.assertEqual(False, options["Show trim surfaces"])
         self.assertEqual(True, options["Use Core"])
-        self.assertEqual(6, options["Number of elements across head core major"])
-        self.assertEqual(6, options["Number of elements across torso core major"])
-        self.assertEqual(4, options["Number of elements across arm core major"])
-        self.assertEqual(4, options["Number of elements across leg core major"])
+        self.assertEqual(2, options["Number of elements across core box minor"])
         self.assertEqual(1, options["Number of elements across core transition"])
 
         context = Context("Test")
@@ -119,7 +116,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium",
                                              "Human 2 Fine"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(15, len(options))
+        self.assertEqual(12, len(options))
         self.assertEqual(12, options["Number of elements around head"])
         self.assertEqual(12, options["Number of elements around torso"])
         self.assertEqual(8, options["Number of elements around arm"])
@@ -128,10 +125,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(5.0, options["Target element density along longest segment"])
         self.assertEqual(False, options["Show trim surfaces"])
         self.assertEqual(True, options["Use Core"])
-        self.assertEqual(6, options["Number of elements across head core major"])
-        self.assertEqual(6, options["Number of elements across torso core major"])
-        self.assertEqual(4, options["Number of elements across arm core major"])
-        self.assertEqual(4, options["Number of elements across leg core major"])
+        self.assertEqual(2, options["Number of elements across core box minor"])
         self.assertEqual(1, options["Number of elements across core transition"])
 
         options["Use Core"] = False

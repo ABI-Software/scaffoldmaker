@@ -9,7 +9,8 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.tubenetworkmesh import (
+    calculateElementsCountAcrossMinor, TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData)
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from cmlibs.zinc.node import Node
 
@@ -229,34 +230,25 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Target element density along longest segment": 5.0,
             "Show trim surfaces": False,
             "Use Core": True,
-            "Number of elements across head core major": 6,
-            "Number of elements across torso core major": 6,
-            "Number of elements across arm core major": 4,
-            "Number of elements across leg core major": 4,
+            "Number of elements across core box minor": 2,
             "Number of elements across core transition": 1
         }
 
         if "Human 2 Medium" in parameterSetName:
             options["Number of elements around head"] = 16
             options["Number of elements around torso"] = 16
-            options["Number of elements around arm"] = 12
+            options["Number of elements around arm"] = 8
             options["Number of elements around leg"] = 12
-
-            options["Number of elements across head core major"] = 8
-            options["Number of elements across torso core major"] = 8
-            options["Number of elements across arm core major"] = 6
-            options["Number of elements across leg core major"] = 6
-
+            options["Target element density along longest segment"] = 8.0
+            options["Number of elements across core box minor"] = 2
         elif "Human 2 Fine" in parameterSetName:
             options["Number of elements around head"] = 24
             options["Number of elements around torso"] = 24
-            options["Number of elements around arm"] = 20
-            options["Number of elements around leg"] = 20
-
-            options["Number of elements across head core major"] = 10
-            options["Number of elements across torso core major"] = 10
-            options["Number of elements across arm core major"] = 8
-            options["Number of elements across leg core major"] = 8
+            options["Number of elements around arm"] = 12
+            options["Number of elements around leg"] = 16
+            options["Number of elements through wall"] = 2
+            options["Target element density along longest segment"] = 10.0
+            options["Number of elements across core box minor"] = 4
 
         return options
 
@@ -272,10 +264,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Target element density along longest segment",
             "Show trim surfaces",
             "Use Core",
-            "Number of elements across head core major",
-            "Number of elements across torso core major",
-            "Number of elements across arm core major",
-            "Number of elements across leg core major"]
+            "Number of elements across core box minor",
+            "Number of elements across core transition"]
         return optionNames
 
     @classmethod
@@ -311,8 +301,10 @@ class MeshType_3d_wholebody2(Scaffold_base):
 
     @classmethod
     def checkOptions(cls, options):
+        dependentChanges = False
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
             options["Network layout"] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
+        minElementsCountAround = None
         for key in [
             "Number of elements around head",
             "Number of elements around torso",
@@ -321,15 +313,10 @@ class MeshType_3d_wholebody2(Scaffold_base):
         ]:
             if options[key] < 8:
                 options[key] = 8
-
-        for key in [
-            "Number of elements across head core major",
-            "Number of elements across torso core major",
-            "Number of elements across arm core major",
-            "Number of elements across leg core major"
-        ]:
-            if options[key] < 4:
-                options[key] = 4
+            elif options[key] % 4:
+                options[key] += 4 - (options[key] % 4)
+            if (minElementsCountAround is None) or (options[key] < minElementsCountAround):
+                minElementsCountAround = options[key]
 
         if options["Number of elements through wall"] < 0:
             options["Number of elements through wall"] = 1
@@ -337,7 +324,25 @@ class MeshType_3d_wholebody2(Scaffold_base):
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
 
-        dependentChanges = False
+        if options["Number of elements across core transition"] < 1:
+            options["Number of elements across core transition"] = 1
+
+        elementsCountCoreTransition = options['Number of elements across core transition']
+        maxElementsCountCoreBoxMinor = calculateElementsCountAcrossMinor(
+            minElementsCountAround, elementsCountCoreTransition, 2 + 2 * elementsCountCoreTransition) \
+            - 2 * elementsCountCoreTransition
+
+        for key in [
+            "Number of elements across core box minor"
+        ]:
+            if options[key] < 2:
+                options[key] = 2
+            elif options[key] > maxElementsCountCoreBoxMinor:
+                options[key] = maxElementsCountCoreBoxMinor
+                dependentChanges = True
+            elif options[key] % 2:
+                options[key] += options[key] % 2
+
         return dependentChanges
 
     @classmethod
@@ -348,8 +353,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        parameterSetName = options['Base parameter set']
-        isHuman = parameterSetName in ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium", "Human 2 Fine"]
+        # parameterSetName = options['Base parameter set']
+        # isHuman = parameterSetName in ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium", "Human 2 Fine"]
 
         layoutRegion = region.createRegion()
         networkLayout = options["Network layout"]
@@ -357,17 +362,21 @@ class MeshType_3d_wholebody2(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
+        elementsCountCoreBoxMinor = options["Number of elements across core box minor"]
+        elementsCountCoreTransition = options['Number of elements across core transition']
+        elementsCountCoreMinor = elementsCountCoreBoxMinor + 2 * elementsCountCoreTransition
         annotationElementsCountsAround = []
         annotationElementsCountsAcross = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
             elementsCountAround = 0
-            elementsCountAcrossMajor = 0
+            elementsCountCoreMajor = 0
             name = layoutAnnotationGroup.getName()
             if name in ["head", "torso", "arm", "leg"]:
                 elementsCountAround = options["Number of elements around " + name]
-                elementsCountAcrossMajor = options["Number of elements across " + name + " core major"]
+                elementsCountCoreMajor = calculateElementsCountAcrossMinor(
+                    elementsCountAround, elementsCountCoreTransition, elementsCountCoreMinor)
             annotationElementsCountsAround.append(elementsCountAround)
-            annotationElementsCountsAcross.append(elementsCountAcrossMajor)
+            annotationElementsCountsAcross.append(elementsCountCoreMajor)
 
         isCore = options["Use Core"]
 
@@ -378,8 +387,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elementsCountThroughWall=options["Number of elements through wall"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAround=annotationElementsCountsAround,
-            defaultElementsCountAcrossMajor=options['Number of elements across head core major'],
-            elementsCountTransition=options['Number of elements across core transition'],
+            defaultElementsCountAcrossMajor=annotationElementsCountsAcross[-1],
+            elementsCountTransition=elementsCountCoreTransition,
             annotationElementsCountsAcrossMajor=annotationElementsCountsAcross,
             isCore=isCore)
 
