@@ -202,8 +202,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
     Generates a 3-D hermite bifurcating tube network, with linear basis through wall.
     """
 
-    @staticmethod
-    def getName():
+    @classmethod
+    def getName(cls):
         return "3D Whole Body 2"
 
     @classmethod
