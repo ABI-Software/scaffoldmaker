@@ -1334,7 +1334,13 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         angle = math.atan2(dy, dx)
                         if angle < 0.0:
                             angle += 2.0 * math.pi
-                        weight = math.pi - math.acos(dot(sOutDir, osOutDir))
+                        dotDirs = dot(sOutDir, osOutDir)
+                        # handle numerical errors which make the above outside valid range of [-1.0, 1.0]:
+                        if dotDirs < -1.0:
+                            dotDirs = -1.0
+                        elif dotDirs > 1.0:
+                            dotDirs = 1.0
+                        weight = math.pi - math.acos(dotDirs)
                         if weight > maxWeight:
                             maxWeight = weight
                             phaseAngle = angle

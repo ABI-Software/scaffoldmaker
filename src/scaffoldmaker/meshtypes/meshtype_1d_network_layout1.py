@@ -186,8 +186,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
             "To field": {"coordinates": False, "inner coordinates": True},
             "From field": {"coordinates": True, "inner coordinates": False},
             "Mode": {"Scale": True, "Offset": False},
-            "D2 value": 0.5,
-            "D3 value": 0.5}
+            "D2 value": 0.8,
+            "D3 value": 0.8}
         cls.assignCoordinates(region, options, networkMesh, functionOptions, editGroupName=None)
 
     @classmethod
