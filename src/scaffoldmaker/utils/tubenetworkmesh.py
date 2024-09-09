@@ -6,7 +6,8 @@ from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
 from scaffoldmaker.utils.interpolation import (
-    computeCubicHermiteDerivativeScaling, DerivativeScalingMode, evaluateCoordinatesOnCurve,
+    computeCubicHermiteDerivativeScaling, computeCubicHermiteEndDerivative, DerivativeScalingMode,
+    evaluateCoordinatesOnCurve,
     getCubicHermiteTrimmedCurvesLengths, interpolateCubicHermite, interpolateCubicHermiteDerivative,
     interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative,
     interpolateSampleCubicHermite, sampleCubicHermiteCurves,
@@ -460,10 +461,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         minorXiR = 1.0 - minorXi
         # following expression adjusted to look best across all cases
         boxDiagonalSize = math.sqrt(majorBoxSize * majorBoxSize + minorBoxSize * minorBoxSize)
-        diagXi = self._elementsCountTransition / (0.5 * boxDiagonalSize + self._elementsCountTransition)
+        diagXi = self._elementsCountTransition / (0.5 * boxDiagonalSize + self._elementsCountTransition + 0.5)
         diagXiR = 1.0 - diagXi
-        # 3x3 nodes (2x2 elements) giving extents of core box
 
+        # 3x3 nodes (2x2 elements) giving extents of core box
         tripleAngle = math.pi / 3.0
         cosTripleAngle = math.cos(tripleAngle)
         sinTripleAngle = math.sin(tripleAngle)
@@ -626,9 +627,13 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     start_d3 = [-d for d in cbd1[bn1][bn3]]
                 start_x = cbx[bn1][bn3]
 
-                tx, td3, pe, pxi, psf = sampleCubicHermiteCurves(
-                    [start_x, ix[n1]], [start_d3, id3[n1]], self._elementsCountTransition,
-                    arcLengthDerivatives=True)
+                nx = [start_x, ix[n1]]
+                nd3before = [[self._elementsCountTransition * d for d in start_d3], id3[n1]]
+                nd3 = [nd3before[0], computeCubicHermiteEndDerivative(nx[0], nd3before[0], nx[1], nd3before[1])]
+                tx, td3, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
+                    nx, nd3, self._elementsCountTransition,
+                    derivativeMagnitudeStart=magnitude(nd3[0]) / self._elementsCountTransition,
+                    derivativeMagnitudeEnd=magnitude(nd3[1]) / self._elementsCountTransition)
                 delta_id1 = sub(id1[n1], start_d1)
                 td1 = interpolateSampleCubicHermite([start_d1, id1[n1]], [delta_id1, delta_id1], pe, pxi, psf)[0]
 
@@ -636,6 +641,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     ctx[n3 - 1][n1] = tx[n3]
                     ctd1[n3 - 1][n1] = td1[n3]
                     ctd3[n3 - 1][n1] = td3[n3]
+
+            # smooth td1 around:
+            for n3 in range(1, self._elementsCountTransition):
+                ctd1[n3 - 1] = smoothCubicHermiteDerivativesLoop(ctx[n3 - 1], ctd1[n3 - 1], fixAllDirections=False)
+
 
         return cbx, cbd1, cbd3, ctx, ctd1, ctd3
 

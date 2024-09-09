@@ -138,6 +138,44 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
     print('computeCubicHermiteDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
     return scaling
 
+def computeCubicHermiteStartDerivative(v1, d1_in, v2, d2):
+    """
+    Compute scaled d1 which makes their sum of d1 and d2 magnitudes twice the arc length.
+    :param d1_in: Original start derivative.
+    :return: Scaled d1
+    """
+    d2_mag = magnitude(d2)
+    d1 = set_magnitude(d1_in, 0.5 * d2_mag)
+    for iters in range(100):
+        arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+        d1_mag = 2.0 * arcLength - d2_mag
+        d1 = set_magnitude(d1_in, d1_mag)
+        if math.fabs(2.0 * arcLength - d1_mag - d2_mag) < (1.0E-6 * arcLength):
+            break
+    else:
+        print('computeCubicHermiteStartDerivative:  Max iters reached:', iters, ' mag d1', d1_mag, 'mag d2', d2_mag,
+              'arc length', arcLength)
+    return d1
+
+def computeCubicHermiteEndDerivative(v1, d1, v2, d2_in):
+    """
+    Compute scaled d2 which makes their sum of d1 and d2 magnitudes twice the arc length.
+    :param d2_in: Original end derivative.
+    :return: Scaled d2
+    """
+    d1_mag = magnitude(d1)
+    d2 = set_magnitude(d2_in, 0.5 * d1_mag)
+    for iters in range(100):
+        arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+        d2_mag = 2.0 * arcLength - d1_mag
+        d2 = set_magnitude(d2_in, d2_mag)
+        if math.fabs(2.0 * arcLength - d1_mag - d2_mag) < (1.0E-6 * arcLength):
+            break
+    else:
+        print('computeCubicHermiteEndDerivative:  Max iters reached:', iters, ' mag d1', d1_mag, 'mag d2', d2_mag,
+              'arc length', arcLength)
+    return d2
+
 def getCubicHermiteArcLength(v1, d1, v2, d2):
     """
     Note this is approximate.
@@ -725,11 +763,17 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     componentRange = range(componentsCount)
     if elementsCount == 1:
         # special cases for one element
+        if fixStartDerivative and fixEndDerivative:
+            return nd1
         if not (fixStartDerivative or fixEndDerivative or fixStartDirection or fixEndDirection or fixAllDirections):
             # straight line
             delta = [ (nx[1][c] - nx[0][c]) for c in componentRange ]
             return [ delta, copy.deepcopy(delta) ]
-        if fixAllDirections or (fixStartDirection and fixEndDirection):
+        if fixAllDirections or ((fixStartDirection or fixStartDerivative) and (fixEndDirection or fixEndDerivative)):
+            if fixStartDerivative:
+                return [nd1[0], computeCubicHermiteEndDerivative(nx[0], nd1[0], nx[1], nd1[1])]
+            if fixEndDerivative:
+                return [computeCubicHermiteStartDerivative(nx[0], nd1[0], nx[1], nd1[1]), nd1[1]]
             # fixed directions, equal magnitude
             arcLength = computeCubicHermiteArcLength(nx[0], nd1[0], nx[1], nd1[1], rescaleDerivatives=True)
             return [ set_magnitude(nd1[0], arcLength), set_magnitude(nd1[1], arcLength) ]
