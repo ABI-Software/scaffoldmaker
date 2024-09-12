@@ -158,12 +158,12 @@ class MeshType_1d_network_layout1(Scaffold_base):
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, v + 1, cd13[n][v])
 
         if defineInnerCoordinates:
-            cls._defineInnerCoordinates(region, coordinates, options, networkMesh)
+            cls.defineInnerCoordinates(region, coordinates, options, networkMesh)
 
         return [], networkMesh
 
     @classmethod
-    def _defineInnerCoordinates(cls, region, coordinates, options, networkMesh):
+    def defineInnerCoordinates(cls, region, coordinates, options, networkMesh):
         """
         Copy coordinates to inner coordinates via in-memory model file.
         Assign using the interactive function.
@@ -213,7 +213,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
             coordinates.setManaged(True)  # since cleared by clearRegion
             defineInnerCoordinates = options["Define inner coordinates"]
             if defineInnerCoordinates:
-                cls._defineInnerCoordinates(region, coordinates, options, networkMesh)
+                cls.defineInnerCoordinates(region, coordinates, options, networkMesh)
 
         return True, False  # settings changed, nodes not changed (since reset to original coordinates)
 
