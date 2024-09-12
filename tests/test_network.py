@@ -90,8 +90,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(5, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         settings["Target element density along longest segment"] = 3.4
         MeshType_2d_tubenetwork1.checkOptions(settings)
@@ -135,8 +135,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(5, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
 
         context = Context("Test")
@@ -205,8 +205,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(5, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         MeshType_2d_tubenetwork1.checkOptions(settings)
 
@@ -249,16 +249,16 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(11, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Use linear through wall"])
+        self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(2, settings["Number of elements across core box minor"])
         self.assertEqual(1, settings["Number of elements across core transition"])
-        self.assertEqual([0], settings["Annotation elements counts across major"])
+        self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -306,9 +306,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.07381984049942056, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.0351511378107642, delta=X_TOL)
             self.assertAlmostEqual(outerSurfaceArea, 1.928821019338746, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 0.995733838660512, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 1.561184510316338, delta=X_TOL)
 
     def test_3d_tube_network_bifurcation_core(self):
         """
@@ -320,16 +320,16 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(11, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Use linear through wall"])
+        self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(2, settings["Number of elements across core box minor"])
         self.assertEqual(1, settings["Number of elements across core transition"])
-        self.assertEqual([0], settings["Annotation elements counts across major"])
+        self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
         settings["Core"] = True
 
         context = Context("Test")
@@ -383,14 +383,14 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(11, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Use linear through wall"])
+        self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
-        settings["Elements count through wall"] = 2
-        settings["Use linear through wall"] = True
+        settings["Number of elements through shell"] = 2
+        settings["Use linear through shell"] = True
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -476,17 +476,17 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(11, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Use linear through wall"])
+        self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(2, settings["Number of elements across core box minor"])
         self.assertEqual(1, settings["Number of elements across core transition"])
-        self.assertEqual([0], settings["Annotation elements counts across major"])
-        settings["Elements count through wall"] = 2
+        self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
+        settings["Number of elements through shell"] = 2
         settings["Core"] = True
 
         context = Context("Test")
@@ -566,13 +566,13 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(11, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Use linear through wall"])
+        self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
-        settings["Annotation elements counts around"] = [10]  # requires annotation group below
+        settings["Annotation numbers of elements around"] = [10]  # requires annotation group below
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -645,9 +645,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.10038746104304462, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.047609658608033, delta=X_TOL)
             self.assertAlmostEqual(outerSurfaceArea, 2.59759659324524, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 1.3635516941376224, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 2.1152592960466077, delta=X_TOL)
 
     def test_3d_tube_network_trifurcation_cross_core(self):
         """
@@ -660,19 +660,19 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(11, len(settings))
-        self.assertEqual(8, settings["Elements count around"])
-        self.assertEqual(1, settings["Elements count through wall"])
-        self.assertEqual([0], settings["Annotation elements counts around"])
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
-        self.assertFalse(settings["Use linear through wall"])
+        self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
-        self.assertEqual(4, settings["Number of elements across core major"])
+        self.assertEqual(2, settings["Number of elements across core box minor"])
         self.assertEqual(1, settings["Number of elements across core transition"])
-        self.assertEqual([0], settings["Annotation elements counts across major"])
+        self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
         settings["Core"] = True
-        settings["Annotation elements counts around"] = [12]  # requires annotation group below
-        settings["Annotation elements counts across major"] = [6]
+        settings["Annotation numbers of elements around"] = [12]  # requires annotation group below
+        settings["Annotation numbers of elements across core box minor"] = [2]
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -868,19 +868,18 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.07367883680691273, delta=1.0E-6)
-
             outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             outerSurfaceAreaField.setNumbersOfPoints(4)
             result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(outerSurfaceArea, 1.9689027258731782, delta=1.0E-6)
-
             innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
             innerSurfaceAreaField.setNumbersOfPoints(4)
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(innerSurfaceArea, 0.9844505573970027, delta=1.0E-6)
+
+            self.assertAlmostEqual(volume, 0.03536584166731818, delta=1.0E-6)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9689027258731782, delta=1.0E-6)
+            self.assertAlmostEqual(innerSurfaceArea, 1.5751215539100383, delta=1.0E-6)
 
     def test_3d_tube_network_loop_core(self):
         """
@@ -923,12 +922,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.09823844907582693, delta=1.0E-6)
-
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             surfaceAreaField.setNumbersOfPoints(4)
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
+
+            self.assertAlmostEqual(volume, 0.09823844907582693, delta=1.0E-6)
             self.assertAlmostEqual(surfaceArea, 1.9689027258731782, delta=1.0E-6)
 
 
@@ -1006,19 +1005,18 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             volumeField.setNumbersOfPoints(4)
             result, volume = volumeField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(volume, 0.07367803305504764, delta=1.0E-6)
-
             outerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_1, coordinates, mesh2d)
             outerSurfaceAreaField.setNumbersOfPoints(4)
             result, outerSurfaceArea = outerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(outerSurfaceArea, 1.9684589894847588, delta=1.0E-6)
-
             innerSurfaceAreaField = fieldmodule.createFieldMeshIntegral(isExteriorXi3_0, coordinates, mesh2d)
             innerSurfaceAreaField.setNumbersOfPoints(4)
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(innerSurfaceArea, 0.9842289454638566, delta=1.0E-6)
+
+            self.assertAlmostEqual(volume, 0.03536545586642272, delta=1.0E-6)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9684589894847588, delta=1.0E-6)
+            self.assertAlmostEqual(innerSurfaceArea, 1.5747667641754262, delta=1.0E-6)
 
 
 if __name__ == "__main__":

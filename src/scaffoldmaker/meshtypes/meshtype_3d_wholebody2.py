@@ -198,11 +198,11 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
 
 class MeshType_3d_wholebody2(Scaffold_base):
     """
-    Generates a 3-D hermite bifurcating tube network, with linear basis through wall.
+    Generates a 3-D hermite bifurcating tube network with core representing the human body.
     """
 
-    @staticmethod
-    def getName():
+    @classmethod
+    def getName(cls):
         return "3D Whole Body 2"
 
     @classmethod
@@ -225,38 +225,29 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements around torso": 12,
             "Number of elements around arm": 8,
             "Number of elements around leg": 8,
-            "Number of elements through wall": 1,
+            "Number of elements through shell": 1,
             "Target element density along longest segment": 5.0,
             "Show trim surfaces": False,
             "Use Core": True,
-            "Number of elements across head core major": 6,
-            "Number of elements across torso core major": 6,
-            "Number of elements across arm core major": 4,
-            "Number of elements across leg core major": 4,
+            "Number of elements across core box minor": 2,
             "Number of elements across core transition": 1
         }
 
         if "Human 2 Medium" in parameterSetName:
             options["Number of elements around head"] = 16
             options["Number of elements around torso"] = 16
-            options["Number of elements around arm"] = 12
+            options["Number of elements around arm"] = 8
             options["Number of elements around leg"] = 12
-
-            options["Number of elements across head core major"] = 8
-            options["Number of elements across torso core major"] = 8
-            options["Number of elements across arm core major"] = 6
-            options["Number of elements across leg core major"] = 6
-
+            options["Target element density along longest segment"] = 8.0
+            options["Number of elements across core box minor"] = 2
         elif "Human 2 Fine" in parameterSetName:
             options["Number of elements around head"] = 24
             options["Number of elements around torso"] = 24
-            options["Number of elements around arm"] = 20
-            options["Number of elements around leg"] = 20
-
-            options["Number of elements across head core major"] = 10
-            options["Number of elements across torso core major"] = 10
-            options["Number of elements across arm core major"] = 8
-            options["Number of elements across leg core major"] = 8
+            options["Number of elements around arm"] = 12
+            options["Number of elements around leg"] = 16
+            options["Number of elements through shell"] = 1
+            options["Target element density along longest segment"] = 10.0
+            options["Number of elements across core box minor"] = 4
 
         return options
 
@@ -268,14 +259,12 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements around torso",
             "Number of elements around arm",
             "Number of elements around leg",
-            "Number of elements through wall",
+            "Number of elements through shell",
             "Target element density along longest segment",
             "Show trim surfaces",
             "Use Core",
-            "Number of elements across head core major",
-            "Number of elements across torso core major",
-            "Number of elements across arm core major",
-            "Number of elements across leg core major"]
+            "Number of elements across core box minor",
+            "Number of elements across core transition"]
         return optionNames
 
     @classmethod
@@ -311,8 +300,10 @@ class MeshType_3d_wholebody2(Scaffold_base):
 
     @classmethod
     def checkOptions(cls, options):
+        dependentChanges = False
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
             options["Network layout"] = cls.getOptionScaffoldPackage('Network layout', MeshType_1d_network_layout1)
+        minElementsCountAround = None
         for key in [
             "Number of elements around head",
             "Number of elements around torso",
@@ -321,23 +312,32 @@ class MeshType_3d_wholebody2(Scaffold_base):
         ]:
             if options[key] < 8:
                 options[key] = 8
+            elif options[key] % 4:
+                options[key] += 4 - (options[key] % 4)
+            if (minElementsCountAround is None) or (options[key] < minElementsCountAround):
+                minElementsCountAround = options[key]
 
-        for key in [
-            "Number of elements across head core major",
-            "Number of elements across torso core major",
-            "Number of elements across arm core major",
-            "Number of elements across leg core major"
-        ]:
-            if options[key] < 4:
-                options[key] = 4
-
-        if options["Number of elements through wall"] < 0:
-            options["Number of elements through wall"] = 1
+        if options["Number of elements through shell"] < 0:
+            options["Number of elements through shell"] = 1
 
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
 
-        dependentChanges = False
+        if options["Number of elements across core transition"] < 1:
+            options["Number of elements across core transition"] = 1
+
+        maxElementsCountCoreBoxMinor = minElementsCountAround // 2 - 2
+        for key in [
+            "Number of elements across core box minor"
+        ]:
+            if options[key] < 2:
+                options[key] = 2
+            elif options[key] > maxElementsCountCoreBoxMinor:
+                options[key] = maxElementsCountCoreBoxMinor
+                dependentChanges = True
+            elif options[key] % 2:
+                options[key] += options[key] % 2
+
         return dependentChanges
 
     @classmethod
@@ -348,8 +348,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        parameterSetName = options['Base parameter set']
-        isHuman = parameterSetName in ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium", "Human 2 Fine"]
+        # parameterSetName = options['Base parameter set']
+        # isHuman = parameterSetName in ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium", "Human 2 Fine"]
 
         layoutRegion = region.createRegion()
         networkLayout = options["Network layout"]
@@ -357,17 +357,20 @@ class MeshType_3d_wholebody2(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
-        annotationElementsCountsAround = []
-        annotationElementsCountsAcross = []
+        coreBoxMinorCount = options["Number of elements across core box minor"]
+        coreTransitionCount = options['Number of elements across core transition']
+        annotationAroundCounts = []
+        # implementation currently uses major count including transition
+        annotationCoreMajorCounts = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
-            elementsCountAround = 0
-            elementsCountAcrossMajor = 0
+            aroundCount = 0
+            coreMajorCount = 0
             name = layoutAnnotationGroup.getName()
             if name in ["head", "torso", "arm", "leg"]:
-                elementsCountAround = options["Number of elements around " + name]
-                elementsCountAcrossMajor = options["Number of elements across " + name + " core major"]
-            annotationElementsCountsAround.append(elementsCountAround)
-            annotationElementsCountsAcross.append(elementsCountAcrossMajor)
+                aroundCount = options["Number of elements around " + name]
+                coreMajorCount = aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount
+            annotationAroundCounts.append(aroundCount)
+            annotationCoreMajorCounts.append(coreMajorCount)
 
         isCore = options["Use Core"]
 
@@ -375,12 +378,12 @@ class MeshType_3d_wholebody2(Scaffold_base):
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
             defaultElementsCountAround=options["Number of elements around head"],
-            elementsCountThroughWall=options["Number of elements through wall"],
+            elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
-            annotationElementsCountsAround=annotationElementsCountsAround,
-            defaultElementsCountAcrossMajor=options['Number of elements across head core major'],
-            elementsCountTransition=options['Number of elements across core transition'],
-            annotationElementsCountsAcrossMajor=annotationElementsCountsAcross,
+            annotationElementsCountsAround=annotationAroundCounts,
+            defaultElementsCountAcrossMajor=annotationCoreMajorCounts[-1],
+            elementsCountTransition=coreTransitionCount,
+            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
             isCore=isCore)
 
         tubeNetworkMeshBuilder.build()

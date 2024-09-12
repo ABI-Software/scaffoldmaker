@@ -7,81 +7,19 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 
 
-def calculateElementsCountAcrossMinor(cls, options):
-    # Calculate elementsCountAcrosMinor
-    elementsCountAcrossMinor = int(((options["Elements count around"] - 4) / 4 -
-                                    (options['Number of elements across core major'] / 2)) * 2 + 6)
-
-    return elementsCountAcrossMinor
-
-def setParametersToDefault(cls, options):
-    options["Elements count around"] = 8
-    options["Number of elements across core major"] = 4
-    options["Number of elements across core transition"] = 1
-
-    return options
-
-def checkCoreParameters(cls, options, dependentChanges=False):
-    # Check elements count around are ok
-    if options["Elements count around"] < 8:
-        dependentChanges = True
-        options = setParametersToDefault(cls, options)
-    if options["Elements count around"] % 4:
-        options["Elements count around"] += 4 - options["Elements count around"] % 4
-
-    # Check elements count across major are ok
-    if options['Number of elements across core major'] < 4:
-        options['Number of elements across core major'] = 4
-    if options['Number of elements across core major'] % 2:
-        options['Number of elements across core major'] += 1
-
-    # Check elements count across transition
-    if options['Number of elements across core transition'] < 1:
-        options['Number of elements across core transition'] = 1
-
-    # Calculate elementsCountAcrossMinor based on the current set of elementsCountAround and elementsCountAcrossMajor
-    elementsCountAcrossMinor = calculateElementsCountAcrossMinor(cls, options)
-
-    # Rcrit check
-    Rcrit = max(
-        min(options['Number of elements across core major'] - 4, elementsCountAcrossMinor - 4) // 2 + 1, 0)
-    if Rcrit < options['Number of elements across core transition']:
-        dependentChanges = True
-        options['Number of elements across core transition'] = Rcrit
-
-    # Number of elements around sanity check
-    eM = options["Number of elements across core major"]
-    em = elementsCountAcrossMinor
-    eC = (eM - 1) * (em - 1) - ((eM - 3) * (em - 3))
-    if options["Elements count around"] != eC:
-        dependentChanges = True
-        # Reset parameter values
-        setParametersToDefault(cls, options)
-
-    annotationElementsCountsAround = options["Annotation elements counts around"]
-    if len(annotationElementsCountsAround) == 0:
-        options["Annotation elements count around"] = [0]
-    else:
-        for i in range(len(annotationElementsCountsAround)):
-            if annotationElementsCountsAround[i] <= 0:
-                annotationElementsCountsAround[i] = 0
-            elif annotationElementsCountsAround[i] < 4:
-                annotationElementsCountsAround[i] = 4
-
-    if options["Use linear through wall"]:
-        dependentChanges = True
-        options["Use linear through wall"] = False
-
-    return options, dependentChanges
-
-
 class MeshType_3d_tubenetwork1(Scaffold_base):
     """
-    Generates a 3-D hermite tube network, with linear or cubic basis through wall.
-    Number of elements generated are primarily controlled by "elements count around" and "elements count across major".
-    The elements count around parameter determines the number of elements around a circular rim.
-    The elements count across major determines the number of elements across the major axis of an ellipse (y-axis in the scaffold).
-    The number of elements across minor axis (z-axis) is calculated internally based on the two elements count parameters.
+    Generates a 3-D hermite tube network from a network layout description, with linear or cubic basis through the
+    shell wall, optionally with a solid core. The number of elements generated are primarily controlled by the
+    "Number of elements around" and "Number of elements across core box minor" settings.
+    The Number of elements around parameter determines the number of elements around the elliptical shell.
+    The core is built out of a regular box with specified number of elements across core box minor.
+    The minor direction is in the direction of d3 in the network layout it is defined from.
+    The number of elements across the core box major axis is calculated internally from the above.
+    The reason for preferring the minor number is that this must currently match when using the core,
+    plus it is planned to eventually use an odd number to specify a half phase difference in starting node
+    even without a core, as that is required to work with odd minor numbers in the core, once supported.
+    There are any number of transition elements between the box and the shell forming further concentric rim elements.
     """
 
     @classmethod
@@ -98,16 +36,16 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1,
                                               {"scaffoldSettings": {"Define inner coordinates": True}},
                                               defaultParameterSetName=parameterSetName),
-            "Elements count around": 8,
-            "Elements count through wall": 1,
-            "Annotation elements counts around": [0],
+            "Number of elements around": 8,
+            "Number of elements through shell": 1,
+            "Annotation numbers of elements around": [0],
             "Target element density along longest segment": 4.0,
-            "Use linear through wall": False,
+            "Use linear through shell": False,
             "Show trim surfaces": False,
             "Core": False,
-            'Number of elements across core major': 4,
-            'Number of elements across core transition': 1,
-            "Annotation elements counts across major": [0]
+            "Number of elements across core box minor": 2,
+            "Number of elements across core transition": 1,
+            "Annotation numbers of elements across core box minor": [0]
         }
         return options
 
@@ -115,16 +53,16 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
     def getOrderedOptionNames():
         return [
             "Network layout",
-            "Elements count around",
-            "Elements count through wall",
-            "Annotation elements counts around",
+            "Number of elements around",
+            "Number of elements through shell",
+            "Annotation numbers of elements around",
             "Target element density along longest segment",
-            "Use linear through wall",
+            "Use linear through shell",
             "Show trim surfaces",
             "Core",
-            'Number of elements across core major',
-            'Number of elements across core transition',
-            "Annotation elements counts across major"
+            "Number of elements across core box minor",
+            "Number of elements across core transition",
+            "Annotation numbers of elements across core box minor"
         ]
 
     @classmethod
@@ -164,27 +102,84 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
         dependentChanges = False
 
-        # Parameters specific to the core
         if options["Core"] == True:
-            options, dependentChanges = checkCoreParameters(cls, options, dependentChanges)
+            if options["Number of elements around"] < 8:
+                options["Number of elements around"] = 8
+            elif options["Number of elements around"] % 4:
+                options["Number of elements around"] += 4 - options["Number of elements around"] % 4
 
-        # When core option is false
-        else:
-            if options["Elements count around"] < 4:
-                options["Elements count around"] = 4
-            annotationElementsCountsAround = options["Annotation elements counts around"]
-            if len(annotationElementsCountsAround) == 0:
-                options["Annotation elements count around"] = [0]
+            annotationAroundCounts = options["Annotation numbers of elements around"]
+            minAroundCount = options["Number of elements around"]
+            if len(annotationAroundCounts) == 0:
+                annotationAroundCounts = options["Annotation numbers of elements around"] = [0]
             else:
-                for i in range(len(annotationElementsCountsAround)):
-                    if annotationElementsCountsAround[i] <= 0:
-                        annotationElementsCountsAround[i] = 0
-                    elif annotationElementsCountsAround[i] < 4:
-                        annotationElementsCountsAround[i] = 4
+                for i in range(len(annotationAroundCounts)):
+                    if annotationAroundCounts[i] <= 0:
+                        annotationAroundCounts[i] = 0
+                    else:
+                        if annotationAroundCounts[i] < 8:
+                            annotationAroundCounts[i] = 8
+                        elif annotationAroundCounts[i] % 4:
+                            annotationAroundCounts[i] += 4 - annotationAroundCounts[i]
+                        if annotationAroundCounts[i] < minAroundCount:
+                            minAroundCount = annotationAroundCounts[i]
 
-        # Common parameters
-        if options["Elements count through wall"] < 1:
-            options["Elements count through wall"] = 1
+            if options["Number of elements across core transition"] < 1:
+                options["Number of elements across core transition"] = 1
+
+            maxCoreBoxMinorCount = options["Number of elements around"] // 2 - 2
+            if options["Number of elements across core box minor"] < 2:
+                options["Number of elements across core box minor"] = 2
+            elif options["Number of elements across core box minor"] > maxCoreBoxMinorCount:
+                options["Number of elements across core box minor"] = maxCoreBoxMinorCount
+                dependentChanges = True
+            elif options["Number of elements across core box minor"] % 2:
+                options["Number of elements across core box minor"] += 1
+
+            annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
+            if len(annotationCoreBoxMinorCounts) == 0:
+                annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"] = [0]
+            if len(annotationCoreBoxMinorCounts) > len(annotationAroundCounts):
+                annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"] = \
+                    annotationCoreBoxMinorCounts[:len(annotationAroundCounts)]
+                dependentChanges = True
+            for i in range(len(annotationCoreBoxMinorCounts)):
+                aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
+                    else options["Number of elements around"]
+                maxCoreBoxMinorCount = aroundCount // 2 - 2
+                if annotationCoreBoxMinorCounts[i] <= 0:
+                    annotationCoreBoxMinorCounts[i] = 0
+                    # this may reduce the default
+                    if maxCoreBoxMinorCount < options["Number of elements across core box minor"]:
+                        options["Number of elements across core box minor"] = maxCoreBoxMinorCount
+                        dependentChanges = True
+                elif annotationCoreBoxMinorCounts[i] < 2:
+                    annotationCoreBoxMinorCounts[i] = 2
+                elif annotationCoreBoxMinorCounts[i] > maxCoreBoxMinorCount:
+                    annotationCoreBoxMinorCounts[i] = maxCoreBoxMinorCount
+                    dependentChanges = True
+                elif annotationCoreBoxMinorCounts[i] % 2:
+                    annotationCoreBoxMinorCounts[i] += 1
+
+            if options["Use linear through shell"]:
+                options["Use linear through shell"] = False
+                dependentChanges = True
+
+        else:
+            if options["Number of elements around"] < 4:
+                options["Number of elements around"] = 4
+            annotationAroundCounts = options["Annotation numbers of elements around"]
+            if len(annotationAroundCounts) == 0:
+                options["Annotation numbers of elements around"] = [0]
+            else:
+                for i in range(len(annotationAroundCounts)):
+                    if annotationAroundCounts[i] <= 0:
+                        annotationAroundCounts[i] = 0
+                    elif annotationAroundCounts[i] < 4:
+                        annotationAroundCounts[i] = 4
+
+        if options["Number of elements through shell"] < 1:
+            options["Number of elements through shell"] = 1
 
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
@@ -205,22 +200,37 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
+        defaultAroundCount = options["Number of elements around"]
+        coreTransitionCount = options["Number of elements across core transition"]
+        defaultCoreBoxMinorCount = options["Number of elements across core box minor"]
+        # implementation currently uses major count including transition
+        defaultCoreMajorCount = defaultAroundCount // 2 - defaultCoreBoxMinorCount + 2 * coreTransitionCount
+        annotationAroundCounts = options["Annotation numbers of elements around"]
+        annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
+        annotationCoreMajorCounts = []
+        for i in range(len(annotationCoreBoxMinorCounts)):
+            aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
+                else defaultAroundCount
+            coreBoxMinorCount = annotationCoreBoxMinorCounts[i] if annotationCoreBoxMinorCounts[i] \
+                else defaultCoreBoxMinorCount
+            annotationCoreMajorCounts.append(aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount)
+
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=options["Elements count around"],
-            elementsCountThroughWall=options["Elements count through wall"],
+            defaultElementsCountAround=defaultAroundCount,
+            elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
-            annotationElementsCountsAround=options["Annotation elements counts around"],
-            defaultElementsCountAcrossMajor=options['Number of elements across core major'],
-            elementsCountTransition=options['Number of elements across core transition'],
-            annotationElementsCountsAcrossMajor=options["Annotation elements counts across major"],
+            annotationElementsCountsAround=annotationAroundCounts,
+            defaultElementsCountAcrossMajor=defaultCoreMajorCount,
+            elementsCountTransition=coreTransitionCount,
+            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
             isCore=options["Core"])
 
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through wall"],
+            isLinearThroughWall=options["Use linear through shell"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
