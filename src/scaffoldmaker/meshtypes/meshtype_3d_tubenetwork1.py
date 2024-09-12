@@ -4,8 +4,7 @@ Generates a 3-D Hermite bifurcating tube network (with optional solid core).
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.tubenetworkmesh import (
-    calculateElementsCountAcrossMinor, TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData)
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 
 
 class MeshType_3d_tubenetwork1(Scaffold_base):
@@ -202,20 +201,19 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         networkMesh = networkLayout.getConstructionObject()
 
         defaultAroundCount = options["Number of elements around"]
-        elementsCountTransition = options["Number of elements across core transition"]
+        coreTransitionCount = options["Number of elements across core transition"]
         defaultCoreBoxMinorCount = options["Number of elements across core box minor"]
-        defaultElementsCountAcrossMajor = calculateElementsCountAcrossMinor(
-            defaultAroundCount, elementsCountTransition, defaultCoreBoxMinorCount + 2 * elementsCountTransition)
+        # implementation currently uses major count including transition
+        defaultCoreMajorCount = defaultAroundCount // 2 - defaultCoreBoxMinorCount + 2 * coreTransitionCount
         annotationAroundCounts = options["Annotation numbers of elements around"]
         annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
-        annotationElementsCountsAcrossMajor = []
+        annotationCoreMajorCounts = []
         for i in range(len(annotationCoreBoxMinorCounts)):
             aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
                 else defaultAroundCount
             coreBoxMinorCount = annotationCoreBoxMinorCounts[i] if annotationCoreBoxMinorCounts[i] \
                 else defaultCoreBoxMinorCount
-            annotationElementsCountsAcrossMajor.append(calculateElementsCountAcrossMinor(
-                aroundCount, elementsCountTransition, coreBoxMinorCount + 2 * elementsCountTransition))
+            annotationCoreMajorCounts.append(aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount)
 
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
@@ -224,9 +222,9 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountAcrossMajor=defaultElementsCountAcrossMajor,
-            elementsCountTransition=elementsCountTransition,
-            annotationElementsCountsAcrossMajor=annotationElementsCountsAcrossMajor,
+            defaultElementsCountAcrossMajor=defaultCoreMajorCount,
+            elementsCountTransition=coreTransitionCount,
+            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
             isCore=options["Core"])
 
         tubeNetworkMeshBuilder.build()

@@ -9,8 +9,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
-from scaffoldmaker.utils.tubenetworkmesh import (
-    calculateElementsCountAcrossMinor, TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData)
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from cmlibs.zinc.node import Node
 
@@ -199,7 +198,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
 
 class MeshType_3d_wholebody2(Scaffold_base):
     """
-    Generates a 3-D hermite bifurcating tube network, with linear basis through wall.
+    Generates a 3-D hermite bifurcating tube network with core representing the human body.
     """
 
     @classmethod
@@ -226,7 +225,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements around torso": 12,
             "Number of elements around arm": 8,
             "Number of elements around leg": 8,
-            "Number of elements through wall": 1,
+            "Number of elements through shell": 1,
             "Target element density along longest segment": 5.0,
             "Show trim surfaces": False,
             "Use Core": True,
@@ -246,7 +245,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             options["Number of elements around torso"] = 24
             options["Number of elements around arm"] = 12
             options["Number of elements around leg"] = 16
-            options["Number of elements through wall"] = 2
+            options["Number of elements through shell"] = 1
             options["Target element density along longest segment"] = 10.0
             options["Number of elements across core box minor"] = 4
 
@@ -260,7 +259,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements around torso",
             "Number of elements around arm",
             "Number of elements around leg",
-            "Number of elements through wall",
+            "Number of elements through shell",
             "Target element density along longest segment",
             "Show trim surfaces",
             "Use Core",
@@ -318,8 +317,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             if (minElementsCountAround is None) or (options[key] < minElementsCountAround):
                 minElementsCountAround = options[key]
 
-        if options["Number of elements through wall"] < 0:
-            options["Number of elements through wall"] = 1
+        if options["Number of elements through shell"] < 0:
+            options["Number of elements through shell"] = 1
 
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
@@ -327,11 +326,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         if options["Number of elements across core transition"] < 1:
             options["Number of elements across core transition"] = 1
 
-        elementsCountCoreTransition = options['Number of elements across core transition']
-        maxElementsCountCoreBoxMinor = calculateElementsCountAcrossMinor(
-            minElementsCountAround, elementsCountCoreTransition, 2 + 2 * elementsCountCoreTransition) \
-            - 2 * elementsCountCoreTransition
-
+        maxElementsCountCoreBoxMinor = minElementsCountAround // 2 - 2
         for key in [
             "Number of elements across core box minor"
         ]:
@@ -362,21 +357,20 @@ class MeshType_3d_wholebody2(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
-        elementsCountCoreBoxMinor = options["Number of elements across core box minor"]
-        elementsCountCoreTransition = options['Number of elements across core transition']
-        elementsCountCoreMinor = elementsCountCoreBoxMinor + 2 * elementsCountCoreTransition
-        annotationElementsCountsAround = []
-        annotationElementsCountsAcross = []
+        coreBoxMinorCount = options["Number of elements across core box minor"]
+        coreTransitionCount = options['Number of elements across core transition']
+        annotationAroundCounts = []
+        # implementation currently uses major count including transition
+        annotationCoreMajorCounts = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
-            elementsCountAround = 0
-            elementsCountCoreMajor = 0
+            aroundCount = 0
+            coreMajorCount = 0
             name = layoutAnnotationGroup.getName()
             if name in ["head", "torso", "arm", "leg"]:
-                elementsCountAround = options["Number of elements around " + name]
-                elementsCountCoreMajor = calculateElementsCountAcrossMinor(
-                    elementsCountAround, elementsCountCoreTransition, elementsCountCoreMinor)
-            annotationElementsCountsAround.append(elementsCountAround)
-            annotationElementsCountsAcross.append(elementsCountCoreMajor)
+                aroundCount = options["Number of elements around " + name]
+                coreMajorCount = aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount
+            annotationAroundCounts.append(aroundCount)
+            annotationCoreMajorCounts.append(coreMajorCount)
 
         isCore = options["Use Core"]
 
@@ -384,12 +378,12 @@ class MeshType_3d_wholebody2(Scaffold_base):
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
             defaultElementsCountAround=options["Number of elements around head"],
-            elementsCountThroughWall=options["Number of elements through wall"],
+            elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
-            annotationElementsCountsAround=annotationElementsCountsAround,
-            defaultElementsCountAcrossMajor=annotationElementsCountsAcross[-1],
-            elementsCountTransition=elementsCountCoreTransition,
-            annotationElementsCountsAcrossMajor=annotationElementsCountsAcross,
+            annotationElementsCountsAround=annotationAroundCounts,
+            defaultElementsCountAcrossMajor=annotationCoreMajorCounts[-1],
+            elementsCountTransition=coreTransitionCount,
+            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
             isCore=isCore)
 
         tubeNetworkMeshBuilder.build()

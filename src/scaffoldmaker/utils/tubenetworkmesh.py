@@ -193,9 +193,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         super(TubeNetworkMeshSegment, self).__init__(networkSegment, pathParametersList)
         self._isCore = isCore
         self._elementsCountAround = elementsCountAround
-        self._elementsCountAcrossMajor = elementsCountAcrossMajor
-        self._elementsCountAcrossMinor = calculateElementsCountAcrossMinor(
-            elementsCountAround, elementsCountTransition, elementsCountAcrossMajor)
+        self._elementsCountAcrossMajor = elementsCountAcrossMajor  # includes 2 * elementsCountTransition
+        self._elementsCountAcrossMinor = \
+            self._elementsCountAround // 2 - elementsCountAcrossMajor + 4 * elementsCountTransition
         self._elementsCountTransition = elementsCountTransition
 
         # if self._isCore and self._elementsCountTransition > 1:
@@ -2882,16 +2882,3 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         sd1[p] = smoothCubicHermiteDerivativesLoop(sx[p], td1, fixAllDirections=True)
 
     return sx, sd1, sd2, sd12
-
-
-def calculateElementsCountAcrossMinor(elementsCountAround, elementsCountTransition, elementsCountAcrossMajor):
-    """
-    Calculate number of elements across minor axis of shield mesh based on number around, number of radial
-    transition elements, and number of elements across major.
-    Assumes these can work together.
-    :param elementsCountAround: Number of elements around the circumference.
-    :param elementsCountTransition: Number of transition layers between the core box and the outside.
-    :param elementsCountAcrossMajor: Number of elements across the major axis.
-    :return: Number of elements across the minor axis.
-    """
-    return elementsCountAround // 2 + 4 * elementsCountTransition - elementsCountAcrossMajor
