@@ -1,7 +1,7 @@
 """
 Generates a 3D body coordinates using tube network mesh.
 """
-from cmlibs.maths.vectorops import add, mult
+from cmlibs.maths.vectorops import cross, mult, set_magnitude
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
@@ -11,6 +11,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteEndDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurvesSmooth)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 import math
@@ -35,32 +37,39 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Structure"] = (
             "1-2-3-4,"
             "4-5-6.1," 
-            "6.2-14-15-16-17-18-19,"
-            "6.3-20-21-22-23-24-25,"
+            "6.2-14-15-16-17-18-19,19-20,"
+            "6.3-21-22-23-24-25-26,26-27,"
             "6.1-7-8-9,"
             "9-10-11-12-13.1,"
-            "13.2-26-27-28,28-29-30-31-32,"
-            "13.3-33-34-35,35-36-37-38-39")
+            "13.2-28-29-30,30-31-32-33,33-34,"
+            "13.3-35-36-37,37-38-39-40,40-41")
         options["Define inner coordinates"] = True
         options["Head depth"] = 2.0
-        options["Head length"] = 2.25
+        options["Head length"] = 2.5
         options["Head width"] = 2.0
         options["Neck length"] = 1.5
-        options["Shoulder drop"] = 0.5
+        options["Shoulder drop"] = 0.7
         options["Shoulder width"] = 5.0
-        options["Arm lateral angle degrees"] = 15.0
-        options["Arm length"] = 6.0
-        options["Arm width"] = 0.8
-        options["Hand length"] = 2.0
-        options["Hand thickness"] = 0.5
-        options["Hand width"] = 1.2
+        options["Arm lateral angle degrees"] = 10.0
+        options["Arm length"] = 7.0
+        options["Arm top diameter"] = 1.0
+        options["Wrist thickness"] = 0.5
+        options["Wrist width"] = 0.7
+        options["Hand length"] = 1.5
+        options["Hand thickness"] = 0.3
+        options["Hand width"] = 1.0
         options["Torso depth"] = 2.5
         options["Torso length"] = 6.0
         options["Torso width"] = 3.5
-        options["Pelvis drop"] = 0.5
-        options["Pelvis width"] = 2.5
-        options["Leg lateral angle degrees"] = 15.0
-        options["Leg length"] = 8.0
+        options["Pelvis drop"] = 1.0
+        options["Pelvis width"] = 2.0
+        options["Leg lateral angle degrees"] = 10.0
+        options["Leg length"] = 9.0
+        options["Leg top diameter"] = 1.75
+        options["Leg bottom diameter"] = 0.75
+        options["Foot length"] = 2.0
+        options["Foot thickness"] = 0.4
+        options["Foot width"] = 1.2
         return options
 
     @classmethod
@@ -74,7 +83,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Shoulder width",
             "Arm lateral angle degrees",
             "Arm length",
-            "Arm width",
+            "Arm top diameter",
+            "Wrist thickness",
+            "Wrist width",
             "Hand length",
             "Hand thickness",
             "Hand width",
@@ -84,7 +95,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Pelvis drop",
             "Pelvis width",
             "Leg lateral angle degrees",
-            "Leg length"
+            "Leg length",
+            "Leg top diameter",
+            "Leg bottom diameter",
+            "Foot length",
+            "Foot thickness",
+            "Foot width"
         ]
 
     @classmethod
@@ -95,18 +111,25 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Head length",
             "Head width",
             "Neck length",
-            # "Shoulder drop",
+            "Shoulder drop",
             "Shoulder width",
             "Arm length",
-            "Arm width",
+            "Arm top diameter",
+            "Wrist thickness",
+            "Wrist width",
             "Hand length",
             "Hand thickness",
             "Hand width",
-            # "Pelvis drop",
+            "Pelvis drop",
             "Pelvis width",
             "Torso depth",
             "Torso width",
-            "Leg length"
+            "Leg length",
+            "Leg top diameter",
+            "Leg bottom diameter",
+            "Foot length",
+            "Foot thickness",
+            "Foot width"
         ]:
             if options[key] < 0.1:
                 options[key] = 0.1
@@ -143,20 +166,24 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         neckLength = options["Neck length"]
         shoulderDrop = options["Shoulder drop"]
         halfShoulderWidth = 0.5 * options["Shoulder width"]
-        armAngle = options["Arm lateral angle degrees"]
+        armAngleRadians = math.radians(options["Arm lateral angle degrees"])
+        armAngleDrop = shoulderDrop * math.cos(armAngleRadians)
         armLength = options["Arm length"]
-        halfArmWidth = 0.5 * options["Arm width"]
+        armTopRadius = 0.5 * options["Arm top diameter"]
+        halfWristThickness = 0.5 * options["Wrist thickness"]
+        halfWristWidth = 0.5 * options["Wrist width"]
         handLength = options["Hand length"]
-        handThickness = options["Hand thickness"]
-        handWidth = options["Hand width"]
+        halfHandThickness = 0.5 * options["Hand thickness"]
+        halfHandWidth = 0.5 * options["Hand width"]
         halfTorsoDepth = 0.5 * options["Torso depth"]
         torsoLength = options["Torso length"]
         halfTorsoWidth = 0.5 * options["Torso width"]
         pelvisDrop = options["Pelvis drop"]
         halfPelvisWidth = 0.5 * options["Pelvis width"]
-        legAngle = options["Leg lateral angle degrees"]
+        legAngleRadians = math.radians(options["Leg lateral angle degrees"])
         legLength = options["Leg length"]
-        halfLegWidth = 0.5 * halfTorsoWidth
+        legTopRadius = 0.5 * options["Leg top diameter"]
+        legBottomRadius = 0.5 * options["Leg bottom diameter"]
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -171,12 +198,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         armGroup = AnnotationGroup(region, get_body_term("arm"))
         leftArmGroup = AnnotationGroup(region, get_body_term("left arm"))
         rightArmGroup = AnnotationGroup(region, get_body_term("right arm"))
+        handGroup = AnnotationGroup(region, get_body_term("hand"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
         legGroup = AnnotationGroup(region, get_body_term("leg"))
         leftLegGroup = AnnotationGroup(region, get_body_term("left leg"))
         rightLegGroup = AnnotationGroup(region, get_body_term("right leg"))
-        annotationGroups = [bodyGroup, headGroup, neckGroup, armGroup, leftArmGroup, rightArmGroup,
+        annotationGroups = [bodyGroup, headGroup, neckGroup, armGroup, leftArmGroup, rightArmGroup, handGroup,
                             thoraxGroup, abdomenGroup, legGroup, leftLegGroup, rightLegGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
@@ -194,16 +222,20 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
-        armElementsCount = 6
         left = 0
         right = 1
+        armElementsCount = 7
+        armMeshGroup = armGroup.getMeshGroup(mesh)
+        handMeshGroup = handGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
-            meshGroups = [bodyMeshGroup, armGroup.getMeshGroup(mesh), sideArmGroup.getMeshGroup(mesh)]
+            meshGroups = [bodyMeshGroup, armMeshGroup, sideArmGroup.getMeshGroup(mesh)]
             for e in range(armElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
+                if e == (armElementsCount - 1):
+                    handMeshGroup.addElement(element)
                 elementIdentifier += 1
         thoraxElementsCount = 3
         abdomenElementsCount = 4
@@ -221,9 +253,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 meshGroup.addElement(element)
             elementIdentifier += 1
         legElementsCount = 7
+        legMeshGroup = legGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideLegGroup = leftLegGroup if (side == left) else rightLegGroup
-            meshGroups = [bodyMeshGroup, legGroup.getMeshGroup(mesh), sideLegGroup.getMeshGroup(mesh)]
+            meshGroups = [bodyMeshGroup, legMeshGroup, sideLegGroup.getMeshGroup(mesh)]
             for e in range(legElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
@@ -267,6 +300,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         d2 = [0.0, halfTorsoWidth, 0.0]
         d3 = [0.0, 0.0, halfTorsoDepth]
         torsoStartX = headLength + neckLength
+        sx = [torsoStartX, 0.0, 0.0]
         for i in range(torsoElementsCount + 1):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
@@ -277,65 +311,94 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
             nodeIdentifier += 1
         legJunctionNodeIdentifier = nodeIdentifier - 1
+        px = x
 
         # arms
-        # set arm versions 2 (left) and 3 (right) on arm junction node
-        node = nodes.findNodeByIdentifier(armJunctionNodeIdentifier)
-        fieldcache.setNode(node)
-        d3 = [0.0, 0.0, 0.5 * (1.5 * halfArmWidth + halfTorsoDepth)]
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 2, [0.0, halfShoulderWidth, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 2, [-1.5 * halfArmWidth, 0.0, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 2, d3)
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 3, [0.0, -halfShoulderWidth, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 3, [1.5 * halfArmWidth, 0.0, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 3, d3)
-        # now set remainder of arm and hand coordinates
-        armStartX = torsoStartX + shoulderDrop
-        armScale = armLength / (armElementsCount - 1)
-        d3 = [0.0, 0.0, halfArmWidth]
+        armStartX = torsoStartX + armAngleDrop
+        nonHandArmLength = armLength - handLength
+        armScale = nonHandArmLength / (armElementsCount - 3)
+        sd3 = [0.0, 0.0, armTopRadius]
+        hd3 = [0.0, 0.0, halfHandWidth]
         for side in (left, right):
-            armAngleRadians = math.radians(armAngle if (side == left) else -armAngle)
-            cosArmAngle = math.cos(armAngleRadians)
-            sinArmAngle = math.sin(armAngleRadians)
-            d1 = [armScale * cosArmAngle, armScale * sinArmAngle, 0.0]
-            d2 = [-halfArmWidth * sinArmAngle, halfArmWidth * cosArmAngle, 0.0]
+            armAngle = armAngleRadians if (side == left) else -armAngleRadians
+            cosArmAngle = math.cos(armAngle)
+            sinArmAngle = math.sin(armAngle)
             armStartY = halfShoulderWidth if (side == left) else -halfShoulderWidth
-            for i in range(armElementsCount):
+            x = [armStartX, armStartY, 0.0]
+            d1 = [armScale * cosArmAngle, armScale * sinArmAngle, 0.0]
+            # set leg versions 2 (left) and 3 (right) on leg junction node, and intermediate shoulder node
+            sd1 = interpolateLagrangeHermiteDerivative(sx, x, d1, 0.0)
+            nx, nd1 = sampleCubicHermiteCurvesSmooth([sx, x], [sd1, d1], 2, derivativeMagnitudeEnd=armScale)[0:2]
+            for n in range(2):
+                node = nodes.findNodeByIdentifier(nodeIdentifier if (n > 0) else armJunctionNodeIdentifier)
+                fieldcache.setNode(node)
+                version = 1 if (n > 0) else 2 if (side == left) else 3
+                sd1 = nd1[n]
+                sd2 = set_magnitude(cross(sd3, sd1), armTopRadius)
+                if n > 0:
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, version, nx[n])
+                    nodeIdentifier += 1
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, sd1)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, sd2)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, sd3)
+            # main part of arm to wrist
+            for i in range(armElementsCount - 2):
+                xi = i / (armElementsCount - 3)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 x = [armStartX + d1[0] * i, armStartY + d1[1] * i, d1[2] * i]
+                halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+                halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+                d2 = [-halfThickness * sinArmAngle, halfThickness * cosArmAngle, 0.0]
+                d3 = [0.0, 0.0, halfWidth]
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                 nodeIdentifier += 1
+            # hand
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            h = (armElementsCount - 3) + handLength / armScale
+            hx = [armStartX + armLength * cosArmAngle, armStartY + armLength * sinArmAngle, 0.0]
+            hd1 = computeCubicHermiteEndDerivative(x, d1, hx, d1)
+            hd2 = set_magnitude(d2, halfHandThickness)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, hx)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, hd1)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, hd2)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, hd3)
+            nodeIdentifier += 1
 
         # legs
-        # set leg versions 2 (left) and 3 (right) on leg junction node
-        node = nodes.findNodeByIdentifier(legJunctionNodeIdentifier)
-        fieldcache.setNode(node)
-        d3 = [0.0, 0.0, halfTorsoDepth]
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 2, [0.0, halfPelvisWidth, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 2, [-halfLegWidth, 0.0, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 2, d3)
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 3, [0.0, -halfPelvisWidth, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 3, [halfLegWidth, 0.0, 0.0])
-        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 3, d3)
-        # now set remainder of leg and hand coordinates
         legStartX = torsoStartX + torsoLength + pelvisDrop
         legScale = legLength / (legElementsCount - 1)
-        d3 = [0.0, 0.0, halfTorsoDepth]
+        pd3 = [0.0, 0.0, halfTorsoDepth]
         for side in (left, right):
-            legAngleRadians = math.radians(legAngle if (side == left) else -legAngle)
-            coslegAngle = math.cos(legAngleRadians)
-            sinlegAngle = math.sin(legAngleRadians)
-            d1 = [legScale * coslegAngle, legScale * sinlegAngle, 0.0]
-            d2 = [-halfLegWidth * sinlegAngle, halfLegWidth * coslegAngle, 0.0]
+            legAngle = legAngleRadians if (side == left) else -legAngleRadians
+            coslegAngle = math.cos(legAngle)
+            sinlegAngle = math.sin(legAngle)
             legStartY = halfPelvisWidth if (side == left) else -halfPelvisWidth
+            x = [legStartX, legStartY, 0.0]
+            d1 = [legScale * coslegAngle, legScale * sinlegAngle, 0.0]
+
+            # set leg versions 2 (left) and 3 (right) on leg junction node
+            node = nodes.findNodeByIdentifier(legJunctionNodeIdentifier)
+            fieldcache.setNode(node)
+            pd1 = interpolateLagrangeHermiteDerivative(px, x, d1, 0.0)
+            pd2 = set_magnitude(cross(pd3, pd1), legTopRadius)
+            version = 2 if (side == left) else 3
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, pd1)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, pd2)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, pd3)
+
             for i in range(legElementsCount):
+                xi = i / (legElementsCount - 1)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 x = [legStartX + d1[0] * i, legStartY + d1[1] * i, d1[2] * i]
+                radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
+                d2 = [-radius * sinlegAngle, radius * coslegAngle, 0.0]
+                d3 = [0.0, 0.0, radius]
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
@@ -387,7 +450,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options = {}
         useParameterSetName = "Human 1 Coarse" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
-        options["Network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
+        options["Body network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
         options["Number of elements around head"] = 12
         options["Number of elements around torso"] = 12
         options["Number of elements around arm"] = 8
@@ -417,7 +480,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
     @classmethod
     def getOrderedOptionNames(cls):
         optionNames = [
-            "Network layout",
+            "Body network layout",
             "Number of elements around head",
             "Number of elements around torso",
             "Number of elements around arm",
@@ -432,7 +495,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == "Network layout":
+        if optionName == "Body network layout":
             return [MeshType_1d_human_body_network_layout1]
         return []
 
@@ -446,7 +509,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 "Invalid parameter set " + str(parameterSetName) + " for scaffold " + str(scaffoldType.getName()) + \
                 " in option " + str(optionName) + " of scaffold " + cls.getName()
-        if optionName == "Network layout":
+        if optionName == "Body network layout":
             if not parameterSetName:
                 parameterSetName = "Default"
             return ScaffoldPackage(MeshType_1d_human_body_network_layout1, defaultParameterSetName=parameterSetName)
@@ -455,8 +518,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
-            options["Network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
+        if not options["Body network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Body network layout"):
+            options["Body network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
         minElementsCountAround = None
         for key in [
             "Number of elements around head",
@@ -504,7 +567,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         """
         # parameterSetName = options['Base parameter set']
         layoutRegion = region.createRegion()
-        networkLayout = options["Network layout"]
+        networkLayout = options["Body network layout"]
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()

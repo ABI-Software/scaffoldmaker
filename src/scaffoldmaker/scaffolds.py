@@ -117,7 +117,7 @@ class Scaffolds(object):
             MeshType_3d_uterus1,
             MeshType_3d_uterus2,
             MeshType_3d_wholebody1,
-            MeshType_1d_human_body_network_layout1,
+            MeshType_1d_human_body_network_layout1,  # GRC remove
             MeshType_3d_wholebody2
             ]
         self._allPrivateScaffoldTypes = [

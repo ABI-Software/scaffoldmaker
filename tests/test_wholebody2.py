@@ -24,8 +24,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_wholebody2
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium",
-                                             "Human 2 Fine"])
+        self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Default")
         self.assertEqual(12, len(options))
         self.assertEqual(12, options["Number of elements around head"])
@@ -43,7 +42,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(5, len(annotationGroups))  # Needs updating as we add more annotation groups
+        self.assertEqual(13, len(annotationGroups))  # Needs updating as we add more annotation groups
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -113,8 +112,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_wholebody2
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2 Coarse", "Human 2 Medium",
-                                             "Human 2 Fine"])
+        self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Default")
         self.assertEqual(12, len(options))
         self.assertEqual(12, options["Number of elements around head"])
@@ -133,7 +131,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(5, len(annotationGroups))
+        self.assertEqual(13, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
