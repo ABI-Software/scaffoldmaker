@@ -65,12 +65,11 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
         self._nodeLayout6WayTriplePoint = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
-        self._nodeLayoutBifrucation = self._nodeLayoutManager.getNodeLayout6WayBifurcation()
+        self._nodeLayoutBifurcation = self._nodeLayoutManager.getNodeLayout6WayBifurcation()
         self._nodeLayoutTrifurcation = None
         self._nodeLayoutTransition = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
-        self._nodeLayoutBifurcationTransition = self._nodeLayoutManager.getNodeLayout6WayBifurcationTransition()
 
 
     def getStandardEft(self):
@@ -115,7 +114,7 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         """
         Special node layout for generating core elements for bifurcation.
         """
-        return self._nodeLayoutBifrucation
+        return self._nodeLayoutBifurcation
 
     def getNodeLayoutTrifurcation(self, location):
         """
@@ -137,12 +136,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Node layout for generating core transition elements, excluding at triple points.
         """
         return self._nodeLayoutTransition
-
-    def getNodeLayoutBifurcationTransition(self):
-        """
-        Special node layout for generating core transition elements for bifurcation.
-        """
-        return self._nodeLayoutBifurcationTransition
 
     def getNodeLayoutTransitionTriplePoint(self, location):
         """
@@ -2303,6 +2296,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             for e1 in range(boxElementsCountAcrossMinor):
                 e3p = (e3 + 1)
                 nids, nodeParameters, nodeLayouts = [], [], []
+                # get identifier early to aid debugging
+                elementIdentifier = generateData.nextElementIdentifier()
                 for n1 in [e1, e1 + 1]:
                     for n3 in [e3, e3p]:
                         nids.append(segment.getBoxNodeIds(n1, n2, n3))
@@ -2337,7 +2332,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     eftList[e3][e1] = eft
                     scalefactorsList[e3][e1] = scalefactors
                 elementtemplate.defineField(coordinates, -1, eft)
-                elementIdentifier = generateData.nextElementIdentifier()
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
@@ -2359,8 +2353,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         scalefactorsList = [None] * elementsCountAround
 
         triplePointIndexesList = segment.getTriplePointIndexes()
-        is6WayTriplePoint = True if (((max(acrossMajorCounts) - 2) // 2) == (min(acrossMajorCounts) - 2)
-                                     and (self._segmentsCount == 3)) else False
+        coreTransitionCount = self._segments[0].getElementsCountTransition()
+        coreBoxMajorCounts = [count - 2 * coreTransitionCount for count in acrossMajorCounts]
+        is6WayTriplePoint = (self._segmentsCount == 3) and ((max(coreBoxMajorCounts) // 2) == min(coreBoxMajorCounts))
         pSegment = acrossMajorCounts.index(max(acrossMajorCounts))
         topMidIndex = (nodesCountAcrossMajor[pSegment] // 2) + (nodesCountAcrossMinor // 2)
         bottomMidIndex = elementsCountAround - topMidIndex
@@ -2370,14 +2365,15 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
         nodeLayoutTransition = generateData.getNodeLayoutTransition()
-        nodeLayoutBifurcationTransition = generateData.getNodeLayoutBifurcationTransition()
+        nodeLayoutBifurcation = generateData.getNodeLayoutBifurcation()
 
         e2 = n2 if self._segmentsIn[s] else 0
-
         for e1 in range(elementsCountAround):
             nids, nodeParameters, nodeLayouts = [], [], []
             n1p = (e1 + 1) % elementsCountAround
             oLocation = segment.getTriplePointLocation(e1)
+            # get identifier early to aid debugging
+            elementIdentifier = generateData.nextElementIdentifier()
 
             # outside of core box
             for n1 in [e1, n1p]:
@@ -2388,6 +2384,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     generateData.getNodeLayoutTransitionTriplePoint(oLocation))
                 nodeLayouts.append(nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList
                                    else nodeLayoutTransition)
+
             for n1 in [e1, n1p]:
                 nid = boxBoundaryNodeIds[n1]
                 nids.append(nid)
@@ -2406,13 +2403,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                 location = 4 if abs(location) == 2 else location
                             nodeLayout = generateData.getNodeLayout6WayTriplePoint(location)
                         else:
-                            nodeLayout = nodeLayoutBifurcationTransition
+                            nodeLayout = nodeLayoutBifurcation
                     elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
                         location = \
                             1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
-                        nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
-                        nodeLayout = nodeLayout6Way if self._sequence == [0, 1, 3, 2] else (
-                            nodeLayoutTrifurcation)
+                        nodeLayout = (nodeLayout6Way if self._sequence == [0, 1, 3, 2] else
+                                      generateData.getNodeLayoutTrifurcation(location))
                     else:
                         nodeLayout = nodeLayout6Way
                 elif segmentNodesCount == 4:  # 8-way node
@@ -2459,7 +2455,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 eftList[e1] = eft
                 scalefactorsList[e1] = scalefactors
             elementtemplate.defineField(coordinates, -1, eft)
-            elementIdentifier = generateData.nextElementIdentifier()
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids)
             if scalefactors:

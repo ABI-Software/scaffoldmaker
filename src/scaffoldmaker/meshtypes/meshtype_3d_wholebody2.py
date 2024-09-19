@@ -1,7 +1,7 @@
 """
 Generates a 3D body coordinates using tube network mesh.
 """
-from cmlibs.maths.vectorops import cross, mult, set_magnitude
+from cmlibs.maths.vectorops import add, cross, mult, set_magnitude
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
@@ -12,7 +12,8 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.body_terms import get_body_term
 from scaffoldmaker.utils.interpolation import (
-    computeCubicHermiteEndDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurvesSmooth)
+    computeCubicHermiteEndDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurvesSmooth,
+    smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 import math
@@ -41,17 +42,17 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "6.3-21-22-23-24-25-26,26-27,"
             "6.1-7-8-9,"
             "9-10-11-12-13.1,"
-            "13.2-28-29-30,30-31-32-33,33-34,"
-            "13.3-35-36-37,37-38-39-40,40-41")
+            "13.2-28-29-30-31-32,32-33,33-34,"
+            "13.3-35-36-37-38-39,39-40,40-41")
         options["Define inner coordinates"] = True
-        options["Head depth"] = 2.0
-        options["Head length"] = 2.5
-        options["Head width"] = 2.0
-        options["Neck length"] = 1.5
+        options["Head depth"] = 2.1
+        options["Head length"] = 2.2
+        options["Head width"] = 1.9
+        options["Neck length"] = 1.3
         options["Shoulder drop"] = 0.7
-        options["Shoulder width"] = 5.0
+        options["Shoulder width"] = 4.5
         options["Arm lateral angle degrees"] = 10.0
-        options["Arm length"] = 7.0
+        options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Wrist thickness"] = 0.5
         options["Wrist width"] = 0.7
@@ -59,17 +60,17 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Hand thickness"] = 0.3
         options["Hand width"] = 1.0
         options["Torso depth"] = 2.5
-        options["Torso length"] = 6.0
-        options["Torso width"] = 3.5
-        options["Pelvis drop"] = 1.0
+        options["Torso length"] = 5.5
+        options["Torso width"] = 3.2
+        options["Pelvis drop"] = 1.5
         options["Pelvis width"] = 2.0
         options["Leg lateral angle degrees"] = 10.0
-        options["Leg length"] = 9.0
-        options["Leg top diameter"] = 1.75
-        options["Leg bottom diameter"] = 0.75
-        options["Foot length"] = 2.0
-        options["Foot thickness"] = 0.4
-        options["Foot width"] = 1.2
+        options["Leg length"] = 10.0
+        options["Leg top diameter"] = 2.0
+        options["Leg bottom diameter"] = 0.7
+        options["Foot length"] = 2.5
+        options["Foot thickness"] = 0.3
+        options["Foot width"] = 1.0
         return options
 
     @classmethod
@@ -184,6 +185,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         legLength = options["Leg length"]
         legTopRadius = 0.5 * options["Leg top diameter"]
         legBottomRadius = 0.5 * options["Leg bottom diameter"]
+        footLength = options["Foot length"]
+        halfFootThickness = 0.5 * options["Foot thickness"]
+        halfFootWidth = 0.5 * options["Foot width"]
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -370,39 +374,65 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             nodeIdentifier += 1
 
         # legs
+        cos45 = math.cos(0.25 * math.pi)
         legStartX = torsoStartX + torsoLength + pelvisDrop
-        legScale = legLength / (legElementsCount - 1)
-        pd3 = [0.0, 0.0, halfTorsoDepth]
+        legScale = legLength / (legElementsCount - 2)
+        pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]  # GRC
         for side in (left, right):
             legAngle = legAngleRadians if (side == left) else -legAngleRadians
-            coslegAngle = math.cos(legAngle)
-            sinlegAngle = math.sin(legAngle)
+            cosLegAngle = math.cos(legAngle)
+            sinLegAngle = math.sin(legAngle)
             legStartY = halfPelvisWidth if (side == left) else -halfPelvisWidth
-            x = [legStartX, legStartY, 0.0]
-            d1 = [legScale * coslegAngle, legScale * sinlegAngle, 0.0]
-
+            x = legStart = [legStartX, legStartY, 0.0]
+            legDirn = [cosLegAngle, sinLegAngle, 0.0]
+            legSide = [-sinLegAngle, cosLegAngle, 0.0]
+            legFront = cross(legDirn, legSide)
+            d1 = mult(legDirn, legScale)
             # set leg versions 2 (left) and 3 (right) on leg junction node
             node = nodes.findNodeByIdentifier(legJunctionNodeIdentifier)
             fieldcache.setNode(node)
             pd1 = interpolateLagrangeHermiteDerivative(px, x, d1, 0.0)
-            pd2 = set_magnitude(cross(pd3, pd1), legTopRadius)
+            pd2 = set_magnitude(cross(pd3, pd1), 0.5 * legTopRadius + 0.5 * halfTorsoWidth)  # GRC
             version = 2 if (side == left) else 3
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, pd1)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, pd2)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, pd3)
-
-            for i in range(legElementsCount):
-                xi = i / (legElementsCount - 1)
+            # main part of leg to ankle
+            for i in range(legElementsCount - 2):
+                xi = i / (legElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 x = [legStartX + d1[0] * i, legStartY + d1[1] * i, d1[2] * i]
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
-                d2 = [-radius * sinlegAngle, radius * coslegAngle, 0.0]
+                d2 = mult(legSide, radius)
                 d3 = [0.0, 0.0, radius]
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                nodeIdentifier += 1
+            # foot
+            heelOffset = legBottomRadius * (1.0 - cos45)
+            fx = [add(add(legStart, mult(legDirn, legLength - legBottomRadius)),
+                      [-heelOffset * cosLegAngle, -heelOffset * sinLegAngle, heelOffset]),
+                  add(add(legStart, mult(legDirn, legLength - halfFootThickness)),
+                      [0.0, 0.0, footLength - legBottomRadius])]
+            fd1 = smoothCubicHermiteDerivativesLine(
+                [x] + fx, [d1, set_magnitude(add(legDirn, legFront), legScale),
+                           [0.0, 0.0, 2.0 * footLength]],
+                fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True)[1:]
+            halfAnkleThickness = math.sqrt(2.0 * legBottomRadius * legBottomRadius)
+            ankleRadius = legBottomRadius  # GRC check
+            fd2 = [mult(legSide, ankleRadius), mult(legSide, halfFootWidth)]
+            fd3 = [set_magnitude(cross(fd1[0], fd2[0]), halfAnkleThickness),
+                   set_magnitude(cross(fd1[1], fd2[1]), halfFootThickness)]
+            for i in range(2):
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, fx[i])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, fd1[i])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, fd2[i])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, fd3[i])
                 nodeIdentifier += 1
 
         smoothOptions = {

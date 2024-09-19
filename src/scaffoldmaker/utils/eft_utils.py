@@ -629,21 +629,16 @@ class HermiteNodeLayoutManager:
         self._nodeLayout6Way12_d3Defined = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
              [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
-        self._nodeLayout6WayBifurcation = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
-             [0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
-        self._nodeLayout6WayBifurcationTransition = HermiteNodeLayout(
-            [[0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
         self._nodeLayout6WayTriplePointTop1 = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
              [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
         self._nodeLayout6WayTriplePointTop2 = HermiteNodeLayout(
-            [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+            [[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
         self._nodeLayout6WayTriplePointBottom1 = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
              [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
         self._nodeLayout6WayTriplePointBottom2 = HermiteNodeLayout(
-            [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+            [[-1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
         self._nodeLayout8Way12 = HermiteNodeLayout(
             [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0], [1.0, -1.0]])
         self._nodeLayout8Way12_d3Defined = HermiteNodeLayout(
@@ -714,15 +709,7 @@ class HermiteNodeLayoutManager:
         6-way bifurcation transition and a node layout for 6-way triple point.
         :return: HermiteNodeLayout.
         """
-        return self._nodeLayout6WayBifurcation
-
-    def getNodeLayout6WayBifurcationTransition(self):
-        """
-        Get node layout for a special case of 6-way bifurcation transition, used in conjunction with a node layout for
-        6-way bifurcation and a node layout for 6-way triple point.
-        :return: HermiteNodeLayout.
-        """
-        return self._nodeLayout6WayBifurcationTransition
+        return self._nodeLayout6Way12_d3Defined
 
     def getNodeLayout6WayTriplePoint(self):
         """
