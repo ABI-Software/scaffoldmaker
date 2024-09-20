@@ -89,10 +89,11 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(5, len(settings))
+        self.assertEqual(6, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         settings["Target element density along longest segment"] = 3.4
         MeshType_2d_tubenetwork1.checkOptions(settings)
 
@@ -134,10 +135,11 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(5, len(settings))
+        self.assertEqual(6, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -204,10 +206,11 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertFalse(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(5, len(settings))
+        self.assertEqual(6, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         MeshType_2d_tubenetwork1.checkOptions(settings)
 
         context = Context("Test")
@@ -248,11 +251,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(11, len(settings))
+        self.assertEqual(12, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual(1, settings["Number of elements through shell"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
@@ -319,11 +323,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(11, len(settings))
+        self.assertEqual(12, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual(1, settings["Number of elements through shell"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
@@ -382,11 +387,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(11, len(settings))
+        self.assertEqual(12, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual(1, settings["Number of elements through shell"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         settings["Number of elements through shell"] = 2
@@ -475,11 +481,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(11, len(settings))
+        self.assertEqual(12, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual(1, settings["Number of elements through shell"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
@@ -565,11 +572,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(11, len(settings))
+        self.assertEqual(12, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual(1, settings["Number of elements through shell"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         settings["Annotation numbers of elements around"] = [10]  # requires annotation group below
@@ -659,11 +667,12 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
-        self.assertEqual(11, len(settings))
+        self.assertEqual(12, len(settings))
         self.assertEqual(8, settings["Number of elements around"])
         self.assertEqual(1, settings["Number of elements through shell"])
         self.assertEqual([0], settings["Annotation numbers of elements around"])
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
         self.assertFalse(settings["Use linear through shell"])
         self.assertFalse(settings["Show trim surfaces"])
         self.assertFalse(settings["Core"])
@@ -748,8 +757,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         settings = scaffoldPackage.getScaffoldSettings()
         networkLayoutScaffoldPackage = settings["Network layout"]
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
-        self.assertEqual(2, len(settings))
+        self.assertEqual(3, len(settings))
         self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
 
         context = Context("Test")
         region = context.getDefaultRegion()

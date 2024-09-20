@@ -52,10 +52,12 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
                  defaultElementsCountAround: int, elementsCountThroughWall: int,
-                 layoutAnnotationGroups: list = [], annotationElementsCountsAround: list = []):
+                 layoutAnnotationGroups: list = [], annotationElementsCountsAlong: list = [],
+                 annotationElementsCountsAround: list = []):
         super(UterusTubeNetworkMeshBuilder, self).__init__(
             networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
-            elementsCountThroughWall, layoutAnnotationGroups, annotationElementsCountsAround)
+            elementsCountThroughWall, layoutAnnotationGroups,
+            annotationElementsCountsAlong, annotationElementsCountsAround)
 
     def generateMesh(self, generateData):
         super(UterusTubeNetworkMeshBuilder, self).generateMesh(generateData)
@@ -475,6 +477,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
+        annotationAlongCounts = []
         annotationElementsCountsAround = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
             elementsCountAround = 0
@@ -490,6 +493,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             defaultElementsCountAround=options['Number of elements around'],
             elementsCountThroughWall=options["Number of elements through wall"],
             layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAlong=annotationAlongCounts,
             annotationElementsCountsAround=annotationElementsCountsAround)
         uterusTubeNetworkMeshBuilder.build()
         generateData = UterusTubeNetworkMeshGenerateData(

@@ -597,9 +597,11 @@ class NetworkMeshSegment(ABC):
         return self._isLoop
 
     @abstractmethod
-    def sample(self, targetElementLength):
+    def sample(self, fixedElementsCountAlong, targetElementLength):
         """
         Override to resample curve/raw data to final coordinates.
+        :param fixedElementsCountAlong: Fixed number of elements along > 0 or None to use targetElementLength.
+        Implementations may enforce a higher minimum number.
         :param targetElementLength: Target element size along length of segment/junction.
         """
         pass
@@ -673,10 +675,11 @@ class NetworkMeshBuilder(ABC):
     """
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 layoutAnnotationGroups):
+                 layoutAnnotationGroups, annotationElementsCountsAlong=[]):
         self._networkMesh = networkMesh
         self._targetElementDensityAlongLongestSegment = targetElementDensityAlongLongestSegment
         self._layoutAnnotationGroups = layoutAnnotationGroups
+        self._annotationElementsCountsAlong = annotationElementsCountsAlong
         self._layoutRegion = networkMesh.getRegion()
         layoutFieldmodule = self._layoutRegion.getFieldmodule()
         self._layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -753,8 +756,19 @@ class NetworkMeshBuilder(ABC):
         Must have called self.createJunctions() first.
         """
         for networkSegment in self._networkMesh.getNetworkSegments():
+            fixedElementsCountAlong = None
+            i = 0
+            for layoutAnnotationGroup in self._layoutAnnotationGroups:
+                if i >= len(self._annotationElementsCountsAlong):
+                    break
+                if self._annotationElementsCountsAlong[i] > 0:
+                    if networkSegment.hasLayoutElementsInMeshGroup(
+                            layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                        fixedElementsCountAlong = self._annotationElementsCountsAlong[i]
+                        break
+                i += 1
             segment = self._segments[networkSegment]
-            segment.sample(self._targetElementLength)
+            segment.sample(fixedElementsCountAlong, self._targetElementLength)
 
     def _sampleJunctions(self):
         """

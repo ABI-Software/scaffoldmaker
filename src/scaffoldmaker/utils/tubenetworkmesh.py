@@ -249,18 +249,18 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
     def getRawTrackSurface(self, pathIndex=0):
         return self._rawTrackSurfaceList[pathIndex]
 
-    def sample(self, targetElementLength):
+    def sample(self, fixedElementsCountAlong, targetElementLength):
         trimSurfaces = [self._junctions[j].getTrimSurfaces(self) for j in range(2)]
         minimumElementsCountAlong = 2 if (self._isLoop or ((self._junctions[0].getSegmentsCount() > 2) and
                 (self._junctions[1].getSegmentsCount() > 2))) else 1
-        elementsCountAlong = None
+        elementsCountAlong = fixedElementsCountAlong
         for p in range(self._pathsCount):
             # determine elementsCountAlong for first/outer tube then fix for inner tubes
             self._sampledTubeCoordinates[p] = resampleTubeCoordinates(
                 self._rawTubeCoordinatesList[p], fixedElementsCountAlong=elementsCountAlong,
                 targetElementLength=targetElementLength, minimumElementsCountAlong=minimumElementsCountAlong,
                 startSurface=trimSurfaces[0][p], endSurface=trimSurfaces[1][p])
-            if not elementsCountAlong:
+            if p == 0:
                 elementsCountAlong = len(self._sampledTubeCoordinates[0][0]) - 1
 
         if self._dimension == 2:
@@ -2644,12 +2644,29 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 class TubeNetworkMeshBuilder(NetworkMeshBuilder):
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 defaultElementsCountAround: int, elementsCountThroughWall: int,
-                 layoutAnnotationGroups: list = [], annotationElementsCountsAround: list = [],
+                 defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
+                 annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
                  defaultElementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1,
                  annotationElementsCountsAcrossMajor: list = [], isCore=False):
+        """
+        :param networkMesh: Description of the topology of the network layout.
+        :param targetElementDensityAlongLongestSegment:
+        :param defaultElementsCountAround:
+        :param elementsCountThroughWall:
+        :param layoutAnnotationGroups:
+        :param annotationElementsCountsAlong: List in same order as layoutAnnotationGroups, specifying fixed
+        number along segment with any elements in the annotation group. Client must ensure exclusive map from segments.
+        Groups with zero value or past end of this list use the targetElementDensityAlongLongestSegment.
+        :param annotationElementsCountsAround: List in same order as layoutAnnotationGroups, specifying fixed
+        number around segment with any elements in the annotation group. Client must ensure exclusive map from segments.
+        Groups with zero value or past end of this list use the defaultElementsCountAround.
+        :param defaultElementsCountAcrossMajor:
+        :param elementsCountTransition:
+        :param annotationElementsCountsAcrossMajor:
+        :param isCore:
+        """
         super(TubeNetworkMeshBuilder, self).__init__(
-            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups)
+            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong)
         self._defaultElementsCountAround = defaultElementsCountAround
         self._elementsCountThroughWall = elementsCountThroughWall
         self._layoutAnnotationGroups = layoutAnnotationGroups
@@ -2815,7 +2832,8 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
     :param fixedElementsCountAlong: Number of elements in resampled coordinates, or None to use targetElementLength.
     :param targetElementLength: Target element length or None to use fixedElementsCountAlong.
     Length is compared with mean trimmed length to determine number along, subject to specified minimum.
-    :param minimumElementsCountAlong: Minimum number along when targetElementLength is used.
+    :param minimumElementsCountAlong: Minimum number along to apply regardless of fixedElementsCountAlong or number
+    calculated from targetElementLength.
     :param startSurface: Optional TrackSurface specifying start of tube at intersection with it.
     :param endSurface: Optional TrackSurface specifying end of tube at intersection with it.
     :return: sx[][], sd1[][], sd2[][], sd12[][] with first index in range(elementsCountAlong + 1),
@@ -2863,11 +2881,9 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         endLengths.append(endLength)
 
     meanLength = sumLengths / elementsCountAround
-    if fixedElementsCountAlong:
-        elementsCountAlong = fixedElementsCountAlong
-    else:
-        # small fudge factor so whole numbers chosen on centroid don't go one higher:
-        elementsCountAlong = max(minimumElementsCountAlong, math.ceil(meanLength * 0.999 / targetElementLength))
+    # small fudge factor on targetElementLength so whole numbers chosen on centroid don't go one higher:
+    elementsCountAlong = max(minimumElementsCountAlong, fixedElementsCountAlong if fixedElementsCountAlong else
+                             math.ceil(meanLength * 0.999 / targetElementLength))
     meanStartLocation /= elementsCountAround
     e = min(int(meanStartLocation), pointsCountAlong - 2)
     meanStartCurveLocation = (e, meanStartLocation - e)

@@ -27,6 +27,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             "Number of elements around": 8,
             "Annotation numbers of elements around": [0],
             "Target element density along longest segment": 4.0,
+            "Annotation numbers of elements along": [0],
             "Show trim surfaces": False
         }
         return options
@@ -38,6 +39,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             "Number of elements around",
             "Annotation numbers of elements around",
             "Target element density along longest segment",
+            "Annotation numbers of elements along",
             "Show trim surfaces"
         ]
 
@@ -88,6 +90,15 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
                     annotationElementsCountsAround[i] = 4
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
+        annotationAlongCounts = options["Annotation numbers of elements along"]
+        if len(annotationAlongCounts) == 0:
+            options["Annotation numbers of elements along"] = [0]
+        else:
+            for i in range(len(annotationAlongCounts)):
+                if annotationAlongCounts[i] <= 0:
+                    annotationAlongCounts[i] = 0
+                elif annotationAlongCounts[i] < 1:
+                    annotationAlongCounts[i] = 1
         return dependentChanges
 
     @classmethod
@@ -109,6 +120,7 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             defaultElementsCountAround=options["Number of elements around"],
             elementsCountThroughWall=1,
             layoutAnnotationGroups=networkLayout.getAnnotationGroups(),
+            annotationElementsCountsAlong=options["Annotation numbers of elements along"],
             annotationElementsCountsAround=options["Annotation numbers of elements around"])
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(

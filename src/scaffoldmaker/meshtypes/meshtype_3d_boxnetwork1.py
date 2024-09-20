@@ -24,7 +24,8 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
-            "Target element density along longest segment": 4.0
+            "Target element density along longest segment": 4.0,
+            "Annotation numbers of elements along": [0]
         }
         return options
 
@@ -32,7 +33,8 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
     def getOrderedOptionNames(cls):
         return [
             "Network layout",
-            "Target element density along longest segment"
+            "Target element density along longest segment",
+            "Annotation numbers of elements along"
         ]
 
     @classmethod
@@ -70,6 +72,15 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
+        annotationAlongCounts = options["Annotation numbers of elements along"]
+        if len(annotationAlongCounts) == 0:
+            options["Annotation numbers of elements along"] = [0]
+        else:
+            for i in range(len(annotationAlongCounts)):
+                if annotationAlongCounts[i] <= 0:
+                    annotationAlongCounts[i] = 0
+                elif annotationAlongCounts[i] < 1:
+                    annotationAlongCounts[i] = 1
         dependentChanges = False
         return dependentChanges
 
@@ -83,6 +94,7 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         """
         networkLayout = options["Network layout"]
         targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
+        annotationElementsCountsAlong = options["Annotation numbers of elements along"]
 
         layoutRegion = region.createRegion()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
@@ -90,7 +102,7 @@ class MeshType_3d_boxnetwork1(Scaffold_base):
         networkMesh = networkLayout.getConstructionObject()
 
         boxNetworkMeshBuilder = BoxNetworkMeshBuilder(
-            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups)
+            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong)
         boxNetworkMeshBuilder.build()
         generateData = BoxNetworkMeshGenerateData(region)
         boxNetworkMeshBuilder.generateMesh(generateData)

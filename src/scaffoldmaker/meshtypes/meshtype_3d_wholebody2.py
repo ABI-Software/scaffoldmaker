@@ -42,8 +42,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "6.3-21-22-23-24-25-26,26-27,"
             "6.1-7-8-9,"
             "9-10-11-12-13.1,"
-            "13.2-28-29-30-31-32,32-33,33-34,"
-            "13.3-35-36-37-38-39,39-40,40-41")
+            "13.2-28-29-30-31-32,32-33-34,"
+            "13.3-35-36-37-38-39,39-40-41")
         options["Define inner coordinates"] = True
         options["Head depth"] = 2.1
         options["Head length"] = 2.2
@@ -59,8 +59,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Hand length"] = 1.5
         options["Hand thickness"] = 0.3
         options["Hand width"] = 1.0
+        options["Thorax length"] = 2.5
+        options["Abdomen length"] = 3.0
         options["Torso depth"] = 2.5
-        options["Torso length"] = 5.5
         options["Torso width"] = 3.2
         options["Pelvis drop"] = 1.5
         options["Pelvis width"] = 2.0
@@ -90,8 +91,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Hand length",
             "Hand thickness",
             "Hand width",
+            "Thorax length",
+            "Abdomen length",
             "Torso depth",
-            "Torso length",
             "Torso width",
             "Pelvis drop",
             "Pelvis width",
@@ -123,6 +125,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Hand width",
             "Pelvis drop",
             "Pelvis width",
+            "Thorax length",
+            "Abdomen length",
             "Torso depth",
             "Torso width",
             "Leg length",
@@ -177,7 +181,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         halfHandThickness = 0.5 * options["Hand thickness"]
         halfHandWidth = 0.5 * options["Hand width"]
         halfTorsoDepth = 0.5 * options["Torso depth"]
-        torsoLength = options["Torso length"]
+        thoraxLength = options["Thorax length"]
+        abdomenLength = options["Abdomen length"]
         halfTorsoWidth = 0.5 * options["Torso width"]
         pelvisDrop = options["Pelvis drop"]
         halfPelvisWidth = 0.5 * options["Pelvis width"]
@@ -200,16 +205,21 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         headGroup = AnnotationGroup(region, get_body_term("head"))
         neckGroup = AnnotationGroup(region, get_body_term("neck"))
         armGroup = AnnotationGroup(region, get_body_term("arm"))
+        armToHandGroup = AnnotationGroup(region, ("arm to hand", ""))
         leftArmGroup = AnnotationGroup(region, get_body_term("left arm"))
         rightArmGroup = AnnotationGroup(region, get_body_term("right arm"))
         handGroup = AnnotationGroup(region, get_body_term("hand"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
         legGroup = AnnotationGroup(region, get_body_term("leg"))
+        legToFootGroup = AnnotationGroup(region, ("leg to foot", ""))
         leftLegGroup = AnnotationGroup(region, get_body_term("left leg"))
         rightLegGroup = AnnotationGroup(region, get_body_term("right leg"))
-        annotationGroups = [bodyGroup, headGroup, neckGroup, armGroup, leftArmGroup, rightArmGroup, handGroup,
-                            thoraxGroup, abdomenGroup, legGroup, leftLegGroup, rightLegGroup]
+        footGroup = AnnotationGroup(region, get_body_term("foot"))
+        annotationGroups = [bodyGroup, headGroup, neckGroup,
+                            armGroup, armToHandGroup, leftArmGroup, rightArmGroup, handGroup,
+                            thoraxGroup, abdomenGroup,
+                            legGroup, legToFootGroup, leftLegGroup, rightLegGroup, footGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
         headElementsCount = 3
@@ -230,6 +240,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         right = 1
         armElementsCount = 7
         armMeshGroup = armGroup.getMeshGroup(mesh)
+        armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
         handMeshGroup = handGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
@@ -238,12 +249,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
-                if e == (armElementsCount - 1):
+                if e < (armElementsCount - 1):
+                    armToHandMeshGroup.addElement(element)
+                else:
                     handMeshGroup.addElement(element)
                 elementIdentifier += 1
         thoraxElementsCount = 3
         abdomenElementsCount = 4
-        torsoElementsCount = thoraxElementsCount + abdomenElementsCount
         meshGroups = [bodyMeshGroup, thoraxGroup.getMeshGroup(mesh)]
         for e in range(thoraxElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
@@ -258,6 +270,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elementIdentifier += 1
         legElementsCount = 7
         legMeshGroup = legGroup.getMeshGroup(mesh)
+        legToFootMeshGroup = legToFootGroup.getMeshGroup(mesh)
+        footMeshGroup =  footGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideLegGroup = leftLegGroup if (side == left) else rightLegGroup
             meshGroups = [bodyMeshGroup, legMeshGroup, sideLegGroup.getMeshGroup(mesh)]
@@ -265,6 +279,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
+                if e < (legElementsCount - 2):
+                    legToFootMeshGroup.addElement(element)
+                else:
+                    footMeshGroup.addElement(element)
                 elementIdentifier += 1
 
         # set coordinates (outer)
@@ -277,7 +295,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         d1 = [headScale, 0.0, 0.0]
         d2 = [0.0, 0.5 * headWidth, 0.0]
         d3 = [0.0, 0.0, 0.5 * headDepth]
-        for i in range(headElementsCount + 1):
+        for i in range(headElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, [headScale * i, 0.0, 0.0])
@@ -285,30 +303,47 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
             nodeIdentifier += 1
+
         neckScale = neckLength / neckElementsCount
-        d1 = [neckScale, 0.0, 0.0]
         d2 = [0.0, 0.5 * headWidth, 0.0]
         d3 = [0.0, 0.0, 0.5 * headWidth]
-        for i in range(1, neckElementsCount):
+        for i in range(neckElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             x = [headLength + neckScale * i, 0.0, 0.0]
+            d1 = [0.5 * (headScale + neckScale) if (i == 0) else neckScale, 0.0, 0.0]
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
             nodeIdentifier += 1
         armJunctionNodeIdentifier = nodeIdentifier
-        torsoScale = torsoLength / torsoElementsCount
-        d1 = [torsoScale, 0.0, 0.0]
+
+        thoraxScale = thoraxLength / thoraxElementsCount
         d2 = [0.0, halfTorsoWidth, 0.0]
         d3 = [0.0, 0.0, halfTorsoDepth]
-        torsoStartX = headLength + neckLength
-        sx = [torsoStartX, 0.0, 0.0]
-        for i in range(torsoElementsCount + 1):
+        thoraxStartX = headLength + neckLength
+        sx = [thoraxStartX, 0.0, 0.0]
+        for i in range(thoraxElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            x = [torsoStartX + torsoScale * i, 0.0, 0.0]
+            x = [thoraxStartX + thoraxScale * i, 0.0, 0.0]
+            d1 = [0.5 * (neckScale + thoraxScale) if (i == 0) else thoraxScale, 0.0, 0.0]
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            nodeIdentifier += 1
+
+        abdomenScale = abdomenLength / abdomenElementsCount
+        d2 = [0.0, halfTorsoWidth, 0.0]
+        d3 = [0.0, 0.0, halfTorsoDepth]
+        abdomenStartX = thoraxStartX + thoraxLength
+        for i in range(abdomenElementsCount + 1):
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            x = [abdomenStartX + abdomenScale * i, 0.0, 0.0]
+            d1 = [0.5 * (thoraxScale + abdomenScale) if (i == 0) else abdomenScale, 0.0, 0.0]
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
@@ -318,7 +353,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         px = x
 
         # arms
-        armStartX = torsoStartX + armAngleDrop
+        armStartX = thoraxStartX + armAngleDrop
         nonHandArmLength = armLength - handLength
         armScale = nonHandArmLength / (armElementsCount - 3)
         sd3 = [0.0, 0.0, armTopRadius]
@@ -375,7 +410,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
 
         # legs
         cos45 = math.cos(0.25 * math.pi)
-        legStartX = torsoStartX + torsoLength + pelvisDrop
+        legStartX = abdomenStartX + abdomenLength + pelvisDrop
         legScale = legLength / (legElementsCount - 2)
         pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]  # GRC
         for side in (left, right):
@@ -481,28 +516,49 @@ class MeshType_3d_wholebody2(Scaffold_base):
         useParameterSetName = "Human 1 Coarse" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
         options["Body network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
+        options["Number of elements along head"] = 2
+        options["Number of elements along neck"] = 1
+        options["Number of elements along thorax"] = 2
+        options["Number of elements along abdomen"] = 2
+        options["Number of elements along arm to hand"] = 4
+        options["Number of elements along hand"] = 1
+        options["Number of elements along leg to foot"] = 4
+        options["Number of elements along foot"] = 2
         options["Number of elements around head"] = 12
         options["Number of elements around torso"] = 12
         options["Number of elements around arm"] = 8
         options["Number of elements around leg"] = 8
         options["Number of elements through shell"] = 1
-        options["Target element density along longest segment"] = 5.0
         options["Show trim surfaces"] = False
         options["Use Core"] = True
         options["Number of elements across core box minor"] = 2
         options["Number of elements across core transition"] = 1
         if "Medium" in useParameterSetName:
+            options["Number of elements along head"] = 3
+            options["Number of elements along neck"] = 2
+            options["Number of elements along thorax"] = 3
+            options["Number of elements along abdomen"] = 3
+            options["Number of elements along arm to hand"] = 6
+            options["Number of elements along hand"] = 1
+            options["Number of elements along leg to foot"] = 6
+            options["Number of elements along foot"] = 2
             options["Number of elements around head"] = 16
             options["Number of elements around torso"] = 16
             options["Number of elements around leg"] = 12
-            options["Target element density along longest segment"] = 8.0
         elif "Fine" in useParameterSetName:
+            options["Number of elements along head"] = 4
+            options["Number of elements along neck"] = 2
+            options["Number of elements along thorax"] = 4
+            options["Number of elements along abdomen"] = 4
+            options["Number of elements along arm to hand"] = 8
+            options["Number of elements along hand"] = 2
+            options["Number of elements along leg to foot"] = 8
+            options["Number of elements along foot"] = 3
             options["Number of elements around head"] = 24
             options["Number of elements around torso"] = 24
             options["Number of elements around arm"] = 12
             options["Number of elements around leg"] = 16
             options["Number of elements through shell"] = 1
-            options["Target element density along longest segment"] = 10.0
             options["Number of elements across core box minor"] = 4
 
         return options
@@ -511,12 +567,19 @@ class MeshType_3d_wholebody2(Scaffold_base):
     def getOrderedOptionNames(cls):
         optionNames = [
             "Body network layout",
+            "Number of elements along head",
+            "Number of elements along neck",
+            "Number of elements along thorax",
+            "Number of elements along abdomen",
+            "Number of elements along arm to hand",
+            "Number of elements along hand",
+            "Number of elements along leg to foot",
+            "Number of elements along foot",
             "Number of elements around head",
             "Number of elements around torso",
             "Number of elements around arm",
             "Number of elements around leg",
             "Number of elements through shell",
-            "Target element density along longest segment",
             "Show trim surfaces",
             "Use Core",
             "Number of elements across core box minor",
@@ -550,6 +613,18 @@ class MeshType_3d_wholebody2(Scaffold_base):
         dependentChanges = False
         if not options["Body network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Body network layout"):
             options["Body network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
+        for key in [
+            "Number of elements along head",
+            "Number of elements along neck",
+            "Number of elements along thorax",
+            "Number of elements along abdomen",
+            "Number of elements along arm to hand",
+            "Number of elements along hand",
+            "Number of elements along leg to foot",
+            "Number of elements along foot"
+            ]:
+            if options[key] < 1:
+                options[key] = 1
         minElementsCountAround = None
         for key in [
             "Number of elements around head",
@@ -566,9 +641,6 @@ class MeshType_3d_wholebody2(Scaffold_base):
 
         if options["Number of elements through shell"] < 0:
             options["Number of elements through shell"] = 1
-
-        if options["Target element density along longest segment"] < 1.0:
-            options["Target element density along longest segment"] = 1.0
 
         if options["Number of elements across core transition"] < 1:
             options["Number of elements across core transition"] = 1
@@ -596,41 +668,74 @@ class MeshType_3d_wholebody2(Scaffold_base):
         :return: list of AnnotationGroup, None
         """
         # parameterSetName = options['Base parameter set']
-        layoutRegion = region.createRegion()
         networkLayout = options["Body network layout"]
+        elementsCountAlongHead = options["Number of elements along head"]
+        elementsCountAlongNeck = options["Number of elements along neck"]
+        elementsCountAlongThorax = options["Number of elements along thorax"]
+        elementsCountAlongAbdomen = options["Number of elements along abdomen"]
+        elementsCountAlongArmToHand = options["Number of elements along arm to hand"]
+        elementsCountAlongHand = options["Number of elements along hand"]
+        elementsCountAlongLegToFoot = options["Number of elements along leg to foot"]
+        elementsCountAlongFoot = options["Number of elements along foot"]
+        elementsCountAroundHead = options["Number of elements around head"]
+        elementsCountAroundTorso = options["Number of elements around torso"]
+        elementsCountAroundArm = options["Number of elements around arm"]
+        elementsCountAroundLeg = options["Number of elements around leg"]
+        coreBoxMinorCount = options["Number of elements across core box minor"]
+        coreTransitionCount = options['Number of elements across core transition']
+
+        layoutRegion = region.createRegion()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
-        coreBoxMinorCount = options["Number of elements across core box minor"]
-        coreTransitionCount = options['Number of elements across core transition']
+        annotationAlongCounts = []
         annotationAroundCounts = []
         # implementation currently uses major count including transition
         annotationCoreMajorCounts = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
+            alongCount = 0
             aroundCount = 0
             coreMajorCount = 0
             name = layoutAnnotationGroup.getName()
-            if ("head" in name) or ("neck" in name):
-                aroundCount = options["Number of elements around head"]
-            elif ("abdomen" in name) or ("thorax" in name) or ("torso" in name):
-                aroundCount = options["Number of elements around torso"]
-            elif "arm" in name:
-                aroundCount = options["Number of elements around arm"]
-            elif "leg" in name:
-                aroundCount = options["Number of elements around leg"]
+            if "head" in name:
+                alongCount = elementsCountAlongHead
+                aroundCount = elementsCountAroundHead
+            elif "neck" in name:
+                alongCount = elementsCountAlongNeck
+                aroundCount = elementsCountAroundHead
+            elif "thorax" in name:
+                alongCount = elementsCountAlongThorax
+                aroundCount = elementsCountAroundTorso
+            elif "abdomen" in name:
+                alongCount = elementsCountAlongAbdomen
+                aroundCount = elementsCountAroundTorso
+            elif "arm to hand" in name:
+                alongCount = elementsCountAlongArmToHand
+                aroundCount = elementsCountAroundArm
+            elif "hand" in name:
+                alongCount = elementsCountAlongHand
+                aroundCount = elementsCountAroundArm
+            elif "leg to foot" in name:
+                alongCount = elementsCountAlongLegToFoot
+                aroundCount = elementsCountAroundLeg
+            elif "foot" in name:
+                alongCount = elementsCountAlongFoot
+                aroundCount = elementsCountAroundLeg
             if aroundCount:
                 coreMajorCount = aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount
+            annotationAlongCounts.append(alongCount)
             annotationAroundCounts.append(aroundCount)
             annotationCoreMajorCounts.append(coreMajorCount)
         isCore = options["Use Core"]
 
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
-            targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
+            targetElementDensityAlongLongestSegment=2.0,  # not used for body
             defaultElementsCountAround=options["Number of elements around head"],
             elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAlong=annotationAlongCounts,
             annotationElementsCountsAround=annotationAroundCounts,
             defaultElementsCountAcrossMajor=annotationCoreMajorCounts[-1],
             elementsCountTransition=coreTransitionCount,
