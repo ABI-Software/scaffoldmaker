@@ -172,7 +172,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         shoulderDrop = options["Shoulder drop"]
         halfShoulderWidth = 0.5 * options["Shoulder width"]
         armAngleRadians = math.radians(options["Arm lateral angle degrees"])
-        armAngleDrop = shoulderDrop * math.cos(armAngleRadians)
         armLength = options["Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
         halfWristThickness = 0.5 * options["Wrist thickness"]
@@ -353,7 +352,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         px = x
 
         # arms
-        armStartX = thoraxStartX + armAngleDrop
+        # rotate shoulder with arm, pivoting about shoulder drop below arm junction on network
+        # this has the realistic effect of shoulders becoming narrower with higher angles
+        # initial shoulder rotation with arm is negligible, hence:
+        shoulderRotationFactor = 1.0 - math.cos(0.5 * armAngleRadians)
+        # assume shoulder drop is half shrug distance to get limiting shoulder angle for 180 degree arm rotation
+        shoulderLimitAngleRadians = math.asin(2.0 * shoulderDrop / halfShoulderWidth)
+        shoulderAngleRadians = shoulderRotationFactor * shoulderLimitAngleRadians
+        armStartX = thoraxStartX + shoulderDrop - halfShoulderWidth * math.sin(shoulderAngleRadians)
         nonHandArmLength = armLength - handLength
         armScale = nonHandArmLength / (armElementsCount - 3)
         sd3 = [0.0, 0.0, armTopRadius]
@@ -362,7 +368,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             armAngle = armAngleRadians if (side == left) else -armAngleRadians
             cosArmAngle = math.cos(armAngle)
             sinArmAngle = math.sin(armAngle)
-            armStartY = halfShoulderWidth if (side == left) else -halfShoulderWidth
+            armStartY = (halfShoulderWidth if (side == left) else -halfShoulderWidth) * math.cos(shoulderAngleRadians)
             x = [armStartX, armStartY, 0.0]
             d1 = [armScale * cosArmAngle, armScale * sinArmAngle, 0.0]
             # set leg versions 2 (left) and 3 (right) on leg junction node, and intermediate shoulder node
