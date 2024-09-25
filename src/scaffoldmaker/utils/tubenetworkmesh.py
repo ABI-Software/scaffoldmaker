@@ -195,6 +195,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._elementsCountAcrossMajor = elementsCountAcrossMajor  # includes 2 * elementsCountTransition
         self._elementsCountAcrossMinor = \
             self._elementsCountAround // 2 - elementsCountAcrossMajor + 4 * elementsCountTransition
+        self._elementsCountCoreBoxMajor = self._elementsCountAcrossMajor - 2 * elementsCountTransition
+        self._elementsCountCoreBoxMinor = self._elementsCountAcrossMinor - 2 * elementsCountTransition
         self._elementsCountTransition = elementsCountTransition
 
         # if self._isCore and self._elementsCountTransition > 1:
@@ -221,12 +223,13 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         self._boxCoordinates = None
         self._transitionCoordinates = None
-        self._boxNodeIds = None # [nAlong][nAcrossMajor][nAcrossMinor]
+        self._boxNodeIds = None  # [along][major][minor]
         self._boxBoundaryNodeIds = None
         # boxNodeIds that form the boundary of the solid core, rearranged in circular format
         self._boxBoundaryNodeToBoxId = None
         # lookup table that translates box boundary node ids in a circular format to box node ids in
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
+        self._boxElementIds = None  # [along][major][minor]
 
     def getElementsCountAround(self):
         return self._elementsCountAround
@@ -305,6 +308,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._rimCoordinates = rx, rd1, rd2, rd3
         self._rimNodeIds = [None] * (elementsCountAlong + 1)
         self._rimElementIds = [None] * elementsCountAlong
+        self._boxElementIds = [None] * elementsCountAlong
 
         if self._isCore:
             # sample coordinates for the solid core
@@ -1049,6 +1053,137 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._rimElementIds[e2] = [[None] * self._elementsCountAround for _ in range(elementsCountRim)]
         self._rimElementIds[e2][e3][e1] = elementIdentifier
 
+    def getBoxElementId(self, e1, e2, e3):
+        """
+        Get a box element ID.
+        :param e1: Element index across core box major / d2 direction.
+        :param e2: Element index along segment.
+        :param e3: Element index across core box minor / d3 direction.
+        :return: Element identifier.
+        """
+        return self._boxElementIds[e2][e3][e1]
+
+    def setBoxElementId(self, e1, e2, e3, elementIdentifier):
+        """
+        Set a box element ID. Only called by adjacent junctions.
+        :param e1: Element index across core box major / d2 direction.
+        :param e2: Element index along segment.
+        :param e3: Element index across core box minor / d3 direction.
+        :param elementIdentifier: Element identifier.
+        """
+        self._elementsCountCoreBoxMajor
+        self._elementsCountCoreBoxMinor
+        if not self._boxElementIds[e2]:
+            elementsCountRim = self.getElementsCountRim()
+            self._boxElementIds[e2] = [
+                [None] * self._elementsCountCoreBoxMinor for _ in range(self._elementsCountCoreBoxMajor)]
+        self._boxElementIds[e2][e3][e1] = elementIdentifier
+
+    def _addBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Add ranges of box elements to mesh group.
+        :param e1Start: Start element index in major / d2 direction.
+        :param e1Limit: Limit element index in major / d2 direction.
+        :param e3Start: Start element index in minor / d3 direction.
+        :param e3Limit: Limit element index in minor / d3 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add box elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            boxSlice = self._boxElementIds[e2]
+            if boxSlice:
+                # print(boxSlice[e1Start:e1Limit])
+                for elementIdentifiersList in boxSlice[e1Start:e1Limit]:
+                    for elementIdentifier in elementIdentifiersList[e3Start:e3Limit]:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
+
+    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Add ranges of rim elements to mesh group.
+        :param e1Start: Start element index around. Can be negative which supports wrapping.
+        :param e1Limit: Limit element index around.
+        :param e3Start: Start element index rim.
+        :param e3Limit: Limi element index rim.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        elementsCountAround = self.getElementsCountAround()
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            rimSlice = self._rimElementIds[e2]
+            if rimSlice:
+                for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
+                    partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
+                            elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
+                    # print(partElementIdentifiersList)
+                    if None in elementIdentifiersList:
+                        break
+                    for elementIdentifier in partElementIdentifiersList:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
+
+    def addCoreElementsToMeshGroup(self, meshGroup):
+        if not self._isCore:
+            return
+        self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor,
+                                        0, self._elementsCountCoreBoxMinor, meshGroup)
+        self._addRimElementsToMeshGroup(0, self._elementsCountAround,
+                                        0, self._elementsCountTransition, meshGroup)
+
+    def addShellElementsToMeshGroup(self, meshGroup):
+        """
+        Add elements in the shell to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountRim = self.getElementsCountRim()
+        elementsCountShell = self._elementsCountThroughWall
+        e3ShellStart = elementsCountRim - elementsCountShell
+        self._addRimElementsToMeshGroup(0, self._elementsCountAround, e3ShellStart, elementsCountRim, meshGroup)
+
+    def addAllElementsToMeshGroup(self, meshGroup):
+        """
+        Add all elements in the segment to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        self.addCoreElementsToMeshGroup(meshGroup)
+        self.addShellElementsToMeshGroup(meshGroup)
+
+    def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d2 or -d2, often matching left and right.
+        Only works with even numbers around and phase starting at +d2.
+        :param side: False for +d2 direction, True for -d2 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        if self._isCore:
+            e1Start = (self._elementsCountCoreBoxMajor // 2) if side else 0
+            e1Limit = self._elementsCountCoreBoxMajor if side else ((self._elementsCountCoreBoxMajor + 1) // 2)
+            self._addBoxElementsToMeshGroup(e1Start, e1Limit, 0, self._elementsCountCoreBoxMinor, meshGroup)
+        e1Start = (self._elementsCountAround // 4) if side else -((self._elementsCountAround + 2) // 4)
+        e1Limit = e1Start + (self._elementsCountAround // 2)
+        if (self._elementsCountAround % 4) == 2:
+            eLimit += 1
+        self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
+    def addSideD3ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d3 or -d3, often matching anterior/ventral and posterior/dorsal.
+        Only works with even numbers around and phase starting at +d2.
+        :param side: False for +d3 direction, True for -d3 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        if self._isCore:
+            e3Start = 0 if side else (self._elementsCountCoreBoxMinor // 2)
+            e3Limit = ((self._elementsCountCoreBoxMinor + 1) // 2) if side else self._elementsCountCoreBoxMinor
+            self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor, e3Start, e3Limit, meshGroup)
+        e1Start = (self._elementsCountAround // 2) if side else 0
+        e1Limit = e1Start + (self._elementsCountAround // 2)
+        self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
     def getRimNodeIdsSlice(self, n2):
         """
         Get slice of rim node IDs.
@@ -1176,6 +1311,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         elementtemplateStd = generateData.getStandardElementtemplate()
         eftStd = generateData.getStandardEft()
         for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
+            self._boxElementIds[e2] = []
             self._rimElementIds[e2] = []
             e2p = e2 + 1
             if self._isCore:
@@ -1184,6 +1320,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 elementsCountAcrossMajor = self.getCoreNodesCountAcrossMajor() - 1
                 for e3 in range(elementsCountAcrossMajor):
                     e3p = e3 + 1
+                    elementIds = []
                     for e1 in range(elementsCountAcrossMinor):
                         nids = []
                         for n1 in [e1, e1 + 1]:
@@ -1194,6 +1331,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         element.setNodesByIdentifier(eftStd, nids)
                         for annotationMeshGroup in annotationMeshGroups:
                             annotationMeshGroup.addElement(element)
+                        elementIds.append(elementIdentifier)
+                    self._boxElementIds[e2].append(elementIds)
 
                 # create core transition elements
                 triplePointIndexesList = self.getTriplePointIndexes()
@@ -1516,7 +1655,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         md3 = [] if d3Defined else None
         xi = 0.5
         sideFactor = 1.0
-        outFactor = 0.5  # only used if sideFactor is non-zero
+        outFactor = 1.0  # only used as relative proportion with non-zero sideFactor
         for s1 in range(segmentsCount - 1):
             # fxs1 = segmentsParameterLists[s1][0][0]
             # fd2s1 = segmentsParameterLists[s1][2][0]
@@ -2292,6 +2431,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
         nodeLayoutBifurcation = generateData.getNodeLayoutBifurcation()
 
+        e2 = n2 if self._segmentsIn[s] else 0
         for e3 in range(boxElementsCountAcrossMajor[s]):
             for e1 in range(boxElementsCountAcrossMinor):
                 e3p = (e3 + 1)
@@ -2336,6 +2476,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
                     element.setScaleFactors(eft, scalefactors)
+                segment.setBoxElementId(e1, e2, e3, elementIdentifier)
                 for annotationMeshGroup in annotationMeshGroups:
                     annotationMeshGroup.addElement(element)
 
@@ -2592,6 +2733,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             eftList = [None] * elementsCountAround
             scalefactorsList = [None] * elementsCountAround
             for e3 in range(elementsCountRimRegular):
+                rim_e3 = e3 + 1 if self._isCore else e3
                 for e1 in range(elementsCountAround):
                     n1p = (e1 + 1) % elementsCountAround
                     nids = []
@@ -2633,10 +2775,10 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     elementtemplate.defineField(coordinates, -1, eft)
                     elementIdentifier = generateData.nextElementIdentifier()
                     element = mesh.createElement(elementIdentifier, elementtemplate)
-                    segment.setRimElementId(e1, e2, e3, elementIdentifier)
                     element.setNodesByIdentifier(eft, nids)
                     if scalefactors:
                         element.setScaleFactors(eft, scalefactors)
+                    segment.setRimElementId(e1, e2, rim_e3, elementIdentifier)
                     for annotationMeshGroup in annotationMeshGroups:
                         annotationMeshGroup.addElement(element)
 

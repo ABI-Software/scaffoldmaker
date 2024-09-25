@@ -163,7 +163,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         return [], networkMesh
 
     @classmethod
-    def defineInnerCoordinates(cls, region, coordinates, options, networkMesh):
+    def defineInnerCoordinates(cls, region, coordinates, options, networkMesh, innerProportion=0.8):
         """
         Copy coordinates to inner coordinates via in-memory model file.
         Assign using the interactive function.
@@ -171,6 +171,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         :param coordinates: Standard/outer coordinate field.
         :param options: Options used to generate scaffold.
         :param networkMesh: Network mesh object used to generate scaffold.
+        :param innerProportion: Proportion of outer coordinates to assign to inner, typically 0.0 < p < 1.0.
         """
         assert options["Define inner coordinates"]
         coordinates.setName("inner coordinates")  # temporarily rename
@@ -186,8 +187,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
             "To field": {"coordinates": False, "inner coordinates": True},
             "From field": {"coordinates": True, "inner coordinates": False},
             "Mode": {"Scale": True, "Offset": False},
-            "D2 value": 0.8,
-            "D3 value": 0.8}
+            "D2 value": innerProportion,
+            "D3 value": innerProportion}
         cls.assignCoordinates(region, options, networkMesh, functionOptions, editGroupName=None)
 
     @classmethod

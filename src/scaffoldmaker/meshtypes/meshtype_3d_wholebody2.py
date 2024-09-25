@@ -3,14 +3,13 @@ Generates a 3D body coordinates using tube network mesh.
 """
 from cmlibs.maths.vectorops import add, cross, mult, set_magnitude
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
-from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import (
+    AnnotationGroup, findOrCreateAnnotationGroupForTerm, getAnnotationGroupForTerm)
+from scaffoldmaker.annotation.body_terms import get_body_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
-from scaffoldmaker.annotation.body_terms import get_body_term
 from scaffoldmaker.utils.interpolation import (
     computeCubicHermiteEndDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurvesSmooth,
     smoothCubicHermiteDerivativesLine)
@@ -45,9 +44,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "13.2-28-29-30-31-32,32-33-34,"
             "13.3-35-36-37-38-39,39-40-41")
         options["Define inner coordinates"] = True
-        options["Head depth"] = 2.1
+        options["Head depth"] = 2.0
         options["Head length"] = 2.2
-        options["Head width"] = 1.9
+        options["Head width"] = 2.0
         options["Neck length"] = 1.3
         options["Shoulder drop"] = 0.7
         options["Shoulder width"] = 4.5
@@ -72,6 +71,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Foot length"] = 2.5
         options["Foot thickness"] = 0.3
         options["Foot width"] = 1.0
+        options["Inner proportion default"] = 0.7
+        options["Inner proportion head"] = 0.35
         return options
 
     @classmethod
@@ -103,7 +104,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg bottom diameter",
             "Foot length",
             "Foot thickness",
-            "Foot width"
+            "Foot width",
+            "Inner proportion default",
+            "Inner proportion head"
         ]
 
     @classmethod
@@ -139,6 +142,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             if options[key] < 0.1:
                 options[key] = 0.1
         for key in [
+            "Inner proportion default",
+            "Inner proportion head"
+        ]:
+            if options[key] < 0.1:
+                options[key] = 0.1
+            elif options[key] > 0.9:
+                options[key] = 0.9
+        for key in [
             "Arm lateral angle degrees"
         ]:
             if options[key] < -60.0:
@@ -165,9 +176,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         """
         # parameterSetName = options['Base parameter set']
         structure = options["Structure"]
-        headDepth = options["Head depth"]
+        halfHeadDepth = 0.5 * options["Head depth"]
         headLength = options["Head length"]
-        headWidth = options["Head width"]
+        halfHeadWidth = 0.5 * options["Head width"]
         neckLength = options["Neck length"]
         shoulderDrop = options["Shoulder drop"]
         halfShoulderWidth = 0.5 * options["Shoulder width"]
@@ -192,6 +203,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         footLength = options["Foot length"]
         halfFootThickness = 0.5 * options["Foot thickness"]
         halfFootWidth = 0.5 * options["Foot width"]
+        innerProportionDefault = options["Inner proportion default"]
+        innerProportionHead = options["Inner proportion head"]
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -286,70 +299,81 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
 
         # set coordinates (outer)
         fieldcache = fieldmodule.createFieldcache()
-        coordinates = find_or_create_field_coordinates(fieldmodule).castFiniteElement()
+        coordinates = find_or_create_field_coordinates(fieldmodule)
+        # need to ensure inner coordinates are at least defined:
+        cls.defineInnerCoordinates(region, coordinates, options, networkMesh, innerProportion=0.75)
+        innerCoordinates = find_or_create_field_coordinates(fieldmodule, "inner coordinates")
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         headScale = headLength / headElementsCount
         nodeIdentifier = 1
         d1 = [headScale, 0.0, 0.0]
-        d2 = [0.0, 0.5 * headWidth, 0.0]
-        d3 = [0.0, 0.0, 0.5 * headDepth]
+        d2 = [0.0, halfHeadWidth, 0.0]
+        d3 = [0.0, 0.0, halfHeadDepth]
+        id2 = mult(d2, innerProportionHead)
+        id3 = mult(d3, innerProportionHead)
         for i in range(headElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, [headScale * i, 0.0, 0.0])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            x = [headScale * i, 0.0, 0.0]
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
             nodeIdentifier += 1
 
         neckScale = neckLength / neckElementsCount
-        d2 = [0.0, 0.5 * headWidth, 0.0]
-        d3 = [0.0, 0.0, 0.5 * headWidth]
+        d2 = [0.0, halfHeadWidth, 0.0]
+        d3 = [0.0, 0.0, halfHeadWidth]
+        id2 = mult(d2, innerProportionHead)
+        id3 = mult(d3, innerProportionHead)
         for i in range(neckElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             x = [headLength + neckScale * i, 0.0, 0.0]
             d1 = [0.5 * (headScale + neckScale) if (i == 0) else neckScale, 0.0, 0.0]
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
             nodeIdentifier += 1
         armJunctionNodeIdentifier = nodeIdentifier
 
         thoraxScale = thoraxLength / thoraxElementsCount
         d2 = [0.0, halfTorsoWidth, 0.0]
-        d3 = [0.0, 0.0, halfTorsoDepth]
         thoraxStartX = headLength + neckLength
         sx = [thoraxStartX, 0.0, 0.0]
         for i in range(thoraxElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             x = [thoraxStartX + thoraxScale * i, 0.0, 0.0]
-            d1 = [0.5 * (neckScale + thoraxScale) if (i == 0) else thoraxScale, 0.0, 0.0]
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            if i == 0:
+                d1 = [0.5 * (neckScale + thoraxScale), 0.0, 0.0]
+                d3 = [0.0, 0.0, 0.5 * (halfHeadWidth + halfTorsoDepth)]
+                id2 = mult(d2, 0.5 * (innerProportionHead + innerProportionDefault))
+                id3 = mult(d3, 0.5 * (innerProportionHead + innerProportionDefault))
+            else:
+                d1 = [thoraxScale, 0.0, 0.0]
+                d3 = [0.0, 0.0, halfTorsoDepth]
+                id2 = mult(d2, innerProportionDefault)
+                id3 = mult(d3, innerProportionDefault)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
             nodeIdentifier += 1
 
         abdomenScale = abdomenLength / abdomenElementsCount
         d2 = [0.0, halfTorsoWidth, 0.0]
         d3 = [0.0, 0.0, halfTorsoDepth]
+        id2 = mult(d2, innerProportionDefault)
+        id3 = mult(d3, innerProportionDefault)
         abdomenStartX = thoraxStartX + thoraxLength
+        px = None
         for i in range(abdomenElementsCount + 1):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             x = [abdomenStartX + abdomenScale * i, 0.0, 0.0]
             d1 = [0.5 * (thoraxScale + abdomenScale) if (i == 0) else abdomenScale, 0.0, 0.0]
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
             nodeIdentifier += 1
         legJunctionNodeIdentifier = nodeIdentifier - 1
-        px = x
+        px = [abdomenStartX + abdomenLength, 0.0, 0.0]
 
         # arms
         # rotate shoulder with arm, pivoting about shoulder drop below arm junction on network
@@ -363,7 +387,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         nonHandArmLength = armLength - handLength
         armScale = nonHandArmLength / (armElementsCount - 3)
         sd3 = [0.0, 0.0, armTopRadius]
+        sid3 = mult(sd3, innerProportionDefault)
         hd3 = [0.0, 0.0, halfHandWidth]
+        hid3 = mult(hd3, innerProportionDefault)
         for side in (left, right):
             armAngle = armAngleRadians if (side == left) else -armAngleRadians
             cosArmAngle = math.cos(armAngle)
@@ -380,12 +406,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 version = 1 if (n > 0) else 2 if (side == left) else 3
                 sd1 = nd1[n]
                 sd2 = set_magnitude(cross(sd3, sd1), armTopRadius)
+                sid2 = mult(sd2, innerProportionDefault)
                 if n > 0:
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, version, nx[n])
+                    for field in (coordinates, innerCoordinates):
+                        field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n])
                     nodeIdentifier += 1
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, sd1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, sd2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, sd3)
+                setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, sd3)
+                setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sid3)
             # main part of arm to wrist
             for i in range(armElementsCount - 2):
                 xi = i / (armElementsCount - 3)
@@ -396,29 +423,28 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
                 d2 = [-halfThickness * sinArmAngle, halfThickness * cosArmAngle, 0.0]
                 d3 = [0.0, 0.0, halfWidth]
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                id2 = mult(d2, innerProportionDefault)
+                id3 = mult(d3, innerProportionDefault)
+                setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+                setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
                 nodeIdentifier += 1
             # hand
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            h = (armElementsCount - 3) + handLength / armScale
             hx = [armStartX + armLength * cosArmAngle, armStartY + armLength * sinArmAngle, 0.0]
             hd1 = computeCubicHermiteEndDerivative(x, d1, hx, d1)
             hd2 = set_magnitude(d2, halfHandThickness)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, hx)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, hd1)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, hd2)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, hd3)
+            hid2 = mult(hd2, innerProportionDefault)
+            setNodeFieldParameters(coordinates, fieldcache, hx, hd1, hd2, hd3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, hx, hd1, hid2, hid3)
             nodeIdentifier += 1
 
         # legs
         cos45 = math.cos(0.25 * math.pi)
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
         legScale = legLength / (legElementsCount - 2)
-        pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]  # GRC
+        pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]
+        pid3 = mult(pd3, innerProportionDefault)
         for side in (left, right):
             legAngle = legAngleRadians if (side == left) else -legAngleRadians
             cosLegAngle = math.cos(legAngle)
@@ -434,10 +460,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             fieldcache.setNode(node)
             pd1 = interpolateLagrangeHermiteDerivative(px, x, d1, 0.0)
             pd2 = set_magnitude(cross(pd3, pd1), 0.5 * legTopRadius + 0.5 * halfTorsoWidth)  # GRC
+            pid2 = mult(pd2, innerProportionDefault)
             version = 2 if (side == left) else 3
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, pd1)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, pd2)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, pd3)
+            setNodeFieldVersionDerivatives(coordinates, fieldcache, version, pd1, pd2, pd3)
+            setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, pd1, pid2, pid3)
             # main part of leg to ankle
             for i in range(legElementsCount - 2):
                 xi = i / (legElementsCount - 2)
@@ -447,10 +473,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = mult(legSide, radius)
                 d3 = [0.0, 0.0, radius]
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                id2 = mult(d2, innerProportionDefault)
+                id3 = mult(d3, innerProportionDefault)
+                setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+                setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
                 nodeIdentifier += 1
             # foot
             heelOffset = legBottomRadius * (1.0 - cos45)
@@ -470,10 +496,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             for i in range(2):
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, fx[i])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, fd1[i])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, fd2[i])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, fd3[i])
+                setNodeFieldParameters(coordinates, fieldcache, fx[i], fd1[i], fd2[i], fd3[i])
+                fid2 = mult(fd2[i], innerProportionDefault)
+                fid3 = mult(fd3[i], innerProportionDefault)
+                setNodeFieldParameters(innerCoordinates, fieldcache, fx[i], fd1[i], fid2, fid3)
                 nodeIdentifier += 1
 
         smoothOptions = {
@@ -481,8 +507,11 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Smooth D12": True,
             "Smooth D13": True}
         cls.smoothSideCrossDerivatives(region, options, networkMesh, smoothOptions, None)
-
-        cls.defineInnerCoordinates(region, coordinates, options, networkMesh)
+        smoothOptions = {
+            "Field": {"coordinates": False, "inner coordinates": True},
+            "Smooth D12": True,
+            "Smooth D13": True}
+        cls.smoothSideCrossDerivatives(region, options, networkMesh, smoothOptions, None)
 
         return annotationGroups, networkMesh
 
@@ -497,6 +526,101 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 interactiveFunctions.remove(interactiveFunction)
                 break
         return interactiveFunctions
+
+
+class WholeBodyTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
+
+    def __init__(self, region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
+            coordinateFieldName="coordinates", startNodeIdentifier=1, startElementIdentifier=1):
+        """
+        :param isLinearThroughWall: Callers should only set if 3-D with no core.
+        :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
+        """
+        super(WholeBodyTubeNetworkMeshGenerateData, self).__init__(
+            region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
+            coordinateFieldName, startNodeIdentifier, startElementIdentifier)
+        # annotation groups are created on demand:
+        self._coreGroup = None
+        self._shellGroup = None
+        self._leftGroup = None
+        self._rightGroup = None
+        self._dorsalGroup = None
+        self._ventralGroup = None
+
+    def getCoreMeshGroup(self):
+        if not self._coreGroup:
+            self._coreGroup = self.getOrCreateAnnotationGroup(("core", ""))
+        return self._coreGroup.getMeshGroup(self._mesh)
+
+    def getShellMeshGroup(self):
+        if not self._shellGroup:
+            self._shellGroup = self.getOrCreateAnnotationGroup(("shell", ""))
+        return self._shellGroup.getMeshGroup(self._mesh)
+
+    def getLeftMeshGroup(self):
+        if not self._leftGroup:
+            self._leftGroup = self.getOrCreateAnnotationGroup(("left", ""))
+        return self._leftGroup.getMeshGroup(self._mesh)
+
+    def getRightMeshGroup(self):
+        if not self._rightGroup:
+            self._rightGroup = self.getOrCreateAnnotationGroup(("right", ""))
+        return self._rightGroup.getMeshGroup(self._mesh)
+
+    def getDorsalMeshGroup(self):
+        if not self._dorsalGroup:
+            self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal", ""))
+        return self._dorsalGroup.getMeshGroup(self._mesh)
+
+    def getVentralMeshGroup(self):
+        if not self._ventralGroup:
+            self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral", ""))
+        return self._ventralGroup.getMeshGroup(self._mesh)
+
+
+class WholeBodyNetworkMeshBuilder(TubeNetworkMeshBuilder):
+
+    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
+                 defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
+                 annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
+                 defaultElementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1,
+                 annotationElementsCountsAcrossMajor: list = [], isCore=False):
+        super(WholeBodyNetworkMeshBuilder, self).__init__(
+            networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
+            elementsCountThroughWall, layoutAnnotationGroups,
+            annotationElementsCountsAlong, annotationElementsCountsAround, defaultElementsCountAcrossMajor,
+            elementsCountTransition, annotationElementsCountsAcrossMajor, isCore)
+
+    def generateMesh(self, generateData):
+        super(WholeBodyNetworkMeshBuilder, self).generateMesh(generateData)
+        # build core, shell, left, right annotation groups
+        coreMeshGroup = generateData.getCoreMeshGroup() if self._isCore else None
+        shellMeshGroup = generateData.getShellMeshGroup() if self._isCore else None
+        leftMeshGroup = generateData.getLeftMeshGroup()
+        rightMeshGroup = generateData.getRightMeshGroup()
+        dorsalMeshGroup = generateData.getDorsalMeshGroup()
+        ventralMeshGroup = generateData.getVentralMeshGroup()
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            # print("Segment", networkSegment.getNodeIdentifiers())
+            segment = self._segments[networkSegment]
+            if self._isCore:
+                segment.addCoreElementsToMeshGroup(coreMeshGroup)
+                segment.addShellElementsToMeshGroup(shellMeshGroup)
+            annotationTerms = segment.getAnnotationTerms()
+            for annotationTerm in annotationTerms:
+                if "left" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(leftMeshGroup)
+                    break
+                if "right" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(rightMeshGroup)
+                    break
+            else:
+                # segment on main axis
+                segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
+                segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+
 
 class MeshType_3d_wholebody2(Scaffold_base):
     """
@@ -735,7 +859,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             annotationCoreMajorCounts.append(coreMajorCount)
         isCore = options["Use Core"]
 
-        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
+        tubeNetworkMeshBuilder = WholeBodyNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=2.0,  # not used for body
             defaultElementsCountAround=options["Number of elements around head"],
@@ -748,13 +872,30 @@ class MeshType_3d_wholebody2(Scaffold_base):
             annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
             isCore=isCore)
 
+        meshDimension = 3
         tubeNetworkMeshBuilder.build()
-        generateData = TubeNetworkMeshGenerateData(
-            region, 3,
+        generateData = WholeBodyTubeNetworkMeshGenerateData(
+            region, meshDimension,
             isLinearThroughWall=False,
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
+
+        fieldmodule = region.getFieldmodule()
+        mesh = fieldmodule.findMeshByDimension(meshDimension)
+        thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
+        abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
+        coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
+
+        thoracicCavityGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("thoracic cavity"))
+        is_thoracic_cavity = fieldmodule.createFieldAnd(thoraxGroup.getGroup(), coreGroup.getGroup())
+        thoracicCavityGroup.getMeshGroup(mesh).addElementsConditional(is_thoracic_cavity)
+
+        abdominalCavityGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("abdominal cavity"))
+        is_abdominal_cavity = fieldmodule.createFieldAnd(abdomenGroup.getGroup(), coreGroup.getGroup())
+        abdominalCavityGroup.getMeshGroup(mesh).addElementsConditional(is_abdominal_cavity)
 
         return annotationGroups, None
 
@@ -770,14 +911,86 @@ class MeshType_3d_wholebody2(Scaffold_base):
         """
 
         # create 2d surface mesh groups
-        fm = region.getFieldmodule()
-        mesh2d = fm.findMeshByDimension(2)
+        fieldmodule = region.getFieldmodule()
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        mesh1d = fieldmodule.findMeshByDimension(1)
+
+        neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck"))
+        thoracicCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thoracic cavity"))
+        abdominalCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdominal cavity"))
+        armGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("arm"))
+        legGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("leg"))
+
+        coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
+        shellGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("shell"))
+        leftGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left"))
+        rightGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right"))
+        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("dorsal"))
+
+        is_exterior = fieldmodule.createFieldIsExterior()
+        is_core_shell = fieldmodule.createFieldAnd(coreGroup.getGroup(), shellGroup.getGroup())
+        is_left_right = fieldmodule.createFieldAnd(leftGroup.getGroup(), rightGroup.getGroup())
+        is_left_right_dorsal = fieldmodule.createFieldAnd(is_left_right, dorsalGroup.getGroup())
 
         skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
+        is_skin = is_exterior
+        skinGroup.getMeshGroup(mesh2d).addElementsConditional(is_skin)
 
-        is_exterior = fm.createFieldIsExterior()
-        is_on_face_xi3_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)
-        is_skin = fm.createFieldAnd(is_exterior, is_on_face_xi3_1)
+        thoracicCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("thoracic cavity boundary"))
+        is_thoracic_cavity_boundary = fieldmodule.createFieldAnd(
+            thoracicCavityGroup.getGroup(),
+            fieldmodule.createFieldOr(
+                fieldmodule.createFieldOr(neckGroup.getGroup(), armGroup.getGroup()),
+                fieldmodule.createFieldOr(shellGroup.getGroup(), abdominalCavityGroup.getGroup())))
+        thoracicCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_thoracic_cavity_boundary)
 
-        skinMeshGroup = skinGroup.getMeshGroup(mesh2d)
-        skinMeshGroup.addElementsConditional(is_skin)
+        abdominalCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("abdominal cavity boundary"))
+        is_abdominal_cavity_boundary = fieldmodule.createFieldAnd(
+            abdominalCavityGroup.getGroup(),
+            fieldmodule.createFieldOr(
+                thoracicCavityGroup.getGroup(),
+                fieldmodule.createFieldOr(shellGroup.getGroup(), legGroup.getGroup())))
+        abdominalCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_abdominal_cavity_boundary)
+
+        diaphragmGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("diaphragm"))
+        is_diaphragm = fieldmodule.createFieldAnd(thoracicCavityGroup.getGroup(), abdominalCavityGroup.getGroup())
+        diaphragmGroup.getMeshGroup(mesh2d).addElementsConditional(is_diaphragm)
+
+        spinalCordGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("spinal cord"))
+        is_spinal_cord = fieldmodule.createFieldAnd(is_core_shell, is_left_right_dorsal)
+        spinalCordGroup.getMeshGroup(mesh1d).addElementsConditional(is_spinal_cord)
+
+
+def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3):
+    """
+    Assign node field parameters x, d1, d2, d3 of field.
+    :param field: Field parameters to assign.
+    :param fieldcache: Fieldcache with node set.
+    :param x: Parameters to set for Node.VALUE_LABEL_VALUE.
+    :param d1: Parameters to set for Node.VALUE_LABEL_D_DS1.
+    :param d2: Parameters to set for Node.VALUE_LABEL_D_DS2.
+    :param d3: Parameters to set for Node.VALUE_LABEL_D_DS3.
+    :return:
+    """
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+
+
+def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3):
+    """
+    Assign node field parameters d1, d2, d3 of field.
+    :param field: Field to assign parameters of.
+    :param fieldcache: Fieldcache with node set.
+    :param version: Version of d1, d2, d3 >= 1.
+    :param d1: Parameters to set for Node.VALUE_LABEL_D_DS1.
+    :param d2: Parameters to set for Node.VALUE_LABEL_D_DS2.
+    :param d3: Parameters to set for Node.VALUE_LABEL_D_DS3.
+    :return:
+    """
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, d1)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, d2)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, d3)
