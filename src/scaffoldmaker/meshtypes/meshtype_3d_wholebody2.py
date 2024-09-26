@@ -881,21 +881,22 @@ class MeshType_3d_wholebody2(Scaffold_base):
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
 
-        fieldmodule = region.getFieldmodule()
-        mesh = fieldmodule.findMeshByDimension(meshDimension)
-        thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
-        abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
-        coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
+        if isCore:
+            fieldmodule = region.getFieldmodule()
+            mesh = fieldmodule.findMeshByDimension(meshDimension)
+            thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
+            abdomenGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdomen"))
+            coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
 
-        thoracicCavityGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("thoracic cavity"))
-        is_thoracic_cavity = fieldmodule.createFieldAnd(thoraxGroup.getGroup(), coreGroup.getGroup())
-        thoracicCavityGroup.getMeshGroup(mesh).addElementsConditional(is_thoracic_cavity)
+            thoracicCavityGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_body_term("thoracic cavity"))
+            is_thoracic_cavity = fieldmodule.createFieldAnd(thoraxGroup.getGroup(), coreGroup.getGroup())
+            thoracicCavityGroup.getMeshGroup(mesh).addElementsConditional(is_thoracic_cavity)
 
-        abdominalCavityGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("abdominal cavity"))
-        is_abdominal_cavity = fieldmodule.createFieldAnd(abdomenGroup.getGroup(), coreGroup.getGroup())
-        abdominalCavityGroup.getMeshGroup(mesh).addElementsConditional(is_abdominal_cavity)
+            abdominalCavityGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_body_term("abdominal cavity"))
+            is_abdominal_cavity = fieldmodule.createFieldAnd(abdomenGroup.getGroup(), coreGroup.getGroup())
+            abdominalCavityGroup.getMeshGroup(mesh).addElementsConditional(is_abdominal_cavity)
 
         return annotationGroups, None
 
@@ -909,58 +910,82 @@ class MeshType_3d_wholebody2(Scaffold_base):
         :param annotationGroups: List of annotation groups for top-level elements.
         New face annotation groups are appended to this list.
         """
+        isCore = options["Use Core"]
 
-        # create 2d surface mesh groups
+        # create 2-D surface mesh groups, 1-D spinal cord
         fieldmodule = region.getFieldmodule()
         mesh2d = fieldmodule.findMeshByDimension(2)
         mesh1d = fieldmodule.findMeshByDimension(1)
 
-        neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck"))
-        thoracicCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thoracic cavity"))
-        abdominalCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdominal cavity"))
-        armGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("arm"))
-        legGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("leg"))
-
-        coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
-        shellGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("shell"))
-        leftGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left"))
-        rightGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right"))
-        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("dorsal"))
-
         is_exterior = fieldmodule.createFieldIsExterior()
-        is_core_shell = fieldmodule.createFieldAnd(coreGroup.getGroup(), shellGroup.getGroup())
-        is_left_right = fieldmodule.createFieldAnd(leftGroup.getGroup(), rightGroup.getGroup())
-        is_left_right_dorsal = fieldmodule.createFieldAnd(is_left_right, dorsalGroup.getGroup())
 
         skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
         is_skin = is_exterior
         skinGroup.getMeshGroup(mesh2d).addElementsConditional(is_skin)
 
-        thoracicCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("thoracic cavity boundary"))
-        is_thoracic_cavity_boundary = fieldmodule.createFieldAnd(
-            thoracicCavityGroup.getGroup(),
-            fieldmodule.createFieldOr(
-                fieldmodule.createFieldOr(neckGroup.getGroup(), armGroup.getGroup()),
-                fieldmodule.createFieldOr(shellGroup.getGroup(), abdominalCavityGroup.getGroup())))
-        thoracicCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_thoracic_cavity_boundary)
+        leftArmGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left arm"))
+        leftArmSkinGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("left arm skin epidermis"))
+        leftArmSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
+            fieldmodule.createFieldAnd(leftArmGroup.getGroup(), is_exterior))
+        rightArmGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right arm"))
+        rightArmSkinGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("right arm skin epidermis"))
+        rightArmSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
+            fieldmodule.createFieldAnd(rightArmGroup.getGroup(), is_exterior))
+        leftLegGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left leg"))
+        leftLegSkinGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("left leg skin epidermis"))
+        leftLegSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
+            fieldmodule.createFieldAnd(leftLegGroup.getGroup(), is_exterior))
+        rightLegGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right leg"))
+        rightLegSkinGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_body_term("right leg skin epidermis"))
+        rightLegSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
+            fieldmodule.createFieldAnd(rightLegGroup.getGroup(), is_exterior))
 
-        abdominalCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("abdominal cavity boundary"))
-        is_abdominal_cavity_boundary = fieldmodule.createFieldAnd(
-            abdominalCavityGroup.getGroup(),
-            fieldmodule.createFieldOr(
+        if isCore:
+            coreGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("core"))
+            shellGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("shell"))
+            leftGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left"))
+            rightGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right"))
+            dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("dorsal"))
+
+            is_core_shell = fieldmodule.createFieldAnd(coreGroup.getGroup(), shellGroup.getGroup())
+            is_left_right = fieldmodule.createFieldAnd(leftGroup.getGroup(), rightGroup.getGroup())
+            is_left_right_dorsal = fieldmodule.createFieldAnd(is_left_right, dorsalGroup.getGroup())
+
+            neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck"))
+            thoracicCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thoracic cavity"))
+            abdominalCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdominal cavity"))
+            armGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("arm"))
+            legGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("leg"))
+
+            thoracicCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_body_term("thoracic cavity boundary"))
+            is_thoracic_cavity_boundary = fieldmodule.createFieldAnd(
                 thoracicCavityGroup.getGroup(),
-                fieldmodule.createFieldOr(shellGroup.getGroup(), legGroup.getGroup())))
-        abdominalCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_abdominal_cavity_boundary)
+                fieldmodule.createFieldOr(
+                    fieldmodule.createFieldOr(neckGroup.getGroup(), armGroup.getGroup()),
+                    fieldmodule.createFieldOr(shellGroup.getGroup(), abdominalCavityGroup.getGroup())))
+            thoracicCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_thoracic_cavity_boundary)
 
-        diaphragmGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("diaphragm"))
-        is_diaphragm = fieldmodule.createFieldAnd(thoracicCavityGroup.getGroup(), abdominalCavityGroup.getGroup())
-        diaphragmGroup.getMeshGroup(mesh2d).addElementsConditional(is_diaphragm)
+            abdominalCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_body_term("abdominal cavity boundary"))
+            is_abdominal_cavity_boundary = fieldmodule.createFieldAnd(
+                abdominalCavityGroup.getGroup(),
+                fieldmodule.createFieldOr(
+                    thoracicCavityGroup.getGroup(),
+                    fieldmodule.createFieldOr(shellGroup.getGroup(), legGroup.getGroup())))
+            abdominalCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_abdominal_cavity_boundary)
 
-        spinalCordGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("spinal cord"))
-        is_spinal_cord = fieldmodule.createFieldAnd(is_core_shell, is_left_right_dorsal)
-        spinalCordGroup.getMeshGroup(mesh1d).addElementsConditional(is_spinal_cord)
+            diaphragmGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("diaphragm"))
+            is_diaphragm = fieldmodule.createFieldAnd(thoracicCavityGroup.getGroup(), abdominalCavityGroup.getGroup())
+            diaphragmGroup.getMeshGroup(mesh2d).addElementsConditional(is_diaphragm)
+
+            spinalCordGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("spinal cord"))
+            is_spinal_cord = fieldmodule.createFieldAnd(is_core_shell, is_left_right_dorsal)
+            spinalCordGroup.getMeshGroup(mesh1d).addElementsConditional(is_spinal_cord)
 
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3):
