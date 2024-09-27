@@ -1400,14 +1400,16 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
     Describes junction between multiple tube segments, some in, some out.
     """
 
-    def __init__(self, inSegments: list, outSegments: list):
+    def __init__(self, inSegments: list, outSegments: list, useOuterTrimSurfaces):
         """
         :param inSegments: List of inward TubeNetworkMeshSegment.
         :param outSegments: List of outward TubeNetworkMeshSegment.
+        :param useOuterTrimSurfaces: Set to True to use common trim surfaces calculated from outer.
         """
         super(TubeNetworkMeshJunction, self).__init__(inSegments, outSegments)
         pathsCount = self._segments[0].getPathsCount()
         self._trimSurfaces = [[None for p in range(pathsCount)] for s in range(self._segmentsCount)]
+        self._useOuterTrimSurfaces = useOuterTrimSurfaces
         self._calculateTrimSurfaces()
         # rim indexes are issued for interior points connected to 2 or more segment node indexes
         # based on the outer surface, and reused through the wall
@@ -1458,6 +1460,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             endIndex = -1 if self._segmentsIn[s] else 0
             pathEndPlaneTrackSurfaces = []
             for p in range(pathsCount):
+                if self._useOuterTrimSurfaces and (p > 0):
+                    pathEndPlaneTrackSurfaces.append(pathEndPlaneTrackSurfaces[-1])
+                    continue
                 pathParameters = self._segments[s].getPathParameters(p)
                 centre = pathParameters[0][endIndex]
                 axis1 = pathParameters[2][endIndex]
@@ -1476,6 +1481,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         for s in range(self._segmentsCount):
             endIndex = -1 if self._segmentsIn[s] else 0
             for p in range(pathsCount):
+                if self._useOuterTrimSurfaces and (p > 0):
+                    self._trimSurfaces[s][p] = self._trimSurfaces[s][p - 1]
+                    continue
                 pathParameters = self._segments[s].getPathParameters(p)
                 d2End = pathParameters[2][endIndex]
                 d3End = pathParameters[4][endIndex]
@@ -1601,12 +1609,15 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nd1 = []
                     nd2 = []
                     nd12 = []
-                    for factor in (0.75, 1.25):
+                    trimWidthFactors = (0.25, 1.75) if self._useOuterTrimSurfaces else (0.75, 1.25)
+                    d2scale = trimWidthFactors[1] - trimWidthFactors[0]
+                    for factor in trimWidthFactors:
                         for n1 in range(trimPointsCountAround):
                             d2 = sub(rx[n1], xCentre)
                             x = add(xCentre, mult(d2, factor))
                             d1 = mult(rd1[n1], factor)
                             d12 = mult(rd12[n1], factor)
+                            d2 = mult(d2, d2scale)
                             nx.append(x)
                             nd1.append(d1)
                             nd2.append(d2)
@@ -2616,6 +2627,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nodeIdentifier, faceIdentifier = \
                             trimSurface.generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
                                                      group_name=annotationGroup.getName())
+                        if self._useOuterTrimSurfaces:
+                            break;
             if dimension == 2:
                 elementIdentifier = faceIdentifier
             generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
@@ -2789,7 +2802,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                  defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
                  annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
                  defaultElementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1,
-                 annotationElementsCountsAcrossMajor: list = [], isCore=False):
+                 annotationElementsCountsAcrossMajor: list = [], isCore=False, useOuterTrimSurfaces=False):
         """
         :param networkMesh: Description of the topology of the network layout.
         :param targetElementDensityAlongLongestSegment:
@@ -2805,7 +2818,8 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         :param defaultElementsCountAcrossMajor:
         :param elementsCountTransition:
         :param annotationElementsCountsAcrossMajor:
-        :param isCore:
+        :param isCore: Set to True to define solid core box and transition elements.
+        :param useOuterTrimSurfaces: Set to True to use common trim surfaces calculated from outer.
         """
         super(TubeNetworkMeshBuilder, self).__init__(
             networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong)
@@ -2818,6 +2832,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         if not self._layoutInnerCoordinates.isValid():
             self._layoutInnerCoordinates = None
         self._isCore = isCore
+        self._useOuterTrimSurfaces = useOuterTrimSurfaces
         self._defaultElementsCountAcrossMajor = defaultElementsCountAcrossMajor
         self._elementsCountTransition = elementsCountTransition
         self._annotationElementsCountsAcrossMajor = annotationElementsCountsAcrossMajor
@@ -2865,7 +2880,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         :param outSegments: List of outward TubeNetworkMeshSegment.
         :return: A TubeNetworkMeshJunction.
         """
-        return TubeNetworkMeshJunction(inSegments, outSegments)
+        return TubeNetworkMeshJunction(inSegments, outSegments, self._useOuterTrimSurfaces)
 
 
 def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0, phaseAngle=0.0):

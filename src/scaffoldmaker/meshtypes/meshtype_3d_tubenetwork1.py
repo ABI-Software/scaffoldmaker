@@ -42,12 +42,15 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Annotation numbers of elements along": [0],
             "Number of elements through shell": 1,
             "Use linear through shell": False,
+            "Use outer trim surfaces": True,
             "Show trim surfaces": False,
             "Core": False,
             "Number of elements across core box minor": 2,
             "Number of elements across core transition": 1,
             "Annotation numbers of elements across core box minor": [0]
         }
+        if parameterSetName in ["Loop", "Snake", "Vase"]:
+            options["Target element density along longest segment"] = 12.0
         return options
 
     @staticmethod
@@ -60,6 +63,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             "Annotation numbers of elements along",
             "Number of elements through shell",
             "Use linear through shell",
+            "Use outer trim surfaces",
             "Show trim surfaces",
             "Core",
             "Number of elements across core box minor",
@@ -237,7 +241,8 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             defaultElementsCountAcrossMajor=defaultCoreMajorCount,
             elementsCountTransition=coreTransitionCount,
             annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
-            isCore=options["Core"])
+            isCore=options["Core"],
+            useOuterTrimSurfaces=options["Use outer trim surfaces"])
 
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(

@@ -584,12 +584,12 @@ class WholeBodyNetworkMeshBuilder(TubeNetworkMeshBuilder):
                  defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
                  annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
                  defaultElementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1,
-                 annotationElementsCountsAcrossMajor: list = [], isCore=False):
+                 annotationElementsCountsAcrossMajor: list = [], isCore=False, useOuterTrimSurfaces=True):
         super(WholeBodyNetworkMeshBuilder, self).__init__(
             networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
             elementsCountThroughWall, layoutAnnotationGroups,
             annotationElementsCountsAlong, annotationElementsCountsAround, defaultElementsCountAcrossMajor,
-            elementsCountTransition, annotationElementsCountsAcrossMajor, isCore)
+            elementsCountTransition, annotationElementsCountsAcrossMajor, isCore, useOuterTrimSurfaces)
 
     def generateMesh(self, generateData):
         super(WholeBodyNetworkMeshBuilder, self).generateMesh(generateData)

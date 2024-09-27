@@ -6,9 +6,10 @@ from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from cmlibs.maths.vectorops import cross, magnitude, normalize, sub
+from cmlibs.maths.vectorops import cross, magnitude, normalize, rejection, sub
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
-from scaffoldmaker.utils.interpolation import getCubicHermiteCurvesLength
+from scaffoldmaker.utils.interpolation import (
+    gaussWt4, gaussXi4, getCubicHermiteCurvesLength, interpolateCubicHermiteDerivative)
 from scaffoldmaker.utils.tracksurface import TrackSurface
 from abc import ABC, abstractmethod
 import math
@@ -535,10 +536,10 @@ class NetworkMeshSegment(ABC):
         self._pathParametersList = pathParametersList
         self._pathsCount = len(pathParametersList)
         self._dimension = 3 if (self._pathsCount > 1) else 2
-        self._length = getCubicHermiteCurvesLength(pathParametersList[0][0], pathParametersList[0][1])
         self._annotationTerms = []
         self._junctions = []  # start, end junctions. Set when junctions are created.
         self._isLoop = False
+        self._lengthParameters = self._calculateLengthParameters()
 
     def addAnnotationTerm(self, annotationTerm):
         """
@@ -550,12 +551,12 @@ class NetworkMeshSegment(ABC):
     def getAnnotationTerms(self):
         return self._annotationTerms
 
-    def getLength(self):
+    def getSampleLength(self):
         """
-        Get length of the segment's primary path.
-        :return: Real length.
+        Get sample length of the segment's primary path.
+        :return: Length.
         """
-        return self._length
+        return self._lengthParameters[0][-1]
 
     def getNetworkSegment(self):
         """
@@ -595,6 +596,44 @@ class NetworkMeshSegment(ABC):
         :return: True if segment is a loop, otherwise False.
         """
         return self._isLoop
+
+    def _calculateLengthParameters(self):
+        """
+        Calculate scalar field values and derivatives giving effective length along segment central path
+        with allowance for mean change in lateral axes, used for sampling elements along segment.
+        Uses first (outer) path parameters only.
+        Calculated in constructor and stored.
+        :return: Length parameters (lx[], ld1[])
+        """
+        px, pd1, pd2, pd12, pd3, pd13 = self._pathParametersList[0]
+        lx = [[0.0]]
+        totalLength = 0.0
+        for e in range(len(px) - 1):
+            ax, ad1, ad2, ad12, ad3, ad13 = px[e], pd1[e], pd2[e], pd12[e], pd3[e], pd13[e]
+            bx, bd1, bd2, bd12, bd3, bd13 = px[e + 1], pd1[e + 1], pd2[e + 1], pd12[e + 1], pd3[e + 1], pd13[e + 1]
+            length = 0.0
+            for i in range(4):
+                d1 = interpolateCubicHermiteDerivative(ax, ad1, bx, bd1, gaussXi4[i])
+                gd1 = magnitude(d1)
+                gd2 = magnitude(rejection(interpolateCubicHermiteDerivative(ad2, ad12, bd2, bd12, gaussXi4[i]), d1))
+                gd3 = magnitude(rejection(interpolateCubicHermiteDerivative(ad3, ad13, bd3, bd13, gaussXi4[i]), d1))
+                gds = 0.5 * (gd2 + gd3)
+                length += gaussWt4[i] * math.sqrt(gd1 * gd1 + gds * gds)
+            totalLength += length
+            lx.append(totalLength)
+        ld = []
+        for n in range(len(px)):
+            d1 = magnitude(pd1[n])
+            d2 = 0.5 * (magnitude(pd12[n]) + magnitude(pd13[n]))
+            ld.append([math.sqrt(d1 * d1 + d2 * d2)])
+        return (lx, ld)
+
+    def getLengthParameters(self):
+        """
+        Get scalar field parameter (value, derivative) giving effective length along segment.
+        :return: Length parameters (lx[], ld[])
+        """
+        return self._lengthParameters
 
     @abstractmethod
     def sample(self, fixedElementsCountAlong, targetElementLength):
@@ -709,7 +748,7 @@ class NetworkMeshBuilder(ABC):
         for networkSegment in self._networkMesh.getNetworkSegments():
             # derived class makes the segment of its required type
             self._segments[networkSegment] = segment = self.createSegment(networkSegment)
-            segmentLength = segment.getLength()
+            segmentLength = segment.getSampleLength()
             if segmentLength > self._longestSegmentLength:
                 self._longestSegmentLength = segmentLength
             for layoutAnnotationGroup in self._layoutAnnotationGroups:

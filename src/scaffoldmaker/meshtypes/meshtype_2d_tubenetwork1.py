@@ -30,6 +30,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             "Annotation numbers of elements along": [0],
             "Show trim surfaces": False
         }
+        if parameterSetName in ["Loop", "Snake", "Vase"]:
+            options["Target element density along longest segment"] = 12.0
         return options
 
     @staticmethod

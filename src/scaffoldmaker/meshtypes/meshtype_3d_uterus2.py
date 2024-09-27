@@ -53,11 +53,11 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
                  defaultElementsCountAround: int, elementsCountThroughWall: int,
                  layoutAnnotationGroups: list = [], annotationElementsCountsAlong: list = [],
-                 annotationElementsCountsAround: list = []):
+                 annotationElementsCountsAround: list = [], useOuterTrimSurfaces=True):
         super(UterusTubeNetworkMeshBuilder, self).__init__(
             networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
             elementsCountThroughWall, layoutAnnotationGroups,
-            annotationElementsCountsAlong, annotationElementsCountsAround)
+            annotationElementsCountsAlong, annotationElementsCountsAround, useOuterTrimSurfaces=useOuterTrimSurfaces)
 
     def generateMesh(self, generateData):
         super(UterusTubeNetworkMeshBuilder, self).generateMesh(generateData)

@@ -27,9 +27,11 @@ class MeshType_1d_network_layout1(Scaffold_base):
         "Bifurcation": "1-2.1,2.2-3,2.3-4",
         "Converging bifurcation": "1-3.1,2-3.2,3.3-4",
         "Loop": "1-2-3-4-5-6-7-8-1",
+        "Snake": "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-33",
         "Sphere cube": "1.1-2.1,1.2-3.1,1.3-4.1,2.2-5.2,2.3-6.1,3.2-6.2,3.3-7.1,4.2-7.2,4.3-5.1,5.3-8.1,6.3-8.2,7.3-8.3",
         "Trifurcation": "1-2.1,2.2-3,2.3-4,2.4-5",
-        "Trifurcation cross": "1-3.1,2-3.2,3.2-4,3.1-5"
+        "Trifurcation cross": "1-3.1,2-3.2,3.2-4,3.1-5",
+        "Vase": "1-2-3-4-5"
     }
 
     @classmethod
@@ -101,6 +103,34 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
+        elif "Snake" in parameterSetName:
+            snakeRadius = 0.5
+            tubeRadius = 0.1
+            nodesCount = nodes.getSize()
+            elementsCountHalfCircle = 8
+            elementAngle = math.pi / elementsCountHalfCircle
+            d1Mag = snakeRadius * elementAngle
+            xSign = -1.0
+            xOffset = -snakeRadius
+            for n in range(nodesCount):
+                if (n % elementsCountHalfCircle) == 0:
+                    xSign = -xSign
+                    xOffset += 2.0 * snakeRadius
+                angle = elementAngle * n
+                cosAngle = math.cos(angle)
+                sinAngle = math.sin(angle)
+                node = nodes.findNodeByIdentifier(n + 1)
+                fieldcache.setNode(node)
+                x = [xOffset - xSign * snakeRadius * cosAngle, snakeRadius * sinAngle, 0.0]
+                d1 = [xSign * d1Mag * sinAngle, d1Mag * cosAngle, 0.0]
+                d2 = [-tubeRadius * cosAngle, xSign * tubeRadius * sinAngle, 0.0]
+                d12 = mult(d1, elementAngle * tubeRadius / d1Mag)
+                d3 = [0.0, 0.0, tubeRadius]
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
         elif "Sphere cube" in parameterSetName:
             # edit node parameters
             sphereRadius = 0.5
@@ -156,6 +186,31 @@ class MeshType_1d_network_layout1(Scaffold_base):
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, v + 1, cd2[n][v])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, v + 1, cd3[n])
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, v + 1, cd13[n][v])
+        elif "Vase" in parameterSetName:
+            midRadius = 1.0
+            magRadius = 0.5
+            nodesCount = nodes.getSize()
+            elementsCountWavelength = 4
+            elementAngle = 2.0 * math.pi / elementsCountWavelength
+            for n in range(nodesCount):
+                angle = elementAngle * n
+                cosAngle = math.cos(angle)
+                sinAngle = math.sin(angle)
+                node = nodes.findNodeByIdentifier(n + 1)
+                fieldcache.setNode(node)
+                x = [0.0, 0.0, n]
+                d1 = [0.0, 0.0, 1.0]
+                r = midRadius + magRadius * sinAngle
+                d2 = [0.0, r, 0.0]
+                d12 = [0.0, 2.0 * magRadius * cosAngle, 0.0]
+                d3 = [r, 0.0, 0.0]
+                d13 = [2.0 * magRadius * cosAngle, 0.0, 0.0]
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
 
         if defineInnerCoordinates:
             cls.defineInnerCoordinates(region, coordinates, options, networkMesh)
