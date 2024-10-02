@@ -26,13 +26,20 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(12, len(options))
+        self.assertEqual(19, len(options))
+        self.assertEqual(2, options["Number of elements along head"])
+        self.assertEqual(1, options["Number of elements along neck"])
+        self.assertEqual(2, options["Number of elements along thorax"])
+        self.assertEqual(2, options["Number of elements along abdomen"])
+        self.assertEqual(5, options["Number of elements along arm to hand"])
+        self.assertEqual(1, options["Number of elements along hand"])
+        self.assertEqual(4, options["Number of elements along leg to foot"])
+        self.assertEqual(2, options["Number of elements along foot"])
         self.assertEqual(12, options["Number of elements around head"])
         self.assertEqual(12, options["Number of elements around torso"])
         self.assertEqual(8, options["Number of elements around arm"])
         self.assertEqual(8, options["Number of elements around leg"])
         self.assertEqual(1, options["Number of elements through shell"])
-        self.assertEqual(5.0, options["Target element density along longest segment"])
         self.assertEqual(False, options["Show trim surfaces"])
         self.assertEqual(True, options["Use Core"])
         self.assertEqual(2, options["Number of elements across core box minor"])
@@ -42,7 +49,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(13, len(annotationGroups))  # Needs updating as we add more annotation groups
+        self.assertEqual(32, len(annotationGroups))  # Needs updating as we add more annotation groups
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -111,27 +118,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         Test creation of Whole-body scaffold without solid core.
         """
         scaffold = MeshType_3d_wholebody2
-        parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Default")
-        self.assertEqual(12, len(options))
-        self.assertEqual(12, options["Number of elements around head"])
-        self.assertEqual(12, options["Number of elements around torso"])
-        self.assertEqual(8, options["Number of elements around arm"])
-        self.assertEqual(8, options["Number of elements around leg"])
-        self.assertEqual(1, options["Number of elements through shell"])
-        self.assertEqual(5.0, options["Target element density along longest segment"])
-        self.assertEqual(False, options["Show trim surfaces"])
-        self.assertEqual(True, options["Use Core"])
-        self.assertEqual(2, options["Number of elements across core box minor"])
-        self.assertEqual(1, options["Number of elements across core transition"])
-
         options["Use Core"] = False
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(13, len(annotationGroups))
+        self.assertEqual(24, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())

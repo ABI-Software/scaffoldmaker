@@ -6,7 +6,7 @@ from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from cmlibs.maths.vectorops import cross, magnitude, normalize, rejection, sub
+from cmlibs.maths.vectorops import cross, magnitude, mult, normalize, rejection, sub
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.utils.interpolation import (
     gaussWt4, gaussXi4, getCubicHermiteCurvesLength, interpolateCubicHermiteDerivative)
@@ -365,12 +365,11 @@ class NetworkMesh:
                             break
                 if prevNetworkNode or nextNetworkNode:
                     if prevNetworkNode and nextNetworkNode:
-                        d1 = sub(nextNetworkNode.getX(), prevNetworkNode.getX())
+                        d1 = mult(sub(nextNetworkNode.getX(), prevNetworkNode.getX()), 0.5)
                     elif prevNetworkNode:
                         d1 = sub(networkNode.getX(), prevNetworkNode.getX())
                     else:
                         d1 = sub(nextNetworkNode.getX(), networkNode.getX())
-                    d1 = normalize(d1)
                     d3 = [0.0, 0.0, 0.1]
                     d2 = cross(d3, normalize(d1))
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, nodeVersion, d1)
@@ -556,7 +555,7 @@ class NetworkMeshSegment(ABC):
         Get sample length of the segment's primary path.
         :return: Length.
         """
-        return self._lengthParameters[0][-1]
+        return self._lengthParameters[0][-1][0]
 
     def getNetworkSegment(self):
         """
@@ -620,7 +619,7 @@ class NetworkMeshSegment(ABC):
                 gds = 0.5 * (gd2 + gd3)
                 length += gaussWt4[i] * math.sqrt(gd1 * gd1 + gds * gds)
             totalLength += length
-            lx.append(totalLength)
+            lx.append([totalLength])
         ld = []
         for n in range(len(px)):
             d1 = magnitude(pd1[n])

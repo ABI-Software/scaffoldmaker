@@ -113,7 +113,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
             xSign = -1.0
             xOffset = -snakeRadius
             for n in range(nodesCount):
-                if (n % elementsCountHalfCircle) == 0:
+                halfCircle = (n % elementsCountHalfCircle) == 0
+                if halfCircle:
                     xSign = -xSign
                     xOffset += 2.0 * snakeRadius
                 angle = elementAngle * n
@@ -124,7 +125,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
                 x = [xOffset - xSign * snakeRadius * cosAngle, snakeRadius * sinAngle, 0.0]
                 d1 = [xSign * d1Mag * sinAngle, d1Mag * cosAngle, 0.0]
                 d2 = [-tubeRadius * cosAngle, xSign * tubeRadius * sinAngle, 0.0]
-                d12 = mult(d1, elementAngle * tubeRadius / d1Mag)
+                d12Sign = 0.0 if halfCircle else xSign
+                d12 = mult(d1, d12Sign * elementAngle * tubeRadius / d1Mag)
                 d3 = [0.0, 0.0, tubeRadius]
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)

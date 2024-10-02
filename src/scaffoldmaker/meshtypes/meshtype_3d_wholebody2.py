@@ -650,7 +650,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options["Number of elements along neck"] = 1
         options["Number of elements along thorax"] = 2
         options["Number of elements along abdomen"] = 2
-        options["Number of elements along arm to hand"] = 4
+        options["Number of elements along arm to hand"] = 5
         options["Number of elements along hand"] = 1
         options["Number of elements along leg to foot"] = 4
         options["Number of elements along foot"] = 2

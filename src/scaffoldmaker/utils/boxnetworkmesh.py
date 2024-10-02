@@ -93,7 +93,7 @@ class BoxNetworkMeshSegment(NetworkMeshSegment):
 
     def sample(self, fixedElementsCountAlong, targetElementLength):
         elementsCountAlong = (fixedElementsCountAlong if fixedElementsCountAlong else
-                              max(1, math.ceil(self._length / targetElementLength)))
+                              max(1, math.ceil(self.getSampleLength() / targetElementLength)))
         if self._isLoop and (elementsCountAlong < 2):
             elementsCountAlong = 2
         pathParameters = self._pathParametersList[0]

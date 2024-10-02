@@ -985,8 +985,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         nearestPosition = tube3Surface.findNearestPosition(targetx, startPosition)
         self.assertEqual(nearestPosition.e1, 2)
         self.assertEqual(nearestPosition.e2, 1)
-        self.assertAlmostEqual(nearestPosition.xi1, 0.44002661465024806, delta=XI_TOL)
-        self.assertAlmostEqual(nearestPosition.xi2, 0.7782327241770322, delta=XI_TOL)
+        self.assertAlmostEqual(nearestPosition.xi1, 0.4402234141866752, delta=XI_TOL)
+        self.assertAlmostEqual(nearestPosition.xi2, 0.7779349419901669, delta=XI_TOL)
 
         targetx = [0.9745695128243425, -0.28544615442781057, -0.23619538278312255]
         startPosition = TrackSurfacePosition(4, 0, 0.158, 0.0)
@@ -1017,12 +1017,12 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertTrue(aloop)
         aCircumference = getCubicHermiteCurvesLength(ax, ad1, loop=True)
         self.assertAlmostEqual(aCircumference, 2.3973686453086143, delta=X_TOL)
-        assertAlmostEqualList(self, [0.9708619388739947, -0.3270981496668778, 0.14086800149667], ax[0], delta=X_TOL)
-        assertAlmostEqualList(self, [1.0050064347902659, 0.056201268034582176, -0.4072936264713945], ax[4], delta=X_TOL)
-        assertAlmostEqualList(self, [1.024996071040654, 0.28060105555314807, 0.24424001783212906], ax[8], delta=X_TOL)
-        assertAlmostEqualList(self, [0.4405054359950804, 1.0], aprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.7737970104355056, 1.0], aprops[4], delta=XI_TOL)
-        assertAlmostEqualList(self, [1.10696010571695916, 1.0], aprops[8], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.9708658007728959, -0.32705488164620056, 0.14100946581662172], ax[0], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0049935720991983, 0.05605687388777593, -0.40732283704015587], ax[4], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0250029888842724, 0.28067871392667065, 0.24411427503697689], ax[8], delta=X_TOL)
+        assertAlmostEqualList(self, [0.4404437939919339, 1.0], aprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.7737349073601545, 1.0], aprops[4], delta=XI_TOL)
+        assertAlmostEqualList(self, [1.1068983034552708, 1.0], aprops[8], delta=XI_TOL)
 
         # get loop intersection of unconnected tube2 and tube3
         bx, bd1, bprops, bloop = tube2Surface.findIntersectionCurve(tube3Surface, curveElementsCount=12)
@@ -1037,11 +1037,11 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(len(cx), 8)
         self.assertTrue(cloop)
         cCircumference = getCubicHermiteCurvesLength(cx, cd1, loop=True)
-        self.assertAlmostEqual(cCircumference, 0.587857727905694, delta=X_TOL)
-        assertAlmostEqualList(self, [0.7318758089726128, 0.28115396634786666, 0.13238674558014327], cx[0], delta=X_TOL)
-        assertAlmostEqualList(self, [0.8408765202354725, 0.3182280500580874, -0.04549438718340043], cx[4], delta=X_TOL)
-        assertAlmostEqualList(self, [1.0762363614295223, 0.7158314515175085], cprops[0], delta=XI_TOL)
-        assertAlmostEqualList(self, [0.9766132119015503, 0.8198673158401282], cprops[4], delta=XI_TOL)
+        self.assertAlmostEqual(cCircumference, 0.5887574920030573, delta=X_TOL)
+        assertAlmostEqualList(self, [0.7317317911306801, 0.2826742296218589, 0.13294871691322063], cx[0], delta=X_TOL)
+        assertAlmostEqualList(self, [0.8395922582810261, 0.31875624576664224, -0.045585853595370915], cx[4], delta=X_TOL)
+        assertAlmostEqualList(self, [1.0752584167399162, 0.7160306656756313], cprops[0], delta=XI_TOL)
+        assertAlmostEqualList(self, [0.976739018142142, 0.818749339695521], cprops[4], delta=XI_TOL)
 
         # make trimmed tube3 starting at intersection with tube1
         tx, td1, td2, td12 = resampleTubeCoordinates((px, pd1, pd2, pd12), elementsCountAlong,
@@ -1057,15 +1057,15 @@ class GeneralScaffoldTestCase(unittest.TestCase):
             nd12 += td12[i]
         tube3TrimmedSurface = TrackSurface(elementsCountAround, elementsCountAlong, nx, nd1, nd2, nd12, loop1=True)
         tCircumference = getCubicHermiteCurvesLength(tx[0], td1[0], loop=True)
-        self.assertAlmostEqual(tCircumference, 0.5891599271757954, delta=X_TOL)
+        self.assertAlmostEqual(tCircumference, 0.5901062022041457, delta=X_TOL)
         tLength = getCubicHermiteCurvesLength([tx[n][0] for n in range(elementsCountAlong + 1)],
                                               [td2[n][0] for n in range(elementsCountAlong + 1)])
-        self.assertAlmostEqual(tLength, 0.5004144140988955, delta=X_TOL)
+        self.assertAlmostEqual(tLength, 0.49914658490095454, delta=X_TOL)
 
         curveLocation1, curveX1 = getNearestLocationOnCurve(
             cx, cd1, targetx=[1.0307591456989758, 0.3452962162336672, -0.05130331144410176], loop=True)
         self.assertEqual(curveLocation1[0], 3)
-        self.assertAlmostEqual(curveLocation1[1], 0.2627396466353775, delta=XI_TOL)
+        self.assertAlmostEqual(curveLocation1[1], 0.2487406936675347, delta=XI_TOL)
 
         aCurveLocation, cCurveLocation, acIntersection = getNearestLocationBetweenCurves(
             ax, ad1, cx, cd1, aloop, cloop)
@@ -1073,9 +1073,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         p3x = evaluateCoordinatesOnCurve(ax, ad1, aCurveLocation, aloop)
         p4x = evaluateCoordinatesOnCurve(cx, cd1, cCurveLocation, cloop)
         self.assertEqual(aCurveLocation[0], 6)
-        self.assertAlmostEqual(aCurveLocation[1], 0.7537941135756656, delta=XI_TOL)
+        self.assertAlmostEqual(aCurveLocation[1], 0.7537596353150168, delta=XI_TOL)
         self.assertEqual(cCurveLocation[0], 3)
-        self.assertAlmostEqual(cCurveLocation[1], 0.05064926617363552, delta=XI_TOL)
+        self.assertAlmostEqual(cCurveLocation[1], 0.04146736244924165, delta=XI_TOL)
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
@@ -1630,7 +1630,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(nearestPosition.e1, 4)
         self.assertEqual(nearestPosition.e2, 0)
         self.assertAlmostEqual(nearestPosition.xi1, 0.0, delta=XI_TOL)
-        self.assertAlmostEqual(nearestPosition.xi2, 0.023415557045696735, delta=XI_TOL)
+        self.assertAlmostEqual(nearestPosition.xi2, 0.021114449677837155, delta=XI_TOL)
 
         # distant point
         p6x = targetx = [0.8187820665733468, -0.1, 0.0]
