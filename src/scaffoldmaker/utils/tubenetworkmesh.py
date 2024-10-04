@@ -975,10 +975,41 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
     @classmethod
     def blendSampledCoordinates(cls, segment1, nodeIndexAlong1, segment2, nodeIndexAlong2):
         nodesCountAround = segment1._elementsCountAround
-        nodesCountRim = len(segment1._rimCoordinates[0][0])
+        nodesCountRim = len(segment1._rimCoordinates[0][nodeIndexAlong1])
         if ((nodesCountAround != segment2._elementsCountAround) or
-                (nodesCountRim != len(segment2._rimCoordinates[0][0]))):
+                (nodesCountRim != len(segment2._rimCoordinates[0][nodeIndexAlong2]))):
             return  # can't blend unless these match
+
+        if segment1._isCore and segment2._isCore:
+            nodesCountAcrossMajor = len(segment1._boxCoordinates[0][nodeIndexAlong1])
+            nodesCountAcrossMinor = len(segment1._boxCoordinates[0][nodeIndexAlong1][0])
+            nodesCountTransition = len(segment1._transitionCoordinates[0][nodeIndexAlong1]) if segment1._transitionCoordinates else 0
+            if ((nodesCountAcrossMajor != len(segment2._boxCoordinates[0][nodeIndexAlong2])) or
+                    (nodesCountAcrossMinor != len(segment2._boxCoordinates[0][nodeIndexAlong2][0])) or
+                    (nodesCountTransition != (len(segment2._transitionCoordinates[0][nodeIndexAlong2])
+                    if segment1._transitionCoordinates else 0))):
+                return  # can't blend unless these match
+            # blend core coordinates
+            s1d2 = segment1._boxCoordinates[2][nodeIndexAlong1]
+            s2d2 = segment2._boxCoordinates[2][nodeIndexAlong2]
+            for m in range(nodesCountAcrossMajor):
+                for n in range(nodesCountAcrossMinor):
+                    # harmonic mean magnitude
+                    s1d2Mag = magnitude(s1d2[m][n])
+                    s2d2Mag = magnitude(s2d2[m][n])
+                    d2Mag = 2.0 / ((1.0 / s1d2Mag) + (1.0 / s2d2Mag))
+                    s2d2[m][n] = s1d2[m][n] = mult(s1d2[m][n], d2Mag / s1d2Mag)
+            for n3 in range(nodesCountTransition):
+                s1d2 = segment1._transitionCoordinates[2][nodeIndexAlong1][n3]
+                s2d2 = segment2._transitionCoordinates[2][nodeIndexAlong2][n3]
+                for n1 in range(nodesCountAround):
+                    # harmonic mean magnitude
+                    s1d2Mag = magnitude(s1d2[n1])
+                    s2d2Mag = magnitude(s2d2[n1])
+                    d2Mag = 2.0 / ((1.0 / s1d2Mag) + (1.0 / s2d2Mag))
+                    s2d2[n1] = s1d2[n1] = mult(s1d2[n1], d2Mag / s1d2Mag)
+        elif segment1._isCore or segment2._isCore:
+            return  # can't blend if both don't have core
 
         # blend rim coordinates
         for n3 in range(nodesCountRim):
@@ -989,9 +1020,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 s1d2Mag = magnitude(s1d2[n1])
                 s2d2Mag = magnitude(s2d2[n1])
                 d2Mag = 2.0 / ((1.0 / s1d2Mag) + (1.0 / s2d2Mag))
-                d2 = mult(s1d2[n1], d2Mag / s1d2Mag)
-                s1d2[n1] = d2
-                s2d2[n1] = d2
+                s2d2[n1] = s1d2[n1] = mult(s1d2[n1], d2Mag / s1d2Mag)
 
     def getSampledElementsCountAlong(self):
         return len(self._sampledTubeCoordinates[0][0]) - 1
@@ -1358,17 +1387,17 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         :param n2Only: If set, create nodes only for that single n2 index along. Must be >= 0!
         """
-        if (not n2Only) and generateData.isShowTrimSurfaces():
-            dimension = generateData.getMeshDimension()
-            nodeIdentifier, elementIdentifier = generateData.getNodeElementIdentifiers()
-            faceIdentifier = elementIdentifier if (dimension == 2) else None
-            annotationGroup = generateData.getNewTrimAnnotationGroup()
-            nodeIdentifier, faceIdentifier = \
-                self._rawTrackSurfaceList[0].generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
-                                                      group_name=annotationGroup.getName())
-            if dimension == 2:
-                elementIdentifier = faceIdentifier
-            generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
+        # if (not n2Only) and generateData.isShowTrimSurfaces():
+        #     dimension = generateData.getMeshDimension()
+        #     nodeIdentifier, elementIdentifier = generateData.getNodeElementIdentifiers()
+        #     faceIdentifier = elementIdentifier if (dimension == 2) else None
+        #     annotationGroup = generateData.getNewTrimAnnotationGroup()
+        #     nodeIdentifier, faceIdentifier = \
+        #         self._rawTrackSurfaceList[0].generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
+        #                                               group_name=annotationGroup.getName())
+        #     if dimension == 2:
+        #         elementIdentifier = faceIdentifier
+        #     generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
 
         elementsCountAlong = len(self._rimCoordinates[0]) - 1
         elementsCountRim = self.getElementsCountRim()
@@ -1844,7 +1873,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         for s1 in range(segmentsCount - 1):
             # fxs1 = segmentsParameterLists[s1][0][0]
             fd2s1 = segmentsParameterLists[s1][2][0]
-            if segmentsIn[s1]:
+            if not segmentsIn[s1]:
                 fd2s1 = [-d for d in fd2s1]
             norm_fd2s1 = normalize(fd2s1)
             for s2 in range(s1 + 1, segmentsCount):
@@ -1871,13 +1900,13 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 md1.append(mult(add(hd1[s1], [-d for d in hd1[s2]]), 0.5))
                 # fxs2 = segmentsParameterLists[s2][0][0]
                 fd2s2 = segmentsParameterLists[s2][2][0]
-                if not segmentsIn[s1]:
-                    fd2s2 = [-d for d in fd2s1]
+                if segmentsIn[s2]:
+                    fd2s2 = [-d for d in fd2s2]
                 norm_fd2s2 = normalize(fd2s2)
                 # reduce md2 up to 50% depending on how out-of line they are
-                md2Factor = 1.0 + 0.5 * dot(norm_fd2s1, norm_fd2s2)
+                md2Factor = 0.75 + 0.25 * dot(norm_fd2s1, norm_fd2s2)
                 md2.append(mult(cd2, md2Factor))
-                # smooth smx, smd2 with 2nd row from end coordinates and derivatives
+                # smooth md2 with 2nd row from end, which it actually interpolates to
                 # tmd2 = smoothCubicHermiteDerivativesLine(
                 #     [fxs1, cx, fxs2], [fd2s1, cd2, fd2s2], fixStartDerivative=True, fixEndDerivative=True,
                 #     magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)

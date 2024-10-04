@@ -1,7 +1,7 @@
 """
 Generates a 3D body coordinates using tube network mesh.
 """
-from cmlibs.maths.vectorops import add, cross, mult, set_magnitude
+from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import (
@@ -11,8 +11,8 @@ from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_netw
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.interpolation import (
-    computeCubicHermiteEndDerivative, interpolateLagrangeHermiteDerivative, sampleCubicHermiteCurvesSmooth,
-    smoothCubicHermiteDerivativesLine)
+    computeCubicHermiteEndDerivative, computeCubicHermiteStartDerivative, interpolateLagrangeHermiteDerivative,
+    sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, DerivativeScalingMode)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 import math
@@ -68,6 +68,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
+        options["Foot height"] = 1.0
         options["Foot length"] = 2.5
         options["Foot thickness"] = 0.3
         options["Foot width"] = 1.0
@@ -102,6 +103,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
+            "Foot height",
             "Foot length",
             "Foot thickness",
             "Foot width",
@@ -135,6 +137,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
+            "Foot height",
             "Foot length",
             "Foot thickness",
             "Foot width"
@@ -200,6 +203,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         legLength = options["Leg length"]
         legTopRadius = 0.5 * options["Leg top diameter"]
         legBottomRadius = 0.5 * options["Leg bottom diameter"]
+        footHeight = options["Foot height"]
         footLength = options["Foot length"]
         halfFootThickness = 0.5 * options["Foot thickness"]
         halfFootWidth = 0.5 * options["Foot width"]
@@ -250,21 +254,24 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elementIdentifier += 1
         left = 0
         right = 1
-        armElementsCount = 7
+        armToHandElementsCount = 6
+        handElementsCount = 1
         armMeshGroup = armGroup.getMeshGroup(mesh)
         armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
         handMeshGroup = handGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
-            meshGroups = [bodyMeshGroup, armMeshGroup, sideArmGroup.getMeshGroup(mesh)]
-            for e in range(armElementsCount):
+            meshGroups = [bodyMeshGroup, armMeshGroup, armToHandMeshGroup, sideArmGroup.getMeshGroup(mesh)]
+            for e in range(armToHandElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
-                if e < (armElementsCount - 1):
-                    armToHandMeshGroup.addElement(element)
-                else:
-                    handMeshGroup.addElement(element)
+                elementIdentifier += 1
+            meshGroups = [bodyMeshGroup, armMeshGroup, handMeshGroup, sideArmGroup.getMeshGroup(mesh)]
+            for e in range(handElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
                 elementIdentifier += 1
         thoraxElementsCount = 3
         abdomenElementsCount = 4
@@ -280,21 +287,24 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
-        legElementsCount = 7
+        legToFootElementsCount = 5
+        footElementsCount = 2
         legMeshGroup = legGroup.getMeshGroup(mesh)
         legToFootMeshGroup = legToFootGroup.getMeshGroup(mesh)
         footMeshGroup =  footGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideLegGroup = leftLegGroup if (side == left) else rightLegGroup
-            meshGroups = [bodyMeshGroup, legMeshGroup, sideLegGroup.getMeshGroup(mesh)]
-            for e in range(legElementsCount):
+            meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, sideLegGroup.getMeshGroup(mesh)]
+            for e in range(legToFootElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
-                if e < (legElementsCount - 2):
-                    legToFootMeshGroup.addElement(element)
-                else:
-                    footMeshGroup.addElement(element)
+                elementIdentifier += 1
+            meshGroups = [bodyMeshGroup, legMeshGroup, footMeshGroup, sideLegGroup.getMeshGroup(mesh)]
+            for e in range(footElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
                 elementIdentifier += 1
 
         # set coordinates (outer)
@@ -385,7 +395,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         shoulderAngleRadians = shoulderRotationFactor * shoulderLimitAngleRadians
         armStartX = thoraxStartX + shoulderDrop - halfShoulderWidth * math.sin(shoulderAngleRadians)
         nonHandArmLength = armLength - handLength
-        armScale = nonHandArmLength / (armElementsCount - 3)
+        armScale = nonHandArmLength / (armToHandElementsCount - 2)  # 2 == shoulder elements count
         sd3 = [0.0, 0.0, armTopRadius]
         sid3 = mult(sd3, innerProportionDefault)
         hd3 = [0.0, 0.0, halfHandWidth]
@@ -414,8 +424,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, sd3)
                 setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sid3)
             # main part of arm to wrist
-            for i in range(armElementsCount - 2):
-                xi = i / (armElementsCount - 3)
+            for i in range(armToHandElementsCount - 1):
+                xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 x = [armStartX + d1[0] * i, armStartY + d1[1] * i, d1[2] * i]
@@ -429,6 +439,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
                 nodeIdentifier += 1
             # hand
+            assert handElementsCount == 1
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             hx = [armStartX + armLength * cosArmAngle, armStartY + armLength * sinArmAngle, 0.0]
@@ -442,7 +453,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         # legs
         cos45 = math.cos(0.25 * math.pi)
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
-        legScale = legLength / (legElementsCount - 2)
+        nonFootLegLength = legLength - footHeight
+        legScale = nonFootLegLength / (legToFootElementsCount - 1)
         pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]
         pid3 = mult(pd3, innerProportionDefault)
         for side in (left, right):
@@ -459,14 +471,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             node = nodes.findNodeByIdentifier(legJunctionNodeIdentifier)
             fieldcache.setNode(node)
             pd1 = interpolateLagrangeHermiteDerivative(px, x, d1, 0.0)
-            pd2 = set_magnitude(cross(pd3, pd1), 0.5 * legTopRadius + 0.5 * halfTorsoWidth)  # GRC
+            pd2 = set_magnitude(cross(pd3, pd1), 0.5 * legTopRadius + 0.5 * halfTorsoWidth)
             pid2 = mult(pd2, innerProportionDefault)
             version = 2 if (side == left) else 3
             setNodeFieldVersionDerivatives(coordinates, fieldcache, version, pd1, pd2, pd3)
             setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, pd1, pid2, pid3)
             # main part of leg to ankle
-            for i in range(legElementsCount - 2):
-                xi = i / (legElementsCount - 2)
+            for i in range(legToFootElementsCount):
+                xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 x = [legStartX + d1[0] * i, legStartY + d1[1] * i, d1[2] * i]
@@ -479,21 +491,19 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
                 nodeIdentifier += 1
             # foot
-            heelOffset = legBottomRadius * (1.0 - cos45)
-            fx = [add(add(legStart, mult(legDirn, legLength - legBottomRadius)),
-                      [-heelOffset * cosLegAngle, -heelOffset * sinLegAngle, heelOffset]),
+            fx = [x,
+                  add(add(legStart, mult(legDirn, legLength - halfFootThickness)),
+                      [0.0, 0.0, 0.25 * footLength + legBottomRadius]),
                   add(add(legStart, mult(legDirn, legLength - halfFootThickness)),
                       [0.0, 0.0, footLength - legBottomRadius])]
             fd1 = smoothCubicHermiteDerivativesLine(
-                [x] + fx, [d1, set_magnitude(add(legDirn, legFront), legScale),
-                           [0.0, 0.0, 2.0 * footLength]],
-                fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True)[1:]
-            halfAnkleThickness = math.sqrt(2.0 * legBottomRadius * legBottomRadius)
-            ankleRadius = legBottomRadius  # GRC check
-            fd2 = [mult(legSide, ankleRadius), mult(legSide, halfFootWidth)]
-            fd3 = [set_magnitude(cross(fd1[0], fd2[0]), halfAnkleThickness),
-                   set_magnitude(cross(fd1[1], fd2[1]), halfFootThickness)]
-            for i in range(2):
+                fx, [d1, [0.0, 0.0, 0.5 * footLength], [0.0, 0.0, 0.5 * footLength]],
+                fixAllDirections=True, fixStartDerivative=True)
+            fd2 = [d2, mult(legSide, halfFootWidth), mult(legSide, halfFootWidth)]
+            fd3 = [d3,
+                   set_magnitude(sub(legFront, legDirn), legBottomRadius),
+                   set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)]
+            for i in range(1, 3):
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 setNodeFieldParameters(coordinates, fieldcache, fx[i], fd1[i], fd2[i], fd3[i])

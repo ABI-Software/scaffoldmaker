@@ -124,7 +124,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 1.9345569273205805, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 1.931297913271377, delta=X_TOL)
 
     def test_2d_tube_network_snake(self):
         """
@@ -243,7 +243,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 4.045738080224775, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.045580778559924, delta=X_TOL)
 
     def test_2d_tube_network_trifurcation(self):
         """
@@ -288,7 +288,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 2.799227811309674, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.7951498826590973, delta=X_TOL)
 
     def test_2d_tube_network_vase(self):
         """
@@ -407,9 +407,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.0350166554737855, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 1.9320679669979417, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 1.5635839608316708, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.034977175657495335, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 1.92967134964477, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 1.5609615408034399, delta=X_TOL)
 
     def test_3d_tube_network_bifurcation_core(self):
         """
@@ -470,8 +470,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.09934789293818859, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.0262176284480025, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.09907643906540035, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.0238210110948307, delta=X_TOL)
 
     def test_3d_tube_network_sphere_cube(self):
         """
@@ -564,8 +564,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
 
             self.assertAlmostEqual(volume, 0.07364074411579775, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 4.045725519817575, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 3.3315247370347674, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 4.0455683508806, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 3.3313407313622867, delta=X_TOL)
 
     def test_3d_tube_network_sphere_cube_core(self):
         """
@@ -652,8 +652,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.21361144824524667, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 4.045725519817576, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.21360737563518303, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.0455683508805995, delta=X_TOL)
 
 
     def test_3d_tube_network_trifurcation_cross(self):
@@ -746,9 +746,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.047265446041689, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 2.6025349554689585, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 2.1185123279913802, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.047235196748105515, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 2.600683124988524, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 2.1164499963602124, delta=X_TOL)
 
     def test_3d_tube_network_trifurcation_cross_core(self):
         """
@@ -837,8 +837,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.13518934925801437, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.7269545818490495, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.13499394208386956, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.7252510632808065, delta=X_TOL)
 
     def test_3d_box_network_bifurcation(self):
         """
