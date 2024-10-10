@@ -721,80 +721,80 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             cbd1.append(row_d1)
             cbd3.append(row_d3)
 
-        for i in range(self._elementsCountTransition - 1):
-            for lst in (ctx, ctd1, ctd3):
-                lst.append([None] * self._elementsCountAround)
-        ix = self._rimCoordinates[0][n2][0]
-        id1 = self._rimCoordinates[1][n2][0]
-        id3 = self._rimCoordinates[3][n2][0]
-        start_bn3 = minorBoxSize // 2
-        topLeft_n1 = minorBoxSize - start_bn3
-        topRight_n1 = topLeft_n1 + majorBoxSize
-        bottomRight_n1 = topRight_n1 + minorBoxSize
-        bottomLeft_n1 = bottomRight_n1 + majorBoxSize
-        for n1 in range(self._elementsCountAround):
-            if n1 <= topLeft_n1:
-                bn1 = 0
-                bn3 = start_bn3 + n1
-                if n1 < topLeft_n1:
+        if self._elementsCountTransition > 1:
+            for i in range(self._elementsCountTransition - 1):
+                for lst in (ctx, ctd1, ctd3):
+                    lst.append([None] * self._elementsCountAround)
+            ix = self._rimCoordinates[0][n2][0]
+            id1 = self._rimCoordinates[1][n2][0]
+            id3 = self._rimCoordinates[3][n2][0]
+            start_bn3 = minorBoxSize // 2
+            topLeft_n1 = minorBoxSize - start_bn3
+            topRight_n1 = topLeft_n1 + majorBoxSize
+            bottomRight_n1 = topRight_n1 + minorBoxSize
+            bottomLeft_n1 = bottomRight_n1 + majorBoxSize
+            for n1 in range(self._elementsCountAround):
+                if n1 <= topLeft_n1:
+                    bn1 = 0
+                    bn3 = start_bn3 + n1
+                    if n1 < topLeft_n1:
+                        start_d1 = cbd3[bn1][bn3]
+                        start_d3 = [-d for d in cbd1[bn1][bn3]]
+                    else:
+                        start_d1 = add(cbd3[bn1][bn3], cbd1[bn1][bn3])
+                        start_d3 = sub(cbd3[bn1][bn3], cbd1[bn1][bn3])
+                elif n1 <= topRight_n1:
+                    bn1 = n1 - topLeft_n1
+                    bn3 = minorBoxSize
+                    if n1 < topRight_n1:
+                        start_d1 = cbd1[bn1][bn3]
+                        start_d3 = cbd3[bn1][bn3]
+                    else:
+                        start_d1 = sub(cbd1[bn1][bn3], cbd3[bn1][bn3])
+                        start_d3 = add(cbd1[bn1][bn3], cbd3[bn1][bn3])
+                elif n1 <= bottomRight_n1:
+                    bn1 = majorBoxSize
+                    bn3 = minorBoxSize - (n1 - topRight_n1)
+                    if n1 < bottomRight_n1:
+                        start_d1 = [-d for d in cbd3[bn1][bn3]]
+                        start_d3 = cbd1[bn1][bn3]
+                    else:
+                        start_d1 = [-d for d in add(cbd1[bn1][bn3], cbd3[bn1][bn3])]
+                        start_d3 = sub(cbd1[bn1][bn3], cbd3[bn1][bn3])
+                elif n1 <= bottomLeft_n1:
+                    bn1 = majorBoxSize - (n1 - bottomRight_n1)
+                    bn3 = 0
+                    if n1 < bottomLeft_n1:
+                        start_d1 = [-d for d in cbd1[bn1][bn3]]
+                        start_d3 = [-d for d in cbd3[bn1][bn3]]
+                    else:
+                        start_d1 = sub(cbd3[bn1][bn3], cbd1[bn1][bn3])
+                        start_d3 = [-d for d in add(cbd1[bn1][bn3], cbd3[bn1][bn3])]
+                else:
+                    bn1 = 0
+                    bn3 = n1 - bottomLeft_n1
                     start_d1 = cbd3[bn1][bn3]
                     start_d3 = [-d for d in cbd1[bn1][bn3]]
-                else:
-                    start_d1 = add(cbd3[bn1][bn3], cbd1[bn1][bn3])
-                    start_d3 = sub(cbd3[bn1][bn3], cbd1[bn1][bn3])
-            elif n1 <= topRight_n1:
-                bn1 = n1 - topLeft_n1
-                bn3 = minorBoxSize
-                if n1 < topRight_n1:
-                    start_d1 = cbd1[bn1][bn3]
-                    start_d3 = cbd3[bn1][bn3]
-                else:
-                    start_d1 = sub(cbd1[bn1][bn3], cbd3[bn1][bn3])
-                    start_d3 = add(cbd1[bn1][bn3], cbd3[bn1][bn3])
-            elif n1 <= bottomRight_n1:
-                bn1 = majorBoxSize
-                bn3 = minorBoxSize - (n1 - topRight_n1)
-                if n1 < bottomRight_n1:
-                    start_d1 = [-d for d in cbd3[bn1][bn3]]
-                    start_d3 = cbd1[bn1][bn3]
-                else:
-                    start_d1 = [-d for d in add(cbd1[bn1][bn3], cbd3[bn1][bn3])]
-                    start_d3 = sub(cbd1[bn1][bn3], cbd3[bn1][bn3])
-            elif n1 <= bottomLeft_n1:
-                bn1 = majorBoxSize - (n1 - bottomRight_n1)
-                bn3 = 0
-                if n1 < bottomLeft_n1:
-                    start_d1 = [-d for d in cbd1[bn1][bn3]]
-                    start_d3 = [-d for d in cbd3[bn1][bn3]]
-                else:
-                    start_d1 = sub(cbd3[bn1][bn3], cbd1[bn1][bn3])
-                    start_d3 = [-d for d in add(cbd1[bn1][bn3], cbd3[bn1][bn3])]
-            else:
-                bn1 = 0
-                bn3 = n1 - bottomLeft_n1
-                start_d1 = cbd3[bn1][bn3]
-                start_d3 = [-d for d in cbd1[bn1][bn3]]
-            start_x = cbx[bn1][bn3]
+                start_x = cbx[bn1][bn3]
 
-            nx = [start_x, ix[n1]]
-            nd3before = [[self._elementsCountTransition * d for d in start_d3], id3[n1]]
-            nd3 = [nd3before[0], computeCubicHermiteEndDerivative(nx[0], nd3before[0], nx[1], nd3before[1])]
-            tx, td3, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
-                nx, nd3, self._elementsCountTransition,
-                derivativeMagnitudeStart=magnitude(nd3[0]) / self._elementsCountTransition,
-                derivativeMagnitudeEnd=magnitude(nd3[1]) / self._elementsCountTransition)
-            delta_id1 = sub(id1[n1], start_d1)
-            td1 = interpolateSampleCubicHermite([start_d1, id1[n1]], [delta_id1, delta_id1], pe, pxi, psf)[0]
+                nx = [start_x, ix[n1]]
+                nd3before = [[self._elementsCountTransition * d for d in start_d3], id3[n1]]
+                nd3 = [nd3before[0], computeCubicHermiteEndDerivative(nx[0], nd3before[0], nx[1], nd3before[1])]
+                tx, td3, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
+                    nx, nd3, self._elementsCountTransition,
+                    derivativeMagnitudeStart=magnitude(nd3[0]) / self._elementsCountTransition,
+                    derivativeMagnitudeEnd=magnitude(nd3[1]) / self._elementsCountTransition)
+                delta_id1 = sub(id1[n1], start_d1)
+                td1 = interpolateSampleCubicHermite([start_d1, id1[n1]], [delta_id1, delta_id1], pe, pxi, psf)[0]
 
-            for n3 in range(1, self._elementsCountTransition):
-                ctx[n3 - 1][n1] = tx[n3]
-                ctd1[n3 - 1][n1] = td1[n3]
-                ctd3[n3 - 1][n1] = td3[n3]
+                for n3 in range(1, self._elementsCountTransition):
+                    ctx[n3 - 1][n1] = tx[n3]
+                    ctd1[n3 - 1][n1] = td1[n3]
+                    ctd3[n3 - 1][n1] = td3[n3]
 
             # smooth td1 around:
             for n3 in range(1, self._elementsCountTransition):
                 ctd1[n3 - 1] = smoothCubicHermiteDerivativesLoop(ctx[n3 - 1], ctd1[n3 - 1], fixAllDirections=False)
-
 
         return cbx, cbd1, cbd3, ctx, ctd1, ctd3
 

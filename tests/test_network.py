@@ -473,6 +473,69 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, 0.09907643906540035, delta=X_TOL)
             self.assertAlmostEqual(surfaceArea, 2.0238210110948307, delta=X_TOL)
 
+    def test_3d_tube_network_line_core_transition2(self):
+        """
+        Test line 3-D tube network with solid core and 2 transition elements.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Default")
+        settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertTrue(networkLayoutSettings["Define inner coordinates"])
+        self.assertEqual(13, len(settings))
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
+        self.assertFalse(settings["Use linear through shell"])
+        self.assertFalse(settings["Show trim surfaces"])
+        self.assertFalse(settings["Core"])
+        self.assertEqual(2, settings["Number of elements across core box minor"])
+        self.assertEqual(1, settings["Number of elements across core transition"])
+        self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
+        settings["Core"] = True
+        settings["Number of elements across core transition"] = 2
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+
+        fieldmodule = region.getFieldmodule()
+        mesh3d = fieldmodule.findMeshByDimension(3)
+
+        self.assertEqual(112, mesh3d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(165, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        X_TOL = 1.0E-6
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [0.0, -0.1, -0.1], X_TOL)
+        assertAlmostEqualList(self, maximums, [1.0, 0.1, 0.1], X_TOL)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(isExterior, coordinates, mesh2d)
+            surfaceAreaField.setNumbersOfPoints(4)
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            self.assertAlmostEqual(volume, 0.0313832204833548, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 0.6907602069977625, delta=X_TOL)
+
     def test_3d_tube_network_sphere_cube(self):
         """
         Test sphere cube 3-D tube network is generated correctly.
