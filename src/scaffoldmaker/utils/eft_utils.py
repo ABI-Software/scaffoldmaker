@@ -5,7 +5,8 @@ from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, 
 from cmlibs.zinc.element import Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.utils.interpolation import interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteEndDerivative, interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative)
 import copy
 import math
 
@@ -175,9 +176,12 @@ def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIn
 
 
 def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
-    '''
+    """
     Set general followed by node scale factor identifiers.
-    '''
+    :param eft: Elementfieldtemplate to modify.
+    :param globalScaleFactorIds: List of global scale factor identifiers.
+    :param nodeScaleFactorIds: List of node scale factor identifiers.
+    """
     eft.setNumberOfLocalScaleFactors(len(globalScaleFactorIds) + len(nodeScaleFactorIds))
     s = 1
     for id in globalScaleFactorIds:
@@ -188,6 +192,37 @@ def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds):
         eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
         eft.setScaleFactorIdentifier(s, id)
         s += 1
+
+
+def addEftNodeScaleFactorIds(eft, nodeScaleFactorIds):
+    """
+    Add more node-based scale factors to EFT.
+    :param eft: Elementfieldtemplate to modify.
+    :param nodeScaleFactorIds: List of node scale factor identifiers.
+    :return: Local indexes of added scale factors.
+    """
+    oldCount = eft.getNumberOfLocalScaleFactors()
+    addCount = len(nodeScaleFactorIds)
+    eft.setNumberOfLocalScaleFactors(oldCount + addCount)
+    s = oldCount + 1
+    for id in nodeScaleFactorIds:
+        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+        eft.setScaleFactorIdentifier(s, id)
+    return [oldCount + n for n in range(1, addCount + 1)]
+
+
+def addScaleEftNodesValueLabel(eft, localNodeIndexes, valueLabel, nodeScaleFactorId):
+    """
+    Create new node scale factors for each local node index with the nodeScaleFactorId and
+    scale each instance of just value label at the local node indexes by the respective scale factor.
+    :param eft:  Elementfieldtemplate to modify.
+    :param localNodeIndexes: List of local node indexes to scale at.
+    :param valueLabel: Node value label to scale.
+    :param nodeScaleFactorId: Node-local scale factor ID to use.
+    """
+    sfIndexes = addEftNodeScaleFactorIds(eft, [nodeScaleFactorId] * len(localNodeIndexes))
+    for n in range(len(localNodeIndexes)):
+        scaleEftNodeValueLabels(eft, [localNodeIndexes[n]], [Node.VALUE_LABEL_D_DS3], [sfIndexes[n]])
 
 
 def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNodeValueLabel=None):
@@ -844,3 +879,70 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
                 deltas[on][ed] = otherElementDerivative
 
     return eft, scalefactors
+
+
+CubicHermiteSerendipityValueLabels = [
+    Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]
+
+
+def getTricubicHermiteSerendipityElementNodeParameter(eft, scalefactors, nodeParameters, localNodeIndex, valueLabel):
+    """
+    Get effective element parameter for basis' original valueLabel at local node index.
+    Currently assumes extra versions are not used, but this is not checked.
+    :param eft: Element field template.
+    :param scalefactors: List of scale factors.
+    :param nodeParameters: List over 8 (3-D)
+    local nodes in Zinc ordering of 4 parameter vectors x, d1, d2, d3 each with 3 components.
+    :param localNodeIndex: 1-based local node index on original basis.
+    :param valueLabel: A value label mapped by CubicHermiteSerendipityFunctionOffset.
+    :return: Parameter.
+    """
+    parameter = [0.0, 0.0, 0.0]
+    bn = localNodeIndex - 1
+    valueIndex = CubicHermiteSerendipityValueLabels.index(valueLabel)
+    func = 4 * bn + valueIndex + 1
+    termCount = eft.getFunctionNumberOfTerms(func)
+    for term in range(1, termCount + 1):
+        component = nodeParameters[eft.getTermLocalNodeIndex(func, term) - 1][valueIndex]
+        scalefactorCount, scalefactorIndexes = eft.getTermScaling(func, term, 0)
+        if scalefactorCount > 0:
+            scalefactorCount, scalefactorIndexes = eft.getTermScaling(func, term, scalefactorCount)
+            if scalefactorCount == 1:
+                scalefactorIndexes = [scalefactorIndexes]
+            scalefactor = 1.0
+            for sfi in scalefactorIndexes:
+                scalefactor *= scalefactors[sfi - 1]
+            component = mult(component, scalefactor)
+        parameter = add(parameter, component)
+    return parameter
+
+
+def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodeParameters, localNodeIndexes, valueLabel):
+    """
+    Scale tricubic hermite serendipity element field template value label at local nodes to fit actual parameters.
+    Parameter must currently be an unscaled single term expression at that local node.
+    :param eft: Element field template e.g. returned from determineCubicHermiteSerendipityEft.
+    Note: be careful to pass a separate eft to this function from any cached which do not needing scaling!
+    :param scalefactors: Existing scale factors for element
+    :param nodeParameters: As passed to determineCubicHermiteSerendipityEft: list over 8 (3-D)
+    local nodes in Zinc ordering of 4 parameter vectors x, d1, d2, d3 each with 3 components.
+    :param localNodeIndexes: Local node indexes to scale value label at. Currently must be in [5, 6, 7, 8].
+    :param valueLabel: Single value label to scale. Currently only implemened for D_DS3.
+    :return: Modified eft, scalefactors
+    """
+    assert len(nodeParameters) == 8
+    assert valueLabel == Node.VALUE_LABEL_D_DS3
+    newScalefactors = copy.copy(scalefactors) if scalefactors else []
+    for ln in localNodeIndexes:
+        assert ln in [5, 6, 7, 8]
+        na = ln - 5
+        nb = na + 4
+        xa = nodeParameters[na][0]
+        da = getTricubicHermiteSerendipityElementNodeParameter(eft, scalefactors, nodeParameters, na + 1, valueLabel)
+        xb = nodeParameters[nb][0]
+        db = nodeParameters[nb][3]
+        dbScaled = computeCubicHermiteEndDerivative(xa, da, xb, db)
+        scalefactor = magnitude(dbScaled) / magnitude(db)
+        newScalefactors.append(scalefactor)
+    addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
+    return eft, newScalefactors
