@@ -22,6 +22,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
+from scaffoldmaker.meshtypes.meshtype_3d_dorsalrootganglion1 import MeshType_3d_dorsalrootganglion1
 from scaffoldmaker.meshtypes.meshtype_3d_esophagus1 import MeshType_3d_esophagus1
 from scaffoldmaker.meshtypes.meshtype_3d_gastrointestinaltract1 import MeshType_3d_gastrointestinaltract1
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
@@ -50,6 +51,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_s
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
+from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve1 import MeshType_3d_trigeminalnerve1
+from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve2 import MeshType_3d_trigeminalnerve2
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
@@ -82,6 +85,7 @@ class Scaffolds(object):
             MeshType_3d_cecum1,
             MeshType_3d_colon1,
             MeshType_3d_colonsegment1,
+            MeshType_3d_dorsalrootganglion1,
             MeshType_3d_esophagus1,
             MeshType_3d_gastrointestinaltract1,
             MeshType_3d_heart1,
@@ -110,6 +114,8 @@ class Scaffolds(object):
             MeshType_3d_stellate1,
             MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
+            MeshType_3d_trigeminalnerve1,
+            MeshType_3d_trigeminalnerve2,
             MeshType_3d_tube1,
             MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
