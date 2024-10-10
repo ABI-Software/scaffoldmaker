@@ -37,16 +37,20 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                                               {"scaffoldSettings": {"Define inner coordinates": True}},
                                               defaultParameterSetName=parameterSetName),
             "Number of elements around": 8,
-            "Number of elements through shell": 1,
             "Annotation numbers of elements around": [0],
             "Target element density along longest segment": 4.0,
+            "Annotation numbers of elements along": [0],
+            "Number of elements through shell": 1,
             "Use linear through shell": False,
+            "Use outer trim surfaces": True,
             "Show trim surfaces": False,
             "Core": False,
             "Number of elements across core box minor": 2,
             "Number of elements across core transition": 1,
             "Annotation numbers of elements across core box minor": [0]
         }
+        if parameterSetName in ["Loop", "Snake", "Vase"]:
+            options["Target element density along longest segment"] = 12.0
         return options
 
     @staticmethod
@@ -54,10 +58,12 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         return [
             "Network layout",
             "Number of elements around",
-            "Number of elements through shell",
             "Annotation numbers of elements around",
             "Target element density along longest segment",
+            "Annotation numbers of elements along",
+            "Number of elements through shell",
             "Use linear through shell",
+            "Use outer trim surfaces",
             "Show trim surfaces",
             "Core",
             "Number of elements across core box minor",
@@ -183,6 +189,15 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
 
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
+        annotationAlongCounts = options["Annotation numbers of elements along"]
+        if len(annotationAlongCounts) == 0:
+            options["Annotation numbers of elements along"] = [0]
+        else:
+            for i in range(len(annotationAlongCounts)):
+                if annotationAlongCounts[i] <= 0:
+                    annotationAlongCounts[i] = 0
+                elif annotationAlongCounts[i] < 1:
+                    annotationAlongCounts[i] = 1
 
         return dependentChanges
 
@@ -221,11 +236,13 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             defaultElementsCountAround=defaultAroundCount,
             elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAlong=options["Annotation numbers of elements along"],
             annotationElementsCountsAround=annotationAroundCounts,
             defaultElementsCountAcrossMajor=defaultCoreMajorCount,
             elementsCountTransition=coreTransitionCount,
             annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
-            isCore=options["Core"])
+            isCore=options["Core"],
+            useOuterTrimSurfaces=options["Use outer trim surfaces"])
 
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(

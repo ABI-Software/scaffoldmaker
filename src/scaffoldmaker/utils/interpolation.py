@@ -293,8 +293,16 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     mag_tangent = magnitude(tangent)
     if mag_tangent > 0.0:
         dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
-        cp = cross(tangent, dTangent)
-        curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
+        componentsCount = len(v1)
+        if componentsCount > 1:
+            if componentsCount == 3:
+                cp = cross(tangent, dTangent)
+                mag_cp = magnitude(cp)
+            else:
+                mag_cp = tangent[0] * dTangent[1] - tangent[1] * dTangent[0]
+            curvature = mag_cp / (mag_tangent * mag_tangent * mag_tangent)
+        else:
+            curvature = 0.0
     else:
         curvature = 0.0
         dTangent = [0.0, 0.0, 0.0]
@@ -1211,7 +1219,7 @@ def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_
     if loop:
         if proportion < 0.0:
             proportion += 1.0
-        elif proportion > 1.0:
+        elif proportion >= 1.0:
             proportion -= 1.0
     else:
         if proportion < 0.0:
@@ -1222,7 +1230,7 @@ def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_
             onBoundary = 2
         adxi = (proportion - startProportion) * elementsCount
     scaledProportion = proportion * elementsCount
-    elementIndex = int(scaledProportion)
+    elementIndex = min(int(scaledProportion), elementsCount - 1)
     location = (elementIndex, scaledProportion - elementIndex)
     return location, adxi, onBoundary
 
@@ -1349,6 +1357,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
     x = None
     mag_adxi = -1
     it = MAX_ITERS = 100
+    componentsCount = len(targetx)
     for it in range(MAX_ITERS):
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, loop, derivative=True)
         mag_d = magnitude(d)
@@ -1371,7 +1380,10 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
             jVector = normalize(tangent)
             if dxi < 0.0:
                 jVector = [-d for d in jVector]
-            iVector = normalize(cross(tangent, cross(tangent, dTangent)))
+            if componentsCount == 3:
+                iVector = normalize(cross(tangent, cross(tangent, dTangent)))
+            else:
+                iVector = [-jVector[1], jVector[0]]
             centre = sub(x, mult(iVector, radius))
             delta = sub(targetx, centre)
             dj = dot(delta, jVector)
@@ -1393,6 +1405,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
                 print("    iVector", iVector, "di", di)
                 print("    jVector", jVector, "dj", dj)
                 print("    curved dxi", dxi)
+
         location, adxi, onBoundary = advanceCurveLocation(location, dxi, elementsCount, loop, MAX_MAG_DXI)
         mag_adxi = abs(adxi)
         if instrument:

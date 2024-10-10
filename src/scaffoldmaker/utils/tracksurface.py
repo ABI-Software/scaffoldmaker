@@ -1132,10 +1132,10 @@ class TrackSurface:
         last_dxi = None
         for it in range(100):
             x, d = evaluateCoordinatesOnCurve(cx, cd1, curveLocation, loop, derivative=True)
-            surfacePosition = self.findNearestPosition(x, surfacePosition, instrument=instrument)
+            surfacePosition = self.findNearestPosition(x, surfacePosition, instrument=False)  # instrument=instrument
             onOtherBoundary = self.positionOnBoundary(surfacePosition)
-            other_x = self.evaluateCoordinates(surfacePosition)
-            r = sub(other_x, x)
+            ox, od1, od2 = self.evaluateCoordinates(surfacePosition, derivatives=True)
+            r = sub(ox, x)
             mag_r = magnitude(r)
             if instrument:
                 print("iter", it, "curve location", curveLocation, "surface position", surfacePosition, "mag_r", mag_r)
@@ -1171,13 +1171,15 @@ class TrackSurface:
                 if slope_factor > MAX_SLOPE_FACTOR:
                     slope_factor = MAX_SLOPE_FACTOR
                 u = mult(rTangent, slope_factor)
-            # limit by curvature and distance to other_x
+            # limit by curvature and distance to ox
             nm = curveLocation[0]
             np = (nm + 1) % nCount
             curveCurvature = getCubicHermiteCurvatureSimple(cx[nm], cd1[nm], cx[np], cd1[np], curveLocation[1])[0]
-            surfaceCurvature1 = self._getDirectionalCurvature(surfacePosition, direction=[1.0, 0.0])[0]
-            surfaceCurvature2 = self._getDirectionalCurvature(surfacePosition, direction=[0.0, 1.0])[0]
-            curvature = curveCurvature + surfaceCurvature1 + surfaceCurvature2
+            curveSurfaceDirection = calculate_surface_delta_xi(od1, od2, u)
+            surfaceCurvature = (
+                self._getDirectionalCurvature(surfacePosition, direction=normalize(curveSurfaceDirection))[0]
+                if any(curveSurfaceDirection) else 0.0)
+            curvature = curveCurvature + surfaceCurvature
             uNormal = sub(r, u)
             un = magnitude(uNormal)
             # GRC check:
