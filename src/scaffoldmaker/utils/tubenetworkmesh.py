@@ -1374,7 +1374,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         e1Start = (self._elementsCountAround // 4) if side else -((self._elementsCountAround + 2) // 4)
         e1Limit = e1Start + (self._elementsCountAround // 2)
         if (self._elementsCountAround % 4) == 2:
-            eLimit += 1
+            e1Limit += 1
         self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
 
     def addSideD3ElementsToMeshGroup(self, side: bool, meshGroup):
