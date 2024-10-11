@@ -1,8 +1,9 @@
 """
 Generates a hermite x bilinear 1-D central line mesh for a vagus nerve with branches
 """
-
+import os
 import math
+import tempfile
 
 from cmlibs.utils.zinc.field import find_or_create_field_group, findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
@@ -14,7 +15,7 @@ from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, matrix_mult,
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
-from scaffoldmaker.annotation.vagus_terms import get_vagus_term
+from scaffoldmaker.annotation.vagus_terms import get_vagus_branch_term, get_vagus_marker_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, \
@@ -23,7 +24,7 @@ from scaffoldmaker.utils.interpolation import getCubicHermiteBasis, getCubicHerm
     interpolateCubicHermite, interpolateHermiteLagrange, smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, set_nodeset_field_parameters, \
     make_nodeset_derivatives_orthogonal
-from scaffoldmaker.utils.read_vagus_data import load_exf_data, load_exf_data_contours_japanese_dataset
+from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 
 from scaffoldfitter.fitter import Fitter
 from scaffoldfitter.fitterstepalign import FitterStepAlign
@@ -40,8 +41,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
     @staticmethod
     def getParameterSetNames():
-        return [
-            'Human Trunk 1']
+        return ['Human Trunk 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
@@ -391,14 +391,34 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         print('Extracting data...')
         data_region = region.getParent().findChildByName('data')
         if data_region.isValid():
-            marker_data, trunk_group_name, trunk_data, trunk_radius, branch_data, branch_parents, branch_radius_data = \
-                load_exf_data(data_region)
+            marker_data, trunk_group_name, trunk_data, _, branch_data, branch_parents, _, vagus_terms, fitter_data_file = load_vagus_data(data_region)
         assert len(marker_data) >= 2, f"At least two landmarks are expected in the data. Incomplete data."
+
+        if any(['level of esophageal hiatus' in marker_name or 'level of aortic hiatus' in marker_name for marker_name in marker_data.keys()]):
+            isHalfVagus = False
+            print('Estimate_trunk: Vagus top to bottom')
+        else:
+            isHalfVagus = True
+            print('Estimate_trunk: Vagus top to esophageal plexus')
+
+        # settings for radius (assume equal sides) and material coordinates
+        vagusAspectRatio = 0.005  # vagus approx diameter (5mm) / vagus length (85mm)
+        branchToTrunkRatio = 0.5
+
+        vagusTrunkLength = estimate_real_trunk_length(trunk_data)
+        radius = math.ceil(vagusAspectRatio * vagusTrunkLength / 2)
+        branch_radius = branchToTrunkRatio * radius
+
+        rescaledVagusTrunkLength = 1.0 if not isHalfVagus else 0.5
+        vagus_radius = vagusAspectRatio * rescaledVagusTrunkLength / 2
+        vagus_branch_radius = branchToTrunkRatio * vagus_radius
+        rescaledStep = rescaledVagusTrunkLength / (elementsAlongTrunk - 1)
 
         # evaluate & fit centroid lines for trunk and branches
         print('Building centerlines for scaffold...')
-        fit_region, branches_order, branch_root_parameters = evaluate_vagus_1d_coordinates(
-            region, marker_data, trunk_group_name, trunk_data, branch_data, branch_parents, options)
+        fit_region, marker_fit_groups, branches_order, branch_root_parameters = evaluate_vagus_1d_coordinates(
+            region, marker_data, trunk_group_name, trunk_data, \
+            branch_data, branch_parents, isHalfVagus, fitter_data_file, options)
         fit_fieldmodule = fit_region.getFieldmodule()
         fit_fieldcache = fit_fieldmodule.createFieldcache()
         fit_coordinates = fit_fieldmodule.findFieldByName("coordinates").castFiniteElement()
@@ -417,7 +437,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         node_map = {}
         print('Building trunk...')
 
-        # read nodes
+        # read trunk nodes
         fit_trunk_group = find_or_create_field_group(fit_fieldmodule, trunk_group_name)
         fit_trunk_nodes = fit_trunk_group.getNodesetGroup(fit_nodes)
         sn = []
@@ -436,13 +456,13 @@ class MeshType_3d_vagus_box1(Scaffold_base):
             fit_node = fit_node_iter.next()
 
         # calculate side and cross derivatives - d2, d3, d12, d13
-        sd2, sd3 = set_group_nodes_derivatives_orthogonal(sd1)
+        #print('calculate d2, d3 for trunk')
+        sd2, sd3 = set_group_nodes_derivatives_orthogonal(sd1, radius)
         sd12, sd13 = smoothCurveSideCrossDerivatives(sx, sd1, [sd2, sd3])
 
         #  trunk annotation groups
-        # TODO: use get_vagus_term for name when terms are finalised
-        #trunkBoxGroup = AnnotationGroup(region, get_vagus_term(trunk_group_name.lower()))
-        trunkBoxGroup = AnnotationGroup(region, (trunk_group_name, ''))
+        trunkBoxGroup = AnnotationGroup(region, get_vagus_branch_term(trunk_group_name, vagus_terms))
+        #trunkBoxGroup = AnnotationGroup(region, (trunk_group_name, ''))
         annotationGroups.append(trunkBoxGroup)
         trunkBoxMeshGroup = trunkBoxGroup.getMeshGroup(mesh3d)
 
@@ -492,8 +512,6 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
         print('Building branches...')
         for branch_name in branches_order:
-            #print(' ', branch_name)
-
             # read nodes
             fit_branch_group = find_or_create_field_group(fit_fieldmodule, branch_name)
             fit_branch_nodes = fit_branch_group.getNodesetGroup(fit_nodes)
@@ -515,7 +533,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                 fit_node = fit_node_iter.next()
 
             # calculate side and cross derivatives - d2, d3, d12, d13
-            sd2, sd3 = set_group_nodes_derivatives_orthogonal(sd1)
+            sd2, sd3 = set_group_nodes_derivatives_orthogonal(sd1, branch_radius)
             sd12, sd13 = smoothCurveSideCrossDerivatives(sx, sd1, [sd2, sd3])
 
             # branch root parameters (assume d12, d13 are both zero for now)
@@ -524,7 +542,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
             branch_root_xi = branch_root_parameters[branch_name][2]
             bx = branch_root_parameters[branch_name][3]
             bd1 = branch_root_parameters[branch_name][4]
-            bd2, bd3 = set_group_nodes_derivatives_orthogonal([bd1])
+            bd2, bd3 = set_group_nodes_derivatives_orthogonal([bd1], branch_radius)
 
             # trunk interpolation
             fns = list(getCubicHermiteBasis(branch_root_xi))  # for x, d2, d3
@@ -589,9 +607,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                                0, 0, 0, 0, dfns[2], dfns[3]]
 
             # branch annotation groups
-            # TODO: use get_vagus_term for name when terms are finalised
-            # branchBoxGroup = AnnotationGroup(region, get_vagus_term(branch_name.lower()))
-            branchBoxGroup = AnnotationGroup(region, (branch_name, ""))
+            branchBoxGroup = AnnotationGroup(region, get_vagus_branch_term(branch_name, vagus_terms))
             annotationGroups.append(branchBoxGroup)
             branchBoxMeshGroup = branchBoxGroup.getMeshGroup(mesh3d)
 
@@ -631,7 +647,6 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                     lineIdentifier += 1
 
                 nodeIdentifier += 1
-
 
             # create elements
             for n in range(0, elementsAlongBranch - 1):
@@ -723,11 +738,12 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
         # set markers
         print('Adding anatomical landmarks...')
-        for marker_name, marker_coordinate in marker_data.items():
-            # TODO: use get_vagus_term for name when terms are finalised
-            # annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_vagus_term(marker_name), isMarker=True)
-            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, (marker_name,''), isMarker=True)
-
+        for marker_group in marker_fit_groups:
+            marker_name = marker_group.getName()
+            annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                 get_vagus_marker_term(marker_name),
+                                                                 isMarker=True)
+            _, marker_coordinate = marker_group.getMarkerMaterialCoordinates()
             annotationGroup.createMarkerNode(nodeIdentifier, coordinates, marker_coordinate)
             nodeIdentifier += 1
 
@@ -745,10 +761,6 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         region.read(sir)  # read and merge with region, thus having coordinates and vagus coordinates in the region together
         vagus_coordinates = fieldmodule.findFieldByName("vagus coordinates").castFiniteElement()
 
-        rescaledVagusTrunkLength = 1.0
-        vagusAspectRatio = 0.005  # vagus approx diameter (5mm) / vagus length (85mm)
-        vagusRadius = vagusAspectRatio * rescaledVagusTrunkLength / 2
-
         # calculate derivatives
         derivative_xi1 = mesh3d.getChartDifferentialoperator(1, 1)
         derivative_xi2 = mesh3d.getChartDifferentialoperator(1, 2)
@@ -764,16 +776,16 @@ class MeshType_3d_vagus_box1(Scaffold_base):
             # followed by branch elements (with first element having more than 2 local nodes)
 
             element_id = element.getIdentifier()
-            eft = element.getElementfieldtemplate(coordinates, -1)
+            eft = element.getElementfieldtemplate(vagus_coordinates, -1)
             local_nodes_count = eft.getNumberOfLocalNodes()
             if local_nodes_count == 2:
                 if element_id == 1:
                     # first trunk element
                     x = [0.0, 0.0, 0.0]
-                    d1 = [0, 0, rescaledVagusTrunkLength / (elementsAlongTrunk - 1)]
-                    [d2], [d3] = set_group_nodes_derivatives_orthogonal([d1])
-                    d2 = set_magnitude(d2, vagusRadius)
-                    d3 = set_magnitude(d3, vagusRadius)
+                    d1 = [0, 0, rescaledStep]
+                    [d2], [d3] = set_group_nodes_derivatives_orthogonal([d1], vagus_radius)
+                    #d2 = set_magnitude(d2, vagus_radius)
+                    #d3 = set_magnitude(d3, vagus_radius)
 
                     node = element.getNode(eft, 1)
                     fieldcache.setNode(node)
@@ -803,9 +815,9 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                 _, d2 = vagus_coordinates.evaluateDerivative(derivative_xi2, fieldcache, 3)
                 _, d3 = vagus_coordinates.evaluateDerivative(derivative_xi3, fieldcache, 3)
 
-                #[d2], [d3] = set_group_nodes_derivatives_orthogonal([d1])
-                d2 = set_magnitude(d2, vagusRadius)
-                d3 = set_magnitude(d3, vagusRadius)
+                d1 = set_magnitude(d1, rescaledStep)
+                d2 = set_magnitude(d2, vagus_branch_radius)
+                d3 = set_magnitude(d3, vagus_branch_radius)
                 x = add(x, d1)
 
                 node = element.getNode(eft, 2)
@@ -819,10 +831,10 @@ class MeshType_3d_vagus_box1(Scaffold_base):
 
             element = elem_iter.next()
 
-        print('Done')
-        sir = region.createStreaminformationRegion()
-        srf = sir.createStreamresourceFile("C:/MAP/output/vagus_scaffold_temp/vagus_final_model.exf")
-        region.write(sir)
+        # remove temporary data file
+        os.remove(fitter_data_file)
+
+        print('Done\n')
 
         return annotationGroups, None
 
@@ -870,6 +882,14 @@ def magnitude_squared(v):
     # TODO: proposed function to cmlibs.maths
     return sum(c * c for c in v)
 
+def distance_squared(u, v):
+    '''
+    return: squared distance to avoid the cost of a square root
+    '''
+
+    # TODO: proposed function to cmlibs.maths
+    return sum((u_i - v_i) ** 2 for u_i, v_i in zip(u, v))
+
 def find_dataset_endpoints(coordinate_dataset):
     """
     Given list of node coordinates, find two furthest from each other nodes.
@@ -886,60 +906,112 @@ def find_dataset_endpoints(coordinate_dataset):
                 ends_points = [node_y, node_x]
     return ends_points
 
+def find_dataset_endpoints_optimised(points):
+    """
+        Given list of XYZ coordinates, find two furthest apart from each other.
+        Returns a list of two coordinates.
+    """
+    if len(points) < 2:
+        raise ValueError("find_dataset_endpoints: At least two points are required.")
 
-def setSideCrossDerivatives(nodeset, field, isBranch = False):
+    # Step 1: Deterministically select points for the sample (every step_size-th point)
+    step_size = 1 if len(points) < 100 else 250
+    sampled_indices = list(range(0, len(points), step_size))
+    if (len(points) - 1) not in sampled_indices:
+        sampled_indices.append(len(points) - 1)
+
+    # Step 2: Find the furthest points from within the sampled subset
+    max_distance = 0
+    furthest_pair = (sampled_indices[0], sampled_indices[1])
+
+    for i in range(len(sampled_indices)):
+        for j in range(i + 1, len(sampled_indices)):
+            dist = distance_squared(points[sampled_indices[i]], points[sampled_indices[j]])
+            if dist > max_distance:
+                max_distance = dist
+                furthest_pair = (sampled_indices[i], sampled_indices[j])
+
+    # Step 3: Compare sampled endpoints against all points, maintaining original order
+    for i in range(len(points)):
+        for endpoint_index in furthest_pair:
+            if i < endpoint_index:
+                dist = distance_squared(points[i], points[endpoint_index])
+                if dist > max_distance:
+                    max_distance = dist
+                    furthest_pair = (i, endpoint_index)
+
+    endpoints = [points[furthest_pair[0]], points[furthest_pair[1]]]
+    return endpoints
+
+def find_point_projection_relative_to_segment(point, segment_start, segment_end):
+    """
+    return: the position of the projection relative to the line segment, defined by segment_start and segment_end
+    """
+
+    ap = sub(point, segment_start)
+    ab = sub(segment_end, segment_start)
+    projection_scalar = dot(ap, ab) / dot(ab, ab) if dot(ab, ab) != 0 else 0
+    return projection_scalar
+
+
+def set_group_nodes_derivatives_orthogonal(d1, radius = 1):
     """
 
     """
+    def set_first_v(v, v1):
+        return rejection(v, v1)
 
-    getValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1]
-    _, node_field_parameters = get_nodeset_field_parameters(nodeset, field, getValueLabels)
+    def set_second_v(v1, v2):
+        return cross(v1, v2)
 
-    setValueLabels = [Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                      Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
-
-    if isBranch:
-        node_field_parameters.pop(0)
-
-    x = [nodeParameter[1][0][0] for nodeParameter in node_field_parameters]
-    d1 = [nodeParameter[1][1][0] for nodeParameter in node_field_parameters]
-    d2, d3 = set_group_nodes_derivatives_orthogonal(d1)
-    d12, d13 = smoothCurveSideCrossDerivatives(x, d1, [d2, d3])
-
-    index = 0
-    new_node_field_parameters = []
-    for node_identifier, node_parameters in node_field_parameters:
-        new_node_parameters = [[d2[index]], [d12[index]], [d3[index]], [d13[index]]]
-        new_node_field_parameters.append((node_identifier, new_node_parameters))
-        index += 1
-
-    set_nodeset_field_parameters(nodeset, field, setValueLabels, new_node_field_parameters)
-
-
-def set_group_nodes_derivatives_orthogonal(d1):
-    """
-
-    """
-
+    yz = [1.0, 0.0, 0.0]
     yx = [0.0, 1.0, 0.0]
     zx = [0.0, 0.0, 1.0]
 
+    # initial guess
+    # td2 = set_d2(d1[0], yz)
+    # td3 = set_d3(d1[0], td2)
+    # print(d1[0], td2, td3)
+    # td2 = set_d2(d1[0], yx)
+    # td3 = set_d3(d1[0], td2)
+    # print(d1[0], td2, td3)
+    # td2 = set_d2(d1[0], zx)
+    # td3 = set_d3(d1[0], td2)
+    # print(d1[0], td2, td3)
+
     d2 = []
     d3 = []
-    for i in range(len(d1)):
-        td2 = rejection(yx, d1[i])
-        td2 = set_magnitude(td2, magnitude(yx)) # change magnitude later with radius
-        d2.append(td2)
-
-        td3 = cross(d1[i], td2)
-        td3 = set_magnitude(td3, magnitude(zx)) # change magnitude later with radius
+    for td1 in d1:
+        td3 = set_first_v(yx, td1)
+        td3 = set_magnitude(td3, radius)
         d3.append(td3)
+
+        td2 = set_second_v(td1, td3)
+        td2 = set_magnitude(td2, radius)
+        d2.append(td2)
 
     return d2, d3
 
 
+def estimate_parametrised_vagus_length(isHalfVagus):
+    # check if any data below esophageal plexus is supplied
+    if isHalfVagus:
+        totalVagusLength = 166.25
+    else:
+        totalVagusLength = 312.5  # calculated from total length of nerve/average diameter of nerve
+
+    return totalVagusLength
+
+def estimate_real_trunk_length(trunk_data):
+
+    trunk_data_endpoints = find_dataset_endpoints_optimised([trunk_pt[0] for trunk_pt in trunk_data])
+    return magnitude(sub(trunk_data_endpoints[0],trunk_data_endpoints[-1]))
+
+
+
+
 def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_data, branch_data, branch_parents,
-                                  options):
+                                  isHalfVagus, fitter_data_file, options):
     """
     Generates an intermediate hermite x bilinear 1-D central line mesh for a vagus nerve with branches, markers.
     First, it evaluates trunk coordinates based on top and bottom of the supplied markers, then fits the coordinates to
@@ -981,21 +1053,25 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
     trunkFitCentroidGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
     trunkFitCentroidMeshGroup = trunkFitCentroidGroup.getOrCreateMeshGroup(fit_mesh1d)
 
+    annotationGroups = []
+
     for ii in range(iterationsNumber):
-        annotationGroups = []
 
         if ii == 0:
-            tx, td1, elementLength = estimate_trunk_coordinates(elementsAlongTrunk, marker_data)
+            trunk_data_endpoints = find_dataset_endpoints_optimised([trunk_pt[0] for trunk_pt in trunk_data])
+            tx, td1, _, elementLength = estimate_trunk_coordinates(elementsAlongTrunk, marker_data, trunk_data_endpoints, isHalfVagus)
         else:
             # read tx from fit_coordinates
             _, node_field_parameters = get_nodeset_field_parameters(fit_nodes, fit_coordinates, value_labels)
             tx = [nodeParameter[1][0][0] for nodeParameter in node_field_parameters]
             td1 = [nodeParameter[1][1][0] for nodeParameter in node_field_parameters]
 
-        trunk_nodes_data_bounds = estimate_trunk_data_boundaries(tx, trunk_data, elementsAlongTrunk)
+        trunk_nodes_data_bounds = estimate_trunk_data_boundaries(tx, elementsAlongTrunk, trunk_data_endpoints)
+        print(trunk_nodes_data_bounds)
 
         nodeIdentifier = 1
         lineIdentifier = 1
+
         nodes_before = []
         nodes_after = []
         for n in range(elementsAlongTrunk):
@@ -1035,10 +1111,9 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
         if ii == 0:
             # set markers
             for marker_name, marker_coordinate in marker_data.items():
-                # TODO: use get_vagus_term for name when terms are finalised
-                #annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, fit_region, get_vagus_term(marker_name), isMarker=True)
-                annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, fit_region, (marker_name, ''), isMarker=True)
-
+                annotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, fit_region,
+                                                                     get_vagus_marker_term(marker_name),
+                                                                     isMarker=True)
                 annotationGroup.createMarkerNode(nodeIdentifier, fit_coordinates, marker_coordinate)
                 nodeIdentifier += 1
         else:
@@ -1046,53 +1121,67 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
 
         # create temporary model file
         sir = fit_region.createStreaminformationRegion()
-        srf = sir.createStreamresourceFile("C:/MAP/output/vagus_scaffold_temp/vagus_trunk_model.exf")
-        fit_region.write(sir)
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            fitter_model_file = temp_file.name
+            srf = sir.createStreamresourceFile(fitter_model_file)
+            fit_region.write(sir)
 
         print('... Fitting trunk, iteration', str(ii + 1))
-        fitter_data_file = "C:/MAP/output/vagus_scaffold_temp/vagus_data.exf"
-        fitter_model_file = "C:/MAP/output/vagus_scaffold_temp/vagus_trunk_model.exf"
         fitter = fit_trunk_model(fitter_model_file, fitter_data_file, trunk_group_name + '-fit')
         set_fitted_group_nodes(fit_region, fitter, trunk_group_name + '-fit')
 
-        if len(nodes_before) > 0:
-            # recalculate unfitted nodes by the first fitted node
-            node = fit_nodes.findNodeByIdentifier(nodes_before[-1] + 1)
-            fit_fc.setNode(node)
-            _, lx = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-            _, ld1 = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        # remove temporary model file
+        os.remove(fitter_model_file)
 
-            node_count = 1
-            for i in range(len(nodes_before) - 1, -1, -1):
-                node_id = nodes_before[i]
-                x = [lx[j] - node_count * ld1[j] for j in range(3)]
+        if len(nodes_before) > 0 or len(nodes_after):
+            # calculate average derivative d1 along the vagus
+            trunk_fit_nodes = trunkFitCentroidGroup.getNodesetGroup(fit_nodes)
+            node_iter = fit_nodes.createNodeiterator()
+            node = node_iter.next()
+            avg_d1 = [0, 0, 0]
+            while node.isValid():
+                fit_fc.setNode(node)
+                _, ld1 = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                avg_d1 = add(avg_d1, ld1)
+                node = node_iter.next()
+            avg_d1 = [dim / trunk_fit_nodes.getSize() for dim in avg_d1]
 
+            if len(nodes_before) > 0:
+                # start unfitted nodes from the first fitted node coordinate
+                node_id = trunk_nodes_data_bounds[0]
                 node = fit_nodes.findNodeByIdentifier(node_id)
                 fit_fc.setNode(node)
-                fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, ld1)
-                node_count += 1
+                _, lx = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, 3)
 
-        if len(nodes_after) > 0:
-            # recalculate unfitted nodes by the last fitted node
-            node = fit_nodes.findNodeByIdentifier(nodes_after[0] - 1)
-            fit_fc.setNode(node)
-            _, lx = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-            _, ld1 = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                node_count = 1
+                for i in range(len(nodes_before) - 1, -1, -1):
+                    node_id = nodes_before[i]
+                    x = [lx[j] - node_count * avg_d1[j] for j in range(3)]
 
-            node_count = 1
-            for i in range(len(nodes_after)):
-                node_id = nodes_after[i]
-                x = [lx[j] + node_count * ld1[j] for j in range(3)]
+                    node = fit_nodes.findNodeByIdentifier(node_id)
+                    fit_fc.setNode(node)
+                    fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, avg_d1)
+                    node_count += 1
 
+            if len(nodes_after) > 0:
+                # start unfitted nodes from the last fitted node coordinate
+                node_id = trunk_nodes_data_bounds[-1]
                 node = fit_nodes.findNodeByIdentifier(node_id)
                 fit_fc.setNode(node)
-                fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, ld1)
-                node_count += 1
+                _, lx = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, 3)
 
-    visited_branches = []
-    branch_root_parameters = {}
+                node_count = 1
+                for i in range(len(nodes_after)):
+                    node_id = nodes_after[i]
+                    x = [lx[j] + node_count * avg_d1[j] for j in range(3)]
+
+                    node = fit_nodes.findNodeByIdentifier(node_id)
+                    fit_fc.setNode(node)
+                    fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    fit_coordinates.setNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, avg_d1)
+                    node_count += 1
+
     # 1d centroid line - branch root node
     fit_nodetemplateBranchRoot = fit_nodes.createNodetemplate()
     fit_nodetemplateBranchRoot.defineField(fit_coordinates)
@@ -1118,6 +1207,9 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
     fit_eltemplateBranchRoot.setElementShapeType(Element.SHAPE_TYPE_LINE)
     fit_eltemplateBranchRoot.defineField(fit_coordinates, -1, fit_eft1dBranchRoot)
 
+    visited_branches = []
+    branch_root_parameters = {}
+
     print('... Adding branches')
     queue = [branch for branch in branch_parents.keys() if branch_parents[branch] == trunk_group_name]
     while queue:
@@ -1131,17 +1223,13 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
 
         branch_coordinates = [branch_node[0] for branch_node in branch_data[branch_name]]
         branch_parent_name = branch_parents[branch_name]
-        #print('  parent: ', branch_parent_name)
+        #print(branch_name, ' -> ', branch_parent_name)
 
         # determine branch approximate start and closest trunk node index
         bx, bd1, parent_s_nid, parent_f_nid, branch_root_xi, elementsAlongBranch = \
             estimate_branch_coordinates(fit_region, branch_coordinates, elementLength, branch_parent_name)
         branch_root_parameters[branch_name] = [parent_s_nid, parent_f_nid, branch_root_xi, bx[0]]
-        # print('  branch between nodes: ', parent_s_nid, parent_f_nid)
-
-        # branchCentroidGroup = AnnotationGroup(fit_region, (branch_name, 'None'))
-        # annotationGroups.append(branchCentroidGroup)
-        # branchCentroidMeshGroup = branchCentroidGroup.getMeshGroup(fit_mesh1d)
+        # print('  branch between nodes:', parent_s_nid, parent_f_nid, 'at loc =', branch_root_xi)
 
         branchCentroidGroup = find_or_create_field_group(fit_fm, branch_name)
         branchCentroidGroup.setSubelementHandlingMode(FieldGroup.SUBELEMENT_HANDLING_MODE_FULL)
@@ -1186,15 +1274,19 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
         if branchNodesetGroup.isValid():
             branchNodesetGroup.removeNodesConditional(parentGroup)
 
+        # create temporary model file
         sir = fit_region.createStreaminformationRegion()
-        srf = sir.createStreamresourceFile("C:/MAP/output/vagus_scaffold_temp/vagus_model.exf")
-        fit_region.write(sir)
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            fitter_model_file = temp_file.name
+            srf = sir.createStreamresourceFile(fitter_model_file)
+            fit_region.write(sir)
 
-        #print('  ... branch fitting')
-        fitter_data_file = "C:/MAP/output/vagus_scaffold_temp/vagus_data.exf"
-        fitter_model_file = "C:/MAP/output/vagus_scaffold_temp/vagus_model.exf"
+        #print('fitting %s' % branch_name)
         fitter = fit_branches_model(fitter_model_file, fitter_data_file, branch_name)
         set_fitted_group_nodes(fit_region, fitter, branch_name)
+
+        # remove temporary model file
+        os.remove(fitter_model_file)
 
         # extract first branch node - x & d1 fitted value
         branch_group = find_or_create_field_group(fit_fm, branch_name)
@@ -1205,10 +1297,10 @@ def evaluate_vagus_1d_coordinates(region, marker_data, trunk_group_name, trunk_d
         _, sd1 = fit_coordinates.getNodeParameters(fit_fc, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
         branch_root_parameters[branch_name].append(sd1)
 
-    return fit_region, visited_branches, branch_root_parameters
+    return fit_region, annotationGroups, visited_branches, branch_root_parameters
 
 
-def estimate_trunk_coordinates(elementsAlongTrunk, marker_data):
+def estimate_trunk_coordinates(elementsAlongTrunk, marker_data, trunk_data_endpoints, isHalfVagus):
     """
 
     """
@@ -1216,25 +1308,31 @@ def estimate_trunk_coordinates(elementsAlongTrunk, marker_data):
     # choose markers for building initial scaffold
     # at the moment uses the first and the last markers in the data
     termNameVagusLengthList = {
-        "level of exiting brainstem": 0.0,  # note this term is not on the list of annotations
-        "level of superior border of jugular foramen": 8.6342,
-        "level of inferior border of jugular foramen": 16.7227,
-        "level of C1 transverse process": 32.1129,
-        "level of angle of mandible": 42.2450,
-        "level of greater horn of hyoid": 45.6122,
-        "level of carotid bifurcation": 48.3581,
-        "level of laryngeal prominence": 68.8431,
-        "level of superior border of the clavicle": 117.5627,
-        "level of jugular notch": 124.6407,
-        "level of carina": 149.5929, # not on the list of annotations yet!
-        "level of sternal angle": 151.2352,
-        "level of 1 cm superior to start of esophageal plexus": 165.5876,
-        "level of esophageal hiatus": 254.32879,
-        "level of aortic hiatus": 291.3695,
+        # cervical region
+        "level of exiting brainstem on the vagus nerve": 0.0,  # note this term is not on the list of annotations
+        "level of superior border of jugular foramen on the vagus nerve": 8.6342,
+        "level of inferior border of jugular foramen on the vagus nerve": 16.7227,
+        "level of inferior border of cranium on the vagus nerve": 18.375,
+        "level of C1 transverse process on the vagus nerve": 32.1129,
+        "level of angle of mandible on the vagus nerve": 42.2450,
+        "level of greater horn of hyoid on the vagus nerve": 45.6122,
+        "level of carotid bifurcation on the vagus nerve": 48.3581,
+        "level of laryngeal prominence on the vagus nerve": 68.8431,
+        # thoracic region
+        "level of superior border of the clavicle on the vagus nerve": 117.5627,
+        "level of jugular notch on the vagus nerve": 124.6407,
+        "level of carina": 149.5929,  # not on the list of annotations yet!
+        "level of sternal angle on the vagus nerve": 151.2352,
+        "level of 1 cm superior to start of esophageal plexus on the vagus nerve": 165.5876,
+        # abdominal region
+        "level of esophageal hiatus on the vagus nerve": 254.32879,
+        "level of aortic hiatus on the vagus nerve": 291.3695,
         "level of end of trunk": 312.5  # note this term is also not on the list of annotations
     }
 
-    totalVagusLength = 312.5  # calculated from total length of nerve/average diameter of nerve
+    totalVagusLength = estimate_parametrised_vagus_length(isHalfVagus)
+    step = totalVagusLength / (elementsAlongTrunk - 1)
+    elementLength = magnitude(sub(trunk_data_endpoints[0], trunk_data_endpoints[-1])) / (elementsAlongTrunk - 1)
 
     use_markers = [list(marker_data.keys())[0],
                    list(marker_data.keys())[-1]]
@@ -1243,13 +1341,11 @@ def estimate_trunk_coordinates(elementsAlongTrunk, marker_data):
     params = []
 
     for marker in use_markers:
-        use_marker_name = marker.replace('left ', '', 1).replace('right ', '', 1).replace(' on the vagus nerve', '', 1)
+        use_marker_name = marker.replace('left ', '', 1).replace('right ', '', 1)
         assert use_marker_name in termNameVagusLengthList
 
         pts.append(marker_data[marker])
         params.append(termNameVagusLengthList[use_marker_name])
-
-    step = totalVagusLength / (elementsAlongTrunk - 1)
     dx, dy, dz = [(pts[1][dim] - pts[0][dim]) / (params[1] - params[0]) for dim in range(3)]
 
     trunk_coords = []
@@ -1260,36 +1356,29 @@ def estimate_trunk_coordinates(elementsAlongTrunk, marker_data):
                              pts[0][2] + dz * (i * step - params[0])])
         trunk_d1.append([dx * step, dy * step, dz * step])
 
-    return trunk_coords, trunk_d1, step
+    return trunk_coords, trunk_d1, step, elementLength
 
 
-def estimate_trunk_data_boundaries(trunk_nodes, trunk_data, elementsAlongTrunk):
+def estimate_trunk_data_boundaries(trunk_nodes, elementsAlongTrunk, trunk_data_endpoints):
     """
     """
-
-    # finding trunk nodes at the start and end of trunk data - by projections
-    # TODO: change brute force to something (takes too long for CASE data),
-    # at the moment assumes trunk_data is numbered top to bottom
-
-    #trunk_data_endpoints = find_dataset_endpoints([trunk_pt[0] for trunk_pt in trunk_data])
-    trunk_data_endpoints = [trunk_data[0][0], trunk_data[-1][0]]
 
     trunk_nodes_data_bounds = []
     for ind, endpoint in enumerate(trunk_data_endpoints):
-        ap = sub(endpoint, trunk_nodes[0])
-        ab = sub(trunk_nodes[-1], trunk_nodes[0])
-        param = dot(ap, ab) / dot(ab, ab)  # between 0 and 1
-        nearby_node = param * (elementsAlongTrunk - 1) + 1
+        param = find_point_projection_relative_to_segment(endpoint, trunk_nodes[0], trunk_nodes[-1])
+        if param < 0:
+            nearby_node = 1
+        elif param > 1:
+            nearby_node = elementsAlongTrunk
+        else:
+            nearby_node = param * (elementsAlongTrunk - 1) + 1
 
         if ind == 0:
             # trunk node near the start of data
             trunk_nodes_data_bounds.append(math.floor(nearby_node))
         else:
             # trunk node near the end of data
-            if nearby_node >= elementsAlongTrunk:
-                trunk_nodes_data_bounds.append(elementsAlongTrunk)
-            else:
-                trunk_nodes_data_bounds.append(math.ceil(nearby_node))
+            trunk_nodes_data_bounds.append(math.ceil(nearby_node))
 
     return trunk_nodes_data_bounds
 
@@ -1305,8 +1394,7 @@ def estimate_branch_coordinates(region, branch_coordinates, elementLength, branc
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
     # assumes parent_group_name is known
-    branch_start_x, branch_end_x, parent_s_nid, parent_f_nid = find_branch_start_segment(region,
-                                                                                         branch_coordinates,
+    branch_start_x, branch_end_x, parent_s_nid, parent_f_nid = find_branch_start_segment(region, branch_coordinates,
                                                                                          branch_parent_name)
 
     # determine parent hermite curve parameters
@@ -1325,23 +1413,23 @@ def estimate_branch_coordinates(region, branch_coordinates, elementLength, branc
     xi_b = 1
     eps = 0.005
     while (xi_b - xi_a) > eps:
-        dsq_a = magnitude_squared(sub(branch_start_x, interpolateCubicHermite(px_1, pd1_1, px_2, pd1_2, xi_a)))
-        dsq_b = magnitude_squared(sub(branch_start_x, interpolateCubicHermite(px_1, pd1_1, px_2, pd1_2, xi_b)))
+        dsq_a = distance_squared(branch_start_x, interpolateCubicHermite(px_1, pd1_1, px_2, pd1_2, xi_a))
+        dsq_b = distance_squared(branch_start_x, interpolateCubicHermite(px_1, pd1_1, px_2, pd1_2, xi_b))
         if dsq_a >= dsq_b:
             xi_a = (xi_a + xi_b) / 2
         else:
             xi_b = (xi_a + xi_b) / 2
     branch_root_xi = (xi_a + xi_b) / 2
-    #print('\t xi = %s' % branch_root_xi)
 
     # recalculate branch start parameters
     branch_start_x = interpolateHermiteLagrange(px_1, pd1_1, px_2, branch_root_xi)
-
     branch_length = magnitude(sub(branch_end_x, branch_start_x))
-    elementsAlongBranch = int(branch_length / elementLength - 1)
+    elementsAlongBranch = math.floor(branch_length / elementLength) + 1
     if elementsAlongBranch < 3:
         # need to have at least 3 nodes (including fictionary), otherwise branch
         elementsAlongBranch = 3
+    if elementsAlongBranch > 10:
+        elementsAlongBranch = 10
 
     branch_coordinates = []
     dx, dy, dz = div(sub(branch_end_x, branch_start_x), (elementsAlongBranch - 1))
@@ -1357,45 +1445,57 @@ def find_branch_start_segment(region, branch_coordinates, parent_group_name):
     """
 
     """
-    branch_ends_points = find_dataset_endpoints(branch_coordinates)
 
     fm = region.getFieldmodule()
     coordinates = fm.findFieldByName("coordinates").castFiniteElement()
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
     parent_group = find_or_create_field_group(fm, parent_group_name)
     parent_nodeset = parent_group.getNodesetGroup(nodes)
-
     _, group_parameters = get_nodeset_field_parameters(parent_nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
-    group_ids = [parameter[0] for parameter in group_parameters]
-    group_x = [parameter[1][0][0] for parameter in group_parameters]
+    parent_nodeset_ids = [parameter[0] for parameter in group_parameters]
+    parent_nodeset_x = [parameter[1][0][0] for parameter in group_parameters]
+
+    # find branch ends in data
+    branch_ends_points = find_dataset_endpoints_optimised(branch_coordinates)
 
     # find closest to branch distance, branch start, group node closest to the branch
     min_dsq = float('inf')
-    for i in range(len(group_x)):
-        node_x = group_x[i]
+    for i in range(len(parent_nodeset_x)):
+        node_x = parent_nodeset_x[i]
         if node_x is None:
             continue
+
         for branch_point in branch_ends_points:
-            distance_squared = magnitude_squared(sub(node_x, branch_point))
-            if distance_squared <= min_dsq:
-                min_dsq = distance_squared
+            dist = distance_squared(node_x, branch_point)
+            if dist <= min_dsq:
+                min_dsq = dist
                 branch_start = branch_point
                 closest_index = i
 
-    # determine segment closest to branch  (previous or next to the node)
-    if closest_index == len(group_x) - 1:
-        closest_index -= 1
-    if closest_index > 0 and (closest_index < len(group_x) - 1):
-        # TODO: should think about the case when closest_index = 0:
-        # actual starting point might not have a node,
-        # therefore first segment is not always taken into consideration
-        dsq_prev_node = magnitude_squared(sub(branch_start, group_x[closest_index - 1]))
-        dsq_next_node = magnitude_squared(sub(branch_start, group_x[closest_index + 1]))
-        if dsq_prev_node < dsq_next_node:
-            closest_index -= 1
+    # determine segment closest to branch (previous or next to the node)
+    if closest_index == 0:
+        parent_start_index = closest_index
+    elif closest_index == len(parent_nodeset_x) - 1:
+        parent_start_index = closest_index - 1
+    else:
+        proj_before = find_point_projection_relative_to_segment(branch_start,
+                                                                parent_nodeset_x[closest_index - 1],
+                                                                parent_nodeset_x[closest_index])
+        proj_after = find_point_projection_relative_to_segment(branch_start,
+                                                               parent_nodeset_x[closest_index],
+                                                               parent_nodeset_x[closest_index + 1])
+        if 0 <= proj_before <= 1:
+            parent_start_index = closest_index - 1
+        elif 0 <= proj_after <= 1:
+            parent_start_index = closest_index
+        elif abs(proj_before) < abs(proj_after):
+            parent_start_index = closest_index - 1
+        else:
+            parent_start_index = closest_index
 
-    parent_s_node_id = group_ids[closest_index]
-    parent_f_node_id = group_ids[closest_index + 1]
+    parent_s_node_id = parent_nodeset_ids[parent_start_index]
+    parent_f_node_id = parent_nodeset_ids[parent_start_index + 1]
     branch_end = branch_ends_points[0] if branch_ends_points[1] == branch_start else branch_ends_points[1]
 
     return branch_start, branch_end, parent_s_node_id, parent_f_node_id
@@ -1419,62 +1519,30 @@ def fit_trunk_model(modelfile, datafile, trunk_group_name = None):
     fitter.setMarkerGroupByName('marker')  # not necessary, it's marker by default
     fitter.setDiagnosticLevel(0)
 
-    # align step
-    # align = FitterStepAlign()
-    # align.setAlignMarkers(True)
-    # align.setAlignGroups(True)
-    # align.setScaleProportion(1.0)
-    # fitter.addFitterStep(align)
-    # align.run()
-
-    # fit step 1
-    # fit1 = FitterStepFit()
-    # fit1.setGroupDataWeight('marker', 200.0)
-    # fit1.setGroupStrainPenalty(None, [15.0])
-    # fit1.setGroupCurvaturePenalty(None, [50.0])
-    # fit1.setGroupDataWeight(None, 5.0)
-    # fit1.setNumberOfIterations(10)
-    # fit1.setUpdateReferenceState(True)
-    # fitter.addFitterStep(fit1)
-    #
-    # # fit step 2
-    # fit2 = FitterStepFit()
-    # fit2.setGroupDataWeight('marker', 400.0)
-    # fit1.setGroupDataWeight(None, None)
-    # fit2.setNumberOfIterations(5)
-    # fit2.setUpdateReferenceState(True)
-    # fitter.addFitterStep(fit2)
-
     # fit step 1
     fit1 = FitterStepFit()
+    fit1.setGroupDataWeight('marker', [100.0])
+    fit1.setGroupDataSlidingFactor('marker', 0.01)
     fit1.setGroupStrainPenalty(None, [15.0])
     fit1.setGroupCurvaturePenalty(None, [50.0])
-    fit1.setGroupDataWeight(None, 10.0)
     fit1.setNumberOfIterations(10)
     fit1.setUpdateReferenceState(True)
     fitter.addFitterStep(fit1)
 
     # fit step 2
-    fit2 = FitterStepFit()
-    fit1.setGroupDataWeight(None, [10.0])
+    fit1 = FitterStepFit()
+    fit1.setGroupDataWeight('marker', [100.0])
+    fit1.setGroupDataSlidingFactor('marker', 0.01)
     fit1.setGroupStrainPenalty(None, [5.0])
     fit1.setGroupCurvaturePenalty(None, [100.0])
-    fit2.setNumberOfIterations(5)
-    fit2.setUpdateReferenceState(True)
-    fitter.addFitterStep(fit2)
+    fit1.setNumberOfIterations(5)
+    fit1.setUpdateReferenceState(True)
+    fitter.addFitterStep(fit1)
 
     fitter.run()
 
-    rmsError, maxError = fitter.getDataRMSAndMaximumProjectionError()
     rmsTrunkError, maxTrunkError = fitter.getDataRMSAndMaximumProjectionErrorForGroup('left vagus X nerve trunk')
     rmsMarkerError, maxMarkerError = fitter.getDataRMSAndMaximumProjectionErrorForGroup('marker')
-
-    # print('(all) RMS error: ' + str(rmsError))
-    # print('(all) Max error: ' + str(maxError))
-    # print('(trunk) RMS error: ' + str(rmsTrunkError))
-    # print('(trunk) Max error: ' + str(maxTrunkError))
-    # print('(marker) RMS error: ' + str(rmsMarkerError))
-    # print('(marker) Max error: ' + str(maxMarkerError))
 
     return fitter
 
@@ -1482,16 +1550,16 @@ def fit_trunk_model(modelfile, datafile, trunk_group_name = None):
 def fit_branches_model(modelfile, datafile, branch_name = None):
     """
     Initialises scaffold fitter and runs through its steps for a given vagus nerve branch.
+    :param modelfile
     """
-    fitter = Fitter(modelfile, datafile)
-    fitter.load()
 
     # initial configuration
-    fitter_fieldmodule = fitter.getFieldmodule()
+    fitter = Fitter(modelfile, datafile)
+    fitter.load()
     fitter.setModelCoordinatesFieldByName('coordinates')
     if branch_name:
         fitter.setModelFitGroupByName(branch_name)
-    fitter.setFibreField(fitter_fieldmodule.findFieldByName("zero fibres"))
+    fitter.setFibreField(fitter.getFieldmodule().findFieldByName("zero fibres"))
     fitter.setDataCoordinatesFieldByName('coordinates')
     fitter.setMarkerGroupByName('marker')  # not necessary, it's marker by default
     fitter.setDiagnosticLevel(0)
@@ -1500,24 +1568,13 @@ def fit_branches_model(modelfile, datafile, branch_name = None):
     fit1 = FitterStepFit()
     fit1.setGroupStrainPenalty(None, [15.0])
     fit1.setGroupCurvaturePenalty(None, [50.0])
-    fit1.setGroupDataWeight(None, 5.0)
     fit1.setNumberOfIterations(5)
     fit1.setUpdateReferenceState(True)
     fitter.addFitterStep(fit1)
-
-    # fit step 2
-    # fit2 = FitterStepFit()
-    # fit2.setGroupStrainPenalty(None, [50.0])
-    # fit2.setGroupCurvaturePenalty(None, [10.0])
-    # fit2.setNumberOfIterations(5)
-    # fit2.setUpdateReferenceState(True)
-    # fitter.addFitterStep(fit2)
-
     fitter.run()
 
-    rmsError, maxError = fitter.getDataRMSAndMaximumProjectionErrorForGroup(branch_name)
-    #print('(%s) RMS error: %f' % (branch_name, rmsError))
-    #print('(%s) Max error: %f' % (branch_name, maxError))
+    rmsError, _ = fitter.getDataRMSAndMaximumProjectionErrorForGroup(branch_name)
+    #print(branch_name, rmsError)
 
     return fitter
 
@@ -1555,4 +1612,3 @@ def set_fitted_group_nodes(region, fitter_region, group_name = None):
         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, lx)
         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, ld1)
         fitter_node = fitter_node_iter.next()
-

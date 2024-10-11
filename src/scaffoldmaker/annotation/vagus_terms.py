@@ -3,56 +3,56 @@ Common resource for vagus annotation terms.
 """
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
-vagus_terms = [
+vagus_marker_terms = [
     # anatomical landmarks
     ("level of superior border of jugular foramen on the vagus nerve", "ILX:0794617"),
-    ("level of inferior border of jugular foramen on the vagus nerve", "ILX:0794620"),
-    ("level of inferior border of cranium on the vagus nerve", "ILX:0794623"),
-    ("level of C1 transverse process on the vagus nerve", "ILX:0794626"),
-    ("level of greater horn of hyoid on the vagus nerve", "ILX:0794629"),
-    ("level of laryngeal prominence on the vagus nerve", "ILX:0794632"),
-    ("level of angle of the mandible on the vagus nerve", "ILX:0794635"),
-    ("level of carotid bifurcation on the vagus nerve", "ILX:0794638"),
-    ("level of superior border of the clavicle on the vagus nerve", "ILX:0794641"),
-    ("level of jugular notch on the vagus nerve", "ILX:0794644"),
-    ("level of carina on the vagus nerve", "None"),
-    ("level of sternal angle on the vagus nerve", "ILX:0794647"),
-    ("level of 1 cm superior to start of esophageal plexus on the vagus nerve", "ILX:0794650"),  # !!!
-    ("level of esophageal hiatus on the vagus nerve", "ILX:0794653"),
-    ("level of aortic hiatus on the vagus nerve", "ILX:0794656"),
-
     ("right level of superior border of jugular foramen on the vagus nerve", "ILX:0794618"),
-    ("right level of inferior border of jugular foramen on the vagus nerve", "ILX:0794621"),
-    ("right level of inferior border of cranium on the vagus nerve", "ILX:0794624"),
-    ("right level of C1 transverse process on the vagus nerve", "ILX:0794627"),
-    ("right level of greater horn of hyoid on the vagus nerve", "ILX:0794630"),
-    ("right level of laryngeal prominence on the vagus nerve", "ILX:0794633"),
-    ("right level of angle of the mandible on the vagus nerve", "ILX:0794636"),
-    ("right level of carotid bifurcation on the vagus nerve", "ILX:0794639"),
-    ("right level of superior border of the clavicle on the vagus nerve", "ILX:0794642"),
-    ("right level of jugular notch on the vagus nerve", "ILX:0794645"),
-    ("right level of carina on the vagus nerve", "None"),
-    ("right level of sternal angle on the vagus nerve", "ILX:0794648"),
-    ("right level of 1 cm superior to start of esophageal plexus on the vagus nerve", "ILX:0794651"),  # !!!
-    ("right level of esophageal hiatus on the vagus nerve", "ILX:0794654"),
-    ("right level of aortic hiatus on the vagus nerve", "ILX:0794657"),
-
     ("left level of superior border of jugular foramen on the vagus nerve", "ILX:0794619"),
+    ("level of inferior border of jugular foramen on the vagus nerve", "ILX:0794620"),
+    ("right level of inferior border of jugular foramen on the vagus nerve", "ILX:0794621"),
     ("left level of inferior border of jugular foramen on the vagus nerve", "ILX:0794622"),
+    ("level of inferior border of cranium on the vagus nerve", "ILX:0794623"),
+    ("right level of inferior border of cranium on the vagus nerve", "ILX:0794624"),
     ("left level of inferior border of cranium on the vagus nerve", "ILX:0794625"),
+    ("level of C1 transverse process on the vagus nerve", "ILX:0794626"),
+    ("right level of C1 transverse process on the vagus nerve", "ILX:0794627"),
     ("left level of C1 transverse process on the vagus nerve", "ILX:0794628"),
+    ("level of greater horn of hyoid on the vagus nerve", "ILX:0794629"),
+    ("right level of greater horn of hyoid on the vagus nerve", "ILX:0794630"),
     ("left level of greater horn of hyoid on the vagus nerve", "ILX:0794631"),
-    ("left level of laryngeal prominence on the vagus nerve","ILX:0794634"),
+    ("level of laryngeal prominence on the vagus nerve", "ILX:0794632"),
+    ("right level of laryngeal prominence on the vagus nerve", "ILX:0794633"),
+    ("left level of laryngeal prominence on the vagus nerve", "ILX:0794634"),
+    ("level of angle of the mandible on the vagus nerve", "ILX:0794635"),
+    ("right level of angle of the mandible on the vagus nerve", "ILX:0794636"),
     ("left level of angle of the mandible on the vagus nerve", "ILX:0794637"),
+    ("level of carotid bifurcation on the vagus nerve", "ILX:0794638"),
+    ("right level of carotid bifurcation on the vagus nerve", "ILX:0794639"),
     ("left level of carotid bifurcation on the vagus nerve", "ILX:0794640"),
+    ("level of superior border of the clavicle on the vagus nerve", "ILX:0794641"),
+    ("right level of superior border of the clavicle on the vagus nerve", "ILX:0794642"),
     ("left level of superior border of the clavicle on the vagus nerve", "ILX:0794643"),
+    ("level of jugular notch on the vagus nerve", "ILX:0794644"),
+    ("right level of jugular notch on the vagus nerve", "ILX:0794645"),
     ("left level of jugular notch on the vagus nerve", "ILX:0794646"),
-    ("left level of carina on the vagus nerve", "None"),
+    #("level of carina", "None"),
+    #("right level of carina", "None"),
+    #("left level of carina", "None"),
+    ("level of sternal angle on the vagus nerve", "ILX:0794647"),
+    ("right level of sternal angle on the vagus nerve", "ILX:0794648"),
     ("left level of sternal angle on the vagus nerve", "ILX:0794649"),
-    ("left level of 1 cm superior to start of esophageal plexus on the vagus nerve", "ILX:0794652"), # !!!
+    ("level of 1 cm superior to start of esophageal plexus on the vagus nerve", "ILX:0794650"),  # !!!
+    ("right level of 1 cm superior to start of esophageal plexus on the vagus nerve", "ILX:0794651"),  # !!!
+    ("left level of 1 cm superior to start of esophageal plexus on the vagus nerve", "ILX:0794652"),  # !!!
+    ("level of esophageal hiatus on the vagus nerve", "ILX:0794653"),
+    ("right level of esophageal hiatus on the vagus nerve", "ILX:0794654"),
     ("left level of esophageal hiatus on the vagus nerve", "ILX:0794655"),
+    ("level of aortic hiatus on the vagus nerve", "ILX:0794656"),
+    ("right level of aortic hiatus on the vagus nerve", "ILX:0794657"),
     ("left level of aortic hiatus on the vagus nerve", "ILX:0794658"),
+]
 
+vagus_branch_terms = [
     # branch names, based on lit.review
     # branch names with no indication of the side
     ("meningeal branch of vagus nerve", "FMA:6231"),
@@ -79,7 +79,7 @@ vagus_terms = [
     ("inferior cervical cardiac branch of vagus nerve", "FMA:75530"),
     ("thoracic cardiac branch of vagus nerve", "FMA:53601"),
 
-    # right vagus
+    # right vagus branches
     ("right vagus nerve", "FMA:6219"),
     ("right vagus X nerve trunk", "UBERON:0035021"),
     ("meningeal branch of right vagus nerve", "FMA:53541"),
@@ -135,7 +135,13 @@ vagus_terms = [
     ("right cardiac branch to deep cardiac nerve plexus", "FMA:6711"),
     ("branch of right vagus nerve to oesophageal nerve plexus", "ILX:0794299"),
 
-    # left vagus
+    # posterior vagus, a continuation of right vagus
+    ("Posterior esophageal vagus trunk", "ILX:0794858"),
+    ("Celiac branch of posterior vagal trunk", "FMA:6667"),
+    ("Greater posterior gastric nerve", "FMA:6689"),
+    ("Pyloric branch of greater posterior gastric nerve", "FMA:6677"),
+
+    # left vagus branches
     ("left vagus nerve", "FMA:6220"),
     ("left vagus X nerve trunk", "UBERON:0035020"),
     ("meningeal branch of left vagus nerve", "FMA:53542"),
@@ -193,15 +199,43 @@ vagus_terms = [
     ("greater anterior gastric nerve", "FMA:6684"),
     ("branch of greater anterior gastric nerve to coeliac nerve plexus", "FMA:53675"),
 
-    # posterior vagus, a continuation of right vagus
-    ("Posterior esophageal vagus trunk", "ILX:0794858"),
-    ("Celiac branch of posterior vagal trunk", "FMA:6667"),
-    ("Greater posterior gastric nerve", "FMA:6689"),
-    ("Pyloric branch of greater posterior gastric nerve", "FMA:6677"),
 ]
 
+def access_vagus_marker_terms():
+    return vagus_marker_terms
 
-def get_vagus_term(name : str):
+def access_vagus_branch_terms():
+    return vagus_branch_terms
+
+# def get_vagus_branch_term(name : str):
+#     """
+#     Find term by matching name to any identifier held for a term.
+#     Raise exception if name not found.
+#     :return ( preferred name, preferred id )
+#     """
+#     for term in vagus_branch_terms:
+#         if name in term:
+#             return ( term[0], term[1] )
+#     raise NameError("Vagus annotation term '" + name + "' not found.")
+
+def get_vagus_marker_term(name : str):
+    """
+    Find term by matching name to any identifier held for a term.
+    Raise exception if name not found.
+    :return ( preferred name, preferred id )
+    """
+    for term in vagus_marker_terms:
+        if name in term:
+            return ( term[0], term[1] )
+    raise NameError("Vagus annotation term '" + name + "' not found.")
+
+def marker_name_in_terms(name : str):
+    for term in vagus_marker_terms:
+        if name in term:
+            return True
+    return False
+
+def get_vagus_branch_term(name, vagus_terms):
     """
     Find term by matching name to any identifier held for a term.
     Raise exception if name not found.
@@ -210,4 +244,4 @@ def get_vagus_term(name : str):
     for term in vagus_terms:
         if name in term:
             return ( term[0], term[1] )
-    raise NameError("Vagus annotation term '" + name + "' not found.")
+    return ( name, "")

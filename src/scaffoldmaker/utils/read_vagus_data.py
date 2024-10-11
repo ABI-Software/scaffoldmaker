@@ -1,5 +1,7 @@
 import os
 import csv
+import tempfile
+import pandas as pd
 
 from cmlibs.utils.zinc.field import get_group_list, findOrCreateFieldCoordinates, findOrCreateFieldStoredString, \
     findOrCreateFieldGroup
@@ -7,13 +9,19 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 
+from scaffoldmaker.annotation.vagus_terms import access_vagus_branch_terms, get_vagus_marker_term, marker_name_in_terms
 
-def load_exf_data(data_region):
+
+def load_vagus_data(data_region):
     """
     Extract data related to vagus from supplied exf file,
     separate out data related to vagus trunk, vagus branches, markers (anatomical landmarks),
     does not extract fascicle data at the moment
     """
+
+    # TODO: figure out the right location for the file
+    termlist_location = "../../../packages/scaffoldmaker/src/scaffoldmaker/annotation/vagus_terms.xlsx"
+    marker_terms, vagus_branch_terms = load_case_vagus_terms(termlist_location)
 
     fm = data_region.getFieldmodule()
     fc = fm.createFieldcache()
@@ -53,7 +61,15 @@ def load_exf_data(data_region):
             fc.setNode(marker_node)
             _, x = coordinates.evaluateReal(fc, 3)
             marker_name = marker_names.evaluateString(fc)
-            marker_data[marker_name] = x
+            if marker_name_in_terms(marker_name):
+                marker_data[marker_name] = x
+            else:
+                # find marker name in CASE termslist
+                marker_ilx = marker_terms[marker_name]
+                # find marker name in our system
+                if marker_ilx != 'NEW':
+                    marker_term_name = get_vagus_marker_term(marker_ilx)
+                    marker_data[marker_term_name[0]] = x
             marker_node = marker_node_iter.next()
 
     # extract trunk data - coordinates, nodes, radius - assume only one trunk group is used
@@ -65,7 +81,7 @@ def load_exf_data(data_region):
 
     # TODO:
     # project markers onto trunk if markers are projectable between first and last trunk node
-    # if they are higher or lower, leave them where they are
+    # if they are higher or lower than data, leave them where they are
 
 
     # extract branch data - name, coordinates, nodes, radius
@@ -104,88 +120,60 @@ def load_exf_data(data_region):
 
     # write all data in a file for geometry fitter
     sir = data_region.createStreaminformationRegion()
-    srf = sir.createStreamresourceFile("C:/MAP/output/vagus_scaffold_temp/vagus_data.exf")
-    data_region.write(sir)
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        datafile_path = temp_file.name
+        srf = sir.createStreamresourceFile(datafile_path)
+        data_region.write(sir)
 
-    return marker_data, trunk_group_name, trunk_coordinates, trunk_radius, branch_coordinates_data, branch_parents, branch_radius_data
+    return marker_data, trunk_group_name, trunk_coordinates, trunk_radius, branch_coordinates_data, branch_parents, \
+           branch_radius_data, vagus_branch_terms, datafile_path
 
 
-def load_exf_data_contours_japanese_dataset(region):
-    """
-    Extract data from supplied exf datafile, separate out data related to
-    vagus trunk, vagus branches, fascicles, markers (anatomical landmarks)
-    """
+def load_case_vagus_terms(filename):
+    def format_interlex_id(value):
 
-    data_region = region.getParent().findChildByName('data')
-    assert data_region.isValid()
+        if isinstance(value, str) and 'http://uri.interlex.org/base/ilx_' in value:
+            start = value.find('ilx_') + 4
+            # Extract the numeric part after 'ilx_' and format it as 'ILX:XXXXXXX'
+            return f"ILX:{value[start:]}"
+        # If no URL is found, return the value as is
+        return value
 
-    fm = data_region.getFieldmodule()
-    fc = fm.createFieldcache()
+    def extract_between_markers(df, start_marker, end_marker):
+        # Find the index of the row containing the start_marker
+        start_row = df[df.eq(start_marker).any(axis=1)].index[0]
 
-    group_list = get_group_list(fm)
-    group_map = {}
-    trunk_group_name = None
-    branch_group_names = []
-    branch_keywords = ['branch', 'nerve']
-    for group in group_list:
-        group_name = group.getName()
-        group_map[group_name] = group
-        if 'trunk' in group_name.lower():
-            trunk_group_name = group_name
-            continue
-        if any(branch_keywords) in group_name.lower():
-            branch_group_names.append(group_name)
+        # Find the index of the first row containing the end_marker
+        end_row = df[df.eq(end_marker).any(axis=1)].index[0]
 
-    # extract marker data
-    markers = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-    marker_coordinates = fm.findFieldByName("marker_data_coordinates").castFiniteElement()
-    marker_name_field = fm.findFieldByName("marker_data_name")
-    assert marker_coordinates.isValid() and (marker_coordinates.getNumberOfComponents() == 3)
+        # Select rows between start_row and end_row
+        return df.loc[start_row + 1:end_row]
 
-    marker_data = {}
-    marker_group = group_map.get("marker")
-    if marker_group:
-        marker_nodes = marker_group.getNodesetGroup(markers)
-        marker_node_iter = marker_nodes.createNodeiterator()
-        marker_node = marker_node_iter.next()
-        while marker_node.isValid():
-            fc.setNode(marker_node)
-            result, x = marker_coordinates.evaluateReal(fc, 3)
-            marker_name = marker_name_field.evaluateString(fc)
-            marker_data[marker_name] = x
-            marker_node = marker_node_iter.next()
+    df = pd.read_excel(filename, sheet_name='Full Termlist')
+    df['ILX UUID'] = df['ILX UUID'].apply(format_interlex_id)
+    df = df[['Unnamed: 0', 'ILX UUID']]
 
-    # extract other vagus data
-    nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    coordinates = fm.findFieldByName("coordinates").castFiniteElement()
-    assert coordinates.isValid() and (coordinates.getNumberOfComponents() == 3)
-    radius = fm.findFieldByName("radius").castFiniteElement()
+    # Select rows for 'REVA Gross Anatomy Landmarks and Levels'
+    start_row = df[df.eq('REVA Gross Anatomy Landmarks and Levels').any(axis=1)].index[0]
+    end_row = df[df.eq('REVA Bony Landmarks').any(axis=1)].index[0]
+    filtered_vagus_levels = df.loc[start_row:end_row - 1]
+    vagus_levels = filtered_vagus_levels.set_index('Unnamed: 0')['ILX UUID'].to_dict()
 
-    trunk_data_coordinates, trunk_nodes = get_nodeset_fieldgroup_parameters(nodes, coordinates, trunk_group_name, [Node.VALUE_LABEL_VALUE])
-    if radius.isValid():
-        trunk_radius, _ = get_nodeset_fieldgroup_parameters(nodes, radius, trunk_group_name, [Node.VALUE_LABEL_VALUE])
-    else:
-        trunk_radius = [2 for i in range(1, len(trunk_data_coordinates))]
+    # Select rows for 'REVA Vagus Structures'
+    start_row = df[df.eq('REVA Vagus Structures').any(axis=1)].index[0]
+    end_row = df[start_row:].isnull().all(axis=1).idxmax()
+    filtered_vagus_structures = df.loc[start_row:end_row - 1]
+    vagus_branches = filtered_vagus_structures.set_index('Unnamed: 0')['ILX UUID'].to_dict()
 
-    branch_data = {}
-    branch_radius_data = {}
-    for branch_name in branch_group_names:
-        branch_parameters, branch_nodes = get_nodeset_fieldgroup_parameters(nodes, coordinates, branch_name, [Node.VALUE_LABEL_VALUE])
-        branch_data[branch_name] = branch_parameters
+    vagus_branch_terms = access_vagus_branch_terms()
+    vagus_branch_terms.extend(list(vagus_branches.items()))
 
-        if radius.isValid():
-            branch_radius, _ = get_nodeset_fieldgroup_parameters(nodes, radius, branch_name, [Node.VALUE_LABEL_VALUE])
-        else:
-            branch_radius = [1 for i in range(1, len(branch_parameters))]
+    # merge two dictionaries
+    #vagus_terms_dict = vagus_branches | vagus_levels
+    #vagus_terms = access_vagus_terms()
+    #vagus_terms.extend(list(vagus_terms_dict.items()))
 
-        branch_radius_data[branch_name] = branch_radius
-
-    # write all data in a file for geometry fitter
-    sir = data_region.createStreaminformationRegion()
-    srf = sir.createStreamresourceFile("C:/MAP/output/vagus_scaffold_temp/vagus_data.exf")
-    data_region.write(sir)
-
-    return marker_data, trunk_group_name, trunk_data_coordinates, trunk_radius, branch_data, branch_radius_data
+    return vagus_levels, vagus_branch_terms
 
 
 def get_nodeset_fieldgroup_parameters(nodeset, field, group_name, valueLabels):
