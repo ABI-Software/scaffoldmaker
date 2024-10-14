@@ -199,8 +199,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._elementsCountCoreBoxMinor = elementsCountCoreBoxMinor
         self._elementsCountTransition = elementsCountTransition
 
-        # if self._isCore and self._elementsCountTransition > 1:
-        #     self._elementsCountAround = (elementsCountAround - 8 * (self._elementsCountTransition - 1))
         assert elementsCountThroughWall > 0
         self._elementsCountThroughWall = elementsCountThroughWall
         self._rawTubeCoordinatesList = []
@@ -2181,13 +2179,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 coreBoxMinorCount = self._segments[s].getElementsCountCoreBoxMinor()
                 if lastCoreBoxMinorCount:
                     if coreBoxMinorCount != lastCoreBoxMinorCount:
-                        print("Can't make core bifurcation between different element counts across minor axis",
-                              coreBoxMinorCount, "vs", lasCoreBoxMinorCount)
+                        print("Can't make core bifurcation between different box minor axis element counts",
+                              coreBoxMinorCount, "vs", lastCoreBoxMinorCount)
                         return 0, 0
                 else:
                     lastCoreBoxMinorCount = coreBoxMinorCount
-                if coreBoxMajorCounts[s] != (majorConnectionCounts[s - 1] + majorConnectionCounts[s]):
-                    print("Can't make core bifurcation between elements count across box major axis", coreBoxMajorCounts)
+                if ((majorConnectionCounts[s] < 0) or
+                        (coreBoxMajorCounts[s] != (majorConnectionCounts[s - 1] + majorConnectionCounts[s]))):
+                    print("Can't make core bifurcation between box major axis element counts", coreBoxMajorCounts)
                     return 0, 0
 
             coreBoxMinorNodesCount = self._segments[0].getCoreBoxMinorNodesCount()
@@ -2252,7 +2251,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                   - freeAroundCounts[s - 1] + (s % 2)) // 2) for s in range(self._segmentsCount)]
 
         for s in range(self._segmentsCount):
-            if (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s])):
+            if ((connectionCounts[s] < 1) or
+                    (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s]))):
                 print("Can't make tube junction between elements counts around", aroundCounts)
                 return 0, 0
 
@@ -2275,8 +2275,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             else:
                 startNodeIndex2 = (aroundCounts[s2] - os1ConnectionCount) // 2
             if self._segmentsIn[s3]:
-                startNodeIndex3h = os2ConnectionCount // -2
-                startNodeIndex3l = startNodeIndex3h - (os2ConnectionCount - os1ConnectionCount)
+                startNodeIndex3l = os2ConnectionCount // -2
+                startNodeIndex3h = startNodeIndex3l - (os2ConnectionCount - os1ConnectionCount)
             else:
                 startNodeIndex3l = (aroundCounts[s3] - os2ConnectionCount) // 2
                 startNodeIndex3h = startNodeIndex3l + (os2ConnectionCount - os1ConnectionCount)
@@ -2290,7 +2290,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     segmentIndexes.append(s2)
                     nodeIndexes.append(n2 % aroundCounts[s2])
                 if halfThroughCount and ((n <= 0) or (n >= os1ConnectionCount)):
-                    n3 = ((startNodeIndex3l if n <= 0 else startNodeIndex3h) +
+                    n3 = ((startNodeIndex3l if (n <= 0) else startNodeIndex3h) +
                           ((os2ConnectionCount - n) if self._segmentsIn[s3] else n))
                     segmentIndexes.append(s3)
                     nodeIndexes.append(n3 % aroundCounts[s3])
@@ -2351,14 +2351,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 coreBoxMinorCount = self._segments[s].getElementsCountCoreBoxMinor()
                 if lastCoreBoxMinorCount:
                     if coreBoxMinorCount != lastCoreBoxMinorCount:
-                        print("Can't make core trifurcation between different element counts across minor axis",
+                        print("Can't make core trifurcation between different box minor axis element counts",
                               coreBoxMinorCount, "vs", lastCoreBoxMinorCount)
                         return 0, 0
                 else:
                     lastCoreBoxMinorCount = coreBoxMinorCount
-                if (coreBoxMajorCounts[sequence[s]] != (
-                        majorConnectionCounts[s - 1] + throughCounts[s] + majorConnectionCounts[s])):
-                    print("Can't make tube core box junction between box major counts", coreBoxMajorCounts)
+                if ((majorConnectionCounts[s] < 0) or (coreBoxMajorCounts[sequence[s]] != (
+                        majorConnectionCounts[s - 1] + throughCounts[s] + majorConnectionCounts[s]))):
+                    print("Can't make core trifurcation between box major axis element counts", coreBoxMajorCounts)
                     return 0, 0
 
             coreBoxMinorNodesCount = self._segments[0].getCoreBoxMinorNodesCount()
