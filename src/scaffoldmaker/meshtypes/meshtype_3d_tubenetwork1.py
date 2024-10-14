@@ -222,13 +222,6 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         defaultCoreMajorCount = defaultAroundCount // 2 - defaultCoreBoxMinorCount + 2 * coreTransitionCount
         annotationAroundCounts = options["Annotation numbers of elements around"]
         annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
-        annotationCoreMajorCounts = []
-        for i in range(len(annotationCoreBoxMinorCounts)):
-            aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
-                else defaultAroundCount
-            coreBoxMinorCount = annotationCoreBoxMinorCounts[i] if annotationCoreBoxMinorCounts[i] \
-                else defaultCoreBoxMinorCount
-            annotationCoreMajorCounts.append(aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount)
 
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
@@ -238,9 +231,9 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAlong=options["Annotation numbers of elements along"],
             annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountAcrossMajor=defaultCoreMajorCount,
+            defaultElementsCountCoreBoxMinor=defaultCoreBoxMinorCount,
             elementsCountTransition=coreTransitionCount,
-            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
+            annotationElementsCountsCoreBoxMinor=annotationCoreBoxMinorCounts,
             isCore=options["Core"],
             useOuterTrimSurfaces=options["Use outer trim surfaces"])
 

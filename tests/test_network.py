@@ -124,7 +124,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 1.931297913271377, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 1.9298310795249618, delta=X_TOL)
 
     def test_2d_tube_network_snake(self):
         """
@@ -243,7 +243,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 4.045580778559924, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.040053575361621, delta=X_TOL)
 
     def test_2d_tube_network_trifurcation(self):
         """
@@ -288,7 +288,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 2.7951498826590973, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.791976505648992, delta=X_TOL)
 
     def test_2d_tube_network_vase(self):
         """
@@ -407,9 +407,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.034977175657495335, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 1.92967134964477, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 1.5609615408034399, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.0349284962620723, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 1.9284739468709864, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 1.5595435883893172, delta=X_TOL)
 
     def test_3d_tube_network_bifurcation_core(self):
         """
@@ -470,8 +470,98 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.09907643906540035, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.0238210110948307, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.09883609668362349, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.0226236083210507, delta=X_TOL)
+
+    def test_3d_tube_network_converging_bifurcation_core(self):
+        """
+        Test converging bifurcation 3-D tube network with solid core and 12, 12, 8 elements around.
+        """
+        scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Bifurcation")
+        settings = scaffoldPackage.getScaffoldSettings()
+        networkLayoutScaffoldPackage = settings["Network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertTrue(networkLayoutSettings["Define inner coordinates"])
+        self.assertEqual(13, len(settings))
+        self.assertEqual(8, settings["Number of elements around"])
+        self.assertEqual(1, settings["Number of elements through shell"])
+        self.assertEqual([0], settings["Annotation numbers of elements around"])
+        self.assertEqual(4.0, settings["Target element density along longest segment"])
+        self.assertEqual([0], settings["Annotation numbers of elements along"])
+        self.assertFalse(settings["Use linear through shell"])
+        self.assertFalse(settings["Show trim surfaces"])
+        self.assertFalse(settings["Core"])
+        self.assertEqual(2, settings["Number of elements across core box minor"])
+        self.assertEqual(1, settings["Number of elements across core transition"])
+        self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
+        settings["Core"] = True
+        settings["Number of elements around"] = 12
+        settings["Annotation numbers of elements around"] = [8]
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+
+        # add a user-defined annotation group to network layout to vary elements count around. Must generate first
+        tmpRegion = region.createRegion()
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        networkLayoutScaffoldPackage.generate(tmpRegion)
+
+        annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(("segment 3", "SEGMENT:3"))
+        group = annotationGroup1.getGroup()
+        mesh1d = tmpFieldmodule.findMeshByDimension(1)
+        meshGroup = group.createMeshGroup(mesh1d)
+        mesh_group_add_identifier_ranges(meshGroup, [[3, 3]])
+        self.assertEqual(1, meshGroup.getSize())
+        self.assertEqual(1, annotationGroup1.getDimension())
+        identifier_ranges_string = identifier_ranges_to_string(mesh_group_to_identifier_ranges(meshGroup))
+        self.assertEqual("3", identifier_ranges_string)
+        networkLayoutScaffoldPackage.updateUserAnnotationGroups()
+
+        self.assertTrue(region.isValid())
+        scaffoldPackage.generate(region)
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(1, len(annotationGroups))
+
+        fieldmodule = region.getFieldmodule()
+        mesh3d = fieldmodule.findMeshByDimension(3)
+
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(336, mesh3d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(460, nodes.getSize())
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+
+        # check annotation group transferred to 3D tube
+        annotationGroup = annotationGroups[0]
+        self.assertEqual("segment 3", annotationGroup.getName())
+        self.assertEqual("SEGMENT:3", annotationGroup.getId())
+        self.assertEqual(80, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(3)).getSize())
+
+        X_TOL = 1.0E-6
+
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        assertAlmostEqualList(self, minimums, [0.0, -0.5894427190999916, -0.10000000000000002], X_TOL)
+        assertAlmostEqualList(self, maximums, [2.044721359549996, 0.5894427190999916, 0.10000000000000002], X_TOL)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(isExterior, coordinates, mesh2d)
+            surfaceAreaField.setNumbersOfPoints(4)
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            self.assertAlmostEqual(volume, 0.09854306375590477, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.0220707879327655, delta=X_TOL)
 
     def test_3d_tube_network_line_core_transition2(self):
         """
@@ -626,9 +716,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.07364074411579775, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 4.0455683508806, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 3.3313407313622867, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.07331492814968889, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 4.04004649646839, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 3.325814823258647, delta=X_TOL)
 
     def test_3d_tube_network_sphere_cube_core(self):
         """
@@ -715,8 +805,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.21360737563518303, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 4.0455683508805995, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.21259898629834004, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.04004649646839, delta=X_TOL)
 
 
     def test_3d_tube_network_trifurcation_cross(self):
@@ -809,13 +899,13 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.047235196748105515, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 2.600683124988524, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 2.1164499963602124, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.047184101028608746, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 2.5994192161530587, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 2.1144506806009487, delta=X_TOL)
 
     def test_3d_tube_network_trifurcation_cross_core(self):
         """
-        Test trifurcation cross 3-D tube network with solid coreis generated correctly with
+        Test trifurcation cross 3-D tube network with solid core is generated correctly with
         variable elements count around.
         """
         scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Trifurcation cross")
@@ -900,8 +990,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.13499394208386956, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.7252510632808065, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.1347351954323967, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.7245696029563424, delta=X_TOL)
 
     def test_3d_box_network_bifurcation(self):
         """

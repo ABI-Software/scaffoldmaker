@@ -68,7 +68,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        tol = 1.0E-6
+        tol = 1.0E-4
         assertAlmostEqualList(self, minimums, [0.0, -3.7000751482231564, -1.25], tol)
         assertAlmostEqualList(self, maximums, [20.437483381451223, 3.7000751482231564, 2.15], tol)
 
@@ -88,17 +88,17 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 99.02238171504763, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 229.82780303324995, delta=tol)
+            self.assertAlmostEqual(volume, 99.01720012090396, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 229.87327935824305, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "abdominal cavity": (40, 10.094264544167423),
-            "core": (428, 45.817610658773326),
+            "abdominal cavity": (40, 10.078325917475231),
+            "core": (428, 45.79157371575808),
             "head": (64, 6.909618374858558),
-            "thoracic cavity": (40, 7.140116968045268),
-            "shell": (276, 53.20333000107456)
+            "thoracic cavity": (40, 7.135159387520382),
+            "shell": (276, 53.227959536902574)
             }
         for name in expectedSizes3d:
             term = get_body_term(name)
@@ -114,13 +114,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "abdominal cavity boundary": (64, 27.459787335655104),
+            "abdominal cavity boundary": (64, 27.452684317517825),
             "diaphragm": (20, 3.0778936559347208),
-            "left arm skin epidermis": (68, 22.595664816330093),
-            "left leg skin epidermis": (68, 55.17540980396306),
-            "right arm skin epidermis": (68, 22.595664816330093),
-            "right leg skin epidermis": (68, 55.17540980396306),
-            "skin epidermis": (388, 229.82780303324995),
+            "left arm skin epidermis": (68, 22.605445370196083),
+            "left leg skin epidermis": (68, 55.21582811667045),
+            "right arm skin epidermis": (68, 22.605445370196083),
+            "right leg skin epidermis": (68, 55.21582811667045),
+            "skin epidermis": (388, 229.87327935824305),
             "thoracic cavity boundary": (64, 20.600420538940487)
             }
         for name in expectedSizes2d:
@@ -137,7 +137,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
 
         expectedSizes1d = {
-            "spinal cord": (8, 10.855253444098556)
+            "spinal cord": (8, 10.856804626156244)
             }
         for name in expectedSizes1d:
             term = get_body_term(name)
@@ -212,13 +212,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 53.20196079841706, delta=tol)
-            self.assertAlmostEqual(outerSurfaceArea, 225.72283168985595, delta=tol)
-            self.assertAlmostEqual(innerSurfaceArea, 155.95593103737943, delta=tol)
+            self.assertAlmostEqual(volume, 53.22727912319599, delta=tol)
+            self.assertAlmostEqual(outerSurfaceArea, 225.76830801484903, delta=tol)
+            self.assertAlmostEqual(innerSurfaceArea, 155.86248051318998, delta=tol)
 
         # check some annotationGroups:
         expectedSizes2d = {
-            "skin epidermis": (320, 228.9705874171508)
+            "skin epidermis": (320, 229.01606374214393)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)

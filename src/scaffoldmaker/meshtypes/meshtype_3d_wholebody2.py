@@ -633,13 +633,13 @@ class WholeBodyNetworkMeshBuilder(TubeNetworkMeshBuilder):
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
                  defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
                  annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
-                 defaultElementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1,
-                 annotationElementsCountsAcrossMajor: list = [], isCore=False, useOuterTrimSurfaces=True):
+                 defaultElementsCountCoreBoxMinor: int = 2, elementsCountTransition: int = 1,
+                 annotationElementsCountsCoreBoxMinor: list = [], isCore=False, useOuterTrimSurfaces=True):
         super(WholeBodyNetworkMeshBuilder, self).__init__(
             networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
             elementsCountThroughWall, layoutAnnotationGroups,
-            annotationElementsCountsAlong, annotationElementsCountsAround, defaultElementsCountAcrossMajor,
-            elementsCountTransition, annotationElementsCountsAcrossMajor, isCore, useOuterTrimSurfaces)
+            annotationElementsCountsAlong, annotationElementsCountsAround, defaultElementsCountCoreBoxMinor,
+            elementsCountTransition, annotationElementsCountsCoreBoxMinor, isCore, useOuterTrimSurfaces)
 
     def generateMesh(self, generateData):
         super(WholeBodyNetworkMeshBuilder, self).generateMesh(generateData)
@@ -872,11 +872,9 @@ class MeshType_3d_wholebody2(Scaffold_base):
         annotationAlongCounts = []
         annotationAroundCounts = []
         # implementation currently uses major count including transition
-        annotationCoreMajorCounts = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
             alongCount = 0
             aroundCount = 0
-            coreMajorCount = 0
             name = layoutAnnotationGroup.getName()
             if "head" in name:
                 alongCount = elementsCountAlongHead
@@ -902,11 +900,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elif "foot" in name:
                 alongCount = elementsCountAlongFoot
                 aroundCount = elementsCountAroundLeg
-            if aroundCount:
-                coreMajorCount = aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount
             annotationAlongCounts.append(alongCount)
             annotationAroundCounts.append(aroundCount)
-            annotationCoreMajorCounts.append(coreMajorCount)
         isCore = options["Use Core"]
 
         tubeNetworkMeshBuilder = WholeBodyNetworkMeshBuilder(
@@ -917,9 +912,9 @@ class MeshType_3d_wholebody2(Scaffold_base):
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAlong=annotationAlongCounts,
             annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountAcrossMajor=annotationCoreMajorCounts[-1],
+            defaultElementsCountCoreBoxMinor=coreBoxMinorCount,
             elementsCountTransition=coreTransitionCount,
-            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
+            annotationElementsCountsCoreBoxMinor=[],
             isCore=isCore)
 
         meshDimension = 3
