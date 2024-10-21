@@ -112,7 +112,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             if options["Number of elements around"] < 8:
                 options["Number of elements around"] = 8
             elif options["Number of elements around"] % 4:
-                options["Number of elements around"] += 4 - options["Number of elements around"] % 4
+                options["Number of elements around"] += 4 - (options["Number of elements around"] % 4)
 
             annotationAroundCounts = options["Annotation numbers of elements around"]
             minAroundCount = options["Number of elements around"]
@@ -126,7 +126,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                         if annotationAroundCounts[i] < 8:
                             annotationAroundCounts[i] = 8
                         elif annotationAroundCounts[i] % 4:
-                            annotationAroundCounts[i] += 4 - annotationAroundCounts[i]
+                            annotationAroundCounts[i] += 4 - (annotationAroundCounts[i] % 4)
                         if annotationAroundCounts[i] < minAroundCount:
                             minAroundCount = annotationAroundCounts[i]
 
