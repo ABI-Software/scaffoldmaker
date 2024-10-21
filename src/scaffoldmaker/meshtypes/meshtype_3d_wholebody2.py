@@ -590,22 +590,10 @@ class WholeBodyTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
             region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
             coordinateFieldName, startNodeIdentifier, startElementIdentifier)
         # annotation groups are created on demand:
-        self._coreGroup = None
-        self._shellGroup = None
         self._leftGroup = None
         self._rightGroup = None
         self._dorsalGroup = None
         self._ventralGroup = None
-
-    def getCoreMeshGroup(self):
-        if not self._coreGroup:
-            self._coreGroup = self.getOrCreateAnnotationGroup(("core", ""))
-        return self._coreGroup.getMeshGroup(self._mesh)
-
-    def getShellMeshGroup(self):
-        if not self._shellGroup:
-            self._shellGroup = self.getOrCreateAnnotationGroup(("shell", ""))
-        return self._shellGroup.getMeshGroup(self._mesh)
 
     def getLeftMeshGroup(self):
         if not self._leftGroup:
@@ -643,9 +631,7 @@ class WholeBodyNetworkMeshBuilder(TubeNetworkMeshBuilder):
 
     def generateMesh(self, generateData):
         super(WholeBodyNetworkMeshBuilder, self).generateMesh(generateData)
-        # build core, shell, left, right annotation groups
-        coreMeshGroup = generateData.getCoreMeshGroup() if self._isCore else None
-        shellMeshGroup = generateData.getShellMeshGroup() if self._isCore else None
+        # build left, right, dorsal, ventral annotation groups
         leftMeshGroup = generateData.getLeftMeshGroup()
         rightMeshGroup = generateData.getRightMeshGroup()
         dorsalMeshGroup = generateData.getDorsalMeshGroup()
@@ -653,9 +639,6 @@ class WholeBodyNetworkMeshBuilder(TubeNetworkMeshBuilder):
         for networkSegment in self._networkMesh.getNetworkSegments():
             # print("Segment", networkSegment.getNodeIdentifiers())
             segment = self._segments[networkSegment]
-            if self._isCore:
-                segment.addCoreElementsToMeshGroup(coreMeshGroup)
-                segment.addShellElementsToMeshGroup(shellMeshGroup)
             annotationTerms = segment.getAnnotationTerms()
             for annotationTerm in annotationTerms:
                 if "left" in annotationTerm[0]:

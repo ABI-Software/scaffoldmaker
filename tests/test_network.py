@@ -11,6 +11,7 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
+from scaffoldmaker.annotation.annotationgroup import findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_2d_tubenetwork1 import MeshType_2d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_boxnetwork1 import MeshType_3d_boxnetwork1
@@ -520,7 +521,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
         scaffoldPackage.generate(region)
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(1, len(annotationGroups))
+        self.assertEqual(3, len(annotationGroups))
+        self.assertTrue(findAnnotationGroupByName(annotationGroups, "core") is not None)
+        self.assertTrue(findAnnotationGroupByName(annotationGroups, "shell") is not None)
 
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -533,8 +536,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
 
         # check annotation group transferred to 3D tube
-        annotationGroup = annotationGroups[0]
-        self.assertEqual("segment 3", annotationGroup.getName())
+        annotationGroup = findAnnotationGroupByName(annotationGroups, "segment 3")
+        self.assertTrue(annotationGroup is not None)
         self.assertEqual("SEGMENT:3", annotationGroup.getId())
         self.assertEqual(80, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(3)).getSize())
 
@@ -723,6 +726,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
     def test_3d_tube_network_sphere_cube_core(self):
         """
         Test sphere cube 3-D tube network with solid core is generated correctly.
+        Use different number of elements around on some segments to mix it up.
         """
         scaffoldPackage = ScaffoldPackage(MeshType_3d_tubenetwork1, defaultParameterSetName="Sphere cube")
         settings = scaffoldPackage.getScaffoldSettings()
@@ -742,6 +746,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1, settings["Number of elements across core transition"])
         self.assertEqual([0], settings["Annotation numbers of elements across core box minor"])
         settings["Number of elements through shell"] = 2
+        settings["Annotation numbers of elements around"] = [12]
         settings["Core"] = True
 
         context = Context("Test")
@@ -755,8 +760,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             "To field": {"coordinates": False, "inner coordinates": True},
             "From field": {"coordinates": True, "inner coordinates": False},
             "Mode": {"Scale": True, "Offset": False},
-            "D2 value": 0.8,
-            "D3 value": 0.8}
+            "D2 value": 0.75,
+            "D3 value": 0.75}
         editGroupName = "meshEdits"
         MeshType_1d_network_layout1.assignCoordinates(tmpRegion, networkLayoutSettings, networkMesh,
                                                       functionOptions, editGroupName=editGroupName)
@@ -770,24 +775,42 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(RESULT_OK, result)
         networkLayoutScaffoldPackage.setMeshEdits(meshEditsString)
 
+        # add a user-defined annotation group to network layout to vary elements count around. Must generate first
+        annotationGroup1 = networkLayoutScaffoldPackage.createUserAnnotationGroup(("group1", ""))
+        group = annotationGroup1.getGroup()
+        tmpFieldmodule = tmpRegion.getFieldmodule()
+        mesh1d = tmpFieldmodule.findMeshByDimension(1)
+        meshGroup = group.createMeshGroup(mesh1d)
+        mesh_group_add_identifier_ranges(meshGroup, [[2, 2], [5, 5], [8, 8], [10, 10]])
+        self.assertEqual(4, meshGroup.getSize())
+        self.assertEqual(1, annotationGroup1.getDimension())
+        identifier_ranges_string = identifier_ranges_to_string(mesh_group_to_identifier_ranges(meshGroup))
+        self.assertEqual("2,5,8,10", identifier_ranges_string)
+        networkLayoutScaffoldPackage.updateUserAnnotationGroups()
+
         self.assertTrue(region.isValid())
         scaffoldPackage.generate(region)
+        annotationGroups = scaffoldPackage.getAnnotationGroups()
+        self.assertEqual(3, len(annotationGroups))
+        self.assertTrue(findAnnotationGroupByName(annotationGroups, "core") is not None)
+        self.assertTrue(findAnnotationGroupByName(annotationGroups, "shell") is not None)
+        self.assertTrue(findAnnotationGroupByName(annotationGroups, "group1") is not None)
 
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual((8 * 3 + 4) * 4 * 12, mesh3d.getSize())
+        self.assertEqual(1600, mesh3d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual((3 * 3 + 8 * 3) * 3 * 12 + (11 * 3 + 3 * 4) * 8, nodes.getSize())
+        self.assertEqual(1836, nodes.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(4224, mesh2d.getSize())
+        self.assertEqual(5024, mesh2d.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
 
         X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5665130262270113, -0.5965021612011158, -0.5986773876363235], X_TOL)
-        assertAlmostEqualList(self, maximums, [0.5665130262270113, 0.5965021612011159, 0.5986773876363234], X_TOL)
+        assertAlmostEqualList(self, minimums, [-0.5762017364104554, -0.5965021612011158, -0.5909194631968028], X_TOL)
+        assertAlmostEqualList(self, maximums, [0.5762017364104554, 0.5965021612011158, 0.5909194631968027], X_TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -805,8 +828,24 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.21259898629834004, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 4.04004649646839, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.20985014947157313, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.033518137808064, delta=X_TOL)
+
+        expectedSizes3d = {
+            "core": (704, 0.12129037249755871),
+            "shell": (896, 0.08855977697401322)
+            }
+        for name in expectedSizes3d:
+            annotationGroup = findAnnotationGroupByName(annotationGroups, name)
+            size = annotationGroup.getMeshGroup(mesh3d).getSize()
+            self.assertEqual(expectedSizes3d[name][0], size, name)
+            volumeMeshGroup = annotationGroup.getMeshGroup(mesh3d)
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, volumeMeshGroup)
+            volumeField.setNumbersOfPoints(4)
+            fieldcache = fieldmodule.createFieldcache()
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=X_TOL)
 
 
     def test_3d_tube_network_trifurcation_cross(self):
@@ -899,9 +938,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.047184101028608746, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 2.5994192161530587, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 2.1144506806009487, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.047176020014987795, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 2.5987990744712053, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 2.113990124755675, delta=X_TOL)
 
     def test_3d_tube_network_trifurcation_cross_core(self):
         """
@@ -951,7 +990,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
         scaffoldPackage.generate(region)
         annotationGroups = scaffoldPackage.getAnnotationGroups()
-        self.assertEqual(1, len(annotationGroups))
+        self.assertEqual(3, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
 
@@ -963,8 +1002,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
 
         # check annotation group transferred to 3D tube
-        annotationGroup = annotationGroups[0]
-        self.assertEqual("straight", annotationGroup.getName())
+        annotationGroup = findAnnotationGroupByName(annotationGroups, "straight")
+        self.assertTrue(annotationGroup is not None)
         self.assertEqual("STRAIGHT:1", annotationGroup.getId())
         self.assertEqual(256, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(3)).getSize())
 
@@ -990,8 +1029,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.1347351954323967, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.7245696029563424, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.1346381132294423, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.7234652881096166, delta=X_TOL)
 
     def test_3d_box_network_bifurcation(self):
         """

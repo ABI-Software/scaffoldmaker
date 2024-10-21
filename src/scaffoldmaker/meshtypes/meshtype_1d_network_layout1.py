@@ -71,7 +71,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: [] empty list of AnnotationGroup, NetworkMesh
         """
-        parameterSetName = options['Base parameter set']
+        parameterSetName = options["Base parameter set"]
         structure = options["Structure"]
         defineInnerCoordinates = options["Define inner coordinates"]
         networkMesh = NetworkMesh(structure)
@@ -265,6 +265,7 @@ class MeshType_1d_network_layout1(Scaffold_base):
         with ChangeManager(fieldmodule):
             clearRegion(region)
             structure = options["Structure"] = functionOptions["Structure"]
+            options["Base parameter set"] = "Default"  # to not assign coordinates for one of the special sets
             networkMesh.build(structure)
             networkMesh.create1DLayoutMesh(region)
             coordinates = find_or_create_field_coordinates(fieldmodule).castFiniteElement()
@@ -403,8 +404,8 @@ class MeshType_1d_network_layout1(Scaffold_base):
             print("Make side derivatives normal:  inner coordinates field not defined")
             return False, False
         useCoordinates = coordinates if functionOptions["Field"]["coordinates"] else innerCoordinates
-        makeD2Normal = functionOptions['Make D2 normal']
-        makeD3Normal = functionOptions['Make D3 normal']
+        makeD2Normal = functionOptions["Make D2 normal"]
+        makeD3Normal = functionOptions["Make D3 normal"]
         if not (makeD2Normal or makeD3Normal):
             return False, False
         nodeset = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)

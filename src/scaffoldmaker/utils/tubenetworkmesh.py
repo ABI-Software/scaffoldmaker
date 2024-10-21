@@ -65,12 +65,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._nodeLayoutFlipD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
-        self._nodeLayout6WayTriplePoint = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
-        self._nodeLayoutBifurcation = self._nodeLayoutManager.getNodeLayout6WayBifurcation()
         self._nodeLayoutTrifurcation = None
         self._nodeLayoutTransition = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
+
+        # annotation groups are created if core:
+        self._coreGroup = None
+        self._shellGroup = None
 
     def getStandardElementtemplate(self):
         return self._standardElementtemplate, self._standardEft
@@ -89,35 +91,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def getNodeLayoutFlipD2(self):
         return self._nodeLayoutFlipD2
-
-    def getNodeLayout6WayTriplePoint(self, location):
-        """
-        Special node layout for generating core transition elements, where a node is located at both 6-way junction
-        and one of the triple point corners of core box elements. There are two layouts specific to top and bottom
-        corner: Top (location = 1); and bottom right (location = 2).
-        :param location: Location identifier.
-        :return: Node layout.
-        """
-        nodeLayouts = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
-        location = abs(location)
-        # assert location in [1, 2]
-
-        if location == 1:  # "Top1"
-            nodeLayout = nodeLayouts[0]
-        elif location == 3:  # "Top1"
-            nodeLayout = nodeLayouts[1]
-        elif location == 2:  # "Bottom1"
-            nodeLayout = nodeLayouts[2]
-        elif location == 4:  # "Bottom2"
-            nodeLayout = nodeLayouts[3]
-
-        return nodeLayout
-
-    def getNodeLayoutBifurcation(self):
-        """
-        Special node layout for generating core elements for bifurcation.
-        """
-        return self._nodeLayoutBifurcation
 
     def getNodeLayoutTrifurcation(self, location):
         """
@@ -164,6 +137,10 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._nodeLayoutTransitionTriplePoint = nodeLayout
         return self._nodeLayoutTransitionTriplePoint
 
+    def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
+        return self._nodeLayoutManager.getNodeLayoutBifurcation6WayTriplePoint(
+            segmentsIn, sequence, maxMajorSegment, top)
+
     def getNodetemplate(self):
         return self._nodetemplate
 
@@ -172,6 +149,16 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def isShowTrimSurfaces(self):
         return self._isShowTrimSurfaces
+
+    def getCoreMeshGroup(self):
+        if not self._coreGroup:
+            self._coreGroup = self.getOrCreateAnnotationGroup(("core", ""))
+        return self._coreGroup.getMeshGroup(self._mesh)
+
+    def getShellMeshGroup(self):
+        if not self._shellGroup:
+            self._shellGroup = self.getOrCreateAnnotationGroup(("shell", ""))
+        return self._shellGroup.getMeshGroup(self._mesh)
 
     def getNewTrimAnnotationGroup(self):
         self._trimAnnotationGroupCount += 1
@@ -2010,22 +1997,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             # get through score for pairs of directions
             maxThroughScore = 0.0
             si = None
-            for s1 in range(segmentsCount - 1):
-                dir1 = normalize(segmentsParameterLists[s1][2][1])
-                for s2 in range(s1 + 1, segmentsCount):
-                    dir2 = normalize(segmentsParameterLists[s2][2][1])
-                    throughScore = abs(dot(dir1, dir2))
-                    if throughScore > maxThroughScore:
-                        maxThroughScore = throughScore
-                        si = (s1, s2)
+            # for s1 in range(segmentsCount - 1):
+            #     dir1 = normalize(segmentsParameterLists[s1][2][1])
+            #     for s2 in range(s1 + 1, segmentsCount):
+            #         dir2 = normalize(segmentsParameterLists[s2][2][1])
+            #         throughScore = abs(dot(dir1, dir2))
+            #         if throughScore > maxThroughScore:
+            #             maxThroughScore = throughScore
+            #             si = (s1, s2)
             if maxThroughScore < 0.9:
                 # maintain symmetry of bifurcations
-                if (segmentsIn == [True, True, False]) or (segmentsIn == [False, False, True]):
-                    si = (0, 1)
-                elif (segmentsIn == [True, False, True]) or (segmentsIn == [False, True, False]):
-                    si = (2, 0)
-                else:
-                    si = (1, 2)
+                si = ((0, 1) if ((segmentsIn == [True, True, False]) or (segmentsIn == [False, False, True])) else
+                      (2, 0) if ((segmentsIn == [True, False, True]) or (segmentsIn == [False, True, False])) else
+                      (1, 2))
 
         elif segmentsCount == 4:
             si = sequence[1:3]
@@ -2068,16 +2052,20 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         The function determines plus sequence [0, 1, 2, 3], [0, 1, 3, 2] or [0, 2, 1, 3].
         """
         assert self._segmentsCount == 3 or self._segmentsCount == 4
-
+        outDirections = []
+        for s in range(self._segmentsCount):
+            d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
+            outDirections.append(normalize([-d for d in d1] if self._segmentsIn[s] else d1))
         if self._segmentsCount == 3:
-            self._sequence = [0, 1, 2]
+            up = cross(outDirections[0], outDirections[1])
+            d3 = self._segments[0].getPathParameters()[4][-1 if self._segmentsIn[s] else 0]
+            if dot(up, d3) < 0.0:
+                self._sequence = [0, 2, 1]  # reverse sequence relative to d3
+            else:
+                self._sequence = [0, 1, 2]
         elif self._segmentsCount == 4:
             # only support plus + shape for now, not tetrahedral
             # determine plus + sequence [0, 1, 2, 3], [0, 1, 3, 2], or [0, 2, 1, 3]
-            outDirections = []
-            for s in range(self._segmentsCount):
-                d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
-                outDirections.append(normalize([-d for d in d1] if self._segmentsIn[s] else d1))
             ns = None
             for s in range(1, self._segmentsCount):
                 if dot(outDirections[0], outDirections[s]) > -0.9:
@@ -2168,7 +2156,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         boxIndexesCount = 0
         if self._isCore:
             elementsCountTransition = self._segments[0].getElementsCountTransition()
-            sequence = self._sequence
             majorConnectionCounts = [(coreBoxMajorCounts[s] + coreBoxMajorCounts[s - 2] - coreBoxMajorCounts[s - 1]) // 2 for s
                                 in range(3)]
             midIndexes = [(coreBoxMajorCounts[s] - majorConnectionCounts[s]) if self._segmentsIn[s]
@@ -2195,7 +2182,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 [[[None for _ in range(coreBoxMinorNodesCount)] for _ in range(nodesCountAcrossMajorList[s])]
                  for s in range(self._segmentsCount)]
             for s1 in range(3):
-                s2 = (s1 + 1) % 3 if sequence == [0, 1, 2] else (s1 - 1) % 3
+                s2 = (s1 + 1) % 3
                 midIndex1 = midIndexes[s1]
                 midIndex2 = midIndexes[s2]
                 for m in range(majorConnectionCounts[s1] + 1):
@@ -2681,7 +2668,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         nodeLayout6Way = generateData.getNodeLayout6Way()
         nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
-        nodeLayoutBifurcation = generateData.getNodeLayoutBifurcation()
 
         e2 = n2 if self._segmentsIn[s] else 0
         for e3 in range(boxElementsCountAcrossMajor[s]):
@@ -2702,7 +2688,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nodeParameters.append(self._getBoxCoordinates(boxIndex))
                         segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
                         if is6WayTriplePoint and (segmentNodesCount == 3) and self._segmentsCount == 3:
-                            nodeLayouts.append(nodeLayoutBifurcation)
+                            nodeLayouts.append(nodeLayout6Way)
                         elif self._segmentsIn[s] and (segmentNodesCount == 3) and self._segmentsCount == 4:
                             location = 1 if e3 < boxElementsCountAcrossMajor[s] // 2 else 2
                             nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
@@ -2744,18 +2730,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         coreBoxMajorCounts = [segment.getElementsCountCoreBoxMajor() for segment in self._segments]
 
         triplePointIndexesList = segment.getTriplePointIndexes()
+        triplePointIndexesList.sort()
         elementsCountTransition = self._segments[0].getElementsCountTransition()
-        is6WayTriplePoint = (self._segmentsCount == 3) and ((max(coreBoxMajorCounts) // 2) == min(coreBoxMajorCounts))
-        pSegment = coreBoxMajorCounts.index(max(coreBoxMajorCounts))
-        topMidIndex = (coreBoxMajorNodesCounts[pSegment] // 2) + (coreBoxMinorNodesCount // 2)
-        bottomMidIndex = elementsCountAround - topMidIndex
-        midIndexes = [topMidIndex, bottomMidIndex]
+        maxCoreBoxMajorCount = max(coreBoxMajorCounts)
+        maxMajorSegment = coreBoxMajorCounts.index(maxCoreBoxMajorCount)
+        # whether there are bifurcation core transition triple points on the corners of any box
+        is6WayTriplePoint = ((self._segmentsCount == 3) and
+                             (maxCoreBoxMajorCount == (coreBoxMajorCounts[maxMajorSegment - 1] +
+                                                       coreBoxMajorCounts[maxMajorSegment - 2])))
 
         nodeLayout6Way = generateData.getNodeLayout6Way()
         nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
         nodeLayoutTransition = generateData.getNodeLayoutTransition()
-        nodeLayoutBifurcation = generateData.getNodeLayoutBifurcation()
 
         e2 = n2 if self._segmentsIn[s] else 0
         for e1 in range(elementsCountAround):
@@ -2783,17 +2770,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 nodeParameters.append(self._getBoxCoordinates(boxIndex))
                 segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
                 if segmentNodesCount == 3:  # 6-way node
-                    if is6WayTriplePoint: # Special 6-way triple point case
-                        if (n1 in triplePointIndexesList or (s == pSegment and n1 in midIndexes)):
-                            # 6-way AND triple-point node - only applies to bifurcations
-                            location = (midIndexes.index(n1) + 1) if oLocation == 0 else oLocation
-                            if (s == 1 and n1 == n1p) or (s == 2 and n1 == e1):
-                                location = 3 if abs(location) == 1 else location
-                            elif (s == 1 and n1 != n1p) or (s == 2 and n1 != e1):
-                                location = 4 if abs(location) == 2 else location
-                            nodeLayout = generateData.getNodeLayout6WayTriplePoint(location)
+                    if is6WayTriplePoint:
+                        top = triplePointIndexesList[0] <= n1 <= triplePointIndexesList[1]
+                        bottom = triplePointIndexesList[2] <= n1 <= triplePointIndexesList[3]
+                        if top or bottom:
+                            nodeLayout = generateData.getNodeLayoutBifurcation6WayTriplePoint(
+                                self._segmentsIn, self._sequence, maxMajorSegment, top)
                         else:
-                            nodeLayout = nodeLayoutBifurcation
+                            nodeLayout = nodeLayout6Way
                     elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
                         location = \
                             1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
@@ -3126,6 +3110,17 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         :return: A TubeNetworkMeshJunction.
         """
         return TubeNetworkMeshJunction(inSegments, outSegments, self._useOuterTrimSurfaces)
+
+    def generateMesh(self, generateData):
+        super(TubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build core, shell
+        if self._isCore:
+            coreMeshGroup = generateData.getCoreMeshGroup()
+            shellMeshGroup = generateData.getShellMeshGroup()
+            for networkSegment in self._networkMesh.getNetworkSegments():
+                segment = self._segments[networkSegment]
+                segment.addCoreElementsToMeshGroup(coreMeshGroup)
+                segment.addShellElementsToMeshGroup(shellMeshGroup)
 
 
 class TubeEllipseGenerator:
