@@ -230,7 +230,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through shell"],
+            isLinearThroughShell=options["Use linear through shell"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()

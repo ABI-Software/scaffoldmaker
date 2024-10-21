@@ -28,14 +28,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
     """
 
     def __init__(self, region, meshDimension, coordinateFieldName="coordinates",
-                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughWall=False, isShowTrimSurfaces=False):
+                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughShell=False, isShowTrimSurfaces=False):
         """
-        :param isLinearThroughWall: Callers should only set if 3-D with no core.
+        :param isLinearThroughShell: Callers should only set if 3-D with no core.
         :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
         """
         super(TubeNetworkMeshGenerateData, self).__init__(
             region, meshDimension, coordinateFieldName, startNodeIdentifier, startElementIdentifier)
-        self._isLinearThroughWall = isLinearThroughWall
+        self._isLinearThroughShell = isLinearThroughShell
         self._isShowTrimSurfaces = isShowTrimSurfaces
         self._trimAnnotationGroupCount = 0  # incremented to make unique annotation group names for trim surfaces
 
@@ -44,7 +44,7 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._nodetemplate.defineField(self._coordinates)
         self._nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         self._nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if (meshDimension == 3) and not isLinearThroughWall:
+        if (meshDimension == 3) and not isLinearThroughShell:
             self._nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
         # get element template and eft for standard case
@@ -53,12 +53,12 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
                                                      else Element.SHAPE_TYPE_SQUARE)
         self._elementbasis = self._fieldmodule.createElementbasis(
             meshDimension, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY)
-        if (meshDimension == 3) and isLinearThroughWall:
+        if (meshDimension == 3) and isLinearThroughShell:
             self._elementbasis.setFunctionType(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
         self._standardEft = self._mesh.createElementfieldtemplate(self._elementbasis)
         self._standardElementtemplate.defineField(self._coordinates, -1, self._standardEft)
 
-        d3Defined = (meshDimension == 3) and not isLinearThroughWall
+        d3Defined = (meshDimension == 3) and not isLinearThroughShell
         self._nodeLayoutManager = HermiteNodeLayoutManager()
         self._nodeLayout6Way = self._nodeLayoutManager.getNodeLayout6Way12(d3Defined)
         self._nodeLayout8Way = self._nodeLayoutManager.getNodeLayout8Way12(d3Defined)
@@ -149,8 +149,8 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
     def getNodetemplate(self):
         return self._nodetemplate
 
-    def isLinearThroughWall(self):
-        return self._isLinearThroughWall
+    def isLinearThroughShell(self):
+        return self._isLinearThroughShell
 
     def isShowTrimSurfaces(self):
         return self._isShowTrimSurfaces
@@ -428,7 +428,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 [[ring] for ring in self._sampledTubeCoordinates[0][2]],
                 None)
         else:
-            wallFactor = 1.0 / self._elementsCountThroughShell
+            shellFactor = 1.0 / self._elementsCountThroughShell
             ox, od1, od2 = self._sampledTubeCoordinates[0][0:3]
             ix, id1, id2 = self._sampledTubeCoordinates[1][0:3]
             rx, rd1, rd2, rd3 = [], [], [], []
@@ -438,8 +438,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     r.append([])
                 otx, otd1, otd2 = ox[n2], od1[n2], od2[n2]
                 itx, itd1, itd2 = ix[n2], id1[n2], id2[n2]
-                # wx, wd3 = self._determineWallCoordinates(otx, otd1, otd2, itx, itd1, itd2, coreCentre, arcCentre)
-                wd3 = [mult(sub(otx[n1], itx[n1]), wallFactor) for n1 in range(self._elementsCountAround)]
+                # wx, wd3 = self._determineShellCoordinates(otx, otd1, otd2, itx, itd1, itd2, coreCentre, arcCentre)
+                wd3 = [mult(sub(otx[n1], itx[n1]), shellFactor) for n1 in range(self._elementsCountAround)]
                 for n3 in range(self._elementsCountThroughShell + 1):
                     oFactor = n3 / self._elementsCountThroughShell
                     iFactor = 1.0 - oFactor
@@ -868,7 +868,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         return boxd2, transd2
 
-    def _determineWallCoordinates(self, ox, od1, od2, ix, id1, id2, coreCentre, arcCentre):
+    def _determineShellCoordinates(self, ox, od1, od2, ix, id1, id2, coreCentre, arcCentre):
         """
         Calculates rim coordinates and d3 derivatives based on the centre point of the solid core.
         :param ox, od1, od2: Coordinates and (d1 and d2) derivatives for outermost rim.
@@ -912,8 +912,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 od3 = mult(normalize(ot), scalefactor)
                 id3 = mult(normalize(it), scalefactor)
             else:
-                wallFactor = 1.0 / self._elementsCountThroughShell
-                od3 = id3 = mult(sub(ox[n1], ix[n1]), wallFactor)
+                shellFactor = 1.0 / self._elementsCountThroughShell
+                od3 = id3 = mult(sub(ox[n1], ix[n1]), shellFactor)
 
             txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
                 [ix[n1], ox[n1]], [id3, od3], self._elementsCountThroughShell, arcLengthDerivatives=True)
@@ -1047,14 +1047,14 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def getElementsCountShell(self):
         """
-        :return: Number of elements through the non-core shell wall.
+        :return: Number of elements through the non-core shell.
         """
         return max(1, len(self._rimCoordinates[0][0]) - 1)
 
     def getElementsCountRim(self):
         """
         :return: Number of elements radially outside core box if core is on,
-        otherwise same as number through shell wall.
+        otherwise same as number through shell.
         """
         elementsCountRim = self.getElementsCountShell()
         if self._isCore:
@@ -1406,7 +1406,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         Get slice of rim node IDs.
         :param n2: Node index along segment, including negative indexes from end.
-        :return: Node IDs arrays through wall and around, or None if not set.
+        :return: Node IDs arrays through rim and around, or None if not set.
         """
         return self._rimNodeIds[n2]
 
@@ -1437,7 +1437,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         # create nodes
         nodes = generateData.getNodes()
-        isLinearThroughWall = generateData.isLinearThroughWall()
+        isLinearThroughShell = generateData.isLinearThroughShell()
         nodetemplate = generateData.getNodetemplate()
         for n2 in range(elementsCountAlong + 1) if (n2Only is None) else [n2Only]:
             if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount):
@@ -1513,7 +1513,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     rx = self._rimCoordinates[0][n2][n3p]
                     rd1 = self._rimCoordinates[1][n2][n3p]
                     rd2 = self._rimCoordinates[2][n2][n3p]
-                    rd3 = None if isLinearThroughWall else self._rimCoordinates[3][n2][n3p]
+                    rd3 = None if isLinearThroughShell else self._rimCoordinates[3][n2][n3p]
                 ringNodeIds = []
                 for n1 in range(self._elementsCountAround):
                     nodeIdentifier = generateData.nextNodeIdentifier()
@@ -1658,10 +1658,10 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         self._useOuterTrimSurfaces = useOuterTrimSurfaces
         self._calculateTrimSurfaces()
         # rim indexes are issued for interior points connected to 2 or more segment node indexes
-        # based on the outer surface, and reused through the wall
+        # based on the outer surface, and reused through the rim
         self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment number, node index around)]
         self._segmentNodeToRimIndex = []  # list[segment number][node index around] to rimIndex
-        # rim coordinates sampled in the junction are indexed by n3 (through the wall) and 'rim index'
+        # rim coordinates sampled in the junction are indexed by n3 (indexed outware through the rim) and 'rim index'
         self._rimCoordinates = None  # if set, (rx[], rd1[], rd2[], rd3[]) each over [n3][rim index]
         self._rimNodeIds = None  # if set, nodeIdentifier[n3][rim index]
 
@@ -2905,13 +2905,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         fieldcache = generateData.getFieldcache()
         nodes = generateData.getNodes()
         nodetemplate = generateData.getNodetemplate()
-        isLinearThroughWall = generateData.isLinearThroughWall()
         mesh = generateData.getMesh()
         meshDimension = generateData.getMeshDimension()
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(
             Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
-        d3Defined = (meshDimension == 3) and not isLinearThroughWall
+        d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
 
         nodeLayout6Way = generateData.getNodeLayout6Way()
         nodeLayout8Way = generateData.getNodeLayout8Way()
@@ -3028,7 +3027,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                             for a in [nids, nodeParameters, nodeLayouts] if (needParameters) else [nids]:
                                 a[-4], a[-2] = a[-2], a[-4]
                                 a[-3], a[-1] = a[-1], a[-3]
-                    # exploit efts being same through the wall
+                    # exploit efts being same through the rim
                     eft = eftList[e1]
                     scalefactors = scalefactorsList[e1]
                     if not eft:
@@ -3078,7 +3077,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         :param annotationElementsCountsAround: List in same order as layoutAnnotationGroups, specifying fixed number of
         elements around segments with any elements in the annotation group. Client must ensure exclusive map from
         segments. Groups with zero value or past end of this list use the defaultElementsCountAround.
-        :param elementsCountThroughShell: Number of elements through shell/wall >= 1.
+        :param elementsCountThroughShell: Number of elements through shell >= 1.
         :param isCore: Set to True to define solid core box and transition elements.
         :param elementsCountTransition: Number of rows of elements transitioning between core box and shell >= 1.
         :param defaultElementsCountCoreBoxMinor: Number of elements across the core box in the minor/d3 direction.

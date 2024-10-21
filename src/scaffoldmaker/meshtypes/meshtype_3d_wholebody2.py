@@ -824,7 +824,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, meshDimension,
-            isLinearThroughWall=False,
+            isLinearThroughShell=False,
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()

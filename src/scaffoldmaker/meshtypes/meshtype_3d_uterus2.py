@@ -19,14 +19,14 @@ from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_para
 class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
 
     def __init__(self, region, meshDimension, coordinateFieldName="coordinates",
-                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughWall=False, isShowTrimSurfaces=False):
+                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughShell=False, isShowTrimSurfaces=False):
         """
         :param isLinearThroughWall: Callers should only set if 3-D with no core.
         :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
         """
         super(UterusTubeNetworkMeshGenerateData, self).__init__(
             region, meshDimension, coordinateFieldName, startNodeIdentifier, startElementIdentifier,
-            isLinearThroughWall, isShowTrimSurfaces)
+            isLinearThroughShell, isShowTrimSurfaces)
         self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
         # force these annotation group names in base class
         self._leftGroup = self.getOrCreateAnnotationGroup(get_uterus_term("left uterus"))
@@ -483,7 +483,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         uterusTubeNetworkMeshBuilder.build()
         generateData = UterusTubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through wall"],
+            isLinearThroughShell=options["Use linear through wall"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         uterusTubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
