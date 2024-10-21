@@ -1263,10 +1263,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param e3: Element index across core box minor / d3 direction.
         :param elementIdentifier: Element identifier.
         """
-        self._elementsCountCoreBoxMajor
-        self._elementsCountCoreBoxMinor
         if not self._boxElementIds[e2]:
-            elementsCountRim = self.getElementsCountRim()
             self._boxElementIds[e2] = [
                 [None] * self._elementsCountCoreBoxMinor for _ in range(self._elementsCountCoreBoxMajor)]
         self._boxElementIds[e2][e3][e1] = elementIdentifier
@@ -1319,6 +1316,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         meshGroup.addElement(element)
 
     def addCoreElementsToMeshGroup(self, meshGroup):
+        """
+        Ensure all core elements in core box or rim arrays are in mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
         if not self._isCore:
             return
         self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor,
@@ -1388,6 +1389,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         :param n2Only: If set, create nodes only for that single n2 index along. Must be >= 0!
         """
+        # keeping this code to enable display of raw segment trim surfaces for future diagnostics
         # if (not n2Only) and generateData.isShowTrimSurfaces():
         #     dimension = generateData.getMeshDimension()
         #     nodeIdentifier, elementIdentifier = generateData.getNodeElementIdentifiers()
