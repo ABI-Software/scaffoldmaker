@@ -34,8 +34,8 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
             options["Target element density along longest segment"] = 12.0
         return options
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         return [
             "Network layout",
             "Number of elements around",
@@ -119,11 +119,11 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=options["Number of elements around"],
-            elementsCountThroughWall=1,
             layoutAnnotationGroups=networkLayout.getAnnotationGroups(),
             annotationElementsCountsAlong=options["Annotation numbers of elements along"],
-            annotationElementsCountsAround=options["Annotation numbers of elements around"])
+            defaultElementsCountAround=options["Number of elements around"],
+            annotationElementsCountsAround=options["Annotation numbers of elements around"],
+            elementsCountThroughShell=1)
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 2,

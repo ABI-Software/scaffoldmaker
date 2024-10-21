@@ -186,7 +186,7 @@ class BoxNetworkMeshJunction(NetworkMeshJunction):
 
     def setNodeIdentifier(self, nodeIdentifier):
         """
-        Store the node identifier so it can be reused by adjacent segments.
+        Store the node identifier to reference from adjacent segments.
         :param nodeIdentifier: Identifier of generated node at junction.
         """
         self._nodeIdentifier = nodeIdentifier
@@ -221,7 +221,6 @@ class BoxNetworkMeshJunction(NetworkMeshJunction):
             d1Mean = mult(d1, d1MagMean / d1Mag)
             for segment, nodeIndex in segmentIndexes:
                 segment.setSampledD1(nodeIndex, d1Mean)
-
 
     def generateMesh(self, generateData: BoxNetworkMeshGenerateData):
         pass  # nothing to do for box network

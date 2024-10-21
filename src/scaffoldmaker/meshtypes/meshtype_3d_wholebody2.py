@@ -15,8 +15,9 @@ from scaffoldmaker.utils.interpolation import (
     computeCubicHermiteEndDerivative, getCubicHermiteArcLength, interpolateLagrangeHermiteDerivative,
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 import math
+
 
 class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
     """
@@ -169,7 +170,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 options[key] = 60.0
         return dependentChanges
 
-
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
@@ -292,7 +292,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         footElementsCount = 2
         legMeshGroup = legGroup.getMeshGroup(mesh)
         legToFootMeshGroup = legToFootGroup.getMeshGroup(mesh)
-        footMeshGroup =  footGroup.getMeshGroup(mesh)
+        footMeshGroup = footGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideLegGroup = leftLegGroup if (side == left) else rightLegGroup
             meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, sideLegGroup.getMeshGroup(mesh)]
@@ -379,7 +379,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         id2 = mult(d2, innerProportionDefault)
         id3 = mult(d3, innerProportionDefault)
         abdomenStartX = thoraxStartX + thoraxLength
-        px = None
         for i in range(abdomenElementsCount + 1):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
@@ -487,7 +486,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             nodeIdentifier += 1
 
         # legs
-        cos45 = math.cos(0.25 * math.pi)
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
         nonFootLegLength = legLength - footHeight
         legScale = nonFootLegLength / (legToFootElementsCount - 1)
@@ -576,83 +574,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 interactiveFunctions.remove(interactiveFunction)
                 break
         return interactiveFunctions
-
-
-class WholeBodyTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
-
-    def __init__(self, region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
-            coordinateFieldName="coordinates", startNodeIdentifier=1, startElementIdentifier=1):
-        """
-        :param isLinearThroughWall: Callers should only set if 3-D with no core.
-        :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
-        """
-        super(WholeBodyTubeNetworkMeshGenerateData, self).__init__(
-            region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
-            coordinateFieldName, startNodeIdentifier, startElementIdentifier)
-        # annotation groups are created on demand:
-        self._leftGroup = None
-        self._rightGroup = None
-        self._dorsalGroup = None
-        self._ventralGroup = None
-
-    def getLeftMeshGroup(self):
-        if not self._leftGroup:
-            self._leftGroup = self.getOrCreateAnnotationGroup(("left", ""))
-        return self._leftGroup.getMeshGroup(self._mesh)
-
-    def getRightMeshGroup(self):
-        if not self._rightGroup:
-            self._rightGroup = self.getOrCreateAnnotationGroup(("right", ""))
-        return self._rightGroup.getMeshGroup(self._mesh)
-
-    def getDorsalMeshGroup(self):
-        if not self._dorsalGroup:
-            self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal", ""))
-        return self._dorsalGroup.getMeshGroup(self._mesh)
-
-    def getVentralMeshGroup(self):
-        if not self._ventralGroup:
-            self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral", ""))
-        return self._ventralGroup.getMeshGroup(self._mesh)
-
-
-class WholeBodyNetworkMeshBuilder(TubeNetworkMeshBuilder):
-
-    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
-                 annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
-                 defaultElementsCountCoreBoxMinor: int = 2, elementsCountTransition: int = 1,
-                 annotationElementsCountsCoreBoxMinor: list = [], isCore=False, useOuterTrimSurfaces=True):
-        super(WholeBodyNetworkMeshBuilder, self).__init__(
-            networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
-            elementsCountThroughWall, layoutAnnotationGroups,
-            annotationElementsCountsAlong, annotationElementsCountsAround, defaultElementsCountCoreBoxMinor,
-            elementsCountTransition, annotationElementsCountsCoreBoxMinor, isCore, useOuterTrimSurfaces)
-
-    def generateMesh(self, generateData):
-        super(WholeBodyNetworkMeshBuilder, self).generateMesh(generateData)
-        # build left, right, dorsal, ventral annotation groups
-        leftMeshGroup = generateData.getLeftMeshGroup()
-        rightMeshGroup = generateData.getRightMeshGroup()
-        dorsalMeshGroup = generateData.getDorsalMeshGroup()
-        ventralMeshGroup = generateData.getVentralMeshGroup()
-        for networkSegment in self._networkMesh.getNetworkSegments():
-            # print("Segment", networkSegment.getNodeIdentifiers())
-            segment = self._segments[networkSegment]
-            annotationTerms = segment.getAnnotationTerms()
-            for annotationTerm in annotationTerms:
-                if "left" in annotationTerm[0]:
-                    segment.addAllElementsToMeshGroup(leftMeshGroup)
-                    break
-                if "right" in annotationTerm[0]:
-                    segment.addAllElementsToMeshGroup(rightMeshGroup)
-                    break
-            else:
-                # segment on main axis
-                segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
-                segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
-            segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
-            segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
 
 
 class MeshType_3d_wholebody2(Scaffold_base):
@@ -774,7 +695,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if not options["Body network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Body network layout"):
+        if (options["Body network layout"].getScaffoldType() not in
+                cls.getOptionValidScaffoldTypes("Body network layout")):
             options["Body network layout"] = ScaffoldPackage(MeshType_1d_human_body_network_layout1)
         for key in [
             "Number of elements along head",
@@ -785,7 +707,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements along hand",
             "Number of elements along leg to foot",
             "Number of elements along foot"
-            ]:
+        ]:
             if options[key] < 1:
                 options[key] = 1
         minElementsCountAround = None
@@ -844,8 +766,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         elementsCountAroundTorso = options["Number of elements around torso"]
         elementsCountAroundArm = options["Number of elements around arm"]
         elementsCountAroundLeg = options["Number of elements around leg"]
-        coreBoxMinorCount = options["Number of elements across core box minor"]
-        coreTransitionCount = options['Number of elements across core transition']
+        isCore = options["Use Core"]
 
         layoutRegion = region.createRegion()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
@@ -854,7 +775,6 @@ class MeshType_3d_wholebody2(Scaffold_base):
 
         annotationAlongCounts = []
         annotationAroundCounts = []
-        # implementation currently uses major count including transition
         for layoutAnnotationGroup in layoutAnnotationGroups:
             alongCount = 0
             aroundCount = 0
@@ -885,24 +805,24 @@ class MeshType_3d_wholebody2(Scaffold_base):
                 aroundCount = elementsCountAroundLeg
             annotationAlongCounts.append(alongCount)
             annotationAroundCounts.append(aroundCount)
-        isCore = options["Use Core"]
 
-        tubeNetworkMeshBuilder = WholeBodyNetworkMeshBuilder(
+        tubeNetworkMeshBuilder = BodyTubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=2.0,  # not used for body
-            defaultElementsCountAround=options["Number of elements around head"],
-            elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAlong=annotationAlongCounts,
+            defaultElementsCountAround=options["Number of elements around head"],
             annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountCoreBoxMinor=coreBoxMinorCount,
-            elementsCountTransition=coreTransitionCount,
+            elementsCountThroughShell=options["Number of elements through shell"],
+            isCore=isCore,
+            elementsCountTransition=options['Number of elements across core transition'],
+            defaultElementsCountCoreBoxMinor=options["Number of elements across core box minor"],
             annotationElementsCountsCoreBoxMinor=[],
-            isCore=isCore)
+            useOuterTrimSurfaces=True)
 
         meshDimension = 3
         tubeNetworkMeshBuilder.build()
-        generateData = WholeBodyTubeNetworkMeshGenerateData(
+        generateData = TubeNetworkMeshGenerateData(
             region, meshDimension,
             isLinearThroughWall=False,
             isShowTrimSurfaces=options["Show trim surfaces"])

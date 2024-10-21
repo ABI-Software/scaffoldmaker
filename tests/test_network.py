@@ -133,8 +133,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffoldPackage = ScaffoldPackage(MeshType_2d_tubenetwork1, defaultParameterSetName="Snake")
         settings = scaffoldPackage.getScaffoldSettings()
-        networkLayoutScaffoldPackage = settings["Network layout"]
-        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertEqual(12.0, settings["Target element density along longest segment"])
         MeshType_2d_tubenetwork1.checkOptions(settings)
 
@@ -177,7 +175,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
 
     def test_2d_tube_network_sphere_cube(self):
         """
-        Test 2D bifurcation is generated correctly.
+        Test 2D sphere cube is generated correctly.
         """
         scaffoldPackage = ScaffoldPackage(MeshType_2d_tubenetwork1, defaultParameterSetName="Sphere cube")
         settings = scaffoldPackage.getScaffoldSettings()
@@ -297,8 +295,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffoldPackage = ScaffoldPackage(MeshType_2d_tubenetwork1, defaultParameterSetName="Vase")
         settings = scaffoldPackage.getScaffoldSettings()
-        networkLayoutScaffoldPackage = settings["Network layout"]
-        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertEqual(12.0, settings["Target element density along longest segment"])
         MeshType_2d_tubenetwork1.checkOptions(settings)
 
@@ -368,7 +364,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         scaffoldPackage.generate(region)
 
         fieldmodule = region.getFieldmodule()
-        mesh3d = fieldmodule.findMeshByDimension(3)
 
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(8 * 4 * 3, mesh3d.getSize())
@@ -445,7 +440,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
 
         self.assertEqual((8 * 4 * 3) * 2 + (4 * 4 * 3), mesh3d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual((8 * 4 * 3 + 3 * 3 + 2) * 2 +  (9 * 4 * 3 + 3 * 4), nodes.getSize())
+        self.assertEqual((8 * 4 * 3 + 3 * 3 + 2) * 2 + (9 * 4 * 3 + 3 * 4), nodes.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
 
@@ -526,7 +521,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertTrue(findAnnotationGroupByName(annotationGroups, "shell") is not None)
 
         fieldmodule = region.getFieldmodule()
-        mesh3d = fieldmodule.findMeshByDimension(3)
 
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(336, mesh3d.getSize())
@@ -847,7 +841,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=X_TOL)
 
-
     def test_3d_tube_network_trifurcation_cross(self):
         """
         Test trifurcation cross 3-D tube network is generated correctly with variable elements count around.
@@ -892,7 +885,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
-        mesh3d = fieldmodule.findMeshByDimension(3)
 
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(144, mesh3d.getSize())
@@ -1038,8 +1030,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         """
         scaffoldPackage = ScaffoldPackage(MeshType_3d_boxnetwork1, defaultParameterSetName="Bifurcation")
         settings = scaffoldPackage.getScaffoldSettings()
-        networkLayoutScaffoldPackage = settings["Network layout"]
-        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         self.assertEqual(3, len(settings))
         self.assertEqual(4.0, settings["Target element density along longest segment"])
         self.assertEqual([0], settings["Annotation numbers of elements along"])
@@ -1220,7 +1210,6 @@ class NetworkScaffoldTestCase(unittest.TestCase):
 
             self.assertAlmostEqual(volume, 0.0982033864405135, delta=1.0E-6)
             self.assertAlmostEqual(surfaceArea, 1.9683574196198823, delta=1.0E-6)
-
 
     def test_3d_tube_network_loop_two_segments(self):
         """

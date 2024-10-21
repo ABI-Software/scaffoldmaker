@@ -27,8 +27,8 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
     Data for passing to TubeNetworkMesh generateMesh functions.
     """
 
-    def __init__(self, region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
-            coordinateFieldName="coordinates", startNodeIdentifier=1, startElementIdentifier=1):
+    def __init__(self, region, meshDimension, coordinateFieldName="coordinates",
+                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughWall=False, isShowTrimSurfaces=False):
         """
         :param isLinearThroughWall: Callers should only set if 3-D with no core.
         :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
@@ -70,9 +70,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
 
-        # annotation groups are created if core:
+        # annotation groups created if core:
         self._coreGroup = None
         self._shellGroup = None
+        # annotation groups created on demand:
+        self._leftGroup = None
+        self._rightGroup = None
+        self._dorsalGroup = None
+        self._ventralGroup = None
 
     def getStandardElementtemplate(self):
         return self._standardElementtemplate, self._standardEft
@@ -160,6 +165,26 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             self._shellGroup = self.getOrCreateAnnotationGroup(("shell", ""))
         return self._shellGroup.getMeshGroup(self._mesh)
 
+    def getLeftMeshGroup(self):
+        if not self._leftGroup:
+            self._leftGroup = self.getOrCreateAnnotationGroup(("left", ""))
+        return self._leftGroup.getMeshGroup(self._mesh)
+
+    def getRightMeshGroup(self):
+        if not self._rightGroup:
+            self._rightGroup = self.getOrCreateAnnotationGroup(("right", ""))
+        return self._rightGroup.getMeshGroup(self._mesh)
+
+    def getDorsalMeshGroup(self):
+        if not self._dorsalGroup:
+            self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal", ""))
+        return self._dorsalGroup.getMeshGroup(self._mesh)
+
+    def getVentralMeshGroup(self):
+        if not self._ventralGroup:
+            self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral", ""))
+        return self._ventralGroup.getMeshGroup(self._mesh)
+
     def getNewTrimAnnotationGroup(self):
         self._trimAnnotationGroupCount += 1
         return self.getOrCreateAnnotationGroup(("trim surface " + "{:03d}".format(self._trimAnnotationGroupCount), ""))
@@ -167,13 +192,13 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
 class TubeNetworkMeshSegment(NetworkMeshSegment):
 
-    def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughWall,
+    def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
                  isCore=False, elementsCountCoreBoxMinor: int = 2, elementsCountTransition: int = 1):
         """
         :param networkSegment: NetworkSegment this is built from.
         :param pathParametersList: [pathParameters] if 2-D or [outerPathParameters, innerPathParameters] if 3-D
         :param elementsCountAround: Number of elements around this segment.
-        :param elementsCountThroughWall: Number of elements between inner and outer tube if 3-D, 1 if 2-D.
+        :param elementsCountThroughShell: Number of elements between inner and outer tube if 3-D, 1 if 2-D.
         :param isCore: True for generating a solid core inside the tube, False for regular tube network.
         :param elementsCountCoreBoxMinor: Number of elements across core box minor axis.
         :param elementsCountTransition: Number of elements across transition zone between core box elements and
@@ -186,8 +211,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._elementsCountCoreBoxMinor = elementsCountCoreBoxMinor
         self._elementsCountTransition = elementsCountTransition
 
-        assert elementsCountThroughWall > 0
-        self._elementsCountThroughWall = elementsCountThroughWall
+        assert elementsCountThroughShell > 0
+        self._elementsCountThroughShell = elementsCountThroughShell
         self._rawTubeCoordinatesList = []
         self._rawTrackSurfaceList = []
         for pathParameters in pathParametersList:
@@ -403,7 +428,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 [[ring] for ring in self._sampledTubeCoordinates[0][2]],
                 None)
         else:
-            wallFactor = 1.0 / self._elementsCountThroughWall
+            wallFactor = 1.0 / self._elementsCountThroughShell
             ox, od1, od2 = self._sampledTubeCoordinates[0][0:3]
             ix, id1, id2 = self._sampledTubeCoordinates[1][0:3]
             rx, rd1, rd2, rd3 = [], [], [], []
@@ -415,15 +440,15 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 itx, itd1, itd2 = ix[n2], id1[n2], id2[n2]
                 # wx, wd3 = self._determineWallCoordinates(otx, otd1, otd2, itx, itd1, itd2, coreCentre, arcCentre)
                 wd3 = [mult(sub(otx[n1], itx[n1]), wallFactor) for n1 in range(self._elementsCountAround)]
-                for n3 in range(self._elementsCountThroughWall + 1):
-                    oFactor = n3 / self._elementsCountThroughWall
+                for n3 in range(self._elementsCountThroughShell + 1):
+                    oFactor = n3 / self._elementsCountThroughShell
                     iFactor = 1.0 - oFactor
                     for r in (rx, rd1, rd2, rd3):
                         r[n2].append([])
                     for n1 in range(self._elementsCountAround):
                         if n3 == 0:
                             x, d1, d2 = itx[n1], itd1[n1], itd2[n1]
-                        elif n3 == self._elementsCountThroughWall:
+                        elif n3 == self._elementsCountThroughShell:
                             x, d1, d2 = otx[n1], otd1[n1], otd2[n1]
                         else:
                             x = add(mult(itx[n1], iFactor), mult(otx[n1], oFactor))
@@ -883,22 +908,22 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     it = cross(ic, id1[n1])
                 else:
                     ot, it = cross(od1[n1], od2[n1]), cross(id1[n1], id2[n1])
-                scalefactor = magnitude(sub(ox[n1], ix[n1])) / self._elementsCountThroughWall
+                scalefactor = magnitude(sub(ox[n1], ix[n1])) / self._elementsCountThroughShell
                 od3 = mult(normalize(ot), scalefactor)
                 id3 = mult(normalize(it), scalefactor)
             else:
-                wallFactor = 1.0 / self._elementsCountThroughWall
+                wallFactor = 1.0 / self._elementsCountThroughShell
                 od3 = id3 = mult(sub(ox[n1], ix[n1]), wallFactor)
 
             txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
-                [ix[n1], ox[n1]], [id3, od3], self._elementsCountThroughWall, arcLengthDerivatives=True)
+                [ix[n1], ox[n1]], [id3, od3], self._elementsCountThroughShell, arcLengthDerivatives=True)
 
             td3m = smoothCubicHermiteDerivativesLine(txm, td3m, fixStartDirection=True, fixEndDirection=True)
 
             tx.append(txm)
             td3.append(td3m)
 
-        for n3 in range(self._elementsCountThroughWall + 1):
+        for n3 in range(self._elementsCountThroughShell + 1):
             wx.append([])
             wd3.append([])
             for n1 in range(self._elementsCountAround):
@@ -1333,7 +1358,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         elementsCountRim = self.getElementsCountRim()
-        elementsCountShell = self._elementsCountThroughWall
+        elementsCountShell = self._elementsCountThroughShell
         e3ShellStart = elementsCountRim - elementsCountShell
         self._addRimElementsToMeshGroup(0, self._elementsCountAround, e3ShellStart, elementsCountRim, meshGroup)
 
@@ -2975,6 +3000,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nids = []
                     nodeParameters = []
                     nodeLayouts = []
+                    elementIdentifier = generateData.nextElementIdentifier()
                     lastTransition = self._isCore and (elementsCountTransition == (rim_e3 + 1))
                     needParameters = (e3 == 0) or lastTransition
                     for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
@@ -3016,7 +3042,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                             eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3)
 
                     elementtemplate.defineField(coordinates, -1, eft)
-                    elementIdentifier = generateData.nextElementIdentifier()
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     element.setNodesByIdentifier(eft, nids)
                     if scalefactors:
@@ -3027,46 +3052,57 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
 
 class TubeNetworkMeshBuilder(NetworkMeshBuilder):
+    """
+    Builds contiguous tube network meshes with smooth element size transitions at junctions, optionally with solid core.
+    """
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 defaultElementsCountAround: int, elementsCountThroughWall: int, layoutAnnotationGroups: list = [],
-                 annotationElementsCountsAlong: list = [], annotationElementsCountsAround: list = [],
-                 defaultElementsCountCoreBoxMinor: int = 2, elementsCountTransition: int = 1,
-                 annotationElementsCountsCoreBoxMinor: list = [], isCore=False, useOuterTrimSurfaces=False):
+                 layoutAnnotationGroups: list=[], annotationElementsCountsAlong: list=[],
+                 defaultElementsCountAround: int=8, annotationElementsCountsAround: list=[],
+                 elementsCountThroughShell: int=1, isCore=False, elementsCountTransition: int=1,
+                 defaultElementsCountCoreBoxMinor: int=2, annotationElementsCountsCoreBoxMinor: list=[],
+                 useOuterTrimSurfaces=True):
         """
+        Builds contiguous tube network meshes with smooth element size transitions at junctions, optionally with solid
+        core.
         :param networkMesh: Description of the topology of the network layout.
-        :param targetElementDensityAlongLongestSegment:
-        :param defaultElementsCountAround:
-        :param elementsCountThroughWall:
-        :param layoutAnnotationGroups:
-        :param annotationElementsCountsAlong: List in same order as layoutAnnotationGroups, specifying fixed
-        number along segment with any elements in the annotation group. Client must ensure exclusive map from segments.
-        Groups with zero value or past end of this list use the targetElementDensityAlongLongestSegment.
-        :param annotationElementsCountsAround: List in same order as layoutAnnotationGroups, specifying fixed
-        number around segment with any elements in the annotation group. Client must ensure exclusive map from segments.
-        Groups with zero value or past end of this list use the defaultElementsCountAround.
-        :param defaultElementsCountCoreBoxMinor: Number of elements across the core box in the minor/d3 direction.
-        :param elementsCountTransition:
-        :param annotationElementsCountsCoreBoxMinor: List in same order as layoutAnnotationGroups, specifying numbers of
-        elements across core box minor/d3 direction.
+        :param targetElementDensityAlongLongestSegment: Real value which longest segment path in network is divided by
+        to get target element length, which is used to determine numbers of elements along except when set for a segment
+        through annotationElementsCountsAlong.
+        :param layoutAnnotationGroups: Annotation groups defined on the layout to mirror on the final mesh.
+        :param annotationElementsCountsAlong: List in same order as layoutAnnotationGroups, specifying fixed number of
+        elements along segment with any elements in the annotation group. Client must ensure exclusive map from
+        segments. Groups with zero value or past end of this list use the targetElementDensityAlongLongestSegment.
+        :param defaultElementsCountAround: Number of elements around segments to use unless overridden by
+        annotationElementsCountsAround.
+        :param annotationElementsCountsAround: List in same order as layoutAnnotationGroups, specifying fixed number of
+        elements around segments with any elements in the annotation group. Client must ensure exclusive map from
+        segments. Groups with zero value or past end of this list use the defaultElementsCountAround.
+        :param elementsCountThroughShell: Number of elements through shell/wall >= 1.
         :param isCore: Set to True to define solid core box and transition elements.
-        :param useOuterTrimSurfaces: Set to True to use common trim surfaces calculated from outer.
+        :param elementsCountTransition: Number of rows of elements transitioning between core box and shell >= 1.
+        :param defaultElementsCountCoreBoxMinor: Number of elements across the core box in the minor/d3 direction.
+        :param annotationElementsCountsCoreBoxMinor: List in same order as layoutAnnotationGroups, specifying numbers of
+        elements across core box minor/d3 direction for segments with any elements in the annotation group. Client must
+        ensure exclusive map from segments. Groups with zero value or past end of this list use the
+        defaultElementsCountCoreBoxMinor.
+        :param useOuterTrimSurfaces: Set to False to use separate trim surfaces on inner and outer tubes. Ignored if
+        no inner path.
         """
         super(TubeNetworkMeshBuilder, self).__init__(
             networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong)
         self._defaultElementsCountAround = defaultElementsCountAround
-        self._elementsCountThroughWall = elementsCountThroughWall
-        self._layoutAnnotationGroups = layoutAnnotationGroups
         self._annotationElementsCountsAround = annotationElementsCountsAround
+        self._elementsCountThroughShell = elementsCountThroughShell
+        self._isCore = isCore
+        self._elementsCountTransition = elementsCountTransition
+        self._defaultElementsCountCoreBoxMinor = defaultElementsCountCoreBoxMinor
+        self._annotationElementsCountsCoreBoxMinor = annotationElementsCountsCoreBoxMinor
         layoutFieldmodule = self._layoutRegion.getFieldmodule()
         self._layoutInnerCoordinates = layoutFieldmodule.findFieldByName("inner coordinates").castFiniteElement()
         if not self._layoutInnerCoordinates.isValid():
             self._layoutInnerCoordinates = None
-        self._isCore = isCore
-        self._useOuterTrimSurfaces = useOuterTrimSurfaces
-        self._defaultElementsCountCoreBoxMinor = defaultElementsCountCoreBoxMinor
-        self._elementsCountTransition = elementsCountTransition
-        self._annotationElementsCountsCoreBoxMinor = annotationElementsCountsCoreBoxMinor
+        self._useOuterTrimSurfaces = useOuterTrimSurfaces if self._layoutInnerCoordinates else False
 
     def createSegment(self, networkSegment):
         pathParametersList = [get_nodeset_path_ordered_field_parameters(
@@ -3102,7 +3138,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 i += 1
 
         return TubeNetworkMeshSegment(networkSegment, pathParametersList, elementsCountAround,
-                                      self._elementsCountThroughWall, self._isCore, elementsCountCoreBoxMinor,
+                                      self._elementsCountThroughShell, self._isCore, elementsCountCoreBoxMinor,
                                       self._elementsCountTransition)
 
     def createJunction(self, inSegments, outSegments):
@@ -3123,6 +3159,40 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 segment = self._segments[networkSegment]
                 segment.addCoreElementsToMeshGroup(coreMeshGroup)
                 segment.addShellElementsToMeshGroup(shellMeshGroup)
+
+
+class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+    """
+    Specialization of TubeNetworkMeshBuilder adding annotations for left, right, dorsal, ventral regions.
+    Requires network layout to follow these conventions:
+    - consistently annotates fully left or right features with names including "left" or "right", respectively.
+    - along central body, +d2 direction is left, -d2 direction is right.
+    - +d3 direction is ventral, -d3 is dorsal.
+    """
+
+    def generateMesh(self, generateData):
+        super(BodyTubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build left, right, dorsal, ventral annotation groups
+        leftMeshGroup = generateData.getLeftMeshGroup()
+        rightMeshGroup = generateData.getRightMeshGroup()
+        dorsalMeshGroup = generateData.getDorsalMeshGroup()
+        ventralMeshGroup = generateData.getVentralMeshGroup()
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            annotationTerms = segment.getAnnotationTerms()
+            for annotationTerm in annotationTerms:
+                if "left" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(leftMeshGroup)
+                    break
+                if "right" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(rightMeshGroup)
+                    break
+            else:
+                # segment on main axis
+                segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
+                segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
 
 
 class TubeEllipseGenerator:

@@ -134,8 +134,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         for annotationGroup in annotationGroups:
             annotationGroup.addSubelements()
         scaffold.defineFaceAnnotations(refineRegion, options, annotationGroups)
-        for annotation in annotationGroups:
-            if annotation not in oldAnnotationGroups:
+        for annotationGroup in annotationGroups:
+            if annotationGroup not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
         self.assertEqual(34, len(annotationGroups))
 #

@@ -714,6 +714,17 @@ class NetworkMeshBuilder(ABC):
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
                  layoutAnnotationGroups, annotationElementsCountsAlong=[]):
+        """
+        Abstract base class for building meshes from a NetworkMesh network layout.
+        :param networkMesh: Description of the topology of the network layout.
+        :param targetElementDensityAlongLongestSegment: Real value which longest segment path in network is divided by
+        to get target element length, which is used to determine numbers of elements along except when set for a segment
+        through annotationElementsCountsAlong.
+        :param layoutAnnotationGroups: Annotation groups defined on the layout to mirror on the final mesh.
+        :param annotationElementsCountsAlong: List in same order as layoutAnnotationGroups, specifying fixed number of
+        elements along segment with any elements in the annotation group. Client must ensure exclusive map from
+        segments. Groups with zero value or past end of this list use the targetElementDensityAlongLongestSegment.
+        """
         self._networkMesh = networkMesh
         self._targetElementDensityAlongLongestSegment = targetElementDensityAlongLongestSegment
         self._layoutAnnotationGroups = layoutAnnotationGroups
