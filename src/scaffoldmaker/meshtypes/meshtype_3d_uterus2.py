@@ -18,44 +18,30 @@ from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_para
 
 class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
 
-    def __init__(self, region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
-            coordinateFieldName="coordinates", startNodeIdentifier=1, startElementIdentifier=1):
+    def __init__(self, region, meshDimension, coordinateFieldName="coordinates",
+                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughShell=False, isShowTrimSurfaces=False):
         """
         :param isLinearThroughWall: Callers should only set if 3-D with no core.
         :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
         """
         super(UterusTubeNetworkMeshGenerateData, self).__init__(
-            region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
-            coordinateFieldName, startNodeIdentifier, startElementIdentifier)
+            region, meshDimension, coordinateFieldName, startNodeIdentifier, startElementIdentifier,
+            isLinearThroughShell, isShowTrimSurfaces)
         self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
-        self._leftGroup = self.getOrCreateAnnotationGroup(("left uterus", "None"))
-        self._rightGroup = self.getOrCreateAnnotationGroup(("right uterus", "None"))
-        self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal uterus", "None"))
-        self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral uterus", "None"))
+        # force these annotation group names in base class
+        self._leftGroup = self.getOrCreateAnnotationGroup(get_uterus_term("left uterus"))
+        self._rightGroup = self.getOrCreateAnnotationGroup(get_uterus_term("right uterus"))
+        self._dorsalGroup = self.getOrCreateAnnotationGroup(get_uterus_term("dorsal uterus"))
+        self._ventralGroup = self.getOrCreateAnnotationGroup(get_uterus_term("ventral uterus"))
 
     def getFundusMeshGroup(self):
         return self._fundusGroup.getMeshGroup(self._mesh)
 
-    def getLeftMeshGroup(self):
-        return self._leftGroup.getMeshGroup(self._mesh)
-
-    def getRightMeshGroup(self):
-        return self._rightGroup.getMeshGroup(self._mesh)
-
-    def getDorsalMeshGroup(self):
-        return self._dorsalGroup.getMeshGroup(self._mesh)
-
-    def getVentralMeshGroup(self):
-        return self._ventralGroup.getMeshGroup(self._mesh)
-
 class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
-
-    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 defaultElementsCountAround: int, elementsCountThroughWall: int,
-                 layoutAnnotationGroups: list = [], annotationElementsCountsAround: list = []):
-        super(UterusTubeNetworkMeshBuilder, self).__init__(
-            networkMesh, targetElementDensityAlongLongestSegment, defaultElementsCountAround,
-            elementsCountThroughWall, layoutAnnotationGroups, annotationElementsCountsAround)
+    """
+    Adds left, right, dorsal, ventral, fundus annotations.
+    Future: derive from BodyTubeNetworkMeshBuilder to get left/right/dorsal/ventral.
+    """
 
     def generateMesh(self, generateData):
         super(UterusTubeNetworkMeshBuilder, self).generateMesh(generateData)
@@ -475,6 +461,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
+        annotationAlongCounts = []
         annotationElementsCountsAround = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
             elementsCountAround = 0
@@ -487,14 +474,16 @@ class MeshType_3d_uterus2(Scaffold_base):
         uterusTubeNetworkMeshBuilder = UterusTubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=options['Number of elements around'],
-            elementsCountThroughWall=options["Number of elements through wall"],
             layoutAnnotationGroups=layoutAnnotationGroups,
-            annotationElementsCountsAround=annotationElementsCountsAround)
+            annotationElementsCountsAlong=annotationAlongCounts,
+            defaultElementsCountAround=options['Number of elements around'],
+            annotationElementsCountsAround=annotationElementsCountsAround,
+            elementsCountThroughShell=options["Number of elements through wall"],
+            useOuterTrimSurfaces=True)
         uterusTubeNetworkMeshBuilder.build()
         generateData = UterusTubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through wall"],
+            isLinearThroughShell=options["Use linear through wall"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         uterusTubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
@@ -629,10 +618,10 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                            get_uterus_term("lumen of vagina"))
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
-        leftGroup = getAnnotationGroupForTerm(annotationGroups, ("left uterus", "None"))
-        rightGroup = getAnnotationGroupForTerm(annotationGroups, ("right uterus", "None"))
-        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, ("dorsal uterus", "None"))
-        ventralGroup = getAnnotationGroupForTerm(annotationGroups, ("ventral uterus", "None"))
+        leftGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterus"))
+        rightGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterus"))
+        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("dorsal uterus"))
+        ventralGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("ventral uterus"))
 
         if isHuman:
             leftUterineTubeGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine tube"))
