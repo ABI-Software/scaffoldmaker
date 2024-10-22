@@ -59,7 +59,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubesept
 from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
 from scaffoldmaker.meshtypes.meshtype_3d_uterus2 import MeshType_3d_uterus2
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
-from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
+from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import (
+    MeshType_3d_wholebody2, MeshType_1d_human_body_network_layout1)
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
@@ -124,9 +125,15 @@ class Scaffolds(object):
             MeshType_3d_wholebody1,
             MeshType_3d_wholebody2
             ]
+        self._allPrivateScaffoldTypes = [
+            MeshType_1d_human_body_network_layout1
+            ]
 
     def findScaffoldTypeByName(self, name):
         for scaffoldType in self._allScaffoldTypes:
+            if scaffoldType.getName() == name:
+                return scaffoldType
+        for scaffoldType in self._allPrivateScaffoldTypes:
             if scaffoldType.getName() == name:
                 return scaffoldType
         return None

@@ -91,8 +91,9 @@ class BoxNetworkMeshSegment(NetworkMeshSegment):
         super(BoxNetworkMeshSegment, self).__init__(networkSegment, pathParametersList)
         self._sampledBoxCoordinates = None
 
-    def sample(self, targetElementLength):
-        elementsCountAlong = max(1, math.ceil(self._length / targetElementLength))
+    def sample(self, fixedElementsCountAlong, targetElementLength):
+        elementsCountAlong = (fixedElementsCountAlong if fixedElementsCountAlong else
+                              max(1, math.ceil(self.getSampleLength() / targetElementLength)))
         if self._isLoop and (elementsCountAlong < 2):
             elementsCountAlong = 2
         pathParameters = self._pathParametersList[0]
@@ -185,7 +186,7 @@ class BoxNetworkMeshJunction(NetworkMeshJunction):
 
     def setNodeIdentifier(self, nodeIdentifier):
         """
-        Store the node identifier so it can be reused by adjacent segments.
+        Store the node identifier to reference from adjacent segments.
         :param nodeIdentifier: Identifier of generated node at junction.
         """
         self._nodeIdentifier = nodeIdentifier
@@ -221,7 +222,6 @@ class BoxNetworkMeshJunction(NetworkMeshJunction):
             for segment, nodeIndex in segmentIndexes:
                 segment.setSampledD1(nodeIndex, d1Mean)
 
-
     def generateMesh(self, generateData: BoxNetworkMeshGenerateData):
         pass  # nothing to do for box network
 
@@ -229,9 +229,9 @@ class BoxNetworkMeshJunction(NetworkMeshJunction):
 class BoxNetworkMeshBuilder(NetworkMeshBuilder):
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 layoutAnnotationGroups: list = []):
+                 layoutAnnotationGroups: list = [], annotationElementsCountsAlong: list = []):
         super(BoxNetworkMeshBuilder, self).__init__(
-            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups)
+            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong)
 
     def createSegment(self, networkSegment):
         """

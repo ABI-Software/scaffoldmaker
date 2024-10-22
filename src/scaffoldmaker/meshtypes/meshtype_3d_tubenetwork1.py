@@ -37,27 +37,33 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                                               {"scaffoldSettings": {"Define inner coordinates": True}},
                                               defaultParameterSetName=parameterSetName),
             "Number of elements around": 8,
-            "Number of elements through shell": 1,
             "Annotation numbers of elements around": [0],
             "Target element density along longest segment": 4.0,
+            "Annotation numbers of elements along": [0],
+            "Number of elements through shell": 1,
             "Use linear through shell": False,
+            "Use outer trim surfaces": True,
             "Show trim surfaces": False,
             "Core": False,
             "Number of elements across core box minor": 2,
             "Number of elements across core transition": 1,
             "Annotation numbers of elements across core box minor": [0]
         }
+        if parameterSetName in ["Loop", "Snake", "Vase"]:
+            options["Target element density along longest segment"] = 12.0
         return options
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         return [
             "Network layout",
             "Number of elements around",
-            "Number of elements through shell",
             "Annotation numbers of elements around",
             "Target element density along longest segment",
+            "Annotation numbers of elements along",
+            "Number of elements through shell",
             "Use linear through shell",
+            "Use outer trim surfaces",
             "Show trim surfaces",
             "Core",
             "Number of elements across core box minor",
@@ -106,7 +112,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
             if options["Number of elements around"] < 8:
                 options["Number of elements around"] = 8
             elif options["Number of elements around"] % 4:
-                options["Number of elements around"] += 4 - options["Number of elements around"] % 4
+                options["Number of elements around"] += 4 - (options["Number of elements around"] % 4)
 
             annotationAroundCounts = options["Annotation numbers of elements around"]
             minAroundCount = options["Number of elements around"]
@@ -120,7 +126,7 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
                         if annotationAroundCounts[i] < 8:
                             annotationAroundCounts[i] = 8
                         elif annotationAroundCounts[i] % 4:
-                            annotationAroundCounts[i] += 4 - annotationAroundCounts[i]
+                            annotationAroundCounts[i] += 4 - (annotationAroundCounts[i] % 4)
                         if annotationAroundCounts[i] < minAroundCount:
                             minAroundCount = annotationAroundCounts[i]
 
@@ -183,6 +189,15 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
 
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
+        annotationAlongCounts = options["Annotation numbers of elements along"]
+        if len(annotationAlongCounts) == 0:
+            options["Annotation numbers of elements along"] = [0]
+        else:
+            for i in range(len(annotationAlongCounts)):
+                if annotationAlongCounts[i] <= 0:
+                    annotationAlongCounts[i] = 0
+                elif annotationAlongCounts[i] < 1:
+                    annotationAlongCounts[i] = 1
 
         return dependentChanges
 
@@ -197,40 +212,25 @@ class MeshType_3d_tubenetwork1(Scaffold_base):
         layoutRegion = region.createRegion()
         networkLayout = options["Network layout"]
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
-        layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
-
-        defaultAroundCount = options["Number of elements around"]
-        coreTransitionCount = options["Number of elements across core transition"]
-        defaultCoreBoxMinorCount = options["Number of elements across core box minor"]
-        # implementation currently uses major count including transition
-        defaultCoreMajorCount = defaultAroundCount // 2 - defaultCoreBoxMinorCount + 2 * coreTransitionCount
-        annotationAroundCounts = options["Annotation numbers of elements around"]
-        annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
-        annotationCoreMajorCounts = []
-        for i in range(len(annotationCoreBoxMinorCounts)):
-            aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
-                else defaultAroundCount
-            coreBoxMinorCount = annotationCoreBoxMinorCounts[i] if annotationCoreBoxMinorCounts[i] \
-                else defaultCoreBoxMinorCount
-            annotationCoreMajorCounts.append(aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount)
 
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=defaultAroundCount,
-            elementsCountThroughWall=options["Number of elements through shell"],
-            layoutAnnotationGroups=layoutAnnotationGroups,
-            annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountAcrossMajor=defaultCoreMajorCount,
-            elementsCountTransition=coreTransitionCount,
-            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
-            isCore=options["Core"])
-
+            layoutAnnotationGroups=networkLayout.getAnnotationGroups(),
+            annotationElementsCountsAlong=options["Annotation numbers of elements along"],
+            defaultElementsCountAround=options["Number of elements around"],
+            annotationElementsCountsAround=options["Annotation numbers of elements around"],
+            elementsCountThroughShell=options["Number of elements through shell"],
+            isCore=options["Core"],
+            elementsCountTransition=options["Number of elements across core transition"],
+            defaultElementsCountCoreBoxMinor=options["Number of elements across core box minor"],
+            annotationElementsCountsCoreBoxMinor=options["Annotation numbers of elements across core box minor"],
+            useOuterTrimSurfaces=options["Use outer trim surfaces"])
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through shell"],
+            isLinearThroughShell=options["Use linear through shell"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()

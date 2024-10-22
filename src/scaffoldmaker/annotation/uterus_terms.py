@@ -9,6 +9,7 @@ uterus_terms = [
     ("dorsal cervix junction with vagina", "None"),
     ("dorsal top left horn", "None"),
     ("dorsal top right horn", "None"),
+    ("dorsal uterus", "None"),
     ("external cervical os", "UBERON:0013760", "FMA:76836", "ILX:0736534"),
     ("fundus of uterus", "None"),
     ("internal cervical os", "UBERON:0013759", "FMA:17747", "ILX:0729495"),
@@ -18,6 +19,7 @@ uterus_terms = [
     ("left transverse cervical ligament", "None"),
     ("left uterine horn", "UBERON:0009020"),
     ("left uterine tube", "UBERON:0001303", "FMA:18484", "ILX:0734218"),
+    ("left uterus", "None"),
     ("lumen of body of uterus", "None"),
     ("lumen of fallopian tube", "None"),
     ("lumen of left horn", "None"),
@@ -33,6 +35,7 @@ uterus_terms = [
     ("right transverse cervical ligament", "None"),
     ("right uterine horn", "UBERON:0009022"),
     ("right uterine tube", "UBERON:0001302", "FMA:18483", "ILX:0724908"),
+    ("right uterus", "None"),
     ("serosa of body of uterus", "None"),
     ("serosa of left uterine tube", "None"),
     ("serosa of left horn", "None"),
@@ -41,7 +44,7 @@ uterus_terms = [
     ("serosa of uterine cervix", "None"),
     ("serosa of uterus", "UBERON:0001297"),
     ("serosa of vagina", "None"),
-    ("uterine cervix", "UBERON:0000002","FMA:17740", "ILX:0724162"),
+    ("uterine cervix", "UBERON:0000002", "FMA:17740", "ILX:0724162"),
     ("uterine horn", "UBERON:000224"),
     ("uterine lumen", "UBERON:0013769"),
     ("uterine wall", "UBERON:0000459", "FMA:17560", "ILX:0735839"),
@@ -50,15 +53,17 @@ uterus_terms = [
     ("vagina orifice", "UBERON:0012317", "FMA:19984", "ILX:0729556"),
     ("ventral cervix junction with vagina", "None"),
     ("ventral top left horn", "None"),
-    ("ventral top right horn", "None")]
+    ("ventral top right horn", "None"),
+    ("ventral uterus", "None")]
+
 
 def get_uterus_term(name: str):
     """
     Find term by matching name to any identifier held for a term.
     Raise exception if name not found.
-    :return ( preferred name, preferred id )
+    :return: ( preferred name, preferred id )
     """
     for term in uterus_terms:
         if name in term:
-            return (term[0], term[1])
+            return term[0], term[1]
     raise NameError("Uterus annotation term '" + name + "' not found.")
