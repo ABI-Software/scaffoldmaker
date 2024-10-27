@@ -70,7 +70,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Foot height"] = 1.0
+        options["Foot height"] = 1.25
         options["Foot length"] = 2.5
         options["Foot thickness"] = 0.3
         options["Foot width"] = 1.0
@@ -537,8 +537,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 nodeIdentifier += 1
             # foot
             fx = [x,
-                  add(add(legStart, mult(legDirn, legLength - halfFootThickness)),
-                      [0.0, 0.0, 0.25 * footLength + legBottomRadius]),
+                  add(add(legStart, mult(legDirn, legLength - 1.5 * halfFootThickness)),
+                      [0.0, 0.0, legBottomRadius]),
                   add(add(legStart, mult(legDirn, legLength - halfFootThickness)),
                       [0.0, 0.0, footLength - legBottomRadius])]
             fd1 = smoothCubicHermiteDerivativesLine(
@@ -546,7 +546,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 fixAllDirections=True, fixStartDerivative=True)
             fd2 = [d2, mult(legSide, halfFootWidth), mult(legSide, halfFootWidth)]
             fd3 = [d3,
-                   set_magnitude(sub(legFront, legDirn), legBottomRadius),
+                   set_magnitude(sub(legFront, legDirn),
+                                 math.sqrt(2.0 * halfFootThickness * halfFootThickness) + legBottomRadius),
                    set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)]
             fd12 = sub(fd2[2], fd2[1])
             fd13 = sub(fd3[2], fd3[1])
