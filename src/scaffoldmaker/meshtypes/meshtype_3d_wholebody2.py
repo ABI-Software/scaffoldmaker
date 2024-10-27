@@ -775,9 +775,12 @@ class MeshType_3d_wholebody2(Scaffold_base):
 
         annotationAlongCounts = []
         annotationAroundCounts = []
+        defaultCoreBoundaryScalingMode = 1
+        annotationCoreBoundaryScalingMode = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
             alongCount = 0
             aroundCount = 0
+            coreBoundaryScalingMode = 0
             name = layoutAnnotationGroup.getName()
             if "head" in name:
                 alongCount = elementsCountAlongHead
@@ -788,9 +791,11 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elif "thorax" in name:
                 alongCount = elementsCountAlongThorax
                 aroundCount = elementsCountAroundTorso
+                coreBoundaryScalingMode = 2
             elif "abdomen" in name:
                 alongCount = elementsCountAlongAbdomen
                 aroundCount = elementsCountAroundTorso
+                coreBoundaryScalingMode = 2
             elif "arm to hand" in name:
                 alongCount = elementsCountAlongArmToHand
                 aroundCount = elementsCountAroundArm
@@ -805,6 +810,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
                 aroundCount = elementsCountAroundLeg
             annotationAlongCounts.append(alongCount)
             annotationAroundCounts.append(aroundCount)
+            annotationCoreBoundaryScalingMode.append(coreBoundaryScalingMode)
 
         tubeNetworkMeshBuilder = BodyTubeNetworkMeshBuilder(
             networkMesh,
@@ -818,6 +824,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elementsCountTransition=options['Number of elements across core transition'],
             defaultElementsCountCoreBoxMinor=options["Number of elements across core box minor"],
             annotationElementsCountsCoreBoxMinor=[],
+            defaultCoreBoundaryScalingMode=defaultCoreBoundaryScalingMode,
+            annotationCoreBoundaryScalingMode=annotationCoreBoundaryScalingMode,
             useOuterTrimSurfaces=True)
 
         meshDimension = 3
