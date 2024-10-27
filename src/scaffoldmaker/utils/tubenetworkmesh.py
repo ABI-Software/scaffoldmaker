@@ -189,11 +189,50 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._trimAnnotationGroupCount += 1
         return self.getOrCreateAnnotationGroup(("trim surface " + "{:03d}".format(self._trimAnnotationGroupCount), ""))
 
+    def resolveEftCoreBoundaryScaling(self, eft, scalefactors, nodeParameters, nodeIdentifiers, mode):
+        """
+        Resolve differences in d3 scaling across core-shell boundary by one of 2 modes.
+        Works for 8-noded tricubic Hermite serendipity basis only.
+        :param eft: Element field template to modify.
+        :param scalefactors: Existing scalefactors for use with eft.
+        :param nodeParameters: List over 8 (3-D) local nodes in Zinc ordering of 4 parameter vectors
+        x, d1, d2, d3 each with 3 components.
+        :param nodeIdentifiers: List over 8 3-D local nodes giving global node identifiers.
+        :param mode: 1 to set scale factors, 2 to add version 2 to d3 for the boundary nodes and assigning
+        values to that version equal to the scale factors x version 1.
+        :return: New eft, new scalefactors.
+        """
+        assert mode in (1, 2)
+        eft, scalefactors, addScalefactors = addTricubicHermiteSerendipityEftParameterScaling(
+            eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3, version=mode)
+        if mode == 2:
+            nodetemplate = self._nodes.createNodetemplate()
+            n = 4
+            for nodeIdentifier, scalefactor in zip(nodeIdentifiers[4:], addScalefactors):
+                node = self._nodes.findNodeByIdentifier(nodeIdentifier)
+                nodetemplate.defineFieldFromNode(self._coordinates, node)
+                versionsCount = nodetemplate.getValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS3)
+                if versionsCount == 1:
+                    # make version 2 of d3 at the node and assign to it
+                    nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
+                    # merge clears the current parameters so need to re-set
+                    node.merge(nodetemplate)
+                    self._fieldcache.setNode(node)
+                    for valueLabel, value in zip(
+                            (Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3), nodeParameters[n]):
+                        self._coordinates.setNodeParameters(self._fieldcache, -1, valueLabel, 1, value)
+                    d3_v2 = mult(nodeParameters[n][3], scalefactor)
+                    self._coordinates.setNodeParameters(self._fieldcache, -1, Node.VALUE_LABEL_D_DS3, 2, d3_v2)
+                n += 1
+        return eft, scalefactors
+
 
 class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
-                 isCore=False, elementsCountCoreBoxMinor: int = 2, elementsCountTransition: int = 1):
+                 isCore=False, elementsCountCoreBoxMinor: int=2, elementsCountTransition: int=1,
+                 coreBoundaryScalingMode: int=1):
         """
         :param networkSegment: NetworkSegment this is built from.
         :param pathParametersList: [pathParameters] if 2-D or [outerPathParameters, innerPathParameters] if 3-D
@@ -210,6 +249,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._elementsCountCoreBoxMajor = (elementsCountAround // 2) - elementsCountCoreBoxMinor
         self._elementsCountCoreBoxMinor = elementsCountCoreBoxMinor
         self._elementsCountTransition = elementsCountTransition
+        self._coreBoundaryScalingMode = coreBoundaryScalingMode
 
         assert elementsCountThroughShell > 0
         self._elementsCountThroughShell = elementsCountThroughShell
@@ -240,6 +280,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         # lookup table that translates box boundary node ids in a circular format to box node ids in
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
         self._boxElementIds = None  # [along][major][minor]
+
+    def getCoreBoundaryScalingMode(self):
+        return self._coreBoundaryScalingMode
 
     def getElementsCountAround(self):
         return self._elementsCountAround
@@ -1586,8 +1629,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                             nodeLayouts.append(None)
                     eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
                     if self._elementsCountTransition == 1:
-                        eft, scalefactors = addTricubicHermiteSerendipityEftParameterScaling(
-                            eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3)
+                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                            eft, scalefactors, nodeParameters, nids, self._coreBoundaryScalingMode)
                     elementtemplate = mesh.createElementtemplate()
                     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                     elementtemplate.defineField(coordinates, -1, eft)
@@ -1625,8 +1668,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                                 for n1 in (e1, n1p):
                                     nodeParameters.append(self.getRimCoordinates(n1, n2, n3))
                         eft = generateData.createElementfieldtemplate()
-                        eft, scalefactors = addTricubicHermiteSerendipityEftParameterScaling(
-                            eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3)
+                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                            eft, scalefactors, nodeParameters, nids, self._coreBoundaryScalingMode)
                         elementtemplateTransition = mesh.createElementtemplate()
                         elementtemplateTransition.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                         elementtemplateTransition.defineField(coordinates, -1, eft)
@@ -2851,8 +2894,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
             eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
             if elementsCountTransition == 1:
-                eft, scalefactors = addTricubicHermiteSerendipityEftParameterScaling(
-                    eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3)
+                eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                    eft, scalefactors, nodeParameters, nids, segment.getCoreBoundaryScalingMode())
             elementtemplate.defineField(coordinates, -1, eft)
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids)
@@ -3037,8 +3080,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     if lastTransition:
                         # need to generate eft again otherwise modifying object in eftList, mucking up outer layers
                         eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                        eft, scalefactors = addTricubicHermiteSerendipityEftParameterScaling(
-                            eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3)
+                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                            eft, scalefactors, nodeParameters, nids, segment.getCoreBoundaryScalingMode())
 
                     elementtemplate.defineField(coordinates, -1, eft)
                     element = mesh.createElement(elementIdentifier, elementtemplate)
@@ -3060,6 +3103,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                  defaultElementsCountAround: int=8, annotationElementsCountsAround: list=[],
                  elementsCountThroughShell: int=1, isCore=False, elementsCountTransition: int=1,
                  defaultElementsCountCoreBoxMinor: int=2, annotationElementsCountsCoreBoxMinor: list=[],
+                 defaultCoreBoundaryScalingMode=1, annotationCoreBoundaryScalingMode=[],
                  useOuterTrimSurfaces=True):
         """
         Builds contiguous tube network meshes with smooth element size transitions at junctions, optionally with solid
@@ -3085,6 +3129,9 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         elements across core box minor/d3 direction for segments with any elements in the annotation group. Client must
         ensure exclusive map from segments. Groups with zero value or past end of this list use the
         defaultElementsCountCoreBoxMinor.
+        :param defaultCoreBoundaryScalingMode: Mode 1=scalefactor, 2=version.
+        :param annotationCoreBoundaryScalingMode: Boundary mode 1 or 2 in order of layoutAnnotationGroups,
+        or 0 to use default.
         :param useOuterTrimSurfaces: Set to False to use separate trim surfaces on inner and outer tubes. Ignored if
         no inner path.
         """
@@ -3097,6 +3144,8 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         self._elementsCountTransition = elementsCountTransition
         self._defaultElementsCountCoreBoxMinor = defaultElementsCountCoreBoxMinor
         self._annotationElementsCountsCoreBoxMinor = annotationElementsCountsCoreBoxMinor
+        self._defaultCoreBoundaryScalingMode = defaultCoreBoundaryScalingMode
+        self._annotationCoreBoundaryScalingMode = annotationCoreBoundaryScalingMode
         layoutFieldmodule = self._layoutRegion.getFieldmodule()
         self._layoutInnerCoordinates = layoutFieldmodule.findFieldByName("inner coordinates").castFiniteElement()
         if not self._layoutInnerCoordinates.isValid():
@@ -3114,6 +3163,7 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         elementsCountAround = self._defaultElementsCountAround
         elementsCountCoreBoxMinor = self._defaultElementsCountCoreBoxMinor
 
+        coreBoundaryScalingMode = self._defaultCoreBoundaryScalingMode
         i = 0
         for layoutAnnotationGroup in self._layoutAnnotationGroups:
             if i >= len(self._annotationElementsCountsAround):
@@ -3135,10 +3185,19 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                         elementsCountCoreBoxMinor = self._annotationElementsCountsCoreBoxMinor[i]
                         break
                 i += 1
-
+            i = 0
+            for layoutAnnotationGroup in self._layoutAnnotationGroups:
+                if i >= len(self._annotationCoreBoundaryScalingMode):
+                    break
+                if self._annotationCoreBoundaryScalingMode[i] > 0:
+                    if networkSegment.hasLayoutElementsInMeshGroup(
+                            layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                        coreBoundaryScalingMode = self._annotationCoreBoundaryScalingMode[i]
+                        break
+                i += 1
         return TubeNetworkMeshSegment(networkSegment, pathParametersList, elementsCountAround,
                                       self._elementsCountThroughShell, self._isCore, elementsCountCoreBoxMinor,
-                                      self._elementsCountTransition)
+                                      self._elementsCountTransition, coreBoundaryScalingMode)
 
     def createJunction(self, inSegments, outSegments):
         """
