@@ -50,15 +50,16 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Head length"] = 2.2
         options["Head width"] = 2.0
         options["Neck length"] = 1.3
-        options["Shoulder drop"] = 0.7
+        options["Shoulder drop"] = 1.0
         options["Shoulder width"] = 4.5
         options["Arm lateral angle degrees"] = 10.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
+        options["Arm twist angle degrees"] = 0.0
         options["Wrist thickness"] = 0.5
         options["Wrist width"] = 0.7
-        options["Hand length"] = 1.5
-        options["Hand thickness"] = 0.3
+        options["Hand length"] = 2.0
+        options["Hand thickness"] = 0.2
         options["Hand width"] = 1.0
         options["Thorax length"] = 2.5
         options["Abdomen length"] = 3.0
@@ -90,6 +91,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Arm lateral angle degrees",
             "Arm length",
             "Arm top diameter",
+            "Arm twist angle degrees",
             "Wrist thickness",
             "Wrist width",
             "Hand length",
@@ -154,20 +156,15 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 options[key] = 0.1
             elif options[key] > 0.9:
                 options[key] = 0.9
-        for key in [
-            "Arm lateral angle degrees"
-        ]:
-            if options[key] < -60.0:
-                options[key] = -60.0
-            elif options[key] > 200.0:
-                options[key] = 200.0
-        for key in [
-            "Leg lateral angle degrees"
-        ]:
-            if options[key] < -20.0:
-                options[key] = -20.0
-            elif options[key] > 60.0:
-                options[key] = 60.0
+        for key, angleRange in {
+            "Arm lateral angle degrees": (-60.0, 200.0),
+            "Arm twist angle degrees": (-90.0, 90.0),
+            "Leg lateral angle degrees": (-20.0, 60.0)
+        }.items():
+            if options[key] < angleRange[0]:
+                options[key] = angleRange[0]
+            elif options[key] > angleRange[1]:
+                options[key] = angleRange[1]
         return dependentChanges
 
     @classmethod
@@ -189,6 +186,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         armAngleRadians = math.radians(options["Arm lateral angle degrees"])
         armLength = options["Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
+        armTwistAngleRadians = math.radians(options["Arm twist angle degrees"])
         halfWristThickness = 0.5 * options["Wrist thickness"]
         halfWristWidth = 0.5 * options["Wrist width"]
         handLength = options["Hand length"]
@@ -396,22 +394,23 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         # initial shoulder rotation with arm is negligible, hence:
         shoulderRotationFactor = 1.0 - math.cos(0.5 * armAngleRadians)
         # assume shoulder drop is half shrug distance to get limiting shoulder angle for 180 degree arm rotation
-        shoulderLimitAngleRadians = math.asin(2.0 * shoulderDrop / halfShoulderWidth)
+        shoulderLimitAngleRadians = math.asin(1.5 * shoulderDrop / halfShoulderWidth)
         shoulderAngleRadians = shoulderRotationFactor * shoulderLimitAngleRadians
         armStartX = thoraxStartX + shoulderDrop - halfShoulderWidth * math.sin(shoulderAngleRadians)
         nonHandArmLength = armLength - handLength
         armScale = nonHandArmLength / (armToHandElementsCount - 2)  # 2 == shoulder elements count
         d12_mag = (halfWristThickness - armTopRadius) / (armToHandElementsCount - 2)
         d13_mag = (halfWristWidth - armTopRadius) / (armToHandElementsCount - 2)
-        hd3 = [0.0, 0.0, halfHandWidth]
-        hid3 = mult(hd3, innerProportionDefault)
         for side in (left, right):
             armAngle = armAngleRadians if (side == left) else -armAngleRadians
             cosArmAngle = math.cos(armAngle)
             sinArmAngle = math.sin(armAngle)
             armStartY = (halfShoulderWidth if (side == left) else -halfShoulderWidth) * math.cos(shoulderAngleRadians)
             x = [armStartX, armStartY, 0.0]
-            d1 = [armScale * cosArmAngle, armScale * sinArmAngle, 0.0]
+            armDirn = [cosArmAngle, sinArmAngle, 0.0]
+            armSide = [-sinArmAngle, cosArmAngle, 0.0]
+            armFront = cross(armDirn, armSide)
+            d1 = mult(armDirn, armScale)
             # set leg versions 2 (left) and 3 (right) on leg junction node, and intermediate shoulder node
             sd1 = interpolateLagrangeHermiteDerivative(sx, x, d1, 0.0)
             nx, nd1 = sampleCubicHermiteCurvesSmooth([sx, x], [sd1, d1], 2, derivativeMagnitudeEnd=armScale)[0:2]
@@ -454,11 +453,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 sid13 = mult(sd13, innerProportionDefault)
                 innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sid12)
                 innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, sid13)
-            d12 = [-d12_mag * sinArmAngle, d12_mag * cosArmAngle, 0.0]
-            id12 = mult(d12, innerProportionDefault)
-            d13 = [0.0, 0.0, d13_mag]
-            id13 = mult(d13, innerProportionDefault)
             # main part of arm to wrist
+            elementTwistAngle = ((armTwistAngleRadians if (side == left) else -armTwistAngleRadians) /
+                                 (armToHandElementsCount - 3))
             for i in range(armToHandElementsCount - 1):
                 xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
@@ -466,10 +463,33 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 x = [armStartX + d1[0] * i, armStartY + d1[1] * i, d1[2] * i]
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-                d2 = [-halfThickness * sinArmAngle, halfThickness * cosArmAngle, 0.0]
-                d3 = [0.0, 0.0, halfWidth]
+                if i == 0:
+                    twistAngle = 0.0
+                elif i == (armToHandElementsCount - 2):
+                    twistAngle = armTwistAngleRadians if (side == left) else -armTwistAngleRadians
+                else:
+                    twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * i
+                if twistAngle == 0.0:
+                    d2 = mult(armSide, halfThickness)
+                    d3 = mult(armFront, halfWidth)
+                    d12 = mult(armSide, d12_mag)
+                    d13 = mult(armFront, d13_mag)
+                else:
+                    cosTwistAngle = math.cos(twistAngle)
+                    sinTwistAngle = math.sin(twistAngle)
+                    d2 = sub(mult(armSide, halfThickness * cosTwistAngle),
+                             mult(armFront, halfThickness * sinTwistAngle))
+                    d3 = add(mult(armFront, halfWidth * cosTwistAngle),
+                             mult(armSide, halfWidth * sinTwistAngle))
+                    d12 = set_magnitude(d2, d12_mag)
+                    d13 = set_magnitude(d3, d13_mag)
+                    if i < (armToHandElementsCount - 2):
+                        d12 = add(d12, set_magnitude(d3, -halfThickness * elementTwistAngle))
+                        d13 = add(d13, set_magnitude(d2, halfWidth * elementTwistAngle))
                 id2 = mult(d2, innerProportionDefault)
                 id3 = mult(d3, innerProportionDefault)
+                id12 = mult(d12, innerProportionDefault)
+                id13 = mult(d13, innerProportionDefault)
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
@@ -479,8 +499,19 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             fieldcache.setNode(node)
             hx = [armStartX + armLength * cosArmAngle, armStartY + armLength * sinArmAngle, 0.0]
             hd1 = computeCubicHermiteEndDerivative(x, d1, hx, d1)
-            hd2 = set_magnitude(d2, halfHandThickness)
+            twistAngle = armTwistAngleRadians if (side == left) else -armTwistAngleRadians
+            if twistAngle == 0.0:
+                hd2 = set_magnitude(d2, halfHandThickness)
+                hd3 = [0.0, 0.0, halfHandWidth]
+            else:
+                cosTwistAngle = math.cos(twistAngle)
+                sinTwistAngle = math.sin(twistAngle)
+                hd2 = sub(mult(armSide, halfHandThickness * cosTwistAngle),
+                          mult(armFront, halfHandThickness * sinTwistAngle))
+                hd3 = add(mult(armFront, halfHandWidth * cosTwistAngle),
+                          mult(armSide, halfHandWidth * sinTwistAngle))
             hid2 = mult(hd2, innerProportionDefault)
+            hid3 = mult(hd3, innerProportionDefault)
             setNodeFieldParameters(coordinates, fieldcache, hx, hd1, hd2, hd3)
             setNodeFieldParameters(innerCoordinates, fieldcache, hx, hd1, hid2, hid3)
             nodeIdentifier += 1
