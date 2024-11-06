@@ -41,6 +41,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.meshtypes.meshtype_3d_musclefusiform1 import MeshType_3d_musclefusiform1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
+from scaffoldmaker.meshtypes.meshtype_3d_renal_capsule1 import MeshType_3d_renal_capsule1
+from scaffoldmaker.meshtypes.meshtype_3d_renal_pelvis1 import MeshType_3d_renal_pelvis1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
@@ -102,6 +104,8 @@ class Scaffolds(object):
             MeshType_3d_musclefusiform1,
             MeshType_3d_ostium1,
             MeshType_3d_ostium2,
+            MeshType_3d_renal_capsule1,
+            MeshType_3d_renal_pelvis1,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,

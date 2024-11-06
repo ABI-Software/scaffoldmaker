@@ -688,6 +688,29 @@ class HermiteNodeLayoutManager:
             [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
         self.nodeLayoutsBifurcation6WayTriplePoint = {}
 
+        self._nodeLayoutCapShellTriplePointTopLeft = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
+        self._nodeLayoutCapShellTriplePointTopRight = HermiteNodeLayout(
+            [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0]])
+        self._nodeLayoutCapShellTriplePointBottomLeft = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [-1.0, -1.0, 0.0]])
+        self._nodeLayoutCapShellTriplePointBottomRight = HermiteNodeLayout(
+            [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, -1.0, 0.0]])
+
+        self._nodeLayoutCapBoxShield = None
+
+        self._nodeLayoutCapBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
+        self._nodeLayoutCapBoxShieldTriplePointTopRight = HermiteNodeLayout(
+            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
+
+        self._nodeLayoutCapBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
+
+        self._nodeLayoutCapBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+
+
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
         """
         Get node layout for permutations of +/- d1, d2, d3, optionally limiting some directions.
@@ -813,7 +836,7 @@ class HermiteNodeLayoutManager:
                      [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]])
                 nodeLayoutBifurcationCoreTransitionMMM = HermiteNodeLayout(
                     [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0],
-                     [0.0, 0.0, 11.0], [-1.0, -1.0, -1.0]])
+                     [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]])
                 nodeLayouts = (
                     nodeLayoutBifurcationCoreTransitionPOP,
                     nodeLayoutBifurcationCoreTransitionOPP,
@@ -838,6 +861,72 @@ class HermiteNodeLayoutManager:
                 else:
                     return self._nodeLayoutBifurcationCoreTransitionBottomGeneral
         return nodeLayouts[layoutIndex]
+
+    def getNodeLayoutCapTransition(self):
+        """
+        Get node layout for transition elements between the core box elements and the shell elements in the cap mesh.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayoutRegularPermuted_d3Defined
+
+    def getNodeLayoutCapShellTriplePoint(self):
+        """
+        Get node layout for triple-point corners of shell elements in the cap mesh. There are four corners
+        (Top Left, Top Right, Bottom Left, and Bottom Right) each with its specific node layout.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayouts = [self._nodeLayoutCapShellTriplePointTopLeft, self._nodeLayoutCapShellTriplePointTopRight,
+                       self._nodeLayoutCapShellTriplePointBottomLeft, self._nodeLayoutCapShellTriplePointBottomRight]
+        return nodeLayouts
+
+    def getNodeLayoutCapBoxShield(self, isStartCap=True):
+        """
+        Get node layout for elements between the core box and the shield in the cap mesh. There are four types
+        (Top, Bottom, Left, and Right) each with its specific node layout. The node layout also changes direction in
+        the y-axis depending on whether the cap is at the start or the end of a tube segment.
+        :return: HermiteNodeLayout.
+        """
+        if isStartCap:
+            nodeLayoutCapBoxShieldTop = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [0.0, -1.0, 1.0]])
+            nodeLayoutCapBoxShieldBottom = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, -1.0]])
+            nodeLayoutCapBoxShieldLeft = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 0.0]])
+            nodeLayoutCapBoxShieldRight = HermiteNodeLayout(
+                [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, -1.0, 0.0]])
+        else:
+            nodeLayoutCapBoxShieldTop = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]])
+            nodeLayoutCapBoxShieldBottom = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]])
+            nodeLayoutCapBoxShieldLeft = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 0.0]])
+            nodeLayoutCapBoxShieldRight = HermiteNodeLayout(
+                [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, 1.0, 0.0]])
+
+        self._nodeLayoutCapBoxShield = [nodeLayoutCapBoxShieldTop, nodeLayoutCapBoxShieldBottom,
+                                        nodeLayoutCapBoxShieldLeft, nodeLayoutCapBoxShieldRight]
+
+        return self._nodeLayoutCapBoxShield
+
+    def getNodeLayoutCapBoxShieldTriplePoint(self):
+        """
+        Get node layout for triple-point corners of core box elements in the cap mesh. There are four corners
+        (Top Left, Top Right, Bottom Left, and Bottom Right) each with its specific node layout.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayouts = [self._nodeLayoutCapBoxShieldTriplePointTopLeft, self._nodeLayoutCapBoxShieldTriplePointTopRight,
+                       self._nodeLayoutCapBoxShieldTriplePointBottomLeft, self._nodeLayoutCapBoxShieldTriplePointBottomRight]
+
+        # limitDirections = [None, None, None]
+        # nodeLayouts[0] = HermiteNodeLayout(None, nodeLayouts[0], limitDirections)
+        # nodeLayout = nodeLayouts[0]
+        # permutations = nodeLayout.getPermutations()
+        # print("permutations", permutations)
+
+        return nodeLayouts
+
 
 def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
     """

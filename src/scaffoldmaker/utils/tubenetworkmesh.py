@@ -4,6 +4,7 @@ Specialisation of Network Mesh for building 2-D and 3-D tube mesh networks.
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, set_magnitude, sub, rejection
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
+from scaffoldmaker.utils.capmesh import CapMesh
 from scaffoldmaker.utils.eft_utils import (
     addTricubicHermiteSerendipityEftParameterScaling, determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager)
 from scaffoldmaker.utils.interpolation import (
@@ -70,6 +71,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
 
+        self._nodeLayoutCapTransition = self._nodeLayoutManager.getNodeLayoutCapTransition()
+
+        self._nodeLayoutCapShellTriplePoint = None
+
+        self._nodeLayoutCapBoxShield = None
+        self._nodeLayoutCapBoxShieldTriplePoint = None
+
+
         # annotation groups created if core:
         self._coreGroup = None
         self._shellGroup = None
@@ -87,6 +96,9 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Create a new standard element field template for modifying.
         """
         return self._mesh.createElementfieldtemplate(self._elementbasis)
+
+    def getCapElementtemplate(self):
+        return self._capElementtemplate
 
     def getNodeLayout6Way(self):
         return self._nodeLayout6Way
@@ -145,6 +157,77 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
     def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
         return self._nodeLayoutManager.getNodeLayoutBifurcation6WayTriplePoint(
             segmentsIn, sequence, maxMajorSegment, top)
+
+    def getNodeLayoutCapTransition(self):
+        """
+        Node layout for generating cap shell transition elements, excluding at triple points.
+        """
+        return self._nodeLayoutCapTransition
+
+    def getNodeLayoutCapShellTriplePoint(self, location):
+        """
+        Special node layout for generating cap shell transition elements at triple points.
+        There are four layouts specific to each corner of the core box: Top left (location = 1);
+        top right (location = -1); bottom left (location = 2); and bottom right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :return: Node layout.
+        """
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapShellTriplePoint()
+        assert location in [1, -1, 2, -2, 0]
+        if location == 1:  # "Top Left"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Top Right"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Bottom Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Bottom Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = self._nodeLayoutCapTransition
+
+        self._nodeLayoutCapShellTriplePoint = nodeLayout
+        return self._nodeLayoutCapShellTriplePoint
+
+    def getNodeLayoutCapBoxShield(self, location, isStartCap=True):
+        """
+
+        """
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShield(isStartCap)
+        assert location in [1, -1, 2, -2, 0]
+        if location == 1:  # "Top"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Bottom"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = None
+
+        self._nodeLayoutCapBoxShield = nodeLayout
+        return self._nodeLayoutCapBoxShield
+
+    def getNodeLayoutCapBoxShieldTriplePoint(self, location):
+        """
+
+        """
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShieldTriplePoint()
+        assert location in [1, -1, 2, -2, 0]
+        if location == 1:  # "Top Left"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Top Right"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Bottom Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Bottom Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = self._nodeLayoutCapBoxShield
+
+        self._nodeLayoutCapBoxShieldTriplePoint = nodeLayout
+        return self._nodeLayoutCapBoxShieldTriplePoint
+
 
     def getNodetemplate(self):
         return self._nodetemplate
@@ -280,6 +363,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         # lookup table that translates box boundary node ids in a circular format to box node ids in
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
         self._boxElementIds = None  # [along][major][minor]
+
+        self._networkPathParameters = pathParametersList
+        self._isCap = networkSegment.isCap()
+        self._capmesh = None
 
     def getCoreBoundaryScalingMode(self):
         return self._coreBoundaryScalingMode
@@ -510,6 +597,14 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         if self._isCore:
             # sample coordinates for the solid core
             self._sampleCoreCoordinates(elementsCountAlong)
+
+        if self._isCap:
+            # sample coordinates for the cap mesh at the ends of a tube segment
+            self._capmesh = CapMesh(self._elementsCountAround, self._elementsCountCoreBoxMajor,
+                                    self._elementsCountCoreBoxMinor, self._elementsCountThroughShell,
+                                    self._elementsCountTransition, self._networkPathParameters, self._boxCoordinates,
+                                    self._transitionCoordinates, self._rimCoordinates, self._isCap, self._isCore)
+            self._capmesh.sampleCoordinates()
 
     def _sampleCoreCoordinates(self, elementsCountAlong):
         """
@@ -1519,6 +1614,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         self._rimNodeIds[n2] = rimNodeIds
                         continue
 
+            capmesh = self._capmesh
+            # create cap nodes at the start section of a tube segment
+            if self._isCap[0] and n2 == 0:
+                isStartCap = True
+                capmesh.generateNodes(generateData, isStartCap, self._isCore)
+
             # create core box nodes
             if self._boxCoordinates:
                 self._boxNodeIds[n2] = [] if self._boxNodeIds[n2] is None else self._boxNodeIds[n2]
@@ -1570,6 +1671,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     ringNodeIds.append(nodeIdentifier)
                 self._rimNodeIds[n2].append(ringNodeIds)
 
+            # create cap nodes at the end section of a tube segment
+            if self._isCap[-1] and n2 == elementsCountAlong:
+                isStartCap = False
+                self._endCapNodeIds = capmesh.generateNodes(generateData, isStartCap, self._isCore)
+
         # create a new list containing box node ids are located at the boundary
         if self._isCore:
             self._boxBoundaryNodeIds, self._boxBoundaryNodeToBoxId = (
@@ -1586,6 +1692,16 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._boxElementIds[e2] = []
             self._rimElementIds[e2] = []
             e2p = e2 + 1
+            # create cap elements
+            if self._isCap[0] and e2 == 0:
+                isStartCap = True
+                capmesh.generateElements(generateData, elementsCountRim, self._boxNodeIds, self._rimNodeIds,
+                                         annotationMeshGroups, self._coreBoundaryScalingMode, isStartCap, self._isCore)
+            elif self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
+                isStartCap = False
+                capmesh.generateElements(generateData, elementsCountRim, self._boxNodeIds, self._rimNodeIds,
+                                         annotationMeshGroups, self._coreBoundaryScalingMode, isStartCap, self._isCore)
+
             if self._isCore:
                 # create box elements
                 elementsCountAcrossMinor = self.getCoreBoxMinorNodesCount() - 1
