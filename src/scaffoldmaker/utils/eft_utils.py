@@ -973,8 +973,8 @@ def getTricubicHermiteSerendipityElementNodeParameter(eft, scalefactors, nodePar
     Currently assumes extra versions are not used, but this is not checked.
     :param eft: Element field template.
     :param scalefactors: List of scale factors.
-    :param nodeParameters: List over 8 (3-D)
-    local nodes in Zinc ordering of 4 parameter vectors x, d1, d2, d3 each with 3 components.
+    :param nodeParameters: List over 8 (3-D) local nodes in Zinc ordering of 4 parameter vectors
+    x, d1, d2, d3 each with 3 components.
     :param localNodeIndex: 1-based local node index on original basis.
     :param valueLabel: A value label mapped by CubicHermiteSerendipityFunctionOffset.
     :return: Parameter.
@@ -1001,10 +1001,11 @@ def getTricubicHermiteSerendipityElementNodeParameter(eft, scalefactors, nodePar
     return parameter
 
 
-def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodeParameters, localNodeIndexes, valueLabel):
+def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodeParameters, localNodeIndexes, valueLabel,
+                                                     version=1):
     """
     Scale tricubic hermite serendipity element field template value label at local nodes to fit actual parameters.
-    Parameter must currently be an unscaled single term expression at that local node.
+    Calculation assumes value label parameter is an unscaled single term expression at the local nodes.
     :param eft: Element field template e.g. returned from determineCubicHermiteSerendipityEft.
     Note: be careful to pass a separate eft to this function from any cached which do not needing scaling!
     :param scalefactors: Existing scale factors for element
@@ -1012,11 +1013,14 @@ def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodePara
     local nodes in Zinc ordering of 4 parameter vectors x, d1, d2, d3 each with 3 components.
     :param localNodeIndexes: Local node indexes to scale value label at. Currently must be in [5, 6, 7, 8].
     :param valueLabel: Single value label to scale. Currently only implemened for D_DS3.
-    :return: Modified eft, scalefactors
+    :param version: Set to a number > 1 to use that derivative version instead of scale factors, and client is
+    responsible for assigning that derivative version in proportion to the returned scale factors.
+    :return: Modified eft, final scalefactors, add scalefactors (multiplying the affected derivatives; these are
+    included in final scalefactors if version == 1, otherwise client must use these to scale versioned derivatives).
     """
     assert len(nodeParameters) == 8
     assert valueLabel == Node.VALUE_LABEL_D_DS3
-    newScalefactors = copy.copy(scalefactors) if scalefactors else []
+    addScalefactors = []
     for ln in localNodeIndexes:
         assert ln in [5, 6, 7, 8]
         na = ln - 5
@@ -1027,6 +1031,10 @@ def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodePara
         db = nodeParameters[nb][3]
         dbScaled = computeCubicHermiteEndDerivative(xa, da, xb, db)
         scalefactor = magnitude(dbScaled) / magnitude(db)
-        newScalefactors.append(scalefactor)
-    addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
-    return eft, newScalefactors
+        addScalefactors.append(scalefactor)
+    if version == 1:
+        newScalefactors = scalefactors + addScalefactors if scalefactors else addScalefactors
+        addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
+        return eft, newScalefactors, addScalefactors
+    remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], version)
+    return eft, scalefactors, addScalefactors
