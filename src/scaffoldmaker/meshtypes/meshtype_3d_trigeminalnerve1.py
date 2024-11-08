@@ -1,109 +1,368 @@
 """
-Generates a 3-D Hermite trigeminal nerve.
+Generates a 3D body coordinates using tube network mesh.
 """
-
-from cmlibs.maths.vectorops import magnitude, set_magnitude # KM
+from cmlibs.maths.vectorops import cross, mult, set_magnitude, sub
+from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.zinc.node import Node
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.trigeminal_nerve_terms import get_trigeminal_nerve_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
+from scaffoldmaker.utils.interpolation import (getCubicHermiteArcLength, interpolateLagrangeHermiteDerivative,
+                                               sampleCubicHermiteCurvesSmooth)
+from scaffoldmaker.utils.networkmesh import NetworkMesh
+from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+import math
 
-def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
-    assert parameterSetName in cls.getParameterSetNames()
-    if parameterSetName in ("Default", "Human 1"):
-        return ScaffoldPackage(MeshType_1d_network_layout1, {
-            "scaffoldSettings": {
-                "Structure": "1-2-3,3-4.1,4.2-5,5-6,4.3-7,7-8,4.4-9,9-10",
-                "Define inner coordinates": True
-            },
-            "meshEdits": exnode_string_from_nodeset_field_parameters(
-                ["coordinates", "inner coordinates"],
-                [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2,
-                 Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
-                (1, [[0.000,0.000,0.000], [0.357,0.000,0.000], [0.000,0.170,0.000], [0.000,0.005,0.000], [0.000,0.000,0.072], [0.000,0.000,0.000]]), 
-                (2, [[0.353,0.000,0.000], [0.349,0.000,0.000], [0.000,0.170,0.000], [0.000,-0.005,0.000], [0.000,0.000,0.072], [0.000,0.000,-0.000]]), 
-                (3, [[0.698,0.000,0.000], [0.324,0.000,0.000], [0.000,0.160,0.000], [0.000,0.165,0.000], [0.000,0.000,0.072], [0.000,0.000,-0.000]]), 
-                (4, [[1.000,0.000,0.000], [[0.281,0.000,0.000],[0.322,-0.321,0.000],[0.230,0.000,0.000],[0.110,0.122,0.000]], [[0.000,0.500,0.000],[0.353,0.354,0.000],[0.000,0.500,0.000],[-0.371,0.335,0.000]], [[-0.000,0.515,-0.000],[-0.301,-0.300,0.000],[0.048,-0.499,-0.017],[0.411,-0.293,0.000]], [[0.000,0.000,0.072],[-0.000,0.000,0.072],[0.000,0.000,0.072],[0.000,-0.000,0.072]], [[-0.000,-0.000,-0.000],[0.000,0.000,0.015],[-0.010,0.009,0.026],[0.000,0.000,0.011]]]), 
-                (5, [[1.307,-0.305,0.000], [0.292,-0.289,0.000], [0.141,0.142,0.000], [-0.123,-0.124,0.000], [-0.000,0.000,0.072], [0.000,0.000,-0.015]]), 
-                (6, [[1.584,-0.579,0.000], [0.262,-0.259,0.000], [0.105,0.107,0.000], [0.053,0.053,-0.000], [-0.000,0.000,0.042], [-0.000,-0.000,-0.045]]), 
-                (7, [[1.411,-0.005,0.005], [0.500,0.000,0.000], [0.000,0.138,-0.009], [-0.006,-0.225,0.000], [-0.000,0.005,0.072], [0.003,0.000,-0.026]]), 
-                (8, [[2.000,0.000,0.000], [0.770,0.000,0.000], [0.000,0.050,0.000], [0.007,0.049,0.018], [0.000,0.000,0.020], [-0.004,-0.009,-0.078]]), 
-                (9, [[1.304,0.312,0.000], [0.498,0.502,0.000], [-0.106,0.106,0.000], [0.146,-0.136,0.000], [0.000,-0.000,0.072], [0.000,0.000,-0.011]]), 
-                (10, [[2.000,1.000,0.000], [0.894,0.874,0.000], [-0.070,0.072,0.000], [-0.074,0.068,-0.000], [0.000,-0.000,0.050], [-0.000,-0.000,-0.033]])], [
-                (1, [[0.000,0.000,0.000], [0.357,0.000,0.000], [0.000,0.128,0.000], [0.000,0.004,0.000], [0.000,0.000,0.054], [0.000,0.000,0.000]]), 
-                (2, [[0.353,0.000,0.000], [0.349,0.000,0.000], [0.000,0.128,0.000], [0.000,-0.004,0.000], [0.000,0.000,0.054], [0.000,0.000,-0.000]]), 
-                (3, [[0.698,0.000,0.000], [0.324,0.000,0.000], [0.000,0.120,0.000], [0.000,0.124,0.000], [0.000,0.000,0.054], [0.000,0.000,-0.000]]), 
-                (4, [[1.000,0.000,0.000], [[0.281,0.000,0.000],[0.322,-0.321,0.000],[0.230,0.000,0.000],[0.110,0.122,0.000]], [[0.000,0.375,0.000],[0.265,0.266,0.000],[0.000,0.375,0.000],[-0.278,0.251,0.000]], [[-0.000,0.386,-0.000],[-0.225,-0.225,0.000],[0.036,-0.374,-0.013],[0.308,-0.219,0.000]], [[0.000,0.000,0.054],[-0.000,0.000,0.054],[0.000,0.000,0.054],[0.000,-0.000,0.054]], [[-0.000,-0.000,-0.000],[0.000,0.000,0.011],[-0.007,0.007,0.019],[0.000,0.000,0.008]]]), 
-                (5, [[1.307,-0.305,0.000], [0.292,-0.289,0.000], [0.106,0.107,0.000], [-0.093,-0.093,0.000], [-0.000,0.000,0.054], [0.000,0.000,-0.011]]), 
-                (6, [[1.584,-0.579,0.000], [0.262,-0.259,0.000], [0.079,0.080,0.000], [0.040,0.040,-0.000], [-0.000,0.000,0.032], [-0.000,-0.000,-0.034]]), 
-                (7, [[1.411,-0.005,0.005], [0.500,0.000,0.000], [0.000,0.103,-0.007], [-0.005,-0.169,0.000], [-0.000,0.003,0.054], [0.002,0.000,-0.020]]), 
-                (8, [[2.000,0.000,0.000], [0.770,0.000,0.000], [0.000,0.038,0.000], [0.005,0.037,0.013], [0.000,0.000,0.015], [-0.003,-0.007,-0.058]]), 
-                (9, [[1.304,0.312,0.000], [0.498,0.502,0.000], [-0.080,0.079,0.000], [0.110,-0.102,0.000], [0.000,-0.000,0.054], [0.000,0.000,-0.008]]), 
-                (10, [[2.000,1.000,0.000], [0.894,0.874,0.000], [-0.053,0.054,0.000], [-0.056,0.051,-0.000], [0.000,-0.000,0.038], [-0.000,-0.000,-0.025]])
-                ]]),
 
-            "userAnnotationGroups": [
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-9',
-                    'name': get_trigeminal_nerve_term('trigeminal nerve')[0],
-                    'ontId': get_trigeminal_nerve_term('trigeminal nerve')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '1-3',
-                    'name': get_trigeminal_nerve_term('trigeminal nerve root')[0],
-                    'ontId': get_trigeminal_nerve_term('trigeminal nerve root')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '4, 6, 8',
-                    'name': get_trigeminal_nerve_term('trigeminal ganglion')[0],
-                    'ontId': get_trigeminal_nerve_term('trigeminal ganglion')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '5',
-                    'name': get_trigeminal_nerve_term('mandibular nerve')[0],
-                    'ontId': get_trigeminal_nerve_term('mandibular nerve')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '7',
-                    'name': get_trigeminal_nerve_term('maxillary nerve')[0],
-                    'ontId': get_trigeminal_nerve_term('maxillary nerve')[1]
-                },
-                {
-                    '_AnnotationGroup': True,
-                    'dimension': 1,
-                    'identifierRanges': '9',
-                    'name': get_trigeminal_nerve_term('ophthalmic nerve')[0],
-                    'ontId': get_trigeminal_nerve_term('ophthalmic nerve')[1]
-                }
-            ]
-        })
+class MeshType_1d_human_trigeminal_nerve_network_layout1(MeshType_1d_network_layout1):
+    """
+    Defines trigeminal nerve network layout.
+    """
+
+    @classmethod
+    def getName(cls):
+        return "1D Human Trigeminal Nerve Network Layout 1"
+
+    @classmethod
+    def getParameterSetNames(cls):
+        return ["Default"]
+
+    @classmethod
+    def getDefaultOptions(cls, parameterSetName="Default"):
+        options = {}
+        options["Base parameter set"] = parameterSetName
+        options["Structure"] = (
+            "1-2-3,"
+            "3-4-5.1,"
+            "5.2-6-7-8-9,"
+            "5.3-10-11-12-13,"
+            "5.4-14-15-16-17")
+        options["Define inner coordinates"] = True
+        options["Trigeminal nerve root length"] = 3.0
+        options["Trigeminal nerve root width"] = 1.2
+        options["Trigeminal ganglion length"] = 2.0
+        options["Trigeminal ganglion width"] = 3.5
+        options["Mandibular nerve length"] = 1.5
+        options["Mandibular nerve start width"] = 1.6
+        options["Mandibular nerve end width"] = 1.0
+        options["Maxillary nerve length"] = 3.0
+        options["Maxillary nerve start width"] = 2.0
+        options["Maxillary nerve end width"] = 0.25
+        options["Ophthalmic nerve length"] = 3.0
+        options["Ophthalmic nerve start width"] = 1.0
+        options["Ophthalmic nerve end width"] = 0.6
+        options["Trigeminal nerve thickness"] = 0.5
+        options["Inner proportion default"] = 0.75
+
+        return options
+
+    @classmethod
+    def getOrderedOptionNames(cls):
+        return [
+            "Trigeminal nerve root length",
+            "Trigeminal nerve root width",
+            "Trigeminal ganglion length",
+            "Trigeminal ganglion width",
+            "Mandibular nerve length",
+            "Mandibular nerve start width",
+            "Mandibular nerve end width",
+            "Maxillary nerve length",
+            "Maxillary nerve start width",
+            "Maxillary nerve end width",
+            "Ophthalmic nerve length",
+            "Ophthalmic nerve start width",
+            "Ophthalmic nerve end width",
+            "Trigeminal nerve thickness",
+            "Inner proportion default"
+        ]
+
+    @classmethod
+    def checkOptions(cls, options):
+        dependentChanges = False
+        for key in [
+            "Trigeminal nerve root length",
+            "Trigeminal nerve root width",
+            "Trigeminal ganglion length",
+            "Trigeminal ganglion width",
+            "Mandibular nerve length",
+            "Mandibular nerve start width",
+            "Mandibular nerve end width",
+            "Maxillary nerve length",
+            "Maxillary nerve start width",
+            "Maxillary nerve end width",
+            "Ophthalmic nerve length",
+            "Ophthalmic nerve start width",
+            "Ophthalmic nerve end width",
+            "Trigeminal nerve thickness"
+        ]:
+            if options[key] < 0.1:
+                options[key] = 0.1
+        for key in [
+            "Inner proportion default",
+        ]:
+            if options[key] < 0.1:
+                options[key] = 0.1
+            elif options[key] > 0.9:
+                options[key] = 0.9
+        return dependentChanges
+
+    @classmethod
+    def generateBaseMesh(cls, region, options):
+        """
+        Generate the unrefined mesh.
+        :param region: Zinc region to define model in. Must be empty.
+        :param options: Dict containing options. See getDefaultOptions().
+        :return: [] empty list of AnnotationGroup, NetworkMesh
+        """
+        # parameterSetName = options['Base parameter set']
+        structure = options["Structure"]
+        halfNerveThickness = 0.5 * options["Trigeminal nerve thickness"]
+
+        nerveRootLength = options["Trigeminal nerve root length"]
+        halfNerveRootWidth = 0.5 * options["Trigeminal nerve root width"]
+        trigeminalGanglionLength = options["Trigeminal ganglion length"]
+        halfTrigeminalGanglionWidth = 0.5 * options["Trigeminal ganglion width"]
+
+        mandibularLength = options["Mandibular nerve length"]
+        halfMandibularStartWidth = 0.5 * options["Mandibular nerve start width"]
+        halfMandibularEndWidth = 0.5 * options["Mandibular nerve end width"]
+        mandibularAngleRadians = math.radians(-45.0)
+
+        maxillaryLength = options["Maxillary nerve length"]
+        halfMaxillaryStartWidth = 0.5 * options["Maxillary nerve start width"]
+        halfMaxillaryEndWidth = 0.5 * options["Maxillary nerve end width"]
+        maxillaryAngleRadians = math.radians(0.0)
+
+        ophthalmicLength = options["Ophthalmic nerve length"]
+        halfOphthalmicStartWidth = 0.5 * options["Ophthalmic nerve start width"]
+        halfOphthalmicEndWidth = 0.5 * options["Ophthalmic nerve end width"]
+        ophthalmicAngleRadians = math.radians(45.0)
+
+        innerProportionDefault = options["Inner proportion default"]
+
+        networkMesh = NetworkMesh(structure)
+        networkMesh.create1DLayoutMesh(region)
+
+        fieldmodule = region.getFieldmodule()
+        mesh = fieldmodule.findMeshByDimension(1)
+
+        # set up element annotations
+        trigeminalNerveGroup = AnnotationGroup(region, get_trigeminal_nerve_term("trigeminal nerve"))
+        nerveRootGroup = AnnotationGroup(region, get_trigeminal_nerve_term("trigeminal nerve root"))
+        trigeminalGanglionGroup = AnnotationGroup(region, get_trigeminal_nerve_term("trigeminal ganglion"))
+        mandibularNerveGroup = AnnotationGroup(region, get_trigeminal_nerve_term("mandibular nerve"))
+        maxillaryNerveGroup = AnnotationGroup(region, get_trigeminal_nerve_term("maxillary nerve"))
+        ophthalmicNerveGroup = AnnotationGroup(region, get_trigeminal_nerve_term("ophthalmic nerve"))
+        annotationGroups = [trigeminalNerveGroup, nerveRootGroup, trigeminalGanglionGroup,
+                            mandibularNerveGroup, maxillaryNerveGroup, ophthalmicNerveGroup]
+        trigeminalNerveMeshGroup = trigeminalNerveGroup.getMeshGroup(mesh)
+        elementIdentifier = 1
+        nerveRootElementsCount = 2
+        meshGroups = [trigeminalNerveMeshGroup, nerveRootGroup.getMeshGroup(mesh)]
+        for e in range(nerveRootElementsCount):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            elementIdentifier += 1
+        trigeminalGanglionElementsCount = 2
+        meshGroups = [trigeminalNerveMeshGroup, trigeminalGanglionGroup.getMeshGroup(mesh)]
+        for e in range(trigeminalGanglionElementsCount):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            elementIdentifier += 1
+
+        nerveBranchElementsCount = 4
+        for nerveBranch in ('mandibular','ophthalmic','maxillary'):
+            if nerveBranch == 'mandibular':
+                nerveGroup = mandibularNerveGroup
+            elif nerveBranch == 'maxillary':
+                nerveGroup = maxillaryNerveGroup
+            elif nerveBranch == 'ophthalmic':
+                nerveGroup = ophthalmicNerveGroup
+            meshGroups = [trigeminalNerveMeshGroup, nerveGroup.getMeshGroup(mesh)]
+            for e in range(nerveBranchElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+                elementIdentifier += 1
+
+        # set coordinates (outer)
+        fieldcache = fieldmodule.createFieldcache()
+        coordinates = find_or_create_field_coordinates(fieldmodule)
+        # need to ensure inner coordinates are at least defined:
+        cls.defineInnerCoordinates(region, coordinates, options, networkMesh, innerProportion=0.75)
+        innerCoordinates = find_or_create_field_coordinates(fieldmodule, "inner coordinates")
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        nerveRootScale = nerveRootLength / nerveRootElementsCount
+        nodeIdentifier = 1
+        d1 = [nerveRootScale, 0.0, 0.0]
+        d2 = [0.0, halfNerveRootWidth, 0.0]
+        d3 = [0.0, 0.0, halfNerveThickness]
+        id2 = mult(d2, innerProportionDefault)
+        id3 = mult(d3, innerProportionDefault)
+        for i in range(nerveRootElementsCount):
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            x = [nerveRootScale * i, 0.0, 0.0]
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3)
+            nodeIdentifier += 1
+
+        trigeminalGanglionScale = trigeminalGanglionLength / trigeminalGanglionElementsCount
+        d12_mag = (halfTrigeminalGanglionWidth - halfNerveRootWidth) / trigeminalGanglionElementsCount
+        d3 = [0.0, 0.0, halfNerveThickness]
+        id3 = mult(d3, innerProportionDefault)
+        for i in range(trigeminalGanglionElementsCount + 1):
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            x = [nerveRootLength + trigeminalGanglionScale * i, 0.0, 0.0]
+            d1 = [0.5 * (nerveRootScale + trigeminalGanglionScale) if (i == 0) else trigeminalGanglionScale, 0.0, 0.0]
+            sHalfWidth = halfNerveRootWidth + i * trigeminalGanglionScale * d12_mag
+            d2 = [0.0, sHalfWidth, 0.0]
+            d12 = [0.0, d12_mag, 0.0]
+            id2 = mult(d2, innerProportionDefault)
+            id12 = mult(d12, innerProportionDefault)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12)
+            nodeIdentifier += 1
+
+        nerveJunctionNodeIdentifier = nodeIdentifier - 1
+        xJunction = x
+        # print('Junction', nerveJunctionNodeIdentifier)
+
+        # Mandibular and ophthlamic nerves
+        for nerve in ("mandibular", "ophthalmic"):
+            sideNerveShoulderDrop = 0.8
+            sideNerveAngleRadians = mandibularAngleRadians if (nerve == "mandibular") else ophthalmicAngleRadians
+            sideNerveShoulderRotationFactor = 1.0 - math.cos(0.5 * sideNerveAngleRadians)
+            sideNerveShoulderLimitAngleRadians = math.asin(2.0 * sideNerveShoulderDrop / halfTrigeminalGanglionWidth)
+            sideNerveShoulderAngleRadians = sideNerveShoulderRotationFactor * sideNerveShoulderLimitAngleRadians
+
+            sideNerveStartX = nerveRootLength + trigeminalGanglionLength + sideNerveShoulderDrop - \
+                               halfTrigeminalGanglionWidth * math.sin(sideNerveShoulderAngleRadians)
+            sideNerveStartY = halfTrigeminalGanglionWidth * (-1 if (nerve == "mandibular") else 1) * \
+                               math.cos(sideNerveShoulderAngleRadians)
+            x = [sideNerveStartX, sideNerveStartY, 0.0]
+
+            sideNerveScale = (mandibularLength if (nerve == "mandibular") else ophthalmicLength) / \
+                             (nerveBranchElementsCount - 2)
+            sd1 = interpolateLagrangeHermiteDerivative(xJunction, x, d1, 0.0)
+            nx, nd1 = sampleCubicHermiteCurvesSmooth([xJunction, x], [sd1, d1], 2,
+                                                     derivativeMagnitudeEnd=sideNerveScale)[0:2]
+            arcLengths = [getCubicHermiteArcLength(nx[i], nd1[i], nx[i + 1], nd1[i + 1]) for i in range(2)]
+
+            cosSideNerveAngle = math.cos(sideNerveAngleRadians)
+            sinSideNerveAngle = math.sin(sideNerveAngleRadians)
+            d1 = [sideNerveScale * cosSideNerveAngle, sideNerveScale * sinSideNerveAngle, 0.0]
+
+            sideNerveHalfStartWidth = halfMandibularStartWidth if (nerve == "mandibular") else halfOphthalmicStartWidth
+            sideNerveHalfEndWidth = halfMandibularEndWidth if (nerve == "mandibular") else halfOphthalmicEndWidth
+            d12_mag = (sideNerveHalfEndWidth - sideNerveHalfStartWidth) / (nerveBranchElementsCount - 2)
+            d3 = [0.0, 0.0, halfNerveThickness]
+            id3 = mult(d3, innerProportionDefault)
+
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            sd2_list = []
+
+            sNodeIdentifiers = []
+            for i in range(2):
+                sNodeIdentifiers.append(nodeIdentifier if (i > 0) else nerveJunctionNodeIdentifier)
+                node = nodes.findNodeByIdentifier(sNodeIdentifiers[-1])
+                fieldcache.setNode(node)
+                version = 1 if (i > 0) else 2 if (nerve == "mandibular") else 3
+                sd1 = nd1[i]
+                sDistance = sum(arcLengths[i:])
+                sHalfWidth = sideNerveHalfStartWidth + sDistance * -d12_mag
+                sd2 = set_magnitude(cross(d3, sd1), sHalfWidth)
+                sid2 = mult(sd2, innerProportionDefault)
+                sd2_list.append(sd2)
+                if i > 0:
+                    for field in (coordinates, innerCoordinates):
+                        field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[i])
+                    nodeIdentifier += 1
+                setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, d3)
+                setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, id3)
+            sd2_list.append([-sideNerveHalfStartWidth * sinSideNerveAngle,
+                             sideNerveHalfStartWidth * cosSideNerveAngle, 0.0])
+
+            for i in range(2):
+                node = nodes.findNodeByIdentifier(sNodeIdentifiers[i])
+                fieldcache.setNode(node)
+                version = 1 if (i > 0) else 2 if (nerve == "mandibular") else 4
+                sd12 = sub(sd2_list[i + 1], sd2_list[i])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sd12)
+                sid12 = mult(sd12, innerProportionDefault)
+                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sid12)
+
+            # remaining part of nerve
+            for i in range(nerveBranchElementsCount - 1):
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                x = [sideNerveStartX + d1[0] * i, sideNerveStartY + d1[1] * i, d1[2] * i]
+                sHalfWidth = sideNerveHalfStartWidth + i * sideNerveScale * d12_mag
+                d2 = set_magnitude(cross(d3, d1), sHalfWidth)
+                d12 = [-d12_mag * sinSideNerveAngle, d12_mag * cosSideNerveAngle, 0.0]
+                id2 = mult(d2, innerProportionDefault)
+                id12 = mult(d12, innerProportionDefault)
+                setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12)
+                setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12)
+                nodeIdentifier += 1
+
+        # maxillary nerve
+        maxillaryScale = maxillaryLength / nerveBranchElementsCount
+        maxillaryStartX = nerveRootLength + trigeminalGanglionLength
+        sx = [maxillaryStartX, 0.0, 0.0]
+        cosMaxillaryAngle = math.cos(maxillaryAngleRadians)
+        sinMaxillaryAngle = math.sin(maxillaryAngleRadians)
+        d12_mag = (halfMaxillaryEndWidth - halfMaxillaryStartWidth) / nerveBranchElementsCount
+        for i in range(nerveBranchElementsCount + 1):
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            x = [sx[0] + maxillaryScale * i * cosMaxillaryAngle,
+                 sx[1] + maxillaryScale * i * sinMaxillaryAngle,
+                 0.0]
+            d1 = [maxillaryScale * cosMaxillaryAngle, maxillaryScale * sinMaxillaryAngle, 0.0]
+            d3 = [0.0, 0.0, halfNerveThickness]
+            id3 = mult(d3, innerProportionDefault)
+            sHalfWidth = halfMaxillaryStartWidth + i * maxillaryScale * d12_mag
+            d2 = set_magnitude(cross(d3, d1), sHalfWidth)
+            d12 = [-d12_mag * sinMaxillaryAngle, d12_mag * cosMaxillaryAngle, 0.0]
+            id2 = mult(d2, innerProportionDefault)
+            id12 = mult(d12, innerProportionDefault)
+            if i == 0:
+                node = nodes.findNodeByIdentifier(nerveJunctionNodeIdentifier)
+                fieldcache.setNode(node)
+                version = 4
+                setNodeFieldVersionDerivatives(coordinates, fieldcache, version, d1, d2, d3)
+                setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, d1, id2, id3)
+            else:
+                setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12)
+                setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12)
+                nodeIdentifier += 1
+
+        return annotationGroups, networkMesh
+
+    @classmethod
+    def getInteractiveFunctions(cls):
+        """
+        Edit base class list to include only valid functions.
+        """
+        interactiveFunctions = super(MeshType_1d_human_trigeminal_nerve_network_layout1, cls).getInteractiveFunctions()
+        for interactiveFunction in interactiveFunctions:
+            if interactiveFunction[0] == "Edit structure...":
+                interactiveFunctions.remove(interactiveFunction)
+                break
+        return interactiveFunctions
+
 
 class MeshType_3d_trigeminalnerve1(Scaffold_base):
     """
-    Generates a 3-D hermite trigeminal nerve scaffold from a network layout description, with a solid core.
-    The number of elements generated are primarily controlled by the "Number of elements around" and
-    "Number of elements across core box minor" settings.
-    The Number of elements around parameter determines the number of elements around the elliptical shell.
-    The core is built out of a regular box with specified number of elements across core box minor.
-    The minor direction is in the direction of d3 in the network layout it is defined from.
-    The number of elements across the core box major axis is calculated internally from the above.
-    The reason for preferring the minor number is that this must currently match when using the core,
-    plus it is planned to eventually use an odd number to specify a half phase difference in starting node
-    even without a core, as that is required to work with odd minor numbers in the core, once supported.
-    There are any number of transition elements between the box and the shell forming further concentric rim elements.
+    Generates a 3-D hermite bifurcating tube network with core representing the human trigeminal nerve.
     """
 
     @classmethod
@@ -119,49 +378,46 @@ class MeshType_3d_trigeminalnerve1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
-        options = {
-            "Network layout": getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName),
-            "Number of elements around": 8,
-            "Number of elements through shell": 1,
-            "Annotation numbers of elements around": [0],
-            "Target element density along longest segment": 6.0,
-            "Use linear through shell": False,
-            "Show trim surfaces": False,
-            "Number of elements across core box minor": 2,
-            "Number of elements across core transition": 1,
-            "Annotation numbers of elements across core box minor": [0]
-        }
+        options = {}
+        useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
+        options["Base parameter set"] = useParameterSetName
+        options["Trigeminal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_trigeminal_nerve_network_layout1)
+        options["Number of elements along nerve root"] = 5
+        options["Number of elements along trigeminal ganglion"] = 3
+        options["Number of elements along mandibular nerve"] = 4
+        options["Number of elements along maxillary nerve"] = 4
+        options["Number of elements along ophthalmic nerve"] = 5
+        options["Number of elements around trigeminal nerve"] = 8
+        options["Number of elements through shell"] = 1
+        options["Show trim surfaces"] = False
+        options["Use Core"] = True
+        options["Number of elements across core box minor"] = 2
+        options["Number of elements across core transition"] = 1
+
         return options
 
-    @staticmethod
-    def getOrderedOptionNames():
-        return [
-            "Network layout",
-            "Number of elements around",
+    @classmethod
+    def getOrderedOptionNames(cls):
+        optionNames = [
+            "Trigeminal nerve network layout",
+            "Number of elements along nerve root",
+            "Number of elements along trigeminal ganglion",
+            "Number of elements along maxillary nerve",
+            "Number of elements along mandibular nerve",
+            "Number of elements along ophthalmic nerve",
+            "Number of elements around trigeminal nerve",
             "Number of elements through shell",
-            "Annotation numbers of elements around",
-            "Target element density along longest segment",
-            "Use linear through shell",
             "Show trim surfaces",
+            "Use Core",
             "Number of elements across core box minor",
-            "Number of elements across core transition",
-            "Annotation numbers of elements across core box minor"
-        ]
+            "Number of elements across core transition"]
+        return optionNames
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == "Network layout":
-            return [MeshType_1d_network_layout1]
+        if optionName == "Trigeminal nerve network layout":
+            return [MeshType_1d_human_trigeminal_nerve_network_layout1]
         return []
-
-    @classmethod
-    def getOptionScaffoldTypeParameterSetNames(cls, optionName, scaffoldType):
-        if optionName == 'Network layout':
-            return cls.getParameterSetNames()
-        assert scaffoldType in cls.getOptionValidScaffoldTypes(optionName), \
-            cls.__name__ + ".getOptionScaffoldTypeParameterSetNames.  " + \
-            "Invalid option \"" + optionName + "\" scaffold type " + scaffoldType.getName()
-        return scaffoldType.getParameterSetNames()  # use the defaults from the network layout scaffold
 
     @classmethod
     def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
@@ -173,148 +429,164 @@ class MeshType_3d_trigeminalnerve1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 "Invalid parameter set " + str(parameterSetName) + " for scaffold " + str(scaffoldType.getName()) + \
                 " in option " + str(optionName) + " of scaffold " + cls.getName()
-        if optionName == "Network layout":
+        if optionName == "Trigeminal nerve network layout":
             if not parameterSetName:
                 parameterSetName = "Default"
-            return getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName)
+            return ScaffoldPackage(MeshType_1d_human_trigeminal_nerve_network_layout1, defaultParameterSetName=parameterSetName)
         assert False, cls.__name__ + ".getOptionScaffoldPackage:  Option " + optionName + " is not a scaffold"
 
     @classmethod
     def checkOptions(cls, options):
-        if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
-            options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
         dependentChanges = False
+        if (options["Trigeminal nerve network layout"].getScaffoldType() not in
+                cls.getOptionValidScaffoldTypes("Trigeminal nerve network layout")):
+            options["Trigeminal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_trigeminal_nerve_network_layout1)
+        for key in [
+            "Number of elements along nerve root",
+            "Number of elements along trigeminal ganglion",
+            "Number of elements along maxillary nerve",
+            "Number of elements along mandibular nerve",
+            "Number of elements along ophthalmic nerve"
+        ]:
+            if options[key] < 1:
+                options[key] = 1
+        minElementsCountAround = None
+        for key in [
+            "Number of elements around trigeminal nerve"
+        ]:
+            if options[key] < 8:
+                options[key] = 8
+            elif options[key] % 4:
+                options[key] += 4 - (options[key] % 4)
+            if (minElementsCountAround is None) or (options[key] < minElementsCountAround):
+                minElementsCountAround = options[key]
 
-        if options["Number of elements around"] < 8:
-            options["Number of elements around"] = 8
-        elif options["Number of elements around"] % 4:
-            options["Number of elements around"] += 4 - options["Number of elements around"] % 4
-
-            annotationAroundCounts = options["Annotation numbers of elements around"]
-            minAroundCount = options["Number of elements around"]
-            if len(annotationAroundCounts) == 0:
-                annotationAroundCounts = options["Annotation numbers of elements around"] = [0]
-            else:
-                for i in range(len(annotationAroundCounts)):
-                    if annotationAroundCounts[i] <= 0:
-                        annotationAroundCounts[i] = 0
-                    else:
-                        if annotationAroundCounts[i] < 8:
-                            annotationAroundCounts[i] = 8
-                        elif annotationAroundCounts[i] % 4:
-                            annotationAroundCounts[i] += 4 - annotationAroundCounts[i]
-                        if annotationAroundCounts[i] < minAroundCount:
-                            minAroundCount = annotationAroundCounts[i]
-
-            if options["Number of elements across core transition"] < 1:
-                options["Number of elements across core transition"] = 1
-
-            maxCoreBoxMinorCount = options["Number of elements around"] // 2 - 2
-            if options["Number of elements across core box minor"] < 2:
-                options["Number of elements across core box minor"] = 2
-            elif options["Number of elements across core box minor"] > maxCoreBoxMinorCount:
-                options["Number of elements across core box minor"] = maxCoreBoxMinorCount
-                dependentChanges = True
-            elif options["Number of elements across core box minor"] % 2:
-                options["Number of elements across core box minor"] += 1
-
-            annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
-            if len(annotationCoreBoxMinorCounts) == 0:
-                annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"] = [0]
-            if len(annotationCoreBoxMinorCounts) > len(annotationAroundCounts):
-                annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"] = \
-                    annotationCoreBoxMinorCounts[:len(annotationAroundCounts)]
-                dependentChanges = True
-            for i in range(len(annotationCoreBoxMinorCounts)):
-                aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
-                    else options["Number of elements around"]
-                maxCoreBoxMinorCount = aroundCount // 2 - 2
-                if annotationCoreBoxMinorCounts[i] <= 0:
-                    annotationCoreBoxMinorCounts[i] = 0
-                    # this may reduce the default
-                    if maxCoreBoxMinorCount < options["Number of elements across core box minor"]:
-                        options["Number of elements across core box minor"] = maxCoreBoxMinorCount
-                        dependentChanges = True
-                elif annotationCoreBoxMinorCounts[i] < 2:
-                    annotationCoreBoxMinorCounts[i] = 2
-                elif annotationCoreBoxMinorCounts[i] > maxCoreBoxMinorCount:
-                    annotationCoreBoxMinorCounts[i] = maxCoreBoxMinorCount
-                    dependentChanges = True
-                elif annotationCoreBoxMinorCounts[i] % 2:
-                    annotationCoreBoxMinorCounts[i] += 1
-
-            if options["Use linear through shell"]:
-                options["Use linear through shell"] = False
-                dependentChanges = True
-
-        else:
-            if options["Number of elements around"] < 4:
-                options["Number of elements around"] = 4
-            annotationAroundCounts = options["Annotation numbers of elements around"]
-            if len(annotationAroundCounts) == 0:
-                options["Annotation numbers of elements around"] = [0]
-            else:
-                for i in range(len(annotationAroundCounts)):
-                    if annotationAroundCounts[i] <= 0:
-                        annotationAroundCounts[i] = 0
-                    elif annotationAroundCounts[i] < 4:
-                        annotationAroundCounts[i] = 4
-
-        if options["Number of elements through shell"] < 1:
+        if options["Number of elements through shell"] < 0:
             options["Number of elements through shell"] = 1
 
-        if options["Target element density along longest segment"] < 1.0:
-            options["Target element density along longest segment"] = 1.0
+        if options["Number of elements across core transition"] < 1:
+            options["Number of elements across core transition"] = 1
+
+        maxElementsCountCoreBoxMinor = minElementsCountAround // 2 - 2
+        for key in [
+            "Number of elements across core box minor"
+        ]:
+            if options[key] < 2:
+                options[key] = 2
+            elif options[key] > maxElementsCountCoreBoxMinor:
+                options[key] = maxElementsCountCoreBoxMinor
+                dependentChanges = True
+            elif options[key] % 2:
+                options[key] += options[key] % 2
 
         return dependentChanges
 
     @classmethod
     def generateBaseMesh(cls, region, options):
         """
-        Generate the base tricubic hermite or bicubic hermite-linear mesh. See also generateMesh().
+        Generate the base hermite-bilinear mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
+        networkLayout = options["Trigeminal nerve network layout"]
+        elementsCountAlongNerveRoot = options["Number of elements along nerve root"]
+        elementsCountAlongTrigeminalGanglion = options["Number of elements along trigeminal ganglion"]
+        elementsCountAlongMaxillaryNerve = options["Number of elements along maxillary nerve"]
+        elementsCountAlongMandibularNerve = options["Number of elements along mandibular nerve"]
+        elementsCountAlongOphthalmicNerve = options["Number of elements along ophthalmic nerve"]
+        elementsCountAroundTrigeminalNerve = options["Number of elements around trigeminal nerve"]
+        isCore = options["Use Core"]
+
         layoutRegion = region.createRegion()
-        networkLayout = options["Network layout"]
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
-        defaultAroundCount = options["Number of elements around"]
-        coreTransitionCount = options["Number of elements across core transition"]
-        defaultCoreBoxMinorCount = options["Number of elements across core box minor"]
-        # implementation currently uses major count including transition
-        defaultCoreMajorCount = defaultAroundCount // 2 - defaultCoreBoxMinorCount + 2 * coreTransitionCount
-        annotationAroundCounts = options["Annotation numbers of elements around"]
-        annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
-        annotationCoreMajorCounts = []
-        for i in range(len(annotationCoreBoxMinorCounts)):
-            aroundCount = annotationAroundCounts[i] if annotationAroundCounts[i] \
-                else defaultAroundCount
-            coreBoxMinorCount = annotationCoreBoxMinorCounts[i] if annotationCoreBoxMinorCounts[i] \
-                else defaultCoreBoxMinorCount
-            annotationCoreMajorCounts.append(aroundCount // 2 - coreBoxMinorCount + 2 * coreTransitionCount)
+        annotationAlongCounts = []
+        annotationAroundCounts = []
+        for layoutAnnotationGroup in layoutAnnotationGroups:
+            alongCount = 0
+            aroundCount = elementsCountAroundTrigeminalNerve
+            name = layoutAnnotationGroup.getName()
+            if "nerve root" in name:
+                alongCount = elementsCountAlongNerveRoot
+            elif "ganglion" in name:
+                alongCount = elementsCountAlongTrigeminalGanglion
+            elif "maxillary" in name:
+                alongCount = elementsCountAlongMaxillaryNerve
+            elif "mandibular" in name:
+                alongCount = elementsCountAlongMandibularNerve
+            elif "ophthalmic" in name:
+                alongCount = elementsCountAlongOphthalmicNerve
+            annotationAlongCounts.append(alongCount)
+            annotationAroundCounts.append(aroundCount)
 
-        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
+        tubeNetworkMeshBuilder = BodyTubeNetworkMeshBuilder(
             networkMesh,
-            targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=defaultAroundCount,
-            elementsCountThroughWall=options["Number of elements through shell"],
+            targetElementDensityAlongLongestSegment=2.0,
             layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAlong=annotationAlongCounts,
+            defaultElementsCountAround=options["Number of elements around trigeminal nerve"],
             annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountAcrossMajor=defaultCoreMajorCount,
-            elementsCountTransition=coreTransitionCount,
-            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
-            isCore=True)
+            elementsCountThroughShell=options["Number of elements through shell"],
+            isCore=isCore,
+            elementsCountTransition=options['Number of elements across core transition'],
+            defaultElementsCountCoreBoxMinor=options["Number of elements across core box minor"],
+            annotationElementsCountsCoreBoxMinor=[],
+            useOuterTrimSurfaces=True)
 
+        meshDimension = 3
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
-            region, 3,
-            isLinearThroughWall=options["Use linear through shell"],
+            region, meshDimension,
+            isLinearThroughShell=False,
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
 
         return annotationGroups, None
+
+def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
+    """
+    Assign node field parameters x, d1, d2, d3 of field.
+    :param field: Field parameters to assign.
+    :param fieldcache: Fieldcache with node set.
+    :param x: Parameters to set for Node.VALUE_LABEL_VALUE.
+    :param d1: Parameters to set for Node.VALUE_LABEL_D_DS1.
+    :param d2: Parameters to set for Node.VALUE_LABEL_D_DS2.
+    :param d3: Parameters to set for Node.VALUE_LABEL_D_DS3.
+    :param d12: Optional parameters to set for Node.VALUE_LABEL_D2_DS1DS2.
+    :param d13: Optional parameters to set for Node.VALUE_LABEL_D2_DS1DS3.
+    :return:
+    """
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+    if d12:
+        field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+    if d13:
+        field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
+
+
+def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=None, d13=None):
+    """
+    Assign node field parameters d1, d2, d3 of field.
+    :param field: Field to assign parameters of.
+    :param fieldcache: Fieldcache with node set.
+    :param version: Version of d1, d2, d3 >= 1.
+    :param d1: Parameters to set for Node.VALUE_LABEL_D_DS1.
+    :param d2: Parameters to set for Node.VALUE_LABEL_D_DS2.
+    :param d3: Parameters to set for Node.VALUE_LABEL_D_DS3.
+    :param d12: Optional parameters to set for Node.VALUE_LABEL_D2_DS1DS2.
+    :param d13: Optional parameters to set for Node.VALUE_LABEL_D2_DS1DS3.
+    :return:
+    """
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, version, d1)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, d2)
+    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, version, d3)
+    if d12:
+        field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, d12)
+    if d13:
+        field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)

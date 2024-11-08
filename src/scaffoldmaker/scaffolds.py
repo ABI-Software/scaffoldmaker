@@ -51,8 +51,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_s
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
-from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve1 import MeshType_3d_trigeminalnerve1
-from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve2 import MeshType_3d_trigeminalnerve2
+from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve1 import (
+    MeshType_3d_trigeminalnerve1, MeshType_1d_human_trigeminal_nerve_network_layout1)
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
@@ -116,7 +116,6 @@ class Scaffolds(object):
             MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
             MeshType_3d_trigeminalnerve1,
-            MeshType_3d_trigeminalnerve2,
             MeshType_3d_tube1,
             MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
@@ -126,7 +125,8 @@ class Scaffolds(object):
             MeshType_3d_wholebody2
             ]
         self._allPrivateScaffoldTypes = [
-            MeshType_1d_human_body_network_layout1
+            MeshType_1d_human_body_network_layout1,
+            MeshType_1d_human_trigeminal_nerve_network_layout1
             ]
 
     def findScaffoldTypeByName(self, name):
