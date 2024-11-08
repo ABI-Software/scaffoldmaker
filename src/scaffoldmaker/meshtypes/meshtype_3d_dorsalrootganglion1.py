@@ -287,18 +287,14 @@ class MeshType_3d_dorsalrootganglion1(Scaffold_base):
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
             defaultElementsCountAround=defaultAroundCount,
-            elementsCountThroughWall=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAround=annotationAroundCounts,
-            defaultElementsCountAcrossMajor=defaultCoreMajorCount,
             elementsCountTransition=coreTransitionCount,
-            annotationElementsCountsAcrossMajor=annotationCoreMajorCounts,
             isCore=True)
 
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
-            isLinearThroughWall=options["Use linear through shell"],
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
