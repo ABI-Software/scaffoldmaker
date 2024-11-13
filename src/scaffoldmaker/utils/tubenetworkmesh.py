@@ -208,11 +208,11 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._nodeLayoutCapBoxShield = nodeLayout
         return self._nodeLayoutCapBoxShield
 
-    def getNodeLayoutCapBoxShieldTriplePoint(self, location):
+    def getNodeLayoutCapBoxShieldTriplePoint(self, location, isStartCap=True):
         """
 
         """
-        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShieldTriplePoint()
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShieldTriplePoint(isStartCap)
         assert location in [1, -1, 2, -2, 0]
         if location == 1:  # "Top Left"
             nodeLayout = nodeLayouts[0]

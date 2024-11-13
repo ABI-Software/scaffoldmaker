@@ -734,11 +734,12 @@ class CapMesh:
                 for m in range(self._elementsCountCoreBoxMajor + 1):
                     self._shellCoordinates[idx][1][n3][m][n] = sd1[m]
 
+        elementsCountRim = self._elementsCountThroughShell + self._elementsCountTransition - 1
         for m in range(self._elementsCountCoreBoxMajor + 1):
             for n in range(self._elementsCountCoreBoxMinor + 1):
                 otx = self._shellCoordinates[idx][0][-1][m][n]
                 itx = self._shellCoordinates[idx][0][0][m][n]
-                shellFactor = 1.0 / self._elementsCountThroughShell
+                shellFactor = 1.0 / elementsCountRim
                 sd3 = mult(sub(otx, itx), shellFactor)
                 for n3 in range(nodesCountRim):
                     self._shellCoordinates[idx][3][n3][m][n] = sd3
@@ -902,8 +903,12 @@ class CapMesh:
             for n in range(self._elementsCountCoreBoxMinor + 1):
                 otx = self._tubeBoxCoordinates[0][idx][m][n]
                 itx = self._boxCoordinates[idx][0][m][n]
-                d2 = sub(otx, itx)
-                self._boxCoordinates[idx][2][m][n] = mult(d2, signValue)
+                d2 = mult(sub(otx, itx), signValue)
+                self._boxCoordinates[idx][2][m][n] = d2
+                d1 = self._boxCoordinates[idx][1][m][n]
+                d3 = self._boxCoordinates[idx][3][m][n]
+                self._boxCoordinates[idx][1][m][n] = set_magnitude(d1, magnitude(d2))
+                self._boxCoordinates[idx][3][m][n] = set_magnitude(d3, magnitude(d2))
 
     def _createBoundaryNodeIdsList(self, nodeIds):
         """
@@ -952,10 +957,10 @@ class CapMesh:
         :return: x[], d1[], d2[], and d3[] of box nodes in the cap mesh.
         """
         idx = 0 if isStartCap else -1
-        return (self._boxCoordinates[idx][0][m][n],
+        return [self._boxCoordinates[idx][0][m][n],
                 self._boxCoordinates[idx][1][m][n],
                 self._boxCoordinates[idx][2][m][n],
-                self._boxCoordinates[idx][3][m][n])
+                self._boxCoordinates[idx][3][m][n]]
 
     def _getBoxExtCoordinates(self, m, n, isStartCap=True):
         """
@@ -966,10 +971,10 @@ class CapMesh:
         :return: x[], d1[], d2[], and d3[] of box nodes extended from the tube segment.
         """
         idx = 0 if isStartCap else -1
-        return (self._boxExtCoordinates[idx][0][m][n],
+        return [self._boxExtCoordinates[idx][0][m][n],
                 self._boxExtCoordinates[idx][1][m][n],
                 self._boxExtCoordinates[idx][2][m][n],
-                self._boxExtCoordinates[idx][3][m][n])
+                self._boxExtCoordinates[idx][3][m][n]]
 
     def _getRimExtCoordinates(self, n1, n3, isStartCap=True):
         """
@@ -984,15 +989,15 @@ class CapMesh:
                                if (self._transitionExtCoordinates and self._transitionExtCoordinates[idx]) else 0)
 
         if n3 < transitionNodeCount:
-            return (self._transitionExtCoordinates[idx][0][n3][n1],
+            return [self._transitionExtCoordinates[idx][0][n3][n1],
                     self._transitionExtCoordinates[idx][1][n3][n1],
                     self._transitionExtCoordinates[idx][2][n3][n1],
-                    self._transitionExtCoordinates[idx][3][n3][n1])
+                    self._transitionExtCoordinates[idx][3][n3][n1]]
         sn3 = n3 - transitionNodeCount
-        return (self._shellExtCoordinates[idx][0][sn3][n1],
+        return [self._shellExtCoordinates[idx][0][sn3][n1],
                 self._shellExtCoordinates[idx][1][sn3][n1],
                 self._shellExtCoordinates[idx][2][sn3][n1],
-                self._shellExtCoordinates[idx][3][sn3][n1])
+                self._shellExtCoordinates[idx][3][sn3][n1]]
 
     def _getRimExtCoordinatesAround(self, n3, isStartCap=True):
         """
@@ -1027,10 +1032,10 @@ class CapMesh:
         :return: cap rim coordinates and derivatives for points at n3, m and n.
         """
         idx = 0 if isStartCap else -1
-        return (self._shellCoordinates[idx][0][n3][m][n],
+        return [self._shellCoordinates[idx][0][n3][m][n],
                 self._shellCoordinates[idx][1][n3][m][n],
                 self._shellCoordinates[idx][2][n3][m][n],
-                self._shellCoordinates[idx][3][n3][m][n])
+                self._shellCoordinates[idx][3][n3][m][n]]
 
     def _getTubeBoxCoordinates(self, m, n, isStartCap=True):
         """
@@ -1042,10 +1047,10 @@ class CapMesh:
         :return: Tube box coordinates and derivatives for points at n2, m and n.
         """
         idx = 0 if isStartCap else -1
-        return (self._tubeBoxCoordinates[0][idx][m][n],
+        return [self._tubeBoxCoordinates[0][idx][m][n],
                 self._tubeBoxCoordinates[1][idx][m][n],
                 self._tubeBoxCoordinates[2][idx][m][n],
-                self._tubeBoxCoordinates[3][idx][m][n])
+                self._tubeBoxCoordinates[3][idx][m][n]]
 
     def _getTubeRimCoordinates(self, n1, n2, n3):
         """
@@ -1059,10 +1064,10 @@ class CapMesh:
         transitionNodeCount = (len(self._tubeTransitionCoordinates[0][0])
                                if (self._tubeTransitionCoordinates and self._tubeTransitionCoordinates[0]) else 0)
         if n3 < transitionNodeCount and self._isCore:
-            return (self._tubeTransitionCoordinates[0][n2][n3][n1],
+            return [self._tubeTransitionCoordinates[0][n2][n3][n1],
                     self._tubeTransitionCoordinates[1][n2][n3][n1],
                     self._tubeTransitionCoordinates[2][n2][n3][n1],
-                    self._tubeTransitionCoordinates[3][n2][n3][n1])
+                    self._tubeTransitionCoordinates[3][n2][n3][n1]]
         sn3 = n3 - transitionNodeCount
         return [self._tubeShellCoordinates[0][n2][sn3][n1],
                 self._tubeShellCoordinates[1][n2][sn3][n1],
@@ -1486,6 +1491,9 @@ class CapMesh:
         mesh = generateData.getMesh()
         elementtemplateStd, eftStd = generateData.getStandardElementtemplate()
 
+        nodeLayoutTransition = generateData.getNodeLayoutTransition()
+        nodeLayoutCapTransition = generateData.getNodeLayoutCapTransition()
+
         if isStartCap:
             capNodeIds = self._startCapNodeIds
             self._startCapElementIds = [] if self._startCapElementIds is None else self._startCapElementIds
@@ -1529,7 +1537,6 @@ class CapMesh:
         capElementIds.append(boxElementIds)
 
         # box shield elements (elements joining the box and the shell elements)
-        nodeLayoutCapTransition = generateData.getNodeLayoutCapTransition()
         boxshieldElementIds = []
         for e3 in range(elementsCountCoreBoxMajor):
             boxshieldElementIds.append([])
@@ -1550,8 +1557,7 @@ class CapMesh:
                         nodeParameter = self._getBoxCoordinates(n3, n1, isStartCap)
                         nodeParameters.append(nodeParameter)
                         nodeLayoutCapBoxShield = generateData.getNodeLayoutCapBoxShield(boxLocation, isStartCap)
-                        nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation)
-                        nodeLayoutTransitionTriplePoint = generateData.getNodeLayoutTransitionTriplePoint(tpLocation)
+                        nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation, isStartCap)
                         if nid in boxBoundaryNodeIds[0]:
                             nodeLayouts.append(nodeLayoutCapBoxShield if tpLocation == 0 else nodeLayoutCapBoxShieldTriplePoint)
                         else:
@@ -1564,7 +1570,6 @@ class CapMesh:
                 elementtemplate = mesh.createElementtemplate()
                 elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                 elementtemplate.defineField(coordinates, -1, eft)
-
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
@@ -1610,12 +1615,8 @@ class CapMesh:
             n1p = (e1 + 1) % self._elementsCountAround
             boxLocation = self._getTriplePointLocation(e1)
             shellLocation = self._getTriplePointLocation(e1, isStartCap)
-            nodeLayoutTransition = generateData.getNodeLayoutTransition()
-            nodeLayoutCapTransition = generateData.getNodeLayoutCapTransition()
             nodeLayoutTransitionTriplePoint = generateData.getNodeLayoutTransitionTriplePoint(boxLocation)
             nodeLayoutCapShellTransitionTriplePoint = generateData.getNodeLayoutCapShellTriplePoint(shellLocation)
-
-            elementIdentifier = generateData.nextElementIdentifier()
             for n3 in [0, 1]:
                 for n1 in [e1, n1p]:
                     nid = boxBoundaryNodeIds[n3][n1] if n3 == 0 else rimBoundaryNodeIds[n3 -1][n1]
@@ -1623,10 +1624,10 @@ class CapMesh:
                     mi, ni = boxBoundaryNodeToCapIndex[n3][n1] if n3 == 0 else rimBoundaryNodeToCapIndex[n3 - 1][n1]
                     location, tpLocation = self._getBoxBoundaryLocation(mi, ni)
                     nodeLayoutCapBoxShield = generateData.getNodeLayoutCapBoxShield(location, isStartCap)
-                    nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation)
+                    nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation, isStartCap)
                     if n3 == 0:
                         nodeParameter = self._getBoxCoordinates(mi, ni, isStartCap)
-                        nodeLayout = nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList else (
+                        nodeLayout = nodeLayoutCapBoxShieldTriplePoint if n1 in triplePointIndexesList else (
                             nodeLayoutCapBoxShield)
                     else:
                         nodeParameter = self._getRimCoordinatesWithCore(mi, ni, 0, isStartCap)
@@ -1650,15 +1651,14 @@ class CapMesh:
                     for a in [nids, nodeParameters, nodeLayouts]:
                         a[-4], a[-2] = a[-2], a[-4]
                         a[-3], a[-1] = a[-1], a[-3]
-            # print("nids", nids)
             eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-            if self._elementsCountTransition == 1:
-                eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
-                    eft, scalefactors, nodeParameters, nids, coreBoundaryScalingMode)
+            # if self._elementsCountTransition == 1:
+            #     eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+            #         eft, scalefactors, nodeParameters, nids, coreBoundaryScalingMode)
             elementtemplate = mesh.createElementtemplate()
             elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             elementtemplate.defineField(coordinates, -1, eft)
-
+            elementIdentifier = generateData.nextElementIdentifier()
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids)
             if scalefactors:
@@ -1850,8 +1850,8 @@ class CapMesh:
                                 a[-4], a[-2] = a[-2], a[-4]
                                 a[-3], a[-1] = a[-1], a[-3]
                     eft = generateData.createElementfieldtemplate()
-                    eft, scalefactors = addTricubicHermiteSerendipityEftParameterScaling(
-                        eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3)
+                    # eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                    #     eft, scalefactors, nodeParameters, nids, coreBoundaryScalingMode)
                     elementtemplateTransition = mesh.createElementtemplate()
                     elementtemplateTransition.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                     elementtemplateTransition.defineField(coordinates, -1, eft)
