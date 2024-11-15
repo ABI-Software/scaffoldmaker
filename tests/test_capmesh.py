@@ -26,7 +26,7 @@ class CapScaffoldTestCase(unittest.TestCase):
         networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
         # change the network layout to have cap at both ends of the tube
         networkLayoutSettings["Structure"] = "(1-2)"
-        self.assertEqual("(1-2)",networkLayoutSettings["Structure"])
+        self.assertEqual("(1-2)", networkLayoutSettings["Structure"])
 
         self.assertTrue(networkLayoutSettings["Define inner coordinates"])
         self.assertEqual(13, len(settings))
@@ -156,10 +156,8 @@ class CapScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.03928467254863209, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 0.8736482362813334, delta=X_TOL)
-
-
+            self.assertAlmostEqual(volume, 0.03930782850767879, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 0.8285291049289928, delta=X_TOL)
 
     def test_3d_cap_tube_network_bifurcation(self):
         """
@@ -300,8 +298,8 @@ class CapScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.11101973283867012, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.3035471266966363, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.11105681500696916, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.2359565854658427, delta=X_TOL)
 
     def test_3d_tube_network_converging_bifurcation_core(self):
         """
@@ -395,8 +393,8 @@ class CapScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.11060465010614413, delta=X_TOL)
-            self.assertAlmostEqual(surfaceArea, 2.3003361436808776, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.1106252097801163, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.233433190529325, delta=X_TOL)
 
 if __name__ == "__main__":
     unittest.main()

@@ -190,7 +190,13 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def getNodeLayoutCapBoxShield(self, location, isStartCap=True):
         """
-
+        Special node layout for generating cap box-shield transition elements.
+        There are four layouts relative to the core box: Top (location = 1); bottom (location = -1);
+        left (location = 2); and right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
+        of a tube segment.
+        :return: Node layout.
         """
         nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShield(isStartCap)
         assert location in [1, -1, 2, -2, 0]
@@ -210,7 +216,13 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def getNodeLayoutCapBoxShieldTriplePoint(self, location, isStartCap=True):
         """
-
+        Special node layout for generating cap box-shield transition elements at triple points.
+        There are four layouts relative to the core box: Top left (location = 1); top right (location = -1);
+        bottom left (location = 2); and bottom right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
+        of a tube segment.
+        :return: Node layout.
         """
         nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShieldTriplePoint(isStartCap)
         assert location in [1, -1, 2, -2, 0]
@@ -227,7 +239,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
         self._nodeLayoutCapBoxShieldTriplePoint = nodeLayout
         return self._nodeLayoutCapBoxShieldTriplePoint
-
 
     def getNodetemplate(self):
         return self._nodetemplate
@@ -282,10 +293,12 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         x, d1, d2, d3 each with 3 components.
         :param nodeIdentifiers: List over 8 3-D local nodes giving global node identifiers.
         :param mode: 1 to set scale factors, 2 to add version 2 to d3 for the boundary nodes and assigning
-        values to that version equal to the scale factors x version 1.
+        values to that version equal to the scale factors x version 1. Modes 3 and 4 are used for cap mesh, which are
+        similar to mode 1, but the local node indexes are limited to [7, 8] for mode 3 (start cap) and [5, 6] for mode
+        4 (end cap).
         :return: New eft, new scalefactors.
         """
-        assert mode in (1, 2)
+        assert mode in (1, 2, 3, 4)
         eft, scalefactors, addScalefactors = addTricubicHermiteSerendipityEftParameterScaling(
             eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3, version=mode)
         if mode == 2:
@@ -369,6 +382,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._capmesh = None
 
     def getCoreBoundaryScalingMode(self):
+        modes = (1, 2, 3, 4) if self._isCap else (1, 2)
+        assert self._coreBoundaryScalingMode in modes
         return self._coreBoundaryScalingMode
 
     def getElementsCountAround(self):
@@ -1695,12 +1710,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             # create cap elements
             if self._isCap[0] and e2 == 0:
                 isStartCap = True
-                capmesh.generateElements(generateData, elementsCountRim, self._boxNodeIds, self._rimNodeIds,
-                                         annotationMeshGroups, self._coreBoundaryScalingMode, isStartCap, self._isCore)
+                capmesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
+                                         annotationMeshGroups, isStartCap, self._isCore)
             elif self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
                 isStartCap = False
-                capmesh.generateElements(generateData, elementsCountRim, self._boxNodeIds, self._rimNodeIds,
-                                         annotationMeshGroups, self._coreBoundaryScalingMode, isStartCap, self._isCore)
+                capmesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
+                                         annotationMeshGroups, isStartCap, self._isCore)
 
             if self._isCore:
                 # create box elements
@@ -1751,6 +1766,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                     elementtemplate.defineField(coordinates, -1, eft)
                     elementIdentifier = generateData.nextElementIdentifier()
+                    if elementIdentifier in [53, 54]:
+                        print("self._coreBoundaryScalingMode", self._coreBoundaryScalingMode)
+                        print("tube scalefactors", scalefactors)
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     element.setNodesByIdentifier(eft, nids)
                     if scalefactors:

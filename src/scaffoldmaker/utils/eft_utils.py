@@ -1121,7 +1121,8 @@ def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodePara
     :param localNodeIndexes: Local node indexes to scale value label at. Currently must be in [5, 6, 7, 8].
     :param valueLabel: Single value label to scale. Currently only implemened for D_DS3.
     :param version: Set to a number > 1 to use that derivative version instead of scale factors, and client is
-    responsible for assigning that derivative version in proportion to the returned scale factors.
+    responsible for assigning that derivative version in proportion to the returned scale factors. Versions 3 and 4
+    are used when the cap mesh is active, each representing the version used for start cap and end cap, respectively.
     :return: Modified eft, final scalefactors, add scalefactors (multiplying the affected derivatives; these are
     included in final scalefactors if version == 1, otherwise client must use these to scale versioned derivatives).
     """
@@ -1140,6 +1141,12 @@ def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodePara
         scalefactor = magnitude(dbScaled) / magnitude(db)
         addScalefactors.append(scalefactor)
     if version == 1:
+        newScalefactors = scalefactors + addScalefactors if scalefactors else addScalefactors
+        addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
+        return eft, newScalefactors, addScalefactors
+    elif version in [3, 4]:
+        addScalefactors = addScalefactors[-2:] if version == 3 else addScalefactors[:2]
+        localNodeIndexes = [7, 8] if version == 3 else [5, 6]
         newScalefactors = scalefactors + addScalefactors if scalefactors else addScalefactors
         addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
         return eft, newScalefactors, addScalefactors

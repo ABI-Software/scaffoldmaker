@@ -4,8 +4,7 @@ from cmlibs.maths.vectorops import magnitude, sub, add, set_magnitude, normalize
     angle, mult, div
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, \
-    addTricubicHermiteSerendipityEftParameterScaling
+from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLoop, smoothCubicHermiteDerivativesLine, \
     sampleCubicHermiteCurves, interpolateSampleCubicHermite
@@ -51,6 +50,9 @@ class CapMesh:
         self._tubeTransitionCoordinates = tubeTransitionCoordinates # tube transition coordinates
         self._tubeShellCoordinates = tubeShellCoordinates # tube rim coordinates
 
+        self._isStartCap = None
+        self._generateData = None
+
         self._boxExtCoordinates = None
         # coordinates and derivatives for box nodes extended from the tube segment
         # list[startCap, endCap][x, d1, d2, d3][nAcrossMajor][nAcrossMinor]
@@ -82,21 +84,17 @@ class CapMesh:
         self._endCapElementIds = None
         # elementIds that form the cap at the end of a tube segment.
 
-    def _extendTubeEnds(self, isStartCap=True):
+    def _extendTubeEnds(self):
         """
         Add additional tube sections with smaller element size along the tube at either ends of the tube with smaller
         D2 derivatives. This function is to minimise the effect of large difference in D2 derivatives between the cap
         mesh and the tube mesh.
-        :param isStartCap:True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        isStartCap = self._isStartCap
         idx = 0 if isStartCap else -1
 
         layoutD1 = self._networkPathParameters[0][1][idx]
-        outerRadius = self._calculateOuterShellRadius(isStartCap)
-        # segmentLength = magnitude(sub(self._networkPathParameters[0][0][0], self._networkPathParameters[0][0][1]))
-        # ext = segmentLength * 0.05
-        ext = outerRadius / 2  ## may need another method to calculate extension
+        ext = self._getExtensionLength()
         unitVector = normalize(layoutD1)
         signValue = -1 if isStartCap else 1
 
@@ -171,19 +169,15 @@ class CapMesh:
         self._shellExtCoordinates = [None, None] if self._shellExtCoordinates is None else self._shellExtCoordinates
         self._shellExtCoordinates[idx] = shellCoordinates
 
-    def _remapCapCoordinates(self, isStartCap=True):
+    def _remapCapCoordinates(self):
         """
         Remap box and rim coordinates of the cap nodes based on the scale of tube extension.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        isStartCap = self._isStartCap
         idx = 0 if isStartCap else -1
 
         layoutD1 = self._networkPathParameters[0][1][idx]
-        outerRadius = self._calculateOuterShellRadius(isStartCap)
-        ext = outerRadius / 2
-        # segmentLength = magnitude(sub(self._networkPathParameters[0][0][0], self._networkPathParameters[0][0][1]))
-        # ext = segmentLength * 0.05
+        ext = self._getExtensionLength()
         unitVector = normalize(layoutD1)
         signValue = -1 if isStartCap else 1
 
@@ -208,27 +202,23 @@ class CapMesh:
                         xList.append(tx)
                     self._shellCoordinates[idx][0][n3][m] = xList
 
-    def _determineCapCoordinatesWithoutCore(self, isStartCap=True):
+    def _determineCapCoordinatesWithoutCore(self):
         """
         Calculates coordinates and derivatives for the cap elements. It first calculates the coordinates for the apex
         nodes, and then calculates the coordinates for rim nodes on the shell surface.
         Used when the solid core is inactive.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
         self._shellCoordinates = [None, None] if self._shellCoordinates is None else self._shellCoordinates
 
+        isStartCap = self._isStartCap
         idx = 0 if isStartCap else -1
         signValue = 1 if isStartCap else -1
         pathParameters = self._networkPathParameters[idx]
 
-        outerRadius = self._calculateOuterShellRadius(isStartCap)
-        shellThickness = self._calculateShellThickness(isStartCap)
-        # segmentLength = magnitude(sub(self._networkPathParameters[0][0][0], self._networkPathParameters[0][0][1]))
-        # ext = segmentLength * -0.05
-        ext = -(outerRadius / 2)  ## may need another method to calculate extension
-        centre = add(pathParameters[0][idx], set_magnitude(pathParameters[1][idx], ext * signValue))
-
+        outerRadius = self._getOuterShellRadius()
+        shellThickness = self._getShellThickness()
+        ext = self._getExtensionLength()
+        centre = add(pathParameters[0][idx], set_magnitude(pathParameters[1][idx], ext * -signValue))
         outerWidth = outerLength = outerRadius
         innerWidth = innerLength = outerRadius - shellThickness
 
@@ -291,7 +281,7 @@ class CapMesh:
                 # calculate coordinates
                 if n2 == 0:  # apex
                     x = apex = add(pathParameters[0][idx],
-                                   set_magnitude(pathParameters[1][idx], (position[1] + ext) * signValue ))
+                                   set_magnitude(pathParameters[1][idx], (position[1] - ext) * signValue))
                     d1 = set_magnitude(pathParameters[4][idx], vector2[0] * signValue)
                     d2 = set_magnitude(pathParameters[2][idx], vector2[0])
                     d3 = set_magnitude(pathParameters[1][idx], vector3[1] * signValue)
@@ -332,7 +322,7 @@ class CapMesh:
             radii = self._getTubeRadii(centre, n3, idx)
             oRadii = [1.0, rList[n3], rList[n3]]
             ratio = self._getRatioBetweenTwoRadii(radii, oRadii)
-            self._sphereToSpheroid(n3, ratio, centre, isStartCap)
+            self._sphereToSpheroid(n3, ratio, centre)
         # smooth derivatives
         for n3 in range(elementsCountThroughShell + 1):
             xList = self._shellCoordinates[idx][0]
@@ -362,40 +352,39 @@ class CapMesh:
             for n3 in range(elementsCountThroughShell + 1):
                 d3List[n3][1][n1] = sd3[n3]
 
-    def _determineCapCoordinatesWithCore(self, isStartCap=True):
+    def _determineCapCoordinatesWithCore(self, s):
         """
         Blackbox function for calculating coordinates and derivatives for the cap elements.
         It first calculates the coordinates for shell nodes, then calculates for box nodes.
         nodes, and then calculates the coordinates for rim nodes on the shell surface.
         Used when the solid core is active.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
+        :param s: Index for isCap list. 0 indicates start cap and 1 indicates end cap.
         """
+        self._isStartCap = isStartCap = True if self._isCap[0] and s == 0 else False
         idx = 0 if isStartCap else -1
         centre = self._networkPathParameters[0][0][idx]
 
-        self._extendTubeEnds(isStartCap) # extend tube end
+        self._extendTubeEnds() # extend tube end
         # shell nodes
         nodesCountRim = self._getNodesCountRim()
         for n3 in range(nodesCountRim):
-            ox = self._getRimExtCoordinatesAround(n3, isStartCap)[0]
-            radius = self._calculateRadius(ox)
+            ox = self._getRimExtCoordinatesAround(n3)[0]
+            radius = self._getRadius(ox)
             radii = self._getTubeRadii(centre, n3, idx) # radii for spheroid
             oRadii = [1.0, radius, radius] # original radii used to create the sphere
             ratio = self._getRatioBetweenTwoRadii(radii, oRadii)
             # ratio between original radii for the sphere and the new radii for spheroid
-            self._calculateMajorAndMinorNodesCoordinates(n3, centre, ratio, isStartCap)
-            self._calculateShellQuadruplePoints(n3, centre, radius, isStartCap)
-            self._calculateShellRegularNodeCoordinates(n3, centre, isStartCap)
-            self._sphereToSpheroid(n3, ratio, centre, isStartCap)
-        self._determineShellDerivatives(isStartCap)
+            self._calculateMajorAndMinorNodesCoordinates(n3, centre, ratio)
+            self._calculateShellQuadruplePoints(n3, centre, radius)
+            self._calculateShellRegularNodeCoordinates(n3, centre)
+            self._sphereToSpheroid(n3, ratio, centre)
+        self._determineShellDerivatives()
         # box nodes
-        self._calculateBoxQuadruplePoints(centre, isStartCap)
-        self._calculateBoxMajorAndMinorNodes(isStartCap)
-        self._determineBoxDerivatives(isStartCap)
+        self._calculateBoxQuadruplePoints(centre)
+        self._calculateBoxMajorAndMinorNodes()
+        self._determineBoxDerivatives()
 
-        self._remapCapCoordinates(isStartCap)
-        self._extendTubeEnds(isStartCap)
+        self._remapCapCoordinates()
 
     def _createShellCoordinatesList(self):
         """
@@ -415,15 +404,13 @@ class CapMesh:
                             self._shellCoordinates[s][nx][n3][m] = \
                                 [None for _ in range(self._elementsCountCoreBoxMinor + 1)]
 
-    def _calculateOuterShellRadius(self, isStartCap=True):
+    def _getOuterShellRadius(self):
         """
         Calculates the radius of an outer shell. It takes the average of a half-distance between two opposing nodes on
         the outer shell of a tube segment.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: Radius of the cap shell.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         ox = self._tubeShellCoordinates[0][idx][-1]
         radii = []
         for i in range(self._elementsCountAround // 2):
@@ -432,7 +419,7 @@ class CapMesh:
             radii.append(r)
         return sum(radii) / len(radii)
 
-    def _calculateRadius(self, ox):
+    def _getRadius(self, ox):
         """
         Calculates the radius of a shell. It takes the average of a half-distance between two opposing nodes around a
         tube segment.
@@ -446,15 +433,13 @@ class CapMesh:
             radii.append(r)
         return sum(radii) / len(radii)
 
-    def _calculateShellThickness(self, isStartCap=True):
+    def _getShellThickness(self):
         """
         Calculates the thickness of a shell, based on the thickness of a tube segment at either ends.
         It takes the average of a distance between the outer and the inner node pair around the rim of a tube segment.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: Thickness of the cap shell.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         ix = self._tubeShellCoordinates[0][idx][0]
         ox = self._tubeShellCoordinates[0][idx][-1]
 
@@ -464,7 +449,15 @@ class CapMesh:
             shellThicknesses.append(thickness)
         return sum(shellThicknesses) / len(shellThicknesses)
 
-    def _calculateMajorAndMinorNodesCoordinates(self, n3, centre, ratio, isStartCap=True):
+    def _getExtensionLength(self):
+        """
+        Calculates the length of extended tube segment. Currently set to half of the outer tube radius.
+        :return: Length of extended tube segment.
+        """
+        outerRadius = self._getOuterShellRadius()
+        return outerRadius / 2
+
+    def _calculateMajorAndMinorNodesCoordinates(self, n3, centre, ratio):
         """
         Calculates coordinates and derivatives for major and minor axis nodes on the surface of a cap shell by rotating
         the major and minor axis nodes on the rim of a tube segment.
@@ -472,10 +465,8 @@ class CapMesh:
         :param centre: Centre coordinates of a tube segment at either ends.
         :param ratio: List of ratios between original circular radii and new radii if the tube is non-circular.
         [x-axis, major axis, minor axis]. The values should equal 1.0 if the tube cross-section is circular.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         layoutD2 = self._networkPathParameters[0][2][idx]
         layoutD3 = self._networkPathParameters[0][4][idx]
 
@@ -483,7 +474,7 @@ class CapMesh:
         elementsCountAcrossMinor = self._elementsCountCoreBoxMinor + 2
 
         refAxis = normalize(layoutD2)
-        rotateAngle = (math.pi / elementsCountAcrossMinor) if isStartCap else \
+        rotateAngle = (math.pi / elementsCountAcrossMinor) if self._isStartCap else \
             -(math.pi / elementsCountAcrossMinor)
         minorAxisNodesCoordinates = [[], []] # [startCap, endCap]
         n1 = self._elementsCountAround * 3 // 4
@@ -497,7 +488,7 @@ class CapMesh:
                 minorAxisNodesCoordinates[nx].append(vr)
 
         refAxis = normalize(layoutD3)
-        rotateAngle = (math.pi / elementsCountAcrossMajor) if isStartCap else \
+        rotateAngle = (math.pi / elementsCountAcrossMajor) if self._isStartCap else \
             -(math.pi / elementsCountAcrossMajor)
         majorAxisNodesCoordinates = [[], []] # [startCap, endCap]
         ix = self._getTubeRimCoordinates(0, idx, n3)
@@ -539,16 +530,14 @@ class CapMesh:
         for m in range(elementsCountAcrossMajor - 1):
             self._shellCoordinates[idx][1][n3][m][midMinorIndex] = sd1[m]
 
-    def _calculateShellQuadruplePoints(self, n3, centre, radius, isStartCap=True):
+    def _calculateShellQuadruplePoints(self, n3, centre, radius):
         """
         Calculate coordinates and derivatives of the quadruple point on the surface, where 3 hex elements merge.
         :param n3: Node index from inner to outer rim.
         :param centre: Centre coordinates of a tube segment at either ends.
         :param radius: Shell radius.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
 
         layoutD1 = self._networkPathParameters[0][1][idx]
         layoutD2 = self._networkPathParameters[0][2][idx]
@@ -563,7 +552,7 @@ class CapMesh:
         elementsCountAcrossMajor = self._elementsCountCoreBoxMajor + 2
         elementsCountAcrossMinor = self._elementsCountCoreBoxMinor + 2
         counter = 0
-        signValue = 1 if isStartCap else -1
+        signValue = 1 if self._isStartCap else -1
         for m in [0, -1]:
             for n in [0, -1]:
                 if m == n:
@@ -586,21 +575,19 @@ class CapMesh:
                 phi_3 = calculate_azimuth(theta_3, theta_2)
                 ratio = 1
                 local_x = spherical_to_cartesian(radius, theta_3, ratio * phi_3 + (1 - ratio) * math.pi / 2)
-                c = counter if isStartCap else -(counter + 1)
+                c = counter if self._isStartCap else -(counter + 1)
                 axes = [mult(axis, signValue) for axis in axesList[c]]
                 x = local_to_global_coordinates(local_x, axes, centre)
                 self._shellCoordinates[idx][0][n3][m][n] = x
                 counter += 1
 
-    def _calculateShellRegularNodeCoordinates(self, n3, centre, isStartCap=True):
+    def _calculateShellRegularNodeCoordinates(self, n3, centre):
         """
         Calculate coordinates and derivatives of all other shell nodes on the cap surface.
         :param n3: Node index from inner to outer rim.
         :param centre: Centre coordinates of a tube segment at either ends.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         elementsCountAcrossMajor = self._elementsCountCoreBoxMajor + 2
         elementsCountAcrossMinor = self._elementsCountCoreBoxMinor + 2
         midMajorIndex = elementsCountAcrossMajor // 2 - 1
@@ -643,17 +630,15 @@ class CapMesh:
                         self._shellCoordinates[idx][1][n3][c][n] = [0, 0, 0]
                         self._shellCoordinates[idx][2][n3][c][n] = nd2[c % (len(nd2) - 1)]
 
-    def _sphereToSpheroid(self, n3, ratio, centre, isStartCap=True):
+    def _sphereToSpheroid(self, n3, ratio, centre):
         """
         Transform the sphere to ellipsoid using the radius in each direction.
         :param n3: Node index from inner to outer rim.
         :param ratio: List of ratios between original circular radii and new radii if the tube is non-circular.
         [x-axis, major axis, minor axis]. The values should equal 1.0 if the tube cross-section is circular.
         :param centre: Centre coordinates of a tube segment at either ends.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
 
         # rotation angles to use in case when the cap is tilted from xyz axes.
         layoutD2 = normalize(self._networkPathParameters[0][2][idx])
@@ -700,13 +685,11 @@ class CapMesh:
 
         return [1.0, majorRadius, minorRadius]
 
-    def _determineShellDerivatives(self, isStartCap=True):
+    def _determineShellDerivatives(self):
         """
         Compute d1, d2, and d3 derivatives for the shell nodes.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         nodesCountRim = self._getNodesCountRim()
         for n3 in range(nodesCountRim):
             for m in [0, -1]:
@@ -721,7 +704,7 @@ class CapMesh:
 
         for n3 in range(nodesCountRim):
             for m in range(self._elementsCountCoreBoxMajor + 1):
-                signValue = 1 if isStartCap else -1
+                signValue = 1 if self._isStartCap else -1
                 tx = self._shellCoordinates[idx][0][n3][m]
                 td2 = self._shellCoordinates[idx][2][n3][m]
                 sd2 = smoothCubicHermiteDerivativesLine(tx, td2)
@@ -744,14 +727,12 @@ class CapMesh:
                 for n3 in range(nodesCountRim):
                     self._shellCoordinates[idx][3][n3][m][n] = sd3
 
-    def _calculateBoxQuadruplePoints(self, centre, isStartCap=True):
+    def _calculateBoxQuadruplePoints(self, centre):
         """
         Calculate coordinates and derivatives of the quadruple point for the box elements, where 3 hex elements merge.
         :param centre: Centre coordinates of a tube segment at either ends.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         capBoxCoordinates = []
         for nx in range(4):
             capBoxCoordinates.append([])
@@ -795,13 +776,11 @@ class CapMesh:
             self._boxCoordinates = [None] * 2
         self._boxCoordinates[idx] = capBoxCoordinates
 
-    def _calculateBoxMajorAndMinorNodes(self, isStartCap=True):
+    def _calculateBoxMajorAndMinorNodes(self):
         """
         Calculate coordinates and derivatives for box nodes along the central major and minor axes.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         midMajorIndex = self._elementsCountCoreBoxMajor // 2
         midMinorIndex = self._elementsCountCoreBoxMinor // 2
 
@@ -891,14 +870,12 @@ class CapMesh:
             for m in range(1, self._elementsCountCoreBoxMajor):
                 self._boxCoordinates[idx][1][m][n] = sd1[m]
 
-    def _determineBoxDerivatives(self, isStartCap=True):
+    def _determineBoxDerivatives(self):
         """
         Calculate d2 derivatives of box nodes.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
-        signValue = 1 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
+        signValue = 1 if self._isStartCap else -1
         for m in range(self._elementsCountCoreBoxMajor + 1):
             for n in range(self._elementsCountCoreBoxMinor + 1):
                 otx = self._tubeBoxCoordinates[0][idx][m][n]
@@ -948,43 +925,37 @@ class CapMesh:
 
         return capBoundaryNodeIds, capBoundaryNodeToBoxId
 
-    def _getBoxCoordinates(self, m, n, isStartCap=True):
+    def _getBoxCoordinates(self, m, n):
         """
         :param m: Index along the major axis.
         :param n: Index along the minor axis.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: x[], d1[], d2[], and d3[] of box nodes in the cap mesh.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         return [self._boxCoordinates[idx][0][m][n],
                 self._boxCoordinates[idx][1][m][n],
                 self._boxCoordinates[idx][2][m][n],
                 self._boxCoordinates[idx][3][m][n]]
 
-    def _getBoxExtCoordinates(self, m, n, isStartCap=True):
+    def _getBoxExtCoordinates(self, m, n):
         """
         :param m: Index along the major axis.
         :param n: Index along the minor axis.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: x[], d1[], d2[], and d3[] of box nodes extended from the tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         return [self._boxExtCoordinates[idx][0][m][n],
                 self._boxExtCoordinates[idx][1][m][n],
                 self._boxExtCoordinates[idx][2][m][n],
                 self._boxExtCoordinates[idx][3][m][n]]
 
-    def _getRimExtCoordinates(self, n1, n3, isStartCap=True):
+    def _getRimExtCoordinates(self, n1, n3):
         """
         :param n1: Index around rim.
         :param n3: Index from inner to outer rim.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: x[], d1[], d2[], and d3[] of rim nodes extended from the tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         transitionNodeCount = (len(self._transitionExtCoordinates[idx][0])
                                if (self._transitionExtCoordinates and self._transitionExtCoordinates[idx]) else 0)
 
@@ -999,54 +970,48 @@ class CapMesh:
                 self._shellExtCoordinates[idx][2][sn3][n1],
                 self._shellExtCoordinates[idx][3][sn3][n1]]
 
-    def _getRimExtCoordinatesAround(self, n3, isStartCap=True):
+    def _getRimExtCoordinatesAround(self, n3):
         """
         :param n3: Index from inner to outer rim.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: x[], d1[], d2[], and d3[] of rim nodes extended from the tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         transitionNodeCount = (len(self._transitionExtCoordinates[idx][0])
                                if (self._transitionExtCoordinates and self._transitionExtCoordinates[idx]) else 0)
 
         if n3 < transitionNodeCount:
-            return (self._transitionExtCoordinates[idx][0][n3],
+            return [self._transitionExtCoordinates[idx][0][n3],
                     self._transitionExtCoordinates[idx][1][n3],
                     self._transitionExtCoordinates[idx][2][n3],
-                    self._transitionExtCoordinates[idx][3][n3])
+                    self._transitionExtCoordinates[idx][3][n3]]
         sn3 = n3 - transitionNodeCount
-        return (self._shellExtCoordinates[idx][0][sn3],
+        return [self._shellExtCoordinates[idx][0][sn3],
                 self._shellExtCoordinates[idx][1][sn3],
                 self._shellExtCoordinates[idx][2][sn3],
-                self._shellExtCoordinates[idx][3][sn3])
+                self._shellExtCoordinates[idx][3][sn3]]
 
-    def _getRimCoordinatesWithCore(self, m, n, n3, isStartCap=True):
+    def _getRimCoordinatesWithCore(self, m, n, n3):
         """
         Get coordinates and derivatives for cap rim. Only applies when core option is active.
         :param m: Index across major axis.
         :param n: Index across minor axis.
         :param n3: Index along the tube.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: cap rim coordinates and derivatives for points at n3, m and n.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         return [self._shellCoordinates[idx][0][n3][m][n],
                 self._shellCoordinates[idx][1][n3][m][n],
                 self._shellCoordinates[idx][2][n3][m][n],
                 self._shellCoordinates[idx][3][n3][m][n]]
 
-    def _getTubeBoxCoordinates(self, m, n, isStartCap=True):
+    def _getTubeBoxCoordinates(self, m, n):
         """
         Get coordinates and derivatives for tube box.
         :param m: Index across major axis.
         :param n: Index across minor axis.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         :return: Tube box coordinates and derivatives for points at n2, m and n.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         return [self._tubeBoxCoordinates[0][idx][m][n],
                 self._tubeBoxCoordinates[1][idx][m][n],
                 self._tubeBoxCoordinates[2][idx][m][n],
@@ -1058,7 +1023,6 @@ class CapMesh:
         :param n1: Node index around.
         :param n2: Node index along segment.
         :param n3: Node index from inner to outer rim.
-        :param isCore:
         :return: Tube rim coordinates and derivatives for points at n1, n2 and n3.
         """
         transitionNodeCount = (len(self._tubeTransitionCoordinates[0][0])
@@ -1089,11 +1053,12 @@ class CapMesh:
 
         return triplePointIndexesList
 
-    def _getTriplePointLocation(self, e1, isStartCap=True):
+    def _getTriplePointLocation(self, e1, isShell=False):
         """
         Determines the location of a specific triple point relative to the solid core box.
         There are four locations: Top left (location = 1); top right (location = -1); bottom left (location = 2);
         and bottom right (location = -2). Location is None if not located at any of the four specified locations.
+        :param isShell: True if the triple point is located on the shell layer, False if located on the core box.
         :return: Location identifier.
         """
         em = self._elementsCountCoreBoxMinor // 2
@@ -1117,7 +1082,7 @@ class CapMesh:
         else:
             location = 0
 
-        if not isStartCap and location != 0:
+        if isShell and not self._isStartCap and location != 0:
             location = location + 1 if location > 0 else location - 1
             if abs(location) > 2:
                 location = location - 2 if location > 0 else location + 2
@@ -1206,13 +1171,11 @@ class CapMesh:
 
         return nx, nd1
 
-    def _generateNodesWithoutCore(self, generateData, isStartCap=True):
+    def _generateNodesWithoutCore(self):
         """
         Blackbox function for generating cap nodes. Used only when the tube segment does not have a core.
-        :param generateData: TubeNetworkMeshGenerateData class object.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        generateData = self._generateData
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
         nodes = generateData.getNodes()
@@ -1220,7 +1183,7 @@ class CapMesh:
 
         nodesCountShell = len(self._tubeShellCoordinates[0][0])
         capNodeIds = []
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         for n2 in range(2):
             capNodeIds.append([])
             for n3 in range(nodesCountShell):
@@ -1255,18 +1218,16 @@ class CapMesh:
                             coordinates.setNodeParameters(fieldcache, -1, nodeValue, 1, rValue)
                         capNodeIds[n2][n3].append(nodeIdentifier)
 
-        if isStartCap:
+        if self._isStartCap:
             self._startCapNodeIds = capNodeIds
         else:
             self._endCapNodeIds = capNodeIds
 
-    def _generateNodesWithCore(self, generateData, isStartCap):
+    def _generateNodesWithCore(self):
         """
         Blackbox function for generating cap nodes. Used only when the tube segment has a core.
-        :param generateData: TubeNetworkMeshGenerateData class object.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        generateData = self._generateData
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
         nodes = generateData.getNodes()
@@ -1276,7 +1237,7 @@ class CapMesh:
         nodesCountCoreBoxMinor = self._getNodesCountCoreBoxMinor()
         nloop = self._getNodesCountRim() + 1
         capNodeIds = []
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
         for n3 in range(nloop):
             if n3 == 0:
                 capNodeIds.append([])
@@ -1314,19 +1275,17 @@ class CapMesh:
                             coordinates.setNodeParameters(fieldcache, -1, nodeValue, 1, rValue)
                         capNodeIds[n3][m].append(nodeIdentifier)
 
-        if isStartCap:
+        if self._isStartCap:
             self._startCapNodeIds = capNodeIds
         else:
             self._endCapNodeIds = capNodeIds
 
-    def _generateExtendedTubeNodes(self, generateData, isStartCap=True):
+    def _generateExtendedTubeNodes(self):
         """
         Blackbox function for generating tube nodes extended from the original tube segment.
-        :param generateData: TubeNetworkMeshGenerateData class object.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
-        idx = 0 if isStartCap else -1
+        idx = 0 if self._isStartCap else -1
+        generateData = self._generateData
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
         nodes = generateData.getNodes()
@@ -1385,21 +1344,18 @@ class CapMesh:
                 ringNodeIds.append(nodeIdentifier)
             self._rimExtNodeIds[idx].append(ringNodeIds)
 
-    def _generateElementsWithoutCore(self, generateData, elementsCountRim, tubeRimNodeIds, annotationMeshGroups,
-                                     isStartCap=True):
+    def _generateElementsWithoutCore(self, elementsCountRim, annotationMeshGroups):
         """
         Blackbox function for generating cap elements. Used only when the tube segment does not have a core.
-        :param generateData: TubeNetworkMeshGenerateData class object.
         :param elementsCountRim: Number of elements through the rim.
-        :param tubeRimNodeIds: List of tube rim nodes.
         :param annotationMeshGroups: List of all annotated mesh groups.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        generateData = self._generateData
         coordinates = generateData.getCoordinates()
         mesh = generateData.getMesh()
         elementtemplateStd, eftStd = generateData.getStandardElementtemplate()
         eftfactory = eftfactory_tricubichermite(mesh, False)
+        isStartCap = self._isStartCap
 
         if isStartCap:
             capNodeIds = self._startCapNodeIds
@@ -1474,19 +1430,18 @@ class CapMesh:
         else:
             self._endCapElementIds = capElementIds
 
-    def _generateElementsWithCore(self, generateData, coreBoundaryScalingMode, isStartCap=True):
+    def _generateElementsWithCore(self):
         """
         Blackbox function for generating cap elements. Used only when the tube segment has a core.
-        :param generateData: TubeNetworkMeshGenerateData class object.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        isStartCap = self._isStartCap
         idx = 0 if isStartCap else -1
         elementsCountAround = self._elementsCountAround
         elementsCountCoreBoxMinor = self._elementsCountCoreBoxMinor
         elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
         elementsCountRim = self._getElementsCountRim()
 
+        generateData = self._generateData
         coordinates = generateData.getCoordinates()
         mesh = generateData.getMesh()
         elementtemplateStd, eftStd = generateData.getStandardElementtemplate()
@@ -1524,8 +1479,7 @@ class CapMesh:
             for e1 in range(elementsCountCoreBoxMinor):
                 nids, nodeParameters, nodeLayouts = [], [], []
                 for n1 in [e1, e1 + 1]:
-                    nids += [capNodeIds[0][e3][n1], capNodeIds[0][e3p][n1],
-                             boxExtNodeIds[e3][n1], boxExtNodeIds[e3p][n1]]
+                    nids += [capNodeIds[0][e3][n1], capNodeIds[0][e3p][n1], boxExtNodeIds[e3][n1], boxExtNodeIds[e3p][n1]]
                     if not isStartCap:
                         for a in [nids]:
                             a[-4], a[-2] = a[-2], a[-4]
@@ -1547,14 +1501,14 @@ class CapMesh:
                 for n1 in [e1, e1 + 1]:
                     for n3 in [e3, e3p]:
                         nids += [capNodeIds[1][n3][n1]]
-                        nodeParameter = self._getRimCoordinatesWithCore(n3, n1, 0, isStartCap)
+                        nodeParameter = self._getRimCoordinatesWithCore(n3, n1, 0)
                         nodeParameters.append(nodeParameter)
                         nodeLayouts.append(nodeLayoutCapTransition)
                     for n3 in [e3, e3p]:
                         boxLocation, tpLocation = self._getBoxBoundaryLocation(n3, n1)
                         nid = capNodeIds[0][n3][n1]
                         nids += [nid]
-                        nodeParameter = self._getBoxCoordinates(n3, n1, isStartCap)
+                        nodeParameter = self._getBoxCoordinates(n3, n1)
                         nodeParameters.append(nodeParameter)
                         nodeLayoutCapBoxShield = generateData.getNodeLayoutCapBoxShield(boxLocation, isStartCap)
                         nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation, isStartCap)
@@ -1614,7 +1568,7 @@ class CapMesh:
             nids, nodeParameters, nodeLayouts = [], [], []
             n1p = (e1 + 1) % self._elementsCountAround
             boxLocation = self._getTriplePointLocation(e1)
-            shellLocation = self._getTriplePointLocation(e1, isStartCap)
+            shellLocation = self._getTriplePointLocation(e1, isShell=True)
             nodeLayoutTransitionTriplePoint = generateData.getNodeLayoutTransitionTriplePoint(boxLocation)
             nodeLayoutCapShellTransitionTriplePoint = generateData.getNodeLayoutCapShellTriplePoint(shellLocation)
             for n3 in [0, 1]:
@@ -1626,11 +1580,11 @@ class CapMesh:
                     nodeLayoutCapBoxShield = generateData.getNodeLayoutCapBoxShield(location, isStartCap)
                     nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation, isStartCap)
                     if n3 == 0:
-                        nodeParameter = self._getBoxCoordinates(mi, ni, isStartCap)
+                        nodeParameter = self._getBoxCoordinates(mi, ni)
                         nodeLayout = nodeLayoutCapBoxShieldTriplePoint if n1 in triplePointIndexesList else (
                             nodeLayoutCapBoxShield)
                     else:
-                        nodeParameter = self._getRimCoordinatesWithCore(mi, ni, 0, isStartCap)
+                        nodeParameter = self._getRimCoordinatesWithCore(mi, ni, 0)
                         nodeLayout = nodeLayoutCapShellTransitionTriplePoint if n1 in triplePointIndexesList else (
                             nodeLayoutCapTransition)
                     nodeParameters.append(nodeParameter)
@@ -1639,10 +1593,10 @@ class CapMesh:
                     if n3 == 0:
                         nid = boxExtBoundaryNodeIds[n1]
                         mi, ni = boxExtBoundaryNodestoBoxIds[n1]
-                        nodeParameter = self._getBoxExtCoordinates(mi, ni, isStartCap)
+                        nodeParameter = self._getBoxExtCoordinates(mi, ni)
                     else:
                         nid = rimExtNodeIds[0][n1]
-                        nodeParameter = self._getRimExtCoordinates(n1, 0, isStartCap)
+                        nodeParameter = self._getRimExtCoordinates(n1, 0)
                     nids += [nid]
                     nodeParameters.append(nodeParameter)
                     nodeLayouts.append(nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList and n3 == 0
@@ -1652,9 +1606,6 @@ class CapMesh:
                         a[-4], a[-2] = a[-2], a[-4]
                         a[-3], a[-1] = a[-1], a[-3]
             eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-            # if self._elementsCountTransition == 1:
-            #     eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
-            #         eft, scalefactors, nodeParameters, nids, coreBoundaryScalingMode)
             elementtemplate = mesh.createElementtemplate()
             elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             elementtemplate.defineField(coordinates, -1, eft)
@@ -1673,20 +1624,20 @@ class CapMesh:
             for e1 in range(self._elementsCountAround):
                 nids, nodeParameters, nodeLayouts = [], [], []
                 e1p = (e1 + 1) % self._elementsCountAround
-                location = self._getTriplePointLocation(e1, isStartCap)
+                location = self._getTriplePointLocation(e1, isShell=True)
                 nodeLayoutCapTransition = generateData.getNodeLayoutCapTransition()
                 nodeLayoutCapShellTriplePoint = generateData.getNodeLayoutCapShellTriplePoint(location)
                 for n3 in [e3, e3 + 1]:
                     for n1 in [e1, e1p]:
                         nids += [rimBoundaryNodeIds[n3][n1]]
                         mi, ni = rimBoundaryNodeToCapIndex[n3][n1]
-                        nodeParameter = self._getRimCoordinatesWithCore(mi, ni, n3, isStartCap)
+                        nodeParameter = self._getRimCoordinatesWithCore(mi, ni, n3)
                         nodeParameters.append(nodeParameter)
                         nodeLayouts.append(nodeLayoutCapShellTriplePoint if n1 in triplePointIndexesList else
                                            nodeLayoutCapTransition)
                     for n1 in [e1, e1p]:
                         nids += [rimExtNodeIds[n3][n1]]
-                        nodeParameter = self._getRimExtCoordinates(n1, n3, isStartCap)
+                        nodeParameter = self._getRimExtCoordinates(n1, n3)
                         nodeParameters.append(nodeParameter)
                         nodeLayouts.append(None)
                     if not isStartCap:
@@ -1710,18 +1661,16 @@ class CapMesh:
         else:
             self._endCapElementIds.append(capElementIds)
 
-    def _generateExtendedTubeElements(self, generateData, tubeBoxNodeIds, tubeRimNodeIds, coreBoundaryScalingMode,
-                                      isStartCap=True):
+    def _generateExtendedTubeElements(self, tubeBoxNodeIds, tubeRimNodeIds):
         """
         Blackbox function for generating extended tube elements.
-        :param generateData: TubeNetworkMeshGenerateData class object.
         :param tubeBoxNodeIds: List of tube box nodes.
         :param tubeRimNodeIds: List of tube rim nodes.
-        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
-        of a tube segment.
         """
+        isStartCap = self._isStartCap
         idx = 0 if isStartCap else -1
-
+        scalingMode = 3 if isStartCap else 4
+        generateData = self._generateData
         coordinates = generateData.getCoordinates()
         mesh = generateData.getMesh()
         elementtemplateStd, eftStd = generateData.getStandardElementtemplate()
@@ -1766,18 +1715,15 @@ class CapMesh:
                         if n2 == 0:
                             nid = boxExtBoundaryNodeIds[n1]
                             mi, ni = boxExtBoundaryNodesToBoxIds[n1]
-                            nodeParameter = self._getBoxExtCoordinates(mi, ni, isStartCap)
-                            nodeLayout = nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList \
-                                else nodeLayoutTransition
+                            nodeParameter = self._getBoxExtCoordinates(mi, ni)
                         else:
                             nid = tubeBoxBoundaryNodeIds[n1]
                             mi, ni = tubeBoxBoundaryNodesToBoxIds[n1]
-                            nodeParameter = self._getTubeBoxCoordinates(mi, ni, isStartCap)
-                            nodeLayout = nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList \
-                                else nodeLayoutTransition
+                            nodeParameter = self._getTubeBoxCoordinates(mi, ni)
                         nids += [nid]
                         nodeParameters.append(nodeParameter)
-                        nodeLayouts.append(nodeLayout)
+                        nodeLayouts.append(nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList else
+                                           nodeLayoutTransition)
                 if not isStartCap:
                     for a in [nids, nodeParameters, nodeLayouts]:
                         a[-4], a[-2] = a[-2], a[-4]
@@ -1786,15 +1732,13 @@ class CapMesh:
                     for n1 in [e1, n1p]:
                         if n2 == 0:
                             nid = rimExtNodeIds[0][n1]
-                            nodeParameter = self._getRimExtCoordinates(n1, 0, isStartCap)
-                            nodeLayout = None
+                            nodeParameter = self._getRimExtCoordinates(n1, 0)
                         else:
                             nid = tubeRimNodeIds[idx][0][n1]
                             nodeParameter = self._getTubeRimCoordinates(n1, idx, 0)
-                            nodeLayout = None
                         nids += [nid]
                         nodeParameters.append(nodeParameter)
-                        nodeLayouts.append(nodeLayout)
+                        nodeLayouts.append(None)
                 if not isStartCap:
                     for a in [nids, nodeParameters, nodeLayouts]:
                         a[-4], a[-2] = a[-2], a[-4]
@@ -1802,7 +1746,7 @@ class CapMesh:
                 eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
                 if self._elementsCountTransition == 1:
                     eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
-                        eft, scalefactors, nodeParameters, nids, coreBoundaryScalingMode)
+                        eft, scalefactors, nodeParameters, nids, scalingMode)
                 elementtemplate = mesh.createElementtemplate()
                 elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                 elementtemplate.defineField(coordinates, -1, eft)
@@ -1841,7 +1785,7 @@ class CapMesh:
                         for n2 in (0, 1):
                             for n1 in (e1, n1p):
                                 if n2 == 0:
-                                    nodeParameter = self._getRimExtCoordinates(n1, n3, isStartCap)
+                                    nodeParameter = self._getRimExtCoordinates(n1, n3)
                                 else:
                                     nodeParameter = self._getTubeRimCoordinates(n1, idx, n3)
                                 nodeParameters.append(nodeParameter)
@@ -1850,8 +1794,8 @@ class CapMesh:
                                 a[-4], a[-2] = a[-2], a[-4]
                                 a[-3], a[-1] = a[-1], a[-3]
                     eft = generateData.createElementfieldtemplate()
-                    # eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
-                    #     eft, scalefactors, nodeParameters, nids, coreBoundaryScalingMode)
+                    eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                        eft, scalefactors, nodeParameters, nids, scalingMode)
                     elementtemplateTransition = mesh.createElementtemplate()
                     elementtemplateTransition.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                     elementtemplateTransition.defineField(coordinates, -1, eft)
@@ -1871,17 +1815,16 @@ class CapMesh:
         """
         if self._isCore:
             self._createShellCoordinatesList()
-            if self._isCap[0]:
-                self._determineCapCoordinatesWithCore(isStartCap=True)
-            if self._isCap[1]:
-                self._determineCapCoordinatesWithCore(isStartCap=False)
-        else:
-            if self._isCap[0]:
-                self._extendTubeEnds(isStartCap=True)
-                self._determineCapCoordinatesWithoutCore(isStartCap=True)
-            if self._isCap[1]:
-                self._extendTubeEnds(isStartCap=False)
-                self._determineCapCoordinatesWithoutCore(isStartCap=False)
+        for s in range(2):
+            self._isStartCap = True if self._isCap[0] and s == 0 else False
+            if self._isCap[s]:
+                if self._isCore:
+                    self._determineCapCoordinatesWithCore(s)
+                else:
+                    self._extendTubeEnds()
+                    self._determineCapCoordinatesWithoutCore()
+            else:
+                continue
 
     def generateNodes(self, generateData, isStartCap=True, isCore=False):
         """
@@ -1891,26 +1834,19 @@ class CapMesh:
         of a tube segment.
         :param isCore: True for generating a solid core inside the tube, False for regular tube network.
         """
-        if isCore:
-            if isStartCap:
-                self._generateNodesWithCore(generateData, isStartCap)
-                self._generateExtendedTubeNodes(generateData, isStartCap)
-            else:
-                self._generateExtendedTubeNodes(generateData, isStartCap)
-                self._generateNodesWithCore(generateData, isStartCap)
+        self._isStartCap = isStartCap
+        self._generateData = generateData
+        if isStartCap:
+            self._generateNodesWithCore() if isCore else self._generateNodesWithoutCore()
+            self._generateExtendedTubeNodes()
         else:
-            if isStartCap:
-                self._generateNodesWithoutCore(generateData, isStartCap)
-                self._generateExtendedTubeNodes(generateData, isStartCap)
-            else:
-                self._generateExtendedTubeNodes(generateData, isStartCap)
-                self._generateNodesWithoutCore(generateData, isStartCap)
+            self._generateExtendedTubeNodes()
+            self._generateNodesWithCore() if isCore else self._generateNodesWithoutCore()
 
-    def generateElements(self, generateData, elementsCountRim, tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups,
-                         coreBoundaryScalingMode, isStartCap=True, isCore=False):
+    def generateElements(self, elementsCountRim, tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups,
+                         isStartCap=True, isCore=False):
         """
         Blackbox function for generating cap and extended tube elements.
-        :param generateData: TubeNetworkMeshGenerateData class object.
         :param elementsCountRim: Number of elements through the rim.
         :param tubeBoxNodeIds: List of tube box nodes.
         :param tubeRimNodeIds: List of tube rim nodes.
@@ -1921,12 +1857,10 @@ class CapMesh:
         of a tube segment.
         :param isCore: True for generating a solid core inside the tube, False for regular tube network.
         """
+        self._isStartCap = isStartCap
         if isCore:
-            self._generateElementsWithCore(generateData, coreBoundaryScalingMode, isStartCap)
-            self._generateExtendedTubeElements(generateData, tubeBoxNodeIds, tubeRimNodeIds, coreBoundaryScalingMode,
-                                               isStartCap)
+            self._generateElementsWithCore()
+            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds)
         else:
-            self._generateElementsWithoutCore(
-                generateData, elementsCountRim, tubeRimNodeIds, annotationMeshGroups, isStartCap)
-            self._generateExtendedTubeElements(generateData, tubeBoxNodeIds, tubeRimNodeIds, coreBoundaryScalingMode,
-                                               isStartCap)
+            self._generateElementsWithoutCore(elementsCountRim, annotationMeshGroups)
+            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds)
