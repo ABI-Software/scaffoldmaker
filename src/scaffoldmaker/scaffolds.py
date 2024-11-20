@@ -22,7 +22,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_brainstem import MeshType_3d_brainstem1
 from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
-from scaffoldmaker.meshtypes.meshtype_3d_dorsalrootganglion1 import MeshType_3d_dorsalrootganglion1
 from scaffoldmaker.meshtypes.meshtype_3d_esophagus1 import MeshType_3d_esophagus1
 from scaffoldmaker.meshtypes.meshtype_3d_gastrointestinaltract1 import MeshType_3d_gastrointestinaltract1
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
@@ -48,6 +47,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsp
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere2 import MeshType_3d_solidsphere2
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshell1 import MeshType_3d_sphereshell1
 from scaffoldmaker.meshtypes.meshtype_3d_sphereshellseptum1 import MeshType_3d_sphereshellseptum1
+from scaffoldmaker.meshtypes.meshtype_3d_spinalnerve1 import \
+    (MeshType_3d_spinalnerve1, MeshType_1d_human_spinal_nerve_network_layout1)
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
@@ -86,7 +87,6 @@ class Scaffolds(object):
             MeshType_3d_cecum1,
             MeshType_3d_colon1,
             MeshType_3d_colonsegment1,
-            MeshType_3d_dorsalrootganglion1,
             MeshType_3d_esophagus1,
             MeshType_3d_gastrointestinaltract1,
             MeshType_3d_heart1,
@@ -112,6 +112,7 @@ class Scaffolds(object):
             MeshType_3d_solidsphere2,
             MeshType_3d_sphereshell1,
             MeshType_3d_sphereshellseptum1,
+            MeshType_3d_spinalnerve1,
             MeshType_3d_stellate1,
             MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
@@ -126,6 +127,7 @@ class Scaffolds(object):
             ]
         self._allPrivateScaffoldTypes = [
             MeshType_1d_human_body_network_layout1,
+            MeshType_1d_human_spinal_nerve_network_layout1,
             MeshType_1d_human_trigeminal_nerve_network_layout1
             ]
 
