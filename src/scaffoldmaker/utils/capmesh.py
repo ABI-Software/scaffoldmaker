@@ -1,3 +1,7 @@
+"""
+Specialisation of Tube Network Mesh for building 3-D cap mesh.
+"""
+
 import math
 
 from cmlibs.maths.vectorops import magnitude, sub, add, set_magnitude, normalize, rotate_vector_around_vector, cross, \
@@ -410,13 +414,9 @@ class CapMesh:
         the outer shell of a tube segment.
         :return: Radius of the cap shell.
         """
-        idx = 0 if self._isStartCap else -1
-        ox = self._tubeShellCoordinates[0][idx][-1]
-        radii = []
-        for i in range(self._elementsCountAround // 2):
-            j = i + self._elementsCountAround // 2
-            r = magnitude(sub(ox[i], ox[j])) / 2
-            radii.append(r)
+        ox = self._tubeShellCoordinates[0][0][-1] if self._isStartCap else self._tubeShellCoordinates[0][-1][-1]
+        radii = [magnitude(sub(ox[i], ox[i + self._elementsCountAround // 2])) / 2 for i in
+                 range(self._elementsCountAround // 2)]
         return sum(radii) / len(radii)
 
     def _getRadius(self, ox):
@@ -426,11 +426,8 @@ class CapMesh:
         :param ox: Coordinates of shell nodes around a tube segment.
         :return: Radius of the cap shell.
         """
-        radii = []
-        for i in range(self._elementsCountAround // 2):
-            j = i + self._elementsCountAround // 2
-            r = magnitude(sub(ox[i], ox[j])) / 2
-            radii.append(r)
+        radii = [magnitude(sub(ox[i], ox[i + self._elementsCountAround // 2])) / 2 for i in
+                 range(self._elementsCountAround // 2)]
         return sum(radii) / len(radii)
 
     def _getShellThickness(self):
@@ -439,14 +436,9 @@ class CapMesh:
         It takes the average of a distance between the outer and the inner node pair around the rim of a tube segment.
         :return: Thickness of the cap shell.
         """
-        idx = 0 if self._isStartCap else -1
-        ix = self._tubeShellCoordinates[0][idx][0]
-        ox = self._tubeShellCoordinates[0][idx][-1]
-
-        shellThicknesses = []
-        for i in range(self._elementsCountAround):
-            thickness = magnitude(sub(ox[i], ix[i]))
-            shellThicknesses.append(thickness)
+        ix = self._tubeShellCoordinates[0][0][0] if self._isStartCap else self._tubeShellCoordinates[0][-1][0]
+        ox = self._tubeShellCoordinates[0][0][-1] if self._isStartCap else self._tubeShellCoordinates[0][-1][-1]
+        shellThicknesses = [magnitude(sub(ox[i], ix[i])) for i in range(self._elementsCountAround)]
         return sum(shellThicknesses) / len(shellThicknesses)
 
     def _getExtensionLength(self):
@@ -551,35 +543,26 @@ class CapMesh:
         elementsCountUp = 2
         elementsCountAcrossMajor = self._elementsCountCoreBoxMajor + 2
         elementsCountAcrossMinor = self._elementsCountCoreBoxMinor + 2
-        counter = 0
         signValue = 1 if self._isStartCap else -1
-        for m in [0, -1]:
-            for n in [0, -1]:
-                if m == n:
-                    elementsCount = [elementsCountUp, elementsCountAcrossMajor // 2, elementsCountAcrossMinor // 2]
-                else:
-                    elementsCount = [elementsCountAcrossMajor // 2, elementsCountUp, elementsCountAcrossMinor // 2]
+        for counter, (m, n) in enumerate([(0, 0), (0, -1), (-1, 0), (-1, -1)]):
+            elementsCount = (
+                [elementsCountUp, elementsCountAcrossMajor // 2, elementsCountAcrossMinor // 2] if m == n else
+                [elementsCountAcrossMajor // 2, elementsCountUp, elementsCountAcrossMinor // 2]
+            )
 
-                n1z, n3z = elementsCount[1], elementsCount[2]
-                n1y, n3y = n1z - 1, n3z - 1
+            radiansPerElementAroundEllipse12 = math.pi / (2 * (elementsCount[0] + elementsCount[1] - 2))
+            radiansPerElementAroundEllipse13 = math.pi / (2 * (elementsCount[0] + elementsCount[2] - 2))
 
-                elementsAroundEllipse12 = elementsCount[0] + elementsCount[1] - 2
-                radiansAroundEllipse12 = math.pi / 2
-                radiansPerElementAroundEllipse12 = radiansAroundEllipse12 / elementsAroundEllipse12
-                elementsAroundEllipse13 = elementsCount[0] + elementsCount[2] - 2
-                radiansAroundEllipse13 = math.pi / 2
-                radiansPerElementAroundEllipse13 = radiansAroundEllipse13 / elementsAroundEllipse13
+            theta_2 = (elementsCount[2] - 1) * radiansPerElementAroundEllipse13
+            theta_3 = (elementsCount[1] - 1) * radiansPerElementAroundEllipse12
+            phi_3 = calculate_azimuth(theta_3, theta_2)
 
-                theta_2 = n3y * radiansPerElementAroundEllipse13
-                theta_3 = n1y * radiansPerElementAroundEllipse12
-                phi_3 = calculate_azimuth(theta_3, theta_2)
-                ratio = 1
-                local_x = spherical_to_cartesian(radius, theta_3, ratio * phi_3 + (1 - ratio) * math.pi / 2)
-                c = counter if self._isStartCap else -(counter + 1)
-                axes = [mult(axis, signValue) for axis in axesList[c]]
-                x = local_to_global_coordinates(local_x, axes, centre)
-                self._shellCoordinates[idx][0][n3][m][n] = x
-                counter += 1
+            local_x = spherical_to_cartesian(radius, theta_3, phi_3)
+            c = counter if self._isStartCap else -(counter + 1)
+            axes = [mult(axis, signValue) for axis in axesList[c]]
+            x = local_to_global_coordinates(local_x, axes, centre)
+
+            self._shellCoordinates[idx][0][n3][m][n] = x
 
     def _calculateShellRegularNodeCoordinates(self, n3, centre):
         """
@@ -592,43 +575,38 @@ class CapMesh:
         elementsCountAcrossMinor = self._elementsCountCoreBoxMinor + 2
         midMajorIndex = elementsCountAcrossMajor // 2 - 1
         midMinorIndex = elementsCountAcrossMinor // 2 - 1
+
+        elementsOut = self._elementsCountCoreBoxMinor // 2
         for m in range(self._elementsCountCoreBoxMajor + 1):
-            elementsOut = self._elementsCountCoreBoxMinor // 2
             for n in [0, -1]:
                 x1 = self._shellCoordinates[idx][0][n3][m][n]
                 x2 = self._shellCoordinates[idx][0][n3][m][midMinorIndex]
                 if x1 is None:
                     continue
-                else:
-                    if n == 0:
-                        nx, nd1 = self._sampleCurvesOnSphere(x1, x2, centre, elementsOut)
-                    else:
-                        nx, nd1 = self._sampleCurvesOnSphere(x2, x1, centre, elementsOut)
-                    nRange = [n + 1, midMinorIndex] if n == 0 else \
-                        [midMinorIndex + 1, self._elementsCountCoreBoxMinor]
-                    for c in range(nRange[0], nRange[1]):
-                        self._shellCoordinates[idx][0][n3][m][c] = nx[c % (len(nx) - 1)]
-                        self._shellCoordinates[idx][1][n3][m][c] = nd1[c % (len(nd1) - 1)]
-                        self._shellCoordinates[idx][2][n3][m][c] = [0, 0, 0]
+                nx, nd1 = (self._sampleCurvesOnSphere(x1, x2, centre, elementsOut) if n == 0 else
+                           self._sampleCurvesOnSphere(x2, x1, centre, elementsOut))
+                start, end = ((n + 1, midMinorIndex) if n == 0 else (midMinorIndex + 1, self._elementsCountCoreBoxMinor))
+                for c in range(start, end):
+                    idx_c = c % (len(nx) - 1)
+                    self._shellCoordinates[idx][0][n3][m][c] = nx[idx_c]
+                    self._shellCoordinates[idx][1][n3][m][c] = nd1[idx_c]
+                    self._shellCoordinates[idx][2][n3][m][c] = [0, 0, 0]
 
+        elementsOut = self._elementsCountCoreBoxMajor // 2
         for n in range(self._elementsCountCoreBoxMinor + 1):
-            elementsOut = self._elementsCountCoreBoxMajor // 2
             for m in [0, -1]:
                 x1 = self._shellCoordinates[idx][0][n3][m][n]
                 x2 = self._shellCoordinates[idx][0][n3][midMajorIndex][n]
                 if x1 is None:
                     continue
-                else:
-                    if m == 0:
-                        nx, nd2 = self._sampleCurvesOnSphere(x1, x2, centre, elementsOut)
-                    else:
-                        nx, nd2 = self._sampleCurvesOnSphere(x2, x1, centre, elementsOut)
-                    mRange = [m + 1, midMajorIndex] if m == 0 else [midMajorIndex + 1,
-                                                                    self._elementsCountCoreBoxMajor]
-                    for c in range(mRange[0], mRange[1]):
-                        self._shellCoordinates[idx][0][n3][c][n] = nx[c % (len(nx) - 1)]
-                        self._shellCoordinates[idx][1][n3][c][n] = [0, 0, 0]
-                        self._shellCoordinates[idx][2][n3][c][n] = nd2[c % (len(nd2) - 1)]
+                nx, nd2 = (self._sampleCurvesOnSphere(x1, x2, centre, elementsOut) if m == 0 else
+                           self._sampleCurvesOnSphere(x2, x1, centre, elementsOut))
+                start, end = ((m + 1, midMajorIndex) if m == 0 else (midMajorIndex + 1, self._elementsCountCoreBoxMajor))
+                for c in range(start, end):
+                    idx_c = c % (len(nx) - 1)
+                    self._shellCoordinates[idx][0][n3][c][n] = nx[idx_c]
+                    self._shellCoordinates[idx][1][n3][c][n] = [0, 0, 0]
+                    self._shellCoordinates[idx][2][n3][c][n] = nd2[idx_c]
 
     def _sphereToSpheroid(self, n3, ratio, centre):
         """
@@ -648,16 +626,21 @@ class CapMesh:
 
         mCount = self._elementsCountCoreBoxMajor + 1 if self._isCore else 1
         nCount = self._elementsCountCoreBoxMinor + 1 if self._isCore else self._elementsCountAround
+        # process shell coordinates
         for m in range(mCount):
             mp = m if self._isCore else 1
             for n in range(nCount):
                 btx = self._shellCoordinates[idx][0][n3][mp][n]
                 btx = sub(btx, centre)
-                btx = rotate_vector_around_vector(btx, layoutD3, thetaD2)
-                btx = rotate_vector_around_vector(btx, layoutD2, thetaD3)
+                # apply forward transformations
+                for vec, theta in [(layoutD3, thetaD2), (layoutD2, thetaD3)]:
+                    btx = rotate_vector_around_vector(btx, vec, theta)
+                # scale by ratios
                 btx = [ratio[c] * btx[c] for c in range(3)]
-                btx = rotate_vector_around_vector(btx, layoutD3, -thetaD2)
-                btx = rotate_vector_around_vector(btx, layoutD2, -thetaD3)
+                # apply inverse transformations
+                for vec, theta in [(layoutD2, -thetaD3), (layoutD3, -thetaD2)]:
+                    btx = rotate_vector_around_vector(btx, vec, theta)
+                # update shell coordinates
                 self._shellCoordinates[idx][0][n3][mp][n] = add(btx, centre)
 
     def _getRatioBetweenTwoRadii(self, radii, oRadii):
@@ -679,10 +662,8 @@ class CapMesh:
         radius in this direction is constant.
         """
         n1m, n1n = 0, self._elementsCountAround // 4
-        ixm = self._getTubeRimCoordinates(n1m, idx, n3)[0]
-        ixn = self._getTubeRimCoordinates(n1n, idx, n3)[0]
-        majorRadius, minorRadius = magnitude(sub(ixm, centre)), magnitude(sub(ixn, centre))
-
+        ixm, ixn = (self._getTubeRimCoordinates(n, idx, n3)[0] for n in [n1m, n1n])
+        majorRadius, minorRadius = (magnitude(sub(coord, centre)) for coord in [ixm, ixn])
         return [1.0, majorRadius, minorRadius]
 
     def _determineShellDerivatives(self):
@@ -753,26 +734,18 @@ class CapMesh:
             triplePointIndexesList.append(n + nodesCountAcrossMinorHalf)
         triplePointIndexesList[-2], triplePointIndexesList[-1] = triplePointIndexesList[-1], triplePointIndexesList[-2]
 
-        counter = 0
-        for m in [0, -1]:
-            for n in [0, -1]:
-                tpIndex = triplePointIndexesList[counter]
-                x1 = boxCoordinates[m][n]
-                x2 = rimCoordinates[tpIndex]
-                x3 = capCoordinates[m][n]
-
-                ts = magnitude(sub(x1, x2))
-                ra = sub(x3, centre)
-                radius = magnitude(ra)
-                local_x = mult(ra, (1 - ts / radius))
-                x = add(local_x, centre)
-                capBoxCoordinates[0][m][n] = x
-                capBoxCoordinates[1][m][n] = self._tubeBoxCoordinates[1][idx][m][n]
-                capBoxCoordinates[3][m][n] = self._tubeBoxCoordinates[3][idx][m][n]
-                counter += 1
+        for counter, (m, n) in enumerate([(0, 0), (0, -1), (-1, 0), (-1, -1)]):
+            tpIndex = triplePointIndexesList[counter]
+            x1, x2, x3 = boxCoordinates[m][n], rimCoordinates[tpIndex], capCoordinates[m][n]
+            ts = magnitude(sub(x1, x2))
+            ra = sub(x3, centre)
+            radius = magnitude(ra)
+            local_x = mult(ra, (1 - ts / radius))
+            capBoxCoordinates[0][m][n] = add(local_x, centre)
+            capBoxCoordinates[1][m][n] = self._tubeBoxCoordinates[1][idx][m][n]
+            capBoxCoordinates[3][m][n] = self._tubeBoxCoordinates[3][idx][m][n]
 
         if self._boxCoordinates is None:
-            self._boxCoordinates = []
             self._boxCoordinates = [None] * 2
         self._boxCoordinates[idx] = capBoxCoordinates
 
@@ -786,24 +759,19 @@ class CapMesh:
 
         # box side nodes
         for m in [0, -1]:
-            nx, nd1, nd3 = [], [], []
-            for n in [0, -1]:
-                nx += [self._boxCoordinates[idx][0][m][n]]
-                nd1 += [self._boxCoordinates[idx][1][m][n]]
-                nd3 += [self._boxCoordinates[idx][3][m][n]]
+            nx = [self._boxCoordinates[idx][0][m][n] for n in [0, -1]]
+            nd1 = [self._boxCoordinates[idx][1][m][n] for n in [0, -1]]
+            nd3 = [self._boxCoordinates[idx][3][m][n] for n in [0, -1]]
             tx, td3, pe, pxi, psf = sampleCubicHermiteCurves(nx, nd3, self._elementsCountCoreBoxMinor, arcLengthDerivatives=True)
             td1 = interpolateSampleCubicHermite(nd1, [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
             for n in range(1, self._elementsCountCoreBoxMinor):
                 self._boxCoordinates[idx][0][m][n] = tx[n]
                 self._boxCoordinates[idx][1][m][n] = td1[n]
                 self._boxCoordinates[idx][3][m][n] = td3[n]
-
         for n in [0, -1]:
-            nx, nd1, nd3 = [], [], []
-            for m in [0, -1]:
-                nx += [self._boxCoordinates[idx][0][m][n]]
-                nd1 += [self._boxCoordinates[idx][1][m][n]]
-                nd3 += [self._boxCoordinates[idx][3][m][n]]
+            nx = [self._boxCoordinates[idx][0][m][n] for m in [0, -1]]
+            nd1 = [self._boxCoordinates[idx][1][m][n] for m in [0, -1]]
+            nd3 = [self._boxCoordinates[idx][3][m][n] for m in [0, -1]]
             tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(nx, nd1, self._elementsCountCoreBoxMajor, arcLengthDerivatives=True)
             td3 = interpolateSampleCubicHermite(nd3, [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
             for m in range(1, self._elementsCountCoreBoxMajor):
@@ -812,11 +780,9 @@ class CapMesh:
                 self._boxCoordinates[idx][3][m][n] = td3[m]
 
         # box major and minor nodes
-        nx, nd1, nd3 = [], [], []
-        for n in [0, -1]:
-            nx += [self._boxCoordinates[idx][0][midMajorIndex][n]]
-            nd1 += [self._boxCoordinates[idx][1][midMajorIndex][n]]
-            nd3 += [self._boxCoordinates[idx][3][midMajorIndex][n]]
+        nx = [self._boxCoordinates[idx][0][midMajorIndex][n] for n in [0, -1]]
+        nd1 = [self._boxCoordinates[idx][1][midMajorIndex][n] for n in [0, -1]]
+        nd3 = [self._boxCoordinates[idx][3][midMajorIndex][n] for n in [0, -1]]
         tx, td3, pe, pxi, psf = sampleCubicHermiteCurves(nx, nd3, self._elementsCountCoreBoxMinor, arcLengthDerivatives=True)
         td1 = interpolateSampleCubicHermite(nd1, [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
         for n in range(1, self._elementsCountCoreBoxMinor):
@@ -824,10 +790,8 @@ class CapMesh:
             self._boxCoordinates[idx][1][midMajorIndex][n] = td1[n]
             self._boxCoordinates[idx][3][midMajorIndex][n] = td3[n]
 
-        nx, nd1 = [], []
-        for m in [0, -1]:
-            nx += [self._boxCoordinates[idx][0][m][midMinorIndex]]
-            nd1 += [self._boxCoordinates[idx][1][m][midMinorIndex]]
+        nx = [self._boxCoordinates[idx][0][m][midMinorIndex] for m in [0, -1]]
+        nd1 = [self._boxCoordinates[idx][1][m][midMinorIndex] for m in [0, -1]]
         tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(nx, nd1, self._elementsCountCoreBoxMajor, arcLengthDerivatives=True)
         td3 = interpolateSampleCubicHermite(nd3, [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
         for m in range(1, self._elementsCountCoreBoxMajor):
@@ -839,17 +803,10 @@ class CapMesh:
         for m in range(self._elementsCountCoreBoxMajor):
             for n in range(self._elementsCountCoreBoxMinor):
                 if self._boxCoordinates[idx][0][m][n] is None:
-                    nx = [self._boxCoordinates[idx][0][0][n],
-                          self._boxCoordinates[idx][0][midMajorIndex][n],
-                          self._boxCoordinates[idx][0][-1][n]]
-                    nd1 = [self._boxCoordinates[idx][1][0][n],
-                          self._boxCoordinates[idx][1][midMajorIndex][n],
-                          self._boxCoordinates[idx][1][-1][n]]
-                    nd3 = [self._boxCoordinates[idx][3][0][n],
-                          self._boxCoordinates[idx][3][midMajorIndex][n],
-                          self._boxCoordinates[idx][3][-1][n]]
-                    tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(nx, nd1, self._elementsCountCoreBoxMajor,
-                                                                     arcLengthDerivatives=True)
+                    nx = [self._boxCoordinates[idx][0][i][n] for i in [0, midMajorIndex, -1]]
+                    nd1 = [self._boxCoordinates[idx][1][i][n] for i in [0, midMajorIndex, -1]]
+                    nd3 = [self._boxCoordinates[idx][3][i][n] for i in [0, midMajorIndex, -1]]
+                    tx, td1, pe, pxi, psf = sampleCubicHermiteCurves(nx, nd1, self._elementsCountCoreBoxMajor, arcLengthDerivatives=True)
                     td3 = interpolateSampleCubicHermite(nd3, [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
                     for mi in range(1, self._elementsCountCoreBoxMajor):
                         self._boxCoordinates[idx][0][mi][n] = tx[mi]
@@ -882,10 +839,8 @@ class CapMesh:
                 itx = self._boxCoordinates[idx][0][m][n]
                 d2 = mult(sub(otx, itx), signValue)
                 self._boxCoordinates[idx][2][m][n] = d2
-                d1 = self._boxCoordinates[idx][1][m][n]
-                d3 = self._boxCoordinates[idx][3][m][n]
-                self._boxCoordinates[idx][1][m][n] = set_magnitude(d1, magnitude(d2))
-                self._boxCoordinates[idx][3][m][n] = set_magnitude(d3, magnitude(d2))
+                self._boxCoordinates[idx][1][m][n] = set_magnitude(self._boxCoordinates[idx][1][m][n], magnitude(d2))
+                self._boxCoordinates[idx][3][m][n] = set_magnitude(self._boxCoordinates[idx][3][m][n], magnitude(d2))
 
     def _createBoundaryNodeIdsList(self, nodeIds):
         """
@@ -1103,27 +1058,19 @@ class CapMesh:
         m = m + self._getNodesCountCoreBoxMajor() if m < 0 else m
         n = n + self._getNodesCountCoreBoxMinor() if n < 0 else n
 
-        if n == nEnd and 0 < m < mEnd:
-            location = 1  # "Top"
-        elif n == 0 and 0 < m < mEnd:
-            location = -1  # "Bottom"
-        elif m == 0 and 0 < n < nEnd:
-            location = 2  # "Left"
-        elif m == mEnd and 0 < n < nEnd:
-            location = -2  # "Right"
+        if 0 < m < mEnd:
+            location = 1 if n == nEnd else -1 if n == 0 else 0
+        elif 0 < n < nEnd:
+            location = 2 if m == 0 else -2 if m == mEnd else 0
         else:
             location = 0
 
         tpLocation = 0
         if location == 0:
-            if m == 0 and n == nEnd:
-                tpLocation = 1 # Top Left
-            elif m == mEnd and n == nEnd:
-                tpLocation = -1 # Top Right
-            elif m == 0 and n == 0:
-                tpLocation = 2 # Bottom Left
-            elif m == mEnd and n == 0:
-                tpLocation = -2 # Bottom Right
+            if n == nEnd:
+                tpLocation = 1 if m == 0 else -1  # Top Left or Top Right
+            elif n == 0:
+                tpLocation = 2 if m == 0 else -2  # Bottom Left or Bottom Right
 
         return location, tpLocation
 
@@ -1164,10 +1111,8 @@ class CapMesh:
         for n1 in range(elementsOut + 1):
             radiansAcross = n1 * anglePerElement
             r = rotate_vector_around_vector(r1, normal, radiansAcross)
-            x = add(r, origin)
-            d1 = set_magnitude(cross(normal, r), arcLengthPerElement)
-            nx.append(x)
-            nd1.append(d1)
+            nx.append(add(r, origin))
+            nd1.append(set_magnitude(cross(normal, r), arcLengthPerElement))
 
         return nx, nd1
 
@@ -1189,11 +1134,7 @@ class CapMesh:
             for n3 in range(nodesCountShell):
                 capNodeIds[n2].append([])
                 if n2 == 0:  # apex
-                    rx = self._shellCoordinates[idx][0][n3][n2]
-                    rd1 = self._shellCoordinates[idx][1][n3][n2]
-                    rd2 = self._shellCoordinates[idx][2][n3][n2]
-                    rd3 = self._shellCoordinates[idx][3][n3][n2]
-
+                    rx, rd1, rd2, rd3 = (self._shellCoordinates[idx][i][n3][n2] for i in range(4))
                     nodeIdentifier = generateData.nextNodeIdentifier()
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
                     fieldcache.setNode(node)
@@ -1204,11 +1145,7 @@ class CapMesh:
                     capNodeIds[n2][n3].append(nodeIdentifier)
                 else:
                     for n1 in range(self._elementsCountAround):
-                        rx = self._shellCoordinates[idx][0][n3][n2][n1]
-                        rd1 = self._shellCoordinates[idx][1][n3][n2][n1]
-                        rd2 = self._shellCoordinates[idx][2][n3][n2][n1]
-                        rd3 = self._shellCoordinates[idx][3][n3][n2][n1]
-
+                        rx, rd1, rd2, rd3 = (self._shellCoordinates[idx][i][n3][n2][n1] for i in range(4))
                         nodeIdentifier = generateData.nextNodeIdentifier()
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         fieldcache.setNode(node)
@@ -1244,10 +1181,7 @@ class CapMesh:
                 for m in range(nodesCountCoreBoxMajor):
                     capNodeIds[n3].append([])
                     for n in range(nodesCountCoreBoxMinor):
-                        rx = self._boxCoordinates[idx][0][m][n]
-                        rd1 = self._boxCoordinates[idx][1][m][n]
-                        rd2 = self._boxCoordinates[idx][2][m][n]
-                        rd3 = self._boxCoordinates[idx][3][m][n]
+                        rx, rd1, rd2, rd3 = (self._boxCoordinates[idx][i][m][n] for i in range(4))
                         nodeIdentifier = generateData.nextNodeIdentifier()
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         fieldcache.setNode(node)
@@ -1261,11 +1195,7 @@ class CapMesh:
                     n3p = n3 - 1
                     capNodeIds[n3].append([])
                     for n in range(nodesCountCoreBoxMinor):
-                        rx = self._shellCoordinates[idx][0][n3p][m][n]
-                        rd1 = self._shellCoordinates[idx][1][n3p][m][n]
-                        rd2 = self._shellCoordinates[idx][2][n3p][m][n]
-                        rd3 = self._shellCoordinates[idx][3][n3p][m][n]
-
+                        rx, rd1, rd2, rd3 = (self._shellCoordinates[idx][i][n3p][m][n] for i in range(4))
                         nodeIdentifier = generateData.nextNodeIdentifier()
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         fieldcache.setNode(node)
@@ -1299,10 +1229,7 @@ class CapMesh:
             nodesCountAcrossMinor = self._getNodesCountCoreBoxMinor()
             for n3 in range(nodesCountCoreBoxMajor):
                 self._boxExtNodeIds[idx].append([])
-                rx = self._boxExtCoordinates[idx][0][n3]
-                rd1 = self._boxExtCoordinates[idx][1][n3]
-                rd2 = self._boxExtCoordinates[idx][2][n3]
-                rd3 = self._boxExtCoordinates[idx][3][n3]
+                rx, rd1, rd2, rd3 = [self._boxExtCoordinates[idx][i][n3] for i in range(4)]
                 for n1 in range(nodesCountAcrossMinor):
                     nodeIdentifier = generateData.nextNodeIdentifier()
                     node = nodes.createNode(nodeIdentifier, nodetemplate)
@@ -1319,28 +1246,20 @@ class CapMesh:
         self._rimExtNodeIds = [None, None] if self._rimExtNodeIds is None else self._rimExtNodeIds
         self._rimExtNodeIds[idx] = []
         for n3 in range(nodesCountRim):
-            n3p = n3 - (elementsCountTransition - 1) if self._isCore else n3
-            if self._isCore and elementsCountTransition > 1 and n3 < (elementsCountTransition - 1):
-                # transition coordinates
-                rx = self._transitionExtCoordinates[idx][0][n3]
-                rd1 = self._transitionExtCoordinates[idx][1][n3]
-                rd2 = self._transitionExtCoordinates[idx][2][n3]
-                rd3 = self._transitionExtCoordinates[idx][3][n3]
-            else:
-                # rim coordinates
-                rx = self._shellExtCoordinates[idx][0][n3p]
-                rd1 = self._shellExtCoordinates[idx][1][n3p]
-                rd2 = self._shellExtCoordinates[idx][2][n3p]
-                rd3 = self._shellExtCoordinates[idx][3][n3p]
+            n3p = n3 - (elementsCountTransition - 1)
+            tx = self._transitionExtCoordinates[idx] if self._isCore and elementsCountTransition > 1 and n3 < (
+                        elementsCountTransition - 1) else self._shellExtCoordinates[idx]
+            rx, rd1, rd2, rd3 = [tx[i][n3 if self._isCore and elementsCountTransition > 1 and n3 < (
+                        elementsCountTransition - 1) else n3p] for i in range(4)]
             ringNodeIds = []
             for n1 in range(self._elementsCountAround):
                 nodeIdentifier = generateData.nextNodeIdentifier()
                 node = nodes.createNode(nodeIdentifier, nodetemplate)
                 fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[n1])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[n1])
+                for nodeValue, rValue in zip([Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                                              Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3],
+                                             [rx[n1], rd1[n1], rd2[n1], rd3[n1]]):
+                    coordinates.setNodeParameters(fieldcache, -1, nodeValue, 1, rValue)
                 ringNodeIds.append(nodeIdentifier)
             self._rimExtNodeIds[idx].append(ringNodeIds)
 

@@ -1766,9 +1766,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                     elementtemplate.defineField(coordinates, -1, eft)
                     elementIdentifier = generateData.nextElementIdentifier()
-                    if elementIdentifier in [53, 54]:
-                        print("self._coreBoundaryScalingMode", self._coreBoundaryScalingMode)
-                        print("tube scalefactors", scalefactors)
                     element = mesh.createElement(elementIdentifier, elementtemplate)
                     element.setNodesByIdentifier(eft, nids)
                     if scalefactors:
