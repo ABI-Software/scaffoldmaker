@@ -235,7 +235,7 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                            l1Group, l2Group, l3Group, l4Group, l5Group,
                            s1Group, s2Group, s3Group, s4Group, s5Group, coccyxGroup]
 
-            segmentGroups = [cervicalGroup, thoracicGroup, lumbarGroup, sacralGroup]
+            segmentGroups = [cervicalGroup, thoracicGroup, lumbarGroup, sacralGroup, coccyxGroup]
             numberPerSegment = [0, 8, 20, 25, 30, 31]
 
         networkMesh = NetworkMesh(structure)
