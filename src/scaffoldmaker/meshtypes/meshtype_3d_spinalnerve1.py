@@ -308,7 +308,6 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
         nodeIdentifier = 1
         for level in range(numberOfLevels):
             scale = scales[level]
-
             translateToSC = scCentres[level]
 
             for side in ('right', 'left'):
@@ -316,8 +315,8 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                 rotMat = rotMatRight if side == "right" else rotMatLeft
 
                 d1 = matrix_vector_mult(rotMat, [nerveRootScale * (1 if side == 'right' else -1), 0.0, 0.0])
-                d2 = matrix_vector_mult(rotMat, [0.0, 0.0, nerveRootRadius *(-1 if side == 'right' else 1)])
-                d3 = matrix_vector_mult(rotMat, [0.0, nerveRootRadius, 0.0])
+                d2 = matrix_vector_mult(rotMat, [0.0, nerveRootRadius *(1 if side == 'right' else -1), 0.0])
+                d3 = matrix_vector_mult(rotMat, [0.0, 0.0, nerveRootRadius])
 
                 # Scale
                 d1 = mult(d1, scale)
