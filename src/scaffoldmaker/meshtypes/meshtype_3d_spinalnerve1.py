@@ -28,6 +28,7 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
     @classmethod
     def getParameterSetNames(cls):
         return ["Default",
+                "Human 1",
                 "Human pair 1",
                 "Human whole spine 1"]
 
@@ -36,33 +37,31 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
 
         options = {}
         options["Base parameter set"] = parameterSetName
-        options["Structure"] = (
-            "1-2.1,"
-            "2.2-3-4-5,"
-            "2.3-6-7, 7-8-9-10-11, 11-12-13,"
-            "14-15.1,"
-            "15.2-16-17-18,"
-            "15.3-19-20, 20-21-22-23-24, 24-25-26")
+        if parameterSetName == "Human 1":
+            options["Structure"] = (
+                "1-2.1,"
+                "2.2-3-4-5,"
+                "2.3-6-7, 7-8-9-10-11, 11-12-13")
+        else:
+            options["Structure"] = (
+                "1-2.1,"
+                "2.2-3-4-5,"
+                "2.3-6-7, 7-8-9-10-11, 11-12-13,"
+                "14-15.1,"
+                "15.2-16-17-18,"
+                "15.3-19-20, 20-21-22-23-24, 24-25-26")
 
         options["Define inner coordinates"] = True
-        options["Spinal nerve root length"] = 1.0
-        options["Spinal nerve root diameter"] = 0.2
-        options["Dorsal root diameter"] = 0.2
-        options["Dorsal root ganglion thickest diameter"] = 0.3
-        options["Ventral root diameter"] = 0.2
-        options["Spinal cord major diameter"] = 2.5
-        options["Spinal cord minor diameter"] = 0.65
-        options["Distance between bifurcation to spinal cord"] = 1.0
+        options["Spinal nerve root length"] = 0.5
+        options["Spinal nerve root diameter"] = 0.1
+        options["Dorsal root diameter"] = 0.1
+        options["Dorsal root ganglion thickest diameter"] = 0.18
+        options["Ventral root diameter"] = 0.1
+        options["Spinal cord major diameter"] = 1.5
+        options["Spinal cord minor diameter"] = 0.5
+        options["Distance between bifurcation to spinal cord"] = 0.1
         options['Pitch angle degrees'] = 10.0
         options["Inner proportion default"] = 0.75
-
-        if 'Human whole spine 1' in parameterSetName:
-            options["Spinal nerve root diameter"] = 0.1
-            options["Dorsal root diameter"] = 0.1
-            options["Dorsal root ganglion thickest diameter"] = 0.2
-            options["Ventral root diameter"] = 0.1
-            options["Spinal cord minor diameter"] = 0.5
-            options["Distance between bifurcation to spinal cord"] = 0.75
 
         return options
 
@@ -310,7 +309,7 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
             scale = scales[level]
             translateToSC = scCentres[level]
 
-            for side in ('right', 'left'):
+            for side in ('right' if parameterSetName == "Human 1" else ('right', 'left')):
                 nerveRootScale = nerveRootLength / nerveRootElementsCount
                 rotMat = rotMatRight if side == "right" else rotMatLeft
 
@@ -330,11 +329,12 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                     node = nodes.findNodeByIdentifier(nodeIdentifier)
                     fieldcache.setNode(node)
                     if side == 'right':
-                        x = [-(spinalCordMajorRadius + distToSpinalCord + halfDistBetweenLeftRight) +
+                        x = [-(spinalCordMajorRadius + distToSpinalCord + halfDistBetweenLeftRight + nerveRootLength) +
                              nerveRootScale * i, 0.0, 0.0]
                     else:
-                        x = [spinalCordMajorRadius + distToSpinalCord + halfDistBetweenLeftRight -
+                        x = [spinalCordMajorRadius + distToSpinalCord + halfDistBetweenLeftRight + nerveRootLength -
                              nerveRootScale * i, 0.0, 0.0]
+
                     xJunction = x
                     x = matrix_vector_mult(rotMat, x)
                     x = mult(x, scale)
@@ -352,9 +352,9 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                     sideNerveElementsCount = ventralRootElementsCount if nerve == "ventral" else dorsalRootElementsCount
                     sideNerveRadius = ventralRootRadius if nerve == "ventral" else dorsalRootRadius
                     xStart = xJunction
-                    dStart = [0.0, (1 if nerve == "ventral" else -1) * spinalCordMinorRadius, 0.0]
+                    dStart = [0.0, (-1 if nerve == "ventral" else 1) * spinalCordMinorRadius, 0.0]
                     xEnd = [halfDistBetweenLeftRight * (-1 if side == 'right' else 1),
-                            (1 if nerve == "ventral" else -1) * spinalCordMinorRadius,
+                            (-1 if nerve == "ventral" else 1) * spinalCordMinorRadius,
                             0.0]
                     dEnd = [spinalCordMajorRadius * (1 if side == 'right' else -1), 0.0, 0.0]
                     xList, d1List = sampleCubicHermiteCurves([xStart, xEnd], [dStart, dEnd],
@@ -481,6 +481,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
     def getParameterSetNames(cls):
         return [
             "Default",
+            "Human 1",
             "Human pair 1",
             "Human whole spine 1"
         ]
@@ -488,7 +489,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {}
-        useParameterSetName = "Human pair 1" if (parameterSetName == "Default") else parameterSetName
+        useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
         options["Spinal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_spinal_nerve_network_layout1,
                                                                  defaultParameterSetName=useParameterSetName)
