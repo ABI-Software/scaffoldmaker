@@ -102,6 +102,13 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                 options[key] = 0.1
             elif options[key] > 0.9:
                 options[key] = 0.9
+        for key, angleRange in {
+                "Pitch angle degrees": (-60.0, 60.0)
+            }.items():
+            if options[key] < angleRange[0]:
+                options[key] = angleRange[0]
+            elif options[key] > angleRange[1]:
+                options[key] = angleRange[1]
         return dependentChanges
 
     @classmethod

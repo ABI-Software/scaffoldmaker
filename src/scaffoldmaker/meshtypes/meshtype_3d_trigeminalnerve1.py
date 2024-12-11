@@ -1,5 +1,5 @@
 """
-Generates a 3D body coordinates using tube network mesh.
+Generates a 3D trigeminal nerve scaffold using tube network mesh.
 """
 from cmlibs.maths.vectorops import cross, mult, set_magnitude, sub
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
@@ -116,12 +116,12 @@ class MeshType_1d_human_trigeminal_nerve_network_layout1(MeshType_1d_network_lay
         :param options: Dict containing options. See getDefaultOptions().
         :return: [] empty list of AnnotationGroup, NetworkMesh
         """
-        # parameterSetName = options['Base parameter set']
         structure = options["Structure"]
         halfNerveThickness = 0.5 * options["Trigeminal nerve thickness"]
 
         nerveRootLength = options["Trigeminal nerve root length"]
         halfNerveRootWidth = 0.5 * options["Trigeminal nerve root width"]
+
         trigeminalGanglionLength = options["Trigeminal ganglion length"]
         halfTrigeminalGanglionWidth = 0.5 * options["Trigeminal ganglion width"]
 
@@ -232,7 +232,6 @@ class MeshType_1d_human_trigeminal_nerve_network_layout1(MeshType_1d_network_lay
 
         nerveJunctionNodeIdentifier = nodeIdentifier - 1
         xJunction = x
-        # print('Junction', nerveJunctionNodeIdentifier)
 
         # Mandibular and ophthlamic nerves
         for nerve in ("mandibular", "ophthalmic"):
