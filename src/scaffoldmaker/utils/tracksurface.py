@@ -1163,6 +1163,7 @@ class TrackSurface:
             else:
                 # add out-of-plane slope component
                 if it < 10:
+                    mag_ri = MAX_SLOPE_FACTOR if mag_ri == 0.0 else mag_ri
                     slope_factor = mag_r * mag_r / (mag_ri * mag_ri)
                 else:
                     slope_factor = 1.0 + r_dot_n / mag_r  # wrong, but more reliable
