@@ -3,7 +3,7 @@ Generates a 3D renal pelvis using tube network mesh.
 """
 import math
 
-from cmlibs.maths.vectorops import mult, cross, add, sub, set_magnitude
+from cmlibs.maths.vectorops import mult, cross, add, sub, set_magnitude, rotate_about_z_axis
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.field import Field
 
@@ -244,7 +244,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         d1 = [ureterScale, 0.0, 0.0]
         d3 = [0.0, 0.0, ureterRadius]
         id3 = mult(d3, innerProportionUreter)
-        td1 = [0.0, ureterScale, 0.0]
+        # td1 = [0.0, ureterScale, 0.0]
+        td1 = rotate_about_z_axis(d1, 2 * ureterBendAngleRadians)
         sx, sd1 = sampleCubicHermiteCurves([startX, endX], [td1, d1], ureterElementsCount,  arcLengthDerivatives=True)[0:2]
         sd1 = smoothCubicHermiteDerivativesLine(sx, sd1, fixEndDirection=True)
         for e in range(ureterElementsCount + 1):
