@@ -41,6 +41,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.meshtypes.meshtype_3d_musclefusiform1 import MeshType_3d_musclefusiform1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
+from scaffoldmaker.meshtypes.meshtype_3d_renal_capsule1 import MeshType_3d_renal_capsule1, MeshType_1d_renal_capsule_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.meshtypes.meshtype_3d_solidcylinder1 import MeshType_3d_solidcylinder1
 from scaffoldmaker.meshtypes.meshtype_3d_solidsphere1 import MeshType_3d_solidsphere1
@@ -102,6 +103,7 @@ class Scaffolds(object):
             MeshType_3d_musclefusiform1,
             MeshType_3d_ostium1,
             MeshType_3d_ostium2,
+            MeshType_3d_renal_capsule1,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,
@@ -120,7 +122,8 @@ class Scaffolds(object):
             MeshType_3d_wholebody2
             ]
         self._allPrivateScaffoldTypes = [
-            MeshType_1d_human_body_network_layout1
+            MeshType_1d_human_body_network_layout1,
+            MeshType_1d_renal_capsule_network_layout1
             ]
 
     def findScaffoldTypeByName(self, name):
