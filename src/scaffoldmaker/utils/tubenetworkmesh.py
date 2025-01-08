@@ -3152,6 +3152,18 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
             self._layoutInnerCoordinates = None
         self._useOuterTrimSurfaces = useOuterTrimSurfaces if self._layoutInnerCoordinates else False
 
+    def checkSegmentCore(self, networkSegment):
+        """
+        Checks whether a segment should have a core locally, depending on its annotation. Currently, the annotation
+        requires to include "core" in its name to indicate the segment has a core.
+        If a segment requires a core locally, it overrides the global value of self._isCore variable.
+        """
+        for layoutAnnotationGroup in self._layoutAnnotationGroups:
+            if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                if "core" in layoutAnnotationGroup.getTerm():
+                    self._isCore = True
+        return self._isCore
+
     def createSegment(self, networkSegment):
         pathParametersList = [get_nodeset_path_ordered_field_parameters(
             self._layoutNodes, self._layoutCoordinates, pathValueLabels,
@@ -3173,6 +3185,8 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                     elementsCountAround = self._annotationElementsCountsAround[i]
                     break
             i += 1
+
+        self.checkSegmentCore(networkSegment)
         if self._isCore:
             annotationElementsCountAcrossMinor = []
             i = 0
@@ -3251,6 +3265,32 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                 segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+
+
+class RenalPelvisTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+    """
+    Specialization of TubeNetworkMeshBuilder adding annotations for the renal pelvis.
+    Requires network layout to follow these conventions:
+    - +y-axis is top, and -y-axis is bottom.
+    - +d3 direction is anterior, -d3 is posterior.
+    - naming of major calyxes: top, middle, bottom
+    - naming of minor calyxes: top, upper, middle, lower, bottom
+    """
+
+    def checkSegmentCore(self, networkSegment):
+        super(RenalPelvisTubeNetworkMeshBuilder, self).checkSegmentCore(networkSegment)
+        """
+        Checks whether a segment should have a core locally, depending on its annotation. 
+        For the renal pelvis scaffold, the annotation term "renal pyramid" indicates the segment has a core.
+        """
+        for layoutAnnotationGroup in self._layoutAnnotationGroups:
+            if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                if "renal pyramid" in layoutAnnotationGroup.getTerm():
+                    self._isCore = True
+        return self._isCore
+
+    def generateMesh(self, generateData):
+        super(RenalPelvisTubeNetworkMeshBuilder, self).generateMesh(generateData)
 
 
 class TubeEllipseGenerator:
