@@ -35,7 +35,7 @@ source_license = readfile("LICENSE")
 
 setup(
     name="scaffoldmaker",
-    version="0.14.0",
+    version="0.15.0",
     description="Python client for generating anatomical scaffolds using Zinc",
     long_description="\n".join(readme) + source_license,
     long_description_content_type="text/x-rst",

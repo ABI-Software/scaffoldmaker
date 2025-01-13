@@ -4,11 +4,14 @@ Specialisation of Network Mesh for building 2-D and 3-D tube mesh networks.
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, set_magnitude, sub, rejection
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
+from scaffoldmaker.utils.eft_utils import (
+    addTricubicHermiteSerendipityEftParameterScaling, determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager)
 from scaffoldmaker.utils.interpolation import (
-    computeCubicHermiteDerivativeScaling, DerivativeScalingMode, evaluateCoordinatesOnCurve,
-    getCubicHermiteTrimmedCurvesLengths, interpolateCubicHermite, interpolateCubicHermiteDerivative,
-    interpolateLagrangeHermiteDerivative, interpolateSampleCubicHermite, sampleCubicHermiteCurves,
+    computeCubicHermiteDerivativeScaling, computeCubicHermiteEndDerivative, computeCubicHermiteStartDerivative,
+    DerivativeScalingMode, evaluateCoordinatesOnCurve, getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve,
+    interpolateCubicHermite, interpolateCubicHermiteDerivative,
+    interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative,
+    interpolateSampleCubicHermite, sampleCubicHermiteCurves,
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop,
     smoothCurveSideCrossDerivatives)
 from scaffoldmaker.utils.networkmesh import NetworkMesh, NetworkMeshBuilder, NetworkMeshGenerateData, \
@@ -24,57 +27,66 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
     Data for passing to TubeNetworkMesh generateMesh functions.
     """
 
-    def __init__(self, region, meshDimension, isLinearThroughWall, isShowTrimSurfaces,
-            coordinateFieldName="coordinates", startNodeIdentifier=1, startElementIdentifier=1):
+    def __init__(self, region, meshDimension, coordinateFieldName="coordinates",
+                 startNodeIdentifier=1, startElementIdentifier=1, isLinearThroughShell=False, isShowTrimSurfaces=False):
         """
-        :param isLinearThroughWall: Callers should only set if 3-D with no core.
+        :param isLinearThroughShell: Callers should only set if 3-D with no core.
         :param isShowTrimSurfaces: Tells junction generateMesh to make 2-D trim surfaces.
         """
         super(TubeNetworkMeshGenerateData, self).__init__(
             region, meshDimension, coordinateFieldName, startNodeIdentifier, startElementIdentifier)
-        self._isLinearThroughWall = isLinearThroughWall
+        self._isLinearThroughShell = isLinearThroughShell
         self._isShowTrimSurfaces = isShowTrimSurfaces
+        self._trimAnnotationGroupCount = 0  # incremented to make unique annotation group names for trim surfaces
 
         # get node template for standard and cross nodes
         self._nodetemplate = self._nodes.createNodetemplate()
         self._nodetemplate.defineField(self._coordinates)
         self._nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         self._nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        if (meshDimension == 3) and not isLinearThroughWall:
+        if (meshDimension == 3) and not isLinearThroughShell:
             self._nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
 
         # get element template and eft for standard case
         self._standardElementtemplate = self._mesh.createElementtemplate()
         self._standardElementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE if (meshDimension == 3)
                                                      else Element.SHAPE_TYPE_SQUARE)
-        elementbasis = self._fieldmodule.createElementbasis(
+        self._elementbasis = self._fieldmodule.createElementbasis(
             meshDimension, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY)
-        if (meshDimension == 3) and isLinearThroughWall:
-            elementbasis.setFunctionType(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
-        self._standardEft = self._mesh.createElementfieldtemplate(elementbasis)
+        if (meshDimension == 3) and isLinearThroughShell:
+            self._elementbasis.setFunctionType(3, Elementbasis.FUNCTION_TYPE_LINEAR_LAGRANGE)
+        self._standardEft = self._mesh.createElementfieldtemplate(self._elementbasis)
         self._standardElementtemplate.defineField(self._coordinates, -1, self._standardEft)
 
-        d3Defined = (meshDimension == 3) and not isLinearThroughWall
+        d3Defined = (meshDimension == 3) and not isLinearThroughShell
         self._nodeLayoutManager = HermiteNodeLayoutManager()
         self._nodeLayout6Way = self._nodeLayoutManager.getNodeLayout6Way12(d3Defined)
         self._nodeLayout8Way = self._nodeLayoutManager.getNodeLayout8Way12(d3Defined)
         self._nodeLayoutFlipD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
-        self._nodeLayout6WayTriplePoint = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
-        self._nodeLayoutBifrucation = self._nodeLayoutManager.getNodeLayout6WayBifurcation()
         self._nodeLayoutTrifurcation = None
         self._nodeLayoutTransition = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
-        self._nodeLayoutBifurcationTransition = self._nodeLayoutManager.getNodeLayout6WayBifurcationTransition()
 
-
-    def getStandardEft(self):
-        return self._standardEft
+        # annotation groups created if core:
+        self._coreGroup = None
+        self._shellGroup = None
+        # annotation groups created on demand:
+        self._leftGroup = None
+        self._rightGroup = None
+        self._dorsalGroup = None
+        self._ventralGroup = None
 
     def getStandardElementtemplate(self):
-        return self._standardElementtemplate
+        return self._standardElementtemplate, self._standardEft
+
+    def createElementfieldtemplate(self):
+        """
+        Create a new standard element field template for modifying.
+        """
+        return self._mesh.createElementfieldtemplate(self._elementbasis)
 
     def getNodeLayout6Way(self):
         return self._nodeLayout6Way
@@ -84,35 +96,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def getNodeLayoutFlipD2(self):
         return self._nodeLayoutFlipD2
-
-    def getNodeLayout6WayTriplePoint(self, location):
-        """
-        Special node layout for generating core transition elements, where a node is located at both 6-way junction
-        and one of the triple point corners of core box elements. There are two layouts specific to top and bottom
-        corner: Top (location = 1); and bottom right (location = 2).
-        :param location: Location identifier.
-        :return: Node layout.
-        """
-        nodeLayouts = self._nodeLayoutManager.getNodeLayout6WayTriplePoint()
-        location = abs(location)
-        # assert location in [1, 2]
-
-        if location == 1:  # "Top1"
-            nodeLayout = nodeLayouts[0]
-        elif location == 3:  # "Top1"
-            nodeLayout = nodeLayouts[1]
-        elif location == 2:  # "Bottom1"
-            nodeLayout = nodeLayouts[2]
-        elif location == 4:  # "Bottom2"
-            nodeLayout = nodeLayouts[3]
-
-        return nodeLayout
-
-    def getNodeLayoutBifurcation(self):
-        """
-        Special node layout for generating core elements for bifurcation.
-        """
-        return self._nodeLayoutBifrucation
 
     def getNodeLayoutTrifurcation(self, location):
         """
@@ -134,12 +117,6 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Node layout for generating core transition elements, excluding at triple points.
         """
         return self._nodeLayoutTransition
-
-    def getNodeLayoutBifurcationTransition(self):
-        """
-        Special node layout for generating core transition elements for bifurcation.
-        """
-        return self._nodeLayoutBifurcationTransition
 
     def getNodeLayoutTransitionTriplePoint(self, location):
         """
@@ -165,41 +142,117 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._nodeLayoutTransitionTriplePoint = nodeLayout
         return self._nodeLayoutTransitionTriplePoint
 
+    def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
+        return self._nodeLayoutManager.getNodeLayoutBifurcation6WayTriplePoint(
+            segmentsIn, sequence, maxMajorSegment, top)
+
     def getNodetemplate(self):
         return self._nodetemplate
 
-    def isLinearThroughWall(self):
-        return self._isLinearThroughWall
+    def isLinearThroughShell(self):
+        return self._isLinearThroughShell
 
     def isShowTrimSurfaces(self):
         return self._isShowTrimSurfaces
 
+    def getCoreMeshGroup(self):
+        if not self._coreGroup:
+            self._coreGroup = self.getOrCreateAnnotationGroup(("core", ""))
+        return self._coreGroup.getMeshGroup(self._mesh)
+
+    def getShellMeshGroup(self):
+        if not self._shellGroup:
+            self._shellGroup = self.getOrCreateAnnotationGroup(("shell", ""))
+        return self._shellGroup.getMeshGroup(self._mesh)
+
+    def getLeftMeshGroup(self):
+        if not self._leftGroup:
+            self._leftGroup = self.getOrCreateAnnotationGroup(("left", ""))
+        return self._leftGroup.getMeshGroup(self._mesh)
+
+    def getRightMeshGroup(self):
+        if not self._rightGroup:
+            self._rightGroup = self.getOrCreateAnnotationGroup(("right", ""))
+        return self._rightGroup.getMeshGroup(self._mesh)
+
+    def getDorsalMeshGroup(self):
+        if not self._dorsalGroup:
+            self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal", ""))
+        return self._dorsalGroup.getMeshGroup(self._mesh)
+
+    def getVentralMeshGroup(self):
+        if not self._ventralGroup:
+            self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral", ""))
+        return self._ventralGroup.getMeshGroup(self._mesh)
+
+    def getNewTrimAnnotationGroup(self):
+        self._trimAnnotationGroupCount += 1
+        return self.getOrCreateAnnotationGroup(("trim surface " + "{:03d}".format(self._trimAnnotationGroupCount), ""))
+
+    def resolveEftCoreBoundaryScaling(self, eft, scalefactors, nodeParameters, nodeIdentifiers, mode):
+        """
+        Resolve differences in d3 scaling across core-shell boundary by one of 2 modes.
+        Works for 8-noded tricubic Hermite serendipity basis only.
+        :param eft: Element field template to modify.
+        :param scalefactors: Existing scalefactors for use with eft.
+        :param nodeParameters: List over 8 (3-D) local nodes in Zinc ordering of 4 parameter vectors
+        x, d1, d2, d3 each with 3 components.
+        :param nodeIdentifiers: List over 8 3-D local nodes giving global node identifiers.
+        :param mode: 1 to set scale factors, 2 to add version 2 to d3 for the boundary nodes and assigning
+        values to that version equal to the scale factors x version 1.
+        :return: New eft, new scalefactors.
+        """
+        assert mode in (1, 2)
+        eft, scalefactors, addScalefactors = addTricubicHermiteSerendipityEftParameterScaling(
+            eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3, version=mode)
+        if mode == 2:
+            nodetemplate = self._nodes.createNodetemplate()
+            n = 4
+            for nodeIdentifier, scalefactor in zip(nodeIdentifiers[4:], addScalefactors):
+                node = self._nodes.findNodeByIdentifier(nodeIdentifier)
+                nodetemplate.defineFieldFromNode(self._coordinates, node)
+                versionsCount = nodetemplate.getValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS3)
+                if versionsCount == 1:
+                    # make version 2 of d3 at the node and assign to it
+                    nodetemplate.setValueNumberOfVersions(self._coordinates, -1, Node.VALUE_LABEL_D_DS3, 2)
+                    # merge clears the current parameters so need to re-set
+                    node.merge(nodetemplate)
+                    self._fieldcache.setNode(node)
+                    for valueLabel, value in zip(
+                            (Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
+                             Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3), nodeParameters[n]):
+                        self._coordinates.setNodeParameters(self._fieldcache, -1, valueLabel, 1, value)
+                    d3_v2 = mult(nodeParameters[n][3], scalefactor)
+                    self._coordinates.setNodeParameters(self._fieldcache, -1, Node.VALUE_LABEL_D_DS3, 2, d3_v2)
+                n += 1
+        return eft, scalefactors
+
+
 class TubeNetworkMeshSegment(NetworkMeshSegment):
 
-    def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughWall,
-                 isCore=False, elementsCountAcrossMajor: int = 4, elementsCountAcrossMinor: int = 4,
-                 elementsCountTransition: int = 1):
+    def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
+                 isCore=False, elementsCountCoreBoxMinor: int=2, elementsCountTransition: int=1,
+                 coreBoundaryScalingMode: int=1):
         """
         :param networkSegment: NetworkSegment this is built from.
         :param pathParametersList: [pathParameters] if 2-D or [outerPathParameters, innerPathParameters] if 3-D
         :param elementsCountAround: Number of elements around this segment.
-        :param elementsCountThroughWall: Number of elements between inner and outer tube if 3-D, 1 if 2-D.
+        :param elementsCountThroughShell: Number of elements between inner and outer tube if 3-D, 1 if 2-D.
         :param isCore: True for generating a solid core inside the tube, False for regular tube network.
-        :param elementsCountAcrossMajor: Number of elements across major axis of an ellipse.
-        :param elementsCountAcrossMinor: Number of elements across minor axis of an ellipse.
-        :param elementsCountTranstion: Number of elements across transition zone between core box elements and
-        rim elements.
+        :param elementsCountCoreBoxMinor: Number of elements across core box minor axis.
+        :param elementsCountTransition: Number of elements across transition zone between core box elements and
+        shell elements.
         """
         super(TubeNetworkMeshSegment, self).__init__(networkSegment, pathParametersList)
         self._isCore = isCore
         self._elementsCountAround = elementsCountAround
-        self._elementsCountAcrossMajor = elementsCountAcrossMajor
-        self._elementsCountAcrossMinor = elementsCountAcrossMinor
+        self._elementsCountCoreBoxMajor = (elementsCountAround // 2) - elementsCountCoreBoxMinor
+        self._elementsCountCoreBoxMinor = elementsCountCoreBoxMinor
         self._elementsCountTransition = elementsCountTransition
-        if self._isCore and self._elementsCountTransition > 1:
-            self._elementsCountAround = (elementsCountAround - 8 * (self._elementsCountTransition - 1))
-        assert elementsCountThroughWall > 0
-        self._elementsCountThroughWall = elementsCountThroughWall
+        self._coreBoundaryScalingMode = coreBoundaryScalingMode
+
+        assert elementsCountThroughShell > 0
+        self._elementsCountThroughShell = elementsCountThroughShell
         self._rawTubeCoordinatesList = []
         self._rawTrackSurfaceList = []
         for pathParameters in pathParametersList:
@@ -213,19 +266,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 nd12 += pd12[i]
             self._rawTrackSurfaceList.append(TrackSurface(len(px[0]), len(px) - 1, nx, nd1, nd2, nd12, loop1=True))
         # list[pathsCount][4] of sx, sd1, sd2, sd12; all [nAlong][nAround]:
-        self._sampledTubeCoordinates = [None for p in range(self._pathsCount)]
-        self._rimCoordinates = None
+        self._sampledTubeCoordinates = [[[], [], [], []] for p in range(self._pathsCount)]
+        self._rimCoordinates = None  # these are just shell coordinates; with core there may also be transition coords
         self._rimNodeIds = None
         self._rimElementIds = None  # [e2][e3][e1]
 
         self._boxCoordinates = None
         self._transitionCoordinates = None
-        self._boxNodeIds = None # [nAlong][nAcrossMajor][nAcrossMinor]
+        self._boxNodeIds = None  # [along][major][minor]
         self._boxBoundaryNodeIds = None
         # boxNodeIds that form the boundary of the solid core, rearranged in circular format
         self._boxBoundaryNodeToBoxId = None
         # lookup table that translates box boundary node ids in a circular format to box node ids in
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
+        self._boxElementIds = None  # [along][major][minor]
+
+    def getCoreBoundaryScalingMode(self):
+        return self._coreBoundaryScalingMode
 
     def getElementsCountAround(self):
         return self._elementsCountAround
@@ -236,11 +293,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
     def getIsCore(self):
         return self._isCore
 
-    def getElementsCountAcrossMajor(self):
-        return self._elementsCountAcrossMajor
+    def getElementsCountCoreBoxMajor(self):
+        return self._elementsCountCoreBoxMajor
 
-    def getElementsCountAcrossMinor(self):
-        return self._elementsCountAcrossMinor
+    def getElementsCountCoreBoxMinor(self):
+        return self._elementsCountCoreBoxMinor
 
     def getElementsCountAcrossTransition(self):
         return self._elementsCountTransition
@@ -248,19 +305,163 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
     def getRawTrackSurface(self, pathIndex=0):
         return self._rawTrackSurfaceList[pathIndex]
 
-    def sample(self, targetElementLength):
-        trimSurfaces = [self._junctions[j].getTrimSurfaces(self) for j in range(2)]
-        minimumElementsCountAlong = 2 if (self._isLoop or ((self._junctions[0].getSegmentsCount() > 2) and
-                (self._junctions[1].getSegmentsCount() > 2))) else 1
-        elementsCountAlong = None
+    def _sampleTubeCoordinates(self, fixedElementsCountAlong, targetElementLength, transitionFactor=3.0):
+        """
+        Generate sampled outer, inner tube coordinates optionally trimmed to start/end surfaces.
+        Element sizes are constant size at the max length, but compressed if trimmed.
+        Lateral cross sections in untrimmed areas are in d2-d3 plane of the network layout,
+        hence elements are generally bigger on the outside and smaller on the inside of curves.
+        Algorithm uses a finite transition region at trimmed ends based on the trim range, so trimming is local.
+        :param fixedElementsCountAlong: Number of elements in resampled coordinates, or None to use targetElementLength.
+        :param targetElementLength: Target element length or None to use fixedElementsCountAlong.
+        Length is determined from mean trimmed length, subject to a minimum for the configuration.
+        :param transitionFactor: Factor > 1.0 multiplying range of trimmed lengths at each end to complete
+        local element size transition over.
+        """
+        lx, ld = self._lengthParameters
+        # print("lx", lx, "ld", ld)
+        rawNodesCountAlong = len(self._rawTubeCoordinatesList[0][0])
+        rawElementsCountAlong = rawNodesCountAlong - 1
+
+        # work out trim lengths of outer, inner tubes
+        startCurveLocations = []
+        startLengths = []
+        sumStartLengths = 0.0
+        endCurveLocations = []
+        endLengths = []
+        sumEndLengths = 0.0
         for p in range(self._pathsCount):
-            # determine elementsCountAlong for first/outer tube then fix for inner tubes
-            self._sampledTubeCoordinates[p] = resampleTubeCoordinates(
-                self._rawTubeCoordinatesList[p], fixedElementsCountAlong=elementsCountAlong,
-                targetElementLength=targetElementLength, minimumElementsCountAlong=minimumElementsCountAlong,
-                startSurface=trimSurfaces[0][p], endSurface=trimSurfaces[1][p])
-            if not elementsCountAlong:
-                elementsCountAlong = len(self._sampledTubeCoordinates[0][0]) - 1
+            px, pd1, pd2, pd12 = self._rawTubeCoordinatesList[p]
+            startTrimSurface = self._junctions[0].getTrimSurfaces(self)[p]
+            endTrimSurface = self._junctions[1].getTrimSurfaces(self)[p]
+
+            for q in range(self._elementsCountAround):
+                cx = [px[p][q] for p in range(rawNodesCountAlong)]
+                cd2 = [pd2[p][q] for p in range(rawNodesCountAlong)]
+                startCurveLocation = (0, 0.0)
+                startLength = 0.0
+                if startTrimSurface:
+                    surfacePosition, curveLocation, intersects = startTrimSurface.findNearestPositionOnCurve(cx, cd2)
+                    if intersects:
+                        startCurveLocation = curveLocation
+                        startLength = evaluateCoordinatesOnCurve(lx, ld, startCurveLocation)[0]
+                startCurveLocations.append(startCurveLocation)
+                startLengths.append(startLength)
+                sumStartLengths += startLength
+                endCurveLocation = (rawElementsCountAlong, 1.0)
+                endLength = lx[-1][0]
+                if endTrimSurface:
+                    surfacePosition, curveLocation, intersects = endTrimSurface.findNearestPositionOnCurve(cx, cd2)
+                    if intersects:
+                        endCurveLocation = curveLocation
+                        endLength = evaluateCoordinatesOnCurve(lx, ld, endCurveLocation)[0]
+                endCurveLocations.append(endCurveLocation)
+                endLengths.append(endLength)
+                sumEndLengths += endLength
+
+        minStartLength = min(startLengths)
+        maxStartLength = max(startLengths)
+        minEndLength = min(endLengths)
+        maxEndLength = max(endLengths)
+        maxLength = maxEndLength - minStartLength
+        # minimum number applies to fixedElementsCountAlong and targetElementLength
+        minimumElementsCountAlong = 2 if (self._isLoop or ((self._junctions[0].getSegmentsCount() > 2) and
+                                                           (self._junctions[1].getSegmentsCount() > 2))) else 1
+        # small fudge factor on targetElementLength so whole numbers chosen on centroid don't go one higher:
+        elementsCountAlong = max(minimumElementsCountAlong, fixedElementsCountAlong if fixedElementsCountAlong else
+            math.ceil(maxLength * 0.9999 / targetElementLength))
+        startTransitionSize = transitionFactor * (maxStartLength - minStartLength)
+        endTransitionSize = transitionFactor * (maxEndLength - minEndLength)
+        if (startTransitionSize + endTransitionSize) > maxLength:
+            # reduce transitions in proportion to fit mean length
+            startTransitionSize *= maxLength / (startTransitionSize + endTransitionSize)
+            endTransitionSize = maxLength - startTransitionSize
+        maxElementLength = maxLength / elementsCountAlong
+        # print("maxLength", maxLength, "maxElementLength", maxElementLength)
+        # for parametric coordinate [0,1] over startTransitionSize, these are the start derivatives
+        # where mean would have value startTransitionSize at both ends
+        startTransitionXiSpacing = (maxElementLength / startTransitionSize) if (startTransitionSize > 0.0) else 0.0
+        endTransitionXiSpacing = (maxElementLength / endTransitionSize) if (endTransitionSize > 0.0) else 0.0
+        dStart = [[None] * self._elementsCountAround for _ in range(self._pathsCount)]
+        dEnd = [[None] * self._elementsCountAround for _ in range(self._pathsCount)]
+        startTransitionEndLength = minStartLength + startTransitionSize
+        endTransitionStartLength = maxEndLength - endTransitionSize
+        # print("Transition start min", minStartLength, "max", maxStartLength, "size", startTransitionSize, "end", startTransitionEndLength)
+        # print("Transition end min", minEndLength, "max", maxEndLength, "size", endTransitionSize, "end", endTransitionStartLength)
+        for p in range(self._pathsCount):
+            startTrimSurface = self._junctions[0].getTrimSurfaces(self)[p]
+            if startTrimSurface:
+                for q in range(self._elementsCountAround):
+                    ls = startLengths[p * self._elementsCountAround + q]
+                    dStart[p][q] = interpolateLagrangeHermiteDerivative(
+                        [ls], [startTransitionEndLength], [startTransitionSize], 0.0)[0]
+                    # print("    p", p, "q", q, "dStart", dStart[p][q])
+            endTrimSurface = self._junctions[1].getTrimSurfaces(self)[p]
+            if endTrimSurface:
+                for q in range(self._elementsCountAround):
+                    le = endLengths[p * self._elementsCountAround + q]
+                    dEnd[p][q] = interpolateHermiteLagrangeDerivative(
+                        [endTransitionStartLength], [endTransitionSize], [le], 1.0)[0]
+                    # print("    p", p, "q", q, "dEnd", dEnd[p][q])
+
+        tubeGenerator = TubeEllipseGenerator()
+
+        for n in range(elementsCountAlong + 1):
+
+            # get point parameters at mean sampling points
+            lm = minStartLength + n * maxElementLength
+            curveLocation = getNearestLocationOnCurve(lx, ld, [lm])[0]
+
+            for p in range(self._pathsCount):
+                cx, cd1, cd2, cd12, cd3, cd13 = self._pathParametersList[p]
+                px, pd1 = evaluateCoordinatesOnCurve(cx, cd1, curveLocation, derivative=True)
+                pd2, pd12 = evaluateCoordinatesOnCurve(cd2, cd12, curveLocation, derivative=True)
+                pd3, pd13 = evaluateCoordinatesOnCurve(cd3, cd13, curveLocation, derivative=True)
+                ex, ed1, ed2, ed12 = tubeGenerator.generate(px, pd1, pd2, pd12, pd3, pd13, self._elementsCountAround,
+                                                            maxElementLength)
+                startTrimSurface = self._junctions[0].getTrimSurfaces(self)[p]
+                endTrimSurface = self._junctions[1].getTrimSurfaces(self)[p]
+                startTransition = (startTransitionSize > 0.0) and (lm < startTransitionEndLength)
+                endTransition = (endTransitionSize > 0.0) and (lm > endTransitionStartLength)
+                if startTransition or endTransition:
+                    for q in range(self._elementsCountAround):
+                        if startTransition:
+                            ls = startLengths[p * self._elementsCountAround + q]
+                            xi = n * startTransitionXiSpacing
+                            v1, d1, v2, d2 = [ls], [dStart[p][q]], [startTransitionEndLength], [startTransitionSize]
+                        else:  # if endTransition:
+                            le = endLengths[p * self._elementsCountAround + q]
+                            xi = 1.0 - (elementsCountAlong - n) * endTransitionXiSpacing
+                            v1, d1, v2, d2 = [endTransitionStartLength], [endTransitionSize], [le], [dEnd[p][q]]
+                        lt = interpolateCubicHermite(v1, d1, v2, d2, xi)[0]
+                        ltd = interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)[0]
+                        qCurveLocation = getNearestLocationOnCurve(lx, ld, [lt])[0]
+                        px, pd1 = evaluateCoordinatesOnCurve(cx, cd1, qCurveLocation, derivative=True)
+                        pd2, pd12 = evaluateCoordinatesOnCurve(cd2, cd12, qCurveLocation, derivative=True)
+                        pd3, pd13 = evaluateCoordinatesOnCurve(cd3, cd13, qCurveLocation, derivative=True)
+                        qex, qed1, qed2, qed12 = tubeGenerator.generate(
+                            px, pd1, pd2, pd12, pd3, pd13, self._elementsCountAround,
+                            ltd * maxElementLength / (startTransitionSize if startTransition else endTransitionSize))
+                        for ev, qv in zip((ex, ed1, ed2, ed12), (qex, qed1, qed2, qed12)):
+                            ev[q] = qv[q]
+                    # recalculate d1 around rings
+                    # first smooth to get d1 with new directions not tangential to surface
+                    ted1 = smoothCubicHermiteDerivativesLoop(ex, ed1)
+                    # constraint to be tangential to tube surface
+                    ted1 = [rejection(ted1[q], normalize(cross(ed1[q], ed2[q])))
+                            for q in range(self._elementsCountAround)]
+                    # smooth magnitudes only
+                    ed1 = smoothCubicHermiteDerivativesLoop(ex, ted1, fixAllDirections=True)
+
+                for lst, ev in zip(self._sampledTubeCoordinates[p], (ex, ed1, ed2, ed12)):
+                    lst.append(ev)
+
+        # smooth d2, d12
+
+    def sample(self, fixedElementsCountAlong, targetElementLength):
+        self._sampleTubeCoordinates(fixedElementsCountAlong, targetElementLength)
+
+        elementsCountAlong = len(self._sampledTubeCoordinates[0][0]) - 1
 
         if self._dimension == 2:
             # copy first sampled tube coordinates, but insert single-entry 'n3' index after n2
@@ -270,7 +471,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 [[ring] for ring in self._sampledTubeCoordinates[0][2]],
                 None)
         else:
-            wallFactor = 1.0 / self._elementsCountThroughWall
+            shellFactor = 1.0 / self._elementsCountThroughShell
             ox, od1, od2 = self._sampledTubeCoordinates[0][0:3]
             ix, id1, id2 = self._sampledTubeCoordinates[1][0:3]
             rx, rd1, rd2, rd3 = [], [], [], []
@@ -280,17 +481,17 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     r.append([])
                 otx, otd1, otd2 = ox[n2], od1[n2], od2[n2]
                 itx, itd1, itd2 = ix[n2], id1[n2], id2[n2]
-                # wx, wd3 = self._determineWallCoordinates(otx, otd1, otd2, itx, itd1, itd2, coreCentre, arcCentre)
-                wd3 = [mult(sub(otx[n1], itx[n1]), wallFactor) for n1 in range(self._elementsCountAround)]
-                for n3 in range(self._elementsCountThroughWall + 1):
-                    oFactor = n3 / self._elementsCountThroughWall
+                # wx, wd3 = self._determineShellCoordinates(otx, otd1, otd2, itx, itd1, itd2, coreCentre, arcCentre)
+                wd3 = [mult(sub(otx[n1], itx[n1]), shellFactor) for n1 in range(self._elementsCountAround)]
+                for n3 in range(self._elementsCountThroughShell + 1):
+                    oFactor = n3 / self._elementsCountThroughShell
                     iFactor = 1.0 - oFactor
                     for r in (rx, rd1, rd2, rd3):
                         r[n2].append([])
                     for n1 in range(self._elementsCountAround):
                         if n3 == 0:
                             x, d1, d2 = itx[n1], itd1[n1], itd2[n1]
-                        elif n3 == self._elementsCountThroughWall:
+                        elif n3 == self._elementsCountThroughShell:
                             x, d1, d2 = otx[n1], otd1[n1], otd2[n1]
                         else:
                             x = add(mult(itx[n1], iFactor), mult(otx[n1], oFactor))
@@ -304,6 +505,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._rimCoordinates = rx, rd1, rd2, rd3
         self._rimNodeIds = [None] * (elementsCountAlong + 1)
         self._rimElementIds = [None] * elementsCountAlong
+        self._boxElementIds = [None] * elementsCountAlong
 
         if self._isCore:
             # sample coordinates for the solid core
@@ -373,409 +575,278 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         return coreCentre, arcCentre
 
-    def _createMirrorCurve(self, n2, centre):
+    def _getRadialCoreCrossing(self, n1Start, n1Half, n2, centre, centreNormal=None):
         """
-        Generate coordinates and derivatives for the mirror curve.
-        :param n2: Index for elements along the tube.
-        :param centre: Coordinates of the solid core.
-        :return: Coordinates and derivatives for the mirror curve.
-        """
-        ix = self._rimCoordinates[0][n2][0]
-        id3 = self._rimCoordinates[3][n2][0]
-
-        # Create mirror curves
-        n2a = 0
-        n2z = self._elementsCountAround // 2
-
-        rscx, rscd1 = [], []
-        for n in range(2):
-            startIndex = [n2a, n2z][n]
-            tmdxStart = ix[startIndex] if n == 0 else centre
-            tmdxEnd = centre if n == 0 else ix[startIndex]
-            tmdd3 = id3[startIndex]
-            rcx = [tmdxStart, tmdxEnd]
-            mag = -1 if n == 0 else 1
-            rcd3 = [set_magnitude(tmdd3, mag), set_magnitude(tmdd3, mag)]
-            elementsCountAcross = self._elementsCountAcrossMajor // 2
-
-            tx, td1 = sampleCubicHermiteCurves(rcx, rcd3, elementsCountAcross, arcLengthDerivatives=True)[0:2]
-
-            rscx += tx[n::]
-            rscd1 += td1[n::]
-
-        rscd1 = smoothCubicHermiteDerivativesLine(rscx, rscd1, fixStartDirection=True, fixEndDirection=True)
-
-        # Determine d3 derivatives
-        rscd3 = []
-        for n in range(len(rscx)):
-            d3 = normalize(
-                [ix[self._elementsCountAround // 4][c] - ix[(self._elementsCountAround // 4) * 3][c] for c in range(3)])
-            rscd3.append(d3)
-
-        return rscx, rscd1, rscd3
-
-    def _sampleCoreNodesAlongMinorAxis(self, n2, rscx, rscd1, rscd3):
-        """
-        Samples nodes along minor axis (z-axis) between inner tube coordinate, centre and the opposing inner tube
-        coordinate by the number of elements across minor axis.
-        :param n2: Index for elements along the tube.
-        :param rscx, rscd1, rscd3: Lists of coordinates, d1 and d3 derivatives for mirror curve.
-        :return: Coordinates and derivatives for the solid core and the transition nodes around the core.
+        Get start, middle and end coordinates across solid core.
+        :param n1Start: Start index around rim coordinates.
+        :param n1Half: If True, initial n1 is halfway between n1Start and n1Start + 1
+        :param n2: Index along rim coordinates.
+        :param centre: Centre coordinates.
+        :param centreNormal: Optional normal to remove component in direction from centre.
+        :return: Radial rx, rd1 (across), rd2(up) for points at n1, centre and opposite n1.
         """
         ix = self._rimCoordinates[0][n2][0]
         id1 = self._rimCoordinates[1][n2][0]
         id3 = self._rimCoordinates[3][n2][0]
+        n1End = n1Start + self._elementsCountAround // 2
+        if n1Half:
+            nx = self._rimCoordinates[0][n2][1]
+            nd1 = self._rimCoordinates[1][n2][1]
+            ax, ad2 = evaluateCoordinatesOnCurve(ix, id1, (n1Start, 0.5), loop=True, derivative=True)
+            tx = evaluateCoordinatesOnCurve(nx, nd1, (n1Start, 0.5), loop=True)
+            ad1 = sub(ix, tx)
+            cx, cd2 = evaluateCoordinatesOnCurve(ix, id1, (n1End, 0.5), loop=True)
+            tx = evaluateCoordinatesOnCurve(nx, nd1, (n1End, 0.5), loop=True)
+            cd1 = sub(tx, ix)
+            cd2 = [-d for d in cd2]  # since these go around in RH sense
+        else:
+            ax = copy.copy(ix[n1Start])
+            ad1 = [-d for d in id3[n1Start]]
+            ad2 = id1[n1Start]
+            cx = copy.copy(ix[n1End])
+            cd1 = copy.copy(id3[n1End])
+            cd2 = [-d for d in id1[n1End]]  # since these go around in RH sense
+        bx = centre
+        # following gives the core the expected S-shape distortion when twisted
+        bd1a = interpolateHermiteLagrangeDerivative(ax, set_magnitude(ad1, magnitude(sub(bx, ax))), bx, 1.0)
+        bd1c = interpolateLagrangeHermiteDerivative(bx, cx, set_magnitude(cd1, magnitude(sub(cx, bx))), 0.0)
+        bd1 = mult(add(bd1a, bd1c), 0.5)
+        bd2 = mult(add(ad2, cd2), 0.5)
+        rx = [ax, bx, cx]
+        rd1_us = [ad1, bd1, cd1]
+        rd2 = [ad2, bd2, cd2]
+        rd1 = smoothCubicHermiteDerivativesLine(rx, rd1_us, fixAllDirections=True)
+        if centreNormal:
+            # constrain centre derivatives to be orthogonal to centreNormal
+            rd1[1] = rejection(rd1[1], centreNormal)
+            rd2[1] = rejection(rd2[1], centreNormal)
+            rd1 = smoothCubicHermiteDerivativesLine(rx, rd1, fixAllDirections=True)
+        return rx, rd1, rd2
+
+    def _generateCoreCoordinates(self, n2, centre):
+        """
+        Sample core box and transition elements by sampling radial crossings along
+        major -, minor |, diag1 /, diag2 \ directions.
+        From these 3x3 array of points at the corners, centres and mid-sides of the box are determined,
+        then the actual box elements are resampled from these.
+        Transition elements are determined by blending from the outside of the box to the shell.
+        :param n2: Index along segment.
+        :param centre: Centre coordinates of core.
+        :return: box coordinates cbx, cbd1, cbd3, transition coordinates ctx, ctd1, ctd3.
+        Box coordinates are over [minorBoxNodeCount][majorBoxNodeCount]. Transition coordinates are over [n3][n1] and
+        are only non-empty for at least 2 transition elements as they are the layers between the box and the shell.
+        """
+        # sample radially across major, minor and both diagonals, like a Union Jack
+        major_n1 = 0
+        major_x, major_d1, major_d3 = self._getRadialCoreCrossing(
+            major_n1, (self._elementsCountCoreBoxMinor % 2) == 1, n2, centre)
+        minor_n1 = -((self._elementsCountAround + 3) // 4)
+        minor_x, minor_d3, minor_d1 = self._getRadialCoreCrossing(
+            minor_n1, (self._elementsCountCoreBoxMajor % 2) == 1, n2, centre)
+        minor_d1 = [[-d for d in v] for v in minor_d1]
+        major_d3[1] = minor_d3[1]
+        minor_d1[1] = major_d1[1]
+        centreNormal = normalize(cross(major_d1[1], major_d3[1]))
+        majorBoxSize = self._elementsCountCoreBoxMajor
+        minorBoxSize = self._elementsCountCoreBoxMinor
+        diag1_n1 = minorBoxSize // -2
+        diag1_x, diag1_d1, diag1_d3 = self._getRadialCoreCrossing(diag1_n1, False, n2, centre, centreNormal)
+        diag2_n1 = diag1_n1 + minorBoxSize
+        diag2_x, diag2_d1, diag2_d3 = self._getRadialCoreCrossing(diag2_n1, False, n2, centre, centreNormal)
+
+        # sample to sides and corners of core box
+        majorXi = (2.0 * self._elementsCountTransition /
+                   (self._elementsCountCoreBoxMajor + 2 * self._elementsCountTransition))
+        majorXiR = 1.0 - majorXi
+        minorXi = (2.0 * self._elementsCountTransition /
+                   (self._elementsCountCoreBoxMinor + 2 * self._elementsCountTransition))
+        minorXiR = 1.0 - minorXi
+        # following expression adjusted to look best across all cases
+        boxDiagonalSize = math.sqrt(majorBoxSize * majorBoxSize + minorBoxSize * minorBoxSize)
+        diagXi = self._elementsCountTransition / (0.5 * boxDiagonalSize + self._elementsCountTransition + 0.5)
+        diagXiR = 1.0 - diagXi
+
+        # 3x3 nodes (2x2 elements) giving extents of core box
+        tripleAngle = math.pi / 3.0
+        cosTripleAngle = math.cos(tripleAngle)
+        sinTripleAngle = math.sin(tripleAngle)
+
+        e00x, e00dr = evaluateCoordinatesOnCurve(diag1_x, diag1_d1, (0, diagXi), derivative=True)
+        e00dc = set_magnitude(add(mult(normalize(diag1_d3[0]), diagXiR), mult(normalize(diag1_d3[1]), diagXi)), magnitude(e00dr))
+        e00d1 = add(mult(e00dr, cosTripleAngle), mult(e00dc, -sinTripleAngle))
+        e00d3 = add(mult(e00dr, cosTripleAngle), mult(e00dc, sinTripleAngle))
+
+        e02x, e02dr = evaluateCoordinatesOnCurve(diag2_x, diag2_d1, (1, diagXiR), derivative=True)
+        e02dc = set_magnitude(add(mult(normalize(diag2_d3[1]), diagXi), mult(normalize(diag2_d3[2]), diagXiR)), magnitude(e02dr))
+        e02d1 = add(mult(e02dr, cosTripleAngle), mult(e02dc, sinTripleAngle))
+        e02d3 = add(mult(e02dr, -cosTripleAngle), mult(e02dc, sinTripleAngle))
+
+        e20x, e20dr = evaluateCoordinatesOnCurve(diag2_x, diag2_d1, (0, diagXi), derivative=True)
+        e20dc = set_magnitude(add(mult(normalize(diag2_d3[0]), diagXiR), mult(normalize(diag2_d3[1]), diagXi)), magnitude(e20dr))
+        e20d1 = add(mult(e20dr, cosTripleAngle), mult(e20dc, sinTripleAngle))
+        e20d3 = add(mult(e20dr, -cosTripleAngle), mult(e20dc, sinTripleAngle))
+
+        e22x, e22dr = evaluateCoordinatesOnCurve(diag1_x, diag1_d1, (1, diagXiR), derivative=True)
+        e22dc = set_magnitude(add(mult(normalize(diag1_d3[1]), diagXi), mult(normalize(diag1_d3[2]), diagXiR)), magnitude(e22dr))
+        e22d1 = add(mult(e22dr, cosTripleAngle), mult(e22dc, -sinTripleAngle))
+        e22d3 = add(mult(e22dr, cosTripleAngle), mult(e22dc, sinTripleAngle))
+
+        ex = [
+            e00x,
+            evaluateCoordinatesOnCurve(minor_x, minor_d3, (0, minorXi)),
+            e02x,
+            evaluateCoordinatesOnCurve(major_x, major_d1, (0, majorXi)),
+            centre,
+            evaluateCoordinatesOnCurve(major_x, major_d1, (1, majorXiR)),
+            e20x,
+            evaluateCoordinatesOnCurve(minor_x, minor_d3, (1, minorXiR)),
+            e22x
+        ]
+        majorScale = (2.0 / majorBoxSize) if (majorBoxSize > 0.0) else 1.0
+        minorScale = (2.0 / minorBoxSize) if (minorBoxSize > 0.0) else 1.0
+        major_ed1 = [
+            mult(interpolateCubicHermiteDerivative(major_x[0], major_d1[0], major_x[1], major_d1[1], majorXi), majorXiR),
+            mult(major_d1[1], majorXiR),
+            mult(interpolateCubicHermiteDerivative(major_x[1], major_d1[1], major_x[2], major_d1[2], majorXiR), majorXiR)]
+        minor_ed3 = [
+            mult(interpolateCubicHermiteDerivative(minor_x[0], minor_d3[0], minor_x[1], minor_d3[1], minorXi), minorXiR),
+            mult(minor_d3[1], minorXiR),
+            mult(interpolateCubicHermiteDerivative(minor_x[1], minor_d3[1], minor_x[2], minor_d3[2], minorXiR), minorXiR)]
+        mag_ed3 = (magnitude(minor_ed3[1]) * minorScale * majorXi + magnitude(major_d3[0]) * majorXiR) / minorScale
+        major_ed3 = [
+            set_magnitude(add(mult(normalize(major_d3[0]), majorXiR), mult(normalize(major_d3[1]), majorXi)), mag_ed3),
+            minor_ed3[1],
+            set_magnitude(add(mult(normalize(major_d3[1]), majorXi), mult(normalize(major_d3[2]), majorXiR)), mag_ed3)]
+        mag_ed1 = (magnitude(major_ed1[1]) * majorScale * minorXi + magnitude(minor_d1[0]) * minorXiR) / majorScale
+        minor_ed1 = [
+            set_magnitude(add(mult(normalize(minor_d1[0]), minorXiR), mult(normalize(minor_d1[1]), minorXi)), mag_ed1),
+            major_ed1[1],
+            set_magnitude(add(mult(normalize(minor_d1[1]), minorXi), mult(normalize(minor_d1[2]), minorXiR)), mag_ed1)]
+        ed1 = [
+            smoothCubicHermiteDerivativesLine(
+                [ex[0], ex[1]], [e00d1, minor_ed1[0]], fixStartDirection=True, fixEndDerivative=True)[0],
+            minor_ed1[0],
+            smoothCubicHermiteDerivativesLine(
+                [ex[1], ex[2]], [minor_ed1[0], e02d1], fixStartDerivative=True, fixEndDirection=True)[1],
+            major_ed1[0],
+            major_ed1[1],
+            major_ed1[2],
+            smoothCubicHermiteDerivativesLine(
+                [ex[6], ex[7]], [e20d1, minor_ed1[2]], fixStartDirection=True, fixEndDerivative=True)[0],
+            minor_ed1[2],
+            smoothCubicHermiteDerivativesLine(
+                [ex[7], ex[8]], [minor_ed1[2], e22d1], fixStartDerivative=True, fixEndDirection=True)[1],
+        ]
+        ed3 = [
+            smoothCubicHermiteDerivativesLine(
+                [ex[0], ex[3]], [e00d3, major_ed3[0]], fixStartDirection=True, fixEndDerivative=True)[0],
+            minor_ed3[0],
+            smoothCubicHermiteDerivativesLine(
+                [ex[2], ex[5]], [e02d3, major_ed3[2]], fixStartDirection=True, fixEndDerivative=True)[0],
+            major_ed3[0],
+            major_ed3[1],
+            major_ed3[2],
+            smoothCubicHermiteDerivativesLine(
+                [ex[3], ex[6]], [major_ed3[0], e20d3], fixStartDerivative=True, fixEndDirection=True)[1],
+            minor_ed3[2],
+            smoothCubicHermiteDerivativesLine(
+                [ex[5], ex[8]], [major_ed3[2], e22d3], fixStartDerivative=True, fixEndDirection=True)[1],
+        ]
 
         # Create an empty list for the core with dimensions of (major - 1) x (minor - 1)
-        m = self._elementsCountAcrossMajor - 1 - 2 * (self._elementsCountTransition - 1)
-        n = self._elementsCountAcrossMinor - 1 - 2 * (self._elementsCountTransition - 1)
-        cbx, cbd1, cd2, cbd3, ctx, ctd1, ctd2, ctd3 = [], [], [], [], [], [], [], []
+        cbx, cbd1, cbd3, ctx, ctd1, ctd3 = [], [], [], [], [], []
 
-        for i in range(m):
-            for lst in (cbx, cbd1, cd2, cbd3):
-                lst.append([[0, 0, 0] for _ in range(n)])
-
-        for i in range(self._elementsCountTransition - 1):
-            for lst in (ctx, ctd1, ctd2, ctd3):
-                lst.append([[0, 0, 0] for _ in range(self._elementsCountAround)])
-
-        # Create Regular Row Curves
-        n2a = 0
-        n2b = self._elementsCountTransition - 1
-        n2d = n1d = self._elementsCountAcrossMinor // 2 - n2b
-        n2m = self._elementsCountAcrossMajor - (4 + 2 * n2b) + n2d
-        n2z = self._elementsCountAcrossMinor
-
-        ixTopHalf = ix[0:(self._elementsCountAround // 2) + 1]
-        id1TopHalf = id1[0:(self._elementsCountAround // 2) + 1]
-        id3TopHalf = id3[0:(self._elementsCountAround // 2) + 1]
-        ixBtmHalf = (ix[(self._elementsCountAround // 2)::])[::-1]
-        id1BtmHalf = (id1[(self._elementsCountAround // 2)::])[::-1]
-        id3BtmHalf = (id3[(self._elementsCountAround // 2)::])[::-1]
-
-        tx, td1, td3 = [], [], []
-        trx, trd1, trd3 = [], [], []
-        for n in range(n2m + 1 - n2d):
-            n2 = list(range(n2d, n2m + 1))[n]
-            c = self._elementsCountTransition + 1
-            c2 = list(range(c, c + (n2m + 1 - n2d)))[n]
-            nd1 = [set_magnitude(id3BtmHalf[n2 - 1], -1.0), set_magnitude(rscd3[c2], 1.0),
-                   set_magnitude(id3TopHalf[n2], 1.0)]
-            txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves([ixBtmHalf[n2 - 1], rscx[c2], ixTopHalf[n2]], nd1,
-                                                               self._elementsCountAcrossMinor,
-                                                               arcLengthDerivatives=True)
-            td1m = interpolateSampleCubicHermite([[-id1BtmHalf[n2 - 1][c] for c in range(3)], rscd1[c2],
-                                                  id1TopHalf[n2]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
-
-            td3m = smoothCubicHermiteDerivativesLine(txm, td3m, fixStartDirection=True, fixEndDirection=True)
-
-            [lst1.append(lst2[n2a + 1: n2z]) for lst1, lst2 in zip((tx, td1, td3), (txm, td1m, td3m))]
+        trackSurface = TrackSurface(2, 2, ex, ed1, ed3)
+        for m in range(majorBoxSize + 1):
+            majorProportion = m / majorBoxSize
+            row_x = []
+            row_d1 = []
+            row_d3 = []
+            for n in range(minorBoxSize + 1):
+                minorProportion = (n / minorBoxSize) if (minorBoxSize > 0) else 0.0
+                position = trackSurface.createPositionProportion(majorProportion, minorProportion)
+                x, d1, d3 = trackSurface.evaluateCoordinates(position, derivatives=True)
+                row_x.append(x)
+                row_d1.append(mult(d1, majorScale))
+                row_d3.append(mult(d3, minorScale))
+            cbx.append(row_x)
+            cbd1.append(row_d1)
+            cbd3.append(row_d3)
 
         if self._elementsCountTransition > 1:
-            for i in range(len(tx)):
-                [lst.append([]) for lst in (trx, trd1, trd3)]
-                for j in range(self._elementsCountTransition - 1):
-                    trx[-1].append([tx[i].pop(0), tx[i].pop(-1)])
-                    trd1[-1].append([td1[i].pop(0), td1[i].pop(-1)])
-                    trd3[-1].append([td3[i].pop(0), td3[i].pop(-1)])
-
-        # Store coordinate and derivative values into appropriate lists
-        for n2c in range(1, self._elementsCountAcrossMajor - 2 - 2 * (self._elementsCountTransition - 1)):
-            for n1 in range(len(tx[n2c - 1])):
-                for lst, value in zip([cbx[n2c], cbd1[n2c], cbd3[n2c]],
-                                      [tx[n2c - 1][n1], td1[n2c - 1][n1], td3[n2c - 1][n1]]):
-                    lst[n1] = value
-
-        if self._elementsCountTransition > 1:
-            for n2 in range(self._elementsCountTransition - 1):
-                for n in range(len(trx)):
-                    n1 = -(n1d + n)
-                    for lst, value in zip([ctx[n2], ctd1[n2], ctd3[n2]],
-                                          [trx[n][n2][0], trd1[n][n2][0], trd3[n][n2][0]]):
-                        lst[n1] = value
-                for n in range(len(trx)):
-                    n1 = n1d + n
-                    for lst, value in zip([ctx[n2], ctd1[n2], ctd3[n2]],
-                                          [trx[n][n2][-1], trd1[n][n2][-1], trd3[n][n2][-1]]):
-                        lst[n1] = value
-
-        return cbx, cbd1, cbd3, ctx, ctd1, ctd3
-
-    def _sampleCoreNodeAlongMajorAxis(self, n2, cbx, cbd1, cbd3, ctx, ctd1, ctd3):
-        """
-        Samples nodes along major axis (y-axis) between inner tube coordinate, centre and the opposing inner tube
-        coordinate by the number of elements across major axis.
-        :param n2: Index for elements along the tube.
-        :param cbx, cbd1, cbd3: Lists of coordinates, d1 and d3 derivatives for solid core.
-        :param ctx, ctd1, ctd3: Lists of coordinates, d1 and d3 derivatives for rims around the core.
-        :return: Coordinates and derivatives for the solid core and the rim(s) around the core.
-        """
-        ix, id1, id3 = self._rimCoordinates[0][n2][0], self._rimCoordinates[1][n2][0], self._rimCoordinates[3][n2][0]
-
-        # Create regular column curves
-        n1a, n1m, n1z = 0, self._elementsCountAround // 2, self._elementsCountAcrossMajor
-        ec = (self._elementsCountAcrossMinor - 4) // 2 - (self._elementsCountTransition - 1)
-        startIndexes = list(range(n1a - ec, n1a + ec + 1))
-        endIndexes = list(range(n1m - ec, n1m + ec + 1))[::-1]
-        tx, td1, td3, trx, trd1, trd3 = [], [], [], [], [], []
-
-        elementsCountAcross = self._elementsCountAcrossMajor // 2
-        nloop = (self._elementsCountAcrossMinor - 3 - 2 * (self._elementsCountTransition - 1)) \
-            if self._elementsCountAcrossMinor > 4 else self._elementsCountAcrossMinor - 3  # This is affected by ellipse parameters issue
-
-        for n in range(nloop):
-            n1, n2 = startIndexes[n], endIndexes[n]
-            m1 = n + 1
-            m2 = (self._elementsCountAcrossMajor - 1 - 2 * (self._elementsCountTransition - 1)) // 2
-            txm, td1m, td3m = [], [], []
-            for n in range(2):
-                if n == 0:
-                    startx, startd1 = ix[n1], id1[n1]
-                    endx, endd1, endd3 = cbx[m2][m1], cbd1[m2][m1], cbd3[m2][m1]
-                    startd3 = [-id3[n1][c] for c in range(3)]
-                    nd1 = [set_magnitude(startd3, 1), set_magnitude(endd1, 1)]
-                    nd3 = [startd1, endd3]
-                else:
-                    startx, startd1, startd3 = cbx[m2][m1], cbd1[m2][m1], cbd3[m2][m1]
-                    endx, endd3 = ix[n2], id3[n2]
-                    endd1 = [-id1[n2][c] for c in range(3)]
-                    nd1 = [set_magnitude(startd1, 1), set_magnitude(endd3, 1)]
-                    nd3 = [startd3, endd1]
-
-                tempx, tempd1, pe, pxi, psf = sampleCubicHermiteCurves([startx, endx], nd1,
-                                                                       elementsCountAcross, arcLengthDerivatives=True)
-
-                tempd3 = interpolateSampleCubicHermite(nd3, [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-
-                for lst, value in zip([txm, td1m, td3m], [tempx, tempd1, tempd3]):
-                    lst += value[n::]
-
-            td1m = smoothCubicHermiteDerivativesLine(txm, td1m, fixStartDirection=True, fixEndDirection=True)
-
-            for lst, value in zip([tx, td1, td3], [txm, td1m, td3m]):
-                lst.append(value[n1a + 1: n1z])
-
-        if self._elementsCountTransition > 1:
-            for i in range(len(tx)):
-                [lst.append([]) for lst in (trx, trd1, trd3)]
-                for j in range(self._elementsCountTransition - 1):
-                    for lst, value in zip([trx[-1], trd1[-1], trd3[-1]], [tx[i], td1[i], td3[i]]):
-                        lst.append([value.pop(0), value.pop(-1)])
-
-        for n2c in range(len(tx[0])):
-            for n1 in range(1, self._elementsCountAcrossMinor - 2 - 2 * (self._elementsCountTransition - 1)):
-                for lst, value in zip([cbx[n2c], cbd1[n2c], cbd3[n2c]],
-                                      [tx[n1 - 1][n2c], td1[n1 - 1][n2c], td3[n1 - 1][n2c]]):
-                    lst[n1] = value
-
-        if self._elementsCountTransition > 1:
-            for n2 in range(self._elementsCountTransition - 1):
-                for n in range(len(trx)):
-                    n1 = startIndexes[n]
-                    for lst, value in zip([ctx[n2], ctd1[n2], ctd3[n2]],
-                                          [trx[n][n2][0], trd1[n][n2][0], trd3[n][n2][0]]):
-                        lst[n1] = value
-                for n in range(len(trx)):
-                    n1 = endIndexes[n]
-                    for lst, value in zip([ctx[n2], ctd1[n2], ctd3[n2]],
-                                          [trx[n][n2][-1], trd1[n][n2][-1], trd3[n][n2][-1]]):
-                        lst[n1] = value
-
-        # Fix derivatives for core rim
-        nSkip = self._elementsCountAcrossMinor // 2 - (1 + self._elementsCountTransition)
-        if ctx:
-            for n2 in range(self._elementsCountTransition - 1):
-                for n1 in range(-nSkip, nSkip + 1):
-                    tempd1, tempd3 = copy.copy(ctd1[n2][n1]), copy.copy(ctd3[n2][n1])
-                    tempd1 = [-tempd1[c] for c in range(3)]
-                    ctd1[n2][n1], ctd3[n2][n1] = tempd3, tempd1
-                for n1 in range(self._elementsCountAround // 2 - nSkip, self._elementsCountAround // 2 + nSkip + 1):
-                    tempd1, tempd3 = copy.copy(ctd1[n2][n1]), copy.copy(ctd3[n2][n1])
-                    tempd3 = [-tempd3[c] for c in range(3)]
-                    ctd1[n2][n1], ctd3[n2][n1] = tempd3, tempd1
-                for n1 in range(self._elementsCountAround // 4 * 3 - nSkip,
-                                self._elementsCountAround // 4 * 3 + nSkip + 1):
-                    tempd1, tempd3 = copy.copy(ctd1[n2][n1]), copy.copy(ctd3[n2][n1])
-                    tempd1, tempd3 = [-tempd1[c] for c in range(3)], [-tempd3[c] for c in range(3)]
-                    ctd3[n2][n1], ctd1[n2][n1] = tempd3, tempd1
-
-        # Re-order the order of sublists, i.e. from inner to outer layer.
-        ctx = ctx[::-1]
-
-        return cbx, cbd1, cbd3, ctx, ctd1, ctd3
-
-    def _determineCoreTriplePoints(self, n2, cbx, cbd1, cbd3, ctx, ctd1, ctd3):
-        """
-        Compute coordinates and derivatives of points where 3 square elements merge.
-        :param n2: Index for elements along the tube.
-        :param cbx, cbd1, cbd3: Coordinates, d1 and d3 derivatives of core box.
-        :param ctx, ctd1, ctd3: Coordinates, d1 and d3 derivatives of core rim(s).
-        :return: Coordinates and derivatives of box and rim components of the core.
-        """
-        ix, id1, id3 = self._rimCoordinates[0][n2][0], self._rimCoordinates[1][n2][0], self._rimCoordinates[3][n2][0]
-
-        n1m = self._elementsCountAround // 2
-        n2a = 0
-        cix, cid1, cid3 = (ctx + [ix], ctd1 + [id1], ctd3 + [id3])
-        minorSkip = self._elementsCountAcrossMinor // 2 - (1 + self._elementsCountTransition)
-        majorSkip = self._elementsCountAcrossMajor // 2 - (1 + self._elementsCountTransition)
-
-        # Generate triple points for the core box
-        # Left top and bottom
-        for n in range(2):
-            ltx = []
-            scalefactor = 1 if n == 0 else -1
-            n1 = [-minorSkip, n1m + minorSkip][n]
-            n1a = 1
-            n1z = self._elementsCountAround // 4 * 3 + (majorSkip * scalefactor)
-            n2 = [n2a, -1][n]
-            n2b = [1, -2][n]
-            tx, td1 = sampleCubicHermiteCurves([cix[0][n1], cbx[n2b][0]],
-                                               [[(-cid1[0][n1][c] * scalefactor - cid3[0][n1][c]) for c in range(3)],
-                                                set_magnitude(cbd1[n2b][0], scalefactor)], 2, arcLengthDerivatives=True)[
-                      0:2]
-            ltx.append(tx[1])
-            tx, td1 = sampleCubicHermiteCurves([cix[0][n1z], cbx[n2][n1a]],
-                                               [[(cid1[0][n1z][c] * scalefactor - cid3[0][n1z][c]) for c in range(3)],
-                                                cbd3[n2][n1a]],
-                                               2, arcLengthDerivatives=True)[0:2]
-            ltx.append(tx[1])
-            x = [(ltx[0][c] + ltx[1][c]) / 2.0 for c in range(3)]
-            cbx[n2][0] = x
-            cbd3[n2][0] = [(cbx[n2][1][c] - cbx[n2][0][c]) for c in range(3)]
-            cbd1[n2][0] = [(cbx[n2 + scalefactor][0][c] - cbx[n2][0][c]) * scalefactor for c in range(3)]
-        # Right
-        for n in range(2):
-            rtx = []
-            scalefactor = 1 if n == 0 else -1
-            n1 = [minorSkip, n1m - minorSkip][n]
-            n1b = -2
-            n2 = [n2a, -1][n]
-            n2b = [1, -2][n]
-            n1z = self._elementsCountAround // 4 - (majorSkip * scalefactor)
-            tx, td1 = sampleCubicHermiteCurves([cix[0][n1], cbx[n2b][-1]],
-                                               [[(cid1[0][n1][c] * scalefactor - cid3[0][n1][c]) for c in range(3)],
-                                                [d * scalefactor for d in cbd1[n2b][-1]]], 2,
-                                               arcLengthDerivatives=True)[0:2]
-            rtx.append(tx[1])
-            tx, td1 = sampleCubicHermiteCurves([cix[0][n1z], cbx[n2][n1b]],
-                                               [[(-cid1[0][n1z][c] * scalefactor - cid3[0][n1z][c]) for c in range(3)],
-                                                [-d for d in cbd3[n2][n1b]]], 2, arcLengthDerivatives=True)[0:2]
-            rtx.append(tx[1])
-            x = [(rtx[0][c] + rtx[1][c]) / 2.0 for c in range(3)]
-            n2c = [0, - 1][n]
-            cbx[n2][-1] = x
-            cbd3[n2][-1] = [(cbx[n2c][-1][c] - cbx[n2c][-2][c]) for c in range(3)]
-            cbd1[n2][-1] = [(cbx[n2b][-1][c] - cbx[n2c][-1][c]) * scalefactor for c in range(3)]
-
-        # Sample nodes along triple points
-        if self._elementsCountTransition > 1:
-            # Left
-            for n in range(2):
-                scalefactor = 1 if n == 0 else -1
-                n1a = [-minorSkip, n1m + minorSkip][n]
-                n1c = [n1a - 1, n1a + 1][n]
-                n2 = [0, -1][n]
-                txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves([ix[n1c], cbx[n2][0]],
-                                                                   [[-id3[n1c][c] for c in range(3)],
-                                                                    [cbd1[n2][0][c] * scalefactor + cbd3[n2][0][c] for c
-                                                                     in range(3)]],
-                                                                   self._elementsCountTransition,
-                                                                   arcLengthDerivatives=True)
-                td1m = interpolateSampleCubicHermite(
-                    [id1[n1c], ([-cbd1[n2][0][c] + cbd3[n2][0][c] * scalefactor for c in range(3)])],
-                    [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-
-                txm, td1m, td3m = txm[::-1], td1m[::-1], td3m[::-1]
-                for n3 in range(self._elementsCountTransition - 1):
-                    ctx[n3][n1c] = txm[n3 + 1]
-                    ctd1[n3][n1c] = td1m[n3 + 1]
-                    ctd3[n3][n1c] = [-d for d in td3m[n3 + 1]]
-            # Right
-            for n in range(2):
-                scalefactor = 1 if n == 0 else -1
-                n1a = [minorSkip, n1m - minorSkip][n]
-                n1c = [n1a + 1, n1a - 1][n]
-                n2 = [0, -1][n]
-                txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves([ix[n1c], cbx[n2][-1]],
-                                                                   [[-id3[n1c][c] for c in range(3)],
-                                                                    [cbd1[n2][-1][c] * scalefactor - cbd3[n2][-1][c] for
-                                                                     c in range(3)]],
-                                                                   self._elementsCountTransition,
-                                                                   arcLengthDerivatives=True)
-                td1m = interpolateSampleCubicHermite([id1[n1c],
-                                                      ([cbd1[n2][-1][c] + cbd3[n2][-1][c] * scalefactor for c in
-                                                        range(3)])],
-                                                     [[0.0, 0.0, 0.0]] * 2, pe, pxi, psf)[0]
-
-                txm, td1m, td3m = txm[::-1], td1m[::-1], td3m[::-1]
-                for n3 in range(self._elementsCountTransition - 1):
-                    ctx[n3][n1c] = txm[n3 + 1]
-                    ctd1[n3][n1c] = td1m[n3 + 1]
-                    ctd3[n3][n1c] = [-d for d in td3m[n3 + 1]]
-
-        return cbx, cbd1, cbd3, ctx, ctd1, ctd3
-
-    def _smoothCoreDerivatives(self, cbx, cbd1, cbd3, ctx, ctd1, ctd3):
-        """
-        Smooth d1 and d3 derivatives of the solid core.
-        :param cbx, cbd1, cbd3: Coordinates, d1 and d3 derivatives of the core box.
-        :param ctx, ctd1, ctd3: Coordinates, d1 and d3 derivatives of the core rim.
-        :return: Smoothed d1 and d3 derivatives of the solid core.
-        """
-        # Smooth core box rows
-        for n2c in [0, -1]:
-            cbd3[n2c][1:-1] = smoothCubicHermiteDerivativesLine(cbx[n2c], cbd3[n2c])[1:-1]
-
-        # Smooth core box columns
-        for n1 in [0, -1]:
-            tx = []
-            td1 = []
-            for n2 in range(len(cbx)):
-                tx.append(cbx[n2][n1])
-                td1.append(cbd1[n2][n1])
-            td1 = smoothCubicHermiteDerivativesLine(tx, td1)
-            for n2 in range(1, len(td1)):
-                cbd1[n2][n1] = td1[n2]
-
-        # Smooth core transition derivatives
-        if self._elementsCountTransition > 1:
-            for m in range(self._elementsCountTransition - 1):
-                ctxTopHalf = ctx[m][0:(self._elementsCountAround // 2) + 1]
-                ctd1TopHalf = ctd1[m][0:(self._elementsCountAround // 2) + 1]
-                ctxBtmHalf = (ctx[m][(self._elementsCountAround // 2)::])
-                ctd1BtmHalf = (ctd1[m][(self._elementsCountAround // 2)::])
-                ctxHalf = [ctxTopHalf, ctxBtmHalf]
-                ctd1Half = [ctd1TopHalf, ctd1BtmHalf]
-
-                for n in range(2):
-                    ctd1m = smoothCubicHermiteDerivativesLine(ctxHalf[n], ctd1Half[n],
-                                                              fixStartDirection=True, fixEndDirection=True)
-                    if n == 0:
-                        ctd1[m][0:(self._elementsCountAround // 2) + 1] = ctd1m
+            for i in range(self._elementsCountTransition - 1):
+                for lst in (ctx, ctd1, ctd3):
+                    lst.append([None] * self._elementsCountAround)
+            ix = self._rimCoordinates[0][n2][0]
+            id1 = self._rimCoordinates[1][n2][0]
+            id3 = self._rimCoordinates[3][n2][0]
+            start_bn3 = minorBoxSize // 2
+            topLeft_n1 = minorBoxSize - start_bn3
+            topRight_n1 = topLeft_n1 + majorBoxSize
+            bottomRight_n1 = topRight_n1 + minorBoxSize
+            bottomLeft_n1 = bottomRight_n1 + majorBoxSize
+            for n1 in range(self._elementsCountAround):
+                if n1 <= topLeft_n1:
+                    bn1 = 0
+                    bn3 = start_bn3 + n1
+                    if n1 < topLeft_n1:
+                        start_d1 = cbd3[bn1][bn3]
+                        start_d3 = [-d for d in cbd1[bn1][bn3]]
                     else:
-                        ctd1[m][(self._elementsCountAround // 2)::] = ctd1m
+                        start_d1 = add(cbd3[bn1][bn3], cbd1[bn1][bn3])
+                        start_d3 = sub(cbd3[bn1][bn3], cbd1[bn1][bn3])
+                elif n1 <= topRight_n1:
+                    bn1 = n1 - topLeft_n1
+                    bn3 = minorBoxSize
+                    if n1 < topRight_n1:
+                        start_d1 = cbd1[bn1][bn3]
+                        start_d3 = cbd3[bn1][bn3]
+                    else:
+                        start_d1 = sub(cbd1[bn1][bn3], cbd3[bn1][bn3])
+                        start_d3 = add(cbd1[bn1][bn3], cbd3[bn1][bn3])
+                elif n1 <= bottomRight_n1:
+                    bn1 = majorBoxSize
+                    bn3 = minorBoxSize - (n1 - topRight_n1)
+                    if n1 < bottomRight_n1:
+                        start_d1 = [-d for d in cbd3[bn1][bn3]]
+                        start_d3 = cbd1[bn1][bn3]
+                    else:
+                        start_d1 = [-d for d in add(cbd1[bn1][bn3], cbd3[bn1][bn3])]
+                        start_d3 = sub(cbd1[bn1][bn3], cbd3[bn1][bn3])
+                elif n1 <= bottomLeft_n1:
+                    bn1 = majorBoxSize - (n1 - bottomRight_n1)
+                    bn3 = 0
+                    if n1 < bottomLeft_n1:
+                        start_d1 = [-d for d in cbd1[bn1][bn3]]
+                        start_d3 = [-d for d in cbd3[bn1][bn3]]
+                    else:
+                        start_d1 = sub(cbd3[bn1][bn3], cbd1[bn1][bn3])
+                        start_d3 = [-d for d in add(cbd1[bn1][bn3], cbd3[bn1][bn3])]
+                else:
+                    bn1 = 0
+                    bn3 = n1 - bottomLeft_n1
+                    start_d1 = cbd3[bn1][bn3]
+                    start_d3 = [-d for d in cbd1[bn1][bn3]]
+                start_x = cbx[bn1][bn3]
 
-        return cbd1, cbd3, ctd1, ctd3
+                nx = [start_x, ix[n1]]
+                nd3before = [[self._elementsCountTransition * d for d in start_d3], id3[n1]]
+                nd3 = [nd3before[0], computeCubicHermiteEndDerivative(nx[0], nd3before[0], nx[1], nd3before[1])]
+                tx, td3, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(
+                    nx, nd3, self._elementsCountTransition,
+                    derivativeMagnitudeStart=magnitude(nd3[0]) / self._elementsCountTransition,
+                    derivativeMagnitudeEnd=magnitude(nd3[1]) / self._elementsCountTransition)
+                delta_id1 = sub(id1[n1], start_d1)
+                td1 = interpolateSampleCubicHermite([start_d1, id1[n1]], [delta_id1, delta_id1], pe, pxi, psf)[0]
 
-    def _generateCoreCoordinates(self, n2, coreCentre):
-        """
-        Creates coordinates and derivatives for the solid core (and the rim(s) around the core, if exists) based on
-        outer and inner tube coordinates.
-        :param n2: Index for elements along the tube.
-        :param coreCentre: Coordinates at the centre point of solid core
-        :return: Lists of coordinates and derivatives for the solid core and rims around the core.
-        """
-        # Determine mirror curves
-        rscx, rscd1, rscd3 = self._createMirrorCurve(n2, coreCentre)
-        # Create regular row curves
-        cbx, cbd1, cbd3, ctx, ctd1, ctd3 = self._sampleCoreNodesAlongMinorAxis(n2, rscx, rscd1, rscd3)
-        # Create regular column curves
-        cbx, cbd1, cbd3, ctx, ctd1, ctd3 = self._sampleCoreNodeAlongMajorAxis(n2, cbx, cbd1, cbd3, ctx, ctd1, ctd3)
-        # Get triple points
-        cbx, cbd1, cbd3, ctx, ctd1, ctd3 = self._determineCoreTriplePoints(n2, cbx, cbd1, cbd3, ctx, ctd1, ctd3)
-        # Smooth derivatives
-        cbd1, cbd3, ctd1, ctd3 = self._smoothCoreDerivatives(cbx, cbd1, cbd3, ctx, ctd1, ctd3)
+                for n3 in range(1, self._elementsCountTransition):
+                    ctx[n3 - 1][n1] = tx[n3]
+                    ctd1[n3 - 1][n1] = td1[n3]
+                    ctd3[n3 - 1][n1] = td3[n3]
+
+            # smooth td1 around:
+            for n3 in range(1, self._elementsCountTransition):
+                ctd1[n3 - 1] = smoothCubicHermiteDerivativesLoop(ctx[n3 - 1], ctd1[n3 - 1], fixAllDirections=False)
 
         return cbx, cbd1, cbd3, ctx, ctd1, ctd3
 
@@ -787,23 +858,42 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :return: D2 derivatives of box and rim components of the core.
         """
         elementsCountAlong = len(boxx)
-        nodesCountAcrossMajor = len(boxx[0])
-        nodesCountAcrossMinor = len(boxx[0][0])
+        coreBoxMajorNodesCount = len(boxx[0])
+        coreBoxMinorNodesCount = len(boxx[0][0])
 
-        boxd2 = [[[None for _ in range(nodesCountAcrossMinor)] for _ in range(nodesCountAcrossMajor)]
+        boxd2 = [[[None for _ in range(coreBoxMinorNodesCount)] for _ in range(coreBoxMajorNodesCount)]
                  for _ in range(elementsCountAlong)]
         transd2 = [[[None for _ in range(self._elementsCountAround)] for _ in range(self._elementsCountTransition - 1)]
                    for _ in range(elementsCountAlong)]
 
-        for m in range(nodesCountAcrossMajor):
-            for n in range(nodesCountAcrossMinor):
+        # compute core d2 directions by weighting with 1/distance from inner coordinates
+
+        def get_d2(n2, x):
+            sum_weight = 0.0
+            sum_d2 = [0.0, 0.0, 0.0]
+            ix = self._rimCoordinates[0][n2][0]
+            id2 = self._rimCoordinates[2][n2][0]
+            for i in range(len(ix)):
+                distance_sq = 0.0
+                for c in range(3):
+                    delta = x[c] - ix[i][c]
+                    distance_sq += delta * delta
+                if distance_sq == 0.0:
+                    return id2[i]
+                weight = 1.0 / math.sqrt(distance_sq)
+                sum_weight += weight
+                for c in range(3):
+                    sum_d2[c] += weight * id2[i][c]
+            return [sum_d2[c] / sum_weight for c in range(3)]
+
+        for m in range(coreBoxMajorNodesCount):
+            for n in range(coreBoxMinorNodesCount):
                 tx, td2 = [], []
                 for n2 in range(elementsCountAlong):
                     x = boxx[n2][m][n]
-                    d2 = cross(boxd3[n2][m][n], boxd1[n2][m][n])
                     tx.append(x)
-                    td2.append(d2)
-                td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=False, fixEndDirection=False)
+                    td2.append(get_d2(n2, x))
+                # td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixAllDirections=True)
                 for n2 in range(elementsCountAlong):
                     boxd2[n2][m][n] = td2[n2]
 
@@ -813,16 +903,15 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     tx, td2 = [], []
                     for n2 in range(elementsCountAlong):
                         x = transx[n2][n3][n1]
-                        d2 = cross(transd3[n2][n3][n1], transd1[n2][n3][n1])
                         tx.append(x)
-                        td2.append(d2)
-                    td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixStartDirection=False, fixEndDirection=True)
+                        td2.append(get_d2(n2, x))
+                    # td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixAllDirections=True)
                     for n2 in range(elementsCountAlong):
                         transd2[n2][n3][n1] = td2[n2]
 
         return boxd2, transd2
 
-    def _determineWallCoordinates(self, ox, od1, od2, ix, id1, id2, coreCentre, arcCentre):
+    def _determineShellCoordinates(self, ox, od1, od2, ix, id1, id2, coreCentre, arcCentre):
         """
         Calculates rim coordinates and d3 derivatives based on the centre point of the solid core.
         :param ox, od1, od2: Coordinates and (d1 and d2) derivatives for outermost rim.
@@ -862,22 +951,22 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     it = cross(ic, id1[n1])
                 else:
                     ot, it = cross(od1[n1], od2[n1]), cross(id1[n1], id2[n1])
-                scalefactor = magnitude(sub(ox[n1], ix[n1])) / self._elementsCountThroughWall
+                scalefactor = magnitude(sub(ox[n1], ix[n1])) / self._elementsCountThroughShell
                 od3 = mult(normalize(ot), scalefactor)
                 id3 = mult(normalize(it), scalefactor)
             else:
-                wallFactor = 1.0 / self._elementsCountThroughWall
-                od3 = id3 = mult(sub(ox[n1], ix[n1]), wallFactor)
+                shellFactor = 1.0 / self._elementsCountThroughShell
+                od3 = id3 = mult(sub(ox[n1], ix[n1]), shellFactor)
 
             txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
-                [ix[n1], ox[n1]], [id3, od3], self._elementsCountThroughWall, arcLengthDerivatives=True)
+                [ix[n1], ox[n1]], [id3, od3], self._elementsCountThroughShell, arcLengthDerivatives=True)
 
             td3m = smoothCubicHermiteDerivativesLine(txm, td3m, fixStartDirection=True, fixEndDirection=True)
 
             tx.append(txm)
             td3.append(td3m)
 
-        for n3 in range(self._elementsCountThroughWall + 1):
+        for n3 in range(self._elementsCountThroughShell + 1):
             wx.append([])
             wd3.append([])
             for n1 in range(self._elementsCountAround):
@@ -900,8 +989,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         boxBoundaryNodeToBoxId = []
         elementsCountAlong = len(self._rimCoordinates[0]) - 1
 
-        boxElementsCountRow = (self._elementsCountAcrossMajor - 2 * self._elementsCountTransition) + 1
-        boxElementsCountColumn = (self._elementsCountAcrossMinor - 2 * self._elementsCountTransition) + 1
+        coreBoxMajorNodesCount = self._elementsCountCoreBoxMajor + 1
+        coreBoxMinorNodesCount = self._elementsCountCoreBoxMinor + 1
         for n2 in range(elementsCountAlong + 1):
             if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount) or self._boxNodeIds[n2] is None:
                 boxBoundaryNodeIds.append(None)
@@ -910,12 +999,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             else:
                 boxBoundaryNodeIds.append([])
                 boxBoundaryNodeToBoxId.append([])
-            for n3 in range(boxElementsCountRow):
-                if n3 == 0 or n3 == boxElementsCountRow - 1:
+            for n3 in range(coreBoxMajorNodesCount):
+                if n3 == 0 or n3 == coreBoxMajorNodesCount - 1:
                     ids = self._boxNodeIds[n2][n3] if n3 == 0 else self._boxNodeIds[n2][n3][::-1]
-                    n1List = list(range(boxElementsCountColumn)) if n3 == 0 else (
-                        list(range(boxElementsCountColumn - 1, -1, -1)))
-                    boxBoundaryNodeIds[n2] += [ids[c] for c in range(boxElementsCountColumn)]
+                    n1List = list(range(coreBoxMinorNodesCount)) if n3 == 0 else (
+                        list(range(coreBoxMinorNodesCount - 1, -1, -1)))
+                    boxBoundaryNodeIds[n2] += [ids[c] for c in range(coreBoxMinorNodesCount)]
                     for n1 in n1List:
                         boxBoundaryNodeToBoxId[n2].append([n3, n1])
                 else:
@@ -923,13 +1012,13 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         boxBoundaryNodeIds[n2].append(self._boxNodeIds[n2][n3][n1])
                         boxBoundaryNodeToBoxId[n2].append([n3, n1])
 
-            start = self._elementsCountAcrossMajor - 4 - 2 * (self._elementsCountTransition - 1)
-            idx = self._elementsCountAcrossMinor - 2 * (self._elementsCountTransition - 1)
+            start = self._elementsCountCoreBoxMajor - 2
+            idx = self._elementsCountCoreBoxMinor + 2
             for n in range(int(start), -1, -1):
                 boxBoundaryNodeIds[n2].append(boxBoundaryNodeIds[n2].pop(idx + 2 * n))
                 boxBoundaryNodeToBoxId[n2].append(boxBoundaryNodeToBoxId[n2].pop(idx + 2 * n))
 
-            nloop = self._elementsCountAcrossMinor // 2 - self._elementsCountTransition
+            nloop = self._elementsCountCoreBoxMinor // 2
             for _ in range(nloop):
                 boxBoundaryNodeIds[n2].insert(len(boxBoundaryNodeIds[n2]), boxBoundaryNodeIds[n2].pop(0))
                 boxBoundaryNodeToBoxId[n2].insert(len(boxBoundaryNodeToBoxId[n2]),
@@ -940,10 +1029,41 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
     @classmethod
     def blendSampledCoordinates(cls, segment1, nodeIndexAlong1, segment2, nodeIndexAlong2):
         nodesCountAround = segment1._elementsCountAround
-        nodesCountRim = len(segment1._rimCoordinates[0][0])
+        nodesCountRim = len(segment1._rimCoordinates[0][nodeIndexAlong1])
         if ((nodesCountAround != segment2._elementsCountAround) or
-                (nodesCountRim != len(segment2._rimCoordinates[0][0]))):
+                (nodesCountRim != len(segment2._rimCoordinates[0][nodeIndexAlong2]))):
             return  # can't blend unless these match
+
+        if segment1._isCore and segment2._isCore:
+            coreBoxMajorNodesCount = len(segment1._boxCoordinates[0][nodeIndexAlong1])
+            coreBoxMinorNodesCount = len(segment1._boxCoordinates[0][nodeIndexAlong1][0])
+            nodesCountTransition = len(segment1._transitionCoordinates[0][nodeIndexAlong1]) if segment1._transitionCoordinates else 0
+            if ((coreBoxMajorNodesCount != len(segment2._boxCoordinates[0][nodeIndexAlong2])) or
+                    (coreBoxMinorNodesCount != len(segment2._boxCoordinates[0][nodeIndexAlong2][0])) or
+                    (nodesCountTransition != (len(segment2._transitionCoordinates[0][nodeIndexAlong2])
+                    if segment1._transitionCoordinates else 0))):
+                return  # can't blend unless these match
+            # blend core coordinates
+            s1d2 = segment1._boxCoordinates[2][nodeIndexAlong1]
+            s2d2 = segment2._boxCoordinates[2][nodeIndexAlong2]
+            for m in range(coreBoxMajorNodesCount):
+                for n in range(coreBoxMinorNodesCount):
+                    # harmonic mean magnitude
+                    s1d2Mag = magnitude(s1d2[m][n])
+                    s2d2Mag = magnitude(s2d2[m][n])
+                    d2Mag = 2.0 / ((1.0 / s1d2Mag) + (1.0 / s2d2Mag))
+                    s2d2[m][n] = s1d2[m][n] = mult(s1d2[m][n], d2Mag / s1d2Mag)
+            for n3 in range(nodesCountTransition):
+                s1d2 = segment1._transitionCoordinates[2][nodeIndexAlong1][n3]
+                s2d2 = segment2._transitionCoordinates[2][nodeIndexAlong2][n3]
+                for n1 in range(nodesCountAround):
+                    # harmonic mean magnitude
+                    s1d2Mag = magnitude(s1d2[n1])
+                    s2d2Mag = magnitude(s2d2[n1])
+                    d2Mag = 2.0 / ((1.0 / s1d2Mag) + (1.0 / s2d2Mag))
+                    s2d2[n1] = s1d2[n1] = mult(s1d2[n1], d2Mag / s1d2Mag)
+        elif segment1._isCore or segment2._isCore:
+            return  # can't blend if both don't have core
 
         # blend rim coordinates
         for n3 in range(nodesCountRim):
@@ -954,9 +1074,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 s1d2Mag = magnitude(s1d2[n1])
                 s2d2Mag = magnitude(s2d2[n1])
                 d2Mag = 2.0 / ((1.0 / s1d2Mag) + (1.0 / s2d2Mag))
-                d2 = mult(s1d2[n1], d2Mag / s1d2Mag)
-                s1d2[n1] = d2
-                s2d2[n1] = d2
+                s2d2[n1] = s1d2[n1] = mult(s1d2[n1], d2Mag / s1d2Mag)
 
     def getSampledElementsCountAlong(self):
         return len(self._sampledTubeCoordinates[0][0]) - 1
@@ -970,11 +1088,30 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         return self._sampledTubeCoordinates[pathIndex][0][nodeIndexAlong]
 
-    def getElementsCountRim(self):
+    def getElementsCountShell(self):
+        """
+        :return: Number of elements through the non-core shell.
+        """
         return max(1, len(self._rimCoordinates[0][0]) - 1)
 
+    def getElementsCountRim(self):
+        """
+        :return: Number of elements radially outside core box if core is on,
+        otherwise same as number through shell.
+        """
+        elementsCountRim = self.getElementsCountShell()
+        if self._isCore:
+            elementsCountRim += self._elementsCountTransition
+        return elementsCountRim
+
     def getNodesCountRim(self):
-        return len(self._rimCoordinates[0][0])
+        """
+        :return: Number of transition + shell nodes
+        """
+        nodesCountRim = len(self._rimCoordinates[0][0])
+        if self._isCore:
+            nodesCountRim += (self._elementsCountTransition - 1)
+        return nodesCountRim
 
     def getRimCoordinatesListAlong(self, n1, n2List, n3):
         """
@@ -1027,10 +1164,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         return paramsList
 
-    def getCoreNodesCountAcrossMajor(self):
+    def getCoreBoxMajorNodesCount(self):
         return len(self._boxCoordinates[0][0])
 
-    def getCoreNodesCountAcrossMinor(self):
+    def getCoreBoxMinorNodesCount(self):
         return len(self._boxCoordinates[0][0][0])
 
     def getElementsCountTransition(self):
@@ -1082,7 +1219,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :return: A list of circular (n1) indexes used to identify triple points.
         """
         elementsCountAround = self._elementsCountAround
-        nodesCountAcrossMinorHalf = self.getCoreNodesCountAcrossMinor() // 2
+        nodesCountAcrossMinorHalf = self.getCoreBoxMinorNodesCount() // 2
         triplePointIndexesList = []
 
         for n in range(0, elementsCountAround, elementsCountAround // 2):
@@ -1098,14 +1235,14 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         and bottom right (location = -2). Location is None if not located at any of the four specified locations.
         :return: Location identifier.
         """
-        em = (self._elementsCountAcrossMinor - 2) // 2 - (self._elementsCountTransition - 1)
-        eM = (self._elementsCountAcrossMajor - 2) // 2 - (self._elementsCountTransition - 1)
+        en = self._elementsCountCoreBoxMinor // 2
+        em = self._elementsCountCoreBoxMajor // 2
         ec = self._elementsCountAround // 4
 
-        lftColumnElements = list(range(0, ec - eM)) + list(range(3 * ec + eM, self._elementsCountAround))
-        topRowElements = list(range(ec - eM, ec + eM))
-        rhtColumnElements = list((range(2 * ec - em, 2 * ec + em)))
-        btmRowElements = list(range(3 * ec - eM, 3 * ec + eM))
+        lftColumnElements = list(range(0, ec - em)) + list(range(3 * ec + em, self._elementsCountAround))
+        topRowElements = list(range(ec - em, ec + em))
+        rhtColumnElements = list((range(2 * ec - en, 2 * ec + en)))
+        btmRowElements = list(range(3 * ec - em, 3 * ec + em))
 
         idx = len(lftColumnElements) // 2
         if e1 == topRowElements[0] or e1 == lftColumnElements[idx - 1]:
@@ -1123,16 +1260,25 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def getRimCoordinates(self, n1, n2, n3):
         """
-        Get rim parameters at a point.
+        Get rim parameters (transition through shell) parameters at a point.
+        This was what rim coordinates should have been.
         :param n1: Node index around.
         :param n2: Node index along segment.
-        :param n3: Node index from inner to outer rim.
+        :param n3: Node index from first core transition row or inner to outer shell.
         :return: x, d1, d2, d3
         """
-        return (self._rimCoordinates[0][n2][n3][n1],
-                self._rimCoordinates[1][n2][n3][n1],
-                self._rimCoordinates[2][n2][n3][n1],
-                self._rimCoordinates[3][n2][n3][n1] if self._rimCoordinates[3] else None)
+        transitionNodeCount = (len(self._transitionCoordinates[0][0])
+                               if (self._transitionCoordinates and self._transitionCoordinates[0]) else 0)
+        if n3 < transitionNodeCount:
+            return (self._transitionCoordinates[0][n2][n3][n1],
+                    self._transitionCoordinates[1][n2][n3][n1],
+                    self._transitionCoordinates[2][n2][n3][n1],
+                    self._transitionCoordinates[3][n2][n3][n1] if self._transitionCoordinates[3] else None)
+        sn3 = n3 - transitionNodeCount
+        return (self._rimCoordinates[0][n2][sn3][n1],
+                self._rimCoordinates[1][n2][sn3][n1],
+                self._rimCoordinates[2][n2][sn3][n1],
+                self._rimCoordinates[3][n2][sn3][n1] if self._rimCoordinates[3] else None)
 
     def getRimNodeId(self, n1, n2, n3):
         """
@@ -1167,11 +1313,143 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._rimElementIds[e2] = [[None] * self._elementsCountAround for _ in range(elementsCountRim)]
         self._rimElementIds[e2][e3][e1] = elementIdentifier
 
+    def getBoxElementId(self, e1, e2, e3):
+        """
+        Get a box element ID.
+        :param e1: Element index across core box major / d2 direction.
+        :param e2: Element index along segment.
+        :param e3: Element index across core box minor / d3 direction.
+        :return: Element identifier.
+        """
+        return self._boxElementIds[e2][e3][e1]
+
+    def setBoxElementId(self, e1, e2, e3, elementIdentifier):
+        """
+        Set a box element ID. Only called by adjacent junctions.
+        :param e1: Element index across core box major / d2 direction.
+        :param e2: Element index along segment.
+        :param e3: Element index across core box minor / d3 direction.
+        :param elementIdentifier: Element identifier.
+        """
+        if not self._boxElementIds[e2]:
+            self._boxElementIds[e2] = [
+                [None] * self._elementsCountCoreBoxMinor for _ in range(self._elementsCountCoreBoxMajor)]
+        self._boxElementIds[e2][e3][e1] = elementIdentifier
+
+    def _addBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Add ranges of box elements to mesh group.
+        :param e1Start: Start element index in major / d2 direction.
+        :param e1Limit: Limit element index in major / d2 direction.
+        :param e3Start: Start element index in minor / d3 direction.
+        :param e3Limit: Limit element index in minor / d3 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add box elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            boxSlice = self._boxElementIds[e2]
+            if boxSlice:
+                # print(boxSlice[e1Start:e1Limit])
+                for elementIdentifiersList in boxSlice[e1Start:e1Limit]:
+                    for elementIdentifier in elementIdentifiersList[e3Start:e3Limit]:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
+
+    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Add ranges of rim elements to mesh group.
+        :param e1Start: Start element index around. Can be negative which supports wrapping.
+        :param e1Limit: Limit element index around.
+        :param e3Start: Start element index rim.
+        :param e3Limit: Limi element index rim.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        elementsCountAround = self.getElementsCountAround()
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            rimSlice = self._rimElementIds[e2]
+            if rimSlice:
+                for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
+                    partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
+                            elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
+                    # print(partElementIdentifiersList)
+                    if None in elementIdentifiersList:
+                        break
+                    for elementIdentifier in partElementIdentifiersList:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
+
+    def addCoreElementsToMeshGroup(self, meshGroup):
+        """
+        Ensure all core elements in core box or rim arrays are in mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        if not self._isCore:
+            return
+        self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor,
+                                        0, self._elementsCountCoreBoxMinor, meshGroup)
+        self._addRimElementsToMeshGroup(0, self._elementsCountAround,
+                                        0, self._elementsCountTransition, meshGroup)
+
+    def addShellElementsToMeshGroup(self, meshGroup):
+        """
+        Add elements in the shell to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountRim = self.getElementsCountRim()
+        elementsCountShell = self._elementsCountThroughShell
+        e3ShellStart = elementsCountRim - elementsCountShell
+        self._addRimElementsToMeshGroup(0, self._elementsCountAround, e3ShellStart, elementsCountRim, meshGroup)
+
+    def addAllElementsToMeshGroup(self, meshGroup):
+        """
+        Add all elements in the segment to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        self.addCoreElementsToMeshGroup(meshGroup)
+        self.addShellElementsToMeshGroup(meshGroup)
+
+    def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d2 or -d2, often matching left and right.
+        Only works with even numbers around and phase starting at +d2.
+        :param side: False for +d2 direction, True for -d2 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        if self._isCore:
+            e1Start = (self._elementsCountCoreBoxMajor // 2) if side else 0
+            e1Limit = self._elementsCountCoreBoxMajor if side else ((self._elementsCountCoreBoxMajor + 1) // 2)
+            self._addBoxElementsToMeshGroup(e1Start, e1Limit, 0, self._elementsCountCoreBoxMinor, meshGroup)
+        e1Start = (self._elementsCountAround // 4) if side else -((self._elementsCountAround + 2) // 4)
+        e1Limit = e1Start + (self._elementsCountAround // 2)
+        if (self._elementsCountAround % 4) == 2:
+            e1Limit += 1
+        self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
+    def addSideD3ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d3 or -d3, often matching anterior/ventral and posterior/dorsal.
+        Only works with even numbers around and phase starting at +d2.
+        :param side: False for +d3 direction, True for -d3 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        if self._isCore:
+            e3Start = 0 if side else (self._elementsCountCoreBoxMinor // 2)
+            e3Limit = ((self._elementsCountCoreBoxMinor + 1) // 2) if side else self._elementsCountCoreBoxMinor
+            self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor, e3Start, e3Limit, meshGroup)
+        e1Start = (self._elementsCountAround // 2) if side else 0
+        e1Limit = e1Start + (self._elementsCountAround // 2)
+        self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
     def getRimNodeIdsSlice(self, n2):
         """
         Get slice of rim node IDs.
         :param n2: Node index along segment, including negative indexes from end.
-        :return: Node IDs arrays through wall and around, or None if not set.
+        :return: Node IDs arrays through rim and around, or None if not set.
         """
         return self._rimNodeIds[n2]
 
@@ -1179,6 +1457,19 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         :param n2Only: If set, create nodes only for that single n2 index along. Must be >= 0!
         """
+        # keeping this code to enable display of raw segment trim surfaces for future diagnostics
+        # if (not n2Only) and generateData.isShowTrimSurfaces():
+        #     dimension = generateData.getMeshDimension()
+        #     nodeIdentifier, elementIdentifier = generateData.getNodeElementIdentifiers()
+        #     faceIdentifier = elementIdentifier if (dimension == 2) else None
+        #     annotationGroup = generateData.getNewTrimAnnotationGroup()
+        #     nodeIdentifier, faceIdentifier = \
+        #         self._rawTrackSurfaceList[0].generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
+        #                                               group_name=annotationGroup.getName())
+        #     if dimension == 2:
+        #         elementIdentifier = faceIdentifier
+        #     generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
+
         elementsCountAlong = len(self._rimCoordinates[0]) - 1
         elementsCountRim = self.getElementsCountRim()
         elementsCountTransition = self.getElementsCountTransition()
@@ -1189,7 +1480,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         # create nodes
         nodes = generateData.getNodes()
-        isLinearThroughWall = generateData.isLinearThroughWall()
+        isLinearThroughShell = generateData.isLinearThroughShell()
         nodetemplate = generateData.getNodetemplate()
         for n2 in range(elementsCountAlong + 1) if (n2Only is None) else [n2Only]:
             if (n2 < startSkipCount) or (n2 > elementsCountAlong - endSkipCount):
@@ -1231,15 +1522,15 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             # create core box nodes
             if self._boxCoordinates:
                 self._boxNodeIds[n2] = [] if self._boxNodeIds[n2] is None else self._boxNodeIds[n2]
-                nodesCountAcrossMajor = self.getCoreNodesCountAcrossMajor()
-                nodesCountAcrossMinor = self.getCoreNodesCountAcrossMinor()
-                for n3 in range(nodesCountAcrossMajor):
+                coreBoxMajorNodesCount = self.getCoreBoxMajorNodesCount()
+                coreBoxMinorNodesCount = self.getCoreBoxMinorNodesCount()
+                for n3 in range(coreBoxMajorNodesCount):
                     self._boxNodeIds[n2].append([])
                     rx = self._boxCoordinates[0][n2][n3]
                     rd1 = self._boxCoordinates[1][n2][n3]
                     rd2 = self._boxCoordinates[2][n2][n3]
                     rd3 = self._boxCoordinates[3][n2][n3]
-                    for n1 in range(nodesCountAcrossMinor):
+                    for n1 in range(coreBoxMinorNodesCount):
                         nodeIdentifier = generateData.nextNodeIdentifier()
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         fieldcache.setNode(node)
@@ -1250,10 +1541,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         self._boxNodeIds[n2][n3].append(nodeIdentifier)
 
             # create rim nodes and transition nodes (if there are more than 1 layer of transition)
-            nodesCountRim = len(self._rimCoordinates[0][0])
             self._rimNodeIds[n2] = [] if self._rimNodeIds[n2] is None else self._rimNodeIds[n2]
-            nloop = nodesCountRim + (elementsCountTransition - 1) if self._isCore else nodesCountRim
-            for n3 in range(nloop):
+            nodesCountRim = self.getNodesCountRim()
+            for n3 in range(nodesCountRim):
                 n3p = n3 - (elementsCountTransition - 1) if self._isCore else n3
                 if self._isCore and elementsCountTransition > 1 and n3 < (elementsCountTransition - 1):
                     # transition coordinates
@@ -1266,7 +1556,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     rx = self._rimCoordinates[0][n2][n3p]
                     rd1 = self._rimCoordinates[1][n2][n3p]
                     rd2 = self._rimCoordinates[2][n2][n3p]
-                    rd3 = None if isLinearThroughWall else self._rimCoordinates[3][n2][n3p]
+                    rd3 = None if isLinearThroughShell else self._rimCoordinates[3][n2][n3p]
                 ringNodeIds = []
                 for n1 in range(self._elementsCountAround):
                     nodeIdentifier = generateData.nextNodeIdentifier()
@@ -1291,17 +1581,18 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         # create elements
         annotationMeshGroups = generateData.getAnnotationMeshGroups(self._annotationTerms)
         mesh = generateData.getMesh()
-        elementtemplateStd = generateData.getStandardElementtemplate()
-        eftStd = generateData.getStandardEft()
+        elementtemplateStd, eftStd = generateData.getStandardElementtemplate()
         for e2 in range(startSkipCount, elementsCountAlong - endSkipCount):
+            self._boxElementIds[e2] = []
             self._rimElementIds[e2] = []
             e2p = e2 + 1
             if self._isCore:
                 # create box elements
-                elementsCountAcrossMinor = self.getCoreNodesCountAcrossMinor() - 1
-                elementsCountAcrossMajor = self.getCoreNodesCountAcrossMajor() - 1
+                elementsCountAcrossMinor = self.getCoreBoxMinorNodesCount() - 1
+                elementsCountAcrossMajor = self.getCoreBoxMajorNodesCount() - 1
                 for e3 in range(elementsCountAcrossMajor):
                     e3p = e3 + 1
+                    elementIds = []
                     for e1 in range(elementsCountAcrossMinor):
                         nids = []
                         for n1 in [e1, e1 + 1]:
@@ -1312,11 +1603,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         element.setNodesByIdentifier(eftStd, nids)
                         for annotationMeshGroup in annotationMeshGroups:
                             annotationMeshGroup.addElement(element)
+                        elementIds.append(elementIdentifier)
+                    self._boxElementIds[e2].append(elementIds)
 
-                # create core transition elements
+                # create core transition elements first layer after box
                 triplePointIndexesList = self.getTriplePointIndexes()
-                eftList = [None] * self._elementsCountAround
-                scalefactorsList = [None] * self._elementsCountAround
                 ringElementIds = []
                 for e1 in range(self._elementsCountAround):
                     nids, nodeParameters, nodeLayouts = [], [], []
@@ -1336,12 +1627,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                             nids += [self._rimNodeIds[n2][0][n1]]
                             nodeParameters.append(self.getRimCoordinates(n1, n2, 0))
                             nodeLayouts.append(None)
-                    eft = eftList[e1]
-                    scalefactors = scalefactorsList[e1]
-                    if not eft:
-                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                        eftList[e1] = eft
-                        scalefactorsList[e1] = scalefactors
+                    eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                    if self._elementsCountTransition == 1:
+                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                            eft, scalefactors, nodeParameters, nids, self._coreBoundaryScalingMode)
                     elementtemplate = mesh.createElementtemplate()
                     elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
                     elementtemplate.defineField(coordinates, -1, eft)
@@ -1355,19 +1644,40 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     ringElementIds.append(elementIdentifier)
                 self._rimElementIds[e2].append(ringElementIds)
 
-            # create rim elements
-            nloop = elementsCountRim + (self._elementsCountTransition - 1) if self._isCore else elementsCountRim
-            for e3 in range(nloop):
+            # create regular rim elements - all elements outside first transition layer
+            elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
+            for e3 in range(elementsCountRimRegular):
                 ringElementIds = []
+                lastTransition = self._isCore and (e3 == (self._elementsCountTransition - 2))
                 for e1 in range(self._elementsCountAround):
-                    e1p = (e1 + 1) % self._elementsCountAround
+                    elementtemplate = elementtemplateStd
+                    eft = eftStd
+
+                    n1p = (e1 + 1) % self._elementsCountAround
                     nids = []
                     for n3 in [e3, e3 + 1] if (self._dimension == 3) else [0]:
-                        nids += [self._rimNodeIds[e2][n3][e1], self._rimNodeIds[e2][n3][e1p],
-                                 self._rimNodeIds[e2p][n3][e1], self._rimNodeIds[e2p][n3][e1p]]
+                        nids += [self._rimNodeIds[e2][n3][e1], self._rimNodeIds[e2][n3][n1p],
+                                 self._rimNodeIds[e2p][n3][e1], self._rimNodeIds[e2p][n3][n1p]]
                     elementIdentifier = generateData.nextElementIdentifier()
-                    element = mesh.createElement(elementIdentifier, elementtemplateStd)
-                    element.setNodesByIdentifier(eftStd, nids)
+                    scalefactors = []
+                    if lastTransition:
+                        # get node parameters for computing scale factors
+                        nodeParameters = []
+                        for n3 in (e3, e3 + 1):
+                            for n2 in (e2, e2 + 1):
+                                for n1 in (e1, n1p):
+                                    nodeParameters.append(self.getRimCoordinates(n1, n2, n3))
+                        eft = generateData.createElementfieldtemplate()
+                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                            eft, scalefactors, nodeParameters, nids, self._coreBoundaryScalingMode)
+                        elementtemplateTransition = mesh.createElementtemplate()
+                        elementtemplateTransition.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        elementtemplateTransition.defineField(coordinates, -1, eft)
+                        elementtemplate = elementtemplateTransition
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+                    if scalefactors:
+                        element.setScaleFactors(eft, scalefactors)
                     for annotationMeshGroup in annotationMeshGroups:
                         annotationMeshGroup.addElement(element)
                     ringElementIds.append(elementIdentifier)
@@ -1379,34 +1689,38 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
     Describes junction between multiple tube segments, some in, some out.
     """
 
-    def __init__(self, inSegments: list, outSegments: list):
+    def __init__(self, inSegments: list, outSegments: list, useOuterTrimSurfaces):
         """
         :param inSegments: List of inward TubeNetworkMeshSegment.
         :param outSegments: List of outward TubeNetworkMeshSegment.
+        :param useOuterTrimSurfaces: Set to True to use common trim surfaces calculated from outer.
         """
         super(TubeNetworkMeshJunction, self).__init__(inSegments, outSegments)
         pathsCount = self._segments[0].getPathsCount()
         self._trimSurfaces = [[None for p in range(pathsCount)] for s in range(self._segmentsCount)]
+        self._useOuterTrimSurfaces = useOuterTrimSurfaces
         self._calculateTrimSurfaces()
         # rim indexes are issued for interior points connected to 2 or more segment node indexes
-        # based on the outer surface, and reused through the wall
+        # based on the outer surface, and reused through the rim
         self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment number, node index around)]
         self._segmentNodeToRimIndex = []  # list[segment number][node index around] to rimIndex
-        # rim coordinates sampled in the junction are indexed by n3 (through the wall) and 'rim index'
+        # rim coordinates sampled in the junction are indexed by n3 (indexed outware through the rim) and 'rim index'
         self._rimCoordinates = None  # if set, (rx[], rd1[], rd2[], rd3[]) each over [n3][rim index]
         self._rimNodeIds = None  # if set, nodeIdentifier[n3][rim index]
 
         # parameters used for solid core
         self._isCore = self._segments[0].getIsCore()
         self._boxCoordinates = None # [nAlong][nAcrossMajor][nAcrossMinor]
-        self._transitionCoordinates = None
         self._boxNodeIds = None
-        self._biSequence = None # sequence for bifurcation - either [1, 2, 3] or [1, 3, 2]
-        self._triSequence = None # sequence for trifurcation
+        # sequence of segment indexes for bifurcation or trifurcation, proceding in increasing angle around a plane.
+        # See: self._determineJunctionSequence()
+        self._sequence = None
         self._boxIndexToSegmentNodeList = []
         # list[box index] giving list[(segment number, node index across major axis, node index across minor axis)]
         self._segmentNodeToBoxIndex = []
         # list[segment number][node index across major axis][node index across minor axis] to boxIndex
+        self._triplePointLocationsList = []
+        # list[[node Id, location], ...] used to match ETFs at triple points
 
     def _calculateTrimSurfaces(self):
         """
@@ -1429,11 +1743,35 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     outDir = [-d for d in outDir]
                 outDirs[s].append(outDir)
 
+        segmentEndPlaneTrackSurfaces = []
+        for s in range(self._segmentsCount):
+            endIndex = -1 if self._segmentsIn[s] else 0
+            pathEndPlaneTrackSurfaces = []
+            for p in range(pathsCount):
+                if self._useOuterTrimSurfaces and (p > 0):
+                    pathEndPlaneTrackSurfaces.append(pathEndPlaneTrackSurfaces[-1])
+                    continue
+                pathParameters = self._segments[s].getPathParameters(p)
+                centre = pathParameters[0][endIndex]
+                axis1 = pathParameters[2][endIndex]
+                axis2 = pathParameters[4][endIndex]
+                nx = [sub(sub(centre, axis1), axis2),
+                      sub(add(centre, axis1), axis2),
+                      add(sub(centre, axis1), axis2),
+                      add(add(centre, axis1), axis2)]
+                nd1 = [mult(axis1, 2.0)] * 4
+                nd2 = [mult(axis2, 2.0)] * 4
+                pathEndPlaneTrackSurfaces.append(TrackSurface(1, 1, nx, nd1, nd2))
+            segmentEndPlaneTrackSurfaces.append(pathEndPlaneTrackSurfaces)
+
         trimPointsCountAround = 6
         trimAngle = 2.0 * math.pi / trimPointsCountAround
         for s in range(self._segmentsCount):
             endIndex = -1 if self._segmentsIn[s] else 0
             for p in range(pathsCount):
+                if self._useOuterTrimSurfaces and (p > 0):
+                    self._trimSurfaces[s][p] = self._trimSurfaces[s][p - 1]
+                    continue
                 pathParameters = self._segments[s].getPathParameters(p)
                 d2End = pathParameters[2][endIndex]
                 d3End = pathParameters[4][endIndex]
@@ -1458,7 +1796,13 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         angle = math.atan2(dy, dx)
                         if angle < 0.0:
                             angle += 2.0 * math.pi
-                        weight = math.pi - math.acos(dot(sOutDir, osOutDir))
+                        dotDirs = dot(sOutDir, osOutDir)
+                        # handle numerical errors which make the above outside valid range of [-1.0, 1.0]:
+                        if dotDirs < -1.0:
+                            dotDirs = -1.0
+                        elif dotDirs > 1.0:
+                            dotDirs = 1.0
+                        weight = math.pi - math.acos(dotDirs)
                         if weight > maxWeight:
                             maxWeight = weight
                             phaseAngle = angle
@@ -1497,23 +1841,32 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         if os == s:
                             continue
                         otherSegment = self._segments[os]
-                        otherTrackSurface = otherSegment.getRawTrackSurface(p)
-                        otherSurfacePosition, curveLocation, isIntersection = \
-                            otherTrackSurface.findNearestPositionOnCurve(
-                                cx, cd2, loop=False, sampleEnds=False, sampleHalf=2 if self._segmentsIn[s] else 1)
-                        if isIntersection:
-                            proportion2 = (curveLocation[0] + curveLocation[1]) / (pointsCountAlong - 1)
-                            proportionFromEnd = math.fabs(proportion2 - (1.0 if self._segmentsIn[s] else 0.0))
-                            if proportionFromEnd > maxProportionFromEnd:
-                                trim = True
-                                x, d2 = evaluateCoordinatesOnCurve(cx, cd2, curveLocation, loop=False, derivative=True)
-                                d1 = evaluateCoordinatesOnCurve(cd1, cd12, curveLocation, loop=False)
-                                n = cross(d1, d2)  # normal to this surface
-                                ox, od1, od2 = otherTrackSurface.evaluateCoordinates(
-                                    otherSurfacePosition, derivatives=True)
-                                on = cross(od1, od2)  # normal to other surface
-                                d1 = cross(n, on)
-                                maxProportionFromEnd = proportionFromEnd
+                        for i in range(2):
+                            otherTrackSurface = \
+                                otherSegment.getRawTrackSurface(p) if (i == 0) else segmentEndPlaneTrackSurfaces[os][p]
+                            otherSurfacePosition, curveLocation, isIntersection = \
+                                otherTrackSurface.findNearestPositionOnCurve(
+                                    cx, cd2, loop=False, sampleEnds=False, sampleHalf=2 if self._segmentsIn[s] else 1)
+                            if isIntersection:
+                                if i == 1:
+                                    # must be within ellipse inside rectangular plane
+                                    xi1 = otherSurfacePosition.xi1 - 0.5
+                                    xi2 = otherSurfacePosition.xi2 - 0.5
+                                    if (xi1 * xi1 + xi2 * xi2) > 0.25:
+                                        break
+                                proportion2 = (curveLocation[0] + curveLocation[1]) / (pointsCountAlong - 1)
+                                proportionFromEnd = (1.0 - proportion2) if self._segmentsIn[s] else proportion2
+                                if proportionFromEnd > maxProportionFromEnd:
+                                    trim = True
+                                    x, d2 = evaluateCoordinatesOnCurve(cx, cd2, curveLocation, loop=False, derivative=True)
+                                    d1 = evaluateCoordinatesOnCurve(cd1, cd12, curveLocation, loop=False)
+                                    n = cross(d1, d2)  # normal to this surface
+                                    ox, od1, od2 = otherTrackSurface.evaluateCoordinates(
+                                        otherSurfacePosition, derivatives=True)
+                                    on = cross(od1, od2)  # normal to other surface
+                                    d1 = cross(n, on)
+                                    maxProportionFromEnd = proportionFromEnd
+                                break
                     if maxProportionFromEnd < lowestMaxProportionFromEnd:
                         lowestMaxProportionFromEnd = maxProportionFromEnd
                     rx.append(x)
@@ -1521,13 +1874,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
                 if trim:
                     # centre of trim surfaces is at lowestMaxProportionFromEnd
-                    if lowestMaxProportionFromEnd == 0.0:
+                    if lowestMaxProportionFromEnd <= 0.0:
                         xCentre = pathParameters[0][endIndex]
                     else:
-                        proportion = (1.0 - lowestMaxProportionFromEnd) if self._segmentsIn[s] \
-                            else lowestMaxProportionFromEnd
-                        e = int(proportion)
-                        curveLocation = (e, proportion - e)
+                        proportion = \
+                            (1.0 - lowestMaxProportionFromEnd) if self._segmentsIn[s] else lowestMaxProportionFromEnd
+                        eProportion = proportion * (pointsCountAlong - 1)
+                        e = min(int(eProportion), (pointsCountAlong - 2))
+                        curveLocation = (e, eProportion - e)
                         xCentre = evaluateCoordinatesOnCurve(pathParameters[0], pathParameters[1], curveLocation)
                     # ensure d1 directions go around in same direction as loop
                     for n1 in range(trimPointsCountAround):
@@ -1543,12 +1897,15 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nd1 = []
                     nd2 = []
                     nd12 = []
-                    for factor in (0.75, 1.25):
+                    trimWidthFactors = (0.25, 1.75) if self._useOuterTrimSurfaces else (0.75, 1.25)
+                    d2scale = trimWidthFactors[1] - trimWidthFactors[0]
+                    for factor in trimWidthFactors:
                         for n1 in range(trimPointsCountAround):
                             d2 = sub(rx[n1], xCentre)
                             x = add(xCentre, mult(d2, factor))
                             d1 = mult(rd1[n1], factor)
                             d12 = mult(rd12[n1], factor)
+                            d2 = mult(d2, d2scale)
                             nx.append(x)
                             nd1.append(d1)
                             nd2.append(d2)
@@ -1597,12 +1954,13 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         md3 = [] if d3Defined else None
         xi = 0.5
         sideFactor = 1.0
-        outFactor = 0.5  # only used if sideFactor is non-zero
+        outFactor = 1.0  # only used as relative proportion with non-zero sideFactor
         for s1 in range(segmentsCount - 1):
-            # fxs1 = segmentsParameterLists[s1][0][0]
-            # fd2s1 = segmentsParameterLists[s1][2][0]
-            # if segmentsIn[s1]:
-            #     fd2s1 = [-d for d in fd2s1]
+            fxs1 = segmentsParameterLists[s1][0][0]
+            fd2s1 = segmentsParameterLists[s1][2][0]
+            if not segmentsIn[s1]:
+                fd2s1 = [-d for d in fd2s1]
+            norm_fd2s1 = normalize(fd2s1)
             for s2 in range(s1 + 1, segmentsCount):
                 hd2s1 = hd2[s1]
                 hd2s2 = [-d for d in hd2[s2]]
@@ -1625,15 +1983,24 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 cd2 = interpolateCubicHermiteDerivative(hx[s1], hd2s1, hx[s2], hd2s2, xi)
                 mx.append(cx)
                 md1.append(mult(add(hd1[s1], [-d for d in hd1[s2]]), 0.5))
-                md2.append(cd2)
-                # smooth smx, smd2 with 2nd row from end coordinates and derivatives
-                # fxs2 = segmentsParameterLists[s2][0][0]
-                # fd2s2 = segmentsParameterLists[s2][2][0]
-                # if not segmentsIn[s1]:
-                #     fd2s2 = [-d for d in fd2s1]
-                # tmd2 = smoothCubicHermiteDerivativesLine(
-                #     [fxs1, cx, fxs2], [fd2s1, cd2, fd2s2], fixStartDerivative=True, fixEndDerivative=True)
-                # md2.append(tmd2[1])
+                fxs2 = segmentsParameterLists[s2][0][0]
+                fd2s2 = segmentsParameterLists[s2][2][0]
+                if segmentsIn[s2]:
+                    fd2s2 = [-d for d in fd2s2]
+                norm_fd2s2 = normalize(fd2s2)
+                # reduce md2 up to 50% depending on how out-of line they are
+                norm_cd2 = normalize(cd2)
+                # md2Factor = 0.75 + 0.25 * dot(norm_fd2s1, norm_fd2s2)
+                md2Factor1 = 0.75 + 0.25 * dot(norm_fd2s1, norm_cd2)
+                md2Factor2 = 0.75 + 0.25 * dot(norm_fd2s2, norm_cd2)
+                md2Factor = md2Factor1 * md2Factor2
+                # md2.append(mult(cd2, md2Factor))
+                # smooth md2 with 2nd row from end, which it actually interpolates to
+                tmd2 = smoothCubicHermiteDerivativesLine(
+                    [fxs1, cx, fxs2], [fd2s1, cd2, fd2s2],
+                    fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True,
+                    magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                md2.append(mult(tmd2[1], md2Factor))
                 if d3Defined:
                     md3.append(mult(add(hd3[s1], hd3[s2]), 0.5))
         if segmentsCount == 2:
@@ -1684,9 +2051,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         for s in range(1, segmentsCount):
             angle += angleIncrement
             deltaAngle += angles[sequence[s]] - angle
-            magSum += 1.0 / magnitude(rd[sequence[s]])
+            magSum += magnitude(rd[sequence[s]])
         deltaAngle = deltaAngle / segmentsCount
-        d2Mean = segmentsCount / magSum
+        d2Mean = magSum / segmentsCount
 
         angle = deltaAngle
         sd = [None] * segmentsCount
@@ -1700,22 +2067,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             # get through score for pairs of directions
             maxThroughScore = 0.0
             si = None
-            for s1 in range(segmentsCount - 1):
-                dir1 = normalize(segmentsParameterLists[s1][2][1])
-                for s2 in range(s1 + 1, segmentsCount):
-                    dir2 = normalize(segmentsParameterLists[s2][2][1])
-                    throughScore = abs(dot(dir1, dir2))
-                    if throughScore > maxThroughScore:
-                        maxThroughScore = throughScore
-                        si = (s1, s2)
+            # for s1 in range(segmentsCount - 1):
+            #     dir1 = normalize(segmentsParameterLists[s1][2][1])
+            #     for s2 in range(s1 + 1, segmentsCount):
+            #         dir2 = normalize(segmentsParameterLists[s2][2][1])
+            #         throughScore = abs(dot(dir1, dir2))
+            #         if throughScore > maxThroughScore:
+            #             maxThroughScore = throughScore
+            #             si = (s1, s2)
             if maxThroughScore < 0.9:
                 # maintain symmetry of bifurcations
-                if (segmentsIn == [True, True, False]) or (segmentsIn == [False, False, True]):
-                    si = (0, 1)
-                elif (segmentsIn == [True, False, True]) or (segmentsIn == [False, True, False]):
-                    si = (2, 0)
-                else:
-                    si = (1, 2)
+                si = ((0, 1) if ((segmentsIn == [True, True, False]) or (segmentsIn == [False, False, True])) else
+                      (2, 0) if ((segmentsIn == [True, False, True]) or (segmentsIn == [False, True, False])) else
+                      (1, 2))
 
         elif segmentsCount == 4:
             si = sequence[1:3]
@@ -1723,11 +2087,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             print("TubeNetworkMeshJunction._sampleMidPoint not fully implemented for segmentsCount =", segmentsCount)
             si = (1, 2)
 
-        # get harmonic mean of d1 magnitude around midpoints
+        # regular mean of d1 magnitude around midpoints
         magSum = 0.0
         for s in range(segmentsCount):
-            magSum += 1.0 / magnitude(md1[s])
-        d1Mean = segmentsCount / magSum
+            magSum += magnitude(md1[s])
+        d1Mean = magSum / segmentsCount
+
         # overall harmonic mean of derivatives to err on the low side for the diagonal derivatives
         dMean = 2.0 / (1.0 / d1Mean + 1.0 / d2Mean)
 
@@ -1750,38 +2115,27 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
     def _determineJunctionSequence(self):
         """
-        Determines the sequence of a junction. Currently only works for bifurcation and trifurcation.
-        There are two possible sequences for bifurcation - [0,1,2] and [0,2,1]. Sequence [0,1,2] indicates the second
-        segment is located on the right-hand side of the first segment, and [0,2,1] indicates the second segment is
-        located on the left-hand side of the first segment.
-        2    1             1    2
-         \  /               \  /
-          0     [0,1,2]      0    [0,2,1]
-        For trifurcation, only + shape is currently supported, not tetrahedral. The function determines plus sequence
-        [0,1,2,3], [0,1,3,2] or [0,2,3,1].
+        Determines the sequence of a junction, the order of segment indexes around a circle in a plane.
+        Currently only works for bifurcation and trifurcation.
+        Bifurcation is always sequence [0, 1, 2].
+        For trifurcation, only + (plus) shape is currently supported, not tetrahedral.
+        The function determines plus sequence [0, 1, 2, 3], [0, 1, 3, 2] or [0, 2, 1, 3].
         """
-
         assert self._segmentsCount == 3 or self._segmentsCount == 4
-
-        if self._segmentsCount == 3 and self._isCore:
-            # Find sequence order for bifurcation - only applies when core option is enabled:
-            # counter-clockwise sequence is [1, 2, 3] and clockwise sequence is [1, 3, 2]
-            pCoord = []
-            for s in range(self._segmentsCount):
-                segment = self._segments[s]
-                n3 = (-1 if self._segmentsIn[s] else 0) if s >= 1 else 0
-                p = segment.getBoxCoordinates(0, -2 if self._segmentsIn[s] else 1, n3)[0]
-                pCoord.append(p)
-            dist12 = magnitude(sub(pCoord[1], pCoord[0]))
-            dist13 = magnitude(sub(pCoord[2], pCoord[0]))
-            self._biSequence = [0, 1, 2] if dist12 > dist13 else [0, 2, 1]
+        outDirections = []
+        for s in range(self._segmentsCount):
+            d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
+            outDirections.append(normalize([-d for d in d1] if self._segmentsIn[s] else d1))
+        if self._segmentsCount == 3:
+            up = cross(outDirections[0], outDirections[1])
+            d3 = self._segments[0].getPathParameters()[4][-1 if self._segmentsIn[s] else 0]
+            if dot(up, d3) < 0.0:
+                self._sequence = [0, 2, 1]  # reverse sequence relative to d3
+            else:
+                self._sequence = [0, 1, 2]
         elif self._segmentsCount == 4:
             # only support plus + shape for now, not tetrahedral
-            # determine plus + sequence [0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3] or [0, 2, 3, 1]
-            outDirections = []
-            for s in range(self._segmentsCount):
-                d1 = self._segments[s].getPathParameters()[1][-1 if self._segmentsIn[s] else 0]
-                outDirections.append(normalize([-d for d in d1] if self._segmentsIn[s] else d1))
+            # determine plus + sequence [0, 1, 2, 3], [0, 1, 3, 2], or [0, 2, 1, 3]
             ns = None
             for s in range(1, self._segmentsCount):
                 if dot(outDirections[0], outDirections[s]) > -0.9:
@@ -1806,16 +2160,16 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nexts = t
                 angle = nextAngle
                 sequence.append(nexts)
-            self._triSequence = sequence
+            self._sequence = sequence
         else:
             return
 
-    def _sampleBifurcation(self, aroundCounts, acrossMajorCounts):
+    def _sampleBifurcation(self, aroundCounts, coreBoxMajorCounts):
         """
         Blackbox function for sampling bifurcation coordinates. The rim coordinates are first sampled, then the box
         coordinates are sampled, if Core option is enabled.
-        :param aroundCounts: Number of elements around the tube.
-        :param acrossMajorCounts: Number of elements across major axis of the solid core.
+        :param aroundCounts: Number of elements around the 3 tube segments.
+        :param coreBoxMajorCounts: Number of elements across core box major axis of 3 tube segments.
         :return rimIndexesCount, boxIndexesCount: Total number of rimIndexes and boxIndexes, respectively.
         """
         assert self._segmentsCount == 3
@@ -1828,18 +2182,26 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         for s in range(3):
             if (connectionCounts[s] < 1) or (aroundCounts[s] != (connectionCounts[s - 1] + connectionCounts[s])):
                 print("Can't make tube bifurcation between elements counts around", aroundCounts)
-                return
+                return 0, 0
 
         self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment index, node index around)]
         self._segmentNodeToRimIndex = [[None] * aroundCounts[s] for s in range(self._segmentsCount)]
         for s1 in range(3):
             s2 = (s1 + 1) % 3
-            startNodeIndex1 = (aroundCounts[s1] - connectionCounts[s1]) // 2
-            startNodeIndex2 = connectionCounts[s1] // -2
+            if self._segmentsIn[s1]:
+                startNodeIndex1 = (aroundCounts[s1] - connectionCounts[s1]) // 2
+            else:
+                startNodeIndex1 = connectionCounts[s1] // 2
+            if self._segmentsIn[s2]:
+                startNodeIndex2 = connectionCounts[s1] // 2
+            else:
+                startNodeIndex2 = (aroundCounts[s2] - connectionCounts[s1]) // 2
             for n in range(connectionCounts[s1] + 1):
-                nodeIndex1 = startNodeIndex1 + (n if self._segmentsIn[s1] else (connectionCounts[s1] - n))
+                nodeIndex1 = (startNodeIndex1 + n) if self._segmentsIn[s1] else \
+                    ((startNodeIndex1 - n) % aroundCounts[s1])
                 if self._segmentNodeToRimIndex[s1][nodeIndex1] is None:
-                    nodeIndex2 = startNodeIndex2 + ((connectionCounts[s1] - n) if self._segmentsIn[s2] else n)
+                    nodeIndex2 = ((startNodeIndex2 - n) % aroundCounts[s2]) if self._segmentsIn[s2] else \
+                        (startNodeIndex2 + n)
                     if self._segmentNodeToRimIndex[s2][nodeIndex2] is None:
                         rimIndex = rimIndexesCount
                         # keep list in order from lowest s
@@ -1863,31 +2225,43 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         # sample box junction
         boxIndexesCount = 0
         if self._isCore:
-            sequence = self._biSequence
-            connectionCounts = [(acrossMajorCounts[s] + acrossMajorCounts[s - 2] - acrossMajorCounts[s - 1]) // 2 for s
+            elementsCountTransition = self._segments[0].getElementsCountTransition()
+            majorConnectionCounts = [(coreBoxMajorCounts[s] + coreBoxMajorCounts[s - 2] - coreBoxMajorCounts[s - 1]) // 2 for s
                                 in range(3)]
-            midIndexes = [connectionCounts[s] - 1 for s in range(3)]
+            midIndexes = [(coreBoxMajorCounts[s] - majorConnectionCounts[s]) if self._segmentsIn[s]
+                          else majorConnectionCounts[s] for s in range(3)]
+            # check compatible numbers of elements across major and minor directions
+            lastCoreBoxMinorCount = None
             for s in range(3):
-                if acrossMajorCounts[s] != (connectionCounts[s - 1] + connectionCounts[s]):
-                    print("Can't make core bifurcation between elements counts across major axis", acrossMajorCounts)
-                    return
+                coreBoxMinorCount = self._segments[s].getElementsCountCoreBoxMinor()
+                if lastCoreBoxMinorCount:
+                    if coreBoxMinorCount != lastCoreBoxMinorCount:
+                        print("Can't make core bifurcation between different box minor axis element counts",
+                              coreBoxMinorCount, "vs", lastCoreBoxMinorCount)
+                        return 0, 0
+                else:
+                    lastCoreBoxMinorCount = coreBoxMinorCount
+                if ((majorConnectionCounts[s] < 0) or
+                        (coreBoxMajorCounts[s] != (majorConnectionCounts[s - 1] + majorConnectionCounts[s]))):
+                    print("Can't make core bifurcation between box major axis element counts", coreBoxMajorCounts)
+                    return 0, 0
 
-            nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
-            nodesCountAcrossMajorList = [self._segments[s].getCoreNodesCountAcrossMajor() for s in range(3)]
+            coreBoxMinorNodesCount = self._segments[0].getCoreBoxMinorNodesCount()
+            nodesCountAcrossMajorList = [self._segments[s].getCoreBoxMajorNodesCount() for s in range(3)]
             self._segmentNodeToBoxIndex = \
-                [[[None for _ in range(nodesCountAcrossMinor)] for _ in range(nodesCountAcrossMajorList[s])]
+                [[[None for _ in range(coreBoxMinorNodesCount)] for _ in range(nodesCountAcrossMajorList[s])]
                  for s in range(self._segmentsCount)]
             for s1 in range(3):
-                s2 = (s1 + 1) % 3 if sequence == [0, 1, 2] else (s1 - 1) % 3
+                s2 = (s1 + 1) % 3
                 midIndex1 = midIndexes[s1]
                 midIndex2 = midIndexes[s2]
-                for m in range(connectionCounts[s1]):
-                    for n in range(nodesCountAcrossMinor):
-                        m1 = (m + midIndex1) if self._segmentsIn[s1] else (midIndex1 - m) % connectionCounts[s1]
-                        m2 = (midIndex2 - m) % connectionCounts[s2] if self._segmentsIn[s2] else (m + midIndex2)
+                for m in range(majorConnectionCounts[s1] + 1):
+                    m1 = (midIndex1 + m) if self._segmentsIn[s1] else (midIndex1 - m)
+                    for n in range(coreBoxMinorNodesCount):
                         if m1 == midIndex1:
                             indexGroup = [[0, midIndexes[0], n], [1, midIndexes[1], n], [2, midIndexes[2], n]]
                         else:
+                            m2 = (midIndex2 - m) if self._segmentsIn[s2] else (midIndex2 + m)
                             indexGroup = [[s1, m1, n], [s2, m2, n]] if s1 < s2 else [[s2, m2, n], [s1, m1, n]]
                         if indexGroup not in self._boxIndexToSegmentNodeList:
                             self._boxIndexToSegmentNodeList.append(indexGroup)
@@ -1901,19 +2275,19 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         return rimIndexesCount, boxIndexesCount
 
-    def _sampleTrifurcation(self, aroundCounts, acrossMajorCounts):
+    def _sampleTrifurcation(self, aroundCounts, coreBoxMajorCounts):
         """
         Blackbox function for sampling trifurcation coordinates. The rim coordinates are first sampled, then the box
         coordinates are sampled, if Core option is enabled.
-        :param aroundCounts: Number of elements around the tube.
-        :param acrossMajorCounts: Number of elements across major axis of the solid core.
+        :param aroundCounts: Number of elements around the 4 tube segments.
+        :param coreBoxMajorCounts: Number of elements across core box major axis of the 4 tube segments.
         :return rimIndexesCount, boxIndexesCount: Total number of rimIndexes and boxIndexes, respectively.
         """
         assert self._segmentsCount == 4
 
         # sample rim junction
         rimIndexesCount = 0
-        sequence = self._triSequence
+        sequence = self._sequence
         pairCount02 = aroundCounts[sequence[0]] + aroundCounts[sequence[2]]
         pairCount13 = aroundCounts[sequence[1]] + aroundCounts[sequence[3]]
         throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
@@ -1934,9 +2308,10 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                   - freeAroundCounts[s - 1] + (s % 2)) // 2) for s in range(self._segmentsCount)]
 
         for s in range(self._segmentsCount):
-            if (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s])):
+            if ((connectionCounts[s] < 1) or
+                    (aroundCounts[sequence[s]] != (connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s]))):
                 print("Can't make tube junction between elements counts around", aroundCounts)
-                return
+                return 0, 0
 
         self._rimIndexToSegmentNodeList = []  # list[rim index] giving list[(segment index, node index around)]
         self._segmentNodeToRimIndex = [[None] * aroundCounts[s] for s in range(self._segmentsCount)]
@@ -1957,8 +2332,8 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             else:
                 startNodeIndex2 = (aroundCounts[s2] - os1ConnectionCount) // 2
             if self._segmentsIn[s3]:
-                startNodeIndex3h = os2ConnectionCount // -2
-                startNodeIndex3l = startNodeIndex3h - (os2ConnectionCount - os1ConnectionCount)
+                startNodeIndex3l = os2ConnectionCount // -2
+                startNodeIndex3h = startNodeIndex3l - (os2ConnectionCount - os1ConnectionCount)
             else:
                 startNodeIndex3l = (aroundCounts[s3] - os2ConnectionCount) // 2
                 startNodeIndex3h = startNodeIndex3l + (os2ConnectionCount - os1ConnectionCount)
@@ -1972,7 +2347,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     segmentIndexes.append(s2)
                     nodeIndexes.append(n2 % aroundCounts[s2])
                 if halfThroughCount and ((n <= 0) or (n >= os1ConnectionCount)):
-                    n3 = ((startNodeIndex3l if n <= 0 else startNodeIndex3h) +
+                    n3 = ((startNodeIndex3l if (n <= 0) else startNodeIndex3h) +
                           ((os2ConnectionCount - n) if self._segmentsIn[s3] else n))
                     segmentIndexes.append(s3)
                     nodeIndexes.append(n3 % aroundCounts[s3])
@@ -2008,45 +2383,45 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         # sample box junction
         boxIndexesCount = 0
         if self._isCore:
-            pCoord = []
-            for s in range(self._segmentsCount):
-                segment = self._segments[s]
-                n3 = (-1 if self._segmentsIn[s] else 0) if s >= 1 else 0
-                p = segment.getBoxCoordinates(0, -2 if self._segmentsIn[s] else 1, n3)[0]
-                pCoord.append(p)
-            dist12 = magnitude(sub(pCoord[sequence[1]], pCoord[0]))
-            dist13 = magnitude(sub(pCoord[sequence[-1]], pCoord[0]))
-            if sequence == [0, 1, 3, 2]:
-                sequence = [0, 2, 3, 1] if dist12 < dist13 else sequence
-            elif sequence == [0, 1, 2, 3]:
-                sequence = [0, 2, 1, 3] if dist12 < dist13 else sequence
-
-            pairCount02 = acrossMajorCounts[sequence[0]] + acrossMajorCounts[sequence[2]]
-            pairCount13 = acrossMajorCounts[sequence[1]] + acrossMajorCounts[sequence[3]]
+            elementsCountTransition = self._segments[0].getElementsCountTransition()
+            pairCount02 = coreBoxMajorCounts[sequence[0]] + coreBoxMajorCounts[sequence[2]]
+            pairCount13 = coreBoxMajorCounts[sequence[1]] + coreBoxMajorCounts[sequence[3]]
             throughCount02 = ((pairCount02 - pairCount13) // 2) if (pairCount02 > pairCount13) else 0
             throughCount13 = ((pairCount13 - pairCount02) // 2) if (pairCount13 > pairCount02) else 0
             throughCounts = [throughCount02, throughCount13, throughCount02, throughCount13]
-            freeAcrossCounts = [acrossMajorCounts[sequence[s]] - throughCounts[s] for s in range(self._segmentsCount)]
+            freeAcrossCounts = [coreBoxMajorCounts[sequence[s]] - throughCounts[s] for s in range(self._segmentsCount)]
             if freeAcrossCounts[0] == freeAcrossCounts[2]:
                 count03 = freeAcrossCounts[3] // 2
                 count12 = freeAcrossCounts[1] // 2
-                connectionCounts = [count03, count12, count12, count03]
+                majorConnectionCounts = [count03, count12, count12, count03]
             elif freeAcrossCounts[1] == freeAcrossCounts[3]:
                 count03 = freeAcrossCounts[0] // 2
                 count12 = freeAcrossCounts[2] // 2
-                connectionCounts = [count03, count12, count12, count03]
+                majorConnectionCounts = [count03, count12, count12, count03]
             else:
-                connectionCounts = [((freeAcrossCounts[s] + freeAcrossCounts[(s + 1) % self._segmentsCount]
+                majorConnectionCounts = [((freeAcrossCounts[s] + freeAcrossCounts[(s + 1) % self._segmentsCount]
                                       - freeAcrossCounts[s - 1] + (s % 2)) // 2) for s in range(self._segmentsCount)]
-            for s in range(self._segmentsCount):
-                if (acrossMajorCounts[sequence[s]] != (
-                        connectionCounts[s - 1] + throughCounts[s] + connectionCounts[s])):
-                    print("Can't make tube junction between elements counts around", acrossMajorCounts)
-                    return
 
-            nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
-            nodesCountAcrossMajorList = [self._segments[s].getCoreNodesCountAcrossMajor() for s in range(4)]
-            midIndexes = [nodesCountAcrossMajor // 2 for nodesCountAcrossMajor in nodesCountAcrossMajorList]
+            # check compatible numbers of elements across major and minor directions
+            lastCoreBoxMinorCount = None
+            for s in range(self._segmentsCount):
+                coreBoxMinorCount = self._segments[s].getElementsCountCoreBoxMinor()
+                if lastCoreBoxMinorCount:
+                    if coreBoxMinorCount != lastCoreBoxMinorCount:
+                        print("Can't make core trifurcation between different box minor axis element counts",
+                              coreBoxMinorCount, "vs", lastCoreBoxMinorCount)
+                        return 0, 0
+                else:
+                    lastCoreBoxMinorCount = coreBoxMinorCount
+                if ((majorConnectionCounts[s] < 0) or (coreBoxMajorCounts[sequence[s]] != (
+                        majorConnectionCounts[s - 1] + throughCounts[s] + majorConnectionCounts[s]))):
+                    print("Can't make core trifurcation between box major axis element counts", coreBoxMajorCounts)
+                    return 0, 0
+
+            coreBoxMinorNodesCount = self._segments[0].getCoreBoxMinorNodesCount()
+            coreBoxMajorNodesCounts = [self._segments[s].getCoreBoxMajorNodesCount() for s in range(4)]
+            # midIndexes = [coreBoxMajorCounts[s] - majorConnectionCounts[s] for s in range(3)]
+            midIndexes = [nodesCountAcrossMajor // 2 for nodesCountAcrossMajor in coreBoxMajorNodesCounts]
             halfThroughCounts = [throughCounts[s] // 2 for s in range(4)]
 
             connectingIndexesList = [[] for s in range(4)]
@@ -2062,7 +2437,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
             self._boxIndexToSegmentNodeList = []
             self._segmentNodeToBoxIndex = \
-                [[[None for _ in range(nodesCountAcrossMinor)] for _ in range(nodesCountAcrossMajorList[s])]
+                [[[None for _ in range(coreBoxMinorNodesCount)] for _ in range(coreBoxMajorNodesCounts[s])]
                  for s in range(self._segmentsCount)]
 
             for os1 in range(self._segmentsCount):
@@ -2072,38 +2447,49 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 s3 = sequence[(os1 + 2) % self._segmentsCount]
                 s4 = sequence[(os1 + 3) % self._segmentsCount]
                 aStartNodeIndex = midIndexes[s1]
-                nodesCountAcrossMajor1 = nodesCountAcrossMajorList[s1]
-                nodesCountAcrossMajor2 = nodesCountAcrossMajorList[s2]
+                nodesCountAcrossMajor1 = coreBoxMajorNodesCounts[s1]
+                nodesCountAcrossMajor2 = coreBoxMajorNodesCounts[s2]
                 connectingIndexes1 = connectingIndexesList[s1]
                 connectingIndexes2 = connectingIndexesList[s2]
                 connectingIndexes3 = connectingIndexesList[s3]
+                connectingIndexes4 = connectingIndexesList[s4]
                 throughIndexes = list(range(connectingIndexes1[0] + 1, connectingIndexes1[1])) \
                     if throughCounts[os1] else [None]
 
-                for m in range(acrossMajorCounts[s1] // 2):
-                    m1 = (m + aStartNodeIndex) if self._segmentsIn[s1] else (aStartNodeIndex - m) % connectionCounts[s1]
-                    for n in range(nodesCountAcrossMinor):
+                for m in range((coreBoxMajorCounts[s1] // 2) + 1):
+                    m1 = (m + aStartNodeIndex) if self._segmentsIn[s1] else (aStartNodeIndex - m)
+                    for n in range(coreBoxMinorNodesCount):
+                        indexGroup = None
                         if m1 in throughIndexes:
-                            m3 = midIndexes[s3]
+                            i = m1 - midIndexes[s1]
+                            if self._segmentsIn[s1] == self._segmentsIn[s3]:
+                                i = -i
+                            m3 = midIndexes[s3] + i
                             indexGroup = [[s1, m1, n], [s3, m3, n]] if s1 < s3 else [[s3, m3, n], [s1, m1, n]]
                         elif m1 in connectingIndexes1:
                             if all(v == 0 for v in throughCounts):
                                 indexGroup = [[s1, m1, n], [s2, m1, n], [s3, m1, n], [s4, m1, n]]
                             else:
                                 if throughCounts[os1]:
-                                    i = 1 if self._segmentsIn[s1] else 0
                                     m2 = connectingIndexes2[0]
+                                    i = connectingIndexes1.index(m1)
+                                    if self._segmentsIn[s1] == self._segmentsIn[s3]:
+                                        i = 0 if (i == 1) else 1
                                     m3 = connectingIndexes3[i]
                                     indexGroup = [[s1, m1, n], [s2, m2, n], [s3, m3, n]]
-                        else:
-                            if self._segmentsIn[s1] == self._segmentsIn[s2]:
-                                if throughCounts[os1]:
-                                    m2 = nodesCountAcrossMajor2 - m1 - 1
                                 else:
-                                    m2 = nodesCountAcrossMajor2 - (m1 + 1) if not self._segmentsIn[s1] else (
-                                            nodesCountAcrossMajor1 - (m1 + 1))
-                            else:
-                                m2 = m1 - throughCounts[s1] if self._segmentsIn[s1] else m1
+                                    i = 1 if (throughCounts[os2] and not self._segmentsIn[s2]) else 0
+                                    m2 = connectingIndexes2[i]
+                                    i = 1 if self._segmentsIn[s4] else 0
+                                    m4 = connectingIndexes4[i]
+                                    indexGroup = [[s1, m1, n], [s2, m2, n], [s4, m4, n]]
+                        else:
+                            # get index past last connecting index 1
+                            i = (m1 - connectingIndexes1[-1]) if self._segmentsIn[s1] else \
+                                (connectingIndexes1[0] - m1)
+                            # subtract or add to matching connecting index 2
+                            m2 = (connectingIndexes2[0] - i) if self._segmentsIn[s2] else \
+                                (connectingIndexes2[-1] + i)
                             indexGroup = [[s1, m1, n], [s2, m2, n]] if s1 < s2 else [[s2, m2, n], [s1, m1, n]]
                         indexGroup = sorted(indexGroup, key=lambda x: (x[0], x[0]), reverse=False)
                         if indexGroup not in self._boxIndexToSegmentNodeList:
@@ -2118,16 +2504,29 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         return rimIndexesCount, boxIndexesCount
 
-    def _optimiseRimIndexes(self, aroundCounts, rimIndexesCount):
+    def _optimiseRimIndexes(self, aroundCounts, rimIndexesCount, boxIndexesCount):
         """
         Iterates through a number of permutations to find the most optimised lookup table for rim indexes.
-        :param aroundCounts: Number of elements around the tube.
+        :param aroundCounts: Number of elements around the tubes.
         :param rimIndexesCount: Total number of rim indexes.
+        :param boxIndexesCount: Total number of box indexes, if core is being used.
         """
         # get node indexes giving the lowest sum of distances between adjoining points on outer sampled tubes
         permutationCount = 1
-        for count in aroundCounts:
+        segmentIncrements = []
+        for s in range(self._segmentsCount):
+            if self._isCore:
+                # core is a regular grid with 2 or 4 permutations -- latter only if same major and minor counts
+                segment = self._segments[s]
+                if segment.getElementsCountCoreBoxMajor() == segment.getElementsCountCoreBoxMinor():
+                    count = 4
+                else:
+                    count = 2
+            else:
+                count = aroundCounts[s]
             permutationCount *= count
+            segmentIncrements.append(aroundCounts[s] // count)
+
         minIndexes = None
         minSum = None
         indexes = [0] * self._segmentsCount
@@ -2152,12 +2551,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 minSum = sum
             # permute through indexes:
             for s in range(self._segmentsCount):
-                indexes[s] += 1
+                indexes[s] += segmentIncrements[s]
                 if indexes[s] < aroundCounts[s]:
                     break
                 indexes[s] = 0
 
-        # offset node indexes by minIndexes
+        # offset rim node indexes by minIndexes
         for rimIndex in range(rimIndexesCount):
             segmentNodeList = self._rimIndexToSegmentNodeList[rimIndex]
             for segmentNode in segmentNodeList:
@@ -2165,6 +2564,36 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 nodeIndex = (n + minIndexes[s]) % aroundCounts[s]
                 self._segmentNodeToRimIndex[s][nodeIndex] = rimIndex
                 segmentNode[1] = nodeIndex
+
+        # rotate box grid
+        if self._isCore:
+            segmentRotationCases = []
+            segmentMajorBoxSizes = []
+            segmentMinorBoxSizes = []
+            elementsCountTransition = self._segments[0].getElementsCountTransition()
+            for s in range(self._segmentsCount):
+                segment = self._segments[s]
+                segmentRotationCases.append(4 * minIndexes[s] // aroundCounts[s])
+                segmentMajorBoxSizes.append(segment.getElementsCountCoreBoxMajor())
+                segmentMinorBoxSizes.append(segment.getElementsCountCoreBoxMinor())
+            for boxIndex in range(boxIndexesCount):
+                segmentNodeList = self._boxIndexToSegmentNodeList[boxIndex]
+                for segmentNode in segmentNodeList:
+                    s, m, n = segmentNode
+                    if segmentRotationCases[s] > 0:
+                        segment = self._segments[s]
+                        if segmentRotationCases[s] == 1:
+                            m2 = n
+                            n2 = segmentMajorBoxSizes[s] - m
+                        elif segmentRotationCases[s] == 2:
+                            m2 = segmentMajorBoxSizes[s] - m
+                            n2 = segmentMinorBoxSizes[s] - n
+                        else:  # segmentRotationCases[s] == 3:
+                            m2 = segmentMinorBoxSizes[s] - n
+                            n2 = m
+                        self._segmentNodeToBoxIndex[s][m2][n2] = boxIndex
+                        segmentNode[1] = m2
+                        segmentNode[2] = n2
 
     def sample(self, targetElementLength):
         """
@@ -2181,16 +2610,16 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             return
 
         aroundCounts = [segment.getElementsCountAround() for segment in self._segments]
-        acrossMajorCounts = [segment.getElementsCountAcrossMajor() for segment in self._segments]
+        coreBoxMajorCounts = [segment.getElementsCountCoreBoxMajor() for segment in self._segments]
 
         # determine junction sequence
         self._determineJunctionSequence()
 
         if self._segmentsCount == 3:
-            rimIndexesCount, boxIndexesCount = self._sampleBifurcation(aroundCounts, acrossMajorCounts)
+            rimIndexesCount, boxIndexesCount = self._sampleBifurcation(aroundCounts, coreBoxMajorCounts)
 
         elif self._segmentsCount == 4:
-            rimIndexesCount, boxIndexesCount = self._sampleTrifurcation(aroundCounts, acrossMajorCounts)
+            rimIndexesCount, boxIndexesCount = self._sampleTrifurcation(aroundCounts, coreBoxMajorCounts)
 
         else:
             print("Tube network mesh not implemented for", self._segmentsCount, "segments at junction")
@@ -2200,12 +2629,11 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             return
 
         # optimise rim indexes
-        self._optimiseRimIndexes(aroundCounts, rimIndexesCount)
+        self._optimiseRimIndexes(aroundCounts, rimIndexesCount, boxIndexesCount)
 
         # sample rim coordinates
         elementsCountTransition = self._segments[0].getElementsCountTransition()
-        nodesCountRim = self._segments[0].getNodesCountRim() + (elementsCountTransition - 1) if self._isCore else (
-            self._segments[0].getNodesCountRim())
+        nodesCountRim = self._segments[0].getNodesCountRim()
         rx, rd1, rd2, rd3 = [
             [[None] * rimIndexesCount for _ in range(nodesCountRim)] for i in range(4)]
         self._rimCoordinates = (rx, rd1, rd2, rd3)
@@ -2252,18 +2680,18 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         """
         boxBoundaryNodeIds = []
         boxBoundaryNodeToBoxId = []
-        elementsCountAcrossMajor = self._segments[s].getElementsCountAcrossMajor()
-        elementsCountAcrossMinor = self._segments[s].getElementsCountAcrossMinor()
+        elementsCountCoreBoxMajor = self._segments[s].getElementsCountCoreBoxMajor()
+        elementsCountCoreBoxMinor = self._segments[s].getElementsCountCoreBoxMinor()
         elementsCountTransition = self._segments[s].getElementsCountAcrossTransition()
-        boxElementsCountRow = (elementsCountAcrossMajor - 2 * elementsCountTransition) + 1
-        boxElementsCountColumn = (elementsCountAcrossMinor - 2 * elementsCountTransition) + 1
+        coreBoxMajorNodesCount = elementsCountCoreBoxMajor + 1
+        coreBoxMinorNodesCount = elementsCountCoreBoxMinor + 1
 
-        for n3 in range(boxElementsCountRow):
-            if n3 == 0 or n3 == boxElementsCountRow - 1:
+        for n3 in range(coreBoxMajorNodesCount):
+            if n3 == 0 or n3 == coreBoxMajorNodesCount - 1:
                 ids = self._boxNodeIds[s][n3] if n3 == 0 else self._boxNodeIds[s][n3][::-1]
-                n1List = list(range(boxElementsCountColumn)) if n3 == 0 else (
-                    list(range(boxElementsCountColumn - 1, -1, -1)))
-                boxBoundaryNodeIds += [ids[c] for c in range(boxElementsCountColumn)]
+                n1List = list(range(coreBoxMinorNodesCount)) if n3 == 0 else (
+                    list(range(coreBoxMinorNodesCount - 1, -1, -1)))
+                boxBoundaryNodeIds += [ids[c] for c in range(coreBoxMinorNodesCount)]
                 for n1 in n1List:
                     boxBoundaryNodeToBoxId.append([n3, n1])
             else:
@@ -2271,13 +2699,13 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     boxBoundaryNodeIds.append(self._boxNodeIds[s][n3][n1])
                     boxBoundaryNodeToBoxId.append([n3, n1])
 
-        start = elementsCountAcrossMajor - 4 - 2 * (elementsCountTransition - 1)
-        idx = elementsCountAcrossMinor - 2 * (elementsCountTransition - 1)
+        start = elementsCountCoreBoxMajor - 2
+        idx = elementsCountCoreBoxMinor + 2
         for n in range(int(start), -1, -1):
             boxBoundaryNodeIds.append(boxBoundaryNodeIds.pop(idx + 2 * n))
             boxBoundaryNodeToBoxId.append(boxBoundaryNodeToBoxId.pop(idx + 2 * n))
 
-        nloop = elementsCountAcrossMinor // 2 - elementsCountTransition
+        nloop = elementsCountCoreBoxMinor // 2
         for _ in range(nloop):
             boxBoundaryNodeIds.insert(len(boxBoundaryNodeIds), boxBoundaryNodeIds.pop(0))
             boxBoundaryNodeToBoxId.insert(len(boxBoundaryNodeToBoxId),
@@ -2298,12 +2726,11 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         Blackbox function for generating core box elements at a junction.
         """
         annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
-        boxElementsCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor() - 1
-        boxElementsCountAcrossMajor = [self._segments[s].getCoreNodesCountAcrossMajor() - 1
+        boxElementsCountAcrossMinor = self._segments[0].getCoreBoxMinorNodesCount() - 1
+        boxElementsCountAcrossMajor = [self._segments[s].getCoreBoxMajorNodesCount() - 1
                                        for s in range(self._segmentsCount)]
-        acrossMajorCounts = [segment.getElementsCountAcrossMajor() for segment in self._segments]
-        is6WayTriplePoint = True if (((max(acrossMajorCounts) - 2) // 2) == (min(acrossMajorCounts) - 2)
-                                     and (self._segmentsCount == 3)) else False
+        coreBoxMajorCounts = [segment.getElementsCountCoreBoxMajor() for segment in self._segments]
+        is6WayTriplePoint = ((self._segmentsCount == 3) and ((max(coreBoxMajorCounts) // 2) == min(coreBoxMajorCounts)))
 
         eftList = [[None] * boxElementsCountAcrossMinor for _ in range(boxElementsCountAcrossMajor[s])]
         scalefactorsList = [[None] * boxElementsCountAcrossMinor for _ in range(boxElementsCountAcrossMajor[s])]
@@ -2311,12 +2738,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         nodeLayout6Way = generateData.getNodeLayout6Way()
         nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
-        nodeLayoutBifurcation = generateData.getNodeLayoutBifurcation()
 
+        e2 = n2 if self._segmentsIn[s] else 0
         for e3 in range(boxElementsCountAcrossMajor[s]):
             for e1 in range(boxElementsCountAcrossMinor):
                 e3p = (e3 + 1)
                 nids, nodeParameters, nodeLayouts = [], [], []
+                # get identifier early to aid debugging
+                elementIdentifier = generateData.nextElementIdentifier()
                 for n1 in [e1, e1 + 1]:
                     for n3 in [e3, e3p]:
                         nids.append(segment.getBoxNodeIds(n1, n2, n3))
@@ -2329,11 +2758,11 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         nodeParameters.append(self._getBoxCoordinates(boxIndex))
                         segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
                         if is6WayTriplePoint and (segmentNodesCount == 3) and self._segmentsCount == 3:
-                            nodeLayouts.append(nodeLayoutBifurcation)
+                            nodeLayouts.append(nodeLayout6Way)
                         elif self._segmentsIn[s] and (segmentNodesCount == 3) and self._segmentsCount == 4:
                             location = 1 if e3 < boxElementsCountAcrossMajor[s] // 2 else 2
                             nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
-                            nodeLayouts.append(nodeLayout6Way if self._triSequence == [0, 1, 3, 2] else
+                            nodeLayouts.append(nodeLayout6Way if self._sequence == [0, 1, 3, 2] else
                                                nodeLayoutTrifurcation)
                         else:
                             nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
@@ -2351,152 +2780,128 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     eftList[e3][e1] = eft
                     scalefactorsList[e3][e1] = scalefactors
                 elementtemplate.defineField(coordinates, -1, eft)
-                elementIdentifier = generateData.nextElementIdentifier()
                 element = mesh.createElement(elementIdentifier, elementtemplate)
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
                     element.setScaleFactors(eft, scalefactors)
+                segment.setBoxElementId(e1, e2, e3, elementIdentifier)
                 for annotationMeshGroup in annotationMeshGroups:
                     annotationMeshGroup.addElement(element)
 
     def _generateTransitionElements(self, s, n2, mesh, elementtemplate, coordinates, segment, generateData,
                                     elementsCountAround, boxBoundaryNodeIds, boxBoundaryNodeToBoxId):
         """
-        Blackbox function for generating core transition elements at a junction.
+        Blackbox function for generating first row of core transition elements after box at a junction.
         """
         annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
-        nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
-        nodesCountAcrossMajor = [self._segments[s].getCoreNodesCountAcrossMajor() for s in
+        coreBoxMinorNodesCount = self._segments[0].getCoreBoxMinorNodesCount()
+        coreBoxMajorNodesCounts = [self._segments[s].getCoreBoxMajorNodesCount() for s in
                                  range(self._segmentsCount)]
-        acrossMajorCounts = [segment.getElementsCountAcrossMajor() for segment in self._segments]
-        eftList = [None] * elementsCountAround
-        scalefactorsList = [None] * elementsCountAround
+        coreBoxMajorCounts = [segment.getElementsCountCoreBoxMajor() for segment in self._segments]
 
         triplePointIndexesList = segment.getTriplePointIndexes()
-        is6WayTriplePoint = True if (((max(acrossMajorCounts) - 2) // 2) == (min(acrossMajorCounts) - 2)
-                                     and (self._segmentsCount == 3)) else False
-        pSegment = acrossMajorCounts.index(max(acrossMajorCounts))
-        topMidIndex = (nodesCountAcrossMajor[pSegment] // 2) + (nodesCountAcrossMinor // 2)
-        bottomMidIndex = elementsCountAround - topMidIndex
-        midIndexes = [topMidIndex, bottomMidIndex]
+        triplePointIndexesList.sort()
+        elementsCountTransition = self._segments[0].getElementsCountTransition()
+        maxCoreBoxMajorCount = max(coreBoxMajorCounts)
+        maxMajorSegment = coreBoxMajorCounts.index(maxCoreBoxMajorCount)
+        # whether there are bifurcation core transition triple points on the corners of any box
+        is6WayTriplePoint = ((self._segmentsCount == 3) and
+                             (maxCoreBoxMajorCount == (coreBoxMajorCounts[maxMajorSegment - 1] +
+                                                       coreBoxMajorCounts[maxMajorSegment - 2])))
 
         nodeLayout6Way = generateData.getNodeLayout6Way()
         nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
         nodeLayoutTransition = generateData.getNodeLayoutTransition()
-        nodeLayoutBifurcationTransition = generateData.getNodeLayoutBifurcationTransition()
 
+        e2 = n2 if self._segmentsIn[s] else 0
         for e1 in range(elementsCountAround):
             nids, nodeParameters, nodeLayouts = [], [], []
             n1p = (e1 + 1) % elementsCountAround
             oLocation = segment.getTriplePointLocation(e1)
-            for n3 in range(2):
-                if n3 == 0:  # core box region
-                    for n1 in [e1, n1p]:
-                        nids.append(segment.getBoxBoundaryNodeIds(n1, n2))
-                        n3c, n1c = segment.getBoxBoundaryNodeToBoxId(n1, n2)
-                        nodeParameters.append(segment.getBoxCoordinates(n1c, n2, n3c))
-                        nodeLayoutTransitionTriplePoint = (
-                            generateData.getNodeLayoutTransitionTriplePoint(oLocation))
-                        nodeLayouts.append(nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList
-                                           else nodeLayoutTransition)
-                    for n1 in [e1, n1p]:
-                        nids.append(boxBoundaryNodeIds[n1])
-                        n3c, n1c = boxBoundaryNodeToBoxId[n1]
-                        boxIndex = self._segmentNodeToBoxIndex[s][n3c][n1c]
-                        nodeParameters.append(self._getBoxCoordinates(boxIndex))
-                        segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
-                        if segmentNodesCount == 3:  # 6-way node
-                            if is6WayTriplePoint: # Special 6-way triple point case
-                                if (n1 in triplePointIndexesList or (s == pSegment and n1 in midIndexes)):
-                                    # 6-way AND triple-point node - only applies to bifurcations
-                                    location = (midIndexes.index(n1) + 1) if oLocation == 0 else oLocation
-                                    if (s == 1 and n1 == n1p) or (s == 2 and n1 == e1):
-                                        location = 3 if abs(location) == 1 else location
-                                    elif (s == 1 and n1 != n1p) or (s == 2 and n1 != e1):
-                                        location = 4 if abs(location) == 2 else location
-                                    nodeLayout = generateData.getNodeLayout6WayTriplePoint(location)
-                                else:
-                                    nodeLayout = nodeLayoutBifurcationTransition
-                            elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
-                                location = \
-                                    1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
-                                nodeLayoutTrifurcation = generateData.getNodeLayoutTrifurcation(location)
-                                nodeLayout = nodeLayout6Way if self._triSequence == [0, 1, 3, 2] else (
-                                    nodeLayoutTrifurcation)
-                            else:
-                                nodeLayout = nodeLayout6Way
-                        elif segmentNodesCount == 4:  # 8-way node
-                            nodeLayout = nodeLayout8Way
-                        elif n1 in triplePointIndexesList:  # triple-point node
-                            location = oLocation
-                            if self._segmentsCount == 3: # bifurcation
-                                sequence = self._biSequence
-                                condition1 = oLocation > 0
-                                condition2 = oLocation < 0
-                                if self._segmentsIn.count(True) == 0:
-                                    condition = condition1 if sequence == [0, 2, 1] else condition2
-                                    location *= -1 if s == 2 or (s == 1 and condition) else 1
-                                elif self._segmentsIn.count(True) == 1:
-                                    condition = condition1 if sequence == [0, 2, 1] else condition2
-                                    location *= -1 if s == 2 and condition else 1
-                                elif self._segmentsIn.count(True) == 2:
-                                    condition = condition2 if sequence == [0, 2, 1] else condition1
-                                    location *= -1 if s == 1 and condition else 1
-                                elif self._segmentsIn.count(True) == 3:
-                                    condition = condition2 if sequence == [0, 2, 1] else condition1
-                                    location *= -1 if (s == 1 and condition) or (s == 2) else 1
-                            elif self._segmentsCount == 4: # trifurcation
-                                sequence = self._triSequence
-                                s0 = (s - 1) % self._segmentsCount
-                                s1 = (s + 1) % self._segmentsCount
-                                if sequence == [0, 1, 3, 2]:
-                                    if self._segmentsIn == [True, False, False, False] and self._segmentsIn[s1]:
-                                        location = (oLocation) * -1
-                                    elif self._segmentsIn == [True, True, False, False] and \
-                                        self._segmentsIn[s] != self._segmentsIn[s1]:
-                                        location = abs(oLocation)
-                                elif sequence == [0, 1, 2, 3] and \
-                                        (self._segmentsIn[s1] or all(not self._segmentsIn[n] for n in [s, s0, s1])):
-                                    location = abs(oLocation)
-                            nodeLayout = generateData.getNodeLayoutTransitionTriplePoint(location)
-                        else:
-                            nodeLayout = nodeLayoutTransition
-                        nodeLayouts.append(nodeLayout)
-
-                    if not self._segmentsIn[s]:
-                        for a in [nids, nodeParameters, nodeLayouts]:
-                            a[-4], a[-2] = a[-2], a[-4]
-                            a[-3], a[-1] = a[-1], a[-3]
-            else:  # rim region
-                for n1 in [e1, n1p]:
-                    nids.append(segment.getRimNodeId(n1, n2, 0))
-                    nodeParameters.append(segment.getRimCoordinates(n1, n2, 0))
-                    nodeLayouts.append(None)
-                for n1 in [e1, n1p]:
-                    rimIndex = self._segmentNodeToRimIndex[s][n1]
-                    nids.append(self._rimNodeIds[0][rimIndex])
-                    nodeParameters.append(self._getRimCoordinates(rimIndex))
-                    segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
-                    nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
-                                       nodeLayout6Way if (segmentNodesCount == 3) else
-                                       nodeLayout8Way)
-                if not self._segmentsIn[s]:
-                    for a in [nids, nodeParameters, nodeLayouts]:
-                        a[-4], a[-2] = a[-2], a[-4]
-                        a[-3], a[-1] = a[-1], a[-3]
-            eft = eftList[e1]
-            scalefactors = scalefactorsList[e1]
-            if not eft:
-                eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                eftList[e1] = eft
-                scalefactorsList[e1] = scalefactors
-            elementtemplate.defineField(coordinates, -1, eft)
+            # get identifier early to aid debugging
             elementIdentifier = generateData.nextElementIdentifier()
+
+            # outside of core box
+            for n1 in [e1, n1p]:
+                nids.append(segment.getBoxBoundaryNodeIds(n1, n2))
+                n3c, n1c = segment.getBoxBoundaryNodeToBoxId(n1, n2)
+                nodeParameters.append(segment.getBoxCoordinates(n1c, n2, n3c))
+                nodeLayoutTransitionTriplePoint = (
+                    generateData.getNodeLayoutTransitionTriplePoint(oLocation))
+                nodeLayouts.append(nodeLayoutTransitionTriplePoint if n1 in triplePointIndexesList
+                                   else nodeLayoutTransition)
+
+            for n1 in [e1, n1p]:
+                nid = boxBoundaryNodeIds[n1]
+                nids.append(nid)
+                n3c, n1c = boxBoundaryNodeToBoxId[n1]
+                boxIndex = self._segmentNodeToBoxIndex[s][n3c][n1c]
+                nodeParameters.append(self._getBoxCoordinates(boxIndex))
+                segmentNodesCount = len(self._boxIndexToSegmentNodeList[boxIndex])
+                if segmentNodesCount == 3:  # 6-way node
+                    if is6WayTriplePoint:
+                        top = triplePointIndexesList[0] <= n1 <= triplePointIndexesList[1]
+                        bottom = triplePointIndexesList[2] <= n1 <= triplePointIndexesList[3]
+                        if top or bottom:
+                            nodeLayout = generateData.getNodeLayoutBifurcation6WayTriplePoint(
+                                self._segmentsIn, self._sequence, maxMajorSegment, top)
+                        else:
+                            nodeLayout = nodeLayout6Way
+                    elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
+                        location = \
+                            1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
+                        nodeLayout = (nodeLayout6Way if self._sequence == [0, 1, 3, 2] else
+                                      generateData.getNodeLayoutTrifurcation(location))
+                    else:
+                        nodeLayout = nodeLayout6Way
+                elif segmentNodesCount == 4:  # 8-way node
+                    nodeLayout = nodeLayout8Way
+                elif n1 in triplePointIndexesList:  # triple-point node
+                    location = oLocation
+                    if ((s < segmentNodesCount - 1) and n1 == n1p or
+                            not any(nid in sl for sl in self._triplePointLocationsList)):
+                        self._triplePointLocationsList.append([nid, location])
+                    if s > 0:
+                        for sl in self._triplePointLocationsList:
+                            location = sl[1] if nid == sl[0] else location
+                    nodeLayout = generateData.getNodeLayoutTransitionTriplePoint(location)
+                else:
+                    nodeLayout = nodeLayoutTransition
+                nodeLayouts.append(nodeLayout)
+            if not self._segmentsIn[s]:
+                for a in [nids, nodeParameters, nodeLayouts]:
+                    a[-4], a[-2] = a[-2], a[-4]
+                    a[-3], a[-1] = a[-1], a[-3]
+
+            # first rim node (either transition or first shell)
+            for n1 in [e1, n1p]:
+                nids.append(segment.getRimNodeId(n1, n2, 0))
+                nodeParameters.append(segment.getRimCoordinates(n1, n2, 0))
+                nodeLayouts.append(None)
+            for n1 in [e1, n1p]:
+                rimIndex = self._segmentNodeToRimIndex[s][n1]
+                nids.append(self._rimNodeIds[0][rimIndex])
+                nodeParameters.append(self._getRimCoordinates(rimIndex))
+                segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
+                nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
+                                   nodeLayout6Way if (segmentNodesCount == 3) else
+                                   nodeLayout8Way)
+            if not self._segmentsIn[s]:
+                for a in [nids, nodeParameters, nodeLayouts]:
+                    a[-4], a[-2] = a[-2], a[-4]
+                    a[-3], a[-1] = a[-1], a[-3]
+
+            eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+            if elementsCountTransition == 1:
+                eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                    eft, scalefactors, nodeParameters, nids, segment.getCoreBoundaryScalingMode())
+            elementtemplate.defineField(coordinates, -1, eft)
             element = mesh.createElement(elementIdentifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids)
             if scalefactors:
                 element.setScaleFactors(eft, scalefactors)
+            segment.setRimElementId(e1, e2, 0, elementIdentifier)
             for annotationMeshGroup in annotationMeshGroups:
                 annotationMeshGroup.addElement(element)
 
@@ -2508,8 +2913,12 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             for s in range(self._segmentsCount):
                 for trimSurface in self._trimSurfaces[s]:
                     if trimSurface:
+                        annotationGroup = generateData.getNewTrimAnnotationGroup()
                         nodeIdentifier, faceIdentifier = \
-                            trimSurface.generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier)
+                            trimSurface.generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
+                                                     group_name=annotationGroup.getName())
+                        if self._useOuterTrimSurfaces:
+                            break
             if dimension == 2:
                 elementIdentifier = faceIdentifier
             generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
@@ -2517,31 +2926,34 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         if self._segmentsCount < 3:
             return
 
+        if (not self._rimCoordinates) or (self._isCore and not self._boxCoordinates):
+            # incompatible number around or across core
+            return
+
         rimIndexesCount = len(self._rimIndexToSegmentNodeList)
         elementsCountTransition = self._segments[0].getElementsCountTransition()
-        nodesCountRim = self._segments[0].getNodesCountRim() + (elementsCountTransition - 1) if self._isCore else (
-            self._segments[0].getNodesCountRim())
-        elementsCountRim = max(1, nodesCountRim - 1)
+        nodesCountRim = self._segments[0].getNodesCountRim()
+        elementsCountRim = self._segments[0].getElementsCountRim()
         if self._rimCoordinates:
             self._rimNodeIds = [[None] * rimIndexesCount for _ in range(nodesCountRim)]
 
         if self._boxCoordinates:
-            nodesCountAcrossMinor = self._segments[0].getCoreNodesCountAcrossMinor()
-            acrossMajorCounts = [segment.getElementsCountAcrossMajor() for segment in self._segments]
-            self._boxNodeIds = [[[None for _ in range(nodesCountAcrossMinor)] for _ in range(acrossMajorCounts[s])]
-                                for s in range(self._segmentsCount)]
+            coreBoxMinorNodesCount = self._segments[0].getCoreBoxMinorNodesCount()
+            self._boxNodeIds = [
+                [[None for n in range(coreBoxMinorNodesCount)]
+                 for m in range(self._segments[s].getCoreBoxMajorNodesCount())]
+                for s in range(self._segmentsCount)]
 
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
         nodes = generateData.getNodes()
         nodetemplate = generateData.getNodetemplate()
-        isLinearThroughWall = generateData.isLinearThroughWall()
         mesh = generateData.getMesh()
         meshDimension = generateData.getMeshDimension()
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(
             Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
-        d3Defined = (meshDimension == 3) and not isLinearThroughWall
+        d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
 
         nodeLayout6Way = generateData.getNodeLayout6Way()
         nodeLayout8Way = generateData.getNodeLayout8Way()
@@ -2558,12 +2970,14 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             elementsCountAround = segment.getElementsCountAround()
 
             # Create nodes
-            if self._boxCoordinates:
+            if self._isCore:
                 # create box nodes
                 bx, bd1, bd2, bd3 = (self._boxCoordinates[0], self._boxCoordinates[1],
                                      self._boxCoordinates[2], self._boxCoordinates[3])
-                for n3 in range(acrossMajorCounts[s] - 1):
-                    for n1 in range(nodesCountAcrossMinor):
+                coreBoxMajorNodesCount = self._segments[s].getCoreBoxMajorNodesCount()
+                coreBoxMinorNodesCount = self._segments[s].getCoreBoxMinorNodesCount()
+                for n3 in range(coreBoxMajorNodesCount):
+                    for n1 in range(coreBoxMinorNodesCount):
                         boxIndex = self._segmentNodeToBoxIndex[s][n3][n1]
                         segmentNodeList = self._boxIndexToSegmentNodeList[boxIndex]
                         nodeIdentifiersCheck = []
@@ -2586,28 +3000,27 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
                 boxBoundaryNodeIds, boxBoundaryNodeToBoxId = self._createBoxBoundaryNodeIdsList(s)
 
-            if self._rimCoordinates:
-                # create rim nodes (including core transition nodes)
-                for n3 in range(nodesCountRim):
-                    rx = self._rimCoordinates[0][n3]
-                    rd1 = self._rimCoordinates[1][n3]
-                    rd2 = self._rimCoordinates[2][n3]
-                    rd3 = self._rimCoordinates[3][n3] if d3Defined else None
-                    layerNodeIds = self._rimNodeIds[n3]
-                    for n1 in range(elementsCountAround):
-                        rimIndex = self._segmentNodeToRimIndex[s][n1]
-                        nodeIdentifier = self._rimNodeIds[n3][rimIndex]
-                        if nodeIdentifier is not None:
-                            continue
-                        nodeIdentifier = generateData.nextNodeIdentifier()
-                        node = nodes.createNode(nodeIdentifier, nodetemplate)
-                        fieldcache.setNode(node)
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[rimIndex])
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[rimIndex])
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[rimIndex])
-                        if rd3:
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[rimIndex])
-                        layerNodeIds[rimIndex] = nodeIdentifier
+            # create rim nodes (including core transition nodes)
+            for n3 in range(nodesCountRim):
+                rx = self._rimCoordinates[0][n3]
+                rd1 = self._rimCoordinates[1][n3]
+                rd2 = self._rimCoordinates[2][n3]
+                rd3 = self._rimCoordinates[3][n3] if d3Defined else None
+                layerNodeIds = self._rimNodeIds[n3]
+                for n1 in range(elementsCountAround):
+                    rimIndex = self._segmentNodeToRimIndex[s][n1]
+                    nodeIdentifier = layerNodeIds[rimIndex]
+                    if nodeIdentifier is not None:
+                        continue
+                    nodeIdentifier = generateData.nextNodeIdentifier()
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[rimIndex])
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[rimIndex])
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[rimIndex])
+                    if rd3:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[rimIndex])
+                    layerNodeIds[rimIndex] = nodeIdentifier
 
             # Create elements
             if self._isCore:
@@ -2617,82 +3030,127 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 self._generateTransitionElements(s, n2, mesh, elementtemplate, coordinates, segment, generateData,
                     elementsCountAround, boxBoundaryNodeIds, boxBoundaryNodeToBoxId)
 
-            if self._rimCoordinates:
-                # create rim elements
-                annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
-                eftList = [None] * elementsCountAround
-                scalefactorsList = [None] * elementsCountAround
-                for e3 in range(elementsCountRim):
-                    for e1 in range(elementsCountAround):
-                        n1p = (e1 + 1) % elementsCountAround
-                        nids = []
-                        nodeParameters = []
-                        nodeLayouts = []
-                        for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
-                            for n1 in [e1, n1p]:
-                                nids.append(self._segments[s].getRimNodeId(n1, n2, n3))
-                                if e3 == 0:
-                                    rimCoordinates = self._segments[s].getRimCoordinates(n1, n2, n3)
-                                    nodeParameters.append(rimCoordinates if d3Defined else
-                                                          (rimCoordinates[0], rimCoordinates[1], rimCoordinates[2],
-                                                           None))
-                                    nodeLayouts.append(None)
-                            for n1 in [e1, n1p]:
-                                rimIndex = self._segmentNodeToRimIndex[s][n1]
-                                nids.append(self._rimNodeIds[n3][rimIndex])
-                                if e3 == 0:
-                                    nodeParameters.append(
-                                        (self._rimCoordinates[0][n3][rimIndex],
-                                         self._rimCoordinates[1][n3][rimIndex],
-                                         self._rimCoordinates[2][n3][rimIndex],
-                                         self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
-                                    segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
-                                    nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
-                                                       nodeLayout6Way if (segmentNodesCount == 3) else
-                                                       nodeLayout8Way)
-                            if not self._segmentsIn[s]:
-                                for a in [nids, nodeParameters, nodeLayouts] if (e3 == 0) else [nids]:
-                                    a[-4], a[-2] = a[-2], a[-4]
-                                    a[-3], a[-1] = a[-1], a[-3]
-                        # exploit efts being same through the wall
-                        eft = eftList[e1]
-                        scalefactors = scalefactorsList[e1]
-                        if not eft:
-                            eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                            eftList[e1] = eft
-                            scalefactorsList[e1] = scalefactors
-                        elementtemplate.defineField(coordinates, -1, eft)
-                        elementIdentifier = generateData.nextElementIdentifier()
-                        element = mesh.createElement(elementIdentifier, elementtemplate)
-                        segment.setRimElementId(e1, e2, e3, elementIdentifier)
-                        element.setNodesByIdentifier(eft, nids)
-                        if scalefactors:
-                            element.setScaleFactors(eft, scalefactors)
-                        for annotationMeshGroup in annotationMeshGroups:
-                            annotationMeshGroup.addElement(element)
+            # create regular rim elements
+            elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
+            annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
+            eftList = [None] * elementsCountAround
+            scalefactorsList = [None] * elementsCountAround
+            for e3 in range(elementsCountRimRegular):
+                rim_e3 = e3 + 1 if self._isCore else e3
+                for e1 in range(elementsCountAround):
+                    n1p = (e1 + 1) % elementsCountAround
+                    nids = []
+                    nodeParameters = []
+                    nodeLayouts = []
+                    elementIdentifier = generateData.nextElementIdentifier()
+                    lastTransition = self._isCore and (elementsCountTransition == (rim_e3 + 1))
+                    needParameters = (e3 == 0) or lastTransition
+                    for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
+                        for n1 in [e1, n1p]:
+                            nids.append(self._segments[s].getRimNodeId(n1, n2, n3))
+                            if needParameters:
+                                rimCoordinates = self._segments[s].getRimCoordinates(n1, n2, n3)
+                                nodeParameters.append(rimCoordinates if d3Defined else (
+                                    rimCoordinates[0], rimCoordinates[1], rimCoordinates[2], None))
+                                nodeLayouts.append(None)
+                        for n1 in [e1, n1p]:
+                            rimIndex = self._segmentNodeToRimIndex[s][n1]
+                            nids.append(self._rimNodeIds[n3][rimIndex])
+                            if needParameters:
+                                nodeParameters.append(
+                                    (self._rimCoordinates[0][n3][rimIndex],
+                                     self._rimCoordinates[1][n3][rimIndex],
+                                     self._rimCoordinates[2][n3][rimIndex],
+                                     self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
+                                segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
+                                nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
+                                                   nodeLayout6Way if (segmentNodesCount == 3) else
+                                                   nodeLayout8Way)
+                        if not self._segmentsIn[s]:
+                            for a in [nids, nodeParameters, nodeLayouts] if (needParameters) else [nids]:
+                                a[-4], a[-2] = a[-2], a[-4]
+                                a[-3], a[-1] = a[-1], a[-3]
+                    # exploit efts being same through the rim
+                    eft = eftList[e1]
+                    scalefactors = scalefactorsList[e1]
+                    if not eft:
+                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                        eftList[e1] = eft
+                        scalefactorsList[e1] = scalefactors
+                    if lastTransition:
+                        # need to generate eft again otherwise modifying object in eftList, mucking up outer layers
+                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                            eft, scalefactors, nodeParameters, nids, segment.getCoreBoundaryScalingMode())
+
+                    elementtemplate.defineField(coordinates, -1, eft)
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+                    if scalefactors:
+                        element.setScaleFactors(eft, scalefactors)
+                    segment.setRimElementId(e1, e2, rim_e3, elementIdentifier)
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
 
 
 class TubeNetworkMeshBuilder(NetworkMeshBuilder):
+    """
+    Builds contiguous tube network meshes with smooth element size transitions at junctions, optionally with solid core.
+    """
 
     def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
-                 defaultElementsCountAround: int, elementsCountThroughWall: int,
-                 layoutAnnotationGroups: list = [], annotationElementsCountsAround: list = [],
-                 defaultElementsCountAcrossMajor: int = 4, elementsCountTransition: int = 1,
-                 annotationElementsCountsAcrossMajor: list = [], isCore=False):
+                 layoutAnnotationGroups: list=[], annotationElementsCountsAlong: list=[],
+                 defaultElementsCountAround: int=8, annotationElementsCountsAround: list=[],
+                 elementsCountThroughShell: int=1, isCore=False, elementsCountTransition: int=1,
+                 defaultElementsCountCoreBoxMinor: int=2, annotationElementsCountsCoreBoxMinor: list=[],
+                 defaultCoreBoundaryScalingMode=1, annotationCoreBoundaryScalingMode=[],
+                 useOuterTrimSurfaces=True):
+        """
+        Builds contiguous tube network meshes with smooth element size transitions at junctions, optionally with solid
+        core.
+        :param networkMesh: Description of the topology of the network layout.
+        :param targetElementDensityAlongLongestSegment: Real value which longest segment path in network is divided by
+        to get target element length, which is used to determine numbers of elements along except when set for a segment
+        through annotationElementsCountsAlong.
+        :param layoutAnnotationGroups: Annotation groups defined on the layout to mirror on the final mesh.
+        :param annotationElementsCountsAlong: List in same order as layoutAnnotationGroups, specifying fixed number of
+        elements along segment with any elements in the annotation group. Client must ensure exclusive map from
+        segments. Groups with zero value or past end of this list use the targetElementDensityAlongLongestSegment.
+        :param defaultElementsCountAround: Number of elements around segments to use unless overridden by
+        annotationElementsCountsAround.
+        :param annotationElementsCountsAround: List in same order as layoutAnnotationGroups, specifying fixed number of
+        elements around segments with any elements in the annotation group. Client must ensure exclusive map from
+        segments. Groups with zero value or past end of this list use the defaultElementsCountAround.
+        :param elementsCountThroughShell: Number of elements through shell >= 1.
+        :param isCore: Set to True to define solid core box and transition elements.
+        :param elementsCountTransition: Number of rows of elements transitioning between core box and shell >= 1.
+        :param defaultElementsCountCoreBoxMinor: Number of elements across the core box in the minor/d3 direction.
+        :param annotationElementsCountsCoreBoxMinor: List in same order as layoutAnnotationGroups, specifying numbers of
+        elements across core box minor/d3 direction for segments with any elements in the annotation group. Client must
+        ensure exclusive map from segments. Groups with zero value or past end of this list use the
+        defaultElementsCountCoreBoxMinor.
+        :param defaultCoreBoundaryScalingMode: Mode 1=scalefactor, 2=version.
+        :param annotationCoreBoundaryScalingMode: Boundary mode 1 or 2 in order of layoutAnnotationGroups,
+        or 0 to use default.
+        :param useOuterTrimSurfaces: Set to False to use separate trim surfaces on inner and outer tubes. Ignored if
+        no inner path.
+        """
         super(TubeNetworkMeshBuilder, self).__init__(
-            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups)
+            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong)
         self._defaultElementsCountAround = defaultElementsCountAround
-        self._elementsCountThroughWall = elementsCountThroughWall
-        self._layoutAnnotationGroups = layoutAnnotationGroups
         self._annotationElementsCountsAround = annotationElementsCountsAround
+        self._elementsCountThroughShell = elementsCountThroughShell
+        self._isCore = isCore
+        self._elementsCountTransition = elementsCountTransition
+        self._defaultElementsCountCoreBoxMinor = defaultElementsCountCoreBoxMinor
+        self._annotationElementsCountsCoreBoxMinor = annotationElementsCountsCoreBoxMinor
+        self._defaultCoreBoundaryScalingMode = defaultCoreBoundaryScalingMode
+        self._annotationCoreBoundaryScalingMode = annotationCoreBoundaryScalingMode
         layoutFieldmodule = self._layoutRegion.getFieldmodule()
         self._layoutInnerCoordinates = layoutFieldmodule.findFieldByName("inner coordinates").castFiniteElement()
         if not self._layoutInnerCoordinates.isValid():
             self._layoutInnerCoordinates = None
-        self._isCore = isCore
-        self._defaultElementsCountAcrossMajor = defaultElementsCountAcrossMajor
-        self._elementsCountTransition = elementsCountTransition
-        self._annotationElementsCountsAcrossMajor = annotationElementsCountsAcrossMajor
+        self._useOuterTrimSurfaces = useOuterTrimSurfaces if self._layoutInnerCoordinates else False
 
     def createSegment(self, networkSegment):
         pathParametersList = [get_nodeset_path_ordered_field_parameters(
@@ -2703,9 +3161,9 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 self._layoutNodes, self._layoutInnerCoordinates, pathValueLabels,
                 networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions()))
         elementsCountAround = self._defaultElementsCountAround
-        elementsCountAcrossMajor = self._defaultElementsCountAcrossMajor
-        elementsCountAcrossMinor = (((elementsCountAround - 4) // 4 - elementsCountAcrossMajor // 2) * 2 + 6)
+        elementsCountCoreBoxMinor = self._defaultElementsCountCoreBoxMinor
 
+        coreBoundaryScalingMode = self._defaultCoreBoundaryScalingMode
         i = 0
         for layoutAnnotationGroup in self._layoutAnnotationGroups:
             if i >= len(self._annotationElementsCountsAround):
@@ -2719,23 +3177,27 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
             annotationElementsCountAcrossMinor = []
             i = 0
             for layoutAnnotationGroup in self._layoutAnnotationGroups:
-                if i >= len(self._annotationElementsCountsAcrossMajor):
+                if i >= len(self._annotationElementsCountsCoreBoxMinor):
                     break
-                if self._annotationElementsCountsAcrossMajor[i] > 0:
+                if self._annotationElementsCountsCoreBoxMinor[i] > 0:
                     if networkSegment.hasLayoutElementsInMeshGroup(
                             layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
-                        elementsCountAcrossMajor = self._annotationElementsCountsAcrossMajor[i]
-                        elementsCountAcrossMinor = (
-                                ((elementsCountAround - 4) // 4 - elementsCountAcrossMajor // 2) * 2 + 6)
-                        annotationElementsCountAcrossMinor.append(elementsCountAcrossMinor)
+                        elementsCountCoreBoxMinor = self._annotationElementsCountsCoreBoxMinor[i]
                         break
                 i += 1
-            # elements count across minor must be the same for all annotation groups
-            assert all(value == annotationElementsCountAcrossMinor[0] for value in annotationElementsCountAcrossMinor)
-
+            i = 0
+            for layoutAnnotationGroup in self._layoutAnnotationGroups:
+                if i >= len(self._annotationCoreBoundaryScalingMode):
+                    break
+                if self._annotationCoreBoundaryScalingMode[i] > 0:
+                    if networkSegment.hasLayoutElementsInMeshGroup(
+                            layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                        coreBoundaryScalingMode = self._annotationCoreBoundaryScalingMode[i]
+                        break
+                i += 1
         return TubeNetworkMeshSegment(networkSegment, pathParametersList, elementsCountAround,
-                                      self._elementsCountThroughWall, self._isCore, elementsCountAcrossMajor,
-                                      elementsCountAcrossMinor, self._elementsCountTransition)
+                                      self._elementsCountThroughShell, self._isCore, elementsCountCoreBoxMinor,
+                                      self._elementsCountTransition, coreBoundaryScalingMode)
 
     def createJunction(self, inSegments, outSegments):
         """
@@ -2743,7 +3205,130 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
         :param outSegments: List of outward TubeNetworkMeshSegment.
         :return: A TubeNetworkMeshJunction.
         """
-        return TubeNetworkMeshJunction(inSegments, outSegments)
+        return TubeNetworkMeshJunction(inSegments, outSegments, self._useOuterTrimSurfaces)
+
+    def generateMesh(self, generateData):
+        super(TubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build core, shell
+        if self._isCore:
+            coreMeshGroup = generateData.getCoreMeshGroup()
+            shellMeshGroup = generateData.getShellMeshGroup()
+            for networkSegment in self._networkMesh.getNetworkSegments():
+                segment = self._segments[networkSegment]
+                segment.addCoreElementsToMeshGroup(coreMeshGroup)
+                segment.addShellElementsToMeshGroup(shellMeshGroup)
+
+
+class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+    """
+    Specialization of TubeNetworkMeshBuilder adding annotations for left, right, dorsal, ventral regions.
+    Requires network layout to follow these conventions:
+    - consistently annotates fully left or right features with names including "left" or "right", respectively.
+    - along central body, +d2 direction is left, -d2 direction is right.
+    - +d3 direction is ventral, -d3 is dorsal.
+    """
+
+    def generateMesh(self, generateData):
+        super(BodyTubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build left, right, dorsal, ventral annotation groups
+        leftMeshGroup = generateData.getLeftMeshGroup()
+        rightMeshGroup = generateData.getRightMeshGroup()
+        dorsalMeshGroup = generateData.getDorsalMeshGroup()
+        ventralMeshGroup = generateData.getVentralMeshGroup()
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            annotationTerms = segment.getAnnotationTerms()
+            for annotationTerm in annotationTerms:
+                if "left" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(leftMeshGroup)
+                    break
+                if "right" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(rightMeshGroup)
+                    break
+            else:
+                # segment on main axis
+                segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
+                segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+
+
+class TubeEllipseGenerator:
+    """
+    Generates tube ellipse curves with even-sized elements with specified radius, phase angle,
+    for any number of user-supplied parameters and number around.
+    """
+
+    def __init__(self, radius=1.0, phaseAngle=0.0):
+        self._radius = radius
+        self._phaseAngle = phaseAngle
+
+        # sample around circle, later scaled by ellipse parameters and resampled to get even spacing in geometric space
+        self._circlePointCount = 16
+        self._cx = []
+        self._cd = []
+        aroundScale = 2.0 * math.pi / self._circlePointCount
+        for q in range(self._circlePointCount):
+            theta = phaseAngle + 2.0 * math.pi * q / self._circlePointCount
+            x = [radius * math.cos(theta), radius * math.sin(theta)]
+            self._cx.append(x)
+            d = [-x[1] * aroundScale, x[0] * aroundScale]
+            self._cd.append(d)
+
+    def generate(self, px, pd1, pd2, pd12, pd3, pd13, elementsCountAround, d2Scale=1.0):
+        """
+        Generate a single row of 2-D ellipse parameters for the tube.
+        :param px: Centre of ellipse.
+        :param pd1: Derivative along centre of tube.
+        :param pd2: Major axis of ellipse.
+        :param pd12: Rate of change of major axis along tube.
+        :param pd3: Minor axis of ellipse.
+        :param pd13: Rate of change of minor axis along tube.
+        :param d2Scale: Scale to apply to derivative along the tube.
+        :return: 2-D tube ellipse row parameters ex, ed1, ed2, ed12
+        """
+        tx = []
+        td1 = []
+        for q in range(self._circlePointCount):
+            xi2, xi3 = self._cx[q]
+            tx.append([(px[c] + xi2 * pd2[c] + xi3 * pd3[c]) for c in range(3)])
+            dxi2, dxi3 = self._cd[q]
+            td1.append([(dxi2 * pd2[c] + dxi3 * pd3[c]) for c in range(3)])
+        # smooth to get reasonable derivative magnitudes
+        td1 = smoothCubicHermiteDerivativesLoop(tx, td1, fixAllDirections=True)
+        # resample to get evenly spaced points around loop, temporarily adding start point to end
+        ex, ed1, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(tx + tx[:1], td1 + td1[:1], elementsCountAround)
+        exi, edxi = interpolateSampleCubicHermite(self._cx + self._cx[:1], self._cd + self._cd[:1], pe, pxi, psf)
+        ex.pop()
+        ed1.pop()
+        exi.pop()
+        edxi.pop()
+
+        # check closeness of x(exi[i]) to ex[i]
+        # find nearest xi2, xi3 if above is finite error
+        # a small but non-negligible error, but results look fine so not worrying
+        # dxi = []
+        # for i in range(len(ex)):
+        #     xi2 = exi[i][0]
+        #     xi3 = exi[i][1]
+        #     xi23 = xi2 * xi3
+        #     x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
+        #     dxi.append(sub(x, ex[i]))
+        # print("error", p, "=", [magnitude(v) for v in dxi])
+
+        # calculate d2, d12 at exi
+        mag1 = magnitude(pd1)
+        mag2 = 0.5 * (magnitude(pd12) + magnitude(pd13))
+        d2ScaleFinal = d2Scale / (math.sqrt(mag1 * mag1 + mag2 * mag2))
+        ed2 = []
+        ed12 = []
+        for i in range(len(ex)):
+            xi2, xi3 = exi[i]
+            ed2.append([d2ScaleFinal * (pd1[c] + xi2 * pd12[c] + xi3 * pd13[c]) for c in range(3)])
+            dxi2, dxi3 = edxi[i]
+            ed12.append([d2ScaleFinal * (dxi2 * pd12[c] + dxi3 * pd13[c]) for c in range(3)])
+
+        return ex, ed1, ed2, ed12
 
 
 def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0, phaseAngle=0.0):
@@ -2765,79 +3350,21 @@ def getPathRawTubeCoordinates(pathParameters, elementsCountAround, radius=1.0, p
     assert pointsCountAlong > 1
     assert len(pathParameters[0][0]) == 3
 
-    # sample around circle in xi space, later smooth and re-sample to get even spacing in geometric space
-    ellipsePointCount = 16
-    aroundScale = 2.0 * math.pi / ellipsePointCount
-    sxi = []
-    sdxi = []
-    angleBetweenPoints = 2.0 * math.pi / ellipsePointCount
-    for q in range(ellipsePointCount):
-        theta = phaseAngle + q * angleBetweenPoints
-        xi2 = radius * math.cos(theta)
-        xi3 = radius * math.sin(theta)
-        sxi.append([xi2, xi3])
-        dxi2 = -xi3 * aroundScale
-        dxi3 = xi2 * aroundScale
-        sdxi.append([dxi2, dxi3])
-
-    px = []
-    pd1 = []
-    pd2 = []
-    pd12 = []
+    tubeGenerator = TubeEllipseGenerator(radius, phaseAngle)
+    tx = []
+    td1 = []
+    td2 = []
+    td12 = []
     for p in range(pointsCountAlong):
-        cx, cd1, cd2, cd12, cd3, cd13 = [cp[p] for cp in pathParameters]
-        tx = []
-        td1 = []
-        for q in range(ellipsePointCount):
-            xi2 = sxi[q][0]
-            xi3 = sxi[q][1]
-            x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
-            tx.append(x)
-            dxi2 = sdxi[q][0]
-            dxi3 = sdxi[q][1]
-            d1 = [(dxi2 * cd2[c] + dxi3 * cd3[c]) for c in range(3)]
-            td1.append(d1)
-        # smooth to get reasonable derivative magnitudes
-        td1 = smoothCubicHermiteDerivativesLoop(tx, td1, fixAllDirections=True)
-        # resample to get evenly spaced points around loop, temporarily adding start point to end
-        ex, ed1, pe, pxi, psf = sampleCubicHermiteCurvesSmooth(tx + tx[:1], td1 + td1[:1], elementsCountAround)
-        exi, edxi = interpolateSampleCubicHermite(sxi + sxi[:1], sdxi + sdxi[:1], pe, pxi, psf)
-        ex.pop()
-        ed1.pop()
-        exi.pop()
-        edxi.pop()
+        px, pd1, pd2, pd12, pd3, pd13 = [cp[p] for cp in pathParameters]
+        ex, ed1, ed2, ed12 = tubeGenerator.generate(
+            px, pd1, pd2, pd12, pd3, pd13, elementsCountAround, d2Scale=magnitude(pd1))
+        tx.append(ex)
+        td1.append(ed1)
+        td2.append(ed2)
+        td12.append(ed12)
 
-        # check closeness of x(exi[i]) to ex[i]
-        # find nearest xi2, xi3 if above is finite error
-        # a small but non-negligible error, but results look fine so not worrying
-        # dxi = []
-        # for i in range(len(ex)):
-        #     xi2 = exi[i][0]
-        #     xi3 = exi[i][1]
-        #     xi23 = xi2 * xi3
-        #     x = [(cx[c] + xi2 * cd2[c] + xi3 * cd3[c]) for c in range(3)]
-        #     dxi.append(sub(x, ex[i]))
-        # print("error", p, "=", [magnitude(v) for v in dxi])
-
-        # calculate d2, d12 at exi
-        ed2 = []
-        ed12 = []
-        for i in range(len(ex)):
-            xi2 = exi[i][0]
-            xi3 = exi[i][1]
-            d2 = [(cd1[c] + xi2 * cd12[c] + xi3 * cd13[c]) for c in range(3)]
-            ed2.append(d2)
-            dxi2 = edxi[i][0]
-            dxi3 = edxi[i][1]
-            d12 = [(dxi2 * cd12[c] + dxi3 * cd13[c]) for c in range(3)]
-            ed12.append(d12)
-
-        px.append(ex)
-        pd1.append(ed1)
-        pd2.append(ed2)
-        pd12.append(ed12)
-
-    return px, pd1, pd2, pd12
+    return tx, td1, td2, td12
 
 
 def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
@@ -2852,7 +3379,8 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
     :param fixedElementsCountAlong: Number of elements in resampled coordinates, or None to use targetElementLength.
     :param targetElementLength: Target element length or None to use fixedElementsCountAlong.
     Length is compared with mean trimmed length to determine number along, subject to specified minimum.
-    :param minimumElementsCountAlong: Minimum number along when targetElementLength is used.
+    :param minimumElementsCountAlong: Minimum number along to apply regardless of fixedElementsCountAlong or number
+    calculated from targetElementLength.
     :param startSurface: Optional TrackSurface specifying start of tube at intersection with it.
     :param endSurface: Optional TrackSurface specifying end of tube at intersection with it.
     :return: sx[][], sd1[][], sd2[][], sd12[][] with first index in range(elementsCountAlong + 1),
@@ -2900,11 +3428,9 @@ def resampleTubeCoordinates(rawTubeCoordinates, fixedElementsCountAlong=None,
         endLengths.append(endLength)
 
     meanLength = sumLengths / elementsCountAround
-    if fixedElementsCountAlong:
-        elementsCountAlong = fixedElementsCountAlong
-    else:
-        # small fudge factor so whole numbers chosen on centroid don't go one higher:
-        elementsCountAlong = max(minimumElementsCountAlong, math.ceil(meanLength * 0.999 / targetElementLength))
+    # small fudge factor on targetElementLength so whole numbers chosen on centroid don't go one higher:
+    elementsCountAlong = max(minimumElementsCountAlong, fixedElementsCountAlong if fixedElementsCountAlong else
+                             math.ceil(meanLength * 0.999 / targetElementLength))
     meanStartLocation /= elementsCountAround
     e = min(int(meanStartLocation), pointsCountAlong - 2)
     meanStartCurveLocation = (e, meanStartLocation - e)

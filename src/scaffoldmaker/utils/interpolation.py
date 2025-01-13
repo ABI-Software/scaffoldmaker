@@ -138,6 +138,44 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
     print('computeCubicHermiteDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
     return scaling
 
+def computeCubicHermiteStartDerivative(v1, d1_in, v2, d2):
+    """
+    Compute scaled d1 which makes their sum of d1 and d2 magnitudes twice the arc length.
+    :param d1_in: Original start derivative.
+    :return: Scaled d1
+    """
+    d2_mag = magnitude(d2)
+    d1 = set_magnitude(d1_in, 0.5 * d2_mag)
+    for iters in range(100):
+        arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+        d1_mag = 2.0 * arcLength - d2_mag
+        d1 = set_magnitude(d1_in, d1_mag)
+        if math.fabs(2.0 * arcLength - d1_mag - d2_mag) < (1.0E-6 * arcLength):
+            break
+    else:
+        print('computeCubicHermiteStartDerivative:  Max iters reached:', iters, ' mag d1', d1_mag, 'mag d2', d2_mag,
+              'arc length', arcLength)
+    return d1
+
+def computeCubicHermiteEndDerivative(v1, d1, v2, d2_in):
+    """
+    Compute scaled d2 which makes their sum of d1 and d2 magnitudes twice the arc length.
+    :param d2_in: Original end derivative.
+    :return: Scaled d2
+    """
+    d1_mag = magnitude(d1)
+    d2 = set_magnitude(d2_in, 0.5 * d1_mag)
+    for iters in range(100):
+        arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+        d2_mag = 2.0 * arcLength - d1_mag
+        d2 = set_magnitude(d2_in, d2_mag)
+        if math.fabs(2.0 * arcLength - d1_mag - d2_mag) < (1.0E-6 * arcLength):
+            break
+    else:
+        print('computeCubicHermiteEndDerivative:  Max iters reached:', iters, ' mag d1', d1_mag, 'mag d2', d2_mag,
+              'arc length', arcLength)
+    return d2
+
 def getCubicHermiteArcLength(v1, d1, v2, d2):
     """
     Note this is approximate.
@@ -255,8 +293,16 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
     mag_tangent = magnitude(tangent)
     if mag_tangent > 0.0:
         dTangent = interpolateCubicHermiteSecondDerivative(v1, d1, v2, d2, xi)
-        cp = cross(tangent, dTangent)
-        curvature = magnitude(cp) / (mag_tangent * mag_tangent * mag_tangent)
+        componentsCount = len(v1)
+        if componentsCount > 1:
+            if componentsCount == 3:
+                cp = cross(tangent, dTangent)
+                mag_cp = magnitude(cp)
+            else:
+                mag_cp = tangent[0] * dTangent[1] - tangent[1] * dTangent[0]
+            curvature = mag_cp / (mag_tangent * mag_tangent * mag_tangent)
+        else:
+            curvature = 0.0
     else:
         curvature = 0.0
         dTangent = [0.0, 0.0, 0.0]
@@ -725,11 +771,17 @@ def smoothCubicHermiteDerivativesLine(nx, nd1,
     componentRange = range(componentsCount)
     if elementsCount == 1:
         # special cases for one element
+        if fixStartDerivative and fixEndDerivative:
+            return nd1
         if not (fixStartDerivative or fixEndDerivative or fixStartDirection or fixEndDirection or fixAllDirections):
             # straight line
             delta = [ (nx[1][c] - nx[0][c]) for c in componentRange ]
             return [ delta, copy.deepcopy(delta) ]
-        if fixAllDirections or (fixStartDirection and fixEndDirection):
+        if fixAllDirections or ((fixStartDirection or fixStartDerivative) and (fixEndDirection or fixEndDerivative)):
+            if fixStartDerivative:
+                return [nd1[0], computeCubicHermiteEndDerivative(nx[0], nd1[0], nx[1], nd1[1])]
+            if fixEndDerivative:
+                return [computeCubicHermiteStartDerivative(nx[0], nd1[0], nx[1], nd1[1]), nd1[1]]
             # fixed directions, equal magnitude
             arcLength = computeCubicHermiteArcLength(nx[0], nd1[0], nx[1], nd1[1], rescaleDerivatives=True)
             return [ set_magnitude(nd1[0], arcLength), set_magnitude(nd1[1], arcLength) ]
@@ -1167,7 +1219,7 @@ def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_
     if loop:
         if proportion < 0.0:
             proportion += 1.0
-        elif proportion > 1.0:
+        elif proportion >= 1.0:
             proportion -= 1.0
     else:
         if proportion < 0.0:
@@ -1178,7 +1230,7 @@ def advanceCurveLocation(startLocation, dxi, elementsCount, loop=False, MAX_MAG_
             onBoundary = 2
         adxi = (proportion - startProportion) * elementsCount
     scaledProportion = proportion * elementsCount
-    elementIndex = int(scaledProportion)
+    elementIndex = min(int(scaledProportion), elementsCount - 1)
     location = (elementIndex, scaledProportion - elementIndex)
     return location, adxi, onBoundary
 
@@ -1305,6 +1357,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
     x = None
     mag_adxi = -1
     it = MAX_ITERS = 100
+    componentsCount = len(targetx)
     for it in range(MAX_ITERS):
         x, d = evaluateCoordinatesOnCurve(nx, nd1, location, loop, derivative=True)
         mag_d = magnitude(d)
@@ -1327,7 +1380,10 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
             jVector = normalize(tangent)
             if dxi < 0.0:
                 jVector = [-d for d in jVector]
-            iVector = normalize(cross(tangent, cross(tangent, dTangent)))
+            if componentsCount == 3:
+                iVector = normalize(cross(tangent, cross(tangent, dTangent)))
+            else:
+                iVector = [-jVector[1], jVector[0]]
             centre = sub(x, mult(iVector, radius))
             delta = sub(targetx, centre)
             dj = dot(delta, jVector)
@@ -1349,6 +1405,7 @@ def getNearestLocationOnCurve(nx, nd1, targetx, loop=False, startLocation=None, 
                 print("    iVector", iVector, "di", di)
                 print("    jVector", jVector, "dj", dj)
                 print("    curved dxi", dxi)
+
         location, adxi, onBoundary = advanceCurveLocation(location, dxi, elementsCount, loop, MAX_MAG_DXI)
         mag_adxi = abs(adxi)
         if instrument:

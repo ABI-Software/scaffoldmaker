@@ -1,11 +1,12 @@
 '''
 Utility functions for element field templates shared by mesh generators.
 '''
-from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub
+from cmlibs.maths.vectorops import add, cross, dot, magnitude, matrix_inv, mult, normalize, sub, transpose
 from cmlibs.zinc.element import Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.utils.interpolation import interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteEndDerivative, interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative)
 import copy
 import math
 
@@ -175,9 +176,13 @@ def scaleEftNodeValueLabels(eft, localNodeIndexes, valueLabels, addScaleFactorIn
 
 
 def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds, elementScaleFactorCount = 0):
-    '''
+    """
     Set general followed by node scale factor and element scale factor identifiers.
-    '''
+    :param eft: Elementfieldtemplate to modify.
+    :param globalScaleFactorIds: List of global scale factor identifiers.
+    :param nodeScaleFactorIds: List of node scale factor identifiers.
+    :param elementScaleFactorCount: number of element scale factor identifiers.
+    """
     eft.setNumberOfLocalScaleFactors(len(globalScaleFactorIds) + len(nodeScaleFactorIds) + elementScaleFactorCount)
     s = 1
     for id in globalScaleFactorIds:
@@ -191,6 +196,37 @@ def setEftScaleFactorIds(eft, globalScaleFactorIds, nodeScaleFactorIds, elementS
     for e in range(elementScaleFactorCount):
         eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_ELEMENT_GENERAL)
         s += 1
+
+
+def addEftNodeScaleFactorIds(eft, nodeScaleFactorIds):
+    """
+    Add more node-based scale factors to EFT.
+    :param eft: Elementfieldtemplate to modify.
+    :param nodeScaleFactorIds: List of node scale factor identifiers.
+    :return: Local indexes of added scale factors.
+    """
+    oldCount = eft.getNumberOfLocalScaleFactors()
+    addCount = len(nodeScaleFactorIds)
+    eft.setNumberOfLocalScaleFactors(oldCount + addCount)
+    s = oldCount + 1
+    for id in nodeScaleFactorIds:
+        eft.setScaleFactorType(s, Elementfieldtemplate.SCALE_FACTOR_TYPE_NODE_GENERAL)
+        eft.setScaleFactorIdentifier(s, id)
+    return [oldCount + n for n in range(1, addCount + 1)]
+
+
+def addScaleEftNodesValueLabel(eft, localNodeIndexes, valueLabel, nodeScaleFactorId):
+    """
+    Create new node scale factors for each local node index with the nodeScaleFactorId and
+    scale each instance of just value label at the local node indexes by the respective scale factor.
+    :param eft:  Elementfieldtemplate to modify.
+    :param localNodeIndexes: List of local node indexes to scale at.
+    :param valueLabel: Node value label to scale.
+    :param nodeScaleFactorId: Node-local scale factor ID to use.
+    """
+    sfIndexes = addEftNodeScaleFactorIds(eft, [nodeScaleFactorId] * len(localNodeIndexes))
+    for n in range(len(localNodeIndexes)):
+        scaleEftNodeValueLabels(eft, [localNodeIndexes[n]], [Node.VALUE_LABEL_D_DS3], [sfIndexes[n]])
 
 
 def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNodeValueLabel=None):
@@ -517,16 +553,18 @@ class HermiteNodeLayout:
                         if dotCross == 0.0:
                             continue
                         swizzle = dotCross < 0.0
-                        midSide1 = normalize(add(normDir[i], normDir[j]))
-                        midSide2 = normalize(add(normDir[j], normDir[k]))
-                        midSide3 = normalize(add(normDir[k], normDir[i]))
-                        middle = normalize([midSide1[c] + midSide2[c] + midSide3[c] for c in range(3)])
-                        maxDot = 0.9 * max(dot(normDir[i], middle), dot(normDir[j], middle), dot(normDir[k], middle))
+                        # don't allow if another direction is within i j k octant by projecting onto basis
+                        a = transpose([normDir[i], normDir[k], normDir[j]] if swizzle else
+                                      [normDir[i], normDir[j], normDir[k]])
+                        a_inv = matrix_inv(a)
                         for m in range(directionsCount):
                             if m in [i, j, k]:
                                 continue
-                            if dot(normDir[m], middle) > maxDot:
-                                break  # another direction is within i j k region
+                            for n in range(3):
+                                if dot(a_inv[n], normDir[m]) < 0.0:
+                                    break  # outside octant
+                            else:
+                                break  # another direction is within i j k octant
                         else:
                             ii, jj, kk = (i, k, j) if swizzle else (i, j, k)
                             permutations.append((self._directions[ii], self._directions[jj], self._directions[kk]))
@@ -632,21 +670,12 @@ class HermiteNodeLayoutManager:
         self._nodeLayout6Way12_d3Defined = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
              [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
-        self._nodeLayout6WayBifurcation = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0],
-             [0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
-        self._nodeLayout6WayBifurcationTransition = HermiteNodeLayout(
-            [[0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
-        self._nodeLayout6WayTriplePointTop1 = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
-             [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
-        self._nodeLayout6WayTriplePointTop2 = HermiteNodeLayout(
-            [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
-        self._nodeLayout6WayTriplePointBottom1 = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
-             [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
-        self._nodeLayout6WayTriplePointBottom2 = HermiteNodeLayout(
-            [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+        self._nodeLayoutBifurcationCoreTransitionTopGeneral = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+             [0.0, 0.0, -1.0], [1.0, 0.0, 1.0], [-1.0, 0.0, 1.0], [0.0, 1.0, 1.0], [0.0, -1.0, 1.0], [1.0, 1.0, 1.0], [-1.0, -1.0, 1.0]])
+        self._nodeLayoutBifurcationCoreTransitionBottomGeneral = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+             [0.0, 0.0, 1.0], [1.0, 0.0, -1.0], [-1.0, 0.0, -1.0], [0.0, 1.0, -1.0], [0.0, -1.0, -1.0], [1.0, 1.0, -1.0], [-1.0, -1.0, -1.0]])
         self._nodeLayout8Way12 = HermiteNodeLayout(
             [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0], [1.0, -1.0]])
         self._nodeLayout8Way12_d3Defined = HermiteNodeLayout(
@@ -661,6 +690,7 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
         self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
             [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+        self.nodeLayoutsBifurcation6WayTriplePoint = {}
 
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
         """
@@ -711,32 +741,107 @@ class HermiteNodeLayoutManager:
                        self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]
         return nodeLayouts
 
-    def getNodeLayout6WayBifurcation(self):
+    def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
         """
-        Get node layout for a special case of 6-way bifurcation, used in conjunction with a node layout for
-        6-way bifurcation transition and a node layout for 6-way triple point.
-        :return: HermiteNodeLayout.
+        Get node layout for special case of 3-way junction on core transition corner of box.
+        :param segmentsIn: Directions of 3 segments relative to junction.
+        :param sequence: Sequence of bifurcation: [0, 1, 2] (normal) or [0, 2, 1] (reverse)
+        :param maxMajorSegment: Which segment has the most major elements, i.e. has elements going to both others.
+        :param top: True for top, False for bottom.
+        :return: HermiteNodeLayout
         """
-        return self._nodeLayout6WayBifurcation
-
-    def getNodeLayout6WayBifurcationTransition(self):
-        """
-        Get node layout for a special case of 6-way bifurcation transition, used in conjunction with a node layout for
-        6-way bifurcation and a node layout for 6-way triple point.
-        :return: HermiteNodeLayout.
-        """
-        return self._nodeLayout6WayBifurcationTransition
-
-    def getNodeLayout6WayTriplePoint(self):
-        """
-        Get node layout for a special case where a node is located at both 6-way junction and one of the triple-point
-        corners of core box elements. Used in conjunction with 6-way bifurcation and 6-way bifurcation transition node
-        layouts. There are two corners (Top, and Bottom) each with its specific pair of node layouts.
-        :return: HermiteNodeLayout.
-        """
-        nodeLayouts = [self._nodeLayout6WayTriplePointTop1, self._nodeLayout6WayTriplePointTop2,
-                       self._nodeLayout6WayTriplePointBottom1, self._nodeLayout6WayTriplePointBottom2]
-        return nodeLayouts
+        reverse = sequence == [0, 2, 1]
+        sir = (segmentsIn[0], segmentsIn[1], segmentsIn[2], reverse)
+        layoutIndex = maxMajorSegment
+        if not top:
+            layoutIndex += 3
+        nodeLayouts = self.nodeLayoutsBifurcation6WayTriplePoint.get(sir)
+        if not nodeLayouts:
+            if sir in [(False, False, False, False), (False, False, False, True),
+                       (True, False, False, False), (True, False, False, True),
+                       (True, True, True, False), (True, True, True, True)]:
+                nodeLayoutBifurcationCoreTransitionMOP = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
+                nodeLayoutBifurcationCoreTransitionOMP = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, -1.0], [0.0, -1.0, 1.0]])
+                nodeLayoutBifurcationCoreTransitionPPP = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+                nodeLayoutBifurcationCoreTransitionMOM = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
+                nodeLayoutBifurcationCoreTransitionOMM = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, 1.0], [0.0, -1.0, -1.0]])
+                nodeLayoutBifurcationCoreTransitionPPM = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+                nodeLayouts = (
+                    nodeLayoutBifurcationCoreTransitionPPP,
+                    nodeLayoutBifurcationCoreTransitionMOP,
+                    nodeLayoutBifurcationCoreTransitionOMP,
+                    nodeLayoutBifurcationCoreTransitionPPM,
+                    nodeLayoutBifurcationCoreTransitionMOM,
+                    nodeLayoutBifurcationCoreTransitionOMM)
+                self.nodeLayoutsBifurcation6WayTriplePoint[(False, False, False, False)] = nodeLayouts
+                self.nodeLayoutsBifurcation6WayTriplePoint[(True, False, False, False)] = nodeLayouts
+                self.nodeLayoutsBifurcation6WayTriplePoint[(True, True, True, False)] = nodeLayouts
+                nodeLayoutsReverse = (
+                    nodeLayoutBifurcationCoreTransitionPPP,
+                    nodeLayoutBifurcationCoreTransitionOMP,
+                    nodeLayoutBifurcationCoreTransitionMOP,
+                    nodeLayoutBifurcationCoreTransitionPPM,
+                    nodeLayoutBifurcationCoreTransitionOMM,
+                    nodeLayoutBifurcationCoreTransitionMOM)
+                self.nodeLayoutsBifurcation6WayTriplePoint[(False, False, False, True)] = nodeLayoutsReverse
+                self.nodeLayoutsBifurcation6WayTriplePoint[(True, False, False, True)] = nodeLayoutsReverse
+                self.nodeLayoutsBifurcation6WayTriplePoint[(True, True, True, True)] = nodeLayoutsReverse
+                nodeLayouts = self.nodeLayoutsBifurcation6WayTriplePoint.get(sir)
+            elif sir in [(True, True, False, False), (True, True, False, True)]:
+                nodeLayoutBifurcationCoreTransitionPOP = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
+                nodeLayoutBifurcationCoreTransitionOPP = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, -1.0], [0.0, 1.0, 1.0]])
+                nodeLayoutBifurcationCoreTransitionMMP = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0],
+                     [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]])
+                nodeLayoutBifurcationCoreTransitionPOM = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+                nodeLayoutBifurcationCoreTransitionOPM = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, -1.0, 0.0],
+                     [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]])
+                nodeLayoutBifurcationCoreTransitionMMM = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0],
+                     [0.0, 0.0, 11.0], [-1.0, -1.0, -1.0]])
+                nodeLayouts = (
+                    nodeLayoutBifurcationCoreTransitionPOP,
+                    nodeLayoutBifurcationCoreTransitionOPP,
+                    nodeLayoutBifurcationCoreTransitionMMP,
+                    nodeLayoutBifurcationCoreTransitionPOM,
+                    nodeLayoutBifurcationCoreTransitionOPM,
+                    nodeLayoutBifurcationCoreTransitionMMM)
+                self.nodeLayoutsBifurcation6WayTriplePoint[(True, True, False, False)] = nodeLayouts
+                nodeLayoutsReverse = (
+                    nodeLayoutBifurcationCoreTransitionOPP,
+                    nodeLayoutBifurcationCoreTransitionPOP,
+                    nodeLayoutBifurcationCoreTransitionMMP,
+                    nodeLayoutBifurcationCoreTransitionOPM,
+                    nodeLayoutBifurcationCoreTransitionPOM,
+                    nodeLayoutBifurcationCoreTransitionMMM)
+                self.nodeLayoutsBifurcation6WayTriplePoint[(True, True, False, True)] = nodeLayoutsReverse
+                nodeLayouts = self.nodeLayoutsBifurcation6WayTriplePoint.get(sir)
+            if not nodeLayouts:
+                print("getNodeLayoutBifurcation6WayTriplePoint not implemented for case:", sir)
+                if top:
+                    return self._nodeLayoutBifurcationCoreTransitionTopGeneral
+                else:
+                    return self._nodeLayoutBifurcationCoreTransitionBottomGeneral
+        return nodeLayouts[layoutIndex]
 
 def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
     """
@@ -860,3 +965,80 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
                 deltas[on][ed] = otherElementDerivative
 
     return eft, scalefactors
+
+
+CubicHermiteSerendipityValueLabels = [
+    Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]
+
+
+def getTricubicHermiteSerendipityElementNodeParameter(eft, scalefactors, nodeParameters, localNodeIndex, valueLabel):
+    """
+    Get effective element parameter for basis' original valueLabel at local node index.
+    Currently assumes extra versions are not used, but this is not checked.
+    :param eft: Element field template.
+    :param scalefactors: List of scale factors.
+    :param nodeParameters: List over 8 (3-D) local nodes in Zinc ordering of 4 parameter vectors
+    x, d1, d2, d3 each with 3 components.
+    :param localNodeIndex: 1-based local node index on original basis.
+    :param valueLabel: A value label mapped by CubicHermiteSerendipityFunctionOffset.
+    :return: Parameter.
+    """
+    parameter = [0.0, 0.0, 0.0]
+    bn = localNodeIndex - 1
+    valueIndex = CubicHermiteSerendipityValueLabels.index(valueLabel)
+    func = 4 * bn + valueIndex + 1
+    termCount = eft.getFunctionNumberOfTerms(func)
+    for term in range(1, termCount + 1):
+        termValueLabel = eft.getTermNodeValueLabel(func, term)
+        termValueIndex = CubicHermiteSerendipityValueLabels.index(termValueLabel)
+        component = nodeParameters[eft.getTermLocalNodeIndex(func, term) - 1][termValueIndex]
+        scalefactorCount, scalefactorIndexes = eft.getTermScaling(func, term, 0)
+        if scalefactorCount > 0:
+            scalefactorCount, scalefactorIndexes = eft.getTermScaling(func, term, scalefactorCount)
+            if scalefactorCount == 1:
+                scalefactorIndexes = [scalefactorIndexes]
+            scalefactor = 1.0
+            for sfi in scalefactorIndexes:
+                scalefactor *= scalefactors[sfi - 1]
+            component = mult(component, scalefactor)
+        parameter = add(parameter, component)
+    return parameter
+
+
+def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodeParameters, localNodeIndexes, valueLabel,
+                                                     version=1):
+    """
+    Scale tricubic hermite serendipity element field template value label at local nodes to fit actual parameters.
+    Calculation assumes value label parameter is an unscaled single term expression at the local nodes.
+    :param eft: Element field template e.g. returned from determineCubicHermiteSerendipityEft.
+    Note: be careful to pass a separate eft to this function from any cached which do not needing scaling!
+    :param scalefactors: Existing scale factors for element
+    :param nodeParameters: As passed to determineCubicHermiteSerendipityEft: list over 8 (3-D)
+    local nodes in Zinc ordering of 4 parameter vectors x, d1, d2, d3 each with 3 components.
+    :param localNodeIndexes: Local node indexes to scale value label at. Currently must be in [5, 6, 7, 8].
+    :param valueLabel: Single value label to scale. Currently only implemened for D_DS3.
+    :param version: Set to a number > 1 to use that derivative version instead of scale factors, and client is
+    responsible for assigning that derivative version in proportion to the returned scale factors.
+    :return: Modified eft, final scalefactors, add scalefactors (multiplying the affected derivatives; these are
+    included in final scalefactors if version == 1, otherwise client must use these to scale versioned derivatives).
+    """
+    assert len(nodeParameters) == 8
+    assert valueLabel == Node.VALUE_LABEL_D_DS3
+    addScalefactors = []
+    for ln in localNodeIndexes:
+        assert ln in [5, 6, 7, 8]
+        na = ln - 5
+        nb = na + 4
+        xa = nodeParameters[na][0]
+        da = getTricubicHermiteSerendipityElementNodeParameter(eft, scalefactors, nodeParameters, na + 1, valueLabel)
+        xb = nodeParameters[nb][0]
+        db = nodeParameters[nb][3]
+        dbScaled = computeCubicHermiteEndDerivative(xa, da, xb, db)
+        scalefactor = magnitude(dbScaled) / magnitude(db)
+        addScalefactors.append(scalefactor)
+    if version == 1:
+        newScalefactors = scalefactors + addScalefactors if scalefactors else addScalefactors
+        addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
+        return eft, newScalefactors, addScalefactors
+    remapEftNodeValueLabelsVersion(eft, localNodeIndexes, [valueLabel], version)
+    return eft, scalefactors, addScalefactors

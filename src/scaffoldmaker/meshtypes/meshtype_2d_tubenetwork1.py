@@ -24,20 +24,24 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
-            "Elements count around": 8,
-            "Annotation elements counts around": [0],
+            "Number of elements around": 8,
+            "Annotation numbers of elements around": [0],
             "Target element density along longest segment": 4.0,
+            "Annotation numbers of elements along": [0],
             "Show trim surfaces": False
         }
+        if parameterSetName in ["Loop", "Snake", "Vase"]:
+            options["Target element density along longest segment"] = 12.0
         return options
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         return [
             "Network layout",
-            "Elements count around",
-            "Annotation elements counts around",
+            "Number of elements around",
+            "Annotation numbers of elements around",
             "Target element density along longest segment",
+            "Annotation numbers of elements along",
             "Show trim surfaces"
         ]
 
@@ -74,12 +78,12 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
     def checkOptions(cls, options):
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
-        elementsCountAround = options["Elements count around"]
-        if options["Elements count around"] < 4:
-            options["Elements count around"] = 4
-        annotationElementsCountsAround = options["Annotation elements counts around"]
+        dependentChanges = False
+        if options["Number of elements around"] < 4:
+            options["Number of elements around"] = 4
+        annotationElementsCountsAround = options["Annotation numbers of elements around"]
         if len(annotationElementsCountsAround) == 0:
-            options["Annotation elements count around"] = [0]
+            options["Annotation numbers of elements around"] = [0]
         else:
             for i in range(len(annotationElementsCountsAround)):
                 if annotationElementsCountsAround[i] <= 0:
@@ -88,7 +92,15 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
                     annotationElementsCountsAround[i] = 4
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
-        dependentChanges = False
+        annotationAlongCounts = options["Annotation numbers of elements along"]
+        if len(annotationAlongCounts) == 0:
+            options["Annotation numbers of elements along"] = [0]
+        else:
+            for i in range(len(annotationAlongCounts)):
+                if annotationAlongCounts[i] <= 0:
+                    annotationAlongCounts[i] = 0
+                elif annotationAlongCounts[i] < 1:
+                    annotationAlongCounts[i] = 1
         return dependentChanges
 
     @classmethod
@@ -107,14 +119,15 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
         tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=options["Elements count around"],
-            elementsCountThroughWall=1,
             layoutAnnotationGroups=networkLayout.getAnnotationGroups(),
-            annotationElementsCountsAround=options["Annotation elements counts around"])
+            annotationElementsCountsAlong=options["Annotation numbers of elements along"],
+            defaultElementsCountAround=options["Number of elements around"],
+            annotationElementsCountsAround=options["Annotation numbers of elements around"],
+            elementsCountThroughShell=1)
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 2,
-            isLinearThroughWall=True,
+            isLinearThroughShell=True,
             isShowTrimSurfaces=options["Show trim surfaces"])
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
