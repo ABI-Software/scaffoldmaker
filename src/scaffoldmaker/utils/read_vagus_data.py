@@ -18,8 +18,7 @@ class VagusInputData:
         self._trunk_keywords = ['vagus x nerve trunk', 'left vagus nerve', 'right vagus nerve']
         self._branch_keywords = ['branch', 'nerve']
         self._term_keywords = ['fma:', 'fma_', 'ilx:', 'ilx_', 'uberon:', 'uberon_']
-        self._orientation_marker_keywords = ['anterior', 'posterior', 'right', 'left', 'microfil',
-                                             'left anterior', 'right anterior', 'left posterior', 'right posterior']
+        self._orientation_keywords = ['orientation', 'microfil']
 
         self._annotation_term_map = {}
         self._branch_coordinates_data = {}
@@ -27,7 +26,7 @@ class VagusInputData:
         self._branch_radius_data = {}
         self._datafile_path = None
         self._level_markers = {}
-        self._orientation_markers = {}
+        self._orientation_data = {}
         self._trunk_group_name = None
         self._trunk_coordinates = []
         self._trunk_radius = []
@@ -46,15 +45,14 @@ class VagusInputData:
         term_annotation_names = []
         group_list = get_group_list(fm)
         group_map = {}
-        keywords = self._branch_keywords + self._trunk_keywords
         for group in group_list:
             group_name = group.getName().strip()
             lower_name = group_name.casefold()
             group_map[group_name] = group
-            if any([keyword in lower_name for keyword in keywords]):
-                annotation_names.append(group_name)
             if any([keyword in lower_name for keyword in self._term_keywords]):
                 term_annotation_names.append(group_name)
+            else:
+                annotation_names.append(group_name)
         for annotation_name in annotation_names:
             annotation_group = fm.findFieldByName(annotation_name).castGroup()
             for term_annotation in term_annotation_names:
@@ -67,6 +65,7 @@ class VagusInputData:
                 self._annotation_term_map[annotation_name] = ""
 
         branch_group_names = []
+        orientation_group_names = []
         for annotation_name in annotation_names:
             lower_name = annotation_name.casefold()
             if any([keyword in lower_name for keyword in self._trunk_keywords]) and 'branch' not in lower_name:
@@ -74,6 +73,11 @@ class VagusInputData:
                 continue
             if any([keyword in lower_name for keyword in self._branch_keywords]):
                 branch_group_names.append(annotation_name)
+            if any([keyword in lower_name for keyword in self._orientation_keywords]):
+                # rename label used by Feinstein
+                if lower_name == 'microfil':
+                    annotation_name = 'orientation anterior'
+                orientation_group_names.append(annotation_name)
 
         # extract marker data - name, coordinates (no marker terms are available)
         marker_group = group_map.get("marker")
@@ -88,14 +92,13 @@ class VagusInputData:
                 if marker_name_in_terms(marker_name):
                     # add anatomical landmark marker if in approved terms
                     self._level_markers[marker_name] = x
-                else:
-                    # check if an orientation marker
-                    lower_marker_name = marker_name.casefold()
-                    if lower_marker_name in self._orientation_marker_keywords:
-                        if lower_marker_name == 'microfil':
-                            lower_marker_name = 'anterior'
-                        self._orientation_markers[lower_marker_name] = x
                 marker_node = marker_node_iter.next()
+
+        # extract orientation data
+        for orientation_group_name in orientation_group_names:
+            orientation_points, _ = get_nodeset_fieldgroup_parameters(nodes, coordinates, orientation_group_name,
+                                                                           [Node.VALUE_LABEL_VALUE])
+            self._orientation_data[orientation_group_name] = orientation_points[:]
 
         # extract trunk data - coordinates, nodes, radius - assume only one trunk group is used
         trunk_coordinates, trunk_nodes = get_nodeset_fieldgroup_parameters(nodes, coordinates, self._trunk_group_name,
@@ -144,7 +147,7 @@ class VagusInputData:
                             parent_name = parent_branch_name
                             break
             self._branch_parent_map[branch_name] = parent_name
-            print(branch_name, ' -> ', parent_name)
+            # print(branch_name, ' -> ', parent_name)
 
         # write all data in a file for geometry fitter
         sir = data_region.createStreaminformationRegion()
@@ -156,6 +159,9 @@ class VagusInputData:
 
     def get_level_markers(self):
         return self._level_markers
+
+    def get_orientation_data(self):
+        return self._orientation_data
 
     def get_trunk_group_name(self):
         return self._trunk_group_name
@@ -177,6 +183,7 @@ class VagusInputData:
 
     def reset_datafile_path(self):
         self._datafile_path = None
+
 
 
 def load_vagus_data(region):
