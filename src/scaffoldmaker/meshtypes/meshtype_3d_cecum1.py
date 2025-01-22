@@ -1215,7 +1215,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
     xPositionA = o1_Positions[int(elementsCountAlongSegment * 0.5)]
     xProportionA = trackSurfaceOstium.getProportion(xPositionA)
-    derivativeA = o1_d1[-1][int(elementsCountAlongSegment * 0.5)]
+    derivativeA = o1_d2[-1][int(elementsCountAlongSegment * 0.5)]
 
     xB = xTrackSurface[-elementsCountAroundHalfHaustrum]
     xPositionB = trackSurfaceOstium.findNearestPosition(xB, xPositionA)
@@ -1230,7 +1230,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
     pxAlongMidLineBottom, pd2AlongMidLineBottom, pd1AlongMidLineBottom = \
         trackSurfaceOstium.resampleHermiteCurvePointsSmooth(
-            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=magnitude(derivativeA),
+            nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=None,
             derivativeMagnitudeEnd=derivativeMagnitudeB)[0:3]
 
     for n in range(len(pd1AlongMidLineBottom)):
