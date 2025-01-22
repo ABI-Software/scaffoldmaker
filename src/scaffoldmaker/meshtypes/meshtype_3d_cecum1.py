@@ -1154,55 +1154,11 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
     ostiumFaceStartNode = nextNodeIdentifier
     ostiumFaceStartElement = nextElementIdentifier
 
-    # Create location of annulus
-    xAnnulusOuter = [[] for x in range(elementsCountAroundOstium)]
-    xAnnulusOuterPosition = [[] for x in range(elementsCountAroundOstium)]
-    d1AnnulusNorm = []
-    d1AnnulusOuter = []
-    e1Left = elementsAroundTrackSurface
-    e1Right = 0
-    e2Top = 0
-    e2Bottom = elementsAlongTrackSurface
-    sf = magnitude(networkLayoutIleum.cd2Path[-1]) * 0.35
-    for n1 in range(elementsCountAroundOstium):
-        normD2 = normalize(o1_d2[-1][n1])
-        d1AnnulusNorm.append(normD2)
-        d1AnnulusOuter.append(set_magnitude(o1_d2[-1][n1], sf))
-        x = [o1_x[-1][n1][c] + sf * normD2[c] for c in range(3)]
-        nearestPosition = trackSurfaceOstium.findNearestPosition(x)
-        e1 = nearestPosition.e1
-        e2 = nearestPosition.e2
-        if e1 < e1Left:
-            e1Left = e1
-        if e1 > e1Right:
-            e1Right = e1
-        if e2 > e2Top:
-            e2Top = e2
-        if e2 < e2Bottom:
-            e2Bottom = e2
-        xAnnulusOuterPosition[n1] = nearestPosition
-        xAnnulusOuter[n1] = trackSurfaceOstium.evaluateCoordinates(nearestPosition)
-
-    d2AnnulusOuter = []
-    for n in range(elementsCountAlongSegment):
-        d = findDerivativeBetweenPoints(xAnnulusOuter[n], xAnnulusOuter[(n + 1) % elementsCountAroundOstium])
-        d2AnnulusOuter.append(d)
-    d2AnnulusOuter = interp.smoothCubicHermiteDerivativesLoop(xAnnulusOuter, d2AnnulusOuter)
     d3Annulus = []
     for n in range(elementsCountAroundOstium):
-        d3 = normalize(cross(normalize(d2AnnulusOuter[n]), d1AnnulusNorm[n]))
+        d3 = normalize(cross(normalize(o1_d2[-1][n]), o1_d1[-1][n]))
         d3Annulus.append(d3)
-    annulusD2Curvature = interp.getCurvaturesAlongCurve(xAnnulusOuter, d2AnnulusOuter, d3Annulus, loop=True)
-
-    # # Visualise annulus
-    # for n1 in range(len(xAnnulusOuter)):
-    #     node = nodes.createNode(nextNodeIdentifier, nodetemplate)
-    #     cache.setNode(node)
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, xAnnulusOuter[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, d1AnnulusOuter[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2AnnulusOuter[n1])
-    #     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, [0.0, 0.0, 0.0])
-    #     nextNodeIdentifier += 1
+    o1_D2Curvature = interp.getCurvaturesAlongCurve(o1_x[-1], o1_d2[-1], d3Annulus, loop=True)
 
     # base row counts with 8 elements around ostium
     rowsIncrement = int((elementsCountAlongSegment - 8) / 4)
@@ -1222,8 +1178,9 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
     rotAngle = math.pi
     rotFrame = axis_angle_to_rotation_matrix(normalize(d3Annulus[0]), rotAngle)
-    d2B = [rotFrame[j][0] * d1AnnulusOuter[0][0] + rotFrame[j][1] * d1AnnulusOuter[0][1] +
-           rotFrame[j][2] * d1AnnulusOuter[0][2] for j in range(3)]
+    d2B = [rotFrame[j][0] * o1_d1[-1][0][0] +
+           rotFrame[j][1] * o1_d1[-1][0][1] +
+           rotFrame[j][2] * o1_d1[-1][0][2] for j in range(3)]
 
     # sample along from apex to annulus start
     if segmentIdx == 0:
@@ -1238,7 +1195,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
     derivativeA = set_magnitude(derivativeA, magnitude(d2ApexInner))
     derivativeMagnitudeA = magnitude(derivativeA)
 
-    xPositionB = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[0])
+    xPositionB = o1_Positions[0]
     xProportionB = trackSurfaceOstium.getProportion(xPositionB)
 
     nx, nd1, nd2, nd3, proportions = \
@@ -1250,14 +1207,12 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
         trackSurfaceOstium.resampleHermiteCurvePointsSmooth(
             nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=derivativeMagnitudeA)[0:3]
 
-    annulusD2ZeroMag = magnitude(pd2AlongMidLine[-1])
-
     for n in range(len(pd1AlongMidLine)):
         pd1AlongMidLine[n] = [-d for d in pd1AlongMidLine[n]]
 
-    xPositionA = trackSurfaceOstium.findNearestPosition(xAnnulusOuter[int(elementsCountAlongSegment * 0.5)])
+    xPositionA = o1_Positions[int(elementsCountAlongSegment * 0.5)]
     xProportionA = trackSurfaceOstium.getProportion(xPositionA)
-    derivativeA = d1AnnulusOuter[int(elementsCountAlongSegment * 0.5)]
+    derivativeA = o1_d1[-1][int(elementsCountAlongSegment * 0.5)]
 
     xB = xTrackSurface[-elementsCountAroundHalfHaustrum]
     xPositionB = trackSurfaceOstium.findNearestPosition(xB, xPositionA)
@@ -1274,8 +1229,6 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
         trackSurfaceOstium.resampleHermiteCurvePointsSmooth(
             nx, nd1, nd2, nd3, proportions, derivativeMagnitudeStart=magnitude(derivativeA),
             derivativeMagnitudeEnd=derivativeMagnitudeB)[0:3]
-
-    annulusD2HalfOstiumMag = magnitude(pd2AlongMidLineBottom[0])
 
     for n in range(len(pd1AlongMidLineBottom)):
         pd1AlongMidLineBottom[n] = [-d for d in pd1AlongMidLineBottom[n]]
@@ -1313,7 +1266,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                         derivativeMagnitudeB = magnitude(derivativeB)
 
                     else:
-                        xB = xAnnulusOuter[annulusIdx]
+                        xB = o1_x[-1][annulusIdx]
                         derivativeB = None
                         derivativeMagnitudeB = None
 
@@ -1336,7 +1289,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                         derivativeMagnitudeA = magnitude(derivativeA)
 
                     else:
-                        xA = xAnnulusOuter[-annulusIdx]
+                        xA = o1_x[-1][-annulusIdx]
                         derivativeA = None
                         derivativeMagnitudeA = None
 
@@ -1425,15 +1378,11 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             nd2Along = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
             nd2AlongBottomLHS = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
 
-            # Make sure d2 at annulus is length of element below
-            nd2Along[-1] = set_magnitude(d1AnnulusOuter[1],
-                                         0.5*(sf + magnitude(sub(xAroundAlong[n2][n1], xAroundAlong[n2][n1 - 1]))))
-
             # Make magnitude of annulus d2 between start and end row equivalent to arclength of element on its left
             for m in range(endRowIdx - startRowIdx - 1):
-                nxAlong.append(xAnnulusOuter[2 + m])
+                nxAlong.append(o1_x[-1][2 + m])
                 n2Idx = m + startRowIdx + 1
-                nd2Along.append(set_magnitude(d1AnnulusOuter[2+m], 0.5*(sf + magnitude(d1AroundAlong[n2Idx][n1]))))
+                nd2Along.append(set_magnitude(o1_d1[-1][2+m], magnitude(d1AroundAlong[n2Idx][n1])))
 
             # Smooth from annulus to end of cecum
             for n2 in range(endRowIdx, elementsCountAlongSegment):
@@ -1444,10 +1393,6 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             nd2Top = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
             nd2AlongTopLHS = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
 
-            # Make sure d2 at annulus is length of element above
-            nd2Top[0] = set_magnitude(d1AnnulusOuter[int(elementsCountAroundOstium * 0.5) - 1],
-                                      0.5*(sf + magnitude(nd2Top[0])))
-
             nxAlong += nxTop
             nd2Along += nd2Top
 
@@ -1457,7 +1402,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             for n2 in range(len(nd2Along)):
                 d2AroundAlong[n2][n1] = nd2Along[n2]
                 if n1 == elementsCountAroundHalfHaustrum - 2 and startRowIdx -1 < n2 < endRowIdx + 1:
-                    d1AroundAlong[n2][n1] = d2AnnulusOuter[annulusIdx]
+                    d1AroundAlong[n2][n1] = o1_d2[-1][annulusIdx]
                     annulusIdx += 1
 
         elif n1 == elementsCountAroundHalfHaustrum - 1:
@@ -1477,16 +1422,11 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             nd2Along = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
             nd2AlongBottomRHS = interp.smoothCubicHermiteDerivativesLine(nxAlong, nd2Along, fixStartDerivative=True)
 
-            # Make sure d2 at annulus is length of element below
-            nd2Along[-1] = set_magnitude(d1AnnulusOuter[-1],
-                                         0.5 * (sf + magnitude(sub(xAroundAlong[n2][n1 + 1], xAroundAlong[n2][n1]))))
-
             # Make magnitude of annulus d2 between start and end row equivalent to arclength of element on its right
             for m in range(endRowIdx - startRowIdx - 1):
-                nxAlong.append(xAnnulusOuter[-(2 + m)])
+                nxAlong.append(o1_x[-1][-(2 + m)])
                 n2Idx = m + startRowIdx + 1
-                nd2Along.append(set_magnitude(d1AnnulusOuter[-(2 + m)],
-                                              0.5 * (sf + magnitude(d1AroundAlong[n2Idx][n1 - 1]))))
+                nd2Along.append(set_magnitude(o1_d1[-1][-(2 + m)], magnitude(d1AroundAlong[n2Idx][n1 - 1])))
 
             # Smooth from annulus to end of cecum
             for n2 in range(endRowIdx, elementsCountAlongSegment):
@@ -1502,10 +1442,6 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             nd2Top = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
             nd2AlongTopRHS = interp.smoothCubicHermiteDerivativesLine(nxTop, nd2Top, fixEndDerivative=True)
 
-            # Make sure d2 at annulus is length of element above
-            nd2Top[0] = set_magnitude(d1AnnulusOuter[int(elementsCountAroundOstium * 0.5) + 1],
-                                      0.5 * (sf + magnitude(nd2Top[0])))
-
             nxAlong += nxTop
             nd2Along += nd2Top
 
@@ -1518,7 +1454,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                 else:
                     n1Idx = n1 - 1
                     if n1 == elementsCountAroundHalfHaustrum:
-                        d1AroundAlong[n2][n1Idx] = d2AnnulusOuter[-annulusIdx]
+                        d1AroundAlong[n2][n1Idx] = o1_d2[-1][-annulusIdx]
                         annulusIdx += 1
                 d2AroundAlong[n2][n1Idx] = nd2Along[n2]
 
@@ -1618,7 +1554,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                 d2Curvature[n2][n1] = d2CurvatureAlong[n2]
 
             for n2 in range(startRowIdx, endRowIdx + 1):
-                d1Curvature[n2][n1] = annulusD2Curvature[annulusIdx]
+                d1Curvature[n2][n1] = o1_D2Curvature[annulusIdx]
                 annulusIdx += 1
 
         elif n1 == elementsCountAroundHalfHaustrum - 1:
@@ -1663,7 +1599,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                 d2Curvature[n2][n1Idx] = d2CurvatureAlong[n2]
 
             for n2 in range(startRowIdx, endRowIdx + 1):
-                d1Curvature[n2][n1] = annulusD2Curvature[-annulusIdx]
+                d1Curvature[n2][n1] = o1_D2Curvature[-annulusIdx]
                 annulusIdx += 1
 
         else:
@@ -1674,7 +1610,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
             # Adjust for corners
             if n1 == elementsCountAroundHalfHaustrum:
-                d2CurvatureAlong[endRowIdx] = annulusD2Curvature[int(elementsCountAlongSegment * 0.5) + 1]
+                d2CurvatureAlong[endRowIdx] = o1_D2Curvature[int(elementsCountAlongSegment * 0.5) + 1]
 
             for n2 in range(len(d2CurvatureAlong)):
                 if n2 < startRowIdx or n2 > endRowIdx:
@@ -1683,23 +1619,14 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                     n1Idx = n1 - 1
                 d2Curvature[n2][n1Idx] = d2CurvatureAlong[n2]
 
-    # Adjust annulus points
-    xAroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), xAnnulusOuter[0])
-    d1AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2AnnulusOuter[0])
-    d2AroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), set_magnitude(d1AnnulusOuter[0],
-                                                                                            annulusD2ZeroMag))
-    d3UnitAroundAlong[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d3Annulus[0])
-    d1Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[0])
-    d2Curvature[startRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2CurvatureAnnulusZero)
-
-    idx = int(elementsCountAlongSegment * 0.5)
-    xAroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), xAnnulusOuter[idx])
-    d1AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2AnnulusOuter[idx])
-    d2AroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), set_magnitude(d1AnnulusOuter[idx],
-                                                                                          annulusD2HalfOstiumMag))
-    d3UnitAroundAlong[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d3Annulus[idx])
-    d1Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), annulusD2Curvature[idx])
-    d2Curvature[endRowIdx].insert(int(elementsCountAroundHaustrum * 0.5), d2CurvatureAlongHalfOstium)
+    # Remove repeated points
+    for n2 in range(startRowIdx, endRowIdx + 1):
+        del xAroundAlong[n2][elementsCountAroundHalfHaustrum - 2: elementsCountAroundHalfHaustrum], \
+            d1AroundAlong[n2][elementsCountAroundHalfHaustrum - 2: elementsCountAroundHalfHaustrum], \
+            d2AroundAlong[n2][elementsCountAroundHalfHaustrum - 2: elementsCountAroundHalfHaustrum], \
+            d3UnitAroundAlong[n2][elementsCountAroundHalfHaustrum - 2: elementsCountAroundHalfHaustrum],\
+            d1Curvature[n2][elementsCountAroundHalfHaustrum - 2: elementsCountAroundHalfHaustrum],\
+            d2Curvature[n2][elementsCountAroundHalfHaustrum - 2: elementsCountAroundHalfHaustrum]
 
     # Create inner nodes
     sideNodesToDelete = []
@@ -1723,6 +1650,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
             xi3List.append(xi3)
 
     count = 0
+    o_Idx = 1
     for n2 in range(len(xAroundAlong)):
         idxThroughWall = []
         for n3 in range(elementsCountThroughWall + 1):
@@ -1773,6 +1701,19 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
                 idxAround.append(newNodeIdx)
                 nodeIdx += 1
+
+            if n2 > startRowIdx - 1 and n2 < endRowIdx + 1:
+                idx = elementsCountAroundHalfHaustrum - 2
+                idxAround.insert(idx, o1_NodeId[n3][o_Idx])
+                idx += 1
+                if n2 == startRowIdx:
+                    idxAround.insert(idx, o1_NodeId[n3][0])
+                    idx += 1
+                elif n2 == endRowIdx:
+                    idxAround.insert(idx, o1_NodeId[n3][int(elementsCountAroundOstium * 0.5)])
+                    idx += 1
+                idxAround.insert(idx, o1_NodeId[n3][-o_Idx])
+                o_Idx += 1 if n3 == 1 else 0
             idxThroughWall.append(idxAround)
         idxMat.append(idxThroughWall)
 
@@ -1855,7 +1796,14 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
         else:
             for e3 in range(elementsCountThroughWall):
                 elementIdxAround = []
-                for e1 in range(len(xAroundAlong[e2]) - 1):
+                if e2 == startRowIdx or e2 == endRowIdx:
+                    e1Range = len(xAroundAlong[e2]) + 2
+                elif (e2 == endRowIdx - 1) or (int(elementsCountAroundOstium * 0.25) - 2 > 0 and
+                     startRowIdx + 1 <= e2 < startRowIdx + 1 + 2.0 * (int(elementsCountAroundOstium * 0.25) - 2)):
+                    e1Range = len(xAroundAlong[e2]) + 1
+                else:
+                    e1Range = len(xAroundAlong[e2]) - 1
+                for e1 in range(e1Range):
                     offset = 0
                     if endRowIdx - startRowIdx > 1:
                         if e2 == startRowIdx and e1 > int(0.5 * len(xAroundAlong[e2])):
@@ -1863,8 +1811,12 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                         elif e2 == endRowIdx - 1 and e1 >= int(0.5 * len(xAroundAlong[e2])):
                             offset = 1
 
-                    if (startRowIdx <= e2 <= endRowIdx - 1) and 0.5 * len(xAroundAlong[e2]) - 2 < e1 < 0.5 * len(
-                            xAroundAlong[e2]):
+                    if e2 == startRowIdx and 0.5 * len(xAroundAlong[e2]) - 1 < e1 < 0.5 * len(xAroundAlong[e2]) + 2:
+                        continue
+                    elif ((e2 == endRowIdx - 1) or
+                          (int(elementsCountAroundOstium * 0.25) - 2 > 0 and startRowIdx + 1 <= e2 < startRowIdx + 1 +\
+                           2.0 * (int(elementsCountAroundOstium * 0.25) - 2))) and \
+                            0.5 * len(xAroundAlong[e2]) - 1 < e1 < 0.5 * len(xAroundAlong[e2]) + 1:
                         continue
                     else:
                         eft1 = eftStandard
@@ -2073,69 +2025,10 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
                 elementIdxThroughWall.append(elementIdxAround)
                 elementIdxMat.append(elementIdxThroughWall)
 
-    # Annulus
-    # Assemble endPoints for annulus
-    endPoints_x = [[None] * elementsCountAroundOstium for n3 in range(elementsCountThroughWall + 1)]
-    endPoints_d1 = [[None] * elementsCountAroundOstium for n3 in range(elementsCountThroughWall + 1)]
-    endPoints_d2 = [[None] * elementsCountAroundOstium for n3 in range(elementsCountThroughWall + 1)]
-    endNode_Id = [[None] * elementsCountAroundOstium for n3 in range(elementsCountThroughWall + 1)]
-    endDerivativesMap = [[None] * elementsCountAroundOstium for n3 in range(elementsCountThroughWall + 1)]
-    endProportions = []
-
-    for n3 in range(elementsCountThroughWall + 1):
-        n1 = 0
-        for nAround in range(elementsCountAroundOstium):
-            if nAround == 0:
-                idx = idxMat[startRowIdx][n3][elementsCountAroundHalfHaustrum - 1]
-            elif 0 < nAround < (elementsCountAroundOstium * 0.5):
-                idx = idxMat[startRowIdx + n1][n3][elementsCountAroundHalfHaustrum - 2]
-                n1 += 1
-            elif nAround == int(elementsCountAroundOstium * 0.5):
-                n1 -= 1
-                idx = idxMat[startRowIdx + n1][n3][elementsCountAroundHalfHaustrum - 1]
-            else:
-                idx = idxMat[startRowIdx + n1][n3][
-                    elementsCountAroundHalfHaustrum - 1 + (
-                        1 if (n1 == int(elementsCountAroundOstium * 0.5) - 2 or n1 == 0) else 0)]
-                n1 -= 1
-
-            endPoints_x[n3][nAround] = xList[idx - ostiumFaceStartNode]
-            endPoints_d1[n3][nAround] = d1List[idx - ostiumFaceStartNode]
-            endPoints_d2[n3][nAround] = d2List[idx - ostiumFaceStartNode]
-            endNode_Id[n3][nAround] = idx
-
-            if n3 == elementsCountThroughWall:  # outer layer
-                endPosition = trackSurfaceOstium.findNearestPosition(endPoints_x[n3][nAround])
-                endProportions.append(trackSurfaceOstium.getProportion(endPosition))
-
-    for n3 in range(elementsCountThroughWall + 1):
-        for nAround in range(elementsCountAroundOstium):
-            endDerivativesMap[n3][nAround] = (None, None, None)
-
-    startProportions = []
-    for n in range(elementsCountAroundOstium):
-        startProportions.append(trackSurfaceOstium.getProportion(o1_Positions[n]))
-
-    cecumWallAnnotationGroups = []
-    if elementsCountThroughWall == 4:
-        cecumWallAnnotationGroups = [[mucosaGroup], [submucosaGroup], [circularMuscleGroup],
-                                     [longitudinalMuscleGroup]]
-
-    nextNodeIdentifier, nextElementIdentifier = createAnnulusMesh3d(
-        nodes, mesh, nextNodeIdentifier, elementIdentifier,
-        o1_x, o1_d1, o1_d2, None, o1_NodeId, None,
-        endPoints_x, endPoints_d1, endPoints_d2, None, endNode_Id, endDerivativesMap,
-        elementsCountRadial=1, meshGroups=[cecumMeshGroup],
-        wallAnnotationGroups=cecumWallAnnotationGroups,
-        tracksurface=trackSurfaceOstium,
-        startProportions=startProportions, endProportions=endProportions,
-        rescaleStartDerivatives=True, rescaleEndDerivatives=True, sampleBlend=0.0, fixMinimumStart=True,
-        coordinates=coordinates)
-
     # Delete elements in new haustrum
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, deleteElementIdentifier)
 
-    return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, nodesIdDistal, xDistal, d1Distal, \
+    return allAnnotationGroups, nextNodeIdentifier, elementIdentifier, nodesIdDistal, xDistal, d1Distal, \
            d2Distal, d3Distal
 
 
