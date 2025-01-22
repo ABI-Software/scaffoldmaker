@@ -496,7 +496,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 }]
         })
 
-def getDefaultOstiumSettings():
+def getDefaultOstiumSettings(parameterSetName):
     """
     Generate list of default options for ostium.
     """
@@ -516,6 +516,8 @@ def getDefaultOstiumSettings():
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
                 'Refine number of elements through wall': 1}
+    if 'Human 2' in parameterSetName:
+        options['Number of elements along'] = 2
 
     return options
 
@@ -627,6 +629,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.25
             options['Limiting ridge'] = False
 
+        options['Base parameter set'] = parameterSetName
         return options
 
     @staticmethod
@@ -1301,6 +1304,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     :return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongSections, nodeIdxDistal,
     xDistal, d1Distal, d2Distal, d3Distal, arclengthDuodenumCP, xPrev, d2Prev
     """
+    parameterSetName = options['Base parameter set']
     elementsCountAroundEso = options['Number of elements around esophagus']
     elementsCountAroundDuod = options['Number of elements around duodenum']
     elementsCountAlong = options['Number of elements along']
@@ -1312,7 +1316,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     useCrossDerivatives = False
     useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
-    ostiumOptions = getDefaultOstiumSettings()
+    ostiumOptions = getDefaultOstiumSettings(parameterSetName)
     GEJSettings = updateOstiumOptions(options, ostiumOptions)
     elementsAlongEsophagus = GEJSettings['Number of elements along']
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
