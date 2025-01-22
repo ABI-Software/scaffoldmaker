@@ -5,10 +5,10 @@ Generates a solid sphere (spheroid/ellipsoid in general) using a ShieldMesh of a
 
 from __future__ import division
 
+from cmlibs.maths.vectorops import identity_matrix, matrix_vector_mult, matrix_mult, mult
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
 
@@ -173,12 +173,8 @@ with variable numbers of elements across axes and shell directions.
         annotationGroups = [boxGroup, transitionGroup]
 
         centre = [0.0, 0.0, 0.0]
-        axis1 = [1.0, 0.0, 0.0]
-        axis2 = [0.0, 1.0, 0.0]
-        axis3 = [0.0, 0.0, 1.0]
-        axes = [vector.scaleVector(axis1, radius[0]),
-                vector.scaleVector(axis2, radius[1]),
-                vector.scaleVector(axis3, radius[2])]
+        identity = identity_matrix(3)
+        axes = [mult(identity[i], r) for i, r in enumerate(radius)]
         elementsCountAcross = [elementsCountAcrossAxis1, elementsCountAcrossAxis2, elementsCountAcrossAxis3]
 
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,

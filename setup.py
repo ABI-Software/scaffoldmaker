@@ -25,7 +25,7 @@ readme.append('')
 # into the 'requirements.txt' file.
 requires = [
     # minimal requirements listing
-    "cmlibs.maths >= 0.3",
+    "cmlibs.maths >= 0.6.2",
     "cmlibs.utils >= 0.6",
     "cmlibs.zinc >= 4.1",
     "scipy",
@@ -35,7 +35,7 @@ source_license = readfile("LICENSE")
 
 setup(
     name="scaffoldmaker",
-    version="0.13.0",
+    version="0.15.0",
     description="Python client for generating anatomical scaffolds using Zinc",
     long_description="\n".join(readme) + source_license,
     long_description_content_type="text/x-rst",

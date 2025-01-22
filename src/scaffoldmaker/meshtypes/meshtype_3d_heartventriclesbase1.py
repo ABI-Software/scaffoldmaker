@@ -9,6 +9,7 @@ from __future__ import division
 import copy
 import math
 
+from cmlibs.maths.vectorops import set_magnitude, cross, magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates, findOrCreateFieldGroup, \
     findOrCreateFieldStoredMeshLocation, findOrCreateFieldStoredString
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
@@ -21,7 +22,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_heartatria1 import MeshType_3d_heartatr
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles1 import MeshType_3d_heartventricles1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import createCirclePoints
@@ -410,9 +410,9 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         axis1 = [ 0.0, -cosLvOutletFrontInclineRadians, sinLvOutletFrontInclineRadians ]
         axis2 = [ 1.0, 0.0, 0.0 ]
         lvOutletInnerx, lvOutletInnerd1 = createCirclePoints(lvOutletCentre,
-            vector.setMagnitude(axis1, lvOutletInnerRadius), vector.setMagnitude(axis2, lvOutletInnerRadius), elementsCountAroundOutlet)
+            set_magnitude(axis1, lvOutletInnerRadius), set_magnitude(axis2, lvOutletInnerRadius), elementsCountAroundOutlet)
         lvOutletOuterx, lvOutletOuterd1 = createCirclePoints(lvOutletCentre,
-            vector.setMagnitude(axis1, lvOutletOuterRadius), vector.setMagnitude(axis2, lvOutletOuterRadius), elementsCountAroundOutlet)
+            set_magnitude(axis1, lvOutletOuterRadius), set_magnitude(axis2, lvOutletOuterRadius), elementsCountAroundOutlet)
         lvOutletd2 = [ 0.0, vOutletElementLength*sinLvOutletFrontInclineRadians, vOutletElementLength*cosLvOutletFrontInclineRadians ]
         zero = [ 0.0, 0.0, 0.0 ]
         lvOutletOuterd3 = [ None ]*elementsCountAroundOutlet
@@ -424,12 +424,12 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         dz = vOutletSpacingz
         axis1 = [ 0.0, -cosLvOutletFrontInclineRadians, sinLvOutletFrontInclineRadians ]
         axis2 = [ cosRvOutletLeftInclineRadians, sinRvOutletLeftInclineRadians*sinLvOutletFrontInclineRadians, sinRvOutletLeftInclineRadians*cosLvOutletFrontInclineRadians ]
-        axis3 = vector.crossproduct3(axis1, axis2)
+        axis3 = cross(axis1, axis2)
         rvOutletCentre = [ (lvOutletOuterx[3][c] - dy*axis1[c] + dz*axis3[c]) for c in range(3) ]
         rvOutletInnerx, rvOutletInnerd1 = createCirclePoints(rvOutletCentre,
-            vector.setMagnitude(axis1, rvOutletInnerRadius), vector.setMagnitude(axis2, rvOutletInnerRadius), elementsCountAroundOutlet)
+            set_magnitude(axis1, rvOutletInnerRadius), set_magnitude(axis2, rvOutletInnerRadius), elementsCountAroundOutlet)
         rvOutletOuterx, rvOutletOuterd1 = createCirclePoints(rvOutletCentre,
-            vector.setMagnitude(axis1, rvOutletOuterRadius), vector.setMagnitude(axis2, rvOutletOuterRadius), elementsCountAroundOutlet)
+            set_magnitude(axis1, rvOutletOuterRadius), set_magnitude(axis2, rvOutletOuterRadius), elementsCountAroundOutlet)
         rvOutletd2 = [ vOutletElementLength*axis3[c] for c in range(3) ]
 
         # fix derivative 3 on lv outlet adjacent to rv outlet
@@ -543,15 +543,15 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         noa = elementsCountAroundRightAtriumFreeWall - 1
         nov = -elementsCountAroundAtrialSeptum - 1
         mag = baseHeight + baseThickness
-        d2 = vector.setMagnitude(vector.crossproduct3(ravd3[0][0][noa], ravd1[0][0][noa]), mag)
+        d2 = set_magnitude(cross(ravd3[0][0][noa], ravd1[0][0][noa]), mag)
         pd2 = interp.smoothCubicHermiteDerivativesLine([ rvInnerx[nov], ravx[0][0][noa]], [ rvInnerd2[nov], d2 ], fixStartDerivative=True, fixEndDirection=True)
         ravd2[0][0][noa] = pd2[1]
 
         # set d2 at ra node mid supraventricular crest to be normal to surface; smooth to get final magnitude later
         ravsvcn1 = elementsCountAroundRightAtriumFreeWall - 2
         mag = baseHeight + baseThickness
-        ravd2[0][0][ravsvcn1] = vector.setMagnitude(vector.crossproduct3(ravd3[0][0][ravsvcn1], ravd1[0][0][ravsvcn1]), mag)
-        ravd2[1][0][ravsvcn1] = vector.setMagnitude(vector.crossproduct3(ravd3[1][0][ravsvcn1], ravd1[1][0][ravsvcn1]), mag)
+        ravd2[0][0][ravsvcn1] = set_magnitude(cross(ravd3[0][0][ravsvcn1], ravd1[0][0][ravsvcn1]), mag)
+        ravd2[1][0][ravsvcn1] = set_magnitude(cross(ravd3[1][0][ravsvcn1], ravd1[1][0][ravsvcn1]), mag)
         ravsvcn2 = elementsCountAroundRightAtriumFreeWall - 3
 
         # copy derivative 3 from av points to LV outlet at centre, left and right cfb; negate as d1 is reversed:
@@ -562,8 +562,8 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         # create point above anterior ventricular septum end
         xi = 0.5
         fd2 = [ (lvOutletOuterx[4][c] - vOuterx[1][c]) for c in range(3) ]
-        mag = 1.0*vector.magnitude(fd2)
-        fd2 = vector.setMagnitude([ fd2[0], fd2[1], 0.0 ], mag)
+        mag = 1.0*magnitude(fd2)
+        fd2 = set_magnitude([ fd2[0], fd2[1], 0.0 ], mag)
         x = interp.interpolateCubicHermite(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
         d2 = interp.interpolateCubicHermiteDerivative(vOuterx[0], vOuterd2[0], lvOutletOuterx[4], fd2, xi)
         pd2 = interp.smoothCubicHermiteDerivativesLine([ vOuterx[0], x, lvOutletOuterx[4] ], [ vOuterd2[0], d2, lvOutletd2 ], fixAllDirections=True, fixStartDerivative=True, fixEndDerivative=True)
@@ -581,11 +581,11 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
         sx = vOuterx[ns]
         sd2 = vOuterd2[ns]
         fx = lvOutletOuterx[nf]
-        fd2 = vector.setMagnitude([lvOutletInnerx[nf][c] - lvOutletOuterx[nf][c] for c in range(3)],
-                                  vector.magnitude(sd2))
+        fd2 = set_magnitude([lvOutletInnerx[nf][c] - lvOutletOuterx[nf][c] for c in range(3)],
+                                  magnitude(sd2))
         scale = interp.computeCubicHermiteDerivativeScaling(sx, sd2, fx, fd2)
         px, pd2 = interp.sampleCubicHermiteCurvesSmooth([sx, fx], [[d*scale for d in sd2], [d*scale for d in fd2]], 2,
-            derivativeMagnitudeStart=vector.magnitude(sd2))[0:2]
+            derivativeMagnitudeStart=magnitude(sd2))[0:2]
         svcox = px[1]
         sd1 = [-d for d in ravd2[1][0][ravsvcn2]]
         fd1 = [rvOutletOuterd1[2][c] + rvOutletd2[c] for c in range(3)]
@@ -594,7 +594,7 @@ class MeshType_3d_heartventriclesbase1(Scaffold_base):
             fixStartDerivative=True, fixEndDerivative=True)
         svcod1 = pd1[1]
         svcod2 = pd2[1]
-        svcod3 = vector.setMagnitude(vector.crossproduct3(svcod1, svcod2), baseThickness)
+        svcod3 = set_magnitude(cross(svcod1, svcod2), baseThickness)
         lvOutletOuterd3[nf] = [-d for d in pd2[2]]
         # set a reasonable value for next d2 up on right fibrous ring by supraventricular crest 1
         sd12 = [(svcod2[c] - svcod1[c]) for c in range(3)]

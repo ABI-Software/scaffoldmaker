@@ -6,6 +6,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import magnitude, normalize, cross
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
@@ -14,7 +15,6 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.geometry import getApproximateEllipsePerimeter, getEllipseArcLength, updateEllipseAngleByArcLength
@@ -277,8 +277,8 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                     dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
                 else:
                     dzr_dRadiansUp = [ a*sinRadiansUp, bSeptum*cosRadiansUp ]
-                ds_dRadiansUp = vector.magnitude(dzr_dRadiansUp)
-                dzr_ds = vector.normalise(dzr_dRadiansUp)
+                ds_dRadiansUp = magnitude(dzr_dRadiansUp)
+                dzr_ds = normalize(dzr_dRadiansUp)
                 dz = dxi*ds_dxi*dzr_ds[0]
                 dr = dxi*ds_dxi*dzr_ds[1]
                 if (n3 == 1) and (n2 < elementsCountUpLVApex):
@@ -295,7 +295,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                     tx, td1 = getSeptumPoints(rvArcAroundRadians, radiusSeptum + dr, radialDisplacement + dRadialDisplacement, elementsCountAroundLVFreeWall, elementsCountAroundVSeptum, z + dz, n3)
                 # true values for LV freewall
                 dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
-                dzr_ds = vector.normalise(dzr_dRadiansUp)
+                dzr_ds = normalize(dzr_dRadiansUp)
 
                 for n1 in range(elementsCountAroundLV):
 
@@ -380,7 +380,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
             elementSizeCrossSeptum = 0.5*(lvOuterRadius*lvArcAroundRadians/elementsCountAroundLVFreeWall + vSeptumThickness*sinRadiansUp)
             dEndMag = elementSizeCrossSeptum
             ad2 = [ b*cosRadiansUp*cosRadiansAround, b*cosRadiansUp*sinRadiansAround, a*sinRadiansUp ]
-            scale = elementSizeUpRv/vector.magnitude(ad2)
+            scale = elementSizeUpRv/magnitude(ad2)
             if n2 == 0:
                 scale *= elementSizeUpRvTransition1/elementSizeUpRv
             ad2 = [ d*scale for d in ad2 ]
@@ -401,8 +401,8 @@ class MeshType_3d_heartventricles2(Scaffold_base):
                 dArcLengthUp = elementSizeUpRv
                 ds_dxi = dArcLengthUp
                 dzr_dRadiansUp = [ a*sinRadiansUp, b*cosRadiansUp ]
-                ds_dRadiansUp = vector.magnitude(dzr_dRadiansUp)
-                dzr_ds = vector.normalise(dzr_dRadiansUp)
+                ds_dRadiansUp = magnitude(dzr_dRadiansUp)
+                dzr_ds = normalize(dzr_dRadiansUp)
                 dz = dxi*ds_dxi*dzr_ds[0]
                 dr = dxi*ds_dxi*dzr_ds[1]
                 radiansUpPlus = radiansUp + math.sqrt(dz*dz + dr*dr)/ds_dRadiansUp
@@ -422,8 +422,8 @@ class MeshType_3d_heartventricles2(Scaffold_base):
 
             rd3 = []
             for n in range(len(rx)):
-                normal = vector.crossproduct3(rd1[n], rd2[n])
-                mag = rvFreeWallThickness/vector.magnitude(normal)
+                normal = cross(rd1[n], rd2[n])
+                mag = rvFreeWallThickness/magnitude(normal)
                 rd3.append([ c*mag for c in normal ])
 
             rxOuter.append(rx)
@@ -453,7 +453,7 @@ class MeshType_3d_heartventricles2(Scaffold_base):
 
             for n1 in range(1, elementsCountAroundRV - 2):
                 ix.append([ (rx[n1][c] - rd3[n1][c]) for c in range(3) ] )
-                unitRadial = vector.normalise(rd3[n1])
+                unitRadial = normalize(rd3[n1])
 
                 # calculate inner d1 from curvature around
                 curvature = 0.0
@@ -924,7 +924,7 @@ def getSeptumPoints(septumArcRadians, lvRadius, radialDisplacement, elementsCoun
             pos1 = interp.interpolateCubicHermite(v1, d1, v2, d2, xi)
             x.append([ v for v in pos1 ])
             deriv1 = interp.interpolateCubicHermiteDerivative(v1, d1, v2, d2, xi)
-            scale = elementLengthMid/vector.magnitude(deriv1)
+            scale = elementLengthMid/magnitude(deriv1)
             dx_ds1.append([ d*scale for d in deriv1 ])
             length += elementLengthMid
         return x, dx_ds1

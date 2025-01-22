@@ -6,7 +6,7 @@ numbers of elements around, along and through wall.
 import copy
 import math
 
-from cmlibs.maths.vectorops import add, mult
+from cmlibs.maths.vectorops import add, cross, mult, normalize, sub, magnitude, set_magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.element import Element
@@ -21,13 +21,56 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils import interpolation as interp
 from scaffoldmaker.utils import tubemesh
-from scaffoldmaker.utils import vector
-from scaffoldmaker.utils.bifurcation import get_tube_bifurcation_connection_elements_counts, \
-    get_bifurcation_triple_point
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.geometry import createEllipsePoints
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteDerivativeScaling, interpolateCubicHermite, interpolateLagrangeHermiteDerivative,
+    smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
 from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
+
+
+def get_bifurcation_triple_point(p1x, p1d, p2x, p2d, p3x, p3d):
+    """
+    Get coordinates and derivatives of triple point between p1, p2 and p3 with derivatives.
+    :param p1x..p3d: Point coordinates and derivatives, numbered anticlockwise around triple point.
+    All derivatives point away from triple point.
+    Returned d1 points from triple point to p2, d2 points from triple point to p3.
+    :return: x, d1, d2
+    """
+    scaling12 = computeCubicHermiteDerivativeScaling(p1x, [-d for d in p1d], p2x, p2d)
+    scaling23 = computeCubicHermiteDerivativeScaling(p2x, [-d for d in p2d], p3x, p3d)
+    scaling31 = computeCubicHermiteDerivativeScaling(p3x, [-d for d in p3d], p1x, p1d)
+    trx1 = interpolateCubicHermite(p1x, mult(p1d, -scaling12), p2x, mult(p2d, scaling12), 0.5)
+    trx2 = interpolateCubicHermite(p2x, mult(p2d, -scaling23), p3x, mult(p3d, scaling23), 0.5)
+    trx3 = interpolateCubicHermite(p3x, mult(p3d, -scaling31), p1x, mult(p1d, scaling31), 0.5)
+    trx = [(trx1[c] + trx2[c] + trx3[c]) / 3.0 for c in range(3)]
+    td1 = interpolateLagrangeHermiteDerivative(trx, p1x, p1d, 0.0)
+    td2 = interpolateLagrangeHermiteDerivative(trx, p2x, p2d, 0.0)
+    td3 = interpolateLagrangeHermiteDerivative(trx, p3x, p3d, 0.0)
+    n12 = cross(td1, td2)
+    n23 = cross(td2, td3)
+    n31 = cross(td3, td1)
+    norm = normalize([(n12[c] + n23[c] + n31[c]) for c in range(3)])
+    sd1 = smoothCubicHermiteDerivativesLine([trx, p1x], [normalize(cross(norm, cross(td1, norm))), p1d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    sd2 = smoothCubicHermiteDerivativesLine([trx, p2x], [normalize(cross(norm, cross(td2, norm))), p2d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    sd3 = smoothCubicHermiteDerivativesLine([trx, p3x], [normalize(cross(norm, cross(td3, norm))), p3d],
+                                            fixStartDirection=True, fixEndDerivative=True)[0]
+    trd1 = mult(sub(sd2, add(sd3, sd1)), 0.5)
+    trd2 = mult(sub(sd3, add(sd1, sd2)), 0.5)
+    return trx, trd1, trd2
+
+
+def get_tube_bifurcation_connection_elements_counts(tCounts):
+    """
+    Get number of elements directly connecting tubes 1, 2 and 3 from the supplied number around.
+    :param tCounts: Number of elements around tubes in order.
+    :return: List of elements connect tube with its next neighbour, looping back to first.
+    """
+    assert len(tCounts) == 3
+    return [(tCounts[i] + tCounts[i - 2] - tCounts[i - 1]) // 2 for i in range(3)]
 
 
 class MeshType_3d_uterus1(Scaffold_base):
@@ -505,7 +548,7 @@ def findDerivativeBetweenPoints(v1, v2):
     """
     d = [v2[c] - v1[c] for c in range(3)]
     arcLengthAround = interp.computeCubicHermiteArcLength(v1, d, v2, d, True)
-    d = [c * arcLengthAround for c in vector.normalise(d)]
+    d = [c * arcLengthAround for c in normalize(d)]
 
     return d
 
@@ -1099,8 +1142,8 @@ def getTubeNodes(cx_group, elementsCountAround, elementsCountAlongTube, elements
     for n2 in range(elementsCountAlongTube + 1):
         d3Around = []
         for n1 in range(elementsCountAround):
-            d3Around.append(vector.normalise(
-                vector.crossproduct3(vector.normalise(d1SampledTube[n2][n1]), vector.normalise(d2SampledTube[n2][n1]))))
+            d3Around.append(normalize(
+                cross(normalize(d1SampledTube[n2][n1]), normalize(d2SampledTube[n2][n1]))))
         d3Tube.append(d3Around)
 
     xInner = []
@@ -1758,25 +1801,25 @@ def getDoubleTubeNodes(cx_tube_group, elementsCountAlong, elementsCountAround, e
     d3lList = []
     for n in range(len(cx_tube_group[0])):
         x = cx_tube_group[0][n]
-        v2r = vector.normalise(cx_tube_group[2][n])
-        v3r = vector.normalise(cx_tube_group[4][n])
-        d2Mag = vector.magnitude(cx_tube_group[2][n])
+        v2r = normalize(cx_tube_group[2][n])
+        v3r = normalize(cx_tube_group[4][n])
+        d2Mag = magnitude(cx_tube_group[2][n])
         r2 = (d2Mag - distance - wallThickness) / 2
-        # d3Mag = vector.magnitude(cx_tube_group[4][n])
+        # d3Mag = magnitude(cx_tube_group[4][n])
         # r3 = (d3Mag - wallThickness)
-        v_trans = vector.setMagnitude(v2r, distance + r2)
+        v_trans = set_magnitude(v2r, distance + r2)
 
         x_right = [x[c] + v_trans[c] for c in range(3)]
         xrList.append(x_right)
-        d2rList.append(vector.setMagnitude(v2r, r2))
-        d3rList.append(vector.setMagnitude(v3r, r2))
+        d2rList.append(set_magnitude(v2r, r2))
+        d3rList.append(set_magnitude(v3r, r2))
 
         x_left = [x[c] - v_trans[c] for c in range(3)]
         v2l = [-v2r[c] for c in range(3)]
         v3l = [-v3r[c] for c in range(3)]
         xlList.append(x_left)
-        d2lList.append(vector.setMagnitude(v2l, r2))
-        d3lList.append(vector.setMagnitude(v3l, r2))
+        d2lList.append(set_magnitude(v2l, r2))
+        d3lList.append(set_magnitude(v3l, r2))
     cx_tube_group_right = [xrList, cx_tube_group[1], d2rList, [], d3rList]
     cx_tube_group_left = [xlList, cx_tube_group[1], d2lList, [], d3lList]
 

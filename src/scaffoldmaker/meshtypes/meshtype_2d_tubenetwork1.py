@@ -1,25 +1,19 @@
 """
 Generates a 2-D Hermite bifurcating tube network.
 """
-
-import copy
-
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates
-from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
-from cmlibs.zinc.field import Field
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.bifurcation import generateTubeBifurcationTree
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 
 
 class MeshType_2d_tubenetwork1(Scaffold_base):
     """
-    Generates a 2-D hermite bifurcating tube network.
+    Generates a 2-D hermite tube network.
     """
 
-    @staticmethod
-    def getName():
+    @classmethod
+    def getName(cls):
         return "2D Tube Network 1"
 
     @classmethod
@@ -30,22 +24,24 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
             "Network layout": ScaffoldPackage(MeshType_1d_network_layout1, defaultParameterSetName=parameterSetName),
-            "Elements count around": 8,
-            "Annotation elements counts around": [0],
+            "Number of elements around": 8,
+            "Annotation numbers of elements around": [0],
             "Target element density along longest segment": 4.0,
-            "Serendipity": True,
+            "Annotation numbers of elements along": [0],
             "Show trim surfaces": False
         }
+        if parameterSetName in ["Loop", "Snake", "Vase"]:
+            options["Target element density along longest segment"] = 12.0
         return options
 
-    @staticmethod
-    def getOrderedOptionNames():
+    @classmethod
+    def getOrderedOptionNames(cls):
         return [
             "Network layout",
-            "Elements count around",
-            "Annotation elements counts around",
+            "Number of elements around",
+            "Annotation numbers of elements around",
             "Target element density along longest segment",
-            "Serendipity",
+            "Annotation numbers of elements along",
             "Show trim surfaces"
         ]
 
@@ -82,12 +78,12 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
     def checkOptions(cls, options):
         if not options["Network layout"].getScaffoldType() in cls.getOptionValidScaffoldTypes("Network layout"):
             options["Network layout"] = cls.getOptionScaffoldPackage("Network layout", MeshType_1d_network_layout1)
-        elementsCountAround = options["Elements count around"]
-        if options["Elements count around"] < 4:
-            options["Elements count around"] = 4
-        annotationElementsCountsAround = options["Annotation elements counts around"]
+        dependentChanges = False
+        if options["Number of elements around"] < 4:
+            options["Number of elements around"] = 4
+        annotationElementsCountsAround = options["Annotation numbers of elements around"]
         if len(annotationElementsCountsAround) == 0:
-            options["Annotation elements count around"] = [0]
+            options["Annotation numbers of elements around"] = [0]
         else:
             for i in range(len(annotationElementsCountsAround)):
                 if annotationElementsCountsAround[i] <= 0:
@@ -96,40 +92,44 @@ class MeshType_2d_tubenetwork1(Scaffold_base):
                     annotationElementsCountsAround[i] = 4
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
-        dependentChanges = False
+        annotationAlongCounts = options["Annotation numbers of elements along"]
+        if len(annotationAlongCounts) == 0:
+            options["Annotation numbers of elements along"] = [0]
+        else:
+            for i in range(len(annotationAlongCounts)):
+                if annotationAlongCounts[i] <= 0:
+                    annotationAlongCounts[i] = 0
+                elif annotationAlongCounts[i] < 1:
+                    annotationAlongCounts[i] = 1
         return dependentChanges
 
-    @staticmethod
-    def generateBaseMesh(region, options):
+    @classmethod
+    def generateBaseMesh(cls, region, options):
         """
-        Generate the base hermite-bilinear mesh. See also generateMesh().
+        Generate the base bicubic hermite mesh. See also generateMesh().
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        networkLayout = options["Network layout"]
-        elementsCountAround = options["Elements count around"]
-        annotationElementsCountsAround = options["Annotation elements counts around"]
-        targetElementDensityAlongLongestSegment = options["Target element density along longest segment"]
-        serendipity = options["Serendipity"]
-
         layoutRegion = region.createRegion()
+        networkLayout = options["Network layout"]
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
-        layoutAnnotationGroups = networkLayout.getAnnotationGroups()
-
-        fieldmodule = region.getFieldmodule()
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        coordinates = find_or_create_field_coordinates(fieldmodule)
-        nodeIdentifier = max(get_maximum_node_identifier(nodes), 0) + 1
-        mesh = fieldmodule.findMeshByDimension(2)
-        elementIdentifier = max(get_maximum_element_identifier(mesh), 0) + 1
-
         networkMesh = networkLayout.getConstructionObject()
 
-        nodeIdentifier, elementIdentifier, annotationGroups = generateTubeBifurcationTree(
-            networkMesh, region, coordinates, nodeIdentifier, elementIdentifier,
-            elementsCountAround, targetElementDensityAlongLongestSegment, 1,
-            layoutAnnotationGroups, annotationElementsCountsAround,
-            serendipity=serendipity, showTrimSurfaces=options["Show trim surfaces"])
+        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
+            networkMesh,
+            targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
+            layoutAnnotationGroups=networkLayout.getAnnotationGroups(),
+            annotationElementsCountsAlong=options["Annotation numbers of elements along"],
+            defaultElementsCountAround=options["Number of elements around"],
+            annotationElementsCountsAround=options["Annotation numbers of elements around"],
+            elementsCountThroughShell=1)
+        tubeNetworkMeshBuilder.build()
+        generateData = TubeNetworkMeshGenerateData(
+            region, 2,
+            isLinearThroughShell=True,
+            isShowTrimSurfaces=options["Show trim surfaces"])
+        tubeNetworkMeshBuilder.generateMesh(generateData)
+        annotationGroups = generateData.getAnnotationGroups()
 
         return annotationGroups, None

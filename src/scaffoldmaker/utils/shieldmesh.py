@@ -8,10 +8,10 @@ from __future__ import division
 import copy
 from enum import Enum
 
+from cmlibs.maths.vectorops import cross, normalize
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, sampleCubicHermiteCurves, \
@@ -189,7 +189,7 @@ class ShieldMesh2D:
                 self.pProportions[n2b][n1c])))
             self.pProportions[n2b][n1b] = self.trackSurface.getProportion(p)
             x, sd1, sd2 = self.trackSurface.evaluateCoordinates(p, derivatives=True)
-            d1, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+            d1, d2, d3 = calculate_surface_axes(sd1, sd2, normalize(sd1))
             self.pd3[n3][n2b][n1b] = d3
         self.px[n3][n2b][n1b] = x
         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
@@ -200,10 +200,10 @@ class ShieldMesh2D:
             self.pd2[n3][n2b][n1b] = [(self.px[n3][n2c][n1b][c] - self.px[n3][n2b][n1b][c]) for c in range(3)]
         if not self.trackSurface:
             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-                self.pd2[n3][n2b][n1b] = vector.normalise(vector.crossproduct3(self.pd3[n3][n2b][n1b],
+                self.pd2[n3][n2b][n1b] = normalize(cross(self.pd3[n3][n2b][n1b],
                                                                                self.pd1[n3][n2b][n1b]))
             elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
-                self.pd3[n3][n2b][n1b] = vector.normalise(vector.crossproduct3(self.pd1[n3][n2b][n1b],
+                self.pd3[n3][n2b][n1b] = normalize(cross(self.pd1[n3][n2b][n1b],
                                                                                self.pd2[n3][n2b][n1b]))
         # right
         rtx = []
@@ -246,7 +246,7 @@ class ShieldMesh2D:
                 self.pProportions[n2b][m1c])))
             self.pProportions[n2b][m1b] = self.trackSurface.getProportion(p)
             x, sd1, sd2 = self.trackSurface.evaluateCoordinates(p, derivatives=True)
-            d1, d2, d3 = calculate_surface_axes(sd1, sd2, vector.normalise(sd1))
+            d1, d2, d3 = calculate_surface_axes(sd1, sd2, normalize(sd1))
             self.pd3[n3][n2b][m1b] = d3
         self.px[n3][n2b][m1b] = x
         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
@@ -257,10 +257,10 @@ class ShieldMesh2D:
             self.pd2[n3][n2b][m1b] = [(self.px[n3][n2c][m1b][c] - self.px[n3][n2b][m1b][c]) for c in range(3)]
         if not self.trackSurface:
             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-                self.pd2[n3][n2b][m1b] = vector.normalise(vector.crossproduct3(self.pd3[n3][n2b][m1b],
+                self.pd2[n3][n2b][m1b] = normalize(cross(self.pd3[n3][n2b][m1b],
                                                                                self.pd1[n3][n2b][m1b]))
             elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
-                self.pd3[n3][n2b][m1b] = vector.normalise(vector.crossproduct3(self.pd1[n3][n2b][m1b],
+                self.pd3[n3][n2b][m1b] = normalize(cross(self.pd1[n3][n2b][m1b],
                                                                                self.pd2[n3][n2b][m1b]))
 
     def smoothDerivativesToTriplePoints(self, n3, fixAllDirections=False):

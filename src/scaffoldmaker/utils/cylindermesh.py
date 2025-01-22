@@ -7,10 +7,11 @@ a solid truncated cone. It also can be used for transition from a 2D base to ano
 import math
 from enum import Enum
 
+from cmlibs.maths.vectorops import set_magnitude, cross, magnitude, normalize, dot
 from cmlibs.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils import vector, geometry
+from scaffoldmaker.utils import geometry
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, interpolateSampleCubicHermite, \
     smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.mirror import Mirror
@@ -63,13 +64,13 @@ class CylinderEnds:
         self._majorAxis = majorAxis
         self._minorRadius = minorRadius
         if alongAxis:
-            self._minorAxis = vector.setMagnitude(vector.crossproduct3(alongAxis, majorAxis), minorRadius)
+            self._minorAxis = set_magnitude(cross(alongAxis, majorAxis), minorRadius)
         self._elementsCountAcrossMinor = elementsCountAcrossMinor
         self._elementsCountAcrossMajor = elementsCountAcrossMajor
         self._elementsCountAcrossShell = elementsCountAcrossShell
         self._elementsCountAcrossTransition = elementsCountAcrossTransition
         self._shellProportion = shellProportion
-        self._majorRadius = vector.magnitude(majorAxis)
+        self._majorRadius = magnitude(majorAxis)
         self.px = None
         self.pd1 = None
         self.pd2 = None
@@ -123,9 +124,9 @@ class CylinderCentralPath:
         sd3, sd13 = interpolateSampleCubicHermite(cd3, cd13, se, sxi, ssf)
 
         self.centres = sx
-        self.majorRadii = [vector.magnitude(a) for a in sd2]
+        self.majorRadii = [magnitude(a) for a in sd2]
         self.majorAxis = sd2
-        self.minorRadii = [vector.magnitude(a) for a in sd3]
+        self.minorRadii = [magnitude(a) for a in sd3]
         self.minorAxis = sd3
         self.alongAxis = sd1
 
@@ -199,7 +200,7 @@ class CylinderMesh:
                                       base._shellProportion, self._centres[0],
                                       None, self._majorAxis[0], self._minorRadii[0])
         else:
-            self._length = vector.magnitude(base._alongAxis)
+            self._length = magnitude(base._alongAxis)
             arcLengthAlong = self._length / elementsCountAlong
             self.calculateEllipseParams(arcLengthAlong, cylinderCentralPath=self._cylinderCentralPath)
 
@@ -256,13 +257,13 @@ class CylinderMesh:
 
         # The other ellipses for a straight cylinder.
         if self._cylinderType == CylinderType.CYLINDER_STRAIGHT:
-            arcLengthAlong = vector.magnitude(self._base._alongAxis) / self._elementsCountAlong
+            arcLengthAlong = magnitude(self._base._alongAxis) / self._elementsCountAlong
             for n2 in range(self._elementsCountUp + 1):
                 for n3 in range(self._elementsCountAlong + 1):
                     for n1 in range(self._elementsCountAcrossMinor + 1):
                         if self._shield.px[0][n2][n1]:
                             temx = [self._shield.px[0][n2][n1][c] + n3 * arcLengthAlong *
-                                    vector.normalise(self._base._alongAxis)[c] for c in range(3)]
+                                    normalize(self._base._alongAxis)[c] for c in range(3)]
                             self._shield.px[n3][n2][n1] = temx
                             self._shield.pd1[n3][n2][n1] = self._shield.pd1[0][n2][n1]
                             self._shield.pd2[n3][n2][n1] = self._shield.pd2[0][n2][n1]
@@ -276,7 +277,7 @@ class CylinderMesh:
                                      self._elementsCountAcrossShell, self._elementsCountAcrossTransition,
                                      self._shellProportion,
                                      self._centres[-1], self._shield.pd2[-1][0][1],
-                                     vector.setMagnitude(self._base._majorAxis, self._majorRadii[-1]),
+                                     set_magnitude(self._base._majorAxis, self._majorRadii[-1]),
                                      self._minorRadii[-1])
         self.setEndsNodes()
 
@@ -437,8 +438,8 @@ class Ellipse2D:
         self.centre = centre
         self.majorAxis = majorAxis
         self.minorAxis = minorAxis
-        self.majorRadius = vector.magnitude(majorAxis)
-        self.minorRadius = vector.magnitude(minorAxis)
+        self.majorRadius = magnitude(majorAxis)
+        self.minorRadius = magnitude(minorAxis)
         self.coreMajorRadius = coreMajorRadius
         self.coreMinorRadius = coreMinorRadius
         elementsCountRim = elementsCountAcrossShell + elementsCountAcrossTransition - 1
@@ -495,7 +496,7 @@ class Ellipse2D:
         ratio = rx/self.elementsCountAcrossShell if self.elementsCountAcrossShell > 0 else 0
         majorAxis = [d*(1 - ratio*(1-self.coreMajorRadius/self.majorRadius)) for d in self.majorAxis]
         minorAxis = [d*(1 - ratio*(1-self.coreMinorRadius/self.minorRadius)) for d in self.minorAxis]
-        majorRadius = vector.magnitude(majorAxis)
+        majorRadius = magnitude(majorAxis)
 
         nx, nd1 = createEllipsePerimeter(
             self.centre, majorAxis, minorAxis, self.elementsCountAround, majorRadius)
@@ -506,7 +507,7 @@ class Ellipse2D:
             tbx.append(nx[n])
             tbd1.append(nd1[n])
             tbd2.append(nte)
-            tbd3.append(vector.normalise(vector.crossproduct3(tbd1[n], nte)))
+            tbd3.append(normalize(cross(tbd1[n], nte)))
 
         for n in range(self.elementsCountAround + 1):
             n1, n2 = self.__shield.convertRimIndex(n, rx)
@@ -562,17 +563,17 @@ class Ellipse2D:
             [c]) for c in range(3)]
         rcx.append(tmdx)
         rcx.append(tmux)
-        rcd3 = [vector.setMagnitude(tmdd3, -1), vector.setMagnitude(tmdd3, -1)]
+        rcd3 = [set_magnitude(tmdd3, -1), set_magnitude(tmdd3, -1)]
         rscx, rscd1 = sampleCubicHermiteCurves(rcx, rcd3, self.elementsCountUp - n2a, arcLengthDerivatives=True)[0:2]
 
         # get d2, d3
         rscd2 = []
         rscd3 = []
         for n in range(len(rscx)):
-            d3 = vector.normalise(
+            d3 = normalize(
                 [btx[self.elementsCountUp][self.elementsCountAcrossMinor][c] - btx[self.elementsCountUp][0]
                 [c] for c in range(3)])
-            d2 = vector.normalise(vector.crossproduct3(d3, rscd1[n]))
+            d2 = normalize(cross(d3, rscd1[n]))
             rscd2.append(d2)
             rscd3.append(d3)
 
@@ -601,7 +602,7 @@ class Ellipse2D:
         for n2 in range(n2d, n2m + 1):
             txm, td3m, pe, pxi, psf = sampleCubicHermiteCurves(
                 [btx[n2][n1a], rscx[n2 - n2a], btx[n2][n1z]],
-                [vector.setMagnitude(btd3[n2][n1a], -1.0), rscd3[n2 - n2a], btd3[n2][n1z]],
+                [set_magnitude(btd3[n2][n1a], -1.0), rscd3[n2 - n2a], btd3[n2][n1z]],
                 self.elementsCountAcrossMinor-2*self.elementsCountAcrossShell, arcLengthDerivatives=True)
             td1m = interpolateSampleCubicHermite([[-btd1[n2][n1a][c] for c in range(3)], rscd1[n2 - n2a],
                                                   btd1[n2][n1z]], [[0.0, 0.0, 0.0]] * 3, pe, pxi, psf)[0]
@@ -628,9 +629,9 @@ class Ellipse2D:
                     btx[n2][n1] = tx[n1]
                     if n2 == n2m:
                         if n1 <= n1b:
-                            btd1[n2][n1] = vector.setMagnitude(btd1[n2m][-1], -1.0)
+                            btd1[n2][n1] = set_magnitude(btd1[n2m][-1], -1.0)
                         else:
-                            btd1[n2][n1] = vector.setMagnitude(btd1[n2m][-1], 1.0)
+                            btd1[n2][n1] = set_magnitude(btd1[n2m][-1], 1.0)
                     else:
                         if n1 <= n1b:
                             btd1[n2][n1] = [-d for d in td1m[n1 - n1a]]
@@ -756,7 +757,7 @@ class Ellipse2D:
          It keeps the d1 direction.
         It uses mirrorPlane: plane ax+by+cz=d in form of [a,b,c,d]
         """
-        mirrorPlane = [-d for d in self.majorAxis] + [-vector.dotproduct(self.majorAxis, self.centre)]
+        mirrorPlane = [-d for d in self.majorAxis] + [-dot(self.majorAxis, self.centre)]
         mirror = Mirror(mirrorPlane)
         for n2 in range(self.elementsCountUp):
             for n1 in range(self.elementsCountAcrossMinor + 1):
@@ -798,10 +799,10 @@ def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, he
     """
     nx = []
     nd1 = []
-    magMajorAxis = vector.magnitude(majorAxis)
-    magMinorAxis = vector.magnitude(minorAxis)
-    unitMajorAxis = vector.normalise(majorAxis)
-    unitMinorAxis = vector.normalise(minorAxis)
+    magMajorAxis = magnitude(majorAxis)
+    magMinorAxis = magnitude(minorAxis)
+    unitMajorAxis = normalize(majorAxis)
+    unitMinorAxis = normalize(minorAxis)
     useHeight = min(max(0.0, height), 2.0 * magMajorAxis)
 
     totalRadians = math.acos((magMajorAxis - useHeight)/magMajorAxis)
@@ -818,7 +819,7 @@ def createEllipsePerimeter(centre, majorAxis, minorAxis, elementsCountAround, he
         nx.append(
             [(centre[c] + cosRadians * majorAxis[c] + sinRadians * minorAxis[c]) for c in range(3)])
 
-        ndab = vector.setMagnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
+        ndab = set_magnitude([-sinRadians * magMajorAxis, cosRadians * magMinorAxis], elementArcLength)
         nd1.append(
             [(ndab[0] * unitMajorAxis[c] + ndab[1] * unitMinorAxis[c]) for c in range(3)])
         radians = geometry.updateEllipseAngleByArcLength(magMajorAxis, magMinorAxis, radians, elementArcLength,
@@ -833,7 +834,7 @@ def normalToEllipse(v1, v2):
     :param v2: vector 2.
     :return:
     """
-    nte = vector.normalise(vector.crossproduct3(v1, v2))
+    nte = normalize(cross(v1, v2))
     return nte
 
 
@@ -850,7 +851,7 @@ def computeNextRadius(radius, axis, ratio, progression):
         radius = radius * ratio
     elif progression == ConeBaseProgression.ARITHMETIC_PROGRESSION:
         radius += ratio
-    axis = vector.setMagnitude(axis, radius)
+    axis = set_magnitude(axis, radius)
     return radius, axis
 
 
@@ -862,5 +863,5 @@ def computeNextCentre(centre, arcLength, axis):
     :param centre: the start centre.
     :return: next centre coordinates.
     """
-    centre = [centre[c]+arcLength * vector.normalise(axis)[c] for c in range(3)]
+    centre = [centre[c]+arcLength * normalize(axis)[c] for c in range(3)]
     return centre

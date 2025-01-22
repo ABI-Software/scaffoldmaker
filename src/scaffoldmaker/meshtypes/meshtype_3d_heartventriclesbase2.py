@@ -8,6 +8,7 @@ from __future__ import division
 
 import math
 
+from cmlibs.maths.vectorops import normalize, cross, magnitude
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.finiteelement import getMaximumElementIdentifier, getMaximumNodeIdentifier
 from cmlibs.zinc.element import Element
@@ -18,7 +19,6 @@ from scaffoldmaker.annotation.heart_terms import get_heart_term
 from scaffoldmaker.meshtypes.meshtype_3d_heartventricles2 import MeshType_3d_heartventricles2
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils import interpolation as interp
-from scaffoldmaker.utils import vector
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, scaleEftNodeValueLabels, setEftScaleFactorIds
 from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
@@ -253,7 +253,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         bx = [ 0.5*(ax[i] + bx[i]) for i in range(2) ]
         bx.append(ax[2])
         ax = [ (bx[c] - px[c]) for c in range(3) ]
-        ax = vector.normalise(ax)
+        ax = normalize(ax)
         baseRotationRadians = math.atan2(ax[1], ax[0])
         # get crux location
         outletSpacingRadians = 0.25*math.pi  # GRC make option?
@@ -284,8 +284,8 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
             radius = lvOutletInnerRadius if (n3 == 0) else lvOutletOuterRadius
             loAxis1 = [ radius*ax[c] for c in range(3) ]
             loAxis2 = [ -loAxis1[1]*cosOutletInclineRadians, loAxis1[0]*cosOutletInclineRadians, -radius*sinOutletInclineRadians ]
-            loAxis3 = vector.crossproduct3(loAxis1, loAxis2)
-            scale = vOutletElementLength/vector.magnitude(loAxis3)
+            loAxis3 = cross(loAxis1, loAxis2)
+            scale = vOutletElementLength/magnitude(loAxis3)
             dx_ds2 = [ v*scale for v in loAxis3 ]
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
@@ -309,7 +309,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                             dx_ds3[2] = -dx_ds3[2]
                         else:
                             dx_ds3[2] = -2.0*dx_ds3[2]
-                        scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/vector.magnitude(dx_ds3)
+                        scale = radiansPerElementAroundOutlet*rvOutletOuterRadius/magnitude(dx_ds3)
                         dx_ds3 = [ d*scale for d in dx_ds3 ]
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                     if n1 == 0:
@@ -330,7 +330,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         outletCentreSpacing = lvOutletOuterRadius + outletSpacingHorizontal + rvOutletOuterRadius
         rvOutletCentre = [ (lvOutletCentre[c] - outletCentreSpacing*ax[c]) for c in range(3) ]
         # add outletSpacingVertical rotated by vOutletInclineRadians
-        unitCrossX = vector.normalise([-ax[1], ax[0]])
+        unitCrossX = normalize([-ax[1], ax[0]])
         rvOutletCentre[0] -= outletSpacingVertical*sinOutletInclineRadians*unitCrossX[0]
         rvOutletCentre[1] -= outletSpacingVertical*sinOutletInclineRadians*unitCrossX[1]
         rvOutletCentre[2] += outletSpacingVertical*cosOutletInclineRadians
@@ -340,8 +340,8 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
             radius = rvOutletInnerRadius if (n3 == 0) else rvOutletOuterRadius
             roAxis1 = [ radius*ax[c] for c in range(3) ]
             roAxis2 = [ -roAxis1[1]*cosOutletInclineRadians, roAxis1[0]*cosOutletInclineRadians, radius*sinOutletInclineRadians ]
-            roAxis3 = vector.crossproduct3(roAxis1, roAxis2)
-            scale = vOutletElementLength/vector.magnitude(roAxis3)
+            roAxis3 = cross(roAxis1, roAxis2)
+            scale = vOutletElementLength/magnitude(roAxis3)
             dx_ds2 = [ v*scale for v in roAxis3 ]
             outletNodeId = []
             for n1 in range(elementsCountAroundOutlet):
@@ -368,7 +368,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                             dx_ds3[2] = 4.0*dx_ds3[2]
                             dx_ds3 = [ (dx_ds1[c] + dx_ds3[c]) for c in range(3) ]
                         mag3 = radiansPerElementAroundOutlet*rvOutletOuterRadius
-                        scale = mag3/vector.magnitude(dx_ds3)
+                        scale = mag3/magnitude(dx_ds3)
                         dx_ds3 = [ d*scale for d in dx_ds3 ]
                     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3)
                     if n1 == 0:
@@ -542,7 +542,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                         -sinRadiansAround*laOuterMajor[1] + cosRadiansAround*laOuterMinor[1],
                         0.0 ]
                     scale1 = laOuterDerivatives[n1]
-                scale1 /= vector.magnitude(dx_ds1)
+                scale1 /= magnitude(dx_ds1)
                 dx_ds1 = [ d*scale1 for d in dx_ds1 ]
                 dx_ds3 = [ outer[0] - inner[0], outer[1] - inner[1], outer[2] - inner[2] ]
                 if (n1 < lan1CruxLimit) or (n1 > lan1SeptumLimit):
@@ -559,7 +559,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                     else:
                         # GRC check scaling here:
                         mag2 = inner[2]
-                    scale2 = mag2/vector.magnitude(dx_ds2)
+                    scale2 = mag2/magnitude(dx_ds2)
                     dx_ds2 = [ d*scale2 for d in dx_ds2 ]
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -623,7 +623,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                         -sinRadiansAround*raOuterMajor[1] + cosRadiansAround*raOuterMinor[1],
                         0.0 ]
                     scale1 = raOuterDerivatives[n1]
-                scale1 /= vector.magnitude(dx_ds1)
+                scale1 /= magnitude(dx_ds1)
                 dx_ds1 = [ d*scale1 for d in dx_ds1 ]
                 dx_ds3 = [ outer[0] - inner[0], outer[1] - inner[1], outer[2] - inner[2] ]
                 if (n1 <= ran1SeptumLimit) or (n1 >= ran1CruxLimit):
@@ -640,7 +640,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
                     else:
                         # GRC check scaling here:
                         mag2 = inner[2]
-                    scale2 = mag2/vector.magnitude(dx_ds2)
+                    scale2 = mag2/magnitude(dx_ds2)
                     dx_ds2 = [ d*scale2 for d in dx_ds2 ]
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, dx_ds1)
                 coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2)
@@ -705,7 +705,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         d1 = [ (x1[c] - xc[c]) for c in range(3) ]
         d2 = [ (x2[c] - xc[c]) for c in range(3) ]
         dx_ds3 = [ d1[0] + d2[0], d1[1] + d2[1], d1[2] + d2[2] ]
-        scale = vector.magnitude(d1)/vector.magnitude(dx_ds3)
+        scale = magnitude(d1)/magnitude(dx_ds3)
         dx_ds3 = [ d*scale for d in dx_ds3 ]
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, dx_ds3 )
 
@@ -713,8 +713,8 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         cache.setNode(nodes.findNodeByIdentifier(laNodeId[0][2]))
         result, dx_ds1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
         result, dx_ds3 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3 )
-        dx_ds2 = vector.crossproduct3(dx_ds3, dx_ds1)
-        scale2 = 0.5*vector.magnitude(dx_ds3)/vector.magnitude(dx_ds2)
+        dx_ds2 = cross(dx_ds3, dx_ds1)
+        scale2 = 0.5*magnitude(dx_ds3)/magnitude(dx_ds2)
         dx_ds2 = [ scale2*d for d in dx_ds2 ]
         result = coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, dx_ds2 )
 
@@ -752,7 +752,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         result, d1b = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3 )
         result, d2b = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, 3 )
         d2b = [ -2.0*d for d in d2b ]
-        scale = 4.0*(baseHeight + baseThickness)/vector.magnitude(d2a)
+        scale = 4.0*(baseHeight + baseThickness)/magnitude(d2a)
         d2a = [ scale*d for d in d2a ]
         xi = 0.5
         xr = 1.0 - xi
@@ -760,7 +760,7 @@ class MeshType_3d_heartventriclesbase2(Scaffold_base):
         dx_ds1 = [ (xr*d1a[c] + xi*d1b[c]) for c in range(3) ]
         dx_ds2 = interp.interpolateCubicHermiteDerivative(xa, d2a, xb, d2b, xi)
         dx_ds2 = [ xr*d for d in dx_ds2 ]
-        radialVector = vector.normalise(vector.crossproduct3(dx_ds1, dx_ds2))
+        radialVector = normalize(cross(dx_ds1, dx_ds2))
         dx_ds3 = [ baseThickness*d for d in radialVector ]
 
         x_inner = [ (x[c] - dx_ds3[c]) for c in range(3) ]
