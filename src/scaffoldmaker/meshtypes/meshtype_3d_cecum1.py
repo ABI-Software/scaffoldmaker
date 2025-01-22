@@ -130,12 +130,12 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 }]
         })
 
-def getDefaultOstiumSettings():
+def getDefaultOstiumSettings(parameterSetName):
     """
     Generate list of default options for ostium.
     """
     options = { 'Number of elements around ostium': 8,
-                'Number of elements along': 2,
+                'Number of elements along': 1,
                 'Number of elements through wall': 1,
                 'Unit scale': 1.0,
                 'Outlet': False,
@@ -150,6 +150,9 @@ def getDefaultOstiumSettings():
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
                 'Refine number of elements through wall': 1}
+
+    if 'Pig 1' in parameterSetName:
+        options['Number of elements along'] = 2
 
     return options
 
@@ -664,7 +667,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
     elementsCountAlong = int(elementsCountAlongSegment * segmentCount)
     elementsCountAround = (elementsCountAroundTC + elementsCountAroundHaustrum) * tcCount
 
-    ostiumOptions = getDefaultOstiumSettings()
+    ostiumOptions = getDefaultOstiumSettings(parameterSetName)
     ostiumSettings = updateOstiumOptions(options, ostiumOptions)
 
     zero = [0.0, 0.0, 0.0]
