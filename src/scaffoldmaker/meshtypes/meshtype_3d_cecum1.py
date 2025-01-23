@@ -1145,6 +1145,8 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
 
     networkLayoutIleum = CustomNetworkLayout(xPath, d1Path, d2Path, d3Path, d12Path, d13Path)
 
+    ostiumStartNodeIdentifier = nextNodeIdentifier
+
     nextNodeIdentifier, nextElementIdentifier, (o1_x, o1_d1, o1_d2, o1_d3, o1_NodeId, o1_Positions) = \
         generateOstiumMesh(region, ostiumSettings, trackSurfaceOstium, networkLayoutIleum,
                            startNodeIdentifier=nextNodeIdentifier, startElementIdentifier=nextElementIdentifier,
@@ -2032,7 +2034,7 @@ def createCecumMesh3d(region, options, networkLayout, nodeIdentifier, elementIde
     mesh_destroy_elements_and_nodes_by_identifiers(mesh, deleteElementIdentifier)
 
     return allAnnotationGroups, nextNodeIdentifier, elementIdentifier, nodesIdDistal, xDistal, d1Distal, \
-           d2Distal, d3Distal
+           d2Distal, d3Distal, ostiumStartNodeIdentifier
 
 
 class CecumNetworkLayout:
