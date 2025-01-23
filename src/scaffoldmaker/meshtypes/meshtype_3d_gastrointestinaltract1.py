@@ -707,6 +707,39 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
 
         return annotationGroups, None
 
+    @classmethod
+    def refineMesh(cls, meshrefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshrefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        refineElementsCountAround = options['Refine number of elements surface']
+        refineElementsCountAlong = options['Refine number of elements surface']
+        refineElementsCountThroughWall = options['Refine number of elements through wall']
+
+        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
+                                                       refineElementsCountThroughWall)
+        return
+
+class SectionNetworkLayout:
+    """
+    Generates sampled network layout for GI Tract scaffold.
+    """
+    def __init__(self, arcLengthOfGroupsAlong, cxGroups, cd1Groups, cd2Groups,cd3Groups, cd12Groups, cd13Groups):
+        """
+        :param region: Zinc region to define model in.
+        :param networkLayout: Network layout subscaffold from meshtype_1d_networklayout1
+        :param stomachTermsAlong: Annotation terms along length of network layout
+        """
+        self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
+        self.cxGroups = cxGroups
+        self.cd1Groups = cd1Groups
+        self.cd2Groups = cd2Groups
+        self.cd3Groups = cd3Groups
+        self.cd12Groups = cd12Groups
+        self.cd13Groups = cd13Groups
+
 def findHarmonicMeanForTransitNodes(coordinates, cache, nodes, transitNodes, startNodeIDNextSection,
                                     tubeToCecum=False):
     """
@@ -745,36 +778,3 @@ def findHarmonicMeanForTransitNodes(coordinates, cache, nodes, transitNodes, sta
             coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Mean)
 
     return
-
-    @classmethod
-    def refineMesh(cls, meshrefinement, options):
-        """
-        Refine source mesh into separate region, with change of basis.
-        :param meshrefinement: MeshRefinement, which knows source and target region.
-        :param options: Dict containing options. See getDefaultOptions().
-        """
-        refineElementsCountAround = options['Refine number of elements surface']
-        refineElementsCountAlong = options['Refine number of elements surface']
-        refineElementsCountThroughWall = options['Refine number of elements through wall']
-
-        meshrefinement.refineAllElementsCubeStandard3d(refineElementsCountAround, refineElementsCountAlong,
-                                                       refineElementsCountThroughWall)
-        return
-
-class SectionNetworkLayout:
-    """
-    Generates sampled network layout for GI Tract scaffold.
-    """
-    def __init__(self, arcLengthOfGroupsAlong, cxGroups, cd1Groups, cd2Groups,cd3Groups, cd12Groups, cd13Groups):
-        """
-        :param region: Zinc region to define model in.
-        :param networkLayout: Network layout subscaffold from meshtype_1d_networklayout1
-        :param stomachTermsAlong: Annotation terms along length of network layout
-        """
-        self.arcLengthOfGroupsAlong = arcLengthOfGroupsAlong
-        self.cxGroups = cxGroups
-        self.cd1Groups = cd1Groups
-        self.cd2Groups = cd2Groups
-        self.cd3Groups = cd3Groups
-        self.cd12Groups = cd12Groups
-        self.cd13Groups = cd13Groups
