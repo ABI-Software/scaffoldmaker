@@ -1326,6 +1326,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     GEJSettings['Use linear through ostium wall'] = options['Use linear through wall']
     GEJSettings['Use linear through vessel wall'] = options['Use linear through wall']
 
+    stomachStartElementIdentifier = elementIdentifier
     elementsCountAcrossCardia = 1
     cardiaDiameterFactor = 1.4  # scale to ostium diameter
     sf = (cardiaDiameterFactor - 1) * ostiumRadius
@@ -2433,7 +2434,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # Create elements
     fundusMucosaElementIdentifiers = []
     elementIdxMat = []
-    n = 0
+    n = stomachStartElementIdentifier - 1
     for n2 in range(elementsAlongEsophagus):
         elementIdxThroughWall = []
         for n3 in range(elementsThroughEsophagusWall):
