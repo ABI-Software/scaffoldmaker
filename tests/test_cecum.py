@@ -64,8 +64,8 @@ class CecumScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-112.4222871639696, -146.3433620526202, 852.5876977230726], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [-54.2374866447821, -77.56, 899.9973429272325], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-112.41968159644387, -146.34422797225153, 852.6082677676069], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [-54.22370705290374, -77.56, 899.9973429272325], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -77,10 +77,10 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 8547.404028842082, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 8546.983090282285, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 13805.553157208053, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 13790.25181377472, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
