@@ -35,6 +35,7 @@ class VagusInputData:
         self._datafile_path = None
         self._level_markers = {}
         self._orientation_data = {}
+        self._side_label = ""
         self._trunk_group_name = None
         self._trunk_coordinates = []
         self._trunk_radius = []
@@ -84,6 +85,11 @@ class VagusInputData:
                 if lower_name == 'microfil':
                     annotation_name = 'orientation anterior'
                 orientation_group_names.append(annotation_name)
+
+        if 'left' in self._trunk_group_name:
+            self._side_label = 'left'
+        elif 'right' in self._trunk_group_name:
+            self._side_label = 'right'
 
         # extract marker data - name, coordinates (no marker terms are available)
         # sort markers here?
@@ -233,6 +239,12 @@ class VagusInputData:
         """
         return self._branch_parent_map
 
+    def get_side_label(self):
+        """
+        Get label indicating side of the vagus (left or right or '')
+        """
+        return self._side_label
+
     def get_datafile_path(self):
         """
         Get the path to the temporary file with the data.
@@ -268,7 +280,7 @@ def group_common_branches(branch_names):
     branch_common_map = {}
     for name, groups in grouped_names.items():
         if 'branch' in name and len(groups) > 1:
-            branch_name = 'all ' + name.replace('branch', 'branches', 1)
+            branch_name = name.replace('branch', 'branches', 1)
             branch_common_map[branch_name] = groups
 
     return branch_common_map

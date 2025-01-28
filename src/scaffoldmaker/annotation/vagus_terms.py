@@ -59,6 +59,8 @@ vagus_marker_terms = [
 vagus_branch_terms = [
     # branch names, based on lit.review
     # branch names with no indication of the side
+    ("cervical trunk", "ILX:0789914"),
+    ("thoracic trunk", "ILX:0784729"),
     ("meningeal branch of vagus nerve", "FMA:6231"),
     ("communicating branch of vagus nerve with glossopharyngeal nerve", "FMA:6233"),
     ("auricular branch of vagus nerve", "FMA:6232"),
@@ -82,10 +84,13 @@ vagus_branch_terms = [
     ("communicating branch of recurrent laryngeal nerve with internal laryngeal nerve", "FMA:53526"),
     ("inferior cervical cardiac branch of vagus nerve", "FMA:75530"),
     ("thoracic cardiac branch of vagus nerve", "FMA:53601"),
+    ("esophageal trunk", "ILX:0794853"),
 
     # right vagus branches
     ("right vagus nerve", "FMA:6219", "ILX:0789705"),
     ("right vagus X nerve trunk", "UBERON:0035021", "ILX:0730515"),
+    ("right cervical trunk", "ILX:0794141"),
+    ("right thoracic trunk", "ILX:0786664"),
     ("right meningeal branch of right vagus nerve", "FMA:53541", "ILX:0785804"),
     ("right branch between vagus nerve and glossopharyngeal nerve", "FMA:53559", "ILX:0790506"),
     ("right auricular branch of right vagus nerve", "FMA:53534", "ILX:0785879"),
@@ -104,20 +109,20 @@ vagus_branch_terms = [
     ("inferior branch of right internal laryngeal nerve", "FMA:53581", "ILX:0789165"),
     ("communicating branch of right internal laryngeal nerve with right recurrent laryngeal nerve", "FMA:53571", "ILX:0791006"),
     ("communicating branch of right external laryngeal nerve with right superior cardiac nerve", "FMA:53561", "ILX:0787405"),
-    ("right a cervical cardiopulmonary branch of vagus nerve", "ILX:0794154"),
-    ("right b cervical cardiopulmonary branch of vagus nerve", "ILX:0794155"),
+    ("right A cervical cardiopulmonary branch of vagus nerve", "ILX:0794154"),
+    ("right B cervical cardiopulmonary branch of vagus nerve", "ILX:0794155"),
     ("right pulmonary branch of vagus nerve", "FMA:6671", "ILX:0787735"),
-    ("right pulmonary branch a of the vagus nerve", "ILX:0795074"),
-    ("right pulmonary branch b of the vagus nerve", "ILX:0795075"),
-    ("right pulmonary branch c of the vagus nerve", "ILX:0795076"),
-    ("right pulmonary branch d of the vagus nerve", "ILX:0795077"),
-    ("right pulmonary branch e of the vagus nerve", "ILX:0795078"),
+    ("right pulmonary branch A of the vagus nerve", "ILX:0795074"),
+    ("right pulmonary branch B of the vagus nerve", "ILX:0795075"),
+    ("right pulmonary branch C of the vagus nerve", "ILX:0795076"),
+    ("right pulmonary branch D of the vagus nerve", "ILX:0795077"),
+    ("right pulmonary branch E of the vagus nerve", "ILX:0795078"),
     # === temporary branches used in the japanese dataset
-    ("right a lateral pulmonary branch of vagus nerve", "ILX:0794278"),
-    ("right b lateral pulmonary branch of vagus nerve", "ILX:0794279"),
-    ("posterior a gastric branch of vagus nerve", "ILX:0794398"),
-    ("posterior b gastric branch of vagus nerve", "ILX:0794399"),
-    ("posterior c gastric branch of vagus nerve", "ILX:0794400"),
+    ("right A lateral pulmonary branch of vagus nerve", "ILX:0794278"),
+    ("right B lateral pulmonary branch of vagus nerve", "ILX:0794279"),
+    ("posterior A gastric branch of vagus nerve", "ILX:0794398"),
+    ("posterior B gastric branch of vagus nerve", "ILX:0794399"),
+    ("posterior C gastric branch of vagus nerve", "ILX:0794400"),
     # ===
     ("bronchial branch of right vagus nerve", "FMA:53613", "ILX:0791364"),
     ("superior cervical cardiac branch of right vagus nerve", "FMA:53598", "ILX:0786396"),
@@ -147,6 +152,8 @@ vagus_branch_terms = [
     # left vagus branches
     ("left vagus nerve", "FMA:6220", "ILX:0785628"),
     ("left vagus X nerve trunk", "UBERON:0035020"),
+    ("left cervical trunk", "ILX:0794142"),
+    ("left thoracic trunk", "ILX:0787543"),
     ("left meningeal branch of left vagus nerve", "FMA:53542", "ILX:0736691"),
     ("left branch between vagus nerve and glossopharyngeal nerve", "FMA:53560", "ILX:0790685"),
     ("left auricular branch of left vagus nerve", "FMA:53535", "ILX:0789344"),
@@ -165,17 +172,17 @@ vagus_branch_terms = [
     ("inferior branch of left internal laryngeal nerve", "FMA:53582", "ILX:0785467"),
     ("communicating branch of left internal laryngeal nerve with left recurrent laryngeal nerve", "FMA:53572", "ILX:0789900"),
     ("communicating branch of left external laryngeal nerve with left superior cardiac nerve", "FMA:53562", "ILX:0787107"),
-    ("left a cervical cardiopulmonary branch of vagus nerve", "ILX:0794160"),
-    ("left b cervical cardiopulmonary branch of vagus nerve", "ILX:0794161"),
+    ("left A cervical cardiopulmonary branch of vagus nerve", "ILX:0794160"),
+    ("left B cervical cardiopulmonary branch of vagus nerve", "ILX:0794161"),
     ("pulmonary branch of left vagus nerve", "FMA:6679", "ILX:0792971"),
-    ("left pulmonary branch a of the vagus nerve", "ILX:0795079"),
-    ("left pulmonary branch b of the vagus nerve", "ILX:0795080"),
-    ("left pulmonary branch c of the vagus nerve", "ILX:0795081"),
-    ("left pulmonary branch d of the vagus nerve", "ILX:0795082"),
-    ("left pulmonary branch e of the vagus nerve", "ILX:0795083"),
+    ("left pulmonary branch A of the vagus nerve", "ILX:0795079"),
+    ("left pulmonary branch B of the vagus nerve", "ILX:0795080"),
+    ("left pulmonary branch C of the vagus nerve", "ILX:0795081"),
+    ("left pulmonary branch D of the vagus nerve", "ILX:0795082"),
+    ("left pulmonary branch E of the vagus nerve", "ILX:0795083"),
     # === temporary branches used in the japanese dataset
-    ("left a medial pulmonary branch of vagus nerve", "ILX:0794266"),
-    ("left b medial pulmonary branch of vagus nerve", "ILX:0794267"),
+    ("left A medial pulmonary branch of vagus nerve", "ILX:0794266"),
+    ("left B medial pulmonary branch of vagus nerve", "ILX:0794267"),
     # ===
     ("bronchial branch of left vagus nerve", "FMA:53558", "ILX:0791685"),
     ("superior cervical cardiac branch of left vagus nerve", "FMA:53599", "ILX:0791998"),
@@ -205,12 +212,12 @@ vagus_branch_terms = [
 ]
 
 
-def get_vagus_branch_term(name, vagus_terms):
+def get_vagus_branch_term(name):
     """
     Find term by matching name to any identifier held for a term.
     return: ( preferred name, preferred id )
     """
-    for term in vagus_terms:
+    for term in vagus_branch_terms:
         if name in term:
             return term[0], term[1]
     return name, ""

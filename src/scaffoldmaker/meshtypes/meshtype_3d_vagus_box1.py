@@ -30,34 +30,64 @@ from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.annotation.vagus_terms import get_vagus_branch_term, get_vagus_marker_term
 
 
-def get_vagus_marker_locations_list():
+def get_left_vagus_marker_locations_list():
     # vagus markers location in material coordinates between 0 to 1
-    termNameVagusLengthList = {
+    left_termNameVagusLengthList = {
         # cervical region
         # "level of exiting brainstem on the vagus nerve": 0.0,  # note this term is not on the list of annotations
-        "level of superior border of jugular foramen on the vagus nerve": 0.02762944,
-        # # "level of inferior border of jugular foramen on the vagus nerve": 0.05351264,
-        "level of inferior border of jugular foramen on the vagus nerve": 0.047304398,
-        # "level of inferior border of cranium on the vagus nerve": 0.0588,
-        # "level of C1 transverse process on the vagus nerve": 0.10276128,
-        # "level of angle of the mandible on the vagus nerve": 0.135184,
-        # # "level of greater horn of hyoid on the vagus nerve": 0.14595904,
-        "level of greater horn of hyoid on the vagus nerve": 0.171654481,
-        # "level of carotid bifurcation on the vagus nerve": 0.15474592,
-        # "level of laryngeal prominence on the vagus nerve": 0.22029792,
+        "left level of superior border of jugular foramen on the vagus nerve": 0.02762944,
+        # # "left level of inferior border of jugular foramen on the vagus nerve": 0.05351264,
+        "left level of inferior border of jugular foramen on the vagus nerve": 0.047304398,
+        # "left level of inferior border of cranium on the vagus nerve": 0.0588,
+        # "left level of C1 transverse process on the vagus nerve": 0.10276128,
+        # "left level of angle of the mandible on the vagus nerve": 0.135184,
+        # # "left level of greater horn of hyoid on the vagus nerve": 0.14595904,
+        "left level of greater horn of hyoid on the vagus nerve": 0.171654481,
+        # "left level of carotid bifurcation on the vagus nerve": 0.15474592,
+        # "left level of laryngeal prominence on the vagus nerve": 0.22029792,
         # thoracic region
-        # # "level of superior border of the clavicle on the vagus nerve": 0.37620064,
-        "level of superior border of the clavicle on the vagus nerve": 0.348953222,
-        # "level of jugular notch on the vagus nerve": 0.39885024,
-        # "level of carina": 0.47869728,  # not on the list of annotations yet!
-        # "level of sternal angle on the vagus nerve": 0.48395264,
-        # "level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
+        # # "left level of superior border of the clavicle on the vagus nerve": 0.37620064,
+        "left level of superior border of the clavicle on the vagus nerve": 0.348953222,
+        # "left level of jugular notch on the vagus nerve": 0.39885024,
+        # "left level of carina": 0.47869728,  # not on the list of annotations yet!
+        # "left level of sternal angle on the vagus nerve": 0.48395264,
+        # "left level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
         # abdominal region
-        # "level of esophageal hiatus on the vagus nerve": 0.813852428,
-        # "level of aortic hiatus on the vagus nerve": 0.9323824,
-        # "level of end of trunk": 1.0  # note this term is also not on the list of annotations
+        # "left level of esophageal hiatus on the vagus nerve": 0.813852428,
+        # "left level of aortic hiatus on the vagus nerve": 0.9323824,
+        # "left level of end of trunk": 1.0  # note this term is also not on the list of annotations
     }
-    return termNameVagusLengthList
+    return left_termNameVagusLengthList
+
+
+def get_right_vagus_marker_locations_list():
+    # vagus markers location in material coordinates between 0 to 1
+    right_termNameVagusLengthList = {
+        # cervical region
+        # "level of exiting brainstem on the vagus nerve": 0.0,  # note this term is not on the list of annotations
+        "right level of superior border of jugular foramen on the vagus nerve": 0.02762944,
+        # # "right level of inferior border of jugular foramen on the vagus nerve": 0.05351264,
+        "right level of inferior border of jugular foramen on the vagus nerve": 0.047304398,
+        # "right level of inferior border of cranium on the vagus nerve": 0.0588,
+        # "right level of C1 transverse process on the vagus nerve": 0.10276128,
+        # "right level of angle of the mandible on the vagus nerve": 0.135184,
+        # # "right level of greater horn of hyoid on the vagus nerve": 0.14595904,
+        "right level of greater horn of hyoid on the vagus nerve": 0.171654481,
+        # "right level of carotid bifurcation on the vagus nerve": 0.15474592,
+        # "right level of laryngeal prominence on the vagus nerve": 0.22029792,
+        # thoracic region
+        # # "right level of superior border of the clavicle on the vagus nerve": 0.37620064,
+        "right level of superior border of the clavicle on the vagus nerve": 0.348953222,
+        # "right level of jugular notch on the vagus nerve": 0.39885024,
+        # "right level of carina": 0.47869728,  # not on the list of annotations yet!
+        # "right level of sternal angle on the vagus nerve": 0.48395264,
+        # "right level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
+        # abdominal region
+        # "right level of esophageal hiatus on the vagus nerve": 0.813852428,
+        # "right level of aortic hiatus on the vagus nerve": 0.9323824,
+        # "right level of end of trunk": 1.0  # note this term is also not on the list of annotations
+    }
+    return right_termNameVagusLengthList
 
 
 def is_bony_landmark(marker_name):
@@ -921,7 +951,7 @@ class MeshType_3d_vagus_box1(Scaffold_base):
         marker_coordinates.setManaged(False)
         del marker_coordinates
 
-        print('Adding common visualisation groups...')
+        print('Adding extra visualisation groups...')
         branch_common_groups = vagus_data.get_branch_common_group_map()
         for branch_common_name, branch_names in branch_common_groups.items():
             branch_common_group = AnnotationGroup(region, (branch_common_name, ""))
@@ -937,6 +967,43 @@ class MeshType_3d_vagus_box1(Scaffold_base):
                 while element.isValid():
                     branch_common_mesh_group.addElement(element)
                     element = el_iter.next()
+
+        # add cervical and thoracic trunk groups
+        side_label = vagus_data.get_side_label()
+        if side_label == 'left':
+            cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('left cervical trunk'))
+            thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('left thoracic trunk'))
+            boundary_marker = findAnnotationGroupByName(annotation_groups,
+                                                        "left level of superior border of the clavicle on the vagus nerve")
+
+        elif side_label == 'right':
+            cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right cervical trunk'))
+            thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right thoracic trunk'))
+            boundary_marker = findAnnotationGroupByName(annotation_groups,
+                                                        "right level of superior border of the clavicle on the vagus nerve")
+        else:
+            raise AssertionError("Missing left or right marker side indication.")
+
+        element, _ = boundary_marker.getMarkerLocation()
+        boundary_element_id = element.getIdentifier()
+
+        cervical_trunk_mesh_group = cervical_trunk_group.getMeshGroup(mesh3d)
+        thoracic_trunk_mesh_group = thoracic_trunk_group.getMeshGroup(mesh3d)
+        annotation_groups.append(cervical_trunk_group)
+        annotation_groups.append(thoracic_trunk_group)
+
+        trunk_box_group = findAnnotationGroupByName(annotation_groups, trunk_group_name)
+        trunk_box_mesh_group = trunk_box_group.getMeshGroup(mesh3d)
+
+        el_iter = trunk_box_mesh_group.createElementiterator()
+        element = el_iter.next()
+        while element.isValid():
+            element_id = element.getIdentifier()
+            if element_id < boundary_element_id:
+                cervical_trunk_mesh_group.addElement(element)
+            else:
+                thoracic_trunk_mesh_group.addElement(element)
+            element = el_iter.next()
 
         print('Done\n')
 
@@ -1229,6 +1296,7 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
 
     trunk_data = vagus_data.get_trunk_coordinates()
     marker_data = vagus_data.get_level_markers()
+    side_label = vagus_data.get_side_label()
 
     annotation_groups = []
 
@@ -1238,7 +1306,7 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
             trunk_data_endpoints = find_dataset_endpoints([trunk_pt[0] for trunk_pt in trunk_data])
             marker_locations, tx, td1, \
                 step, element_length = estimate_trunk_coordinates(trunk_nodes_count, marker_data, trunk_data_endpoints,
-                                                                  is_full_vagus)
+                                                                  side_label, is_full_vagus)
         else:
             # read tx from fit_coordinates
             _, node_field_parameters = get_nodeset_field_parameters(fit_nodes, fit_coordinates, value_labels)
@@ -1509,12 +1577,13 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
     return fit_region, annotation_groups, visited_branches_order, branch_root_parameters
 
 
-def estimate_trunk_coordinates(trunk_nodes_count, raw_marker_data, trunk_data_endpoints, is_full_vagus):
+def estimate_trunk_coordinates(trunk_nodes_count, raw_marker_data, trunk_data_endpoints, side_label, is_full_vagus):
     """
     Generates coordinates for initial trunk line defined by highest and lowest markers in the data.
     :param trunk_nodes_count: number of trunk nodes.
     :param raw_marker_data: Dict mapping marker names to x, y, z coordinate
     :param trunk_data_endpoints: a list of two x, y, z coordinate
+    :param side_label: left or right or ''
     :param is_full_vagus: True if vagus data is top to bottom, False if vagus data is top to esophagus plexus.
     return:
         marker_locations: Dict mapping marker name to (element, xi) on trunk.
@@ -1524,18 +1593,23 @@ def estimate_trunk_coordinates(trunk_nodes_count, raw_marker_data, trunk_data_en
         element_length: Element length for trunk group in geometric coordinates.
     """
 
-    term_name_vagus_length_list = get_vagus_marker_locations_list()
     total_vagus_length = estimate_parametrised_vagus_length(is_full_vagus)
     step = total_vagus_length / (trunk_nodes_count - 1)
     element_length = magnitude(sub(trunk_data_endpoints[0], trunk_data_endpoints[-1])) / (trunk_nodes_count - 1)
 
     # choose markers for building initial scaffold
     # ensures that markers are in order top to bottom, filters out markers not chosen for fitting
+    if side_label == 'left':
+        vagus_level_terms = get_left_vagus_marker_locations_list()
+    elif side_label == 'right':
+        vagus_level_terms = get_right_vagus_marker_locations_list()
+    else:
+        raise AssertionError("Missing left or right marker side indication.")
+
     marker_data = {}
-    for term_name in term_name_vagus_length_list.keys():
-        for marker_name in raw_marker_data.keys():
-            if marker_name.replace('left ', '', 1).replace('right ', '', 1) == term_name:
-                marker_data[marker_name] = raw_marker_data[marker_name]
+    for marker_term_name in vagus_level_terms.keys():
+        if marker_term_name in raw_marker_data.keys():
+            marker_data[marker_term_name] = raw_marker_data[marker_term_name]
 
     use_markers = [list(marker_data.keys())[0],
                    list(marker_data.keys())[-1]]
@@ -1545,17 +1619,13 @@ def estimate_trunk_coordinates(trunk_nodes_count, raw_marker_data, trunk_data_en
 
     # calculate markers xi locations
     marker_locations = {}
-    for marker_name in marker_data.keys():
-        use_marker_name = marker_name.replace('left ', '', 1).replace('right ', '', 1)
-        if use_marker_name in term_name_vagus_length_list:
-            marker_material_coord = term_name_vagus_length_list[use_marker_name]
-            tmp = math.modf(marker_material_coord / step)
-            marker_locations[marker_name] = (int(tmp[1] + 1), tmp[0])  # (element, xi)
-            # print(marker_name, marker_material_coord, marker_locations[marker_name])
-
-            if marker_name in use_markers:
-                pts.append(marker_data[marker_name])
-                params.append(term_name_vagus_length_list[use_marker_name])
+    for marker_term_name in vagus_level_terms.keys():
+        marker_material_coord = vagus_level_terms[marker_term_name]
+        tmp = math.modf(marker_material_coord / step)
+        marker_locations[marker_term_name] = (int(tmp[1] + 1), tmp[0])  # (element, xi)
+        if marker_term_name in use_markers:
+            pts.append(marker_data[marker_term_name])
+            params.append(vagus_level_terms[marker_term_name])
 
     # calculate trunk initial coordinates
     trunk_coordinates = []
