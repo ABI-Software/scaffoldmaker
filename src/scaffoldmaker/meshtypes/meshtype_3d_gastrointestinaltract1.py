@@ -420,7 +420,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     'name': get_colon_term('descending colon')[0],
                     'ontId': get_colon_term('descending colon')[1]
                 }]
-            })
+        })
             
     elif parameterSetName in ("Human 2"):
         return ScaffoldPackage(MeshType_1d_network_layout1, {
@@ -811,7 +811,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                     'name': get_colon_term('descending colon')[0],
                     'ontId': get_colon_term('descending colon')[1]
                 }]
-            })
+        })
 
 
 class MeshType_3d_gastrointestinaltract1(Scaffold_base):
@@ -947,32 +947,6 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
-        cls.updateSubScaffoldOptions(options)
-
-        
-    @classmethod
-    def updateSubScaffoldOptions(cls, options):
-        '''
-        Update sub-scaffold options which depend on parent options.
-        '''
-        esoOptions = options['Esophagus']
-        esoSettings = esoOptions.getScaffoldSettings()
-        esoSettings['Number of elements through wall'] = 1
-        stomachOptions = options['Stomach']
-        stomachSettings = stomachOptions.getScaffoldSettings()
-        stomachSettings['Number of elements through wall'] = 1
-        smallIntestineOptions = options['Small intestine']
-        smallIntestineSettings = smallIntestineOptions.getScaffoldSettings()
-        smallIntestineSettings['Number of elements through wall'] = 1
-        cecumOptions = options['Cecum']
-        cecumSettings = cecumOptions.getScaffoldSettings()
-        cecumSettings['Number of elements through wall'] = 1
-        colonOptions = options['Colon']
-        colonSettings = colonOptions.getScaffoldSettings()
-        colonSegmentOptions = colonSettings['Segment profile']
-        colonSegmentSettings = colonSegmentOptions.getScaffoldSettings()
-        colonSegmentSettings['Number of elements through wall'] = 1
-
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -982,7 +956,6 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: annotationGroups
         """
-        cls.updateSubScaffoldOptions(options)
         networkLayout = options['Network layout']
         esophagusOptions = options['Esophagus']
         stomachOptions = options['Stomach']
@@ -1003,9 +976,6 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
 
         nextNodeIdentifier = 1
         nextElementIdentifier = 1
-
-        tmpRegion = region.createRegion()
-        networkLayout.generate(tmpRegion)
 
         # Network layout
         gastroTermsAlong = [['esophagus', 'cervical part of esophagus', 'thoracic part of esophagus',
@@ -1089,8 +1059,6 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                                       nextElementIdentifier, nodeIdProximal=nodesIdCecumDistal,
                                       xProximal=xCecumDistal, d1Proximal=d1CecumDistal, d2Proximal=d2CecumDistal,
                                       d3Proximal=d3CecumDistal)
-
-        del tmpRegion
 
         annotationGroups = mergeAnnotationGroups(annotationGroupsEsophagus, annotationGroupsStomach,
                                                  annotationGroupsSmallIntestine, annotationGroupsCecum,
