@@ -5,7 +5,7 @@ from cmlibs.maths.vectorops import cross, mult, set_magnitude, magnitude, sub, e
     matrix_vector_mult, add
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.zinc.node import Node
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.spinal_nerve_terms import get_spinal_nerve_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -139,51 +139,52 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
         rotMatLeft = euler_to_rotation_matrix([0.0, math.radians(nervePitch), 0.0])
         scCentres = [[0.0, 0.0, 0.0]]
 
-        cervicalGroup = AnnotationGroup(region, get_spinal_nerve_term("cervical spinal nerve"))
-        c1Group = AnnotationGroup(region, get_spinal_nerve_term("C1 spinal nerve"))
-        c2Group = AnnotationGroup(region, get_spinal_nerve_term("C2 spinal nerve"))
-        c3Group = AnnotationGroup(region, get_spinal_nerve_term("C3 spinal nerve"))
-        c4Group = AnnotationGroup(region, get_spinal_nerve_term("C4 spinal nerve"))
-        c5Group = AnnotationGroup(region, get_spinal_nerve_term("C5 spinal nerve"))
-        c6Group = AnnotationGroup(region, get_spinal_nerve_term("C6 spinal nerve"))
-        c7Group = AnnotationGroup(region, get_spinal_nerve_term("C7 spinal nerve"))
-        c8Group = AnnotationGroup(region, get_spinal_nerve_term("C8 spinal nerve"))
-
-        thoracicGroup = AnnotationGroup(region, get_spinal_nerve_term("thoracic nerve"))
-        t1Group = AnnotationGroup(region, get_spinal_nerve_term("first thoracic nerve"))
-        t2Group = AnnotationGroup(region, get_spinal_nerve_term("second thoracic nerve"))
-        t3Group = AnnotationGroup(region, get_spinal_nerve_term("third thoracic nerve"))
-        t4Group = AnnotationGroup(region, get_spinal_nerve_term("fourth thoracic nerve"))
-        t5Group = AnnotationGroup(region, get_spinal_nerve_term("fifth thoracic nerve"))
-        t6Group = AnnotationGroup(region, get_spinal_nerve_term("sixth thoracic nerve"))
-        t7Group = AnnotationGroup(region, get_spinal_nerve_term("seventh thoracic nerve"))
-        t8Group = AnnotationGroup(region, get_spinal_nerve_term("eighth thoracic nerve"))
-        t9Group = AnnotationGroup(region, get_spinal_nerve_term("ninth thoracic nerve"))
-        t10Group = AnnotationGroup(region, get_spinal_nerve_term("tenth thoracic nerve"))
-        t11Group = AnnotationGroup(region, get_spinal_nerve_term("eleventh thoracic nerve"))
-        t12Group = AnnotationGroup(region, get_spinal_nerve_term("twelfth thoracic nerve"))
-
-        lumbarGroup = AnnotationGroup(region, get_spinal_nerve_term("lumbar nerve"))
-        l1Group = AnnotationGroup(region, get_spinal_nerve_term("first lumbar nerve"))
-        l2Group = AnnotationGroup(region, get_spinal_nerve_term("second lumbar nerve"))
-        l3Group = AnnotationGroup(region, get_spinal_nerve_term("third lumbar nerve"))
-        l4Group = AnnotationGroup(region, get_spinal_nerve_term("fourth lumbar nerve"))
-        l5Group = AnnotationGroup(region, get_spinal_nerve_term("fifth lumbar nerve"))
-
-        sacralGroup = AnnotationGroup(region, get_spinal_nerve_term("sacral nerve"))
-        s1Group = AnnotationGroup(region, get_spinal_nerve_term("first sacral nerve"))
-        s2Group = AnnotationGroup(region, get_spinal_nerve_term("second sacral nerve"))
-        s3Group = AnnotationGroup(region, get_spinal_nerve_term("third sacral nerve"))
-        s4Group = AnnotationGroup(region, get_spinal_nerve_term("fourth sacral nerve"))
-        s5Group = AnnotationGroup(region, get_spinal_nerve_term("fifth sacral nerve"))
-
-        coccyxGroup = AnnotationGroup(region, get_spinal_nerve_term("coccygeal nerve"))
-
         levelGroups = []
         segmentGroups = []
+        annotationGroups = []
 
         if parameterSetName == "Human whole spine 1":
             numberOfLevels = 31
+            cervicalGroup = AnnotationGroup(region, get_spinal_nerve_term("cervical spinal nerve"))
+            c1Group = AnnotationGroup(region, get_spinal_nerve_term("C1 spinal nerve"))
+            c2Group = AnnotationGroup(region, get_spinal_nerve_term("C2 spinal nerve"))
+            c3Group = AnnotationGroup(region, get_spinal_nerve_term("C3 spinal nerve"))
+            c4Group = AnnotationGroup(region, get_spinal_nerve_term("C4 spinal nerve"))
+            c5Group = AnnotationGroup(region, get_spinal_nerve_term("C5 spinal nerve"))
+            c6Group = AnnotationGroup(region, get_spinal_nerve_term("C6 spinal nerve"))
+            c7Group = AnnotationGroup(region, get_spinal_nerve_term("C7 spinal nerve"))
+            c8Group = AnnotationGroup(region, get_spinal_nerve_term("C8 spinal nerve"))
+
+            thoracicGroup = AnnotationGroup(region, get_spinal_nerve_term("thoracic nerve"))
+            t1Group = AnnotationGroup(region, get_spinal_nerve_term("first thoracic nerve"))
+            t2Group = AnnotationGroup(region, get_spinal_nerve_term("second thoracic nerve"))
+            t3Group = AnnotationGroup(region, get_spinal_nerve_term("third thoracic nerve"))
+            t4Group = AnnotationGroup(region, get_spinal_nerve_term("fourth thoracic nerve"))
+            t5Group = AnnotationGroup(region, get_spinal_nerve_term("fifth thoracic nerve"))
+            t6Group = AnnotationGroup(region, get_spinal_nerve_term("sixth thoracic nerve"))
+            t7Group = AnnotationGroup(region, get_spinal_nerve_term("seventh thoracic nerve"))
+            t8Group = AnnotationGroup(region, get_spinal_nerve_term("eighth thoracic nerve"))
+            t9Group = AnnotationGroup(region, get_spinal_nerve_term("ninth thoracic nerve"))
+            t10Group = AnnotationGroup(region, get_spinal_nerve_term("tenth thoracic nerve"))
+            t11Group = AnnotationGroup(region, get_spinal_nerve_term("eleventh thoracic nerve"))
+            t12Group = AnnotationGroup(region, get_spinal_nerve_term("twelfth thoracic nerve"))
+
+            lumbarGroup = AnnotationGroup(region, get_spinal_nerve_term("lumbar nerve"))
+            l1Group = AnnotationGroup(region, get_spinal_nerve_term("first lumbar nerve"))
+            l2Group = AnnotationGroup(region, get_spinal_nerve_term("second lumbar nerve"))
+            l3Group = AnnotationGroup(region, get_spinal_nerve_term("third lumbar nerve"))
+            l4Group = AnnotationGroup(region, get_spinal_nerve_term("fourth lumbar nerve"))
+            l5Group = AnnotationGroup(region, get_spinal_nerve_term("fifth lumbar nerve"))
+
+            sacralGroup = AnnotationGroup(region, get_spinal_nerve_term("sacral nerve"))
+            s1Group = AnnotationGroup(region, get_spinal_nerve_term("first sacral nerve"))
+            s2Group = AnnotationGroup(region, get_spinal_nerve_term("second sacral nerve"))
+            s3Group = AnnotationGroup(region, get_spinal_nerve_term("third sacral nerve"))
+            s4Group = AnnotationGroup(region, get_spinal_nerve_term("fourth sacral nerve"))
+            s5Group = AnnotationGroup(region, get_spinal_nerve_term("fifth sacral nerve"))
+
+            coccyxGroup = AnnotationGroup(region, get_spinal_nerve_term("coccygeal nerve"))
+
             # Scaled to transverse diameter of spinal column
             # https://www.frontiersin.org/journals/neurology/articles/10.3389/fneur.2016.00238/full
             scales = [11.3, 11.5,12, 12.8, 13.3, 13.1, 12.5, 11.3, 10.7, 10, 9.6, 9.5, 9.2, 8.7, 8.4, 8.3, 8.6, 8.6,
@@ -253,16 +254,21 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
         halfDistBetweenLeftRight = 0.2
 
         # set up element annotations
+        sideGroups = []
+        if parameterSetName == ("Human whole spine 1" or "Human pair 1"):
+            leftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,("left", ""))
+            rightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,("right", ""))
+            sideGroups = [rightGroup, leftGroup]
+
         nerveGroup = AnnotationGroup(region, get_spinal_nerve_term("spinal nerve"))
         dorsalRootGanglionGroup = AnnotationGroup(region, get_spinal_nerve_term("dorsal root ganglion"))
         dorsalRootGroup = AnnotationGroup(region, get_spinal_nerve_term("dorsal root of spinal cord"))
         ventralRootGroup = AnnotationGroup(region, get_spinal_nerve_term("ventral root of spinal cord"))
 
         annotationGroups = [nerveGroup, dorsalRootGroup, dorsalRootGanglionGroup, ventralRootGroup] + \
-                           levelGroups + segmentGroups
+                           levelGroups + segmentGroups + sideGroups
 
         nerveMeshGroup = nerveGroup.getMeshGroup(mesh)
-
         elementIdentifier = 1
 
         for level in range(numberOfLevels):
@@ -274,8 +280,12 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                         segmentMeshGroup = segmentGroups[segment].getMeshGroup(mesh)
 
             for i in range(2):
+                sideMeshGroup = sideGroups[i].getMeshGroup(mesh) if sideGroups else []
                 nerveRootElementsCount = 1
-                meshGroups = [nerveMeshGroup, levelMeshGroup, segmentMeshGroup] if levelGroups else [nerveMeshGroup]
+                meshGroups = [nerveMeshGroup, levelMeshGroup, segmentMeshGroup] if levelGroups \
+                    else [nerveMeshGroup]
+                if sideGroups:
+                    meshGroups.append(sideMeshGroup)
                 for e in range(nerveRootElementsCount):
                     element = mesh.findElementByIdentifier(elementIdentifier)
                     for meshGroup in meshGroups:
@@ -285,6 +295,8 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                 ventralRootElementsCount = 3
                 meshGroups = [ventralRootGroup.getMeshGroup(mesh), levelMeshGroup, segmentMeshGroup] if levelGroups \
                     else [ventralRootGroup.getMeshGroup(mesh)]
+                if sideGroups:
+                    meshGroups.append(sideMeshGroup)
                 for e in range(ventralRootElementsCount):
                     element = mesh.findElementByIdentifier(elementIdentifier)
                     for meshGroup in meshGroups:
@@ -297,6 +309,9 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
                 meshGroupsWithDRG = [dorsalRootGroup.getMeshGroup(mesh), dorsalRootGanglionGroup.getMeshGroup(mesh),
                                      levelMeshGroup, segmentMeshGroup] if levelGroups \
                     else [dorsalRootGroup.getMeshGroup(mesh), dorsalRootGanglionGroup.getMeshGroup(mesh)]
+                if sideGroups:
+                    meshGroups.append(sideMeshGroup)
+                    meshGroupsWithDRG.append(sideMeshGroup)
                 for e in range(dorsalRootElementsCount):
                     element = mesh.findElementByIdentifier(elementIdentifier)
                     for meshGroup in (meshGroupsWithDRG if (1 < e < 5) else meshGroups):
