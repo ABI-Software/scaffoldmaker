@@ -501,7 +501,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
         options["Spinal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_spinal_nerve_network_layout1,
                                                                  defaultParameterSetName=useParameterSetName)
         options["Number of elements along nerve root"] = 3
-        options["Number of elements along dorsal root around DRG"] = 1
+        options["Number of elements along dorsal root beside DRG"] = 1
         options["Number of elements along dorsal root ganglion"] = 3
         options["Number of elements along ventral root"] = 5
         options["Number of elements around spinal nerve"] = 8
@@ -518,7 +518,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
         optionNames = [
             "Spinal nerve network layout",
             "Number of elements along nerve root",
-            "Number of elements along dorsal root around DRG",
+            "Number of elements along dorsal root beside DRG",
             "Number of elements along dorsal root ganglion",
             "Number of elements along ventral root",
             "Number of elements around spinal nerve",
@@ -560,7 +560,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
             options["Spinal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_spinal_nerve_network_layout1)
         for key in [
             "Number of elements along nerve root",
-            "Number of elements along dorsal root around DRG",
+            "Number of elements along dorsal root beside DRG",
             "Number of elements along ventral root"
         ]:
             if options[key] < 1:
@@ -606,7 +606,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
         """
         networkLayout = options["Spinal nerve network layout"]
         elementsCountAlongNerveRoot = options["Number of elements along nerve root"]
-        elementsCountAlongDorsalRoot = options["Number of elements along dorsal root around DRG"]
+        elementsCountAlongDorsalRoot = options["Number of elements along dorsal root beside DRG"]
         elementsCountAlongDorsalRootGanglion = options["Number of elements along dorsal root ganglion"]
         elementsCountAlongVentralRoot = options["Number of elements along ventral root"]
         elementsCountAroundSpinalNerve = options["Number of elements around spinal nerve"]
