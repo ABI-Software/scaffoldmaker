@@ -416,7 +416,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '200-222',
+                    'identifierRanges': '200-221',
                     'name': get_colon_term('descending colon')[0],
                     'ontId': get_colon_term('descending colon')[1]
                 }]
@@ -807,7 +807,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 {
                     '_AnnotationGroup': True,
                     'dimension': 1,
-                    'identifierRanges': '200-222',
+                    'identifierRanges': '200-221',
                     'name': get_colon_term('descending colon')[0],
                     'ontId': get_colon_term('descending colon')[1]
                 }]
