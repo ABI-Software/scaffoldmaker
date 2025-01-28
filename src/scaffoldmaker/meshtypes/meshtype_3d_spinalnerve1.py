@@ -500,10 +500,10 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
         options["Base parameter set"] = useParameterSetName
         options["Spinal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_spinal_nerve_network_layout1,
                                                                  defaultParameterSetName=useParameterSetName)
-        options["Number of elements along nerve root"] = 5
-        options["Number of elements along dorsal root around DRG"] = 2
-        options["Number of elements along dorsal root ganglion"] = 4
-        options["Number of elements along ventral root"] = 8
+        options["Number of elements along nerve root"] = 3
+        options["Number of elements along dorsal root around DRG"] = 1
+        options["Number of elements along dorsal root ganglion"] = 3
+        options["Number of elements along ventral root"] = 5
         options["Number of elements around spinal nerve"] = 8
         options["Number of elements through shell"] = 1
         options["Show trim surfaces"] = False
