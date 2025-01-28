@@ -381,11 +381,11 @@ class MeshType_3d_trigeminalnerve1(Scaffold_base):
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
         options["Trigeminal nerve network layout"] = ScaffoldPackage(MeshType_1d_human_trigeminal_nerve_network_layout1)
-        options["Number of elements along nerve root"] = 5
-        options["Number of elements along trigeminal ganglion"] = 3
-        options["Number of elements along mandibular nerve"] = 4
-        options["Number of elements along maxillary nerve"] = 4
-        options["Number of elements along ophthalmic nerve"] = 5
+        options["Number of elements along nerve root"] = 3
+        options["Number of elements along trigeminal ganglion"] = 2
+        options["Number of elements along mandibular nerve"] = 3
+        options["Number of elements along maxillary nerve"] = 3
+        options["Number of elements along ophthalmic nerve"] = 3
         options["Number of elements around trigeminal nerve"] = 8
         options["Number of elements through shell"] = 1
         options["Show trim surfaces"] = False
