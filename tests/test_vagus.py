@@ -22,18 +22,12 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 class VagusScaffoldTestCase(unittest.TestCase):
 
-    def test_vagus_box1(self):
+    def test_input_vagus_data(self):
         """
-        Test creation of heart scaffold.
+        Reading vagus input data
         """
-        scaffold = MeshType_3d_vagus_box1
-        parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ['Human Trunk 1'])
-        options = scaffold.getDefaultOptions()
-        self.assertEqual(2, len(options))
 
         data_file = os.path.join(here, "resources", "vagus_data1.exf")
-        print(data_file)
 
         context = Context("Test")
         base_region = context.getDefaultRegion()
@@ -45,13 +39,45 @@ class VagusScaffoldTestCase(unittest.TestCase):
         assert result == RESULT_OK
 
         vagus_data = VagusInputData(data_region)
+
+        marker_data = vagus_data.get_level_markers()
+        self.assertEqual(len(marker_data), 2)
+        orientation_data = vagus_data.get_orientation_data()
+        self.assertEqual(len(orientation_data), 1)
+        self.assertEqual(len(orientation_data['orientation anterior']), 3)
+
         trunk_group_name = vagus_data.get_trunk_group_name()
-        assert trunk_group_name != None
+        self.assertEqual(trunk_group_name, "left vagus X nerve trunk")
+        branch_data = vagus_data.get_branch_data()
+        self.assertEqual(len(branch_data), 3)
+        annotation_term_map = vagus_data.get_annotation_term_map()
+        assert trunk_group_name in annotation_term_map
+
+        branch_common_groups = vagus_data.get_branch_common_group_map()
+        print(branch_common_groups)
 
 
-        #annotationGroups = scaffold.generateBaseMesh(region, options)[0]
+    def test_vagus_box(self):
+        """
+        Test creation of vagus scaffold.
+        """
 
+        scaffold = MeshType_3d_vagus_box1
+        parameterSetNames = scaffold.getParameterSetNames()
+        options = scaffold.getDefaultOptions()
+        self.assertEqual(2, len(options))
 
+        data_file = os.path.join(here, "resources", "vagus_data1.exf")
+        context = Context("Test")
+        base_region = context.getDefaultRegion()
+        region = base_region.createChild('vagus')
+        assert (region.isValid())
+        data_region = region.getParent().createChild('data')
+        assert (data_region.isValid())
+        result = data_region.readFile(data_file)
+        assert result == RESULT_OK
+
+        annotationGroups = scaffold.generateBaseMesh(region, options)[0]
 
 
 if __name__ == "__main__":

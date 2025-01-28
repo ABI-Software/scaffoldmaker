@@ -49,7 +49,11 @@ vagus_marker_terms = [
     ("left level of esophageal hiatus on the vagus nerve", "ILX:0794655"),
     ("level of aortic hiatus on the vagus nerve", "ILX:0794656"),
     ("right level of aortic hiatus on the vagus nerve", "ILX:0794657"),
-    ("left level of aortic hiatus on the vagus nerve", "ILX:0794658")
+    ("left level of aortic hiatus on the vagus nerve", "ILX:0794658"),
+    # vagus built-in annotations
+    ("vagus centroid", ""),
+    ("vagus epineureum", ""),
+    ("vagus anterior line", "")
 ]
 
 vagus_branch_terms = [
@@ -204,7 +208,7 @@ vagus_branch_terms = [
 def get_vagus_branch_term(name, vagus_terms):
     """
     Find term by matching name to any identifier held for a term.
-    :return ( preferred name, preferred id )
+    return: ( preferred name, preferred id )
     """
     for term in vagus_terms:
         if name in term:
@@ -216,7 +220,7 @@ def get_vagus_marker_term(name: str):
     """
     Find term by matching name to any identifier held for a term.
     Raise exception if name not found.
-    :return ( preferred name, preferred id )
+    return: ( preferred name, preferred id )
     """
     for term in vagus_marker_terms:
         if name in term:
@@ -226,7 +230,7 @@ def get_vagus_marker_term(name: str):
 
 def marker_name_in_terms(name: str):
     """
-    Check if term exists
+    Check if term exists in approved marker terms
     """
     for term in vagus_marker_terms:
         if name in term:

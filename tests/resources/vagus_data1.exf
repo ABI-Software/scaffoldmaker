@@ -1141,6 +1141,26 @@ Node: 226
  -1.043894453371337e+00
  -2.703246823996444e-01
   1.000000000000000e-02
+Node: 227
+  2.532597965468619e+00
+  1.278581726279602e-01
+  5.305649151562682e-01
+  1.000000000000000e-02
+Node: 228
+  7.259384726491307e+00
+  3.074575464127586e-02
+  4.780812275556515e-01
+  1.000000000000000e-02
+Node: 229
+  1.252155149765084e+01
+ -3.608064376171922e-01
+  8.569780728691107e-01
+  1.000000000000000e-02
+Node: 230
+  1.346882744523899e+01
+ -1.784633572310040e+00
+ -2.177456402493724e-02
+  3.000000000000000e-01
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Define element template: element1
 Shape. Dimension=1, line
@@ -1849,6 +1869,9 @@ Element: 224
 Element: 225
  Nodes:
  226 213
+Element: 226
+ Nodes:
+ 171 230
 !#nodeset datapoints
 Define node template: node2
 Shape. Dimension=0
@@ -1866,31 +1889,13 @@ Node: 1
   9.014003757666196e-01
  -3.826434512807377e-03
  -1.393280944888287e-02
- "landmark 1"
+ "right level of inferior border of jugular foramen on the vagus nerve"
   1.000000000000000e-02
 Node: 2
-  2.532597965468619e+00
-  1.278581726279602e-01
-  5.305649151562682e-01
- orientation
-  1.000000000000000e-02
-Node: 3
-  7.259384726491307e+00
-  3.074575464127586e-02
-  4.780812275556515e-01
- orientation
-  1.000000000000000e-02
-Node: 4
-  1.252155149765084e+01
- -3.608064376171922e-01
-  8.569780728691107e-01
- orientation
-  1.000000000000000e-02
-Node: 5
   1.114311719578777e+01
  -4.159721639579417e-01
   1.211203646579121e-01
- "landmark 2"
+ "right level of greater horn of hyoid on the vagus nerve"
   1.000000000000000e-02
 Group name: Epineurium
 !#nodeset nodes
@@ -1929,20 +1934,27 @@ Node group:
 Element group:
 11..38,43..46,84..86,97..121,159..160,
 174..198
-Group name: left A branch 1
+Group name: left A branch
 !#nodeset nodes
 Node group:
 7,41..44
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 39..42
-Group name: left A branch 2
+Group name: left B branch
 !#nodeset nodes
 Node group:
 164,169..172
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 170..173
+Group name: left A branch of branch B
+!#nodeset nodes
+Node group:
+171,230
+!#mesh mesh1d, dimension=1, nodeset=nodes
+Element group:
+226
 Group name: left vagus X nerve trunk
 !#nodeset nodes
 Node group:
@@ -1953,11 +1965,11 @@ Element group:
 Group name: marker
 !#nodeset datapoints
 Node group:
-1..5
-Group name: orientation
-!#nodeset datapoints
+1..2
+Group name: orientation anterior
+!#nodeset nodes
 Node group:
-2..4
+227..229
 Group name: unknown
 !#nodeset nodes
 Node group:
@@ -1968,13 +1980,13 @@ Element group:
 Group name: vagus-segment1.exf
 !#nodeset nodes
 Node group:
-1..84
+1..84,227
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 1..82
 !#nodeset datapoints
 Node group:
-1..2
+1
 Group name: vagus-segment1.exf - vagus-segment2.exf
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
@@ -1982,13 +1994,10 @@ Element group:
 Group name: vagus-segment2.exf
 !#nodeset nodes
 Node group:
-85..158
+85..158,228
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 87..157
-!#nodeset datapoints
-Node group:
-3
 Group name: vagus-segment2.exf - vagus-segment3.exf
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
@@ -1996,10 +2005,10 @@ Element group:
 Group name: vagus-segment3.exf
 !#nodeset nodes
 Node group:
-159..226
+159..226,229..230
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
-161..225
+161..226
 !#nodeset datapoints
 Node group:
-4..5
+2
