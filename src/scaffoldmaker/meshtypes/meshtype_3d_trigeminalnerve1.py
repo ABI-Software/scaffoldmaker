@@ -12,7 +12,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.interpolation import (getCubicHermiteArcLength, interpolateLagrangeHermiteDerivative,
                                                sampleCubicHermiteCurvesSmooth)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
-from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 import math
 
 
@@ -521,7 +521,7 @@ class MeshType_3d_trigeminalnerve1(Scaffold_base):
             annotationAlongCounts.append(alongCount)
             annotationAroundCounts.append(aroundCount)
 
-        tubeNetworkMeshBuilder = BodyTubeNetworkMeshBuilder(
+        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=2.0,
             layoutAnnotationGroups=layoutAnnotationGroups,
