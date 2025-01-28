@@ -26,7 +26,7 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_gastrointestinaltract1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ['Default', 'Human 1'])
+        self.assertEqual(parameterSetNames, ['Default', 'Human 1', 'Human 2'])
         options = scaffold.getDefaultOptions("Default")
         self.assertEqual(10, len(options))
         networkLayoutOptions = options['Network layout']
