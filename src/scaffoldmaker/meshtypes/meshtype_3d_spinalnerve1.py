@@ -12,7 +12,7 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
 from scaffoldmaker.utils.networkmesh import NetworkMesh
-from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 import math
 
 
@@ -635,7 +635,7 @@ class MeshType_3d_spinalnerve1(Scaffold_base):
             annotationAlongCounts.append(alongCount)
             annotationAroundCounts.append(aroundCount)
 
-        tubeNetworkMeshBuilder = BodyTubeNetworkMeshBuilder(
+        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=2.0,
             layoutAnnotationGroups=layoutAnnotationGroups,
