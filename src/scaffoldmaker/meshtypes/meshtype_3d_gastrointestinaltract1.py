@@ -947,6 +947,30 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
             'Refine number of elements through wall']:
             if options[key] < 1:
                 options[key] = 1
+        cls.updateSubScaffoldOptions(options)
+
+    @ classmethod
+    def updateSubScaffoldOptions(cls, options):
+        """
+        Update sub-scaffold options which depend on parent options.
+        """
+        esoOptions = options['Esophagus']
+        esoSettings = esoOptions.getScaffoldSettings()
+        esoSettings['Number of elements through wall'] = 1
+        stomachOptions = options['Stomach']
+        stomachSettings = stomachOptions.getScaffoldSettings()
+        stomachSettings['Number of elements through wall'] = 1
+        smallIntestineOptions = options['Small intestine']
+        smallIntestineSettings = smallIntestineOptions.getScaffoldSettings()
+        smallIntestineSettings['Number of elements through wall'] = 1
+        cecumOptions = options['Cecum']
+        cecumSettings = cecumOptions.getScaffoldSettings()
+        cecumSettings['Number of elements through wall'] = 1
+        colonOptions = options['Colon']
+        colonSettings = colonOptions.getScaffoldSettings()
+        colonSegmentOptions = colonSettings['Segment profile']
+        colonSegmentSettings = colonSegmentOptions.getScaffoldSettings()
+        colonSegmentSettings['Number of elements through wall'] = 1
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -956,6 +980,8 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: annotationGroups
         """
+        cls.updateSubScaffoldOptions(options)
+
         networkLayout = options['Network layout']
         esophagusOptions = options['Esophagus']
         stomachOptions = options['Stomach']
