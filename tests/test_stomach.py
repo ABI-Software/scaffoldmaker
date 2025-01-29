@@ -28,7 +28,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Human 2", "Mouse 1", "Pig 1", "Rat 1", "Material"])
         options = scaffold.getDefaultOptions("Rat 1")
-        self.assertEqual(17, len(options))
+        self.assertEqual(18, len(options))
         self.assertEqual(16, options.get("Number of elements around duodenum"))
         self.assertEqual(14, options.get("Number of elements along"))
         self.assertEqual(0.0215, options.get("Wall thickness"))
@@ -74,10 +74,10 @@ class StomachScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 4.092273543567514, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 4.092342779924945, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.05789368036003227, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 0.05789671955338514, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
