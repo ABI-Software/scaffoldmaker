@@ -255,7 +255,7 @@ class MeshType_1d_human_spinal_nerve_network_layout1(MeshType_1d_network_layout1
 
         # set up element annotations
         sideGroups = []
-        if parameterSetName == ("Human whole spine 1" or "Human pair 1"):
+        if parameterSetName in ("Human whole spine 1", "Human pair 1"):
             leftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,("left", ""))
             rightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,("right", ""))
             sideGroups = [rightGroup, leftGroup]
