@@ -26,7 +26,8 @@ from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smal
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1, createStomachMesh3d, StomachNetworkLayout
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters
+from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
+    blendDerivativeBetweenDifferentSizeElements
 
 
 def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
@@ -1044,7 +1045,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                 nearLCGroup = getAnnotationGroupForTerm(annotationGroupsStomach,
                                                         ("elements adjacent to lesser curvature", "None"))
                 annotationGroupsStomach.remove(nearLCGroup)
-                findHarmonicMeanForTransitNodes(coordinates, cache, nodes, nodesIdEsoDistal,
+                findHarmonicMeanForTransitionNodes(coordinates, cache, nodes, nodesIdEsoDistal,
                                                 startNodeIdentifierStomach)
 
             elif gastroTermsAlong[section][0] == 'small intestine':
@@ -1061,7 +1062,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                                                d1Proximal=d1StomachDistal, d2Proximal=d2StomachDistal,
                                                d3Proximal=d3StomachDistal, arclengthCPProximal=arclengthCPStomachDistal)
 
-                findHarmonicMeanForTransitNodes(coordinates, cache, nodes, nodesIdStomachDistal, startNodeIdentifierSmallIntestine)
+                findHarmonicMeanForTransitionNodes(coordinates, cache, nodes, nodesIdStomachDistal, startNodeIdentifierSmallIntestine)
 
             elif gastroTermsAlong[section][0] == 'caecum':
                 cecumNetworkLayout = CecumNetworkLayout(region, networkLayout, gastroTermsAlong[section],
@@ -1074,7 +1075,7 @@ class MeshType_3d_gastrointestinaltract1(Scaffold_base):
                                       xProximalIleum=xSmallIntestineDistal, d1ProximalIleum=d1SmallIntestineDistal,
                                       d2ProximalIleum=d2SmallIntestineDistal, d3ProximalIleum=d3SmallIntestineDistal)
 
-                findHarmonicMeanForTransitNodes(coordinates, cache, nodes, nodesIdSmallIntestineDistal,
+                findHarmonicMeanForTransitionNodes(coordinates, cache, nodes, nodesIdSmallIntestineDistal,
                                                 ileocecalStartNodeIdentifier, tubeToCecum=True)
 
             elif gastroTermsAlong[section][0] == 'colon':
@@ -1125,41 +1126,32 @@ class SectionNetworkLayout:
         self.cd12Groups = cd12Groups
         self.cd13Groups = cd13Groups
 
-def findHarmonicMeanForTransitNodes(coordinates, cache, nodes, transitNodes, startNodeIDNextSection,
-                                    tubeToCecum=False):
+def findHarmonicMeanForTransitionNodes(coordinates, cache, nodes, transitionNodes, startNodeIDNextSection,
+                                       tubeToCecum=False):
     """
     Use nodeIds of transition nodes to determine the nodeIds for the nodes upstream and downstream of the
     transition, calculate the harmonic mean of their d2 and assign the mean d2 to the transition nodes.
-    :param transitNodes: List of node ids for transition nodes
+    :param coordinates: coordinates field
+    :param cache: field cache
+    :param nodes: nodeset
+    :param transitionNodes: List of node ids for transition nodes
     :param startNodeIDNextSection: Node Id for the start of the next section
     :param tubeToCecum: True if the nodes is leading to the cecum.
     """
-    numberOfElementsThroughWall = len(transitNodes)
-    numberOfElementsAround = len(transitNodes[0])
+    numberOfElementsThroughWall = len(transitionNodes)
+    numberOfElementsAround = len(transitionNodes[0])
 
     for n3 in range(numberOfElementsThroughWall):
         for n1 in range(numberOfElementsAround):
-            transitNodeID = transitNodes[n3][n1]
-            prevNodeID = transitNodeID - numberOfElementsAround * numberOfElementsThroughWall
+            transitionNodeID = transitionNodes[n3][n1]
+            prevNodeID = transitionNodeID - numberOfElementsAround * numberOfElementsThroughWall
             if tubeToCecum:
                 nextNodeID = startNodeIDNextSection + n1 + n3 * numberOfElementsAround
             else:
                 nextNodeID = startNodeIDNextSection + numberOfElementsAround * numberOfElementsThroughWall + n1 + \
                              n3 * numberOfElementsAround
 
-            node = nodes.findNodeByIdentifier(prevNodeID)
-            cache.setNode(node)
-            d2Prev = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
-
-            node = nodes.findNodeByIdentifier(nextNodeID)
-            cache.setNode(node)
-            d2Next = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
-
-            node = nodes.findNodeByIdentifier(transitNodeID)
-            cache.setNode(node)
-            d2Transit = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
-            d2MeanMag = 2.0 / ((1.0 / magnitude(d2Prev)) + (1.0 / magnitude(d2Next)))
-            d2Mean = set_magnitude(d2Transit, d2MeanMag)
-            coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Mean)
+            blendDerivativeBetweenDifferentSizeElements(coordinates, cache, nodes, prevNodeID, transitionNodeID,
+                                                        nextNodeID)
 
     return
