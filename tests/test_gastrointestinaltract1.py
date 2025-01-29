@@ -110,10 +110,10 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 280380.9711373754, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 280380.7040200431, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 598763.7044850367, delta=1.0E-3)
+        self.assertAlmostEqual(volume, 598801.2760541772, delta=1.0E-3)
 
         # check some annotationGroups:
         expectedSizes3d = {
