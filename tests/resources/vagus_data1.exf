@@ -1895,7 +1895,7 @@ Node: 2
   1.114311719578777e+01
  -4.159721639579417e-01
   1.211203646579121e-01
- "right level of greater horn of hyoid on the vagus nerve"
+ "right level of superior border of the clavicle on the vagus nerve"
   1.000000000000000e-02
 Group name: Epineurium
 !#nodeset nodes
@@ -1934,28 +1934,28 @@ Node group:
 Element group:
 11..38,43..46,84..86,97..121,159..160,
 174..198
-Group name: left A branch
+Group name: right A branch
 !#nodeset nodes
 Node group:
 7,41..44
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 39..42
-Group name: left B branch
+Group name: right B branch
 !#nodeset nodes
 Node group:
 164,169..172
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 170..173
-Group name: left A branch of branch B
+Group name: right A branch of branch B
 !#nodeset nodes
 Node group:
 171,230
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 226
-Group name: left vagus X nerve trunk
+Group name: right vagus X nerve trunk
 !#nodeset nodes
 Node group:
 1..11,85..95,159..168
