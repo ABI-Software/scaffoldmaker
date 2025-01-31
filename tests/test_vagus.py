@@ -2,10 +2,13 @@ import copy
 import os
 import unittest
 
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+from cmlibs.utils.zinc.field import find_or_create_field_group
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
+
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 
@@ -80,20 +83,49 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         scaffold = MeshType_3d_vagus_box1
         parameterSetNames = scaffold.getParameterSetNames()
-        options = scaffold.getDefaultOptions()
-        self.assertEqual(2, len(options))
+        self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
+        options = scaffold.getDefaultOptions("Human Right Vagus 1")
+        self.assertEqual(len(options), 2)
+        self.assertEqual(options.get('Number of points along the trunk'), 30)
 
         data_file = os.path.join(here, "resources", "vagus_data1.exf")
         context = Context("Test")
         base_region = context.getDefaultRegion()
         region = base_region.createChild('vagus')
-        assert (region.isValid())
         data_region = region.getParent().createChild('data')
-        assert (data_region.isValid())
         result = data_region.readFile(data_file)
-        assert result == RESULT_OK
 
-        annotationGroups = scaffold.generateBaseMesh(region, options)[0]
+        annotation_groups = scaffold.generateBaseMesh(region, options)[0]
+        self.assertEqual(len(annotation_groups), 13)
+
+        fieldmodule = region.getFieldmodule()
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(35, mesh3d.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(319, mesh2d.getSize())
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        self.assertEqual(627, mesh1d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(40, nodes.getSize())
+        datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        self.assertEqual(0, datapoints.getSize())
+
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        marker_group = fieldmodule.findFieldByName("marker").castGroup()
+        marker_nodes = marker_group.getNodesetGroup(nodes)
+        self.assertEqual(4, marker_nodes.getSize())
+        marker_name = fieldmodule.findFieldByName("marker_name")
+        self.assertTrue(marker_name.isValid())
+        marker_location = fieldmodule.findFieldByName("marker_location")
+        self.assertTrue(marker_location.isValid())
+
+        vagus_coordinates = fieldmodule.findFieldByName("vagus coordinates").castFiniteElement()
+        trunk_group_name = "right vagus X nerve trunk"
+        trunk_vagus_group = find_or_create_field_group(fieldmodule, trunk_group_name)
+        minimums, maximums = evaluateFieldNodesetRange(trunk_vagus_group, nodes)
+        self.assertEqual(minimums, 0.0)
+        self.assertEqual(maximums, 1.0)
 
 
 if __name__ == "__main__":
