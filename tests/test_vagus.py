@@ -72,8 +72,8 @@ class VagusScaffoldTestCase(unittest.TestCase):
         Test creation of vagus scaffold.
         """
 
-        scaffold = MeshType_3d_nerve_1
-        scaffoldname = MeshType_3d_nerve_1.getName()
+        scaffold = MeshType_3d_nerve1
+        scaffoldname = MeshType_3d_nerve1.getName()
         self.assertEqual(scaffoldname, '3D Nerve 1')
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
