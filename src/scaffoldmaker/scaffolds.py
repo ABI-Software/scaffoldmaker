@@ -39,6 +39,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_lens1 import MeshType_3d_lens1
 from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.meshtypes.meshtype_3d_musclefusiform1 import MeshType_3d_musclefusiform1
+from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium1 import MeshType_3d_ostium1
 from scaffoldmaker.meshtypes.meshtype_3d_ostium2 import MeshType_3d_ostium2
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
@@ -55,7 +56,6 @@ from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenet
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
 from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
 from scaffoldmaker.meshtypes.meshtype_3d_uterus2 import MeshType_3d_uterus2
-from scaffoldmaker.meshtypes.meshtype_3d_vagus_box1 import MeshType_3d_vagus_box1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import (
     MeshType_3d_wholebody2, MeshType_1d_human_body_network_layout1)
@@ -101,6 +101,7 @@ class Scaffolds(object):
             MeshType_3d_lung1,
             MeshType_3d_lung2,
             MeshType_3d_musclefusiform1,
+            MeshType_3d_nerve1,
             MeshType_3d_ostium1,
             MeshType_3d_ostium2,
             MeshType_3d_smallintestine1,
@@ -117,7 +118,6 @@ class Scaffolds(object):
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
             MeshType_3d_uterus2,
-            MeshType_3d_vagus_box1,
             MeshType_3d_wholebody1,
             MeshType_3d_wholebody2
             ]

@@ -1,7 +1,7 @@
 Vagus Scaffold
 ================
 
-The current subject-specific vagus scaffold is ``3D Vagus Box 1``` built from ``class MeshType_3d_vagus_box1``.
+The current subject-specific vagus scaffold is ``3D Nerve 1``` built from ``class MeshType_3d_nerve1``.
 The vagus scaffold needs an input file with segmentations to built from it.
 
 Input file requirements

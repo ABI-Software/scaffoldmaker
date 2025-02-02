@@ -1,8 +1,5 @@
-import os
 import re
-import csv
 import tempfile
-import pandas as pd
 
 from cmlibs.utils.zinc.field import get_group_list
 from cmlibs.utils.zinc.group import groups_have_same_local_contents
@@ -284,8 +281,6 @@ def group_common_branches(branch_names):
             branch_common_map[branch_name] = groups
 
     return branch_common_map
-
-
 
 
 def load_vagus_data(region):

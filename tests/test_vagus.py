@@ -2,24 +2,15 @@ import copy
 import os
 import unittest
 
-from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
+from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.field import find_or_create_field_group
-from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.context import Context
-from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
-
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 
-from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data, VagusInputData
-from scaffoldmaker.utils.zinc_utils import exnode_string_from_nodeset_field_parameters, \
-    get_nodeset_path_field_parameters
-
-from scaffoldmaker.meshtypes.meshtype_3d_vagus_box1 import MeshType_3d_vagus_box1
-
-from testutils import assertAlmostEqualList
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -81,7 +72,9 @@ class VagusScaffoldTestCase(unittest.TestCase):
         Test creation of vagus scaffold.
         """
 
-        scaffold = MeshType_3d_vagus_box1
+        scaffold = MeshType_3d_nerve_1
+        scaffoldname = MeshType_3d_nerve_1.getName()
+        self.assertEqual(scaffoldname, '3D Nerve 1')
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
         options = scaffold.getDefaultOptions("Human Right Vagus 1")

@@ -1,6 +1,3 @@
-"""
-Generates a hermite x bilinear 1-D central line mesh for a vagus nerve with branches
-"""
 import os
 import math
 import tempfile
@@ -111,14 +108,14 @@ def is_bony_landmark(marker_name):
     return False
 
 
-class MeshType_3d_vagus_box1(Scaffold_base):
+class MeshType_3d_nerve1(Scaffold_base):
     """
     Generates a hermite x bilinear 3-D box network mesh based on data supplied by an input file.
     """
 
     @staticmethod
     def getName():
-        return "3D Vagus Box 1"
+        return "3D Nerve 1"
 
     @staticmethod
     def getParameterSetNames():
