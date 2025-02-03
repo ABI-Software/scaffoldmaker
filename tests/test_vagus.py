@@ -1,4 +1,3 @@
-import copy
 import os
 import unittest
 
@@ -6,14 +5,14 @@ from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.field import find_or_create_field_group
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
-from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
+from scaffoldmaker.annotation.annotationgroup import findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1
-from scaffoldmaker.utils.read_vagus_data import load_vagus_data, VagusInputData
+from scaffoldmaker.utils.read_vagus_data import VagusInputData
 
 here = os.path.abspath(os.path.dirname(__file__))
+
 
 class VagusScaffoldTestCase(unittest.TestCase):
 
@@ -95,7 +94,6 @@ class VagusScaffoldTestCase(unittest.TestCase):
         """
         Test creation of vagus scaffold.
         """
-
         scaffold = MeshType_3d_nerve1
         scaffoldname = MeshType_3d_nerve1.getName()
         self.assertEqual(scaffoldname, '3D Nerve 1')
