@@ -1447,11 +1447,15 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
 
         branch_coordinates = [branch_node[0] for branch_node in branch_data[branch_name]]
         branch_parent_name = branch_parent_map[branch_name]
+        if branch_parent_name == trunk_group_name:
+            branch_parent_coordinates = [trunk_node[0] for trunk_node in trunk_data]
+        else:
+            branch_parent_coordinates = [branch_node[0] for branch_node in branch_data[branch_parent_name]]
         #print(branch_name, ' -> ', branch_parent_name)
 
         # determine branch approximate start and closest trunk node index
         bx, bd1, parent_s_nid, parent_f_nid, branch_root_xi, elements_along_branch = \
-            estimate_branch_coordinates(fit_region, branch_coordinates, element_length, branch_parent_name)
+            estimate_branch_coordinates(fit_region, branch_coordinates, element_length, branch_parent_name, branch_parent_coordinates)
         branch_root_parameters[branch_name] = [parent_s_nid, parent_f_nid, branch_root_xi, bx[0]]
         # print('  branch between nodes:', parent_s_nid, parent_f_nid, 'at loc =', branch_root_xi)
 
@@ -1655,7 +1659,7 @@ def estimate_trunk_data_boundaries(trunk_coordinates, trunk_nodes_count, trunk_d
     return trunk_nodes_data_bounds
 
 
-def estimate_branch_coordinates(region, branch_data, element_length, branch_parent_name):
+def estimate_branch_coordinates(region, branch_data, element_length, branch_parent_name, branch_parent_coordinates):
     """
     Generates coordinates for initial branch line defined by the point on branch closest to the parent branch and
     point on branch furthest to it.
@@ -1663,6 +1667,7 @@ def estimate_branch_coordinates(region, branch_data, element_length, branch_pare
     :param branch_data: List of input x, y, z coordinates for the branch.
     :param element_length: Element length for branch line in geometric coordinates.
     :param branch_parent_name: Name of the previous branch / trunk where current branch attaches to.
+    :param branch_parent_coordinates: List of x, y, z coordinates for the parent branch / trunk
     :return:
         branch_coordinates: List of generated x, y, z coordinates for the branch.
         [dx, dy, dz]: first derivative of branch initial line.
@@ -1677,8 +1682,8 @@ def estimate_branch_coordinates(region, branch_data, element_length, branch_pare
     coordinates = fm.findFieldByName("coordinates").castFiniteElement()
     nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
-    branch_start_x, branch_end_x, parent_s_nid, parent_f_nid = find_branch_start_segment(region, branch_data,
-                                                                                         branch_parent_name)
+    branch_start_x, branch_end_x, \
+    parent_s_nid, parent_f_nid = find_branch_start_segment(region, branch_data, branch_parent_name, branch_parent_coordinates)
 
     # determine parent hermite curve parameters
     node = nodes.findNodeByIdentifier(parent_s_nid)
@@ -1724,12 +1729,13 @@ def estimate_branch_coordinates(region, branch_data, element_length, branch_pare
     return branch_data, [dx, dy, dz], parent_s_nid, parent_f_nid, branch_root_xi, branch_nodes_count
 
 
-def find_branch_start_segment(region, branch_coordinates, parent_group_name):
+def find_branch_start_segment(region, branch_coordinates, parent_group_name, parent_coordinates):
     """
     Finds branch start and end coordinates, also parent branch / trunk node ids between which branch connects.
     :param region: Zinc model region.
     :param branch_coordinates: List of x, y, z coordinates for the branch.
     :param parent_group_name: Name of the previous branch / trunk where current branch attaches to.
+    :param parent_coordinates: List of x, y, z coordinates for the branch parent.
     :return:
         branch_start: x, y, z coordinate of the first branch point, closest to its parent.
         branch_end: : x, y, z coordinate of the last branch point, furthest from its parent.
@@ -1750,19 +1756,26 @@ def find_branch_start_segment(region, branch_coordinates, parent_group_name):
     # find branch ends in data
     branch_ends_points = find_1d_path_endpoints(branch_coordinates)
 
-    # find closest to branch distance, branch start, group node closest to the branch
+    # find branch start point
+    min_dsq = float('inf')
+    for parent_point in parent_coordinates:
+        for branch_point in branch_ends_points:
+            dist = distance_squared(parent_point, branch_point)
+            if dist <= min_dsq:
+                min_dsq = dist
+                branch_start = branch_point
+
+    # find node in mesh closest to branch start
     min_dsq = float('inf')
     for i in range(len(parent_nodes_x)):
         node_x = parent_nodes_x[i]
         if node_x is None:
             continue
 
-        for branch_point in branch_ends_points:
-            dist = distance_squared(node_x, branch_point)
-            if dist <= min_dsq:
-                min_dsq = dist
-                branch_start = branch_point
-                closest_index = i
+        dist = distance_squared(node_x, branch_start)
+        if dist <= min_dsq:
+            min_dsq = dist
+            closest_index = i
 
     # determine segment closest to branch (previous or next to the node)
     if closest_index == 0:

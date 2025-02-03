@@ -9,6 +9,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data, VagusInputData
 
@@ -37,7 +38,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         marker_data = vagus_data.get_level_markers()
         self.assertEqual(len(marker_data), 2)
-        assert 'right level of superior border of the clavicle on the vagus nerve' in marker_data
+        self.assertTrue('right level of superior border of the clavicle on the vagus nerve' in marker_data)
 
         orientation_data = vagus_data.get_orientation_data()
         self.assertEqual(len(orientation_data), 1)
@@ -48,14 +49,14 @@ class VagusScaffoldTestCase(unittest.TestCase):
         trunk_coordinates = vagus_data.get_trunk_coordinates()
         self.assertEqual(len(trunk_coordinates), 32)
         annotation_term_map = vagus_data.get_annotation_term_map()
-        assert trunk_group_name in annotation_term_map
+        self.assertTrue(trunk_group_name in annotation_term_map)
         self.assertEqual(annotation_term_map[trunk_group_name], 'http://purl.obolibrary.org/obo/UBERON_0035020')
 
         branch_data = vagus_data.get_branch_data()
         self.assertEqual(len(branch_data), 3)
-        assert 'right B branch' in branch_data
+        self.assertTrue('right B branch' in branch_data)
         self.assertEqual(len(branch_data['right A branch']), 5)
-        assert 'right A branch of branch B' in branch_data
+        self.assertTrue('right A branch of branch B' in branch_data)
         self.assertEqual(len(branch_data['right A branch of branch B']), 2)
 
         branch_parents = vagus_data.get_branch_parent_map()
@@ -64,8 +65,8 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         branch_common_groups = vagus_data.get_branch_common_group_map()
         self.assertEqual(len(branch_common_groups), 1)
-        assert 'right branches' in branch_common_groups
-        assert 'right B branch' in branch_common_groups['right branches']
+        self.assertTrue('right branches' in branch_common_groups)
+        self.assertTrue('right B branch' in branch_common_groups['right branches'])
 
     def test_vagus_box(self):
         """
@@ -88,10 +89,13 @@ class VagusScaffoldTestCase(unittest.TestCase):
         data_region = region.getParent().createChild('data')
         result = data_region.readFile(data_file)
 
+        # check annotation groups
         annotation_groups = scaffold.generateBaseMesh(region, options)[0]
         self.assertEqual(len(annotation_groups), 13)
 
+        # check all meshes are created
         fieldmodule = region.getFieldmodule()
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
         self.assertEqual(35, mesh3d.getSize())
@@ -104,6 +108,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
+        # check all markers are added
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         marker_group = fieldmodule.findFieldByName("marker").castGroup()
         marker_nodes = marker_group.getNodesetGroup(nodes)
@@ -113,12 +118,29 @@ class VagusScaffoldTestCase(unittest.TestCase):
         marker_location = fieldmodule.findFieldByName("marker_location")
         self.assertTrue(marker_location.isValid())
 
+        # check vagus material coordinates
         vagus_coordinates = fieldmodule.findFieldByName("vagus coordinates").castFiniteElement()
         trunk_group_name = "right vagus X nerve trunk"
         trunk_vagus_group = find_or_create_field_group(fieldmodule, trunk_group_name)
         minimums, maximums = evaluateFieldNodesetRange(trunk_vagus_group, nodes)
         self.assertEqual(minimums, 0.0)
         self.assertEqual(maximums, 1.0)
+
+        # check annotation group: added and connected to the right node segment
+        trunk_annotation_group = findAnnotationGroupByName(annotation_groups, trunk_group_name)
+        trunk_nodeset_group = trunk_annotation_group.getNodesetGroup(nodes)
+        self.assertEqual(trunk_nodeset_group.getSize(), 30)
+
+        branchB_annotation_group = findAnnotationGroupByName(annotation_groups, "right B branch")
+        self.assertNotEqual(branchB_annotation_group, 'None')
+        branchB_nodeset_group = branchB_annotation_group.getNodesetGroup(nodes)
+        self.assertEqual(branchB_nodeset_group.getSize(), 4)
+        branchB_mesh_group = branchB_annotation_group.getMeshGroup(mesh3d)
+        self.assertEqual(branchB_mesh_group.getSize(), 2)
+
+        node_iter = branchB_nodeset_group.createNodeiterator()
+        node = node_iter.next()
+        self.assertEqual(node.getIdentifier(), 19)  # first trunk node
 
 
 if __name__ == "__main__":
