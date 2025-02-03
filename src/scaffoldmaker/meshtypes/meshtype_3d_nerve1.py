@@ -1,6 +1,6 @@
 import os
-import sys
 import math
+import logging
 import tempfile
 
 from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, matrix_mult, matrix_inv, mult, rejection, \
@@ -11,7 +11,7 @@ from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
-    getAnnotationGroupForTerm, findAnnotationGroupByName
+    findAnnotationGroupByName
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
@@ -128,7 +128,7 @@ class MeshType_3d_nerve1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
-            'Number of points along the trunk': 30,
+            'Number of elements along the trunk': 30,
             'Iterations (fit trunk)': 1,
         }
         return options
@@ -136,15 +136,15 @@ class MeshType_3d_nerve1(Scaffold_base):
     @staticmethod
     def getOrderedOptionNames():
         return [
-            'Number of points along the trunk',
+            'Number of elements along the trunk',
             'Iterations (fit trunk)',
         ]
 
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if options['Number of points along the trunk'] < 10:
-            options['Number of points along the trunk'] = 10
+        if options['Number of elements along the trunk'] < 1:
+            options['Number of elements along the trunk'] = 1
         if options['Iterations (fit trunk)'] < 1:
             options['Iterations (fit trunk)'] = 1
         return dependentChanges
@@ -467,31 +467,32 @@ class MeshType_3d_nerve1(Scaffold_base):
             facetemplate_and_eft_list_branch_root[e] = (facetemplate_branch_root, eft2dNV)
 
         # load data from file
-        print('Extracting data...')
+        # print('Extracting data...')
+        logger = logging.getLogger(__name__)
         vagus_data = load_vagus_data(region)
         marker_data = vagus_data.get_level_markers()
         trunk_data = vagus_data.get_trunk_coordinates()
 
         invalid_data = False
         if len(marker_data) < 2:
-            print("Missing or incomplete data. At least two landmarks are expected in the data.", file=sys.stderr)
+            logger.error("Missing or incomplete data. At least two landmarks are expected in the data.")
             invalid_data = True
         if len(trunk_data) < 2:
-            print("Missing or incomplete data. At least two trunk points are required.", file=sys.stderr)
+            logger.error("Missing or incomplete data. At least two trunk points are required.")
             invalid_data = True
         if vagus_data.get_side_label() not in ['left', 'right']:
-            print("Missing left or right marker side indication.", file=sys.stderr)
+            logger.error("Missing left or right marker side indication.")
             invalid_data = True
         if invalid_data:
             return [], None
 
         if any(['level of esophageal hiatus' in marker_name or
                 'level of aortic hiatus' in marker_name for marker_name in marker_data.keys()]):
+            # Vagus top to bottom
             is_full_vagus = True
-            print('Estimate_trunk: Vagus top to bottom')
         else:
+            # Vagus top to esophageal plexus
             is_full_vagus = False
-            print('Estimate_trunk: Vagus top to esophageal plexus')
 
         # settings for radius (assume equal sides) and material coordinates
         vagus_aspect_ratio = 0.005  # assuming vagus approx diameter (5mm) / vagus length (85mm)
@@ -505,7 +506,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         vagus_branch_radius = branch_to_trunk_ratio * vagus_radius
 
         # evaluate & fit centroid lines for trunk and branches
-        print('Building centerlines for scaffold...')
+        # print('Building centerlines for scaffold...')
         fit_region, marker_fit_groups, branches_order, \
             branch_root_parameters = generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options)
         fit_fieldmodule = fit_region.getFieldmodule()
@@ -525,7 +526,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         vagusEpineuriumMeshGroup = vagusEpineuriumAnnotationGroup.getMeshGroup(mesh2d)
 
         node_map = {}
-        print('Building trunk...')
+        # print('Building trunk...')
 
         # read trunk nodes
         trunk_group_name = vagus_data.get_trunk_group_name()
@@ -599,7 +600,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                 vagusEpineuriumMeshGroup.addElement(face)
                 face_identifier += 1
 
-        print('Building branches...')
+        # print('Building branches...')
         branch_parent_map = vagus_data.get_branch_parent_map()
         for branch_name in branches_order:
             # read nodes
@@ -843,7 +844,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                 branch_nodeset_group.removeNodesConditional(parent_field_group)
 
         # set markers
-        print('Adding anatomical landmarks...')
+        # print('Adding anatomical landmarks...')
         for marker_group in marker_fit_groups:
             marker_name = marker_group.getName()
             annotationGroup = findOrCreateAnnotationGroupForTerm(annotation_groups, region,
@@ -856,7 +857,7 @@ class MeshType_3d_nerve1(Scaffold_base):
             node_identifier += 1
 
         # add material coordinates
-        print('Adding material coordinates...')
+        # print('Adding material coordinates...')
         # vagus trunk goes along z axis with origin as top of the vagus
         coordinates.setName("vagus coordinates")  # temporarily rename
         sir = region.createStreaminformationRegion()
@@ -960,7 +961,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         marker_coordinates.setManaged(False)
         del marker_coordinates
 
-        print('Adding extra visualisation groups...')
+        # print('Adding extra visualisation groups...')
         branch_common_groups = vagus_data.get_branch_common_group_map()
         for branch_common_name, branch_names in branch_common_groups.items():
             branch_common_group = AnnotationGroup(region, (branch_common_name, ""))
@@ -1012,7 +1013,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                 thoracic_trunk_mesh_group.addElement(element)
             element = el_iter.next()
 
-        print('Done\n')
+        # print('Done\n')
 
         return annotation_groups, None
 
@@ -1230,7 +1231,7 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
                                 branch start x, y, z coordinate, branch start derivative d1]
     """
 
-    trunk_nodes_count = options['Number of points along the trunk']
+    trunk_nodes_count = options['Number of elements along the trunk'] + 1
     number_of_iterations = options['Iterations (fit trunk)']
 
     fit_region = region.createRegion()
@@ -1284,7 +1285,7 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
             td1 = [nodeParameter[1][1][0] for nodeParameter in node_field_parameters]
 
         trunk_nodes_data_bounds = estimate_trunk_data_boundaries(tx, trunk_nodes_count, trunk_data_endpoints)
-        print(trunk_nodes_data_bounds)
+        # print(trunk_nodes_data_bounds)
 
         node_identifier = 1
         line_identifier = 1
@@ -1345,7 +1346,7 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
             srf = sir.createStreamresourceFile(fitter_model_file)
             fit_region.write(sir)
 
-        print('... Fitting trunk, iteration', str(ii + 1))
+        # print('... Fitting trunk, iteration', str(ii + 1))
         fitter_data_file = vagus_data.get_datafile_path()
         if is_full_vagus:
             # non-REVA data (current scaffold based on Japanese dataset)
@@ -1442,13 +1443,13 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
     visited_branches_order = []
     branch_root_parameters = {}
 
-    print('... Adding branches')
+    # print('... Adding branches')
     branch_data = vagus_data.get_branch_data()
     branch_parent_map = vagus_data.get_branch_parent_map()
     queue = [branch for branch in branch_parent_map.keys() if branch_parent_map[branch] == trunk_group_name]
     while queue:
         branch_name = queue.pop(0)
-        print('.' + branch_name)
+        # print('.' + branch_name)
 
         if branch_name in visited_branches_order:
             continue
@@ -1722,7 +1723,7 @@ def estimate_branch_coordinates(region, branch_data, element_length, branch_pare
     branch_length = magnitude(sub(branch_end_x, branch_start_x))
     branch_nodes_count = math.floor(branch_length / element_length) + 1
     if branch_nodes_count < 3:
-        # need to have at least 3 nodes (including fictionary node) to allow child branches
+        # need to have at least 3 nodes (including hanging node) to allow child branches
         branch_nodes_count = 3
     if branch_nodes_count > 10:
         branch_nodes_count = 10

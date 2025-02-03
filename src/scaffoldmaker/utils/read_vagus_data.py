@@ -1,5 +1,5 @@
 import re
-import sys
+import logging
 import tempfile
 
 from cmlibs.utils.zinc.field import get_group_list
@@ -290,9 +290,11 @@ def load_vagus_data(region):
     :param region: Zinc region for model definition.
     return: Provided the input file is supplied, it returns a data region with input data.
     """
+
+    logger = logging.getLogger(__name__)
     data_region = region.getParent().findChildByName('data')
     if not data_region.isValid():
-        print("Invalid input data file", file=sys.stderr)
+        logger.warning("Missing input data.")
         data_region = region.createRegion()
 
     vagus_data = VagusInputData(data_region)

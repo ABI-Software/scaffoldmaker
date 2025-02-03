@@ -73,18 +73,11 @@ class VagusScaffoldTestCase(unittest.TestCase):
         """
 
         scaffold = MeshType_3d_nerve1
-        scaffoldname = MeshType_3d_nerve1.getName()
-        self.assertEqual(scaffoldname, '3D Nerve 1')
-        parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
         options = scaffold.getDefaultOptions("Human Right Vagus 1")
-        self.assertEqual(len(options), 2)
-        self.assertEqual(options.get('Number of points along the trunk'), 30)
 
         context = Context("Test")
         base_region = context.getDefaultRegion()
         region = base_region.createChild('vagus')
-        data_region = region.getParent().createChild('data')
 
         # check that it doesn't crash with  no input file
         annotation_groups = scaffold.generateBaseMesh(region, options)[0]
@@ -101,7 +94,8 @@ class VagusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
         options = scaffold.getDefaultOptions("Human Right Vagus 1")
         self.assertEqual(len(options), 2)
-        self.assertEqual(options.get('Number of points along the trunk'), 30)
+        self.assertEqual(options.get('Number of elements along the trunk'), 30)
+        options['Number of elements along the trunk'] = 8
 
         context = Context("Test")
         base_region = context.getDefaultRegion()
@@ -119,13 +113,13 @@ class VagusScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(35, mesh3d.getSize())
+        self.assertEqual(14, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(319, mesh2d.getSize())
+        self.assertEqual(130, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(627, mesh1d.getSize())
+        self.assertEqual(270, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(40, nodes.getSize())
+        self.assertEqual(19, nodes.getSize())  # including 4 marker points
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -150,7 +144,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
         # check annotation group: added and connected to the right node segment
         trunk_annotation_group = findAnnotationGroupByName(annotation_groups, trunk_group_name)
         trunk_nodeset_group = trunk_annotation_group.getNodesetGroup(nodes)
-        self.assertEqual(trunk_nodeset_group.getSize(), 30)
+        self.assertEqual(trunk_nodeset_group.getSize(), 9)
 
         branchB_annotation_group = findAnnotationGroupByName(annotation_groups, "right B branch")
         self.assertNotEqual(branchB_annotation_group, 'None')
@@ -161,7 +155,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         node_iter = branchB_nodeset_group.createNodeiterator()
         node = node_iter.next()
-        self.assertEqual(node.getIdentifier(), 19)  # first trunk node
+        self.assertEqual(node.getIdentifier(), 6)  # first trunk node
 
 
 if __name__ == "__main__":
