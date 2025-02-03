@@ -18,6 +18,7 @@ dependencies = [
     "cmlibs.maths >= 0.6.2",
     "cmlibs.utils >= 0.6",
     "cmlibs.zinc >= 4.1",
+    "scaffoldfitter >= 0.9",
     "scipy",
     "numpy"
 ]
