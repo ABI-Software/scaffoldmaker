@@ -1,4 +1,5 @@
 import os
+import sys
 import math
 import tempfile
 
@@ -470,8 +471,19 @@ class MeshType_3d_nerve1(Scaffold_base):
         vagus_data = load_vagus_data(region)
         marker_data = vagus_data.get_level_markers()
         trunk_data = vagus_data.get_trunk_coordinates()
-        assert len(marker_data) >= 2, f"At least two landmarks are expected in the data. Incomplete data."
-        assert len(trunk_data) >= 2, f"At least two trunk points are required."
+
+        invalid_data = False
+        if len(marker_data) < 2:
+            print("Missing or incomplete data. At least two landmarks are expected in the data.", file=sys.stderr)
+            invalid_data = True
+        if len(trunk_data) < 2:
+            print("Missing or incomplete data. At least two trunk points are required.", file=sys.stderr)
+            invalid_data = True
+        if vagus_data.get_side_label() not in ['left', 'right']:
+            print("Missing left or right marker side indication.", file=sys.stderr)
+            invalid_data = True
+        if invalid_data:
+            return [], None
 
         if any(['level of esophageal hiatus' in marker_name or
                 'level of aortic hiatus' in marker_name for marker_name in marker_data.keys()]):
@@ -973,13 +985,11 @@ class MeshType_3d_nerve1(Scaffold_base):
             boundary_marker = findAnnotationGroupByName(annotation_groups,
                                                         "left level of superior border of the clavicle on the vagus nerve")
 
-        elif side_label == 'right':
+        if side_label == 'right':
             cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right cervical trunk'))
             thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right thoracic trunk'))
             boundary_marker = findAnnotationGroupByName(annotation_groups,
                                                         "right level of superior border of the clavicle on the vagus nerve")
-        else:
-            raise AssertionError("Missing left or right marker side indication.")
 
         element, _ = boundary_marker.getMarkerLocation()
         boundary_element_id = element.getIdentifier()
@@ -1025,8 +1035,8 @@ class MeshType_3d_nerve1(Scaffold_base):
         mesh2d = fieldmodule.findMeshByDimension(2)
         mesh1d = fieldmodule.findMeshByDimension(1)
 
-        vagusEpineuriumAnnotationGroup = getAnnotationGroupForTerm(annotationGroups,
-                                                                   get_vagus_marker_term("vagus epineureum"))
+        vagusEpineuriumAnnotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                            get_vagus_marker_term("vagus epineureum"))
         vagusEpineuriumMeshGroup = vagusEpineuriumAnnotationGroup.getMeshGroup(mesh2d)
         vagusAnteriorLineAnnotationGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                                               get_vagus_marker_term("vagus anterior line"))
@@ -1565,10 +1575,8 @@ def estimate_trunk_coordinates(trunk_nodes_count, raw_marker_data, trunk_data_en
     # ensures that markers are in order top to bottom, filters out markers not chosen for fitting
     if side_label == 'left':
         vagus_level_terms = get_left_vagus_marker_locations_list()
-    elif side_label == 'right':
+    if side_label == 'right':
         vagus_level_terms = get_right_vagus_marker_locations_list()
-    else:
-        raise AssertionError("Missing left or right marker side indication.")
 
     marker_data = {}
     for marker_term_name in vagus_level_terms.keys():

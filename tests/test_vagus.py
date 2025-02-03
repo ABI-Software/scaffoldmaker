@@ -68,6 +68,29 @@ class VagusScaffoldTestCase(unittest.TestCase):
         self.assertTrue('right branches' in branch_common_groups)
         self.assertTrue('right B branch' in branch_common_groups['right branches'])
 
+    def test_no_input_file(self):
+        """
+        No input file.
+        """
+
+        scaffold = MeshType_3d_nerve1
+        scaffoldname = MeshType_3d_nerve1.getName()
+        self.assertEqual(scaffoldname, '3D Nerve 1')
+        parameterSetNames = scaffold.getParameterSetNames()
+        self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
+        options = scaffold.getDefaultOptions("Human Right Vagus 1")
+        self.assertEqual(len(options), 2)
+        self.assertEqual(options.get('Number of points along the trunk'), 30)
+
+        context = Context("Test")
+        base_region = context.getDefaultRegion()
+        region = base_region.createChild('vagus')
+        data_region = region.getParent().createChild('data')
+
+        # check that it doesn't crash with  no input file
+        annotation_groups = scaffold.generateBaseMesh(region, options)[0]
+        self.assertEqual(annotation_groups, [])
+
     def test_vagus_box(self):
         """
         Test creation of vagus scaffold.
@@ -82,11 +105,11 @@ class VagusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(len(options), 2)
         self.assertEqual(options.get('Number of points along the trunk'), 30)
 
-        data_file = os.path.join(here, "resources", "vagus_data1.exf")
         context = Context("Test")
         base_region = context.getDefaultRegion()
         region = base_region.createChild('vagus')
         data_region = region.getParent().createChild('data')
+        data_file = os.path.join(here, "resources", "vagus_data1.exf")
         result = data_region.readFile(data_file)
 
         # check annotation groups

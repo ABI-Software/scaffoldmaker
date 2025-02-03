@@ -1,4 +1,5 @@
 import re
+import sys
 import tempfile
 
 from cmlibs.utils.zinc.field import get_group_list
@@ -42,7 +43,6 @@ class VagusInputData:
 
         nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         coordinates = fm.findFieldByName("coordinates").castFiniteElement()
-        assert coordinates.isValid() and (coordinates.getNumberOfComponents() == 3)
         radius = fm.findFieldByName("radius").castFiniteElement()
         datapoints = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         marker_names = fm.findFieldByName("marker_name")
@@ -83,10 +83,11 @@ class VagusInputData:
                     annotation_name = 'orientation anterior'
                 orientation_group_names.append(annotation_name)
 
-        if 'left' in self._trunk_group_name:
-            self._side_label = 'left'
-        elif 'right' in self._trunk_group_name:
-            self._side_label = 'right'
+        if self._trunk_group_name:
+            if 'left' in self._trunk_group_name:
+                self._side_label = 'left'
+            elif 'right' in self._trunk_group_name:
+                self._side_label = 'right'
 
         # extract marker data - name, coordinates (no marker terms are available)
         # sort markers here?
@@ -113,12 +114,13 @@ class VagusInputData:
             self._orientation_data[orientation_group_name] = orientation_points[:]
 
         # extract trunk data - coordinates, nodes, radius - assume only one trunk group is used
-        group = fm.findFieldByName(self._trunk_group_name).castGroup()
-        nodeset = group.getNodesetGroup(nodes)
-        _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
-        trunk_nodes = [value[0] for value in values]
-        trunk_coordinates = [value[1][0] for value in values]
-        self._trunk_coordinates = trunk_coordinates[:]
+        if self._trunk_group_name:
+            group = fm.findFieldByName(self._trunk_group_name).castGroup()
+            nodeset = group.getNodesetGroup(nodes)
+            _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
+            trunk_nodes = [value[0] for value in values]
+            trunk_coordinates = [value[1][0] for value in values]
+            self._trunk_coordinates = trunk_coordinates[:]
 
         # not used at the moment
         if radius.isValid():
@@ -289,6 +291,10 @@ def load_vagus_data(region):
     return: Provided the input file is supplied, it returns a data region with input data.
     """
     data_region = region.getParent().findChildByName('data')
-    assert data_region.isValid(), "Invalid input data file"
+    if not data_region.isValid():
+        print("Invalid input data file", file=sys.stderr)
+        data_region = region.createRegion()
+
     vagus_data = VagusInputData(data_region)
     return vagus_data
+
