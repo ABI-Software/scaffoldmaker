@@ -51,21 +51,21 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(460, mesh3d.getSize())
+        self.assertEqual(436, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(1738, mesh2d.getSize())
+        self.assertEqual(1642, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(2102, mesh1d.getSize())
+        self.assertEqual(1982, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(824, nodes.getSize())
+        self.assertEqual(776, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-112.4222871639696, -146.3433620526202, 852.5876977230726], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [-54.14347619948218, -77.56, 899.9973429272325], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-112.41968159644387, -146.34422797225153, 852.6082677676069], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [-54.22370705290374, -77.56, 899.9973429272325], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -77,15 +77,15 @@ class CecumScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 8554.513081780715, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 8546.983090282285, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 13809.9960233912, delta=1.0E-6)
+        self.assertAlmostEqual(volume, 13790.25181377472, delta=1.0E-6)
 
         # check some annotationGroups:
         expectedSizes3d = {
-            "caecum": 460,
-            "ileum": 24,
+            "caecum": 436,
+            "ileum": 12,
             "ileocecal junction": 12
         }
 

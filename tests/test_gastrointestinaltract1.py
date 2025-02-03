@@ -26,7 +26,7 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_gastrointestinaltract1
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ['Default', 'Human 1'])
+        self.assertEqual(parameterSetNames, ['Default', 'Human 1', 'Human 2'])
         options = scaffold.getDefaultOptions("Default")
         self.assertEqual(10, len(options))
         networkLayoutOptions = options['Network layout']
@@ -83,13 +83,13 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(8448, mesh3d.getSize())
+        self.assertEqual(8416, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(32494, mesh2d.getSize())
+        self.assertEqual(32366, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(39642, mesh1d.getSize())
+        self.assertEqual(39482, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(15600, nodes.getSize())
+        self.assertEqual(15536, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -97,8 +97,8 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-123.4289535529459, -190.90949289431342, 799.4386433354306], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [124.21567892707846, -33.094490024089325, 1403.9055789269714], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-123.43285562393568, -190.9387945163096, 799.440331856111], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [124.21639759783749, -33.095259738869885, 1403.9055789269714], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -110,17 +110,17 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 280350.6462177311, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 280380.7040200431, delta=1.0E-6)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 598505.4701647585, delta=1.0E-3)
+        self.assertAlmostEqual(volume, 598801.2760541772, delta=1.0E-3)
 
         # check some annotationGroups:
         expectedSizes3d = {
-            "esophagus": 184,
+            "esophagus": 176,
             "stomach": 168,
-            "small intestine": 2916,
-            "caecum": 460,
+            "small intestine": 2904,
+            "caecum": 436,
             "colon": 4752
         }
         for name in expectedSizes3d:
@@ -149,7 +149,7 @@ class GastrointestinalTractScaffoldTestCase(unittest.TestCase):
 
         refineFieldmodule.defineAllFaces()
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(33792, mesh3d.getSize())
+        self.assertEqual(33664, mesh3d.getSize())
 
 
 if __name__ == "__main__":
