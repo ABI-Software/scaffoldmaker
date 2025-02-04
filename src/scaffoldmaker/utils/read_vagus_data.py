@@ -10,6 +10,10 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.vagus_terms import marker_name_in_terms
 from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters
 
+
+logger = logging.getLogger(__name__)
+
+
 class VagusInputData:
     """
     Categorising and storing input data from data region for vagus box scaffold
@@ -288,14 +292,12 @@ def group_common_branches(branch_names):
 def load_vagus_data(region):
     """
     :param region: Zinc region for model definition.
-    return: Provided the input file is supplied, it returns a data region with input data.
+    return: Provided the input file is supplied, it returns a data region with input data, otherwise None.
     """
-
-    logger = logging.getLogger(__name__)
     data_region = region.getParent().findChildByName('data')
     if not data_region.isValid():
         logger.warning("Missing input data.")
-        data_region = region.createRegion()
+        return None
 
     vagus_data = VagusInputData(data_region)
     return vagus_data
