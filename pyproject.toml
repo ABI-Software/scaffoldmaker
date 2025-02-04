@@ -15,9 +15,10 @@ authors = [
     { name="Richard Christie", email="r.christie@auckland.ac.nz" },
 ]
 dependencies = [
-    "cmlibs.maths >= 0.6.2",
+    "cmlibs.maths >= 0.7.0",
     "cmlibs.utils >= 0.6",
     "cmlibs.zinc >= 4.1",
+    "scaffoldfitter >= 0.9",
     "scipy",
     "numpy"
 ]
