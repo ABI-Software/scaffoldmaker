@@ -3,8 +3,8 @@ import math
 import logging
 import tempfile
 
-from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, matrix_mult, matrix_inv, mult, rejection, \
-    set_magnitude, sub
+from cmlibs.maths.vectorops import (
+    add, cross, distance_squared, div, dot, magnitude, matrix_mult, matrix_inv, mult, rejection, set_magnitude, sub)
 from cmlibs.utils.zinc.field import find_or_create_field_group, findOrCreateFieldCoordinates
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldGroup
@@ -1046,25 +1046,6 @@ class MeshType_3d_nerve1(Scaffold_base):
                 vagusAnteriorLineMeshGroup.addElement(line)
             quadrant = (quadrant + 1) % 4
             face = faceIterator.next()
-
-
-# supplementary functions
-def magnitude_squared(v):
-    """
-    return: squared scalar magnitude of vector v to avoid the cost of a square root
-    """
-
-    # TODO: proposed function to cmlibs.maths
-    return sum(c * c for c in v)
-
-
-def distance_squared(u, v):
-    """
-    return: squared distance to avoid the cost of a square root
-    """
-
-    # TODO: proposed function to cmlibs.maths
-    return sum((u_i - v_i) ** 2 for u_i, v_i in zip(u, v))
 
 
 def find_1d_path_endpoints(points):
