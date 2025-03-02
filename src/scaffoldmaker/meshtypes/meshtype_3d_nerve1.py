@@ -23,8 +23,8 @@ from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters
 from scaffoldfitter.fitter import Fitter
 from scaffoldfitter.fitterstepfit import FitterStepFit
 
-from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.annotation.vagus_terms import get_vagus_branch_term, get_vagus_marker_term
+from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 
 
 logger = logging.getLogger(__name__)
@@ -551,6 +551,8 @@ class MeshType_3d_nerve1(Scaffold_base):
         trunk_box_group = AnnotationGroup(region, (trunk_group_name, annotation_term_map[trunk_group_name]))
         annotation_groups.append(trunk_box_group)
         trunk_box_mesh_group = trunk_box_group.getMeshGroup(mesh3d)
+        trunk_box_face_mesh_group = trunk_box_group.getMeshGroup(mesh2d)
+        trunk_box_line_mesh_group = trunk_box_group.getMeshGroup(mesh1d)
 
         node_identifier = 1
         line_identifier = 1
@@ -578,6 +580,7 @@ class MeshType_3d_nerve1(Scaffold_base):
             line = mesh1d.createElement(line_identifier, linetemplate)
             line.setNodesByIdentifier(eft1d, nids)
             vagusCentroidMeshGroup.addElement(line)
+            trunk_box_line_mesh_group.addElement(line)
             line_identifier += 1
 
             element = mesh3d.createElement(element_identifier, elementtemplate)
@@ -592,6 +595,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                 face.setNodesByIdentifier(eft2d, nids)
                 face.setScaleFactors(eft2d, scalefactors2d)
                 vagusEpineuriumMeshGroup.addElement(face)
+                trunk_box_face_mesh_group.addElement(face)
                 face_identifier += 1
 
         # print('Building branches...')
@@ -711,6 +715,8 @@ class MeshType_3d_nerve1(Scaffold_base):
             branch_box_group = AnnotationGroup(region, (branch_name, annotation_term_map[branch_name]))
             annotation_groups.append(branch_box_group)
             branch_box_mesh_group = branch_box_group.getMeshGroup(mesh3d)
+            branch_box_face_mesh_group = branch_box_group.getMeshGroup(mesh2d)
+            branch_box_line_mesh_group = branch_box_group.getMeshGroup(mesh1d)
 
             # create nodes (excluding branch root)
             for n in range(branch_nodes_count - 1):
@@ -735,18 +741,15 @@ class MeshType_3d_nerve1(Scaffold_base):
                     line = mesh1d.createElement(line_identifier, linetemplate_branch_root)
                     line.setNodesByIdentifier(eft1dNV, nids)
                     line.setScaleFactors(eft1dNV, list(scalefactors))
-                    vagusCentroidMeshGroup.addElement(line)
-                    line_identifier += 1
-
                 else:
                     # other elements
                     nids = [node_identifier - 1, node_identifier]
 
                     line = mesh1d.createElement(line_identifier, linetemplate)
                     line.setNodesByIdentifier(eft1d, nids)
-                    vagusCentroidMeshGroup.addElement(line)
-                    line_identifier += 1
-
+                vagusCentroidMeshGroup.addElement(line)
+                branch_box_line_mesh_group.addElement(line)
+                line_identifier += 1
                 node_identifier += 1
 
             # create elements
@@ -812,6 +815,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                         face.setNodesByIdentifier(eft2dNV, nids)
                         face.setScaleFactors(eft2dNV, scalefactors)
                         vagusEpineuriumMeshGroup.addElement(face)
+                        branch_box_face_mesh_group.addElement(face)
                         face_identifier += 1
 
                 else:
@@ -829,6 +833,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                         face.setNodesByIdentifier(eft2d, nids)
                         face.setScaleFactors(eft2d, scalefactors2d)
                         vagusEpineuriumMeshGroup.addElement(face)
+                        branch_box_face_mesh_group.addElement(face)
                         face_identifier += 1
 
             # remove trunk nodes from branch group
