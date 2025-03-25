@@ -43,8 +43,8 @@ def get_left_vagus_marker_locations_list():
         # "left level of angle of the mandible on the vagus nerve": 0.135184,
         # # "left level of greater horn of hyoid on the vagus nerve": 0.14595904,
         "left level of greater horn of hyoid on the vagus nerve": 0.171654481,
-        # "left level of carotid bifurcation on the vagus nerve": 0.15474592,
-        # "left level of laryngeal prominence on the vagus nerve": 0.22029792,
+        "left level of carotid bifurcation on the vagus nerve": 0.15474592,
+        "left level of laryngeal prominence on the vagus nerve": 0.22029792,
         # thoracic region
         # # "left level of superior border of the clavicle on the vagus nerve": 0.37620064,
         "left level of superior border of the clavicle on the vagus nerve": 0.348953222,
@@ -981,14 +981,14 @@ class MeshType_3d_nerve1(Scaffold_base):
         # add cervical and thoracic trunk groups
         side_label = vagus_data.get_side_label()
         if side_label == 'left':
-            cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('left cervical trunk'))
-            thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('left thoracic trunk'))
+            cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('left cervical vagus nerve'))
+            thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('left thoracic vagus nerve'))
             boundary_marker = findAnnotationGroupByName(
                 annotation_groups, "left level of superior border of the clavicle on the vagus nerve")
 
         if side_label == 'right':
-            cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right cervical trunk'))
-            thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right thoracic trunk'))
+            cervical_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right cervical vagus nerve'))
+            thoracic_trunk_group = AnnotationGroup(region, get_vagus_branch_term('right thoracic vagus nerve'))
             boundary_marker = findAnnotationGroupByName(
                 annotation_groups, "right level of superior border of the clavicle on the vagus nerve")
 

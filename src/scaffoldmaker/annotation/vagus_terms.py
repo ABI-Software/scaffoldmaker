@@ -89,8 +89,8 @@ vagus_branch_terms = [
     # right vagus branches
     ("right vagus nerve", "FMA:6219", "ILX:0789705"),
     ("right vagus X nerve trunk", "UBERON:0035021", "ILX:0730515"),
-    ("right cervical trunk", "ILX:0794141"),
-    ("right thoracic trunk", "ILX:0786664"),
+    ("right cervical vagus nerve", "ILX:0794141"),
+    ("right thoracic vagus nerve", "ILX:0786664"),
     ("right meningeal branch of right vagus nerve", "FMA:53541", "ILX:0785804"),
     ("right branch between vagus nerve and glossopharyngeal nerve", "FMA:53559", "ILX:0790506"),
     ("right auricular branch of right vagus nerve", "FMA:53534", "ILX:0785879"),
@@ -152,8 +152,8 @@ vagus_branch_terms = [
     # left vagus branches
     ("left vagus nerve", "FMA:6220", "ILX:0785628"),
     ("left vagus X nerve trunk", "UBERON:0035020"),
-    ("left cervical trunk", "ILX:0794142"),
-    ("left thoracic trunk", "ILX:0787543"),
+    ("left cervical vagus nerve", "ILX:0794142"),
+    ("left thoracic vagus nerve", "ILX:0787543"),
     ("left meningeal branch of left vagus nerve", "FMA:53542", "ILX:0736691"),
     ("left branch between vagus nerve and glossopharyngeal nerve", "FMA:53560", "ILX:0790685"),
     ("left auricular branch of left vagus nerve", "FMA:53535", "ILX:0789344"),

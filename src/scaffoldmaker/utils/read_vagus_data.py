@@ -7,7 +7,7 @@ from cmlibs.utils.zinc.group import groups_have_same_local_contents
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 
-from scaffoldmaker.annotation.vagus_terms import marker_name_in_terms
+from scaffoldmaker.annotation.vagus_terms import marker_name_in_terms, get_vagus_branch_term
 from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters
 
 
@@ -24,10 +24,11 @@ class VagusInputData:
         :param data_region Zinc data region with input data
         """
 
-        self._trunk_keywords = ['vagus x nerve trunk', 'left vagus nerve', 'right vagus nerve']
+        self._trunk_keywords = ['cervical vagus nerve', 'thoracic vagus nerve',
+                                'cervical trunk', 'thoracic trunk', 'vagus x nerve trunk']
         self._branch_keywords = ['branch', 'nerve']
         self._term_keywords = ['fma:', 'fma_', 'ilx:', 'ilx_', 'uberon:', 'uberon_']
-        self._orientation_keywords = ['orientation', 'microfil']
+        self._orientation_keywords = ['orientation']
 
         self._annotation_term_map = {}
         self._branch_coordinates_data = {}
@@ -72,26 +73,17 @@ class VagusInputData:
                 # no matching term is found for annotation group
                 self._annotation_term_map[annotation_name] = ""
 
+        found_trunk_group_names = []
         branch_group_names = []
         orientation_group_names = []
         for annotation_name in annotation_names:
             lower_name = annotation_name.casefold()
             if any([keyword in lower_name for keyword in self._trunk_keywords]) and 'branch' not in lower_name:
-                self._trunk_group_name = annotation_name
-                continue
-            if any([keyword in lower_name for keyword in self._branch_keywords]):
+                found_trunk_group_names.append(annotation_name)
+            elif any([keyword in lower_name for keyword in self._branch_keywords]):
                 branch_group_names.append(annotation_name)
-            if any([keyword in lower_name for keyword in self._orientation_keywords]):
-                # rename label used by Feinstein
-                if lower_name == 'microfil':
-                    annotation_name = 'orientation anterior'
+            elif any([keyword in lower_name for keyword in self._orientation_keywords]):
                 orientation_group_names.append(annotation_name)
-
-        if self._trunk_group_name:
-            if 'left' in self._trunk_group_name:
-                self._side_label = 'left'
-            elif 'right' in self._trunk_group_name:
-                self._side_label = 'right'
 
         # extract marker data - name, coordinates (no marker terms are available)
         # sort markers here?
@@ -117,20 +109,39 @@ class VagusInputData:
             orientation_points = [value[1][0][0] for value in values]
             self._orientation_data[orientation_group_name] = orientation_points[:]
 
-        # extract trunk data - coordinates, nodes, radius - assume only one trunk group is used
-        if self._trunk_group_name:
-            group = fm.findFieldByName(self._trunk_group_name).castGroup()
-            nodeset = group.getNodesetGroup(nodes)
-            _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
-            trunk_nodes = [value[0] for value in values]
-            trunk_coordinates = [value[1][0] for value in values]
-            self._trunk_coordinates = trunk_coordinates[:]
+        # extract trunk data - coordinates, nodes, radius
+        if len(found_trunk_group_names) > 0:
+            if 'left' in found_trunk_group_names[0]:
+                self._trunk_group_name = 'left vagus nerve'
+                self._annotation_term_map[self._trunk_group_name] = get_vagus_branch_term(self._trunk_group_name)[1]
+                self._side_label = 'left'
+            elif 'right' in found_trunk_group_names[0]:
+                self._trunk_group_name = 'right vagus nerve'
+                self._annotation_term_map[self._trunk_group_name] = get_vagus_branch_term(self._trunk_group_name)[1]
+                self._side_label = 'right'
 
-        # not used at the moment
-        if radius.isValid():
-            _, values = get_nodeset_field_parameters(nodeset, radius, [Node.VALUE_LABEL_VALUE])
-            trunk_radius = [value[1][0][0] for value in values]
-            if not all(value == 0.0 for value in trunk_radius):
+        if self._trunk_group_name:
+            trunk_group_count = 0
+            for found_trunk_group_name in found_trunk_group_names:
+                group = fm.findFieldByName(found_trunk_group_name).castGroup()
+                nodeset = group.getNodesetGroup(nodes)
+                _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
+                if trunk_group_count == 0:
+                    trunk_nodes = [value[0] for value in values]
+                    trunk_coordinates = [value[1][0] for value in values]
+                    if radius.isValid():
+                        _, values = get_nodeset_field_parameters(nodeset, radius, [Node.VALUE_LABEL_VALUE])
+                        trunk_radius = [value[1][0][0] for value in values]
+                else:
+                    trunk_nodes.extend([value[0] for value in values])
+                    trunk_coordinates.extend([value[1][0] for value in values])
+                    if radius.isValid():
+                        _, values = get_nodeset_field_parameters(nodeset, radius, [Node.VALUE_LABEL_VALUE])
+                        trunk_radius.extend([value[1][0][0] for value in values])
+                trunk_group_count += 1
+
+            self._trunk_coordinates = trunk_coordinates[:]
+            if radius.isValid() and not all(value == 0.0 for value in trunk_radius):
                 self._trunk_radius = trunk_radius[:]
 
         # project markers onto trunk if markers are projectable between first and last trunk node ?
@@ -141,6 +152,10 @@ class VagusInputData:
         for branch_name in branch_group_names:
             group = fm.findFieldByName(branch_name).castGroup()
             nodeset = group.getNodesetGroup(nodes)
+            if 'xml.ex' in branch_name or nodeset.getSize() < 2:
+                # xml.ex are temporary regions from segmentation stitcher that might have keywords in their names
+                # branch should have at least two nodes to be connected to parent
+                continue
             _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
             branch_nodes = [value[0] for value in values]
             branch_parameters = [value[1][0] for value in values]
@@ -171,8 +186,11 @@ class VagusInputData:
                         if branch_first_node != parent_first_node and branch_first_node in parent_branch_nodes:
                             parent_name = parent_branch_name
                             break
+            if parent_name == '':
+                # assume trunk is a parent by default, if no other is found
+                parent_name = self._trunk_group_name
             self._branch_parent_map[branch_name] = parent_name
-            #print(branch_name, ' -> ', parent_name)
+            # print(branch_name, ' -> ', parent_name)
 
         # group common branches by names
         branch_common_map = group_common_branches(branch_group_names)
@@ -214,12 +232,28 @@ class VagusInputData:
         """
         return self._trunk_coordinates
 
+    def get_trunk_radius(self):
+        """
+        Get the radius values of the trunk in the data. The values are in the same order as trunk coordinates
+        and each radius point is associated with a trunk coordinate.
+        return: List of radius values for the trunk group.
+        """
+        return self._trunk_radius
+
     def get_branch_data(self):
         """
         Get all branch names and coordinates from the data.
         return: Dict mapping branch name to x, y, z data.
         """
         return self._branch_coordinates_data
+
+    def get_branch_radius_data(self):
+        """
+        Get the radius values of the trunk in the data. The values are in the same order as trunk coordinates
+        and each radius point is associated with a trunk coordinate.
+        return: List of radius values for the trunk group.
+        """
+        return self._branch_radius_data
 
     def get_annotation_term_map(self):
         """
