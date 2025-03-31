@@ -4,27 +4,29 @@ import logging
 import tempfile
 
 from cmlibs.maths.vectorops import (
-    add, cross, distance_squared, div, dot, magnitude, matrix_mult, matrix_inv, mult, rejection, set_magnitude, sub)
-from cmlibs.utils.zinc.field import find_or_create_field_group, findOrCreateFieldCoordinates
+    add, cross, distance_squared, div, dot, magnitude, matrix_mult, matrix_inv, mult, normalize, rejection,
+    set_magnitude, sub)
+from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.field import find_or_create_field_group, find_or_create_field_coordinates
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
-
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
-    findAnnotationGroupByName
-from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-
-from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
-    setEftScaleFactorIds
-from scaffoldmaker.utils.interpolation import getCubicHermiteBasis, getCubicHermiteBasisDerivatives, \
-    interpolateCubicHermite, interpolateHermiteLagrange, smoothCurveSideCrossDerivatives
-from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters
-
 from scaffoldfitter.fitter import Fitter
 from scaffoldfitter.fitterstepfit import FitterStepFit
-
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    findAnnotationGroupByName
 from scaffoldmaker.annotation.vagus_terms import get_vagus_branch_term, get_vagus_marker_term
+from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
+from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
+    setEftScaleFactorIds
+from scaffoldmaker.utils.interpolation import (
+    getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteCurvesLength,
+    getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points, interpolateCubicHermite,
+    interpolateHermiteLagrange, sampleCubicHermiteCurvesSmooth, smoothCurveSideCrossDerivatives)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
+from scaffoldmaker.utils.zinc_utils import (
+    fit_hermite_curve, generate_curve_mesh, generate_datapoints, generate_mesh_marker_points,
+    get_nodeset_field_parameters)
 
 
 logger = logging.getLogger(__name__)
@@ -130,25 +132,40 @@ class MeshType_3d_nerve1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {
-            'Number of elements along the trunk': 30,
-            'Iterations (fit trunk)': 1,
+            'Number of elements along the trunk pre-fit': 20,
+            'Number of elements along the trunk': 40,
+            'Trunk proportion': 0.6,
+            'Iterations (fit trunk)': 1
         }
         return options
 
     @classmethod
     def getOrderedOptionNames(cls):
         return [
+            'Number of elements along the trunk pre-fit',
             'Number of elements along the trunk',
-            'Iterations (fit trunk)',
+            'Trunk proportion',
+            'Iterations (fit trunk)'
         ]
 
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if options['Number of elements along the trunk'] < 1:
-            options['Number of elements along the trunk'] = 1
-        if options['Iterations (fit trunk)'] < 1:
-            options['Iterations (fit trunk)'] = 1
+        for key in [
+            'Number of elements along the trunk',
+            'Number of elements along the trunk pre-fit'
+        ]:
+            if options[key] < 1:
+                options[key] = 1
+        for key in [
+            'Trunk proportion'
+        ]:
+            if options[key] < 0.5:
+                options[key] = 0.5
+            elif options[key] > 1.0:
+                options[key] = 1.0
+        if options['Iterations (fit trunk)'] < 0:
+            options['Iterations (fit trunk)'] = 0
         return dependentChanges
 
     @classmethod
@@ -161,6 +178,10 @@ class MeshType_3d_nerve1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         return: list of AnnotationGroup, None
         """
+        trunk_elements_count_prefit = options['Number of elements along the trunk pre-fit']
+        trunk_elements_count = options['Number of elements along the trunk']
+        trunk_proportion = options['Trunk proportion']
+        trunk_fit_iterations = options['Iterations (fit trunk)']
 
         # Zinc setup for vagus scaffold
         fieldmodule = region.getFieldmodule()
@@ -172,7 +193,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                         Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3]
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        coordinates = findOrCreateFieldCoordinates(fieldmodule).castFiniteElement()
+        coordinates = find_or_create_field_coordinates(fieldmodule)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
         for value_label in value_labels[1:]:
@@ -498,6 +519,16 @@ class MeshType_3d_nerve1(Scaffold_base):
         rescaled_vagus_trunk_length = estimate_parametrised_vagus_length(is_full_vagus)
         vagus_radius = vagus_aspect_ratio * rescaled_vagus_trunk_length / 2
         vagus_branch_radius = branch_to_trunk_ratio * vagus_radius
+
+        fit_new_trunk = True
+        if fit_new_trunk:
+            generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit, trunk_elements_count,
+                              trunk_fit_iterations, region)
+            trunk_group_name = vagus_data.get_trunk_group_name()
+            annotation_term_map = vagus_data.get_annotation_term_map()
+            trunk_group = AnnotationGroup(region, (trunk_group_name, annotation_term_map[trunk_group_name]))
+
+            return [trunk_group], None
 
         # evaluate & fit centroid lines for trunk and branches
         # print('Building centerlines for scaffold...')
@@ -1053,6 +1084,210 @@ class MeshType_3d_nerve1(Scaffold_base):
             face = faceIterator.next()
 
 
+def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit, trunk_elements_count,
+                      trunk_fit_iterations, region):
+    """
+    Build and fit a 1-D trunk curve to trunk data, calibrated to marker point positions.
+    :param vagus_data: Vagus data extracted from input data region.
+    :param trunk_proportion: Proportion up to 1.0 of whole vagus to build.
+    :param trunk_elements_count_prefit: Number of elements in pre-fit mesh to trunk data.
+    :param trunk_elements_count: Number of elements in final 1-D mesh.
+    :param trunk_fit_iterations:  Number of iterations in main trunk fit >= 1.
+    :param region: Region to put the fitted 1-D geometry including marker points in.
+    :return: tx, td1 (parameters for 1-D fitted trunk geometry)
+    """
+
+    # 1. pre-fit to range of trunk data
+
+    trunk_data_coordinates = vagus_data.get_trunk_coordinates()
+    is_left = vagus_data.get_side_label() == 'left'
+    raw_marker_data = vagus_data.get_level_markers()
+    px = [e[0] for e in trunk_data_coordinates]
+    bx, bd1 = get_curve_from_points(px, number_of_elements=trunk_elements_count_prefit)
+    length = getCubicHermiteCurvesLength(bx, bd1)
+    outlier_length = 0.025 * length
+    cx, cd1 = fit_hermite_curve(bx, bd1, px, outlier_length=outlier_length)
+    # resample to even size
+    dx, dd1 = sampleCubicHermiteCurvesSmooth(cx, cd1, trunk_elements_count_prefit)[0:2]
+
+    # 2. make initial full trunk extending pre-fit based on furthest marker material coordintes
+
+    vagus_level_terms = get_left_vagus_marker_locations_list() if is_left \
+        else get_right_vagus_marker_locations_list()
+    marker_data = []  # list from top to bottom of nerve of (name, material_coordinate, data_coordinates)
+    for marker_term_name, material_coordinate in vagus_level_terms.items():
+        if marker_term_name in raw_marker_data.keys():
+            data_coordinates =raw_marker_data[marker_term_name]
+            for idx, data in enumerate(marker_data):
+                if material_coordinate < data[1]:
+                    break
+            else:
+                idx = len(marker_data)
+            marker_data.insert(idx, (marker_term_name, material_coordinate, data_coordinates))
+
+    start_marker_material_coordinate = marker_data[0][1]
+    start_marker_curve_location = getNearestLocationOnCurve(dx, dd1, marker_data[0][2])[0]
+    start_marker_extra_length = 0.0
+    if (start_marker_curve_location[0] == 0) and (start_marker_curve_location[1] < 1.0E-4):
+        # case when start marker point is before start of curve
+        start_marker_extra_length = max(0.0, dot(sub(dx[0], marker_data[0][2]), normalize(dd1[0])))
+    end_marker_material_coordinate = marker_data[-1][1]
+    end_marker_curve_location = getNearestLocationOnCurve(dx, dd1, marker_data[-1][2])[0]
+    end_marker_extra_length = 0.0
+    if (end_marker_curve_location[0] == (trunk_elements_count_prefit - 1)) and (
+            end_marker_curve_location[1] > 0.9999):
+        # case when end marker point is after end of curve
+        end_marker_extra_length = max(0.0, dot(sub(marker_data[-1][2], dx[-1]), normalize(dd1[-1])))
+    start_length, length, end_length = getCubicHermiteTrimmedCurvesLengths(
+        dx, dd1, start_marker_curve_location, end_marker_curve_location)[0:3]
+
+    # determine material coordinates of start and end of curve, from range of marker material coordinates
+    marker_delta_material_length = end_marker_material_coordinate - start_marker_material_coordinate
+    marker_delta_length = length + start_marker_extra_length + end_marker_extra_length
+    material_length_per_length = marker_delta_material_length / marker_delta_length
+    start_curve_material_coordinate = (start_marker_material_coordinate -
+                                       (start_length - start_marker_extra_length) * material_length_per_length)
+    end_curve_material_coordinate = (end_marker_material_coordinate +
+                                     (end_length - end_marker_extra_length) * material_length_per_length)
+    # extend curves at each end, by moving end node if short extension, or adding node if large
+    start_extra_length = start_curve_material_coordinate / material_length_per_length
+    start_direction = normalize(dd1[0])
+    mag_d1 = magnitude(dd1[0])
+    start_dx = sub(dx[0], mult(start_direction, start_extra_length))
+    if start_extra_length < (0.51 * mag_d1):
+        dx[0] = start_dx
+        dd1[0] = set_magnitude(dd1[0], mag_d1 + 2.0 * start_extra_length)
+    else:
+        dx.insert(0, start_dx)
+        dd1.insert(0, mult(start_direction, 2.0 * start_extra_length - mag_d1))
+    end_extra_length = (trunk_proportion - end_curve_material_coordinate) / material_length_per_length
+    end_direction = normalize(dd1[-1])
+    mag_d1 = magnitude(dd1[-1])
+    end_dx = add(dx[-1], mult(end_direction, end_extra_length))
+    if start_extra_length < (0.51 * mag_d1):
+        dx[0] = end_dx
+        dd1[0] = set_magnitude(dd1[-1], mag_d1 + 2.0 * end_extra_length)
+    else:
+        dx.append(end_dx)
+        dd1.append(mult(end_direction, 2.0 * end_extra_length - mag_d1))
+
+    # resample to even size and final elements count - this is the initial state for full trunk fit with markers
+    ex, ed1 = sampleCubicHermiteCurvesSmooth(dx, dd1, trunk_elements_count)[0:2]
+
+    # 3. full trunk centroid fit
+
+    fit_region = region.createRegion()
+    fieldmodule = fit_region.getFieldmodule()
+    coordinates = find_or_create_field_coordinates(fieldmodule)
+    mesh1d = fieldmodule.findMeshByDimension(1)
+    trunk_group_name = vagus_data.get_trunk_group_name()
+    with ChangeManager(fieldmodule):
+        node_identifier = generate_curve_mesh(fit_region, ex, ed1, group_name=trunk_group_name)[0]
+        trunk_group = find_or_create_field_group(fieldmodule, trunk_group_name)
+        pr = vagus_data.get_trunk_radius()
+        field_names_and_values = [("radius", pr)] if pr else []
+        data_identifier = 1
+        data_identifier = generate_datapoints(
+            fit_region, px, data_identifier, field_names_and_values=field_names_and_values, group_name=trunk_group_name)
+
+        # add marker points in order along trunk
+        ordered_marker_data = []  # list of (name, curve_location)
+        ordered_material_coordinate = []  # list of material coordinate
+        for marker_term_name, material_coordinate in vagus_level_terms.items():
+            for idx, prior_material_coordinate in enumerate(ordered_material_coordinate):
+                if material_coordinate < prior_material_coordinate:
+                    break
+            else:
+                idx = len(ordered_marker_data)
+            real_element_xi = (material_coordinate / trunk_proportion) * trunk_elements_count
+            element_index = min(int(real_element_xi), trunk_elements_count - 1)
+            element_xi = (element_index + 1, real_element_xi - element_index)
+            ordered_marker_data.insert(idx, (marker_term_name, element_xi))
+            ordered_material_coordinate.insert(idx, material_coordinate)
+        node_identifier = generate_mesh_marker_points(mesh1d, ordered_marker_data, node_identifier)
+
+        # add data marker points:
+        data_identifier = generate_datapoints(
+            fit_region, list(raw_marker_data.values()), data_identifier,
+            field_names_and_values=[("marker_name", list(raw_marker_data.keys()))], group_name="marker")
+
+        # need a zero fibre field to apply strain/curvature penalties on 1-D model
+        zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
+        zero_fibres.setName("zero fibres")
+        zero_fibres.setManaged(True)
+
+    # note that fitting is very slow if done within ChangeManager as find mesh location is slow
+    # this includes working with the user-supplied region which is called with ChangeManager on.
+    fitter = Fitter(region=fit_region)
+    config0 = fitter.getInitialFitterStepConfig()
+    length = getCubicHermiteCurvesLength(ex, ed1)
+    outlier_length = 0.025 * length
+    config0.setGroupOutlierLength(None, outlierLength=outlier_length)
+    fitter.setDiagnosticLevel(1)
+    fitter.setModelCoordinatesField(coordinates)
+    fitter.setFibreField(zero_fibres)
+    fitter.defineCommonMeshFields()
+    fitter.setDataCoordinatesField(coordinates)
+    fitter.defineDataProjectionFields()
+    fitter.setMarkerGroupByName("marker")
+    fitter.initializeFit()
+
+    # calibration_points_count = 23954
+    points_count_calibration_factor =  len(px) / 25000
+    # calibration_length = 27840
+    length_calibration_factor = length / 25000
+    strain_penalty = 1000.0 * points_count_calibration_factor * length_calibration_factor
+    curvature_penalty = 1.0E+8 * points_count_calibration_factor * (length_calibration_factor ** 3)
+    marker_weight = 10.0 * points_count_calibration_factor
+    sliding_factor = 0.0001
+
+    if trunk_fit_iterations > 0:
+        fit1 = FitterStepFit()
+        fitter.addFitterStep(fit1)
+        fit1.setGroupDataWeight("marker", marker_weight)
+        fit1.setGroupStrainPenalty(None, [strain_penalty])
+        fit1.setGroupCurvaturePenalty(None, [curvature_penalty])
+        fit1.setGroupDataSlidingFactor(None, sliding_factor)
+        fit1.run()
+
+    if trunk_fit_iterations > 1:
+        fit2 = FitterStepFit()
+        fitter.addFitterStep(fit2)
+        fit2.setGroupStrainPenalty(None, [0.1 * strain_penalty])
+        fit2.setGroupCurvaturePenalty(None, [0.1 * curvature_penalty])
+        fit1.setGroupDataSlidingFactor(None, 0.1 * sliding_factor)
+        fit2.setNumberOfIterations(trunk_fit_iterations - 1)
+        fit2.run()
+
+    # extract fitted trunk parameters from nodes
+    tx = []
+    td1 = []
+    fieldcache = fieldmodule.createFieldcache()
+    components_count = coordinates.getNumberOfComponents()
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodeiterator = nodes.createNodeiterator()
+    node = nodeiterator.next()
+    while node.isValid():
+        fieldcache.setNode(node)
+        result, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, components_count)
+        result, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, components_count)
+        tx.append(x)
+        td1.append(d1)
+        node = nodeiterator.next()
+
+    # copy model to user-supplied region
+    sir = fit_region.createStreaminformationRegion()
+    srm = sir.createStreamresourceMemory()
+    sir.setResourceDomainTypes(srm, Field.DOMAIN_TYPE_NODES | Field.DOMAIN_TYPE_MESH1D)
+    fit_region.write(sir)
+    result, buffer = srm.getBuffer()
+    sir = region.createStreaminformationRegion()
+    srm = sir.createStreamresourceMemoryBuffer(buffer)
+    region.read(sir)
+
+    return tx, td1
+
+
 def find_1d_path_endpoints(points):
     """
     Given list of XYZ coordinates, find two furthest apart from each other.
@@ -1210,7 +1445,6 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
                                 next parent node id closest to branch start, xi location of the branch start,
                                 branch start x, y, z coordinate, branch start derivative d1]
     """
-
     trunk_nodes_count = options['Number of elements along the trunk'] + 1
     number_of_iterations = options['Iterations (fit trunk)']
 
@@ -1218,7 +1452,7 @@ def generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options):
     fit_fm = fit_region.getFieldmodule()
     fit_fc = fit_fm.createFieldcache()
     fit_nodes = fit_fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-    fit_coordinates = findOrCreateFieldCoordinates(fit_fm).castFiniteElement()
+    fit_coordinates = find_or_create_field_coordinates(fit_fm).castFiniteElement()
 
     # 1d centroid line
     fit_nodetemplate = fit_nodes.createNodetemplate()

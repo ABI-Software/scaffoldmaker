@@ -2,7 +2,7 @@
 Interpolation functions shared by mesh generators.
 """
 
-from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub, set_magnitude
+from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, mult, normalize, sub, set_magnitude
 import copy
 import math
 from collections.abc import Sequence
@@ -1582,3 +1582,54 @@ def getCurvaturesAlongCurve(cx, cd, radialVectors, loop=False):
                 kappa = 0.5 * (kappa + kappap)
         curvatures.append(kappa)
     return curvatures
+
+
+def get_curve_from_points(px, maximum_element_length=None, number_of_elements=None):
+    """
+    Get approximate 1-D Hermite curve of equal-sized elements by sampling a series of point coordinates.
+    :param px: List of point coordinates from one end of curve to the other. Each entry in list is a list of
+    coordinate components.
+    :param maximum_element_length: Target maximum length of elements or None to use a fixed number.
+    :param number_of_elements: Number of elements to fit, or None to use a target length.
+    :return: cx, cd1 (lists of hermite coordinates and derivatives)
+    """
+    points_count = len(px)
+    assert points_count > 1
+    assert maximum_element_length or number_of_elements
+    assert (((maximum_element_length is None) or (maximum_element_length > 0.0)) or
+            ((number_of_elements is None) or (number_of_elements > 0)))
+    start_x = copy.copy(px[0])
+    end_x = copy.copy(px[-1])
+    components_count = len(start_x)
+    linear_length = magnitude(sub(end_x, start_x))
+    elements_count = number_of_elements if number_of_elements else math.ceil(linear_length / maximum_element_length)
+    if elements_count < 2:
+        elements_count = 2  # start with 2 so at least one internal sample to get a better initial shape
+    # get half range of point indexes over which node coordinates are averaged, a real number
+    delta_index_real = points_count / (4 * elements_count)
+    nx = [start_x]
+    zero = [0.0] * components_count
+    nd1 = [zero]
+    for n in range(1, elements_count):
+        middle_index_real = (n * points_count) / elements_count
+        start_index_real = middle_index_real - delta_index_real
+        start_index = math.floor(start_index_real)
+        end_index_real = middle_index_real + delta_index_real
+        end_index = math.ceil(end_index_real)
+        # allow for part weight of start and end points
+        sum_x = mult(px[start_index], 1.0 - (start_index_real - start_index))
+        for i in range(start_index + 1, end_index):
+            sum_x = add(sum_x, px[i])
+        sum_x = add(sum_x, mult(px[end_index], 1.0 - (end_index - end_index_real)))
+        x = div(sum_x, 2.0 * delta_index_real)
+        nx.append(x)
+        nd1.append(zero)
+    nx.append(end_x)
+    nd1.append(zero)
+    # smooth with harmonic mean, get the length and resample to the desired number of even-sized elements
+    nd1 = smoothCubicHermiteDerivativesLine(
+        nx, nd1, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+    curve_length = getCubicHermiteCurvesLength(nx, nd1)
+    elements_count = number_of_elements if number_of_elements else math.ceil(curve_length / maximum_element_length)
+    cx, cd1 = sampleCubicHermiteCurvesSmooth(nx, nd1, elements_count)[0:2]
+    return cx, cd1
