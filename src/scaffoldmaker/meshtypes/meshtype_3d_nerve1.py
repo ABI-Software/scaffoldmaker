@@ -11,7 +11,7 @@ from cmlibs.utils.zinc.field import find_or_create_field_group, find_or_create_f
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
-from scaffoldfitter.fitter import Fitter
+from scaffoldfitter.fitter import Fitter as GeometryFitter
 from scaffoldfitter.fitterstepfit import FitterStepFit
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     findAnnotationGroupByName
@@ -25,7 +25,7 @@ from scaffoldmaker.utils.interpolation import (
     interpolateHermiteLagrange, sampleCubicHermiteCurvesSmooth, smoothCurveSideCrossDerivatives)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.utils.zinc_utils import (
-    fit_hermite_curve, generate_curve_mesh, generate_datapoints, generate_mesh_marker_points,
+    define_and_fit_field, fit_hermite_curve, generate_curve_mesh, generate_datapoints, generate_mesh_marker_points,
     get_nodeset_field_parameters)
 
 
@@ -1094,7 +1094,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     :param trunk_elements_count: Number of elements in final 1-D mesh.
     :param trunk_fit_iterations:  Number of iterations in main trunk fit >= 1.
     :param region: Region to put the fitted 1-D geometry including marker points in.
-    :return: tx, td1 (parameters for 1-D fitted trunk geometry)
+    :return: tx, td1, rx, rd1 (parameters for 1-D fitted trunk geometry, radius parameters)
     """
 
     # 1. pre-fit to range of trunk data
@@ -1110,7 +1110,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     # resample to even size
     dx, dd1 = sampleCubicHermiteCurvesSmooth(cx, cd1, trunk_elements_count_prefit)[0:2]
 
-    # 2. make initial full trunk extending pre-fit based on furthest marker material coordintes
+    # 2. make initial full trunk extending pre-fit based on furthest marker material coordinates
 
     vagus_level_terms = get_left_vagus_marker_locations_list() if is_left \
         else get_right_vagus_marker_locations_list()
@@ -1179,6 +1179,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     fit_region = region.createRegion()
     fieldmodule = fit_region.getFieldmodule()
     coordinates = find_or_create_field_coordinates(fieldmodule)
+    components_count = coordinates.getNumberOfComponents()
     mesh1d = fieldmodule.findMeshByDimension(1)
     trunk_group_name = vagus_data.get_trunk_group_name()
     with ChangeManager(fieldmodule):
@@ -1189,6 +1190,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         data_identifier = 1
         data_identifier = generate_datapoints(
             fit_region, px, data_identifier, field_names_and_values=field_names_and_values, group_name=trunk_group_name)
+        radius = fieldmodule.findFieldByName("radius").castFiniteElement()
 
         # add marker points in order along trunk
         ordered_marker_data = []  # list of (name, curve_location)
@@ -1218,7 +1220,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
 
     # note that fitting is very slow if done within ChangeManager as find mesh location is slow
     # this includes working with the user-supplied region which is called with ChangeManager on.
-    fitter = Fitter(region=fit_region)
+    fitter = GeometryFitter(region=fit_region)
     config0 = fitter.getInitialFitterStepConfig()
     length = getCubicHermiteCurvesLength(ex, ed1)
     outlier_length = 0.025 * length
@@ -1234,8 +1236,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
 
     # calibration_points_count = 23954
     points_count_calibration_factor =  len(px) / 25000
-    # calibration_length = 27840
-    length_calibration_factor = length / 25000
+    # calibration_length = 27840.0
+    length_calibration_factor = length / 25000.0
     strain_penalty = 1000.0 * points_count_calibration_factor * length_calibration_factor
     curvature_penalty = 1.0E+8 * points_count_calibration_factor * (length_calibration_factor ** 3)
     marker_weight = 10.0 * points_count_calibration_factor
@@ -1259,11 +1261,18 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         fit2.setNumberOfIterations(trunk_fit_iterations - 1)
         fit2.run()
 
+    # fit radius
+    if pr:
+        gradient1_penalty = 1000.0 * points_count_calibration_factor * length_calibration_factor
+        gradient2_penalty = 1.0E+8 * points_count_calibration_factor * (length_calibration_factor ** 3)
+        define_and_fit_field(fit_region, "coordinates", "coordinates", "radius", gradient1_penalty, gradient2_penalty)
+
     # extract fitted trunk parameters from nodes
     tx = []
     td1 = []
+    rx = []
+    rd1 = []
     fieldcache = fieldmodule.createFieldcache()
-    components_count = coordinates.getNumberOfComponents()
     nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
     nodeiterator = nodes.createNodeiterator()
     node = nodeiterator.next()
@@ -1273,6 +1282,12 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         result, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, components_count)
         tx.append(x)
         td1.append(d1)
+        if pr:
+            result, x = radius.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, d1 = radius.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 1)
+            rx.append(x)
+            rd1.append(d1)
+
         node = nodeiterator.next()
 
     # copy model to user-supplied region
@@ -1285,7 +1300,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     srm = sir.createStreamresourceMemoryBuffer(buffer)
     region.read(sir)
 
-    return tx, td1
+    return tx, td1, rx, rd1
 
 
 def find_1d_path_endpoints(points):
@@ -2053,7 +2068,7 @@ def fit_trunk_model(modelfile, datafile, trunk_group_name=None):
     :param (optional) trunk_group_name: Vagus nerve trunk name to set ModelFitGroup.
     :return: Fitter object.
     """
-    fitter = Fitter(modelfile, datafile)
+    fitter = GeometryFitter(modelfile, datafile)
     fitter.load()
 
     # initial configuration
@@ -2105,7 +2120,7 @@ def fit_full_trunk_model(modelfile, datafile, trunk_group_name=None):
     :param (optional) trunk_group_name: Vagus nerve trunk name to set ModelFitGroup.
     :return: Fitter object.
     """
-    fitter = Fitter(modelfile, datafile)
+    fitter = GeometryFitter(modelfile, datafile)
     fitter.load()
 
     # initial configuration
@@ -2153,7 +2168,7 @@ def fit_branches_model(modelfile, datafile, branch_name=None):
     """
 
     # initial configuration
-    fitter = Fitter(modelfile, datafile)
+    fitter = GeometryFitter(modelfile, datafile)
     fitter.load()
     fitter.setModelCoordinatesFieldByName('coordinates')
     if branch_name:

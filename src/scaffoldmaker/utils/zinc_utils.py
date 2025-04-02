@@ -13,7 +13,8 @@ from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, NodesetGroup
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldfitter.fitter import Fitter
+from fieldfitter.fitter import Fitter as FieldFitter
+from scaffoldfitter.fitter import Fitter as GeometryFitter
 from scaffoldfitter.fitterstepconfig import FitterStepConfig
 from scaffoldfitter.fitterstepfit import FitterStepFit
 from scaffoldmaker.utils import interpolation as interp
@@ -921,7 +922,7 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
         zero_fibres.setName("zero fibres")
         zero_fibres.setManaged(True)
 
-    fitter = Fitter(region=fit_region)
+    fitter = GeometryFitter(region=fit_region)
     # fitter.setDiagnosticLevel(1)
     fitter.setModelCoordinatesField(coordinates)
     fitter.setFibreField(zero_fibres)
@@ -974,3 +975,42 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
         node = nodeiterator.next()
 
     return cx, cd1
+
+
+def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_name, fit_field_name,
+                         gradient1_penalty, gradient2_penalty, group_name=None):
+    """
+    :param region: Region containing geometric model to define and fit field to, and data points containing
+    field values
+    :param coordinate_field_name: Name of coordinate field on the model. The first component of this field is used
+    as a template for defining all components of the fit field over the model.
+    :param data_coordinate_field_name: Name of coordinate field on the data, used to find nearest mesh location on
+    model.
+    :param fit_field_name: Name of field to fit; must be defined over data points.
+    :param gradient1_penalty: Penalty factor for first gradient of field w.r.t. coordinates.
+    :param gradient2_penalty: Penalty factor for second gradient of field w.r.t. coordinates.
+    :param group_name: Optional name of group to limit fitting over.
+    """
+    fitter = FieldFitter(region=region)
+    fitter.setDiagnosticLevel(2)
+    fieldmodule = region.getFieldmodule()
+    coordinates = fieldmodule.findFieldByName(coordinate_field_name).castFiniteElement()
+    fitter.setModelCoordinatesField(coordinates)
+    data_coordinates = fieldmodule.findFieldByName(data_coordinate_field_name).castFiniteElement()
+    fitter.setDataCoordinatesField(data_coordinates)
+    if group_name:
+        model_fit_group = fieldmodule.findFieldByName(group_name).castGroup()
+        assert model_fit_group.isValid()
+        fitter.setModelFitGroup(model_fit_group)
+    fitter.updateFitFields()
+    if fieldmodule.findMeshByDimension(coordinates.getNumberOfComponents()).getSize() == 0:
+        with ChangeManager(fieldmodule):
+            # need a zero fibre field to apply strain/curvature penalties on 1-D model
+            zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
+            zero_fibres.setName("zero fibres")
+            zero_fibres.setManaged(True)
+        fitter.setFibreField(zero_fibres)
+    fitter.setGradient1Penalty([gradient1_penalty])
+    fitter.setGradient2Penalty([gradient2_penalty])
+    fitter.setFitField(fit_field_name, True)
+    fitter.fitField(fit_field_name)
