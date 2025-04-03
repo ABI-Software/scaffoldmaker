@@ -1105,10 +1105,15 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     px = [e[0] for e in trunk_data_coordinates]
     bx, bd1 = get_curve_from_points(px, number_of_elements=trunk_elements_count_prefit)
     length = getCubicHermiteCurvesLength(bx, bd1)
-    outlier_length = 0.025 * length
-    cx, cd1 = fit_hermite_curve(bx, bd1, px, outlier_length=outlier_length)
+    # outlier_length = 0.025 * length
+    # # needs to be bigger if fewer elements:
+    # if trunk_elements_count_prefit < 20:
+    #     outlier_length += 0.075 * (20 - trunk_elements_count_prefit) / 19.0
+    cx, cd1 = fit_hermite_curve(bx, bd1, px)  # , outlier_length=outlier_length)
     # resample to even size
     dx, dd1 = sampleCubicHermiteCurvesSmooth(cx, cd1, trunk_elements_count_prefit)[0:2]
+    # generate_curve_mesh(region, dx, dd1, group_name=vagus_data.get_trunk_group_name())[0]
+    # return dx, dd1, [], []
 
     # 2. make initial full trunk extending pre-fit based on furthest marker material coordinates
 
@@ -1165,8 +1170,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     mag_d1 = magnitude(dd1[-1])
     end_dx = add(dx[-1], mult(end_direction, end_extra_length))
     if start_extra_length < (0.51 * mag_d1):
-        dx[0] = end_dx
-        dd1[0] = set_magnitude(dd1[-1], mag_d1 + 2.0 * end_extra_length)
+        dx[-1] = end_dx
+        dd1[-1] = set_magnitude(dd1[-1], mag_d1 + 2.0 * end_extra_length)
     else:
         dx.append(end_dx)
         dd1.append(mult(end_direction, 2.0 * end_extra_length - mag_d1))

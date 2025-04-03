@@ -941,9 +941,9 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
         # must re-run initial configuration to use data proportion
         config0.run()
 
-    # calibrated from scaling model by 0.0001: a power of 3 relationship
+    # calibrated by scaling the model: a power of 3 relationship
     curvature_penalty = ((points_count * data_proportion) / (points_per_element * elements_count) *
-                         1000.0 * (0.0001 * curve_length) ** 3)
+                         1.0E-8 * (curve_length ** 3))
     fit1 = FitterStepFit()
     fitter.addFitterStep(fit1)
     fit1.setGroupCurvaturePenalty(None, [curvature_penalty])
@@ -980,6 +980,8 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
 def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_name, fit_field_name,
                          gradient1_penalty, gradient2_penalty, group_name=None):
     """
+    Define and fit field over mesh in region. Components of field are defined identically to first
+    component of the coordinate field.
     :param region: Region containing geometric model to define and fit field to, and data points containing
     field values
     :param coordinate_field_name: Name of coordinate field on the model. The first component of this field is used
