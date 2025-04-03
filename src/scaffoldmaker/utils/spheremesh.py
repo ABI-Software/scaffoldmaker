@@ -35,7 +35,7 @@ class SphereMesh:
     def __init__(self, fieldModule, coordinates, centre, axes, elementsCountAcross,
                  elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                  sphereShape=SphereShape.SPHERESHIELD_SHAPE_OCTANT_PPP, rangeOfRequiredElements=None,
-                 boxDerivatives=None, useCrossDerivatives=False,  meshGroups=[]):
+                 boxDerivatives=None, useCrossDerivatives=False, useSerendipity=False, meshGroups=[]):
         """
         :param fieldModule: Zinc fieldModule to create elements in.
         :param coordinates: Coordinate field to define.
@@ -75,6 +75,7 @@ class SphereMesh:
         self._rangeOfRequiredElements = rangeOfRequiredElements
 
         self._useCrossDerivatives = useCrossDerivatives
+        self._useSerendipity = useSerendipity
 
         self._centre = centre
 
@@ -449,8 +450,13 @@ class SphereMesh:
         """
         elementIdentifier = max(1, getMaximumElementIdentifier(mesh) + 1)
         self._startElementIdentifier = elementIdentifier
-        elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier,
-                                                            self._rangeOfRequiredElements, self._meshGroups)
+
+        if self._useSerendipity:
+            elementIdentifier = self._shield3D.generateElementsSerendipity(fieldModule, coordinates, elementIdentifier,
+                                                                           self._rangeOfRequiredElements, self._meshGroups)
+        else:
+            elementIdentifier = self._shield3D.generateElements(fieldModule, coordinates, elementIdentifier,
+                                                                self._rangeOfRequiredElements, self._meshGroups)
         self._endElementIdentifier = elementIdentifier
 
 

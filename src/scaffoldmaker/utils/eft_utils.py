@@ -687,6 +687,8 @@ class HermiteNodeLayoutManager:
         self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
             [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
         self.nodeLayoutsBifurcation6WayTriplePoint = {}
+        self._nodeLayoutSphereBoxShield = None
+        self._nodeLayoutSphereBoxShieldTriplePoint = None
 
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
         """
@@ -736,6 +738,172 @@ class HermiteNodeLayoutManager:
         nodeLayouts = [self._nodeLayoutTriplePointTopLeft, self._nodeLayoutTriplePointTopRight,
                        self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]
         return nodeLayouts
+
+    def getNodeLayoutSphereTransition(self):
+        """
+        Get node layout for transition elements between the core box elements and the shield elements in the sphere mesh.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayoutRegularPermuted_d3Defined
+
+    def getNodeLayoutSphereShellTriplePoint(self):
+        """
+        Get node layout for triple-point corners of shell elements in the sphere mesh.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [-1.0, -1.0, 0.0]])
+
+        return nodeLayout
+
+    def getNodeLayoutSphereBoxShield(self, axis, isFront=True):
+        """
+        Get node layout for elements between the box and the shield in the sphere mesh. There are four types
+        (Top, Bottom, Left, and Right) each with its specific node layout. The node layout also changes direction
+        depending on whether the shield elements are generated at the front end or the backend respective to the axis.
+        :param axis: The axis along which to work on. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param isFront: True if generating elements at the front side of a sphere respective to the axis, False if
+        generating at the backend of a sphere.
+        :return: HermiteNodeLayout.
+        """
+        assert axis in [1, 2, 3]
+
+        if axis == 1:
+            if isFront:
+                nodeLayoutSphereBoxShieldTop = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
+                nodeLayoutSphereBoxShieldBottom = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+                nodeLayoutSphereBoxShieldLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, -1.0, 0.0]])
+                nodeLayoutSphereBoxShieldRight = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, 1.0, 0.0]])
+            else:
+                nodeLayoutSphereBoxShieldTop = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
+                nodeLayoutSphereBoxShieldBottom = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
+                nodeLayoutSphereBoxShieldLeft = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 0.0]])
+                nodeLayoutSphereBoxShieldRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 0.0]])
+        elif axis == 2:
+            if isFront:
+                nodeLayoutSphereBoxShieldTop = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldBottom = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, -1.0, 0.0]])
+                nodeLayoutSphereBoxShieldRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 0.0]])
+            else:
+                nodeLayoutSphereBoxShieldTop = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 1.0]])
+                nodeLayoutSphereBoxShieldBottom = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]])
+                nodeLayoutSphereBoxShieldLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, 1.0, 0.0]])
+                nodeLayoutSphereBoxShieldRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 0.0]])
+        else:
+            if isFront:
+                nodeLayoutSphereBoxShieldTop = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
+                nodeLayoutSphereBoxShieldBottom = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+                nodeLayoutSphereBoxShieldLeft = HermiteNodeLayout(
+                    [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldRight = HermiteNodeLayout(
+                    [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
+            else:
+                nodeLayoutSphereBoxShieldTop = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
+                nodeLayoutSphereBoxShieldBottom = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
+                nodeLayoutSphereBoxShieldLeft = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 1.0]])
+
+        nodeLayouts = [nodeLayoutSphereBoxShieldTop, nodeLayoutSphereBoxShieldBottom,
+                       nodeLayoutSphereBoxShieldLeft, nodeLayoutSphereBoxShieldRight]
+
+        return nodeLayouts
+
+    def getNodeLayoutSphereBoxShieldTriplePoint(self, axis, isFront=True):
+        """
+        Get node layout for triple-point corners of core box elements in the sphere mesh. There are four corners
+        (Top Left, Top Right, Bottom Left, and Bottom Right) each with its specific node layout.
+        :param axis: The axis along which to work on. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param isFront: True if generating elements at the front side of a sphere respective to the axis, False if
+        generating at the backend of a sphere.
+        :return: HermiteNodeLayout.
+        """
+        assert axis in [1, 2, 3]
+        if axis == 1:
+            if isFront:
+                nodeLayoutSphereBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointTopRight = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+            else:
+                nodeLayoutSphereBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointTopRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 1.0, -1.0]])
+        elif axis == 2:
+            if isFront:
+                nodeLayoutSphereBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointTopRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]])
+            else:
+                nodeLayoutSphereBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointTopRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 1.0, -1.0]])
+        else:
+            if isFront:
+                nodeLayoutSphereBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointTopRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, -1.0, -1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
+            else:
+                nodeLayoutSphereBoxShieldTriplePointTopLeft = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointTopRight = HermiteNodeLayout(
+                    [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]])
+                nodeLayoutSphereBoxShieldTriplePointBottomRight = HermiteNodeLayout(
+                    [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
+
+        self._nodeLayoutSphereBoxShieldTriplePoint = \
+            [nodeLayoutSphereBoxShieldTriplePointTopLeft, nodeLayoutSphereBoxShieldTriplePointTopRight,
+             nodeLayoutSphereBoxShieldTriplePointBottomLeft, nodeLayoutSphereBoxShieldTriplePointBottomRight]
+
+        return self._nodeLayoutSphereBoxShieldTriplePoint
 
     def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
         """
