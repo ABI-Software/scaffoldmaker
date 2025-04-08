@@ -7,7 +7,9 @@ from cmlibs.maths.vectorops import (
     add, cross, distance_squared, div, dot, magnitude, matrix_mult, matrix_inv, mult, normalize, rejection,
     set_magnitude, sub)
 from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.utils.zinc.field import find_or_create_field_group, find_or_create_field_coordinates
+from cmlibs.utils.zinc.field import (
+    find_or_create_field_stored_mesh_location, find_or_create_field_group, find_or_create_field_coordinates,
+    orphan_field_by_name)
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldGroup
 from cmlibs.zinc.node import Node
@@ -20,13 +22,14 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
     setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import (
-    getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteCurvesLength,
+    evaluateCoordinatesOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteCurvesLength,
     getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points, interpolateCubicHermite,
-    interpolateHermiteLagrange, sampleCubicHermiteCurvesSmooth, smoothCurveSideCrossDerivatives)
+    interpolateCubicHermiteDerivative, interpolateHermiteLagrange, sampleCubicHermiteCurvesSmooth,
+    smoothCurveSideCrossDerivatives, track_curve_side_direction)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.utils.zinc_utils import (
-    define_and_fit_field, fit_hermite_curve, generate_curve_mesh, generate_datapoints, generate_mesh_marker_points,
-    get_nodeset_field_parameters)
+    define_and_fit_field, find_or_create_field_zero_fibres, fit_hermite_curve, generate_curve_mesh, generate_datapoints,\
+    generate_mesh_marker_points, get_nodeset_field_parameters)
 
 
 logger = logging.getLogger(__name__)
@@ -1218,21 +1221,18 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
             fit_region, list(raw_marker_data.values()), data_identifier,
             field_names_and_values=[("marker_name", list(raw_marker_data.keys()))], group_name="marker")
 
-        # need a zero fibre field to apply strain/curvature penalties on 1-D model
-        zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
-        zero_fibres.setName("zero fibres")
-        zero_fibres.setManaged(True)
+        zero_fibres = find_or_create_field_zero_fibres(fieldmodule)
 
     # note that fitting is very slow if done within ChangeManager as find mesh location is slow
     # this includes working with the user-supplied region which is called with ChangeManager on.
     fitter = GeometryFitter(region=fit_region)
-    config0 = fitter.getInitialFitterStepConfig()
     length = getCubicHermiteCurvesLength(ex, ed1)
     outlier_length = 0.025 * length
-    config0.setGroupOutlierLength(None, outlierLength=outlier_length)
+    fitter.getInitialFitterStepConfig().setGroupOutlierLength(None, outlierLength=outlier_length)
     fitter.setDiagnosticLevel(1)
     fitter.setModelCoordinatesField(coordinates)
     fitter.setFibreField(zero_fibres)
+    del zero_fibres
     fitter.defineCommonMeshFields()
     fitter.setDataCoordinatesField(coordinates)
     fitter.defineDataProjectionFields()
@@ -1240,7 +1240,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     fitter.initializeFit()
 
     # calibration_points_count = 23954
-    points_count_calibration_factor =  len(px) / 25000
+    points_count_calibration_factor = len(px) / 25000
     # calibration_length = 27840.0
     length_calibration_factor = length / 25000.0
     strain_penalty = 1000.0 * points_count_calibration_factor * length_calibration_factor
@@ -1256,15 +1256,22 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         fit1.setGroupCurvaturePenalty(None, [curvature_penalty])
         fit1.setGroupDataSlidingFactor(None, sliding_factor)
         fit1.run()
+        del fit1
 
     if trunk_fit_iterations > 1:
         fit2 = FitterStepFit()
         fitter.addFitterStep(fit2)
         fit2.setGroupStrainPenalty(None, [0.1 * strain_penalty])
         fit2.setGroupCurvaturePenalty(None, [0.1 * curvature_penalty])
-        fit1.setGroupDataSlidingFactor(None, 0.1 * sliding_factor)
+        fit2.setGroupDataSlidingFactor(None, 0.1 * sliding_factor)
         fit2.setNumberOfIterations(trunk_fit_iterations - 1)
         fit2.run()
+        del fit2
+
+    rms_error, max_error = fitter.getDataRMSAndMaximumProjectionError()
+
+    fitter.cleanup()
+    del fitter
 
     # fit radius
     if pr:
@@ -1273,6 +1280,11 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         define_and_fit_field(fit_region, "coordinates", "coordinates", "radius", gradient1_penalty, gradient2_penalty)
 
     # extract fitted trunk parameters from nodes
+    length = getCubicHermiteCurvesLength(ex, ed1)
+    scale_step = 1000.0  # assume units scale varying by 1000s
+    default_radius = 0.0015  # meters (1.5 mm)
+    while (default_radius * scale_step) < length:
+        default_radius *= scale_step
     tx = []
     td1 = []
     rx = []
@@ -1290,10 +1302,125 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         if pr:
             result, x = radius.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
             result, d1 = radius.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 1)
-            rx.append(x)
-            rd1.append(d1)
-
+        else:
+            x = default_radius
+            d1 = 0.0
+        rx.append(x)
+        rd1.append(d1)
         node = nodeiterator.next()
+
+    # remove all datapoints from previous fits.
+    datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+    datapoints.destroyAllNodes()
+
+    # fit orientation
+    orientation_dct = vagus_data.get_orientation_data()
+    orientation_x = []
+    orientation_twist_angles = []
+    if orientation_dct:
+        # convert to list in order down the trunk
+        length = getCubicHermiteCurvesLength(tx, td1)
+        orientation_directions = []  # list of anterior directions
+        orientation_names = []  # list of orientation names
+        orientation_locations = []  # list of curve location (element index, xi) for orientation points
+        one_sqrt2 = 1.0 / math.sqrt(2.0)
+        # weights of d2, d3 to give anterior direction for a given orientation direction name
+        orientation_anterior_weights = {
+            "left": (-1.0, 0.0),
+            "left anterior": (-one_sqrt2, one_sqrt2),
+            "anterior": (0.0, 1.0),
+            "right anterior": (one_sqrt2, one_sqrt2),
+            "right": (1.0, 0.0),
+            "right posterior": (one_sqrt2, -one_sqrt2),
+            "posterior": (0.0, -1.0),
+            "left posterior": (-one_sqrt2, -one_sqrt2)
+        }
+        for name, x_list in orientation_dct.items():
+            direction_name = name.split("orientation ", 1)[1]
+            weights = orientation_anterior_weights.get(direction_name)
+            if not weights:
+                logger.warning("Nerve: Ignoring unrecognized orientation points with name '" + name + "'")
+                continue
+            wt2, wt3 = weights
+            for data_x in x_list:
+                curve_location, x = getNearestLocationOnCurve(tx, td1, data_x)
+                e1 = curve_location[0]
+                e2 = curve_location[0] + 1
+                xi = curve_location[1]
+                d1 = interpolateCubicHermiteDerivative(tx[e1], td1[e1], tx[e2], td1[e2], xi)
+                dir1 = normalize(d1)
+                projection = sub(data_x, x)
+                normal_projection = rejection(projection, dir1)
+                projection_error = magnitude(normal_projection)
+                if projection_error < rms_error:
+                    # skip orientation points within rmsError of trunk centroid as inaccurate
+                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location", curve_location,
+                                   "as projection error", projection_error, "is less than trunk RMS error", rms_error)
+                    continue
+                dirp = normalize(projection)
+                if math.fabs(dot(dir1, dirp)) > 0.5:
+                    # skip orientation points with severely non-normal projection e.g. past end of curve
+                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location", curve_location,
+                                    "as projection is oblique or co-linear with centroid curve")
+                    continue
+                dir2 = normalize(cross(dirp, dir1))
+                dir3 = cross(dir1, dir2)
+                anterior_direction = add(mult(dir2, wt2), mult(dir3, wt3))
+                for idx, orientation_location in enumerate(orientation_locations):
+                    if curve_location < orientation_location:
+                        break
+                else:
+                    idx = len(orientation_locations)
+                orientation_x.insert(idx, x)
+                orientation_directions.insert(idx, anterior_direction)
+                orientation_names.insert(idx, name)
+                orientation_locations.insert(idx, curve_location)
+        if not orientation_directions:
+            logger.warning("Nerve: All orientation points ignored, using default orientation")
+        else:
+            twist_angle = 0.0
+            orientation_twist_angles.append(twist_angle)  # top orientation point is at 0 radians
+            direction = orientation_directions[0]
+            for i in range(1, len(orientation_locations)):
+                dir1, dir2, dir3 = track_curve_side_direction(
+                    tx, td1, direction, orientation_locations[i - 1], orientation_locations[i])
+                direction = orientation_directions[i]
+                y = -dot(direction, dir2)
+                x = dot(direction, dir3)
+                delta_twist_angle = math.atan2(y, x)
+                twist_angle += delta_twist_angle
+                orientation_twist_angles.append(twist_angle)
+            # debug
+            print("Orientation data:")
+            for location, direction, twist_angle, name,  in zip(orientation_locations, orientation_directions, orientation_twist_angles, orientation_names):
+                print(location, direction, twist_angle, name)
+
+    if orientation_twist_angles:
+        data_identifier = 1
+        twist_angle_field_name = "twist angle"
+        twist_points_count_calibration_factor = len(orientation_twist_angles) / 27.0
+        data_identifier = generate_datapoints(
+            fit_region, orientation_x, data_identifier,
+            field_names_and_values=[(twist_angle_field_name, orientation_twist_angles)])
+        gradient1_penalty = 1.0 * twist_points_count_calibration_factor * length_calibration_factor
+        gradient2_penalty = 1.0E+5 * twist_points_count_calibration_factor * (length_calibration_factor ** 3)
+        define_and_fit_field(fit_region, "coordinates", "coordinates", twist_angle_field_name, gradient1_penalty, gradient2_penalty)
+        twist_angle = fieldmodule.findFieldByName(twist_angle_field_name).castFiniteElement()
+        # extract fitted twist angle parameters from nodes
+        ax = []
+        ad1 = []
+        nodeiterator = nodes.createNodeiterator()
+        node = nodeiterator.next()
+        while node.isValid():
+            fieldcache.setNode(node)
+            result, x = twist_angle.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, d1 = twist_angle.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 1)
+            ax.append(x)
+            ad1.append(d1)
+            node = nodeiterator.next()
+    else:
+        # make default side axes
+        pass
 
     # copy model to user-supplied region
     sir = fit_region.createStreaminformationRegion()

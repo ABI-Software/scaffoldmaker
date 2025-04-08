@@ -1660,3 +1660,58 @@ def get_curve_from_points(px, maximum_element_length=None, number_of_elements=No
     elements_count = number_of_elements if number_of_elements else math.ceil(curve_length / maximum_element_length)
     cx, cd1 = sampleCubicHermiteCurvesSmooth(nx, nd1, elements_count)[0:2]
     return cx, cd1
+
+
+def track_curve_side_direction(cx, cd1, start_direction, start_location, end_location):
+    """
+    Track side direction from start to end location on curve assuming no twisting.
+    :param cx: Curve coordinate parameters.
+    :param cd1: Curve derivative parameters.
+    :param start_direction: Unit vector orthogonal to curve at start location.
+    :param start_location: Curve location (element index, xi) to track from.
+    :param end_location: Curve location (element index, xi) to track to.
+    :return: dir1, dir2, dir3 (updated side direction) at end location.
+    """
+    xi_increment = 0.1
+    last_element_index = len(cx) - 2
+    location = start_location
+    forward = end_location > start_location
+    direction = start_direction
+    tracking = True
+    while tracking:
+        element_index = location[0]
+        xi = location[1]
+        if forward:
+            xi += xi_increment
+            if xi >= 1.0:
+                if element_index < last_element_index:
+                    element_index += 1
+                    xi -= 1.0
+                else:
+                    xi = 1.0
+                    tracking = False
+            location = (element_index, xi)
+            if location > end_location:
+                location = end_location
+                tracking = False
+        else:  # reverse
+            xi -= xi_increment
+            if xi < 0.0:
+                if element_index > 0:
+                    element_index -= 1
+                    xi += 1.0
+                else:
+                    xi = 0.0
+                    tracking = False
+            location = (element_index, xi)
+            if location < start_location:
+                location = start_location
+                tracking = False
+        e1 = location[0]
+        e2 = location[0] + 1
+        xi = location[1]
+        d1 = interpolateCubicHermiteDerivative(cx[e1], cd1[e1], cx[e2], cd1[e2], xi)
+        d2 = cross(direction, d1)
+        direction = normalize(cross(d1, d2))
+
+    return normalize(d1), normalize(d2), direction

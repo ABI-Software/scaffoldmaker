@@ -885,6 +885,24 @@ def blendDerivativeBetweenDifferentSizeElements(coordinates, cache, nodes, prevN
     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Mean)
 
 
+def find_or_create_field_zero_fibres(fieldmodule, name="zero fibres", managed=True):
+    """
+    Find or create a constant field representing 3 zero fibre angles.
+    :param fieldmodule: Owning field module to find or create field in.
+    :param name: Name of zero fibres field.
+    :param managed: Whether
+    :return: Zinc Field.
+    """
+    zero_fibres = fieldmodule.findFieldByName(name)
+    if zero_fibres.isValid():
+        return zero_fibres
+    with ChangeManager(fieldmodule):
+        zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
+        zero_fibres.setName(name)
+        zero_fibres.setManaged(managed)
+    return zero_fibres
+
+
 def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=None):
     """
     Fit 1-D multi-element hermite curve to list of data point coordinates.
@@ -918,9 +936,7 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
         generate_curve_mesh(fit_region, bx, bd1, group_name=curve_group_name)
         generate_datapoints(fit_region, px, group_name=curve_group_name)
         # need a zero fibre field to apply strain/curvature penalties on 1-D model
-        zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
-        zero_fibres.setName("zero fibres")
-        zero_fibres.setManaged(True)
+        zero_fibres = find_or_create_field_zero_fibres(fieldmodule)
 
     fitter = GeometryFitter(region=fit_region)
     # fitter.setDiagnosticLevel(1)
@@ -929,17 +945,12 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
     fitter.defineCommonMeshFields()
     fitter.setDataCoordinatesField(coordinates)
     fitter.defineDataProjectionFields()
-    fitter.initializeFit()
-
     # aim for no more than 25 points per element:
     points_per_element = 25
     data_proportion = min(1.0, points_per_element * elements_count / points_count)
-
     if data_proportion < 1.0:
-        config0 = fitter.getInitialFitterStepConfig()
-        config0.setGroupDataProportion(None, data_proportion)
-        # must re-run initial configuration to use data proportion
-        config0.run()
+        fitter.getInitialFitterStepConfig().setGroupDataProportion(None, data_proportion)
+    fitter.initializeFit()
 
     # calibrated by scaling the model: a power of 3 relationship
     curvature_penalty = ((points_count * data_proportion) / (points_per_element * elements_count) *
@@ -948,16 +959,22 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
     fitter.addFitterStep(fit1)
     fit1.setGroupCurvaturePenalty(None, [curvature_penalty])
     fit1.run()
+    del fit1
 
     if outlier_length != 0.0:
         config2 = FitterStepConfig()
         fitter.addFitterStep(config2)
         config2.setGroupOutlierLength(None, outlier_length)
         config2.run()
+        del config2
 
         fit3 = FitterStepFit()
         fitter.addFitterStep(fit3)
         fit3.run()
+        del fit3
+
+    fitter.cleanup()
+    del fitter
 
     # extract fitted curve parameters from nodes
     cx = []
@@ -1006,13 +1023,11 @@ def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_na
         fitter.setModelFitGroup(model_fit_group)
     fitter.updateFitFields()
     if fieldmodule.findMeshByDimension(coordinates.getNumberOfComponents()).getSize() == 0:
-        with ChangeManager(fieldmodule):
-            # need a zero fibre field to apply strain/curvature penalties on 1-D model
-            zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
-            zero_fibres.setName("zero fibres")
-            zero_fibres.setManaged(True)
-        fitter.setFibreField(zero_fibres)
+        # need a zero fibre field to apply strain/curvature penalties on 1-D model
+        fitter.setFibreField(find_or_create_field_zero_fibres(fieldmodule))
     fitter.setGradient1Penalty([gradient1_penalty])
     fitter.setGradient2Penalty([gradient2_penalty])
     fitter.setFitField(fit_field_name, True)
     fitter.fitField(fit_field_name)
+    fitter.cleanup()
+    del fitter
