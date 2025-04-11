@@ -1242,8 +1242,7 @@ def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
     :param location: Location (element index, xi) to get coordinates for.
     :param loop: True if curve loops back to first point, False if not.
     :param derivative: Set to True to calculate and return derivative w.r.t. element xi.
-    :return: If derivative is False: coordinates.
-    If derivatives is True: coordinates, derivative.
+    :return: If derivative is False: x; if derivative is True: x, d1.
     """
     e1 = location[0]
     e2 = 0 if (loop and (e1 == (len(nx) - 1))) else e1 + 1
@@ -1253,6 +1252,26 @@ def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
         return x
     d = interpolateCubicHermiteDerivative(nx[e1], nd1[e1], nx[e2], nd1[e2], xi)
     return x, d
+
+
+def evaluateScalarOnCurve(sv, sd, location, loop=False, derivative=False):
+    """
+    Evaluate scalar interpolated along curve.
+    :param sv: List of scalar values at nodes along curve.
+    :param sd: List of scalar derivatives w.r.t. xi at nodes along curve.
+    :param location: Location (element index, xi) to get scalar value for.
+    :param loop: True if curve loops back to first point, False if not.
+    :param derivative: Set to True to calculate and return derivative w.r.t. element xi.
+    :return: If derivative is False: scalar s; if derivative is True: s, ds/dxi.
+    """
+    e1 = location[0]
+    e2 = 0 if (loop and (e1 == (len(sv) - 1))) else e1 + 1
+    xi = location[1]
+    s = interpolateCubicHermite([sv[e1]], [sd[e1]], [sv[e2]], [sd[e2]], xi)[0]
+    if not derivative:
+        return s
+    d = interpolateCubicHermiteDerivative([sv[e1]], [sd[e1]], [sv[e2]], [sd[e2]], xi)[0]
+    return s, d
 
 
 def isLocationOnCurveBoundary(location, elementsCount):
@@ -1662,7 +1681,7 @@ def get_curve_from_points(px, maximum_element_length=None, number_of_elements=No
     return cx, cd1
 
 
-def track_curve_side_direction(cx, cd1, start_direction, start_location, end_location):
+def track_curve_side_direction(cx, cd1, start_direction, start_location, end_location, forward=True):
     """
     Track side direction from start to end location on curve assuming no twisting.
     :param cx: Curve coordinate parameters.
@@ -1670,12 +1689,13 @@ def track_curve_side_direction(cx, cd1, start_direction, start_location, end_loc
     :param start_direction: Unit vector orthogonal to curve at start location.
     :param start_location: Curve location (element index, xi) to track from.
     :param end_location: Curve location (element index, xi) to track to.
-    :return: dir1, dir2, dir3 (updated side direction) at end location.
+    :param forward: True to track forward (end >= start), False to track backward (end <= start).
+    :return: normalized dir1, dir2, dir3 (updated side direction) at end location.
     """
+    assert (forward and (end_location >= start_location)) or ((not forward) and (end_location <= start_location))
     xi_increment = 0.1
     last_element_index = len(cx) - 2
     location = start_location
-    forward = end_location > start_location
     direction = start_direction
     tracking = True
     while tracking:
@@ -1704,13 +1724,13 @@ def track_curve_side_direction(cx, cd1, start_direction, start_location, end_loc
                     xi = 0.0
                     tracking = False
             location = (element_index, xi)
-            if location < start_location:
-                location = start_location
+            if location < end_location:
+                location = end_location
                 tracking = False
-        e1 = location[0]
-        e2 = location[0] + 1
+        n1 = location[0]
+        n2 = location[0] + 1
         xi = location[1]
-        d1 = interpolateCubicHermiteDerivative(cx[e1], cd1[e1], cx[e2], cd1[e2], xi)
+        d1 = interpolateCubicHermiteDerivative(cx[n1], cd1[n1], cx[n2], cd1[n2], xi)
         d2 = cross(direction, d1)
         direction = normalize(cross(d1, d2))
 

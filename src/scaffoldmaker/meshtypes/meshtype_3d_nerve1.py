@@ -22,10 +22,10 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
     setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import (
-    evaluateCoordinatesOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteCurvesLength,
-    getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points, interpolateCubicHermite,
-    interpolateCubicHermiteDerivative, interpolateHermiteLagrange, sampleCubicHermiteCurvesSmooth,
-    smoothCurveSideCrossDerivatives, track_curve_side_direction)
+    evaluateCoordinatesOnCurve, evaluateScalarOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives,
+    getCubicHermiteCurvesLength, getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points,
+    interpolateCubicHermite, interpolateCubicHermiteDerivative, interpolateHermiteLagrange,
+    sampleCubicHermiteCurvesSmooth, smoothCurveSideCrossDerivatives, track_curve_side_direction)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.utils.zinc_utils import (
     define_and_fit_field, find_or_create_field_zero_fibres, fit_hermite_curve, generate_curve_mesh, generate_datapoints,\
@@ -523,27 +523,31 @@ class MeshType_3d_nerve1(Scaffold_base):
         vagus_radius = vagus_aspect_ratio * rescaled_vagus_trunk_length / 2
         vagus_branch_radius = branch_to_trunk_ratio * vagus_radius
 
-        fit_new_trunk = True
-        if fit_new_trunk:
-            generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit, trunk_elements_count,
-                              trunk_fit_iterations, region)
-            trunk_group_name = vagus_data.get_trunk_group_name()
-            annotation_term_map = vagus_data.get_annotation_term_map()
-            trunk_group = AnnotationGroup(region, (trunk_group_name, annotation_term_map[trunk_group_name]))
-
-            return [trunk_group], None
-
-        # evaluate & fit centroid lines for trunk and branches
-        # print('Building centerlines for scaffold...')
-        fit_region, marker_fit_groups, branches_order, \
-            branch_root_parameters = generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options)
-        fit_fieldmodule = fit_region.getFieldmodule()
-        fit_fieldcache = fit_fieldmodule.createFieldcache()
-        fit_coordinates = fit_fieldmodule.findFieldByName("coordinates").castFiniteElement()
-        fit_nodes = fit_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        # fit trunk with radius and orientation
+        only_1d_trunk = False
+        region1d = region if only_1d_trunk else region.createRegion()
+        tx, td1, td2, td12, td3, td13 = generate_trunk_1d(
+            vagus_data, trunk_proportion, trunk_elements_count_prefit, trunk_elements_count,
+            trunk_fit_iterations, region1d)
 
         annotation_groups = []
         annotation_term_map = vagus_data.get_annotation_term_map()
+        trunk_group_name = vagus_data.get_trunk_group_name()
+        trunk_group = AnnotationGroup(region, (trunk_group_name, annotation_term_map[trunk_group_name]))
+        annotation_groups.append(trunk_group)
+
+        if only_1d_trunk:
+            return annotation_groups, None
+
+        # evaluate & fit centroid lines for trunk and branches
+        # print('Building centerlines for scaffold...')
+        # fit_region, marker_fit_groups, branches_order, \
+        #     branch_root_parameters = generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options)
+        # fit_fieldmodule = fit_region.getFieldmodule()
+        # fit_fieldcache = fit_fieldmodule.createFieldcache()
+        # fit_coordinates = fit_fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        # fit_nodes = fit_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
         # vagus annotation groups
         vagusCentroidGroup = AnnotationGroup(region, get_vagus_marker_term("vagus centroid"))
         annotation_groups.append(vagusCentroidGroup)
@@ -553,84 +557,58 @@ class MeshType_3d_nerve1(Scaffold_base):
         annotation_groups.append(vagusEpineuriumAnnotationGroup)
         vagusEpineuriumMeshGroup = vagusEpineuriumAnnotationGroup.getMeshGroup(mesh2d)
 
-        node_map = {}
-        # print('Building trunk...')
-
-        # read trunk nodes
-        trunk_group_name = vagus_data.get_trunk_group_name()
-        fit_trunk_group = find_or_create_field_group(fit_fieldmodule, trunk_group_name)
-        fit_trunk_nodes = fit_trunk_group.getNodesetGroup(fit_nodes)
-        trunk_nodes_count = fit_trunk_nodes.getSize()
-        sn = []
-        sx = []
-        sd1 = []
-        fit_node_iter = fit_trunk_nodes.createNodeiterator()
-        fit_node = fit_node_iter.next()
-        while fit_node.isValid():
-            fit_fieldcache.setNode(fit_node)
-            fit_node_id = fit_node.getIdentifier()
-            _, tx = fit_coordinates.getNodeParameters(fit_fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-            _, td1 = fit_coordinates.getNodeParameters(fit_fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-            sn.append(fit_node_id)
-            sx.append(tx)
-            sd1.append(td1)
-            fit_node = fit_node_iter.next()
-
-        # calculate side and cross derivatives - d2, d3, d12, d13
-        sd2, sd3 = set_group_nodes_derivatives_orthogonal(sd1, radius)
-        sd12, sd13 = smoothCurveSideCrossDerivatives(sx, sd1, [sd2, sd3])
-        trunk_d3 = sd3[0]  # orientation of trunk d3 derivative at first node - used for branch orientation
+        # node_map = {}
 
         # trunk annotation groups
-        trunk_box_group = AnnotationGroup(region, (trunk_group_name, annotation_term_map[trunk_group_name]))
-        annotation_groups.append(trunk_box_group)
-        trunk_box_mesh_group = trunk_box_group.getMeshGroup(mesh3d)
-        trunk_box_face_mesh_group = trunk_box_group.getMeshGroup(mesh2d)
-        trunk_box_line_mesh_group = trunk_box_group.getMeshGroup(mesh1d)
+        trunk_mesh_group = trunk_group.getMeshGroup(mesh3d)
+        trunk_face_mesh_group = trunk_group.getMeshGroup(mesh2d)
+        trunk_line_mesh_group = trunk_group.getMeshGroup(mesh1d)
 
         node_identifier = 1
-        line_identifier = 1
         element_identifier = 1
         face_identifier = 1
+        line_identifier = 1
 
         # create nodes
-        for n in range(trunk_nodes_count):
-            node_map[sn[n]] = node_identifier
+        trunk_nodes_count = trunk_elements_count + 1
+        for n in range(trunk_elements_count + 1):
+            # node_map[sn[n]] = node_identifier
             node = nodes.createNode(node_identifier, nodetemplate)
             fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1[n])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, sd2[n])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12[n])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, sd3[n])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sd13[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, td2[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, td12[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, td3[n])
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, td13[n])
             node_identifier += 1
 
         # create elements
-        for n in range(1, trunk_nodes_count):
-            node_id = n + 1
-            nids = [node_id - 1, node_id]
+        for e in range(trunk_elements_count):
+            nids = [e + 1, e + 2]
 
             line = mesh1d.createElement(line_identifier, linetemplate)
             line.setNodesByIdentifier(eft1d, nids)
             vagusCentroidMeshGroup.addElement(line)
-            trunk_box_line_mesh_group.addElement(line)
+            trunk_line_mesh_group.addElement(line)
             line_identifier += 1
 
             element = mesh3d.createElement(element_identifier, elementtemplate)
             element.setNodesByIdentifier(eft3d, nids)
             element.setScaleFactors(eft3d, [-1.0])
-            trunk_box_mesh_group.addElement(element)
+            trunk_mesh_group.addElement(element)
             element_identifier += 1
 
-            for e in range(4):
-                facetemplate, eft2d = facetemplate_and_eft_list[e]
+            for f in range(4):
+                facetemplate, eft2d = facetemplate_and_eft_list[f]
                 face = mesh2d.createElement(face_identifier, facetemplate)
                 face.setNodesByIdentifier(eft2d, nids)
                 face.setScaleFactors(eft2d, scalefactors2d)
                 vagusEpineuriumMeshGroup.addElement(face)
-                trunk_box_face_mesh_group.addElement(face)
+                trunk_face_mesh_group.addElement(face)
                 face_identifier += 1
+
+        return annotation_groups, None
 
         # print('Building branches...')
         branch_parent_map = vagus_data.get_branch_parent_map()
@@ -1034,10 +1012,10 @@ class MeshType_3d_nerve1(Scaffold_base):
         annotation_groups.append(cervical_trunk_group)
         annotation_groups.append(thoracic_trunk_group)
 
-        trunk_box_group = findAnnotationGroupByName(annotation_groups, trunk_group_name)
-        trunk_box_mesh_group = trunk_box_group.getMeshGroup(mesh3d)
+        trunk_group = findAnnotationGroupByName(annotation_groups, trunk_group_name)
+        trunk_mesh_group = trunk_group.getMeshGroup(mesh3d)
 
-        el_iter = trunk_box_mesh_group.createElementiterator()
+        el_iter = trunk_mesh_group.createElementiterator()
         element = el_iter.next()
         while element.isValid():
             element_id = element.getIdentifier()
@@ -1097,7 +1075,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     :param trunk_elements_count: Number of elements in final 1-D mesh.
     :param trunk_fit_iterations:  Number of iterations in main trunk fit >= 1.
     :param region: Region to put the fitted 1-D geometry including marker points in.
-    :return: tx, td1, rx, rd1 (parameters for 1-D fitted trunk geometry, radius parameters)
+    :return: tx, td1, td2, td12, td3, td13 (parameters for 1-D fitted trunk geometry, left and anterior side
+    directions and rates of change w.r.t. d1)
     """
 
     # 1. pre-fit to range of trunk data
@@ -1277,7 +1256,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     if pr:
         gradient1_penalty = 1000.0 * points_count_calibration_factor * length_calibration_factor
         gradient2_penalty = 1.0E+8 * points_count_calibration_factor * (length_calibration_factor ** 3)
-        define_and_fit_field(fit_region, "coordinates", "coordinates", "radius", gradient1_penalty, gradient2_penalty)
+        define_and_fit_field(fit_region, "coordinates", "coordinates", "radius",
+                             gradient1_penalty, gradient2_penalty, group_name=trunk_group_name)
 
     # extract fitted trunk parameters from nodes
     length = getCubicHermiteCurvesLength(ex, ed1)
@@ -1314,6 +1294,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     datapoints.destroyAllNodes()
 
     # fit orientation
+    debug_print = False
     orientation_dct = vagus_data.get_orientation_data()
     orientation_x = []
     orientation_twist_angles = []
@@ -1385,15 +1366,16 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                 dir1, dir2, dir3 = track_curve_side_direction(
                     tx, td1, direction, orientation_locations[i - 1], orientation_locations[i])
                 direction = orientation_directions[i]
-                y = -dot(direction, dir2)
+                y = dot(direction, dir2)
                 x = dot(direction, dir3)
-                delta_twist_angle = math.atan2(y, x)
+                delta_twist_angle = -math.atan2(y, x)
                 twist_angle += delta_twist_angle
                 orientation_twist_angles.append(twist_angle)
-            # debug
-            print("Orientation data:")
-            for location, direction, twist_angle, name,  in zip(orientation_locations, orientation_directions, orientation_twist_angles, orientation_names):
-                print(location, direction, twist_angle, name)
+            if debug_print:
+                print("Orientation data:")
+                for location, direction, twist_angle, name, in zip(
+                        orientation_locations, orientation_directions, orientation_twist_angles, orientation_names):
+                    print(location, direction, twist_angle, name)
 
     if orientation_twist_angles:
         data_identifier = 1
@@ -1402,25 +1384,110 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         data_identifier = generate_datapoints(
             fit_region, orientation_x, data_identifier,
             field_names_and_values=[(twist_angle_field_name, orientation_twist_angles)])
-        gradient1_penalty = 1.0 * twist_points_count_calibration_factor * length_calibration_factor
-        gradient2_penalty = 1.0E+5 * twist_points_count_calibration_factor * (length_calibration_factor ** 3)
-        define_and_fit_field(fit_region, "coordinates", "coordinates", twist_angle_field_name, gradient1_penalty, gradient2_penalty)
+
+        gradient1_penalty = 100.0 * twist_points_count_calibration_factor * length_calibration_factor
+        gradient2_penalty = 1.0E+8 * twist_points_count_calibration_factor * (length_calibration_factor ** 3)
+        define_and_fit_field(fit_region, "coordinates", "coordinates", twist_angle_field_name,
+                             gradient1_penalty, gradient2_penalty, group_name=trunk_group_name)
         twist_angle = fieldmodule.findFieldByName(twist_angle_field_name).castFiniteElement()
         # extract fitted twist angle parameters from nodes
         ax = []
         ad1 = []
-        nodeiterator = nodes.createNodeiterator()
-        node = nodeiterator.next()
-        while node.isValid():
+        for n in range(trunk_elements_count + 1):
+            node = nodes.findNodeByIdentifier(n + 1)
             fieldcache.setNode(node)
             result, x = twist_angle.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
             result, d1 = twist_angle.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 1)
             ax.append(x)
             ad1.append(d1)
-            node = nodeiterator.next()
+        if debug_print:
+            print("Orientation fit:")
+            for i in range(len(orientation_locations)):
+                fit_twist_angle = evaluateScalarOnCurve(ax, ad1, orientation_locations[i])
+                print(orientation_locations[i], orientation_twist_angles[i], "-->", fit_twist_angle)
+            print("node, ax, ad1:")
+            for i in range(len(ax)):
+                print(i + 1, ax[i], ad1[i])
+
+        # get best-fit anterior direction at first orientation point
+        first_point = 0
+        first_location = orientation_locations[first_point]
+        dir1, dir2, dir3 = track_curve_side_direction(
+            tx, td1, orientation_directions[first_point], first_location, first_location)
+        first_twist_data = orientation_twist_angles[first_point]
+        first_twist_radians = evaluateScalarOnCurve(ax, ad1, first_location)
+        delta_twist_radians = first_twist_radians - first_twist_data
+        first_direction = normalize(add(mult(dir3, math.cos(delta_twist_radians)),
+                                        mult(dir2, -math.sin(delta_twist_radians))))
     else:
-        # make default side axes
-        pass
+        ad1 = ax = [0.0] * (trunk_elements_count + 1)
+        first_location = (0, 0.0)
+        first_twist_radians = 0.0
+        # default anterior direction
+        first_direction = [0.0, 1.0, 0.0]
+
+    # compute side/anterior directions and their rates of change
+    td2 = []
+    td12 = []
+    td3 = []
+    td13 = []
+    # track from first orientation point along nodes back to start, then forward from first orientation point to end
+    prev_twist_radians = first_twist_radians
+    prev_direction = first_direction
+    prev_location = first_location
+    next_location = (prev_location[0], 0.0)
+    forward = False
+    node_indexes = []
+    tmp_ta = []
+    tmp_dta = []
+    for n in range(trunk_elements_count + 1):
+        dir1, dir2, dir3 = track_curve_side_direction(
+            tx, td1, prev_direction, prev_location, next_location, forward)
+        node_index = (next_location[0] + 1) if forward else next_location[0]
+        x = tx[node_index]
+        d1 = td1[node_index]
+        rv = rx[node_index]
+        rd = rd1[node_index]
+        next_twist_radians = ax[node_index]
+        ad = ad1[node_index]
+        if forward:
+            delta_twist_radians = next_twist_radians - prev_twist_radians
+        else:
+            delta_twist_radians = prev_twist_radians - next_twist_radians
+        ante = normalize(add(mult(dir3, math.cos(delta_twist_radians)),
+                             mult(dir2, -math.sin(delta_twist_radians))))
+        left = normalize(cross(ante, dir1))
+
+        d2 = set_magnitude(left, rv)
+        d12 = add(mult(left, rd), mult(ante, rv * ad))
+        d3 = set_magnitude(ante, rv)
+        d13 = add(mult(ante, rd), mult(left, -rv * ad))
+        ix = n if forward else 0
+        node_indexes.insert(ix, node_index)
+        td2.insert(ix, d2)
+        td12.insert(ix, d12)
+        td3.insert(ix, d3)
+        td13.insert(ix, d13)
+        tmp_ta.insert(ix, next_twist_radians)
+        tmp_dta.insert(ix, delta_twist_radians)
+
+        prev_twist_radians = next_twist_radians
+        prev_direction = ante
+        prev_location = next_location
+        if forward:
+            next_location = (next_location[0] + 1, 1.0)
+        elif next_location[0] > 0:
+            next_location = (next_location[0] - 1, 0.0)
+        else:
+            prev_twist_radians = first_twist_radians
+            prev_direction = first_direction
+            prev_location = first_location
+            next_location = (prev_location[0], 1.0)
+            forward = True
+    if debug_print:
+        print("node, ta, dta, d3:")
+        for i in range(len(tmp_ta)):
+            print(i + 1, tmp_ta[i], tmp_dta[i], td3[i])
 
     # copy model to user-supplied region
     sir = fit_region.createStreaminformationRegion()
@@ -1432,7 +1499,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     srm = sir.createStreamresourceMemoryBuffer(buffer)
     region.read(sir)
 
-    return tx, td1, rx, rd1
+    return tx, td1, td2, td12, td3, td13
 
 
 def find_1d_path_endpoints(points):
