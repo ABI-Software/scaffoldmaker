@@ -539,15 +539,6 @@ class MeshType_3d_nerve1(Scaffold_base):
         if only_1d_trunk:
             return annotation_groups, None
 
-        # evaluate & fit centroid lines for trunk and branches
-        # print('Building centerlines for scaffold...')
-        # fit_region, marker_fit_groups, branches_order, \
-        #     branch_root_parameters = generate_vagus_1d_coordinates(region, vagus_data, is_full_vagus, options)
-        # fit_fieldmodule = fit_region.getFieldmodule()
-        # fit_fieldcache = fit_fieldmodule.createFieldcache()
-        # fit_coordinates = fit_fieldmodule.findFieldByName("coordinates").castFiniteElement()
-        # fit_nodes = fit_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-
         # vagus annotation groups
         vagusCentroidGroup = AnnotationGroup(region, get_vagus_marker_term("vagus centroid"))
         annotation_groups.append(vagusCentroidGroup)
@@ -556,8 +547,6 @@ class MeshType_3d_nerve1(Scaffold_base):
         vagusEpineuriumAnnotationGroup = AnnotationGroup(region, get_vagus_marker_term("vagus epineureum"))
         annotation_groups.append(vagusEpineuriumAnnotationGroup)
         vagusEpineuriumMeshGroup = vagusEpineuriumAnnotationGroup.getMeshGroup(mesh2d)
-
-        # node_map = {}
 
         # trunk annotation groups
         trunk_mesh_group = trunk_group.getMeshGroup(mesh3d)
@@ -607,6 +596,36 @@ class MeshType_3d_nerve1(Scaffold_base):
                 vagusEpineuriumMeshGroup.addElement(face)
                 trunk_face_mesh_group.addElement(face)
                 face_identifier += 1
+
+        # create trunk markers
+
+        is_left = vagus_data.get_side_label() == 'left'
+        vagus_level_terms = get_left_vagus_marker_locations_list() if is_left \
+            else get_right_vagus_marker_locations_list()
+        ordered_marker_data = []  # list from top to bottom of nerve of (name, material_coordinate)
+        for marker_term_name, material_coordinate in vagus_level_terms.items():
+            for idx, data in enumerate(ordered_marker_data):
+                if material_coordinate < data[1]:
+                    break
+            else:
+                idx = len(ordered_marker_data)
+            ordered_marker_data.insert(idx, (marker_term_name, material_coordinate))
+
+        for marker_name, material_coordinate in ordered_marker_data:
+            if material_coordinate > trunk_proportion:
+                continue
+            annotationGroup = findOrCreateAnnotationGroupForTerm(
+                annotation_groups, region, get_vagus_marker_term(marker_name), isMarker=True)
+            element_index_real = (material_coordinate / trunk_proportion) * trunk_elements_count
+            if element_index_real >= trunk_elements_count:
+                element_index, xi = trunk_elements_count - 1, 1.0
+            else:
+                element_index = math.floor(element_index_real)
+                xi = element_index_real - element_index
+            element_identifier = element_index + 1
+            annotationGroup.createMarkerNode(
+                node_identifier, element=mesh3d.findElementByIdentifier(element_identifier), xi=[xi, 0.5, 0.5])
+            node_identifier += 1
 
         return annotation_groups, None
 
@@ -853,19 +872,6 @@ class MeshType_3d_nerve1(Scaffold_base):
             branch_nodeset_group = branch_box_group.getNodesetGroup(nodes)
             if branch_nodeset_group.isValid():
                 branch_nodeset_group.removeNodesConditional(parent_field_group)
-
-        # set markers
-        # print('Adding anatomical landmarks...')
-        for marker_group in marker_fit_groups:
-            marker_name = marker_group.getName()
-            annotationGroup = findOrCreateAnnotationGroupForTerm(annotation_groups, region,
-                                                                 get_vagus_marker_term(marker_name),
-                                                                 isMarker=True)
-            element, xi = marker_group.getMarkerLocation()
-            annotationGroup.createMarkerNode(node_identifier,
-                                             element=mesh3d.findElementByIdentifier(element.getIdentifier()),
-                                             xi=[xi[0], 0.5, 0.5])
-            node_identifier += 1
 
         # add material coordinates
         # print('Adding material coordinates...')
