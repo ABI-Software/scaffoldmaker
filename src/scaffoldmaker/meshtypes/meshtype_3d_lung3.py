@@ -1,19 +1,17 @@
 """
 Generates a lung scaffold by deforming a hemisphere.
 """
-from cmlibs.maths.vectorops import magnitude, set_magnitude, mult, sub
+from cmlibs.maths.vectorops import mult, sub
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
-from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.zinc import field
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.derivativemoothing import DerivativeSmoothing
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, sampleCubicHermiteCurvesSmooth, \
+from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, \
     sampleCubicHermiteCurves, DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
@@ -36,8 +34,6 @@ class MeshType_3d_lung3(Scaffold_base):
         return [
             "Default",
             "Human 1",
-            "Human 2",
-            "Human 3",
             "Ellipsoid",
             "Teardrop"]
 
@@ -47,110 +43,46 @@ class MeshType_3d_lung3(Scaffold_base):
         isHuman = "Human" in useParameterSetName
         if parameterSetName in ["Human 1", "Default"]:
             options = {
-                "Half sphere": True,
-                "Left lung only": True,
-                "Scale": False,
-                "Scale factor": 1.0,
-                "Use serendipity": False,
-                "Number of elements lateral": 4,
-                "Number of elements normal": 8,
-                "Number of elements oblique": 8,
-                "Number of elements shell": 0,
-                "Left-right lung spacing": 0.0,
-                "Apex edge sharpness factor": 0.0,
-                "Ventral edge sharpness factor": 0.0,
-                "Left-right apex medial shear displacement": 0.0,
-                "Left-right apex ventral shear displacement": 0.0,
-                "Left-right base shear displacement": 0.0,
-                "Diaphragm angle degrees": 60.0,
-                "Diaphragm proportion": 0.3,
-                "Disc breadth": 0.7,
-                "Disc height": 1.0,
-                "Disc depth": 0.35,
-                "Impression breadth proportion": 0.8,
-                "Impression height proportion": 0.8,
-                "Impression depth proportion": 0.25,
-                "Lateral shear rate": 0.75,
-                "Oblique slope degrees": 45.0,
-                "Medial curvature": 0.0,
-                "Medial curvature bias": 0.0,
-                "Ventral-medial rotation degrees": 0.0,
-                "Refine": False,
-                "Refine number of elements": 4,
-            }
-        elif parameterSetName == "Human 2":
-            options = {
-                "Half sphere": False,
-                "Left lung only": False,
-                "Scale": False,
-                "Scale factor": 1.0,
-                "Use serendipity": False,
-                "Number of elements lateral": 4,
-                "Number of elements normal": 8,
-                "Number of elements oblique": 8,
-                "Number of elements shell": 0,
-                "Left-right lung spacing": 0.5,
-                "Apex edge sharpness factor": 0.2,
-                "Ventral edge sharpness factor": 0.8,
-                "Left-right apex medial shear displacement": 0.2,
-                "Left-right apex ventral shear displacement": -0.1,
-                "Left-right base shear displacement": 0.0,
-                "Diaphragm angle degrees": 30.0,
-                "Diaphragm proportion": 0.3,
-                "Disc breadth": 0.8,
-                "Disc height": 1.1,
-                "Disc depth": 0.25,
-                "Impression breadth proportion": 0.8,
-                "Impression height proportion": 0.8,
-                "Impression depth proportion": 0.8,
-                "Lateral shear rate": -2.0,
-                "Oblique slope degrees": 45.0,
-                "Medial curvature": 1.0,
-                "Medial curvature bias": 0.0,
-                "Ventral-medial rotation degrees": 0.0,
-                "Refine": False,
-                "Refine number of elements": 4,
-            }
-        elif parameterSetName == "Human 3":
-            options = {
-                "Half sphere": False,
-                "Left lung only": False,
-                "Scale": False,
-                "Scale factor": 1.0,
-                "Use serendipity": False,
+                "Show left lung": True,
+                "Show right lung": True,
+                "Open fissures": False,
+                "Number of left lung lobes": 2,
                 "Number of elements lateral": 6,
                 "Number of elements normal": 8,
                 "Number of elements oblique": 8,
                 "Number of elements shell": 0,
                 "Left-right lung spacing": 0.4,
-                "Apex edge sharpness factor": 0.3,
-                "Ventral edge sharpness factor": 0.9,
+                "Apex edge sharpness factor": 0.4,
+                "Ventral edge sharpness factor": 0.95,
                 "Left-right apex medial shear displacement": 0.2,
-                "Left-right apex ventral shear displacement": -0.1,
-                "Left-right base shear displacement": 0.0,
-                "Diaphragm angle degrees": 30.0,
+                "Left-right apex ventral shear displacement": -0.2,
+                # "Left-right base shear displacement": 0.0,
+                "Diaphragm angle degrees": 50.0,
                 "Diaphragm proportion": 0.3,
                 "Disc breadth": 0.8,
-                "Disc height": 1.2,
-                "Disc depth": 0.25,
-                "Impression breadth proportion": 0.8,
+                "Disc height": 1.3,
+                "Disc depth": 0.3,
+                "Impression breadth proportion": 0.9,
                 "Impression height proportion": 0.8,
                 "Impression depth proportion": 1.0,
-                "Lateral shear rate": -1.0,
-                "Oblique slope degrees": 45.0,
+                "Lateral shear rate": -1.5,
+                "Left oblique slope degrees": 45.0,
+                "Right oblique slope degrees": 45.0,
                 "Medial curvature": 1.0,
-                "Medial curvature bias": 0.0,
+                "Medial curvature bias": 0.5,
+                "Medial rotation about x-axis degrees": 5.0,
                 "Ventral-medial rotation degrees": 5.0,
+                "Use sizing function": True,
+                "Scale factor": 0.7,
                 "Refine": False,
                 "Refine number of elements": 4,
             }
         elif parameterSetName == "Ellipsoid":
             options = {
-                "Half sphere": False,
-                "Left lung only": False,
-                "Scale": False,
-                "Scale factor": 1.0,
-                "Use serendipity": False,
+                "Show left lung": False,
+                "Show right lung": False,
+                "Open fissures": False,
+                "Number of left lung lobes": 2,
                 "Number of elements lateral": 4,
                 "Number of elements normal": 8,
                 "Number of elements oblique": 8,
@@ -160,7 +92,7 @@ class MeshType_3d_lung3(Scaffold_base):
                 "Ventral edge sharpness factor": 0.0,
                 "Left-right apex medial shear displacement": 0.0,
                 "Left-right apex ventral shear displacement": 0.0,
-                "Left-right base shear displacement": 0.0,
+                # "Left-right base shear displacement": 0.0,
                 "Diaphragm angle degrees": 0.0,
                 "Diaphragm proportion": 0.0,
                 "Disc breadth": 0.8,
@@ -170,20 +102,23 @@ class MeshType_3d_lung3(Scaffold_base):
                 "Impression height proportion": 0.0,
                 "Impression depth proportion": 0.0,
                 "Lateral shear rate": 0.0,
-                "Oblique slope degrees": 45.0,
+                "Left oblique slope degrees": 45.0,
+                "Right oblique slope degrees": 45.0,
                 "Medial curvature": 0.0,
                 "Medial curvature bias": 0.0,
+                "Medial rotation about x-axis degrees": 0.0,
                 "Ventral-medial rotation degrees": 0.0,
+                "Use sizing function": False,
+                "Scale factor": 1.0,
                 "Refine": False,
                 "Refine number of elements": 4,
             }
         elif parameterSetName == "Teardrop":
             options = {
-                "Half sphere": False,
-                "Left lung only": True,
-                "Scale": False,
-                "Scale factor": 1.0,
-                "Use serendipity": False,
+                "Show left lung": False,
+                "Show right lung": False,
+                "Open fissures": False,
+                "Number of left lung lobes": 2,
                 "Number of elements lateral": 4,
                 "Number of elements normal": 4,
                 "Number of elements oblique": 4,
@@ -193,7 +128,7 @@ class MeshType_3d_lung3(Scaffold_base):
                 "Ventral edge sharpness factor": 0.95,
                 "Left-right apex medial shear displacement": 0.0,
                 "Left-right apex ventral shear displacement": 0.0,
-                "Left-right base shear displacement": 0.0,
+                # "Left-right base shear displacement": 0.0,
                 "Diaphragm angle degrees": 0.0,
                 "Diaphragm proportion": 0.0,
                 "Disc breadth": 0.8,
@@ -203,11 +138,14 @@ class MeshType_3d_lung3(Scaffold_base):
                 "Impression height proportion": 0.0,
                 "Impression depth proportion": 0.0,
                 "Lateral shear rate": 0.0,
-                "Oblique slope degrees": 45.0,
-                # "Medial proportion": 0.0,
+                "Left oblique slope degrees": 45.0,
+                "Right oblique slope degrees": 45.0,
                 "Medial curvature": 0.0,
                 "Medial curvature bias": 0.0,
+                "Medial rotation about x-axis degrees": 0.0,
                 "Ventral-medial rotation degrees": 0.0,
+                "Use sizing function": False,
+                "Scale factor": 1.0,
                 "Refine": False,
                 "Refine number of elements": 4,
             }
@@ -216,10 +154,10 @@ class MeshType_3d_lung3(Scaffold_base):
     @classmethod
     def getOrderedOptionNames(cls):
         return [
-            "Left lung only",
-            "Scale",
-            "Scale factor",
-            "Use serendipity",
+            "Show left lung",
+            "Show right lung",
+            "Open fissures",
+            "Number of left lung lobes",
             "Number of elements lateral",
             "Number of elements normal",
             "Number of elements oblique",
@@ -229,7 +167,7 @@ class MeshType_3d_lung3(Scaffold_base):
             "Ventral edge sharpness factor",
             "Left-right apex medial shear displacement",
             "Left-right apex ventral shear displacement",
-            "Left-right base shear displacement",
+            # "Left-right base shear displacement",
             "Diaphragm angle degrees",
             "Diaphragm proportion",
             "Disc breadth",
@@ -239,10 +177,14 @@ class MeshType_3d_lung3(Scaffold_base):
             "Impression height proportion",
             "Impression depth proportion",
             "Lateral shear rate",
-            "Oblique slope degrees",
+            "Left oblique slope degrees",
+            "Right oblique slope degrees",
             "Medial curvature",
             "Medial curvature bias",
+            "Medial rotation about x-axis degrees",
             "Ventral-medial rotation degrees",
+            "Use sizing function",
+            "Scale factor",
             "Refine",
             "Refine number of elements"
         ]
@@ -250,6 +192,11 @@ class MeshType_3d_lung3(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
+        if options["Number of left lung lobes"] > 2:
+            options["Number of left lung lobes"] = 2
+        elif options["Number of left lung lobes"] < 1:
+            options["Number of left lung lobes"] = 0
+
         if options["Number of elements lateral"] < 2:
             options["Number of elements lateral"] = 2
         for key in [
@@ -260,7 +207,7 @@ class MeshType_3d_lung3(Scaffold_base):
             elif options[key] % 2:
                 options[key] += 1
 
-        maxShellElements = min(options["Number of elements lateral"],
+        maxShellElements = min(options["Number of elements lateral"] // 2,
                                options["Number of elements normal"] // 2,
                                options["Number of elements oblique"] // 2) - 2
         if options["Number of elements shell"] < 0:
@@ -291,6 +238,7 @@ class MeshType_3d_lung3(Scaffold_base):
         for dimension in [
             "Apex edge sharpness factor",
             "Ventral edge sharpness factor",
+            "Left-right apex medial shear displacement",
             "Medial curvature bias"
         ]:
             if options[dimension] < 0.0:
@@ -298,10 +246,22 @@ class MeshType_3d_lung3(Scaffold_base):
             elif options[dimension] > 1.0:
                 options[dimension] = 1.0
 
-        if options['Ventral-medial rotation degrees'] < -90.0:
-            options['Ventral-medial rotation degrees'] = -90.0
-        elif options['Ventral-medial rotation degrees'] > 90.0:
-            options['Ventral-medial rotation degrees'] = 90.0
+        for dimension in [
+            "Left-right apex ventral shear displacement",
+        ]:
+            if options[dimension] < -1.0:
+                options[dimension] = -1.0
+            elif options[dimension] > 1.0:
+                options[dimension] = 1.0
+
+        for angle in [
+            "Medial rotation about x-axis degrees",
+            "Ventral-medial rotation degrees"
+        ]:
+            if options[angle] < -90.0:
+                options[angle] = -90.0
+            elif options[angle] > 90.0:
+                options[angle] = 90.0
 
         if options['Refine number of elements'] < 1:
             options['Refine number of elements'] = 1
@@ -316,9 +276,12 @@ class MeshType_3d_lung3(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        showLeftLungOnly = options["Left lung only"]
-        useHalfSphere = options["Half sphere"]
-        useSerendipity = options["Use serendipity"]
+        showLeftLung = options["Show left lung"]
+        showRightLung = options["Show right lung"]
+        openFissures = options["Open fissures"]
+        numberOfLeftLung = options["Number of left lung lobes"]
+        useSerendipity = True
+        useSizingFunction = options["Use sizing function"]
 
         elementsCountLateral = options["Number of elements lateral"]
         elementsCountNormal = options["Number of elements normal"]
@@ -330,7 +293,7 @@ class MeshType_3d_lung3(Scaffold_base):
         edgeSharpFactor = options["Ventral edge sharpness factor"]
         leftApexMedialDisplacement = options["Left-right apex medial shear displacement"]
         forwardLeftRightApex = options["Left-right apex ventral shear displacement"]
-        forwardLeftRightBase = options["Left-right base shear displacement"]
+        # forwardLeftRightBase = options["Left-right base shear displacement"]
         diaphragm_angle_radians = math.radians(options["Diaphragm angle degrees"])
         diaphragm_proportion = options["Diaphragm proportion"]
         disc_breadth = options["Disc breadth"]
@@ -340,23 +303,18 @@ class MeshType_3d_lung3(Scaffold_base):
         impression_height_proportion = options["Impression height proportion"]
         impression_depth_proportion = options["Impression depth proportion"]
         lateral_shear_rate = options["Lateral shear rate"]
-        oblique_slope_radians = math.radians(options["Oblique slope degrees"])
+        left_oblique_slope_radians = math.radians(options["Left oblique slope degrees"])
+        right_oblique_slope_radians = math.radians(options["Right oblique slope degrees"])
         leftLungMedialCurvature = options["Medial curvature"]
         lungMedialCurvatureBias = options["Medial curvature bias"]
-        rotateLeftLung = options["Ventral-medial rotation degrees"]
+        rotateLeftLungX = options["Medial rotation about x-axis degrees"]
+        rotateLeftLungZ = options["Ventral-medial rotation degrees"]
 
-        if useHalfSphere:
-            rangeOfRequiredElements = [
-                [elementsCountLateral, 2 * elementsCountLateral],
-                [0, elementsCountOblique],
-                [0, elementsCountNormal]
-            ]
-        else:
-            rangeOfRequiredElements = [
-                [0, elementsCountLateral],
-                [0, elementsCountOblique],
-                [0, elementsCountNormal]
-            ]
+        rangeOfRequiredElements = [
+            [0, elementsCountLateral],
+            [0, elementsCountOblique],
+            [0, elementsCountNormal]
+        ]
 
         boxDerivatives = [1, 2, 3]
         sphereBoxDerivatives = [-boxDerivatives[0], boxDerivatives[1], boxDerivatives[2]]
@@ -376,58 +334,215 @@ class MeshType_3d_lung3(Scaffold_base):
         transitionMeshGroup = transitionGroup.getMeshGroup(mesh)
         transitionNodesetGroup = transitionGroup.getNodesetGroup(nodes)
 
+        annotationGroups = [boxGroup, transitionGroup]
+        annotationTerms = ["box group", "transition group"]
+        meshGroups = [boxMeshGroup, transitionMeshGroup]
+        #######################################
+        hasAccessoryLobe = False
+
+        # annotation groups & nodeset groups
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
         leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-        annotationGroups = [leftLungGroup, lungGroup]
+        annotationGroups.append(lungGroup)
+        annotationGroups.append(leftLungGroup)
+        annotationTerms.append("left lung")
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
+        meshGroups.append(leftLungMeshGroup)
 
         rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
         rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
         annotationGroups.append(rightLungGroup)
+        annotationTerms.append("right lung")
+        meshGroups.append(rightLungMeshGroup)
 
+        lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
+        lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(lowerRightLungGroup)
+        annotationTerms.append("lower lobe of right lung")
+        meshGroups.append(lowerRightLungMeshGroup)
+
+        upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
+        upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(upperRightLungGroup)
+        annotationTerms.append("upper lobe of right lung")
+        meshGroups.append(upperRightLungMeshGroup)
+
+        middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
+        middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(middleRightLungGroup)
+        annotationTerms.append("middle lobe of right lung")
+        meshGroups.append(middleRightLungMeshGroup)
+
+        mediastinumLeftGroupX = AnnotationGroup(region,["anterior mediastinum of left lung X", "None"])
+        mediastinumLeftGroupMeshGroupX = mediastinumLeftGroupX.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumLeftGroupX)
+
+        mediastinumLeftGroupY = AnnotationGroup(region,["anterior mediastinum of left lung Y", "None"])
+        mediastinumLeftGroupMeshGroupY = mediastinumLeftGroupY.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumLeftGroupY)
+
+        mediastinumLeftGroupZ = AnnotationGroup(region,["anterior mediastinum of left lung Z", "None"])
+        mediastinumLeftGroupMeshGroupZ = mediastinumLeftGroupZ.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumLeftGroupZ)
+
+        mediastinumRightGroupX = AnnotationGroup(region,["anterior mediastinum of right lung X", "None"])
+        mediastinumRightGroupMeshGroupX = mediastinumRightGroupX.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumRightGroupX)
+
+        mediastinumRightGroupY = AnnotationGroup(region,["anterior mediastinum of right lung Y", "None"])
+        mediastinumRightGroupMeshGroupY = mediastinumRightGroupY.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumRightGroupY)
+
+        mediastinumRightGroupZ = AnnotationGroup(region,["anterior mediastinum of right lung Z", "None"])
+        mediastinumRightGroupMeshGroupZ = mediastinumRightGroupZ.getMeshGroup(mesh)
+        annotationGroups.append(mediastinumRightGroupZ)
+
+        leftLateralLungGroup = AnnotationGroup(region, ["lateral left lung", "None"])
+        leftLateralLungGroupMeshGroup = leftLateralLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(leftLateralLungGroup)
+
+        rightLateralLungGroup = AnnotationGroup(region, ["lateral right lung", "None"])
+        rightLateralLungGroupMeshGroup = rightLateralLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(rightLateralLungGroup)
+
+        # leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", "None"])
+        # leftMedialLungGroupMeshGroup = leftMedialLungGroup.getMeshGroup(mesh)
+        # annotationGroups.append(leftMedialLungGroup)
+        #
+        # rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", "None"])
+        # rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
+        # annotationGroups.append(rightMedialLungGroup)
+
+        if numberOfLeftLung == 2:
+            lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
+            lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(lowerLeftLungGroup)
+            annotationTerms.append("lower lobe of left lung")
+            meshGroups.append(lowerLeftLungMeshGroup)
+
+            upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
+            upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
+            annotationGroups.append(upperLeftLungGroup)
+            annotationTerms.append("upper lobe of left lung")
+            meshGroups.append(upperLeftLungMeshGroup)
+
+        if hasAccessoryLobe:
+            # Annotation groups
+            rightLungAccessoryLobeGroup = AnnotationGroup(region, get_lung_term("right lung accessory lobe"))
+            rightLungAccessoryLobeMeshGroup = rightLungAccessoryLobeGroup.getMeshGroup(mesh)
+            annotationGroups.append(rightLungAccessoryLobeGroup)
+            rightLungAccessoryLobeNodesetGroup = rightLungAccessoryLobeGroup.getNodesetGroup(nodes)
+
+            # Marker points
+            accessoryDorsalApexGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_lung_term("dorsal apex of right lung accessory lobe"))
+            accessoryVentralApexGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_lung_term("ventral apex of right lung accessory lobe"))
+            accessoryVentralLeftGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_lung_term("left ventral base of right lung accessory lobe"))
+            accessoryVentralRightGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_lung_term("right ventral base of right lung accessory lobe"))
+            accessoryDorsalLeftGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_lung_term("left dorsal base of right lung accessory lobe"))
+            accessoryDorsalRightGroup = findOrCreateAnnotationGroupForTerm(
+                annotationGroups, region, get_lung_term("right dorsal base of right lung accessory lobe"))
+
+        # Nodeset group
         leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
         rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
+        lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
+
+        # Arbitrary anatomical groups and nodesets
+        upperLeftDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, ["upper lobe of left lung dorsal", "None"])
+        upperLeftDorsalLungMeshGroup = upperLeftDorsalLungGroup.getMeshGroup(mesh)
+
+        upperRightDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, ["upper lobe of right lung dorsal", "None"])
+        upperRightDorsalLungMeshGroup = upperRightDorsalLungGroup.getMeshGroup(mesh)
+
+
+        # # Marker points/groups
+        # leftApexGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("apex of left lung"))
+        # rightApexGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("apex of right lung"))
+        # leftVentralGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("ventral base of left lung"))
+        # rightVentralGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("ventral base of right lung"))
+        # rightLateralGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("laterodorsal tip of middle lobe of right lung"))
+        # leftMedialGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("medial base of left lung"))
+        # rightMedialGroup = findOrCreateAnnotationGroupForTerm(
+        #     annotationGroups, region, get_lung_term("medial base of right lung"))
+
+        #######################################
 
         centre = [0.0, 0.0, 0.0]
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
-        # axes = [[disc_depth, 0.0, 0.0], [0.0, disc_breadth * 0.5, 0.0], [0.0, 0.0, disc_height * 0.5]]
         axes = [[disc_depth, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
 
-        if useHalfSphere:
-            elementsCountAcross = [2 * elementsCountLateral, elementsCountOblique, elementsCountNormal]
-        else:
-            elementsCountAcross = [elementsCountLateral, elementsCountOblique, elementsCountNormal]
+        elementsCountAcross = [elementsCountLateral, elementsCountOblique, elementsCountNormal]
         shellProportion = 1.0
 
         leftLung, rightLung = 0, 1
-        lungs = [leftLung] if showLeftLungOnly else [leftLung, rightLung]
+        lungs = [lung for show, lung in [(showLeftLung, leftLung), (showRightLung, rightLung)] if show]
         for i in lungs:
             if i == leftLung:
-                meshGroups = [boxMeshGroup, transitionMeshGroup, leftLungMeshGroup]
+                if numberOfLeftLung == 2:
+                    meshGroups = [boxMeshGroup, transitionMeshGroup,
+                                  leftLungMeshGroup, lowerLeftLungMeshGroup, upperLeftLungMeshGroup,
+                                  upperLeftDorsalLungMeshGroup,
+                                  mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY, mediastinumLeftGroupMeshGroupZ,
+                                  leftLateralLungGroupMeshGroup,] #leftMedialLungGroupMeshGroup]
+                    annotationTerms = ["box group", "transition group", "left lung",
+                                       "lower lobe of left lung", "upper lobe of left lung", "upper lobe of left lung dorsal",
+                                       "anterior mediastinum of left lung X",
+                                       "anterior mediastinum of left lung Y",
+                                       "anterior mediastinum of left lung Z",
+                                       "lateral left lung",] #"medial left lung"]
+                else:
+                    meshGroups = [boxMeshGroup, transitionMeshGroup,
+                                  leftLungMeshGroup,
+                                  mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY, mediastinumLeftGroupMeshGroupZ]
+                    annotationTerms = ["box group", "transition group", "left lung",
+                                       "anterior mediastinum of left lung X",
+                                       "anterior mediastinum of left lung Y",
+                                       "anterior mediastinum of left lung Z"]
             else:
-                meshGroups = [boxMeshGroup, transitionMeshGroup, rightLungMeshGroup]
+                meshGroups = [boxMeshGroup, transitionMeshGroup,
+                              rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
+                              upperRightLungMeshGroup, upperRightDorsalLungMeshGroup,
+                              mediastinumRightGroupMeshGroupX, mediastinumRightGroupMeshGroupY, mediastinumRightGroupMeshGroupZ,
+                              rightLateralLungGroupMeshGroup,] #rightMedialLungGroupMeshGroup]
+                annotationTerms = ["box group", "transition group", "right lung",
+                                   "lower lobe of right lung", "middle lobe of right lung",
+                                   "upper lobe of right lung", "upper lobe of right lung dorsal",
+                                   "anterior mediastinum of right lung X",
+                                   "anterior mediastinum of right lung Y",
+                                   "anterior mediastinum of right lung Z",
+                                   "lateral right lung",] #"medial right lung"]
 
             sphere = SphereMesh(fieldmodule, coordinates, centre, axes, elementsCountAcross,
                                 elementsCountShell, elementsCountTransition, shellProportion,
                                 sphereShape=sphere_shape, rangeOfRequiredElements=rangeOfRequiredElements,
                                 boxDerivatives=sphereBoxDerivatives, useCrossDerivatives=False,
-                                useSerendipity=useSerendipity, meshGroups=meshGroups)
+                                useSerendipity=useSerendipity, meshGroups=meshGroups, annotationTerms=annotationTerms)
 
-        annotationGroups = [boxGroup, transitionGroup, leftLungGroup, rightLungGroup]
-
-        if options["Scale"]:
+        if useSizingFunction:
             scale_factor = options["Scale factor"]
             for i in lungs:
                 isLeft = True if i == leftLung else False
                 lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
-                scaleNodes2(region, fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, disc_depth,
-                           scale_factor)
-                if elementsCountLateral > 4:
-                    resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
-                                       elementsCountNormal, elementsCountOblique)
+                scaleNodes(fieldmodule, coordinates, lungNodeset, disc_depth, scale_factor)
+                # if elementsCountLateral > 4:
+                #     resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
+                #                        elementsCountNormal, elementsCountOblique, elementsCountShell)
 
         for i in lungs:
             isLeft = True if i == leftLung else False
@@ -435,10 +550,12 @@ class MeshType_3d_lung3(Scaffold_base):
             halfBreadth = disc_breadth * 0.5
             height = disc_height
             spacing = -lungSpacing if i == leftLung else lungSpacing
+            oblique_slope_radians = left_oblique_slope_radians if i == leftLung else right_oblique_slope_radians
             bendZ = (diaphragm_proportion - 0.5) * disc_height
             lungMedialCurvature = -leftLungMedialCurvature if isLeft else leftLungMedialCurvature
             apexMedialDisplacement = leftApexMedialDisplacement if isLeft else -leftApexMedialDisplacement
-            rotateLungAngle = rotateLeftLung if isLeft else -rotateLeftLung
+            rotateLungAngleX = -rotateLeftLungX
+            rotateLungAngleZ = rotateLeftLungZ if isLeft else -rotateLeftLungZ
 
             rotate_scale_lung(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, oblique_slope_radians)
 
@@ -454,7 +571,8 @@ class MeshType_3d_lung3(Scaffold_base):
                                          impression_depth_proportion, lateral_shear_rate)
 
             if (diaphragm_angle_radians != 0.0) and (diaphragm_proportion > 0.0):
-                form_diaphragm_surface(fieldmodule, coordinates, lungNodeset, diaphragm_angle_radians, bendZ, isLeft=isLeft)
+                form_diaphragm_surface(fieldmodule, coordinates, lungNodeset, diaphragm_angle_radians, bendZ,
+                                       isLeft=isLeft)
 
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
@@ -463,8 +581,11 @@ class MeshType_3d_lung3(Scaffold_base):
                                    bias=lungMedialCurvatureBias,
                                    dorsalVentralXi=dorsalVentralXi)
 
-            if rotateLungAngle != 0.0:
-                rotateLungs(rotateLungAngle, fieldmodule, coordinates, lungNodeset)
+            if rotateLungAngleX != 0.0:
+                rotateLungs(rotateLungAngleX, fieldmodule, coordinates, lungNodeset, axis=1)
+
+            if rotateLungAngleZ != 0.0:
+                rotateLungs(rotateLungAngleZ, fieldmodule, coordinates, lungNodeset, axis=3)
 
             translateLungLocation(fieldmodule, coordinates, lungNodeset, spacing, bendZ)
 
@@ -476,18 +597,18 @@ class MeshType_3d_lung3(Scaffold_base):
                 ventralShearRadian = math.atan(forwardLeftRightApex / height)
                 tiltLungs(0, ventralShearRadian, 0, 0, fieldmodule, coordinates, lungNodeset, isApex=True)
 
-            if forwardLeftRightBase != 0.0:
-                baseShearRadian = math.atan(forwardLeftRightBase / height)
-                tiltLungs(0, baseShearRadian, 0, 0.05, fieldmodule, coordinates, lungNodeset, isApex=False)
+            # if forwardLeftRightBase != 0.0:
+            #     baseShearRadian = math.atan(forwardLeftRightBase / height)
+            #     tiltLungs(0, baseShearRadian, 0, 0.05, fieldmodule, coordinates, lungNodeset, isApex=False)
 
-            if options["Scale"]:
-                smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
-                                             elementsCountNormal, elementsCountOblique)
-                smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique)
-                smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique)
+            smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
+                                         elementsCountNormal, elementsCountOblique, elementsCountShell)
+            smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal,
+                                         elementsCountOblique, elementsCountShell)
+            smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal,
+                                         elementsCountOblique, elementsCountShell)
 
         return annotationGroups, None
-
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):
@@ -500,61 +621,377 @@ class MeshType_3d_lung3(Scaffold_base):
         refineElementsCount = options['Refine number of elements']
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
 
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        numberOfLeftLung = options['Number of left lung lobes']
+        # hasAccessoryLobe = options['Accessory lobe']
+        hasAccessoryLobe = False
+        openFissures = options['Open fissures']
 
-    # @classmethod
-    # def defineFaceAnnotations(cls, region, options, annotationGroups):
-    #     """
-    #     Add face annotation groups from the highest dimension mesh.
-    #     Must have defined faces and added subelements for highest dimension groups.
-    #     :param region: Zinc region containing model.
-    #     :param options: Dict containing options. See getDefaultOptions().
-    #     :param annotationGroups: List of annotation groups for top-level elements.
-    #     New face annotation groups are appended to this list.
-    #     """
-        # # numberOfLeftLung = options['Number of left lung lobes']
-        # numberOfLeftLung = 2
-        # # hasAccessoryLobe = options['Accessory lobe']
-        # # openFissures = options['Open fissures']
-        #
-        # # create fissure groups
-        # fm = region.getFieldmodule()
-        # mesh1d = fm.findMeshByDimension(1)
-        # mesh2d = fm.findMeshByDimension(2)
-        #
-        #
-        #
-        # # 1D Annotation
-        # is_exterior = fm.createFieldIsExterior()
-        # is_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
-        # is_xi1_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)
-        # is_xi2_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0)
-        # is_xi2_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1)
-        # is_xi3_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)
-        # is_xi3_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)
-        #
-        # # 1D edge markers
-        # mediastanumTerms = ["left lung", "right lung"]
-        # for mediastanumTerm in mediastanumTerms:
-        #     mediastanumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(mediastanumTerm))
-        #     is_anteriorBorderGroup = mediastanumGroup.getGroup()
-        #     is_mediastanumGroup_exterior = fm.createFieldAnd(is_anteriorBorderGroup, is_exterior)
-        #     is_mediastanumGroup_exterior_xi1_0 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi1_0)
-        #     is_mediastanumGroup_exterior_xi1_01 = fm.createFieldAnd(is_mediastanumGroup_exterior_xi1_0, is_xi1_1)
-        #     check1 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi1_1)
-        #     check2 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi2_0)
-        #     check3 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi2_1)
-        #     check4 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi3_0)
-        #     check5 = fm.createFieldAnd(is_mediastanumGroup_exterior, is_xi3_1)
-        #     is_ridge = fm.createFieldAnd(is_mediastanumGroup_exterior_xi1_01, fm.createFieldNot(is_xi3_0))
-        #     # if openFissures:
-        #     #     is_ridge = fm.createFieldAnd(is_ridge, fm.createFieldNot(is_xi3_1))
-        #     borderTerm = "anterior border of left lung" if "left lung" in mediastanumTerm else "anterior border of right lung"
-        #     anteriorBorderLeftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(borderTerm))
-        #     anteriorBorderLeftGroup.getMeshGroup(mesh1d).addElementsConditional(is_ridge)
-        #     # anteriorBorderLeftGroup.getMeshGroup(mesh1d).addElementsConditional(check5)
-        #
-        #     # annotationGroups.remove(mediastanumGroup)
+        # create fissure groups
+        fm = region.getFieldmodule()
+        mesh1d = fm.findMeshByDimension(1)
+        mesh2d = fm.findMeshByDimension(2)
 
+        # 1D Annotation
+        is_exterior = fm.createFieldIsExterior()
+        is_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
+        is_xi1_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)
+        is_xi2_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_0)
+        is_xi2_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI2_1)
+        is_xi3_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)
+        is_xi3_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI3_1)
+
+        # 1D edge markers
+        mediastanum_group = {}
+        mediastanum_exterior = {}
+        mediastanum_2dgroup = {}
+        mediastanum_border = {}
+
+        mediastanumTerms = [
+            "anterior mediastinum of left lung X",
+            "anterior mediastinum of left lung Y",
+            "anterior mediastinum of left lung Z",
+            "anterior mediastinum of right lung X",
+            "anterior mediastinum of right lung Y",
+            "anterior mediastinum of right lung Z"
+        ]
+
+        for term in mediastanumTerms:
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+            mediastanum_group[term] = group
+            mediastanum_2dgroup[term] = group2d
+            mediastanum_exterior[term] = group2d_exterior
+
+        axisTerms = [
+            "left lung X", "left lung Y", "left lung Z",
+            "right lung X", "right lung Y", "right lung Z"
+        ]
+
+        for axisTerm in axisTerms:
+            mediastanumTerm = f"anterior mediastinum of {axisTerm}"
+            arbBorderTerm = f"anterior border of {axisTerm}"
+            borderSide = "left" if "left lung" in axisTerm else "right"
+            borderTerm = f"anterior border of {borderSide} lung"
+
+            borderGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(borderTerm))
+
+            if "lung X" in axisTerm:
+                group2d_border = mediastanum_exterior[mediastanumTerm]
+
+            elif "lung Y" in axisTerm:
+                tempField = fm.createFieldAnd(mediastanum_exterior[mediastanumTerm], is_xi1_1)
+                borderX_term = f"anterior border of {borderSide} lung X"
+                borderX = mediastanum_border[borderX_term]
+                group2d_border = fm.createFieldAnd(tempField, fm.createFieldNot(borderX))
+                borderGroup.getMeshGroup(mesh1d).addElementsConditional(group2d_border)
+
+            elif "lung Z" in axisTerm:
+                tempField = fm.createFieldAnd(mediastanum_exterior[mediastanumTerm], is_xi2_0)
+                borderX_term = f"anterior border of {borderSide} lung X"
+                borderX = mediastanum_border[borderX_term]
+                group2d_border = fm.createFieldAnd(tempField, fm.createFieldNot(borderX))
+                borderGroup.getMeshGroup(mesh1d).addElementsConditional(group2d_border)
+
+            mediastanum_border[arbBorderTerm] = group2d_border
+
+        for group in mediastanum_group.values():
+            annotationGroups.remove(group)
+
+        # Arbitrary terms - are removed from the annotation groups later
+        arbLobe_group = {}
+        arbLobe_exterior = {}
+        arbLobe_2dgroup = {}
+        arbTerms = ["upper lobe of left lung dorsal", "upper lobe of right lung dorsal"]
+        for arbTerm in arbTerms:
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [arbTerm, "None"])
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+            arbLobe_group.update({arbTerm: group})
+            arbLobe_2dgroup.update({arbTerm: group2d})
+            arbLobe_exterior.update({arbTerm: group2d_exterior})
+
+        side_group = {}
+        side_exterior = {}
+        arbSideTerms = ["lateral left lung", "lateral right lung", "medial left lung", "medial right lung"]
+        for term in arbSideTerms:
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+            side_group[term] = group
+            side_exterior[term] = group2d_exterior
+
+        # Exterior surfaces of lungs
+
+        surfaceTerms = [
+            "left lung",
+            "lower lobe of left lung",
+            "upper lobe of left lung",
+            "right lung",
+            "lower lobe of right lung",
+            "middle lobe of right lung",
+            "upper lobe of right lung"
+            # "right lung accessory lobe"
+        ]
+        subLeftLungTerms = ["lower lobe of left lung", "upper lobe of left lung"]
+
+        lobe = {}
+        lobe_exterior = {}
+        for term in surfaceTerms:
+            if (numberOfLeftLung == 1) and (term in subLeftLungTerms):
+                continue
+            if (hasAccessoryLobe is False) and (term == "right lung accessory lobe"):
+                continue
+
+            group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(term))
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+
+            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(term + " surface"))
+            if (not openFissures) or (term == "right lung accessory lobe"):
+                surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(group2d_exterior)
+
+            lobe_exterior.update({term + " surface": group2d_exterior})
+
+            if "lobe of" in term:
+                lobe.update({term: group2d})
+
+            # medial and lateral in the subgroup
+            # for sideTerm in ['lateral surface of ', 'medial surface of ']:
+            for sideTerm in ['lateral surface of ']:
+                surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(sideTerm + term))
+                if ('lateral' in sideTerm) and ('left' in term):
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral left lung"]))
+                # elif ('medial' in sideTerm) and ('left' in term):
+                #     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"]))
+                elif ('lateral' in sideTerm) and ('right' in term):
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral right lung"]))
+                # elif ('medial' in sideTerm) and ('right' in term):
+                #     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
+
+            # if term != "right lung accessory lobe":
+            #     for sideTerm in ['lateral surface of ', 'medial surface of ']:
+            #         surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(sideTerm + term))
+            #         if (('lateral' in sideTerm) and ('left' in term)) or (('medial' in sideTerm) and ('right' in term)):
+            #             surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi3_1))
+            #             # surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(group2d_exterior)
+            #         elif (('medial' in sideTerm) and ('left' in term)) or (('lateral' in sideTerm) and ('right' in term)):
+            #             surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_1))
+            # else:
+            #     for sideTerm in ['dorsal surface of ', 'ventral surface of ', 'left surface of ', 'right surface of ']:
+            #         surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(sideTerm + term))
+            #         if sideTerm == 'dorsal surface of ':
+            #             surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi2_0))
+            #         elif sideTerm == 'ventral surface of ':
+            #             surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi2_1))
+            #         elif sideTerm == 'left surface of ':
+            #             surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_0))
+            #         elif sideTerm == 'right surface of ':
+            #             surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, is_xi1_1))
+
+        # # Base surface of lungs (incl. lobes)
+        # groupTerm = []
+        # baseTerms = ['left lung surface', 'lower lobe of right lung surface', 'middle lobe of right lung surface', 'right lung surface']
+        #
+        # # Base of left lung
+        # if numberOfLeftLung > 1:
+        #     baseTerms = ['lower lobe of left lung surface', 'upper lobe of left lung surface'] + baseTerms
+        #     baseLeftLowerLung = fm.createFieldAnd(lobe_exterior[baseTerms[0]], is_xi3_0)
+        #     groupTerm.append(baseLeftLowerLung)
+        #     baseLeftUpperLung = fm.createFieldAnd(fm.createFieldAnd(lobe_exterior[baseTerms[1]], is_xi3_0),
+        #                                           fm.createFieldNot(arbLobe_exterior["upper lobe of left lung dorsal"]))
+        #     groupTerm.append(baseLeftUpperLung)
+        #     baseLeftLung = fm.createFieldOr(baseLeftLowerLung, baseLeftUpperLung)
+        #     groupTerm.append(baseLeftLung)
+        # else:
+        #     baseLeftLung = fm.createFieldAnd(lobe_exterior['left lung surface'], is_xi3_0)
+        #     groupTerm.append(baseLeftLung)
+        #
+        # # Base of right lung
+        # baseRightLowerLung = fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'], is_xi3_0)
+        # groupTerm.append(baseRightLowerLung)
+        # baseRightMiddleLung = fm.createFieldAnd(fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], is_xi3_0),
+        #                                         fm.createFieldNot(arbLobe_exterior["upper lobe of right lung dorsal"]))
+        # groupTerm.append(baseRightMiddleLung)
+        # baseRightLung = fm.createFieldOr(baseRightLowerLung, baseRightMiddleLung)
+        # groupTerm.append(baseRightLung)
+        #
+        # # Base of right lung accessory lobe
+        # if hasAccessoryLobe:
+        #     baseTerms.append('right lung accessory lobe surface')
+        #     baseRightaccessory = fm.createFieldAnd(lobe_exterior[baseTerms[-1]], is_xi3_0)
+        #     groupTerm.append(baseRightaccessory)
+        #
+        # for term in baseTerms:
+        #     baseSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("base of " + term))
+        #     baseSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(groupTerm[baseTerms.index(term)])
+
+        # Fissures
+
+        if not openFissures:
+            fissureTerms = ["oblique fissure of right lung", "horizontal fissure of right lung"]
+            if numberOfLeftLung > 1:
+                fissureTerms.append("oblique fissure of left lung")
+            lobeFissureTerms = ["oblique fissure of lower lobe of left lung",
+                                "oblique fissure of upper lobe of left lung",
+                                "oblique fissure of lower lobe of right lung",
+                                "oblique fissure of middle lobe of right lung",
+                                "oblique fissure of upper lobe of right lung",
+                                "horizontal fissure of middle lobe of right lung",
+                                "horizontal fissure of upper lobe of right lung"]
+            for fissureTerm in fissureTerms:
+                if (fissureTerm == "oblique fissure of left lung") and (numberOfLeftLung > 1):
+                    fissureGroup = fm.createFieldAnd(lobe["upper lobe of left lung"], lobe["lower lobe of left lung"])
+                elif fissureTerm == "oblique fissure of right lung":
+                    fissureGroup = fm.createFieldAnd(
+                        fm.createFieldOr(lobe["middle lobe of right lung"], lobe["upper lobe of right lung"]),
+                        lobe["lower lobe of right lung"])
+                elif fissureTerm == "horizontal fissure of right lung":
+                    fissureGroup = fm.createFieldAnd(
+                        lobe["upper lobe of right lung"], lobe["middle lobe of right lung"])
+
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(fissureTerm))
+                fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fissureGroup)
+                fissureGroup_temp = fissureGroup
+
+                for lobeFissureTerm in lobeFissureTerms:
+                    temp_splitTerm = fissureTerm.split("of")
+                    if (temp_splitTerm[0] in lobeFissureTerm) and (temp_splitTerm[1] in lobeFissureTerm):
+                        if "oblique fissure of upper lobe of right lung" in lobeFissureTerm:
+                            fissureGroup = fm.createFieldAnd(fissureGroup_temp, arbLobe_2dgroup['upper lobe of right lung dorsal'])
+                        elif "oblique fissure of middle lobe of right lung" in lobeFissureTerm:
+                            fissureGroup = fm.createFieldAnd(fissureGroup_temp, fm.createFieldNot(arbLobe_2dgroup['upper lobe of right lung dorsal']))
+                        fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(lobeFissureTerm))
+                        fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fissureGroup)
+
+            # add fissures to lobe surface groups
+            if numberOfLeftLung > 1:
+                obliqueFissureOfLeftLungGroup = getAnnotationGroupForTerm(
+                    annotationGroups, get_lung_term("oblique fissure of left lung")).getGroup()
+                for lobeSurfaceTerm in ("lower lobe of left lung surface", "upper lobe of left lung surface"):
+                    lobeSurfaceGroup = getAnnotationGroupForTerm(
+                        annotationGroups, get_lung_term(lobeSurfaceTerm))
+                    lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfLeftLungGroup)
+            horizontalFissureOfRightLungGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("horizontal fissure of right lung")).getGroup()
+            obliqueFissureOfRightLungGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("oblique fissure of right lung")).getGroup()
+            obliqueFissureOfMiddleLobeOfRightLungGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("oblique fissure of middle lobe of right lung")).getGroup()
+            obliqueFissureOfUpperLobeOfRightLungGroup = getAnnotationGroupForTerm(
+                annotationGroups,
+                get_lung_term("oblique fissure of upper lobe of right lung")).getGroup()
+            lobeSurfaceGroup = getAnnotationGroupForTerm(
+                annotationGroups, get_lung_term("lower lobe of right lung surface"))
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueFissureOfRightLungGroup)
+            lobeSurfaceGroup = getAnnotationGroupForTerm(
+                annotationGroups, get_lung_term("middle lobe of right lung surface"))
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                fm.createFieldOr(obliqueFissureOfMiddleLobeOfRightLungGroup,
+                                 horizontalFissureOfRightLungGroup))
+            lobeSurfaceGroup = getAnnotationGroupForTerm(
+                annotationGroups, get_lung_term("upper lobe of right lung surface"))
+            lobeSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                fm.createFieldOr(obliqueFissureOfUpperLobeOfRightLungGroup,
+                                 horizontalFissureOfRightLungGroup))
+
+        else:
+            if numberOfLeftLung > 1:
+                obliqueLowerLeft = fm.createFieldOr(fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi2_1),
+                                                    fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi3_1))
+
+                obliqueUpperLeft = fm.createFieldOr(fm.createFieldAnd(lobe_exterior['upper lobe of left lung surface'], is_xi2_0),
+                                                    fm.createFieldAnd(arbLobe_exterior['upper lobe of left lung dorsal'], is_xi3_0))
+
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'lower lobe of left lung'))
+                fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueLowerLeft)
+
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'upper lobe of left lung'))
+                fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueUpperLeft)
+
+                obliqueLeft = fm.createFieldOr(obliqueUpperLeft, obliqueLowerLeft)
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'left lung'))
+                fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueLeft)
+
+                leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('left lung surface'))
+                leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(lobe_exterior['left lung surface'], fm.createFieldNot(obliqueLeft)))
+
+                for term in ("lower lobe of left lung surface", "upper lobe of left lung surface"):
+                    leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(
+                        annotationGroups, region, get_lung_term(term))
+                    leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(lobe_exterior[term])
+            else:
+                leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('left lung surface'))
+                leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(lobe_exterior['left lung surface'])
+
+            obliqueLowerRight = fm.createFieldOr(
+                fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'], is_xi2_1),
+                fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'], is_xi3_1))
+
+            obliqueMiddleRight = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], is_xi2_0)
+
+            obliqueUpperRight = fm.createFieldAnd(arbLobe_exterior['upper lobe of right lung dorsal'], is_xi3_0)
+
+            obliqueRight = fm.createFieldOr(fm.createFieldOr(obliqueLowerRight, obliqueUpperRight), obliqueMiddleRight)
+
+            horizontalMiddleRight = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], is_xi3_1)
+
+            horizontalUpperRight = fm.createFieldAnd(fm.createFieldAnd(lobe_exterior['upper lobe of right lung surface'], is_xi3_0),
+                                                     fm.createFieldNot(obliqueUpperRight))
+
+            horizontalRight = fm.createFieldOr(horizontalMiddleRight, horizontalUpperRight)
+
+            fissureRight = fm.createFieldOr(obliqueRight, horizontalRight)
+
+            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('right lung surface'))
+            rightLungSurface = fm.createFieldAnd(lobe_exterior['right lung surface'], fm.createFieldNot(fissureRight))
+            rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(rightLungSurface)
+
+            for term in ("lower lobe of right lung surface", "middle lobe of right lung surface",
+                         "upper lobe of right lung surface"):
+                rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(
+                    annotationGroups, region, get_lung_term(term))
+                rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(lobe_exterior[term])
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'lower lobe of right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueLowerRight)
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'middle lobe of right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueMiddleRight)
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'upper lobe of right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueUpperRight)
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'middle lobe of right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalMiddleRight)
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'upper lobe of right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalUpperRight)
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueRight)
+
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'right lung'))
+            fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalRight)
+
+        for key, value in arbLobe_group.items():
+            annotationGroups.remove(value)
+
+        for key, group in side_group.items():
+            annotationGroups.remove(group)
 
 def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, oblique_slope_radians):
     """
@@ -651,7 +1088,8 @@ def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_br
     fieldassignment.assign()
 
 
-def form_diaphragm_surface(fieldmodule, coordinates, lungNodesetGroup, diaphragm_angle_radians, diaphragm_bend_z, isLeft=True):
+def form_diaphragm_surface(fieldmodule, coordinates, lungNodesetGroup, diaphragm_angle_radians, diaphragm_bend_z,
+                           isLeft=True):
     """
     Form diaphragm surface by bending model up, phasing out to nothing at the apex.
     :param fieldmodule: Field module being worked with.
@@ -717,24 +1155,29 @@ def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, be
     fieldassignment.assign()
 
 
-def rotateLungs(rotateZ, fm, coordinates, lungNodesetGroup):
+def rotateLungs(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
     """
     Rotate the lung mesh at the center of the elements about z-axis
-    :param rotateZ:
+    :param rotateAngle: Angle of rotation in degrees.
     :param fm: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
     :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
+    :param axis: Axis of rotation.
     :return: None
     """
-    # FieldConstant - Matrix = [   x1,    x4,    x7,
-    #                              x2,    x5,    x8,
-    #                              x3,    x6,    x9]
+    rotateAngle = -rotateAngle / 180 * math.pi  # negative value due to right handed rule
 
-    rotateZ = -rotateZ / 180 * math.pi  # negative value due to right handed rule
-    rotateZMatrix = fm.createFieldConstant([math.cos(rotateZ), math.sin(rotateZ), 0.0,
-                                            -math.sin(rotateZ), math.cos(rotateZ), 0.0,
-                                            0.0, 0.0, 1.0])
-    translate_coordinates = fm.createFieldMatrixMultiply(3, rotateZMatrix, coordinates)
+    if axis == 1:
+        rotateMatrix = fm.createFieldConstant([1.0, 0.0, 0.0,
+                                               0.0, math.cos(rotateAngle), math.sin(rotateAngle),
+                                               0.0, -math.sin(rotateAngle), math.cos(rotateAngle)])
+
+    elif axis == 3:
+        rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), math.sin(rotateAngle), 0.0,
+                                               -math.sin(rotateAngle), math.cos(rotateAngle), 0.0,
+                                               0.0, 0.0, 1.0])
+
+    translate_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
 
     fieldassignment = coordinates.createFieldassignment(translate_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
@@ -806,33 +1249,32 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBre
     yLength = 0.1 * halfBreadth if isApex else 0.75 * halfBreadth
     offset = fm.createFieldConstant([0.0, yLength, 0.0])
     origin = fm.createFieldAdd(coordinates, offset)
-    k1 = sharpeningFactor / (halfBreadth * 1.75) if isApex else -sharpeningFactor / (halfBreadth * 1.75)
-    # scale = fm.createFieldConstant([0.0, 0.0, k1]) if isApex else fm.createFieldConstant([0.0, k1, 0.0])
+    k1 = -sharpeningFactor / (halfBreadth * 1.75) if isApex else -sharpeningFactor / (halfBreadth * 1.75)
     scale = fm.createFieldConstant([0.0, -k1, 0.0]) if isApex else fm.createFieldConstant([0.0, k1, 0.0])
-
+    # scale = fm.createFieldConstant([0.0, -k1, 0.0]) if isApex else fm.createFieldConstant([0.0, k1, 0.0])
 
     scaleFunction = fm.createFieldMultiply(origin, scale)
     constant = fm.createFieldConstant([0.0, 1.0, 1.0])
     constantFunction = fm.createFieldAdd(scaleFunction, constant)
-    # componentIndices = [3, 2, 3] if isApex else [2, 3, 3]
-    componentIndices = [3, 3, 2] if isApex else [2, 3, 3]
-
+    componentIndices = [3, 2, 3] if isApex else [2, 3, 3]
+    # componentIndices = [3, 3, 2] if isApex else [2, 3, 3]
 
     transformation_matrix = fm.createFieldComponent(constantFunction, componentIndices)
     taper_coordinates = fm.createFieldMultiply(origin, transformation_matrix)
     translate_coordinates = fm.createFieldSubtract(taper_coordinates, offset)
 
-    if isApex:
-        y = fm.createFieldComponent(coordinates, 2)
-        isRightSide = fm.createFieldGreaterThan(y, fm.createFieldConstant(-0.05))
-        translate_coordinates = fm.createFieldIf(isRightSide,coordinates, translate_coordinates)
+    # if isApex:
+    #     y = fm.createFieldComponent(coordinates, 2)
+    #     isRightSide = fm.createFieldGreaterThan(y, fm.createFieldConstant(-0.05))
+    #     translate_coordinates = fm.createFieldIf(isRightSide, coordinates, translate_coordinates)
 
     fieldassignment = coordinates.createFieldassignment(translate_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
 
-def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm, coordinates, lungNodesetGroup, isApex=False):
+def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm, coordinates, lungNodesetGroup,
+              isApex=False):
     """
     Applies a shear transformation to the lung mesh to achieve tilting effects at both the apex and diaphragm.
     :param tiltApex_xAxis: Shear factor along the x-axis for the lung apex, tilting the top of the lung forward or backward.
@@ -868,59 +1310,7 @@ def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm
     fieldassignment.assign()
 
 
-def redistributeBoxNodes(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, scale_factor):
-    """
-    Redistribute lung disc nodes so that the outermost nodes remain in place while inner nodes are scaled outward.
-    The scaling factor is 1 at the outer boundary and increases towards the center, causing nodes to shift outward.
-    :param fieldmodule: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in the y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param disc_breadth: Breadth of lung ellipse.
-    :param disc_height: Height of lung ellipse.
-    :param scale_factor: Maximum scaling effect at the center (should be > 1 for expansion).
-    """
-    x = fieldmodule.createFieldComponent(coordinates, 1)
-    y = fieldmodule.createFieldComponent(coordinates, 2)
-    z = fieldmodule.createFieldComponent(coordinates, 3)
-    yz = fieldmodule.createFieldComponent(coordinates, [2, 3])
-    r = fieldmodule.createFieldMagnitude(yz)
-    theta = fieldmodule.createFieldAtan2(z, y)
-    one = fieldmodule.createFieldConstant(1.0)
-
-    cos_theta = fieldmodule.createFieldCos(theta)
-    sin_theta = fieldmodule.createFieldSin(theta)
-
-    cos2 = fieldmodule.createFieldMultiply(cos_theta, cos_theta)
-    sin2 = fieldmodule.createFieldMultiply(sin_theta, sin_theta)
-    ab = fieldmodule.createFieldConstant(disc_breadth * disc_height)
-    aa = fieldmodule.createFieldConstant(disc_breadth ** 2)
-    bb = fieldmodule.createFieldConstant(disc_height ** 2)
-
-    denom = fieldmodule.createFieldSqrt((aa * sin2 + bb * cos2))
-    max_r = ab / denom * fieldmodule.createFieldConstant(0.9)
-
-    scaling = fieldmodule.createFieldConstant(scale_factor) + (one - r / max_r) * fieldmodule.createFieldConstant(0.9)
-
-    new_y = y * scaling
-    new_z = z * scaling
-
-    new_coordinates = fieldmodule.createFieldConcatenate([x, new_y, new_z])
-
-    # val1 = fieldmodule.createFieldConstant(one - r / max_r)
-    # val2 = fieldmodule.createFieldConstant(0.9)
-    # isGreater2 = fieldmodule.createFieldGreaterThan(fieldmodule.createFieldAbs(x), fieldmodule.createFieldConstant(0.25) * fieldmodule.createFieldConstant(0.9))
-    # isGreater1 = fieldmodule.createFieldGreaterThan((r / max_r), val2)
-
-    # isGreater = fieldmodule.createFieldAnd(isGreater1, isGreater2)
-    # isBox = fieldmodule.createFieldIf(isGreater, )
-    # new_coordinates = fieldmodule.createFieldIf(isGreater, coordinates, new_coordinates)
-
-    fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
-
-
-def scaleNodes(region, fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, disc_depth, scale_factor):
+def scaleNodes(fieldmodule, coordinates, lungNodesetGroup, disc_depth, scale_factor):
     """
     Redistribute lung nodes so that the outermost nodes remain in place while inner nodes are scaled outward.
     The scaling factor is 1 at the outer boundary and increases towards the center, causing nodes to shift outward.
@@ -928,87 +1318,6 @@ def scaleNodes(region, fieldmodule, coordinates, lungNodesetGroup, disc_breadth,
     :param coordinates: The coordinate field, initially circular in the y-z plane.
     :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
     :param disc_depth: Depth of lung ellipse.
-    :param disc_breadth: Breadth of lung ellipse.
-    :param disc_height: Height of lung ellipse.
-    :param scale_factor: Maximum scaling effect at the center (should be > 1 for expansion).
-    """
-    x = fieldmodule.createFieldComponent(coordinates, 1)
-    y = fieldmodule.createFieldComponent(coordinates, 2)
-    z = fieldmodule.createFieldComponent(coordinates, 3)
-    one = fieldmodule.createFieldConstant(1.0)
-    zero = fieldmodule.createFieldConstant(0.0)
-
-    # calculate r and theta
-    r = fieldmodule.createFieldSqrt((y * y) + (z * z))
-    theta = fieldmodule.createFieldAtan2(z, y)
-    r_zero = fieldmodule.createFieldEqualTo(r, zero)
-    safe_theta = fieldmodule.createFieldIf(r_zero, zero, theta)
-
-    # calculate new semi-axes
-    a = fieldmodule.createFieldConstant(disc_depth)
-    term = fieldmodule.createFieldSqrt(
-        one - fieldmodule.createFieldMultiply(x, x) / fieldmodule.createFieldMultiply(a, a))
-
-    b = fieldmodule.createFieldConstant(disc_breadth * 0.5)
-    c = fieldmodule.createFieldConstant(disc_height * 0.5)
-    b_new = b * term
-    c_new = c * term
-
-    # calculate maximum distance from the centre to the ellipsoid surface
-    factor = fieldmodule.createFieldSqrt(one - ((x * x) / (a * a)))
-    y_surface = b_new * factor * fieldmodule.createFieldCos(safe_theta)
-    z_surface = c_new * factor * fieldmodule.createFieldSin(safe_theta)
-
-    max_r = fieldmodule.createFieldSqrt(x * x + y_surface * y_surface + z_surface * z_surface)
-
-    # threshold
-    y_abs = fieldmodule.createFieldAbs(y)
-    z_abs = fieldmodule.createFieldAbs(z)
-
-    r_threshold = max_r * fieldmodule.createFieldConstant(0.9)
-    # r_threshold = b_new
-
-    isGreaterThanThreshold = fieldmodule.createFieldGreaterThan(r, r_threshold)
-    # isGreaterThanThreshold = fieldmodule.createFieldGreaterThan(y_abs, r_threshold)
-
-    isGreaterThanApex = fieldmodule.createFieldGreaterThan(fieldmodule.createFieldAbs(x), a * fieldmodule.createFieldConstant(0.8))
-
-    isConditional = fieldmodule.createFieldOr(isGreaterThanThreshold, isGreaterThanApex)
-
-    # calculate scaling factor
-    scaling = fieldmodule.createFieldConstant(scale_factor) + (one - r / max_r) * fieldmodule.createFieldConstant(0.9)
-    # scaling = (fieldmodule.createFieldConstant(scale_factor) + (one - r / max_r) +
-    #            (fieldmodule.createFieldConstant(0.1)) * (fieldmodule.createFieldAbs(x) / a))
-
-    # scaling = ((y - y_surface * fieldmodule.createFieldConstant(0.5)) * (y - y_surface * fieldmodule.createFieldConstant(0.5))
-    #            + fieldmodule.createFieldConstant(scale_factor))
-
-    new_y = fieldmodule.createFieldIf(isConditional, y * one, y * scaling)
-    new_z = fieldmodule.createFieldIf(isConditional, z * one, z * scaling)
-
-    # new_y = y * scaling
-    # new_z = z * scaling
-
-    new_coordinates = fieldmodule.createFieldConcatenate([x, new_y, new_z])
-
-    fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
-
-    # smoothing = DerivativeSmoothing(region, coordinates, scalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-    # smoothing.smooth(updateDirections=True)
-
-
-def scaleNodes2(region, fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, disc_depth, scale_factor):
-    """
-    Redistribute lung nodes so that the outermost nodes remain in place while inner nodes are scaled outward.
-    The scaling factor is 1 at the outer boundary and increases towards the center, causing nodes to shift outward.
-    :param fieldmodule: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in the y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param disc_depth: Depth of lung ellipse.
-    :param disc_breadth: Breadth of lung ellipse.
-    :param disc_height: Height of lung ellipse.
     :param scale_factor: Maximum scaling effect at the center (should be > 1 for expansion).
     """
     x = fieldmodule.createFieldComponent(coordinates, 1)
@@ -1020,7 +1329,7 @@ def scaleNodes2(region, fieldmodule, coordinates, lungNodesetGroup, disc_breadth
     one = fieldmodule.createFieldConstant(1.0)
     four = fieldmodule.createFieldConstant(4.0)
 
-    tol = 0.01
+    tol = 1.0E-3
 
     aa = fieldmodule.createFieldConstant((disc_depth + disc_depth * tol) ** 2)
     b = fieldmodule.createFieldConstant(0.5)
@@ -1051,11 +1360,9 @@ def scaleNodes2(region, fieldmodule, coordinates, lungNodesetGroup, disc_breadth
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-    # smoothing = DerivativeSmoothing(region, coordinates, scalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-    # smoothing.smooth(updateDirections=True)
 
-
-def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLateral, elementsCountNormal, elementsCountOblique):
+def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLateral, elementsCountNormal,
+                       elementsCountOblique, elementsCountShell):
     """
     Resample shell nodes around the ellipsoid in the yz plane so that the shell nodes are aligned linearly.
     :param fieldmodule: Field module being worked with.
@@ -1064,7 +1371,12 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
     :param elementsCountLateral: Number of elements along the lateral direction.
     :param elementsCountNormal: Number of elements along the normal direction.
     :param elementsCountOblique: Number of elements along the oblique direction.
+    :param elementsCountShell: Number of elements across the shell layer.
     """
+    elementsCountLateral -= 2 * elementsCountShell
+    elementsCountNormal -= 2 * elementsCountShell
+    elementsCountOblique -= 2 * elementsCountShell
+
     setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                       Node.VALUE_LABEL_D_DS3]
     nodes = lungNodeset
@@ -1073,7 +1385,7 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
     nodeParametersDict = dict(nodeParameters)
     elementsCountAround = getElementsCountAround(elementsCountNormal, elementsCountOblique)
     boundaryNids = getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique,
-                                            elementsCountAround, sNodeIdentifier=sNodeIdentifier)
+                                              elementsCountAround, elementsCountShell, sNodeIdentifier=sNodeIdentifier)
 
     fieldcache = fieldmodule.createFieldcache()
 
@@ -1111,7 +1423,8 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
             for e3 in [0, -1]:
                 sNodeIdentifier = [boundaryNids[e1][normalMidIndex][e3]]
                 eNodeIdentifier = [boundaryNids[e1][e2][e3]]
-                midRange = range(normalMidIndex - 1, 0, -1) if e2 == 0 else range(normalMidIndex + 1, elementsCountNormal - 2)
+                midRange = range(normalMidIndex - 1, 0, -1) if e2 == 0 else range(normalMidIndex + 1,
+                                                                                  elementsCountNormal - 2)
                 mNodeIdentifier = [boundaryNids[e1][c][e3] for c in midRange]
                 snids = sNodeIdentifier + mNodeIdentifier + eNodeIdentifier
 
@@ -1124,7 +1437,8 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
                     bd.append(nodeParametersDict.get(id)[n2][0])
                 bd[0] = mult(bd[0], -1) if e2 == 0 else bd[0]
 
-                tx, td = sampleCubicHermiteCurves(bx, bd, len(bx) - 1, elementLengthStartEndRatio=0.7, arcLengthDerivatives=True)[:2]
+                tx, td = sampleCubicHermiteCurves(bx, bd, len(bx) - 1, elementLengthStartEndRatio=0.7,
+                                                  arcLengthDerivatives=True)[:2]
 
                 for n, id in enumerate(snids):
                     n2 = n2List[n]
@@ -1179,7 +1493,8 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
         for e2, e3 in [(0, 0), (0, -1), (-1, 0), (-1, -1)]:
             sNodeIdentifier = [boundaryNids[e1][e2][e3]]
             eNodeIdentifier = [boundaryNids[e1][e2][obliqueMidIndex]]
-            midRange = range(e3 + 1, obliqueMidIndex) if e3 == 0 else range(elementsCountOblique - 3, obliqueMidIndex, -1)
+            midRange = range(e3 + 1, obliqueMidIndex) if e3 == 0 else range(elementsCountOblique - 3, obliqueMidIndex,
+                                                                            -1)
             mNodeIdentifier = [boundaryNids[e1][e2][c] for c in midRange]
             snids = sNodeIdentifier + mNodeIdentifier + eNodeIdentifier
 
@@ -1203,7 +1518,8 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
                 bx.append(nodeParametersDict[id][0][0])
                 bd.append(mult(nodeParametersDict[id][n2][0], dir))
 
-            tx, td = sampleCubicHermiteCurves(bx, bd, len(bx) - 1, elementLengthStartEndRatio=1.3, arcLengthDerivatives=True)[:2]
+            tx, td = sampleCubicHermiteCurves(bx, bd, len(bx) - 1, elementLengthStartEndRatio=1.3,
+                                              arcLengthDerivatives=True)[:2]
 
             for n, id in enumerate(snids):
                 n2, dir = n2List[n], dirList[n]
@@ -1214,7 +1530,8 @@ def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLater
                 coordinates.setNodeParameters(fieldcache, -1, label, 1, mult(td[n], dir))
 
 
-def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral, elementsCountNormal, elementsCountOblique):
+def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral, elementsCountNormal,
+                                 elementsCountOblique, elementsCountShell):
     """
     Smooth derivatives of nodes connecting the box mesh to the shell mesh.
     :param fieldmodule: Field module being worked with.
@@ -1223,7 +1540,12 @@ def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
     :param elementsCountLateral: Number of elements along the lateral direction.
     :param elementsCountNormal: Number of elements along the normal direction.
     :param elementsCountOblique: Number of elements along the oblique direction.
+    :param elementsCountShell: Number of elements across the shell layer.
     """
+    elementsCountLateral -= 2 * elementsCountShell
+    elementsCountNormal -= 2 * elementsCountShell
+    elementsCountOblique -= 2 * elementsCountShell
+
     setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                       Node.VALUE_LABEL_D_DS3]
     nodes = lungNodeset
@@ -1234,7 +1556,8 @@ def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
 
     nNodes = len(nodeParameters)
     nodeIds = getBoxRowNodeIdentifiers(elementsCountNormal, elementsCountOblique, nNodes, sNodeIdentifier)
-    boundaryNodeIds = getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique,elementsCountAround, sNodeIdentifier)
+    boundaryNodeIds = getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique,
+                                                 elementsCountAround, elementsCountShell, sNodeIdentifier)
 
     for e1 in [0, -1]:
         e1p = e1 + 1 if e1 == 0 else e1 - 1
@@ -1245,7 +1568,7 @@ def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
                 bx = nodeParametersDict[bid][0][0]
                 sx = nodeParametersDict[sid][0][0]
 
-                shellFactor = 1.0 # 1.0 / elementsCountRim
+                shellFactor = 1.0  # 1.0 / elementsCountRim
                 sd3 = mult(sub(sx, bx), shellFactor)
 
                 fieldcache = fieldmodule.createFieldcache()
@@ -1276,7 +1599,8 @@ def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, sd3)
 
 
-def smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique):
+def smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique,
+                                 elementsCountShell):
     """
     Smooth derivatives of nodes connecting the box mesh to the shell mesh.
     :param fieldmodule: Field module being worked with.
@@ -1285,7 +1609,11 @@ def smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
     :param elementsCountLateral: Number of elements along the lateral direction.
     :param elementsCountNormal: Number of elements along the normal direction.
     :param elementsCountOblique: Number of elements along the oblique direction.
+    :param elementsCountShell: Number of elements across the shell layer.
     """
+    elementsCountNormal -= 2 * elementsCountShell
+    elementsCountOblique -= 2 * elementsCountShell
+
     setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                       Node.VALUE_LABEL_D_DS3]
     nodes = lungNodeset
@@ -1321,16 +1649,20 @@ def smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, mult(sd1[n], dir))
 
 
-def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique):
+def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique,
+                                 elementsCountShell):
     """
     Smooth derivatives of nodes connecting the box mesh to the shell mesh.
     :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field.
     :param lungNodeset: Zinc NodesetGroup containing nodes to transform.
-    :param elementsCountLateral: Number of elements along the lateral direction.
     :param elementsCountNormal: Number of elements along the normal direction.
     :param elementsCountOblique: Number of elements along the oblique direction.
+    :param elementsCountShell: Number of elements across the shell layer.
     """
+    elementsCountNormal -= 2 * elementsCountShell
+    elementsCountOblique -= 2 * elementsCountShell
+
     setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                       Node.VALUE_LABEL_D_DS3]
     nodes = lungNodeset
@@ -1352,9 +1684,11 @@ def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
             for e2 in range(elementsCountNormal - 1):
                 id = nodeIds[e1][e2][e3]
                 if e1 == 0:
-                    n2 = 1 if (e2 == 0 and e3 < midObliqueIndex) or (e2 == elementsCountNormal - 2 and e3 > midObliqueIndex) else 2
+                    n2 = 1 if (e2 == 0 and e3 < midObliqueIndex) or (
+                                e2 == elementsCountNormal - 2 and e3 > midObliqueIndex) else 2
                 else:
-                    n2 = 1 if (e2 == 0 and e3 > midObliqueIndex) or (e2 == elementsCountNormal - 2 and e3 < midObliqueIndex) else 2
+                    n2 = 1 if (e2 == 0 and e3 > midObliqueIndex) or (
+                                e2 == elementsCountNormal - 2 and e3 < midObliqueIndex) else 2
                 dir = -1 if e2 < midNormalIndex else 1
                 snids.append(id)
                 n2List.append(n2)
@@ -1374,58 +1708,9 @@ def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
                 coordinates.setNodeParameters(fieldcache, -1, label, 1, mult(sd2[n], dir))
 
-            # snids = nodeIds[e1][e2]
-            # sx, sd1 = [], []
-            # if e1 == -1:
-            #     dir = 1 if e2 < midNormalIndex else -1
-            # else:
-            #     dir = -1 if e2 < midNormalIndex else 1
-            # for id in snids:
-            #     sx.append(nodeParametersDict[id][0][0])
-            #     sd1.append(mult(nodeParametersDict[id][1][0], dir))
-            #
-            # sd1 = smoothCubicHermiteDerivativesLine(sx, sd1, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-            #
-            # fieldcache = fieldmodule.createFieldcache()
-            # for n, id in enumerate(snids):
-            #     node = nodes.findNodeByIdentifier(id)
-            #     fieldcache.setNode(node)
-            #     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
-            #     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, mult(sd1[n], dir))
-
 
 def getElementsCountAround(elementsCountNormal, elementsCountOblique):
     return (elementsCountNormal - 1) * 2 + (elementsCountOblique - 3) * 2
-
-
-# def getBoxColumnNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique):
-#     """
-#     Generates a list of node identifiers forming vertical columns (z-direction) within a box core
-#     structure inside an ellipsoid.
-#     :param elementsCountLateral: Number of elements along the lateral direction.
-#     :param elementsCountNormal: Number of elements along the normal direction.
-#     :param elementsCountOblique: Number of elements along the oblique direction.
-#     :return: List of identifiers for box nodes grouped in columns.
-#     """
-#     boxColumnNids = []
-#     sNodeIdentifier = 1
-#     midLateral = elementsCountLateral // 2
-#     midNormal = (elementsCountNormal - 2) // 2
-#
-#     for e1 in range(elementsCountLateral + 1):
-#         increment = elementsCountOblique if e1 == midLateral else elementsCountOblique - 1
-#         boxColumnNids.append([])
-#         for e2 in range(elementsCountOblique - 1):
-#             nids = []
-#             nid = sNodeIdentifier
-#             for e3 in range(elementsCountNormal - 1):
-#                 nids.append(nid)
-#                 nid += (increment + 1) if e1 == midLateral and e3 in {midNormal - 1, midNormal} else increment
-#             boxColumnNids[e1].append(nids)
-#             sNodeIdentifier += 1
-#         sNodeIdentifier = nids[-1] + (elementsCountOblique if e1 in {midLateral, midLateral - 1} else 1)
-#
-#     return boxColumnNids
 
 
 def getBoxRowNodeIdentifiers(elementsCountNormal, elementsCountOblique, nNodes, sNodeIdentifier=1):
@@ -1462,14 +1747,15 @@ def getBoxRowNodeIdentifiers(elementsCountNormal, elementsCountOblique, nNodes, 
     return boxRowNids
 
 
-def getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique, elementsCountAround, sNodeIdentifier=1):
+def getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique, elementsCountAround,
+                               elementsCountShell, sNodeIdentifier=1):
     """
     Generates a list of boundary node identifiers.
-
     :param elementsCountLateral: Number of elements along the lateral direction.
     :param elementsCountNormal: Number of elements along the normal direction.
     :param elementsCountOblique: Number of elements along the oblique direction.
     :param elementsCountAround: Number of elements around the boundary.
+    :param elementsCountShell:
     :param sNodeIdentifier: Starting node identifier (default is 1).
     :return: List of boundary node identifiers grouped by layers.
     """
@@ -1488,22 +1774,23 @@ def getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elemen
             else:
                 for e2 in range(2):
                     boundaryNids[e1][e3].append(nid)
-                    increment_value = elementsCountOblique if (e1 > 0 and e1 < elementsCountLateral - 2) else elementsCountOblique - 2
+                    increment_value = elementsCountOblique + (elementsCountShell * 2) \
+                        if (e1 > 0 and e1 < elementsCountLateral - 2) else elementsCountOblique - 2
                     nid += increment_value
 
             if e1 > 0 and e1 < elementsCountLateral - 2:
                 if e3 + 1 == 1 or e3 + 1 == elementsCountNormal - 2:
-                    nid = boundaryNids[e1][e3][-1] + elementsCountOblique
+                    nid = boundaryNids[e1][e3][-1] + ((elementsCountOblique - 1) * (elementsCountShell + 1)) + 1
                 else:
                     nid = boundaryNids[e1][e3][-1] + 1
             else:
                 nid = boundaryNids[e1][e3][-1] + 1
 
         if e1 == 0:
-            sNodeIdentifier += increment * 2
+            sNodeIdentifier += increment * (2 + elementsCountShell)
         elif 0 < e1 < elementsCountLateral - 3:
             sNodeIdentifier += increment + elementsCountAround
         else:
-            sNodeIdentifier += increment * 2 + elementsCountAround
+            sNodeIdentifier += increment * (elementsCountShell + 2) + elementsCountAround * (elementsCountShell + 1)
 
     return boundaryNids
