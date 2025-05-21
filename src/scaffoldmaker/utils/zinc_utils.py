@@ -1011,7 +1011,7 @@ def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_na
     :param group_name: Optional name of group to limit fitting over.
     """
     fitter = FieldFitter(region=region)
-    fitter.setDiagnosticLevel(2)
+    # fitter.setDiagnosticLevel(1)
     fieldmodule = region.getFieldmodule()
     coordinates = fieldmodule.findFieldByName(coordinate_field_name).castFiniteElement()
     fitter.setModelCoordinatesField(coordinates)

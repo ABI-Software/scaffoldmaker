@@ -308,6 +308,7 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
         dTangent = [0.0, 0.0, 0.0]
     return curvature, tangent, dTangent
 
+
 def interpolateHermiteLagrange(v1, d1, v2, xi):
     """
     Get value at xi for quadratic Hermite-Lagrange interpolation from v1, d1 to v2.
@@ -317,6 +318,7 @@ def interpolateHermiteLagrange(v1, d1, v2, xi):
     f2 = xi - xi*xi
     f3 = xi*xi
     return [ (v1[c]*f1 + d1[c]*f2 + v2[c]*f3) for c in range(len(v1)) ]
+
 
 def interpolateHermiteLagrangeDerivative(v1, d1, v2, xi):
     """
@@ -328,6 +330,7 @@ def interpolateHermiteLagrangeDerivative(v1, d1, v2, xi):
     df3 = 2.0*xi
     return [ (v1[c]*df1 + d1[c]*df2 + v2[c]*df3) for c in range(len(v1)) ]
 
+
 def interpolateLagrangeHermite(v1, v2, d2, xi):
     """
     Get value at xi for quadratic Lagrange-Hermite interpolation from v1 to v2, d2.
@@ -338,6 +341,7 @@ def interpolateLagrangeHermite(v1, v2, d2, xi):
     f3 = -xi + xi*xi
     return [ (v1[c]*f1 + v2[c]*f2 + d2[c]*f3) for c in range(len(v1)) ]
 
+
 def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     """
     Get derivative at xi for quadratic Lagrange-Hermite interpolation to from v1 to v2, d2.
@@ -347,6 +351,31 @@ def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     df2 = 2.0 - 2.0*xi
     df3 = -1.0 + 2.0*xi
     return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
+
+
+def computeLagrangeHermiteDerivative(v1, v2, d2_in):
+    """
+    Compute scaled d2 which makes it equal to arc length.
+    :param d2_in: Direction of d2; initial magnitude is ignored.
+    :return: Scaled d2
+    """
+    d2_mag = magnitude(sub(v2, v1))
+    if d2_mag == 0.0:
+        return set_magnitude(d2_in, 0.0)
+    TOL = 1.0E-6 * d2_mag if (d2_mag > 0.0) else 1.0
+    d2 = set_magnitude(d2_in, d2_mag)
+    for iters in range(100):
+        d1 = interpolateLagrangeHermiteDerivative(v1, v2, d2, 0.0)
+        arc_length = getCubicHermiteArcLength(v1, d1, v2, d2)
+        d2 = set_magnitude(d2_in, arc_length)
+        if math.fabs(arc_length - d2_mag) < TOL:
+            break
+        d2_mag = arc_length
+    else:
+        print('computeLagrangeHermiteDerivative:  Max iters reached:', iters, ' v', v1, 'c2', v2,
+              'd2_in', d2_in, 'arc length', arcLength)
+    return d2
+
 
 def getNearestPointIndex(nx, x):
     """
@@ -465,8 +494,8 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     if elementsCountOut == 1:
         nodeDerivativeMagnitudes[0] = nodeDerivativeMagnitudes[1] = elementLengths[0]
     else:
-        nodeDerivativeMagnitudes[0] = elementLengths[ 0]*2.0 - nodeDerivativeMagnitudes[ 1]
-        nodeDerivativeMagnitudes[-1]   = elementLengths[-1]*2.0 - nodeDerivativeMagnitudes[-2]
+        nodeDerivativeMagnitudes[ 0] = 2.0 * elementLengths[ 0] - nodeDerivativeMagnitudes[ 1]
+        nodeDerivativeMagnitudes[-1] = 2.0 * elementLengths[-1] - nodeDerivativeMagnitudes[-2]
 
     px = []
     pd1 = []
