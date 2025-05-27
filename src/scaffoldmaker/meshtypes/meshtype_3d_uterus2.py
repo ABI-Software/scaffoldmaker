@@ -485,13 +485,9 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         else:
             segment1Length = halfFundusWidth + uterineTubeLength
             segment1LengthScale = segment1Length / uterineTubeElementsCount
+            elementsAlongHalfFundusWidth = math.ceil(halfFundusWidth / segment1LengthScale)
+
             for side in (left, right):
-                nxTube = []
-                nd1Tube = []
-                nd2Tube = []
-                nd3Tube = []
-                nid2Tube = []
-                nid3Tube = []
                 xStart = [0.0, segment1Length * (-1.0 if side == left else 1.0), 0.0]
                 d1UterineTube = [0.0, segment1LengthScale * (1.0 if side == left else -1.0), 0.0]
                 for i in range(uterineTubeElementsCount + 1):
@@ -499,48 +495,44 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                     if segment1LengthScale * i < uterineTubeLength:
                         d2 = [-uterineTubeRadius if side == left else uterineTubeRadius, 0.0, 0.0]
                         d3 = [0.0, 0.0, uterineTubeRadius]
+                        d12 = [0.0, 0.0, 0.0]
+                        d13 = [0.0, 0.0, 0.0]
                     else: # in ellipse zone
                         theta = math.acos(x[1] / halfFundusWidth)
                         if abs(halfFundusDepth * math.sin(theta)) < uterineTubeRadius:
                             d2 = [-uterineTubeRadius if side == left else uterineTubeRadius, 0.0, 0.0]
                             d3 = [0.0, 0.0, uterineTubeRadius]
+                            d12 = [0.0, 0.0, 0.0]
+                            d13 = [0.0, 0.0, 0.0]
                         else:
                             d2 = [halfFundusDepth * math.sin(theta) * (-1.0 if side == left else 1.0), 0.0, 0.0] # fundusHeight??
                             d3 = [0.0, 0.0, halfFundusDepth * math.sin(theta)]
+                            d12 = [halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth),
+                                   0.0, 0.0]
+                            d13 = [0.0, 0.0,
+                                   halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth) *
+                                   (-1.0 if side == left else 1.0)]
                     id2 = mult(d2, innerProportionUterineTubes)
                     id3 = mult(d3, innerProportionUterineTubes)
+                    id12 = mult(d12, innerProportionUterineTubes)
+                    id13 = mult(d13, innerProportionUterineTubes)
 
-                    nxTube.append(x)
-                    nd1Tube.append(d1UterineTube)
-                    nd2Tube.append(d2)
-                    nd3Tube.append(d3)
-                    nid2Tube.append(id2)
-                    nid3Tube.append(id3)
-
-                nd13Tube = smoothCurveSideCrossDerivatives(nxTube, nd1Tube, [nd3Tube])[0]
-                nd12Tube = smoothCurveSideCrossDerivatives(nxTube, nd1Tube, [nd2Tube])[0]
-                nid13Tube = smoothCurveSideCrossDerivatives(nxTube, nd1Tube, [nid3Tube])[0]
-                nid12Tube = smoothCurveSideCrossDerivatives(nxTube, nd1Tube, [nid2Tube])[0]
-
-                for i in range(uterineTubeElementsCount + 1):
                     if i < uterineTubeElementsCount:
                         node = nodes.findNodeByIdentifier(nodeIdentifier)
                         fieldcache.setNode(node)
-                        setNodeFieldParameters(coordinates, fieldcache, nxTube[i], nd1Tube[i], nd2Tube[i], nd3Tube[i],
-                                               nd12Tube[i], nd13Tube[i])
-                        setNodeFieldParameters(innerCoordinates, fieldcache, nxTube[i], nd1Tube[i], nid2Tube[i],
-                                               nid3Tube[i], nid12Tube[i], nid13Tube[i])
+                        setNodeFieldParameters(coordinates, fieldcache, x, d1UterineTube, d2, d3, d12, d13)
+                        setNodeFieldParameters(innerCoordinates, fieldcache, x, d1UterineTube, id2, id3, id12, id13)
                         nodeIdentifier += 1
                     else:
-                        d1BodyJunction.append(nd1Tube[i])
-                        d2BodyJunction.append(nd2Tube[i])
-                        d3BodyJunction.append(nd3Tube[i])
-                        d12BodyJunction.append(nd12Tube[i])
-                        d13BodyJunction.append(nd13Tube[i])
-                        id2BodyJunction.append(nid2Tube[i])
-                        id3BodyJunction.append(nid3Tube[i])
-                        id12BodyJunction.append(nid12Tube[i])
-                        id13BodyJunction.append(nid13Tube[i])
+                        d1BodyJunction.append(d1UterineTube)
+                        d2BodyJunction.append(d2)
+                        d3BodyJunction.append(d3)
+                        d12BodyJunction.append(d12)
+                        d13BodyJunction.append(d13)
+                        id2BodyJunction.append(id2)
+                        id3BodyJunction.append(id3)
+                        id12BodyJunction.append(id12)
+                        id13BodyJunction.append(id13)
 
         xFundusPatchStart = [-bodyLength, 0.0, 0.0]
         d1FundusPatch = [bodyLength / fundusPatchElementsCount, 0.0, 0.0]
@@ -1058,7 +1050,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
         # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
         # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-        
+
         mesh = fieldmodule.findMeshByDimension(3)
         # useCrossDerivatives = False
         # if useLinerThroughWall:
