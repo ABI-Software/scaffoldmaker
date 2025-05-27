@@ -4,6 +4,7 @@ Common resource for uterus annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 uterus_terms = [
+    ("body junction", "None"),
     ("body of uterus", "UBERON:0009853", "FMA:17739", "ILX:0730129"),
     ("broad ligament of uterus", "UBERON:0012332", "FMA:16516", "ILX:0733266"),
     ("dorsal cervix junction with vagina", "None"),
@@ -15,6 +16,8 @@ uterus_terms = [
     ("internal cervical os", "UBERON:0013759", "FMA:17747", "ILX:0729495"),
     ("junction of left round ligament with uterus", "None"),
     ("junction of right round ligament with uterus", "None"),
+    ("junction of left uterosacral ligament with uterus", "None"),
+    ("junction of right uterosacral ligament with uterus", "None"),
     ("left broad ligament of uterus", "None"),
     ("left transverse cervical ligament", "None"),
     ("left uterine horn", "UBERON:0009020"),
@@ -22,6 +25,7 @@ uterus_terms = [
     ("left uterus", "None"),
     ("lumen of body of uterus", "None"),
     ("lumen of fallopian tube", "None"),
+    ("lumen of fundus of uterus", "None"),
     ("lumen of left horn", "None"),
     ("lumen of left uterine tube", "None"),
     ("lumen of right horn", "None"),
@@ -37,6 +41,7 @@ uterus_terms = [
     ("right uterine tube", "UBERON:0001302", "FMA:18483", "ILX:0724908"),
     ("right uterus", "None"),
     ("serosa of body of uterus", "None"),
+    ("serosa of fundus of uterus", "None"),
     ("serosa of left uterine tube", "None"),
     ("serosa of left horn", "None"),
     ("serosa of right horn", "None"),
