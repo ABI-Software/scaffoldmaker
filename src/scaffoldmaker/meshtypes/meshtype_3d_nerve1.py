@@ -41,23 +41,18 @@ def get_left_vagus_marker_locations_list():
     # vagus markers location in material coordinates between 0 to 1
     left_termNameVagusLengthList = {
         # cervical region
-        # "level of exiting brainstem on the vagus nerve": 0.0,  # note this term is not on the list of annotations
-        "left level of superior border of jugular foramen on the vagus nerve": 0.02762944,
-        # # "left level of inferior border of jugular foramen on the vagus nerve": 0.05351264,
-        "left level of inferior border of jugular foramen on the vagus nerve": 0.047304398,
+        "left level of superior border of jugular foramen on the vagus nerve": 0.02737296,
+        "left level of inferior border of jugular foramen on the vagus nerve": 0.04434952,
         # "left level of inferior border of cranium on the vagus nerve": 0.0588,
         # "left level of C1 transverse process on the vagus nerve": 0.10276128,
-        # "left level of angle of the mandible on the vagus nerve": 0.135184,
-        # # "left level of greater horn of hyoid on the vagus nerve": 0.14595904,
-        "left level of greater horn of hyoid on the vagus nerve": 0.171654481,
-        "left level of carotid bifurcation on the vagus nerve": 0.15474592,
-        "left level of laryngeal prominence on the vagus nerve": 0.22029792,
+        "left level of angle of the mandible on the vagus nerve": 0.12533074,
+        # "left level of greater horn of hyoid on the vagus nerve": 0.14595904,
+        "left level of carotid bifurcation on the vagus nerve": 0.15738364,
+        "left level of laryngeal prominence on the vagus nerve": 0.20541934,
         # thoracic region
-        # # "left level of superior border of the clavicle on the vagus nerve": 0.37620064,
-        "left level of superior border of the clavicle on the vagus nerve": 0.348953222,
-        # "left level of jugular notch on the vagus nerve": 0.39885024,
-        # "left level of carina": 0.47869728,  # not on the list of annotations yet!
-        # "left level of sternal angle on the vagus nerve": 0.48395264,
+        "left level of superior border of the clavicle on the vagus nerve": 0.33847976,
+        "left level of jugular notch on the vagus nerve": 0.38062311,
+        "left level of sternal angle on the vagus nerve": 0.48395264,
         # "left level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
         # abdominal region
         # "left level of esophageal hiatus on the vagus nerve": 0.813852428,
@@ -71,28 +66,22 @@ def get_right_vagus_marker_locations_list():
     # vagus markers location in material coordinates between 0 to 1
     right_termNameVagusLengthList = {
         # cervical region
-        # "level of exiting brainstem on the vagus nerve": 0.0,  # note this term is not on the list of annotations
         "right level of superior border of jugular foramen on the vagus nerve": 0.02762944,
-        # # "right level of inferior border of jugular foramen on the vagus nerve": 0.05351264,
-        "right level of inferior border of jugular foramen on the vagus nerve": 0.047304398,
+        "right level of inferior border of jugular foramen on the vagus nerve": 0.04434952,
         # "right level of inferior border of cranium on the vagus nerve": 0.0588,
         # "right level of C1 transverse process on the vagus nerve": 0.10276128,
-        # "right level of angle of the mandible on the vagus nerve": 0.135184,
-        # # "right level of greater horn of hyoid on the vagus nerve": 0.14595904,
-        "right level of greater horn of hyoid on the vagus nerve": 0.171654481,
-        # "right level of carotid bifurcation on the vagus nerve": 0.15474592,
-        # "right level of laryngeal prominence on the vagus nerve": 0.22029792,
+        "right level of angle of the mandible on the vagus nerve": 0.12648368,
+        # "right level of greater horn of hyoid on the vagus nerve": 0.14595904,
+        "right level of carotid bifurcation on the vagus nerve": 0.17798550,
+        "right level of laryngeal prominence on the vagus nerve": 0.23144827,
         # thoracic region
-        # # "right level of superior border of the clavicle on the vagus nerve": 0.37620064,
-        "right level of superior border of the clavicle on the vagus nerve": 0.348953222,
-        # "right level of jugular notch on the vagus nerve": 0.39885024,
-        # "right level of carina": 0.47869728,  # not on the list of annotations yet!
-        # "right level of sternal angle on the vagus nerve": 0.48395264,
+        "right level of superior border of the clavicle on the vagus nerve": 0.33948916,
+        "right level of jugular notch on the vagus nerve": 0.38937585,
+        "right level of sternal angle on the vagus nerve": 0.48764507,
         # "right level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
         # abdominal region
         # "right level of esophageal hiatus on the vagus nerve": 0.813852428,
         # "right level of aortic hiatus on the vagus nerve": 0.9323824,
-        # "right level of end of trunk": 1.0  # note this term is also not on the list of annotations
     }
     return right_termNameVagusLengthList
 
