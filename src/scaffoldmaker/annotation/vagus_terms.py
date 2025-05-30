@@ -52,7 +52,7 @@ vagus_marker_terms = [
     ("left level of aortic hiatus on the vagus nerve", "ILX:0794658"),
     # vagus built-in annotations
     ("vagus centroid", ""),
-    ("vagus epineureum", ""),
+    ("vagus epineurium", ""),
     ("vagus anterior line", "")
 ]
 

@@ -60,5 +60,5 @@ annotated with standard term names and identifiers from a controlled vocabulary.
 Each subject-specific vagus box scaffold has the following defined groups of 3-D elements:
 
 * vagus centroid
-* vagus epineureum
+* vagus epineurium
 * vagus anterior line

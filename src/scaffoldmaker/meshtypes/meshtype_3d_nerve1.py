@@ -128,7 +128,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         options = {
             'Number of elements along the trunk pre-fit': 20,
             'Number of elements along the trunk': 40,
-            'Trunk proportion': 0.6,
+            'Trunk proportion': 1.0,
             'Trunk fit number of iterations': 5,
             'Default trunk diameter mm': 3.0,
             'Branch diameter trunk proportion': 0.5
@@ -171,7 +171,7 @@ class MeshType_3d_nerve1(Scaffold_base):
     def generateBaseMesh(cls, region, options):
         """
         Generate the 3d mesh for a vagus with branches, incorporating 1d central line,
-        2d epineureum and 3d box based on constant vagus radius.
+        2d epineurium and 3d box based on constant vagus radius.
 
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
@@ -404,7 +404,7 @@ class MeshType_3d_nerve1(Scaffold_base):
             facetemplate.defineField(coordinates, -1, eft2d)
             facetemplate_and_eft_list.append((facetemplate, eft2d))
 
-        # 2D epineureum branch root - 4 elements around circle
+        # 2D epineurium branch root - 4 elements around circle
         # scale factors:
         # + 3 global scale factor (-1.0, 0.5, pi/4)
         # + 2 offsets of centroid in parent xi2, xi3
@@ -570,7 +570,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         annotation_groups.append(centroid_annotation_group)
         centroid_mesh_group = centroid_annotation_group.getMeshGroup(mesh1d)
 
-        epineurium_annotation_group = AnnotationGroup(region, get_vagus_marker_term("vagus epineureum"))
+        epineurium_annotation_group = AnnotationGroup(region, get_vagus_marker_term("vagus epineurium"))
         annotation_groups.append(epineurium_annotation_group)
         epineurium_mesh_group = epineurium_annotation_group.getMeshGroup(mesh2d)
 
@@ -1011,7 +1011,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         mesh1d = fieldmodule.findMeshByDimension(1)
 
         epineurium_annotation_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                            get_vagus_marker_term("vagus epineureum"))
+                                                                            get_vagus_marker_term("vagus epineurium"))
         epineurium_mesh_group = epineurium_annotation_group.getMeshGroup(mesh2d)
         vagusAnteriorLineAnnotationGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_vagus_marker_term("vagus anterior line"))
