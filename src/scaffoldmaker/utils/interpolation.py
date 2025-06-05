@@ -373,7 +373,7 @@ def computeLagrangeHermiteDerivative(v1, v2, d2_in):
         d2_mag = arc_length
     else:
         print('computeLagrangeHermiteDerivative:  Max iters reached:', iters, ' v', v1, 'c2', v2,
-              'd2_in', d2_in, 'arc length', arcLength)
+              'd2_in', d2_in, 'arc length', arc_length)
     return d2
 
 
