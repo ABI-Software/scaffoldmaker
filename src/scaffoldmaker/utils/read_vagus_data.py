@@ -298,28 +298,23 @@ class VagusInputData:
 
 def group_common_branches(branch_names):
     """
-    Groups branches with the same annotations and destinations, only different by A, B, C keyword.
+    Groups branches with the same annotations and destinations, only different by A, B, C variant character.
     :param branch_names: List with supplied branch names.
-    :param branch_keywords: List of branch keywords
     :return branch_common_map: Dictionary mapping common branch name to list of branches with common names.
+    Only contains entries for branches with variant names.
     """
 
-    grouped_names = {}
-    for branch_name in branch_names:
-        # remove single letters like A, B, C, etc.
-        common_key = re.sub(r'\b[A-Z]\b\s?', '', branch_name).strip()
-        if common_key not in grouped_names.keys():
-            grouped_names[common_key] = [branch_name]
-        else:
-            grouped_names[common_key].append(branch_name)
-
-    # make plural names
     branch_common_map = {}
-    for name, groups in grouped_names.items():
-        if 'branch' in name and len(groups) > 1:
-            branch_name = name.replace('branch', 'branches', 1)
-            branch_common_map[branch_name] = groups
-
+    for branch_name in branch_names:
+        # remove single letters like A, B, C, etc. surrounded by whitespace
+        common_key = re.sub(r'\b[A-Z]\b\s?', '', branch_name).strip()
+        if common_key != branch_name:
+            # branch variant was found
+            variant_branch_list = branch_common_map.get(common_key)
+            if variant_branch_list:
+                variant_branch_list.append(branch_name)
+            else:
+                branch_common_map[common_key] = [branch_name]
     return branch_common_map
 
 

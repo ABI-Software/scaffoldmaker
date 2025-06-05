@@ -1,6 +1,10 @@
 """
 Common resource for vagus annotation terms.
 """
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 vagus_marker_terms = [
@@ -153,7 +157,9 @@ vagus_branch_terms = [
     ("left vagus nerve", "FMA:6220", "ILX:0785628"),
     ("left vagus X nerve trunk", "UBERON:0035020"),
     ("left cervical vagus nerve", "ILX:0794142"),
-    ("left thoracic vagus nerve", "ILX:0787543"),
+    ("left thoracic vagus nerve", "ILX:0787543", "FMA:18174"),  # Use ILX even though FMA preferred
+    ("left thoracic cardiac branch of vagus nerve", "ILX:0794213", "left thoracic cardiac branch"),  # "left A..."
+    ("left thoracic cardiopulmonary branch of vagus nerve", "ILX:0794191", "left thoracic cardiopulmonary branch"),  # "left A..."
     ("left meningeal branch of left vagus nerve", "FMA:53542", "ILX:0736691"),
     ("left branch between vagus nerve and glossopharyngeal nerve", "FMA:53560", "ILX:0790685"),
     ("left auricular branch of left vagus nerve", "FMA:53535", "ILX:0789344"),
@@ -167,6 +173,7 @@ vagus_branch_terms = [
     ("left superior laryngeal nerve", "FMA:53536", "ILX:0788780"),
     ("left internal laryngeal nerve", "FMA:53540", "ILX:0791167"),
     ("left external laryngeal nerve", "FMA:53538", "ILX:0789760"),
+    ("left branch of superior laryngeal nerve", "ILX:0795822"),  # "left A branch..."
     ("superior branch of left internal laryngeal nerve", "FMA:53576", "ILX:0785786"),
     ("middle branch of left internal laryngeal nerve", "None"),  # NA pending
     ("inferior branch of left internal laryngeal nerve", "FMA:53582", "ILX:0785467"),
@@ -220,6 +227,7 @@ def get_vagus_branch_term(name):
     for term in vagus_branch_terms:
         if name in term:
             return term[0], term[1]
+    logger.warning("Unknown vagus branch name: '" + name + "'. Using without term ID")
     return name, ""
 
 

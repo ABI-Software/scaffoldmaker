@@ -2680,28 +2680,56 @@ Node: 4
  -2.700515787545204e+03
  -4.533864825374488e+02
  "left level of superior border of the clavicle on the vagus nerve"
-Group name: branch of left superior laryngeal nerve A
+Group name: left A branch of superior laryngeal nerve
 !#nodeset nodes
 Node group:
 231,243..263
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 241..260
-Group name: left superior laryngeal nerve A
+Group name: ILX:0795823
+!#nodeset nodes
+Node group:
+231,243..263
+!#mesh mesh1d, dimension=1, nodeset=nodes
+Element group:
+241..260
+Group name: left superior laryngeal nerve
 !#nodeset nodes
 Node group:
 46,202..242
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 201..240
-Group name: left thoracic cardiopulmonary branch A
+Group name: FMA:53536
+!#nodeset nodes
+Node group:
+46,202..242
+!#mesh mesh1d, dimension=1, nodeset=nodes
+Element group:
+201..240
+Group name: left A thoracic cardiopulmonary branch of vagus nerve
 !#nodeset nodes
 Node group:
 141,264..294
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 261..290
-Group name: left thoracic cardiopulmonary branch B
+Group name: ILX:0794192
+!#nodeset nodes
+Node group:
+141,264..294
+!#mesh mesh1d, dimension=1, nodeset=nodes
+Element group:
+261..290
+Group name: left B thoracic cardiopulmonary branch of vagus nerve
+!#nodeset nodes
+Node group:
+151,295..315
+!#mesh mesh1d, dimension=1, nodeset=nodes
+Element group:
+291..310
+Group name: ILX:0794193
 !#nodeset nodes
 Node group:
 151,295..315
@@ -2709,6 +2737,13 @@ Node group:
 Element group:
 291..310
 Group name: left vagus X nerve trunk
+!#nodeset nodes
+Node group:
+1..201
+!#mesh mesh1d, dimension=1, nodeset=nodes
+Element group:
+1..200
+Group name: UBERON:0035020
 !#nodeset nodes
 Node group:
 1..201

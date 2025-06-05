@@ -5,6 +5,7 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 
+from scaffoldmaker.annotation.annotationgroup import findAnnotationGroupByName
 from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1, get_left_vagus_marker_locations_list
 from scaffoldmaker.utils.read_vagus_data import VagusInputData
 
@@ -64,26 +65,30 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         branch_data = vagus_data.get_branch_data()
         self.assertEqual(len(branch_data), 4)
-        self.assertTrue("left superior laryngeal nerve A" in branch_data)
-        self.assertEqual(len(branch_data["left superior laryngeal nerve A"]), 42)
-        self.assertTrue("branch of left superior laryngeal nerve A" in branch_data)
-        self.assertEqual(len(branch_data["branch of left superior laryngeal nerve A"]), 22)
+        self.assertTrue("left superior laryngeal nerve" in branch_data)
+        self.assertEqual(len(branch_data["left superior laryngeal nerve"]), 42)
+        self.assertTrue("left A branch of superior laryngeal nerve" in branch_data)
+        self.assertEqual(len(branch_data["left A branch of superior laryngeal nerve"]), 22)
         left_thoracic_cardiopulmonary_branches = (
-            "left thoracic cardiopulmonary branch A", "left thoracic cardiopulmonary branch B")
+            "left A thoracic cardiopulmonary branch of vagus nerve",
+            "left B thoracic cardiopulmonary branch of vagus nerve")
         for branch_name in left_thoracic_cardiopulmonary_branches:
             self.assertTrue(branch_name in branch_data)
 
         branch_parents = vagus_data.get_branch_parent_map()
-        self.assertEqual(branch_parents["left superior laryngeal nerve A"], trunk_group_name)
-        self.assertEqual(branch_parents["branch of left superior laryngeal nerve A"], "left superior laryngeal nerve A")
+        self.assertEqual(branch_parents["left superior laryngeal nerve"], trunk_group_name)
+        self.assertEqual(branch_parents["left A branch of superior laryngeal nerve"], "left superior laryngeal nerve")
         for branch_name in left_thoracic_cardiopulmonary_branches:
             self.assertEqual(branch_parents[branch_name], trunk_group_name)
 
         branch_common_groups = vagus_data.get_branch_common_group_map()
-        self.assertEqual(len(branch_common_groups), 1)
-        self.assertTrue("left thoracic cardiopulmonary branches" in branch_common_groups)
+        self.assertEqual(len(branch_common_groups), 2)
+        self.assertTrue("left branch of superior laryngeal nerve" in branch_common_groups)
+        self.assertTrue("left A branch of superior laryngeal nerve" in \
+                        branch_common_groups["left branch of superior laryngeal nerve"])
+        self.assertTrue("left thoracic cardiopulmonary branch of vagus nerve" in branch_common_groups)
         for branch_name in left_thoracic_cardiopulmonary_branches:
-            self.assertTrue(branch_name in branch_common_groups["left thoracic cardiopulmonary branches"])
+            self.assertTrue(branch_name in branch_common_groups["left thoracic cardiopulmonary branch of vagus nerve"])
 
     def test_no_input_file(self):
         """
@@ -111,7 +116,8 @@ class VagusScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
         options = scaffold.getDefaultOptions("Human Left Vagus 1")
-        self.assertEqual(len(options), 6)
+        self.assertEqual(len(options), 7)
+        self.assertEqual(options.get('Base parameter set'), 'Human Left Vagus 1')
         self.assertEqual(options.get('Number of elements along the trunk pre-fit'), 20)
         self.assertEqual(options.get('Number of elements along the trunk'), 50)
         self.assertEqual(options.get('Trunk proportion'), 1.0)
@@ -132,41 +138,41 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         # check annotation groups
         annotation_groups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(len(annotation_groups), 16)
+        self.assertEqual(len(annotation_groups), 20)
 
-        # (parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3,
+        # (term_id, parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3,
         #  expected_surface_area, expected_volume)
         expected_group_info = {
             "left vagus nerve": (
-                None, 25,
+                "FMA:6220", None, 25,
                 [-1269.8293183474027, -6359.8794918062185, -69.79596358103436],
                 [2163.5065559034797, -1112.4694863693492, 121.49477098496129],
                 [49.69809961146075, 258.19137709267125, 1479.1407307248198],
                 248424548.42757902,
                 32973169952.33672),
-            "left superior laryngeal nerve A": (
-                "left vagus nerve", 3,
+            "left superior laryngeal nerve": (
+                "FMA:53536", "left vagus nerve", 3,
                 [5888.361608956813, -4417.766403817663, -201.35981775061967],
                 [-1488.8488795282458, 791.7429838047342, 83.0590111566718],
                 [40.03987180084414, 14.864881979714482, 576.0260276199538],
                 9712700.895177323,
                 554689189.2182714),
-            "branch of left superior laryngeal nerve A": (
-                "left superior laryngeal nerve A", 2,
+            "left A branch of superior laryngeal nerve": (
+                "ILX:0795823", "left superior laryngeal nerve", 2,
                 [5095.698554751851, -1435.5245960200803, -4.95378510864149],
                 [-1310.3674569985124, 264.340042537044, 53.75707581244285],
                 [9.731322981637277, -12.682910300344247, 299.5737724490257],
                 4680192.321708083,
                 236055059.57983524),
-            "left thoracic cardiopulmonary branch A": (
-                "left vagus nerve", 2,
+            "left A thoracic cardiopulmonary branch of vagus nerve": (
+                "ILX:0794192", "left vagus nerve", 2,
                 [20651.94765027247, -2955.4531267489256, -609.718731363599],
                 [-11.845579664618569, -1713.7381754113042, -52.47409739912885],
                 [-8.83290713867791, 10.741342747816361, -348.80482226706044],
                 6206690.003928819,
                 329878058.1182652),
-            "left thoracic cardiopulmonary branch B": (
-                "left vagus nerve", 2,
+            "left B thoracic cardiopulmonary branch of vagus nerve": (
+                "ILX:0794193", "left vagus nerve", 2,
                 [22198.762145694476, -3181.553031186403, -628.400239786329],
                 [886.9465489726451, 756.0670892895126, -89.42734555851769],
                 [1.0856990421307273, 39.326727353878596, 343.25743550415484],
@@ -200,9 +206,11 @@ class VagusScaffoldTestCase(unittest.TestCase):
         MTOL = 1.0E-7  # material coordinate
         one = fieldmodule.createFieldConstant(1.0)
         for group_name in expected_group_info.keys():
-            parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3, \
+            term_id, parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3, \
                 expected_surface_area, expected_volume = expected_group_info[group_name]
             group = fieldmodule.findFieldByName(group_name).castGroup()
+            annotation_group = findAnnotationGroupByName(annotation_groups, group_name)
+            self.assertEqual(term_id, annotation_group.getId())
             mesh_group3d = group.getMeshGroup(mesh3d)
             self.assertEqual(expected_elements_count, mesh_group3d.getSize())
             mesh_group2d = group.getMeshGroup(mesh2d)
@@ -315,25 +323,25 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 [0.0, 0.0, 0.012],
                 0.07044881379783888,
                 0.00014399999999999916),
-            'left superior laryngeal nerve A': (
+            'left superior laryngeal nerve': (
                 [0.13157231647692647, 0.000881946577575204, 0.00046342826229338254],
                 [-0.007050424464461594, 0.012375232591217526, 0.011945671613974565],
                 [-0.00014529821484897398, -0.004122294839398416, 0.004267844200042748],
                 0.002002117608655125,
                 2.002583526823736e-06),
-            'branch of left superior laryngeal nerve A': (
+            'left A branch of superior laryngeal nerve': (
                 [0.11477792076676165, 0.02817015018376029, 0.025803094067409528],
                 [-0.014572453104873985, -0.010775661380116038, -0.013815688836866404],
                 [-0.0007112995737230954, -0.004342817670527603, 0.004084144597586936],
                 0.0015430135555127994,
                 1.4763762746144708e-06),
-            'left thoracic cardiopulmonary branch A': (
+            'left A thoracic cardiopulmonary branch of vagus nerve': (
                 [0.38136799563066826, -0.00033316105639673993, 1.7775357276363264e-05],
                 [0.0045715391201361375, -0.026876114055372165, 0.011301086871669301],
                 [-0.00012166893939763446, -0.002302094674267968, -0.005536330847622523],
                 0.002076223576695471,
                 2.1241213756367916e-06),
-            'left thoracic cardiopulmonary branch B': (
+            'left B thoracic cardiopulmonary branch of vagus nerve': (
                 [0.4067480269851232, 0.0010023426903899028, -0.0015549456000039472],
                 [0.010640904036129741, 0.011289784094864912, -0.01261655629280709],
                 [6.442917430682371e-07, 0.00446818676605633, 0.00400443416074313],
@@ -371,6 +379,36 @@ class VagusScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(expected_surface_area, surface_area, delta=STOL)
             self.assertAlmostEqual(expected_volume, volume, delta=VTOL)
+
+        # test combined groups
+        branch_common_map = {
+            'left branch of superior laryngeal nerve': [
+                'left A branch of superior laryngeal nerve'],
+            'left thoracic cardiopulmonary branch of vagus nerve': [
+                'left A thoracic cardiopulmonary branch of vagus nerve',
+                'left B thoracic cardiopulmonary branch of vagus nerve']}
+        for common_branch_name, variant_branch_name_list in branch_common_map.items():
+            common_mesh_group = fieldmodule.findFieldByName(common_branch_name).castGroup().getMeshGroup(mesh3d)
+            sum_variant_group_sizes = 0
+            for variant_branch_name in variant_branch_name_list:
+                variant_mesh_group = fieldmodule.findFieldByName(variant_branch_name).castGroup().getMeshGroup(mesh3d)
+                sum_variant_group_sizes += variant_mesh_group.getSize()
+                elem_iter = variant_mesh_group.createElementiterator()
+                element = elem_iter.next()
+                while element.isValid():
+                    self.assertTrue(common_mesh_group.containsElement(element))
+                    element = elem_iter.next()
+            self.assertEqual(common_mesh_group.getSize(), sum_variant_group_sizes)
+
+        # test sizes of cervical and thoracic parts
+        expected_section_info = {
+            "left cervical vagus nerve": ("ILX:0794142", 8),
+            "left thoracic vagus nerve": ("ILX:0787543", 17)}
+        for section_name, info in expected_section_info.items():
+            expected_id, expected_mesh_size = info
+            annotation_group = findAnnotationGroupByName(annotation_groups, section_name)
+            self.assertEqual(expected_id, annotation_group.getId())
+            self.assertEqual(expected_mesh_size, annotation_group.getMeshGroup(mesh3d).getSize())
 
 
 if __name__ == "__main__":
