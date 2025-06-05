@@ -883,7 +883,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             for annotationGroup in annotationGroups:
                 if annotationGroup not in originalAnnotationGroups:
                     annotationGroup.addSubelements()
-        self.assertEqual(36, len(annotationGroups))
+        self.assertEqual(35, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -1011,7 +1011,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # refine 2x2x2 and check result
         # need to use original annotation groups to get temporaries
         annotationGroups = originalAnnotationGroups
-        self.assertEqual(20, len(annotationGroups))  # including 4 temporary groups
+        self.assertEqual(21, len(annotationGroups))  # including temporary groups
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -1030,7 +1030,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(36, len(annotationGroups))
+        self.assertEqual(35, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(4992, mesh3d.getSize())
