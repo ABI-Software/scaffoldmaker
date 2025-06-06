@@ -452,12 +452,13 @@ class MeshType_3d_lung3(Scaffold_base):
         rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
         lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
 
-        lowerLeftLungNodesetGroup = lowerLeftLungGroup.getNodesetGroup(nodes)
-        upperLeftLungNodesetGroup = upperLeftLungGroup.getNodesetGroup(nodes)
+        if numberOfLeftLung == 2:
+            lowerLeftLungNodesetGroup = lowerLeftLungGroup.getNodesetGroup(nodes)
+            upperLeftLungNodesetGroup = upperLeftLungGroup.getNodesetGroup(nodes)
 
-        lowerRightLungNodesetGroup = lowerRightLungGroup.getNodesetGroup(nodes)
-        middleRightLungNodesetGroup = middleRightLungGroup.getNodesetGroup(nodes)
-        upperRightLungNodesetGroup = upperRightLungGroup.getNodesetGroup(nodes)
+            lowerRightLungNodesetGroup = lowerRightLungGroup.getNodesetGroup(nodes)
+            middleRightLungNodesetGroup = middleRightLungGroup.getNodesetGroup(nodes)
+            upperRightLungNodesetGroup = upperRightLungGroup.getNodesetGroup(nodes)
 
         # Arbitrary anatomical groups and nodesets
         upperLeftDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
