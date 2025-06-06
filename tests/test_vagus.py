@@ -301,15 +301,18 @@ class VagusScaffoldTestCase(unittest.TestCase):
         marker_location_field = fieldmodule.findFieldByName("marker_location").castStoredMeshLocation()
         expected_marker_info = get_left_vagus_marker_locations_list()
         expected_elements_count = 25
+        expected_marker_node_identifier = 10001
         node_iter = marker_nodes.createNodeiterator()
         node = node_iter.next()
         for expected_marker_name, expected_material_coordinate1 in expected_marker_info.items():
+            self.assertEqual(expected_marker_node_identifier, node.getIdentifier())
             fieldcache.setNode(node)
             marker_name = marker_name_field.evaluateString(fieldcache)
             self.assertEqual(expected_marker_name, marker_name)
             element, xi = marker_location_field.evaluateMeshLocation(fieldcache, 3)
             material_coordinate1 = (element.getIdentifier() - 1 + xi[0]) / expected_elements_count
             self.assertAlmostEqual(expected_material_coordinate1, material_coordinate1, delta=MTOL)
+            expected_marker_node_identifier += 1
             node = node_iter.next()
 
         # check vagus material coordinates

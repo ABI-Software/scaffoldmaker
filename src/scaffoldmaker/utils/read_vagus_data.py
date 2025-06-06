@@ -7,7 +7,7 @@ from cmlibs.utils.zinc.group import groups_have_same_local_contents
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 
-from scaffoldmaker.annotation.vagus_terms import marker_name_in_terms, get_vagus_branch_term
+from scaffoldmaker.annotation.vagus_terms import get_vagus_term, marker_name_in_terms
 from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters
 
 
@@ -113,11 +113,11 @@ class VagusInputData:
         if len(found_trunk_group_names) > 0:
             if 'left' in found_trunk_group_names[0]:
                 self._trunk_group_name = 'left vagus nerve'
-                self._annotation_term_map[self._trunk_group_name] = get_vagus_branch_term(self._trunk_group_name)[1]
+                self._annotation_term_map[self._trunk_group_name] = get_vagus_term(self._trunk_group_name)[1]
                 self._side_label = 'left'
             elif 'right' in found_trunk_group_names[0]:
                 self._trunk_group_name = 'right vagus nerve'
-                self._annotation_term_map[self._trunk_group_name] = get_vagus_branch_term(self._trunk_group_name)[1]
+                self._annotation_term_map[self._trunk_group_name] = get_vagus_term(self._trunk_group_name)[1]
                 self._side_label = 'right'
 
         if self._trunk_group_name:

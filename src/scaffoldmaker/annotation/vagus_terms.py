@@ -219,15 +219,17 @@ vagus_branch_terms = [
 ]
 
 
-def get_vagus_branch_term(name):
+def get_vagus_term(name):
     """
-    Find term by matching name to any identifier held for a term.
-    return: ( preferred name, preferred id )
+    Find a vagus term by matching name to any identifier held for a term.
+    Note: Use separate get_vagus_marker_term for all level marker terms.
+    :param name: Any name or ID to match against known terms.
+    :return: ( preferred name, preferred id )
     """
     for term in vagus_branch_terms:
         if name in term:
             return term[0], term[1]
-    logger.warning("Unknown vagus branch name: '" + name + "'. Using without term ID")
+    logger.warning("Unknown vagus term name or ID: '" + name + "'. Using as name without ID")
     return name, ""
 
 

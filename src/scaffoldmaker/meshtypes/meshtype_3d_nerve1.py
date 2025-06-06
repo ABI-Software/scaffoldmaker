@@ -13,7 +13,7 @@ from scaffoldfitter.fitter import Fitter as GeometryFitter
 from scaffoldfitter.fitterstepfit import FitterStepFit
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     findAnnotationGroupByName
-from scaffoldmaker.annotation.vagus_terms import get_vagus_branch_term, get_vagus_marker_term
+from scaffoldmaker.annotation.vagus_terms import get_vagus_term, get_vagus_marker_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
     setEftScaleFactorIds
@@ -894,6 +894,10 @@ class MeshType_3d_nerve1(Scaffold_base):
             else:
                 idx = len(ordered_marker_data)
             ordered_marker_data.insert(idx, (marker_term_name, material_coordinate))
+        # start at 10001 unless node already in use
+        start_marker_node_identifier = 10001
+        if node_identifier < start_marker_node_identifier:
+            node_identifier = start_marker_node_identifier
         for marker_name, material_coordinate in ordered_marker_data:
             if material_coordinate > trunk_proportion:
                 break
@@ -910,10 +914,8 @@ class MeshType_3d_nerve1(Scaffold_base):
 
         branch_common_groups = vagus_data.get_branch_common_group_map()
         for branch_common_name, branch_names in branch_common_groups.items():
-            term = get_vagus_branch_term(branch_common_name)
+            term = get_vagus_term(branch_common_name)
             branch_common_group = findOrCreateAnnotationGroupForTerm(annotation_groups, region, term)
-            if branch_common_group.getTerm() == "":
-                logger.warning("Missing branch term:", branch_common_name)
             branch_common_mesh_group = branch_common_group.getMeshGroup(mesh3d)
 
             for branch_name in branch_names:
@@ -931,9 +933,9 @@ class MeshType_3d_nerve1(Scaffold_base):
         # ============================================
 
         cervical_trunk_group = findOrCreateAnnotationGroupForTerm(
-            annotation_groups, region, get_vagus_branch_term(side_label + ' cervical vagus nerve'))
+            annotation_groups, region, get_vagus_term(side_label + ' cervical vagus nerve'))
         thoracic_trunk_group = findOrCreateAnnotationGroupForTerm(
-            annotation_groups, region, get_vagus_branch_term(side_label + ' thoracic vagus nerve'))
+            annotation_groups, region, get_vagus_term(side_label + ' thoracic vagus nerve'))
         cervical_thoracic_boundary_marker_name = \
             side_label + ' level of superior border of the clavicle on the vagus nerve'
         cervical_thoracic_boundary_material_coordinate = vagus_level_terms[cervical_thoracic_boundary_marker_name]
