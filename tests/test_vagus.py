@@ -273,25 +273,38 @@ class VagusScaffoldTestCase(unittest.TestCase):
             self.assertEqual(RESULT_OK, result)
             assertAlmostEqualList(self, d3, expected_d3, delta=TOL)
 
-        # check surface area of epineurium, length of centroids
-        expected_elements_count = 34
-        group = fieldmodule.findFieldByName("vagus epineurium").castGroup()
-        mesh_group2d = group.getMeshGroup(mesh2d)
-        self.assertEqual(expected_elements_count * 4, mesh_group2d.getSize())
-        surface_area_field = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh_group2d)
-        surface_area_field.setNumbersOfPoints(4)
-        fieldcache.clearLocation()
-        result, surface_area = surface_area_field.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(72152126.79268955, surface_area, delta=STOL)
-        group = fieldmodule.findFieldByName("vagus centroid").castGroup()
-        mesh_group1d = group.getMeshGroup(mesh1d)
-        self.assertEqual(expected_elements_count, mesh_group1d.getSize())
-        length_field = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh_group1d)
-        length_field.setNumbersOfPoints(4)
-        result, length = length_field.evaluateReal(fieldcache, 1)
-        self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(75773.76066920695, length, delta=STOL)
+        # check volume of trunk, surface area of epineurium, length of centroids, coordinates and straight coordinates
+        straight_coordinates = fieldmodule.findFieldByName("straight coordinates").castFiniteElement()
+        self.assertTrue(straight_coordinates.isValid())
+        for coordinate_field in (coordinates, straight_coordinates):
+            group = fieldmodule.findFieldByName("left vagus nerve").castGroup()
+            mesh_group3d = group.getMeshGroup(mesh3d)
+            volume_field = fieldmodule.createFieldMeshIntegral(one, coordinate_field, mesh_group3d)
+            volume_field.setNumbersOfPoints(3)
+            fieldcache.clearLocation()
+            result, volume = volume_field.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            expected_volume = 32973169952.33672 if (coordinate_field is coordinates) else 33282446696.00908
+            self.assertAlmostEqual(expected_volume, volume, delta=STOL)
+            expected_elements_count = 34
+            group = fieldmodule.findFieldByName("vagus epineurium").castGroup()
+            mesh_group2d = group.getMeshGroup(mesh2d)
+            self.assertEqual(expected_elements_count * 4, mesh_group2d.getSize())
+            surface_area_field = fieldmodule.createFieldMeshIntegral(one, coordinate_field, mesh_group2d)
+            surface_area_field.setNumbersOfPoints(4)
+            fieldcache.clearLocation()
+            result, surface_area = surface_area_field.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            expected_surface_area = 72152126.79268955 if (coordinate_field is coordinates) else 72475953.00156902
+            self.assertAlmostEqual(expected_surface_area, surface_area, delta=STOL)
+            group = fieldmodule.findFieldByName("vagus centroid").castGroup()
+            mesh_group1d = group.getMeshGroup(mesh1d)
+            self.assertEqual(expected_elements_count, mesh_group1d.getSize())
+            length_field = fieldmodule.createFieldMeshIntegral(one, coordinate_field, mesh_group1d)
+            length_field.setNumbersOfPoints(4)
+            result, length = length_field.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(75773.76066920695, length, delta=STOL)
 
         # check all markers are added
         marker_group = fieldmodule.findFieldByName("marker").castGroup()

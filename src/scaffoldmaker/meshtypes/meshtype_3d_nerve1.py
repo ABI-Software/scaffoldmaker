@@ -18,8 +18,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
     setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import (
-    evaluateScalarOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteCurvesLength,
-    getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points,
+    evaluateScalarOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteArcLength,
+    getCubicHermiteCurvesLength, getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points,
     interpolateCubicHermiteDerivative, sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth,
     smoothCurveSideCrossDerivatives, track_curve_side_direction)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
@@ -618,6 +618,11 @@ class MeshType_3d_nerve1(Scaffold_base):
                 trunk_face_mesh_group.addElement(face)
                 face_identifier += 1
 
+        # trunk material coordinates span from 0.0 to 1.0 at trunk proportion 1.0
+        # aspect ratio 3mm diameter over 500mm length
+        trunk_material_diameter = 3.0 / 500.0
+        branch_material_diameter = branch_diameter_trunk_proportion * trunk_material_diameter
+
         # ==============
         # Build Branches
         # ==============
@@ -702,10 +707,6 @@ class MeshType_3d_nerve1(Scaffold_base):
                 branch_diameter_trunk_proportion * magnitude(pd2) if trunk_is_parent else default_branch_diameter
             bd3 = set_magnitude(cross(pd1, bd1), branch_root_diameter)
             # scale bd2 to fit expected aspect ratio for material coordinates, depending on angle
-            # trunk material coordinates span from 0.0 to 1.0 at trunk proportion 1.0
-            # aspect ratio 3mm diameter over 500mm length
-            trunk_material_diameter = 3.0 / 500.0
-            branch_material_diameter = branch_diameter_trunk_proportion * trunk_material_diameter
             cos_angle = dot(normalize(pd1), normalize(bd1))
             # cos2_angle = cos_angle * cos_angle
             # sin2_angle = 1.0 - cos2_angle
@@ -810,28 +811,38 @@ class MeshType_3d_nerve1(Scaffold_base):
                 queue = child_branches + queue
                 parent_parameters[branch_name] = (cx, cd1, cd2, cd12, cd3, cd13, cnid)
 
-        # ========================
-        # Add material coordinates
-        # ========================
+        # =================================================
+        # Add material coordinates and straight coordinates
+        # =================================================
 
-        coordinates.setName("vagus coordinates")  # temporarily rename
+        coordinates.setName("other coordinates")  # temporarily rename
         sir = region.createStreaminformationRegion()
         srm = sir.createStreamresourceMemory()
         region.write(sir)
         result, buffer = srm.getBuffer()
-        coordinates.setName("coordinates")  # restore name before reading vagus coordinates back in
+        coordinates.setName("coordinates")  # restore name before reading other coordinates back in
         sir = region.createStreaminformationRegion()
         sir.createStreamresourceMemoryBuffer(buffer)
-        # read and merge with region, thus having coordinates and vagus coordinates in the region together
+        # read the other coordinates in twice and rename to define vagus coordinates and straight coordinates
+        # vagus coordinates are unit length along trunk (1st component) with corresponding aspect ratio
+        # trunk goes along x-axis with anterior d3 along z-direction, top centre at origin
         region.read(sir)
-        vagus_coordinates = fieldmodule.findFieldByName("vagus coordinates").castFiniteElement()
+        vagus_coordinates = fieldmodule.findFieldByName("other coordinates").castFiniteElement()
+        vagus_coordinates.setName("vagus coordinates")
+        for c in range(1, 4):
+            vagus_coordinates.setComponentName(c, str(c))
+        # straight coordinates have same lengths, radii and branch angles as geometric coordinates, but are straight
+        # trunk goes along z-axis with anterior d3 along y-direction, top centre at origin
+        region.read(sir)
+        straight_coordinates = fieldmodule.findFieldByName("other coordinates").castFiniteElement()
+        straight_coordinates.setName("straight coordinates")
 
-        # calculate derivatives
         derivative_xi1 = mesh3d.getChartDifferentialoperator(1, 1)
         derivative_xi2 = mesh3d.getChartDifferentialoperator(1, 2)
         derivative_xi3 = mesh3d.getChartDifferentialoperator(1, 3)
         zero = [0.0, 0.0, 0.0]
-        # vagus trunk goes along the x-axis with origin as top of the vagus
+
+        # assign vagus coordinates
         x = [0.0, 0.0, 0.0]
         d1 = [trunk_proportion / trunk_elements_count, 0.0, 0.0]
         d2 = [0.0, trunk_material_diameter, 0.0]
@@ -856,12 +867,12 @@ class MeshType_3d_nerve1(Scaffold_base):
                 vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
             elif local_nodes_count > 2:
                 # first branch element
-                fieldcache.setMeshLocation(element, [0.0, 0.5, 0.5])  # assuming xi1 is along the branch
+                fieldcache.setMeshLocation(element, [0.0, 0.5, 0.5])  # as xi1 is along the branch
                 _, x = vagus_coordinates.evaluateReal(fieldcache, 3)
                 _, d1 = vagus_coordinates.evaluateDerivative(derivative_xi1, fieldcache, 3)
                 _, d2 = vagus_coordinates.evaluateDerivative(derivative_xi2, fieldcache, 3)
                 _, d3 = vagus_coordinates.evaluateDerivative(derivative_xi3, fieldcache, 3)
-                # removal all shear away from root
+                # remove shear on remainder of branch:
                 d2 = set_magnitude(cross(d3, d1), branch_material_diameter)
                 d3 = set_magnitude(cross(d1, d2), branch_material_diameter)
                 ln = 3
@@ -875,7 +886,84 @@ class MeshType_3d_nerve1(Scaffold_base):
             vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
             vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, zero)
             vagus_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, zero)
+            element = elem_iter.next()
 
+        # assign straight coordinates
+        x = [0.0, 0.0, 0.0]
+        dir1 = [0.0, 0.0, 1.0]
+        dir2 = [1.0, 0.0, 0.0]
+        dir3 = [0.0, 1.0, 0.0]
+        bx, bd1 = zero, zero
+        elem_iter = mesh3d.createElementiterator()
+        element = elem_iter.next()
+        while element.isValid():
+            # trunk elements first, followed by branch elements (with first element having more than 2 local nodes)
+            element_id = element.getIdentifier()
+            eft = element.getElementfieldtemplate(straight_coordinates, -1)
+            local_nodes_count = eft.getNumberOfLocalNodes()
+            ln = 2
+            if element_id == 1:
+                # first trunk element
+                node = element.getNode(eft, 1)
+                fieldcache.setNode(node)
+                _, ax = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+                _, ad1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+                _, ad2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+                _, ad3 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+                _, ad12 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)
+                _, ad13 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)
+                d1 = mult(dir1, magnitude(ad1))
+                d2 = mult(dir2, magnitude(ad2))
+                d3 = mult(dir3, magnitude(ad3))
+                d12 = mult(dir2, dot(normalize(ad2), ad12))
+                d13 = mult(dir3, dot(normalize(ad3), ad13))
+                straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+                straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
+            elif local_nodes_count > 2:
+                # first branch element
+                fieldcache.setMeshLocation(element, [0.0, 0.5, 0.5])  # as xi1 is along the branch
+                _, ax = coordinates.evaluateReal(fieldcache, 3)
+                _, ad1 = coordinates.evaluateDerivative(derivative_xi1, fieldcache, 3)
+                _, x = straight_coordinates.evaluateReal(fieldcache, 3)
+                _, d1 = straight_coordinates.evaluateDerivative(derivative_xi1, fieldcache, 3)
+                _, d3 = straight_coordinates.evaluateDerivative(derivative_xi3, fieldcache, 3)
+                # remove shear on remainder of branch:
+                dir1 = normalize(d1)
+                dir2 = normalize(cross(d3, dir1))
+                dir3 = cross(dir1, dir2)
+                ln = 3
+            else:
+                ax, ad1 = bx, bd1
+
+            node = element.getNode(eft, ln)
+            fieldcache.setNode(node)
+            _, bx = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            _, bd1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            _, bd2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+            _, bd3 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+            _, bd12 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, 3)
+            _, bd13 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, 3)
+
+            element_length = getCubicHermiteArcLength(ax, ad1, bx, bd1)
+            x = add(x, mult(dir1, element_length))
+            d1 = mult(dir1, magnitude(bd1))
+            d2 = mult(dir2, magnitude(bd2))
+            d3 = mult(dir3, magnitude(bd3))
+            d12 = mult(dir2, dot(normalize(bd2), bd12))
+            d13 = mult(dir3, dot(normalize(bd3), bd13))
+
+            node = element.getNode(eft, ln)
+            fieldcache.setNode(node)
+            straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+            straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+            straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+            straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
+            straight_coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
             element = elem_iter.next()
 
         # ====================
