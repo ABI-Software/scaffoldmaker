@@ -825,14 +825,14 @@ class MeshType_3d_nerve1(Scaffold_base):
         sir.createStreamresourceMemoryBuffer(buffer)
         # read the other coordinates in twice and rename to define vagus coordinates and straight coordinates
         # vagus coordinates are unit length along trunk (1st component) with corresponding aspect ratio
-        # trunk goes along x-axis with anterior d3 along z-direction, top centre at origin
+        # trunk goes along z-axis with left d2 in x-direction, anterior d3 in y-direction, top centre at origin
         region.read(sir)
         vagus_coordinates = fieldmodule.findFieldByName("other coordinates").castFiniteElement()
         vagus_coordinates.setName("vagus coordinates")
         for c in range(1, 4):
             vagus_coordinates.setComponentName(c, str(c))
         # straight coordinates have same lengths, radii and branch angles as geometric coordinates, but are straight
-        # trunk goes along z-axis with anterior d3 along y-direction, top centre at origin
+        # trunk goes along z-axis with left d2 in x-direction, anterior d3 in y-direction, top centre at origin
         region.read(sir)
         straight_coordinates = fieldmodule.findFieldByName("other coordinates").castFiniteElement()
         straight_coordinates.setName("straight coordinates")
@@ -844,9 +844,9 @@ class MeshType_3d_nerve1(Scaffold_base):
 
         # assign vagus coordinates
         x = [0.0, 0.0, 0.0]
-        d1 = [trunk_proportion / trunk_elements_count, 0.0, 0.0]
-        d2 = [0.0, trunk_material_diameter, 0.0]
-        d3 = [0.0, 0.0, trunk_material_diameter]
+        d1 = [0.0, 0.0, trunk_proportion / trunk_elements_count]
+        d2 = [trunk_material_diameter, 0.0, 0.0]
+        d3 = [0.0, trunk_material_diameter, 0.0]
         elem_iter = mesh3d.createElementiterator()
         element = elem_iter.next()
         while element.isValid():
@@ -993,7 +993,7 @@ class MeshType_3d_nerve1(Scaffold_base):
                 annotation_groups, region, get_vagus_marker_term(marker_name), isMarker=True)
             annotation_group.createMarkerNode(
                 node_identifier, materialCoordinatesField=vagus_coordinates,
-                materialCoordinates=[material_coordinate, 0.0, 0.0])
+                materialCoordinates=[0.0, 0.0, material_coordinate])
             node_identifier += 1
 
         # ==========================

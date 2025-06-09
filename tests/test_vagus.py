@@ -317,14 +317,14 @@ class VagusScaffoldTestCase(unittest.TestCase):
         expected_marker_node_identifier = 10001
         node_iter = marker_nodes.createNodeiterator()
         node = node_iter.next()
-        for expected_marker_name, expected_material_coordinate1 in expected_marker_info.items():
+        for expected_marker_name, expected_material_coordinate3 in expected_marker_info.items():
             self.assertEqual(expected_marker_node_identifier, node.getIdentifier())
             fieldcache.setNode(node)
             marker_name = marker_name_field.evaluateString(fieldcache)
             self.assertEqual(expected_marker_name, marker_name)
             element, xi = marker_location_field.evaluateMeshLocation(fieldcache, 3)
-            material_coordinate1 = (element.getIdentifier() - 1 + xi[0]) / expected_elements_count
-            self.assertAlmostEqual(expected_material_coordinate1, material_coordinate1, delta=MTOL)
+            material_coordinate3 = (element.getIdentifier() - 1 + xi[0]) / expected_elements_count
+            self.assertAlmostEqual(expected_material_coordinate3, material_coordinate3, delta=MTOL)
             expected_marker_node_identifier += 1
             node = node_iter.next()
 
@@ -335,32 +335,32 @@ class VagusScaffoldTestCase(unittest.TestCase):
         expected_group_material_info = {
             'left vagus nerve': (
                 [0.0, 0.0, 0.0],
-                [0.04, 0.0, 0.0],
-                [0.0, 0.0, 0.012],
+                [0.0, 0.0, 0.04],
+                [0.0, 0.012, 0.0],
                 0.07044881379783888,
                 0.00014399999999999916),
             'left superior laryngeal nerve': (
-                [0.13157231647692647, 0.000881946577575204, 0.00046342826229338254],
-                [-0.007050424464461594, 0.012375232591217526, 0.011945671613974565],
-                [-0.00014529821484897398, -0.004122294839398416, 0.004267844200042748],
+                [0.000881946577575204, 0.00046342826229338254, 0.13157231647692647],
+                [0.012375232591217526, 0.011945671613974565, -0.007050424464461594],
+                [-0.004122294839398416, 0.004267844200042748, -0.00014529821484897398],
                 0.002002117608655125,
                 2.002583526823736e-06),
             'left A branch of superior laryngeal nerve': (
-                [0.11477792076676165, 0.02817015018376029, 0.025803094067409528],
-                [-0.014572453104873985, -0.010775661380116038, -0.013815688836866404],
-                [-0.0007112995737230954, -0.004342817670527603, 0.004084144597586936],
+                [0.02817015018376029, 0.025803094067409528, 0.11477792076676165],
+                [-0.010775661380116038, -0.013815688836866404, -0.014572453104873985],
+                [-0.004342817670527603, 0.004084144597586936, -0.0007112995737230954],
                 0.0015430135555127994,
                 1.4763762746144708e-06),
             'left A thoracic cardiopulmonary branch of vagus nerve': (
-                [0.38136799563066826, -0.00033316105639673993, 1.7775357276363264e-05],
-                [0.0045715391201361375, -0.026876114055372165, 0.011301086871669301],
-                [-0.00012166893939763446, -0.002302094674267968, -0.005536330847622523],
+                [-0.00033316105639673993, 1.7775357276363264e-05, 0.38136799563066826],
+                [-0.026876114055372165, 0.011301086871669301, 0.0045715391201361375],
+                [-0.002302094674267968, -0.005536330847622523, -0.00012166893939763446],
                 0.002076223576695471,
                 2.1241213756367916e-06),
             'left B thoracic cardiopulmonary branch of vagus nerve': (
-                [0.4067480269851232, 0.0010023426903899028, -0.0015549456000039472],
-                [0.010640904036129741, 0.011289784094864912, -0.01261655629280709],
-                [6.442917430682371e-07, 0.00446818676605633, 0.00400443416074313],
+                [0.0010023426903899028, -0.0015549456000039472, 0.4067480269851232],
+                [0.011289784094864912, -0.01261655629280709, 0.010640904036129741],
+                [0.00446818676605633, 0.00400443416074313, 6.442917430682371e-07],
                 0.0014410574883490532,
                 1.4381927734194566e-06)}
         TOL = 1.0E-7  # coordinates and derivatives
