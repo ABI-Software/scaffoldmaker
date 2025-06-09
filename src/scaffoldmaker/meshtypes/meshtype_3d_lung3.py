@@ -43,8 +43,8 @@ class MeshType_3d_lung3(Scaffold_base):
         isHuman = "Human" in useParameterSetName
         if parameterSetName in ["Human 1", "Default"]:
             options = {
-                "Show left lung": True,
-                "Show right lung": True,
+                "Left lung": True,
+                "Right lung": True,
                 "Open fissures": False,
                 "Number of left lung lobes": 2,
                 "Number of elements lateral": 6,
@@ -79,8 +79,8 @@ class MeshType_3d_lung3(Scaffold_base):
             }
         elif parameterSetName == "Ellipsoid":
             options = {
-                "Show left lung": False,
-                "Show right lung": False,
+                "Left lung": False,
+                "Right lung": False,
                 "Open fissures": False,
                 "Number of left lung lobes": 2,
                 "Number of elements lateral": 4,
@@ -115,8 +115,8 @@ class MeshType_3d_lung3(Scaffold_base):
             }
         elif parameterSetName == "Teardrop":
             options = {
-                "Show left lung": False,
-                "Show right lung": False,
+                "Left lung": False,
+                "Right lung": False,
                 "Open fissures": False,
                 "Number of left lung lobes": 2,
                 "Number of elements lateral": 4,
@@ -154,8 +154,8 @@ class MeshType_3d_lung3(Scaffold_base):
     @classmethod
     def getOrderedOptionNames(cls):
         return [
-            "Show left lung",
-            "Show right lung",
+            "Left lung",
+            "Right lung",
             "Open fissures",
             "Number of left lung lobes",
             "Number of elements lateral",
@@ -276,8 +276,8 @@ class MeshType_3d_lung3(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        showLeftLung = options["Show left lung"]
-        showRightLung = options["Show right lung"]
+        isLeftLung = options["Left lung"]
+        isRightLung = options["Right lung"]
         isOpenfissure = options["Open fissures"]
         hasAccessoryLobe = False
         numberOfLeftLung = options["Number of left lung lobes"]
@@ -501,7 +501,7 @@ class MeshType_3d_lung3(Scaffold_base):
         shellProportion = 1.0
 
         leftLung, rightLung = 0, 1
-        lungs = [lung for show, lung in [(showLeftLung, leftLung), (showRightLung, rightLung)] if show]
+        lungs = [lung for show, lung in [(isLeftLung, leftLung), (isRightLung, rightLung)] if show]
         for i in lungs:
             if i == leftLung:
                 if numberOfLeftLung == 2:
