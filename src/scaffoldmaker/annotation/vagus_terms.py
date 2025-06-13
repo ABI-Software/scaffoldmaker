@@ -6,6 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# Note standard for vagus preferred annotation ID is UBERON > ILX > FMA
+
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 vagus_marker_terms = [
     # anatomical landmarks
@@ -65,57 +67,66 @@ vagus_branch_terms = [
     # branch names with no indication of the side
     ("cervical trunk", "ILX:0789914"),
     ("thoracic trunk", "ILX:0784729"),
-    ("meningeal branch of vagus nerve", "FMA:6231"),
-    ("communicating branch of vagus nerve with glossopharyngeal nerve", "FMA:6233"),
-    ("auricular branch of vagus nerve", "FMA:6232"),
-    ("pharyngeal branch of vagus nerve", "UBERON:0000929"),
-    ("lingual branch of vagus nerve", "FMA:6235"),
-    ("branch of vagus nerve to carotid body", "FMA:6237"),
+    ("meningeal branch of vagus nerve", "ILX:0793828", "FMA:6231"),
+    # following listed as "branch between vagus nerve and glossopharyngeal nerve"
+    ("communicating branch of vagus nerve with glossopharyngeal nerve", "ILX:0793830", "FMA:6233"),
+    ("auricular branch of vagus nerve", "ILX:0793829", "FMA:6232"),
+    ("pharyngeal branch of vagus nerve", "UBERON:0000929", "ILX:0725793"),
+    ("lingual branch of vagus nerve", "ILX:0791434", "FMA:6235"),
+    ("branch of vagus nerve to carotid body", "ILX:0786059", "FMA:6237"),
+    # following not found on interlex
     ("communicating branch of superior cervical ganglion with vagus nerve", "FMA:6901"),
-    ("superior laryngeal nerve", "UBERON:0011326"),
-    ("internal laryngeal nerve", "FMA:6240"),
-    ("external branch of superior laryngeal nerve", "FMA:6243"),
-    ("communicating branch of internal laryngeal nerve with recurrent laryngeal nerve", "FMA:53544"),
-    ("communicating branch of external laryngeal nerve with superior cardiac nerve", "FMA:6708"),
-    ("pulmonary branch of vagus nerve", "FMA:65515"),
-    ("bronchial branch of vagus nerve", "FMA:6247"),
-    ("superior cervical cardiac branch of vagus nerve", "FMA:6244"),
-    ("recurrent laryngeal nerve", "UBERON:0003716"),
-    ("extra-laryngeal branch of recurrent laryngeal nerve to larynx", "FMA:6710"),
-    ("esophageal branch of recurrent laryngeal nerve", "FMA:6248"),
-    ("tracheal branch of recurrent laryngeal nerve", "FMA:6249"),
-    ("inferior laryngeal nerve", "UBERON:0003716"),  # same code as for recurrent laryngeal nerve
-    ("communicating branch of recurrent laryngeal nerve with internal laryngeal nerve", "FMA:53526"),
-    ("inferior cervical cardiac branch of vagus nerve", "FMA:75530"),
-    ("thoracic cardiac branch of vagus nerve", "FMA:53601"),
-    ("esophageal trunk", "ILX:0794853"),
+    ("superior laryngeal nerve", "UBERON:0011326", "ILX:0731053"),
+    ("internal branch of superior laryngeal nerve", "ILX:0793561", "internal laryngeal nerve", "internal superior laryngeal nerve", "FMA:6240"),
+    ("external branch of superior laryngeal nerve", "ILX:0793560", "FMA:6243"),
+    ("communicating branch of internal laryngeal nerve with recurrent laryngeal nerve", "ILX:0787299", "FMA:53544"),
+    ("communicating branch of external laryngeal nerve with superior cardiac nerve", "ILX:0786237", "FMA:6708"),
+    ("pulmonary branch of vagus nerve", "ILX:0789095", "FMA:65515"),
+    ("bronchial branch of vagus nerve", "ILX:0786619", "FMA:6247"),
+    ("superior cervical cardiac branch of vagus nerve", "ILX:0784874", "FMA:6244"),
+    ("recurrent laryngeal nerve", "UBERON:0003716", "ILX:0486534", "inferior laryngeal nerve"),
+    ("extra-laryngeal branch of recurrent laryngeal nerve to larynx", "ILX:0792328", "FMA:6710"),
+    ("esophageal branch of recurrent laryngeal nerve", "ILX:0787303", "FMA:6248"),
+    ("tracheal branch of recurrent laryngeal nerve", "ILX:0793070", "FMA:6249"),
+    ("communicating branch of recurrent laryngeal nerve with internal laryngeal nerve", "ILX:0786150", "FMA:53526"),
+    ("inferior cervical cardiac branch of vagus nerve", "ILX:0788259", "FMA:6245"),
+    ("thoracic cardiac branch of vagus nerve", "ILX:ILX:0794849"),
+    ("esophageal vagus trunk", "ILX:0794853", "esophageal trunk"),
 
     # right vagus branches
-    ("right vagus nerve", "FMA:6219", "ILX:0789705"),
+    ("right vagus nerve", "ILX:0789705", "FMA:6219"),
     ("right vagus X nerve trunk", "UBERON:0035021", "ILX:0730515"),
     ("right cervical vagus nerve", "ILX:0794141"),
     ("right thoracic vagus nerve", "ILX:0786664"),
-    ("right meningeal branch of right vagus nerve", "FMA:53541", "ILX:0785804"),
-    ("right branch between vagus nerve and glossopharyngeal nerve", "FMA:53559", "ILX:0790506"),
-    ("right auricular branch of right vagus nerve", "FMA:53534", "ILX:0785879"),
-    ("communicating branch of auricular branch of right vagus nerve with right facial nerve", "FMA:53587", "ILX:0791102"),
-    ("communicating branch of auricular branch of right vagus nerve with right posterior auricular nerve", "FMA:53589", "ILX:0786954"),
-    ("right pharyngeal branch of right vagus nerve to pharyngeal nerve plexus", "FMA:53635", "ILX:0792814"),
-    ("lingual branch of right vagus nerve", "FMA:53633", "ILX:0787083"),
+    ("right meningeal branch of right vagus nerve", "ILX:0785804", "FMA:53541"),
+    ("right branch between vagus nerve and glossopharyngeal nerve", "ILX:0790506", "FMA:53559"),
+    ("right auricular branch of right vagus nerve", "ILX:0785879", "FMA:53534"),
+    ("communicating branch of auricular branch of right vagus nerve with right facial nerve", "ILX:0791102", "FMA:53587"),
+    # following listed as "right branch between auricular branch and facial nerve"
+    ("communicating branch of auricular branch of right vagus nerve with right posterior auricular nerve", "ILX:0786954", "FMA:53589"),
+    ("right pharyngeal branch of right vagus nerve to pharyngeal nerve plexus", "ILX:0792814", "FMA:53635"),
+    ("lingual branch of right vagus nerve", "ILX:0787083", "FMA:53633"),
     ("right pharyngeal branch of right vagus nerve to superior cervical ganglion", "ILX:0795066"),
-    ("branch of right vagus nerve to carotid body", "FMA:53606", "ILX:0790433"),
+    # following listed as "right branch of vagus nerve to ipsilateral carotid body"
+    ("branch of right vagus nerve to carotid body", "ILX:0790433", "FMA:53606"),
     ("right branch between vagus nerve and superior cervical ganglion", "ILX:0794055"),
-    ("right superior laryngeal nerve", "FMA:53530", "ILX:0787738"),
-    ("right internal laryngeal nerve", "FMA:53539", "ILX:0788164"),
-    ("right external laryngeal nerve", "FMA:53537", "ILX:0792879"),
-    ("superior branch of right internal laryngeal nerve", "FMA:53575", "ILX:0784524"),
+    ("right superior laryngeal nerve", "ILX:0787738", "FMA:53530"),
+    # following listed as "Right internal branch of superior laryngeal nerve"
+    ("right internal laryngeal nerve", "ILX:0788164", "FMA:53539"),
+    # following listed as "Right external branch of superior laryngeal nerve"
+    ("right external laryngeal nerve", "ILX:0792879", "FMA:53537"),
+    # following listed as "Upper branch of right internal laryngeal nerve to laryngeal vestibule"
+    ("superior branch of right internal laryngeal nerve", "ILX:0784524", "FMA:53575"),
+    # nearest to following: "middle branch of internal branch of right superior laryngeal nerve", "ILX:0795865"
     ("middle branch of right internal laryngeal nerve", "None"),  # NA pending
-    ("inferior branch of right internal laryngeal nerve", "FMA:53581", "ILX:0789165"),
-    ("communicating branch of right internal laryngeal nerve with right recurrent laryngeal nerve", "FMA:53571", "ILX:0791006"),
-    ("communicating branch of right external laryngeal nerve with right superior cardiac nerve", "FMA:53561", "ILX:0787405"),
+    # following listed as "Lower branch of right internal laryngeal nerve to right aryepiglottic fold"
+    ("inferior branch of right internal laryngeal nerve", "ILX:0789165", "FMA:53581"),
+    ("communicating branch of right internal laryngeal nerve with right recurrent laryngeal nerve", "ILX:0791006", "FMA:53571"),
+    ("communicating branch of right external laryngeal nerve with right superior cardiac nerve", "ILX:0787405", "FMA:53561"),
+    ("right cervical cardiopulmonary branch of vagus nerve", "ILX:0794153"),  # common branch
     ("right A cervical cardiopulmonary branch of vagus nerve", "ILX:0794154"),
     ("right B cervical cardiopulmonary branch of vagus nerve", "ILX:0794155"),
-    ("right pulmonary branch of vagus nerve", "FMA:6671", "ILX:0787735"),
+    ("right pulmonary branch of vagus nerve", "ILX:0787735", "FMA:6671"),  # common branch
     ("right pulmonary branch A of the vagus nerve", "ILX:0795074"),
     ("right pulmonary branch B of the vagus nerve", "ILX:0795075"),
     ("right pulmonary branch C of the vagus nerve", "ILX:0795076"),
@@ -128,60 +139,71 @@ vagus_branch_terms = [
     ("posterior B gastric branch of vagus nerve", "ILX:0794399"),
     ("posterior C gastric branch of vagus nerve", "ILX:0794400"),
     # ===
-    ("bronchial branch of right vagus nerve", "FMA:53613", "ILX:0791364"),
-    ("superior cervical cardiac branch of right vagus nerve", "FMA:53598", "ILX:0786396"),
+    ("bronchial branch of right vagus nerve" "ILX:0791364", "FMA:53613",),
+    ("superior cervical cardiac branch of right vagus nerve", "ILX:0786396", "FMA:53598"),
     ("right recurrent laryngeal nerve", "UBERON:0011767", "ILX:0728322"),
     ("extra laryngeal branch of right recurrent laryngeal nerve to larynx", "ILX:0795068"),
     ("branch of right recurrent laryngeal nerve to muscle of larynx", "ILX:0795084"),
-    ("esophageal branch of right recurrent laryngeal nerve", "FMA:53608", "ILX:0785794"),
-    ("tracheal branch of right recurrent laryngeal nerve", "FMA:53610", "ILX:0792888"),
+    ("esophageal branch of right recurrent laryngeal nerve", "ILX:0785794", "FMA:53608"),
+    ("tracheal branch of right recurrent laryngeal nerve", "ILX:0792888", "FMA:53610"),
+    # following listed as "right recurrent laryngeal nerve"
     ("right inferior laryngeal nerve", "UBERON:0011767"),  # same code as for left recurrent laryngeal nerve
-    ("external branch of right inferior laryngeal nerve", "None"),  # NA removed
+    # ("external branch of right inferior laryngeal nerve", "None"),  # NA removed
     ("anterior branch of right recurrent laryngeal nerve", "ILX:0795070"),
     ("posterior branch of right recurrent laryngeal nerve", "ILX:0795072"),
-    ("communicating branch of right recurrent laryngeal nerve with superior cervical ganglion", "None"),  # NA rejected
-    ("communicating branch of right recurrent laryngeal nerve with right internal laryngeal nerve", "FMA:53528", "ILX:0790555"),
+    # ("communicating branch of right recurrent laryngeal nerve with superior cervical ganglion", "None"),  # NA rejected
+    ("communicating branch of right recurrent laryngeal nerve with right internal laryngeal nerve", "ILX:0790555", "FMA:53528"),
+    # following listed as "right cardiac branch of recurrent laryngeal nerve"
     ("inferior cervical cardiac branch of right recurrent laryngeal nerve", "ILX:0794235"),
-    ("inferior cervical cardiac branch of right vagus nerve", "FMA:6713", "ILX:0789456"),
-    ("thoracic cardiac branch of right vagus nerve", "FMA:53604", "ILX:0790057"),
-    ("cardiac branch of right vagus to deep cardiac plexus", "FMA:6711", "ILX:0791784"),
+    # following listed as "Inferior cervical cardiac branch of right vagus nerve to deep cardiac plexus"
+    ("inferior cervical cardiac branch of right vagus nerve", "ILX:0789456", "FMA:6713"),
+    ("thoracic cardiac branch of right vagus nerve", "ILX:0790057", "FMA:53604"),
+    ("cardiac branch of right vagus to deep cardiac plexus", "ILX:0791784", "FMA:6711"),
+    # following listed as "right branch of thoracic vagus nerve to esophagus"
     ("right branch of right vagus nerve to esophageal nerve plexus", "ILX:0794299"),
 
     # posterior vagus, a continuation of right vagus
     ("posterior esophageal vagus trunk", "ILX:0794858"),
-    ("celiac branch of posterior vagal trunk", "FMA:6667", 'ILX:0789580'),
-    ("greater posterior gastric nerve", "FMA:6689", "ILX:0788809"),
+    ("celiac branch of posterior vagal trunk", "ILX:0789580", "FMA:6667"),
+    ("greater posterior gastric nerve", "ILX:0788809", "FMA:6689"),
+    # following not on interlex:
     ("pyloric branch of greater posterior gastric nerve", "FMA:6677"),
 
     # left vagus branches
-    ("left vagus nerve", "FMA:6220", "ILX:0785628"),
-    ("left vagus X nerve trunk", "UBERON:0035020"),
+    ("left vagus nerve", "ILX:0785628", "FMA:6220"),
+    ("left vagus X nerve trunk", "UBERON:0035020", "ILX:0736691"),
     ("left cervical vagus nerve", "ILX:0794142"),
-    ("left thoracic vagus nerve", "ILX:0787543", "FMA:18174"),  # Use ILX even though FMA preferred
+    ("left thoracic vagus nerve", "ILX:0787543", "FMA:18174"),
     ("left thoracic cardiac branch of vagus nerve", "ILX:0794213", "left thoracic cardiac branch"),  # "left A..."
     ("left thoracic cardiopulmonary branch of vagus nerve", "ILX:0794191", "left thoracic cardiopulmonary branch"),  # "left A..."
-    ("left meningeal branch of left vagus nerve", "FMA:53542", "ILX:0736691"),
-    ("left branch between vagus nerve and glossopharyngeal nerve", "FMA:53560", "ILX:0790685"),
-    ("left auricular branch of left vagus nerve", "FMA:53535", "ILX:0789344"),
-    ("communicating branch of auricular branch of left vagus nerve with left facial nerve", "FMA:53588", "ILX:0787673"),
-    ("communicating branch of auricular branch of left vagus nerve with left posterior auricular nerve", "FMA:53590", "ILX:0786219"),
-    ("left pharyngeal branch of left vagus nerve to pharyngeal nerve plexus", "FMA:53636", "ILX:0789210"),
-    ("lingual branch of left vagus nerve", "FMA:53634", "ILX:0791548"),
+    ("left meningeal branch of left vagus nerve", "ILX:0792358", "FMA:53542"),
+    ("left branch between vagus nerve and glossopharyngeal nerve", "ILX:0790685", "FMA:53560"),
+    ("left auricular branch of left vagus nerve", "ILX:0789344", "FMA:53535"),
+    ("communicating branch of auricular branch of left vagus nerve with left facial nerve", "ILX:0787673", "FMA:53588"),
+    # following listed as "left branch between auricular branch and facial nerve"
+    ("communicating branch of auricular branch of left vagus nerve with left posterior auricular nerve", "ILX:0786219", "FMA:53590"),
+    ("left pharyngeal branch of left vagus nerve to pharyngeal nerve plexus", "ILX:0789210", "FMA:53636"),
+    ("lingual branch of left vagus nerve", "ILX:0791548", "FMA:53634"),
     ("left pharyngeal branch of left vagus nerve to superior cervical ganglion", "ILX:0795067"),
-    ("branch of left vagus nerve to carotid body", "FMA:53607", "ILX:0791085"),
+    # following listed as "left branch of vagus nerve to ipsilateral carotid body"
+    ("branch of left vagus nerve to carotid body", "ILX:0791085", "FMA:53607"),
     ("left branch between vagus nerve and superior cervical ganglion", "ILX:0794061"),
-    ("left superior laryngeal nerve", "FMA:53536", "ILX:0788780"),
-    ("left internal laryngeal nerve", "FMA:53540", "ILX:0791167"),
-    ("left external laryngeal nerve", "FMA:53538", "ILX:0789760"),
+    ("left superior laryngeal nerve", "ILX:0788780", "FMA:53536"),
+    # following listed as "Left internal branch of superior laryngeal nerve"
+    ("left internal laryngeal nerve", "ILX:0791167", "FMA:53540"),
+    # following listed as "Left external branch of superior laryngeal nerve"
+    ("left external laryngeal nerve", "ILX:0789760", "FMA:53538"),
     ("left branch of superior laryngeal nerve", "ILX:0795822"),  # "left A branch..."
-    ("superior branch of left internal laryngeal nerve", "FMA:53576", "ILX:0785786"),
+    # following listed as "Upper branch of left internal laryngeal nerve to laryngeal vestibule"
+    ("superior branch of left internal laryngeal nerve", "ILX:0785786", "FMA:53576"),
     ("middle branch of left internal laryngeal nerve", "None"),  # NA pending
-    ("inferior branch of left internal laryngeal nerve", "FMA:53582", "ILX:0785467"),
-    ("communicating branch of left internal laryngeal nerve with left recurrent laryngeal nerve", "FMA:53572", "ILX:0789900"),
-    ("communicating branch of left external laryngeal nerve with left superior cardiac nerve", "FMA:53562", "ILX:0787107"),
+    # following listed as "Lower branch of left internal laryngeal nerve to left aryepiglottic fold"
+    ("inferior branch of left internal laryngeal nerve", "ILX:0785467", "FMA:53582"),
+    ("communicating branch of left internal laryngeal nerve with left recurrent laryngeal nerve", "ILX:0789900", "FMA:53572"),
+    ("communicating branch of left external laryngeal nerve with left superior cardiac nerve", "ILX:0787107", "FMA:53562"),
     ("left A cervical cardiopulmonary branch of vagus nerve", "ILX:0794160"),
     ("left B cervical cardiopulmonary branch of vagus nerve", "ILX:0794161"),
-    ("pulmonary branch of left vagus nerve", "FMA:6679", "ILX:0792971"),
+    ("pulmonary branch of left vagus nerve", "ILX:0792971", "FMA:6679"),
     ("left pulmonary branch A of the vagus nerve", "ILX:0795079"),
     ("left pulmonary branch B of the vagus nerve", "ILX:0795080"),
     ("left pulmonary branch C of the vagus nerve", "ILX:0795081"),
@@ -191,29 +213,30 @@ vagus_branch_terms = [
     ("left A medial pulmonary branch of vagus nerve", "ILX:0794266"),
     ("left B medial pulmonary branch of vagus nerve", "ILX:0794267"),
     # ===
-    ("bronchial branch of left vagus nerve", "FMA:53558", "ILX:0791685"),
-    ("superior cervical cardiac branch of left vagus nerve", "FMA:53599", "ILX:0791998"),
+    ("bronchial branch of left vagus nerve", "ILX:0791685", "FMA:53558"),
+    ("superior cervical cardiac branch of left vagus nerve", "ILX:0791998", "FMA:53599"),
     ("left recurrent laryngeal nerve", "UBERON:0011766", "ILX:0724431"),
     ("extra laryngeal branch of left recurrent laryngeal nerve to larynx", "ILX:0795069"),
     ("branch of left recurrent laryngeal nerve to muscle of larynx", "ILX:0795085"),
-    ("esophageal branch of left recurrent laryngeal nerve", "FMA:53609", "ILX:0791513"),
-    ("tracheal branch of left recurrent laryngeal nerve", "FMA:53611", "ILX:0785091"),
+    ("esophageal branch of left recurrent laryngeal nerve", "ILX:0791513", "FMA:53609"),
+    ("tracheal branch of left recurrent laryngeal nerve", "ILX:0785091", "FMA:53611"),
     ("left inferior laryngeal nerve", "UBERON:0011766"),
-    ("external branch of left inferior laryngeal nerve", "None"),  # NA removed
+    # ("external branch of left inferior laryngeal nerve", "None"),  # NA removed
     ("anterior branch of left recurrent laryngeal nerve", "ILX:0795071"),
     ("posterior branch of left recurrent laryngeal nerve", "ILX:0795073"),
-    ("communicating branch of left recurrent laryngeal nerve with superior cervical ganglion", "None"),  # NA rejected
-    ("communicating branch of left recurrent laryngeal nerve with left internal laryngeal nerve", "FMA:53529", "ILX:0790440"),
+    # ("communicating branch of left recurrent laryngeal nerve with superior cervical ganglion", "None"),  # NA rejected
+    ("communicating branch of left recurrent laryngeal nerve with left internal laryngeal nerve", "ILX:0790440", "FMA:53529"),
     ("inferior cervical cardiac branch of left recurrent laryngeal nerve", "ILX:0794244"),
-    ("inferior cervical cardiac branch of left vagus nerve", "FMA:6714", "ILX:0786047"),
-    ("thoracic cardiac branch of left vagus nerve", "FMA:53605", "ILX:0791489"),
+    # following listed as "Inferior cervical cardiac branch of left vagus nerve to superficial cardiac plexus"
+    ("inferior cervical cardiac branch of left vagus nerve", "ILX:0786047", "FMA:6714"),
+    ("thoracic cardiac branch of left vagus nerve", "ILX:0791489", "FMA:53605"),
     ("cardiac branch of left vagus to deep cardiac plexus", "ILX:0795087"),
     ("left branch of left vagus nerve to esophageal nerve plexus", "ILX:0794310"),
 
     # anterior vagus, a continuation of left vagus
     ("anterior esophageal vagus trunk", "ILX:0794854"),
-    ("hepatic branch of anterior vagal trunk", "FMA:6666", "ILX:0784595"),
-    ("greater anterior gastric nerve", "FMA:6684", "ILX:0793831"),
+    ("hepatic branch of anterior vagal trunk", "ILX:0784595", "FMA:6666"),
+    ("greater anterior gastric nerve", "ILX:0793831", "FMA:6684"),
     ("branch of greater anterior gastric nerve to coeliac nerve plexus", "FMA:53675"),
 
 ]

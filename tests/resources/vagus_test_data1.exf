@@ -2701,7 +2701,7 @@ Node group:
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 201..240
-Group name: FMA:53536
+Group name: ILX:0788780
 !#nodeset nodes
 Node group:
 46,202..242
