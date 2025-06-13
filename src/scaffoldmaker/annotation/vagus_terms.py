@@ -75,7 +75,7 @@ vagus_branch_terms = [
     ("lingual branch of vagus nerve", "ILX:0791434", "FMA:6235"),
     ("branch of vagus nerve to carotid body", "ILX:0786059", "FMA:6237"),
     # following not found on interlex
-    ("communicating branch of superior cervical ganglion with vagus nerve", "FMA:6901"),
+    # ("communicating branch of superior cervical ganglion with vagus nerve", "FMA:6901"),
     ("superior laryngeal nerve", "UBERON:0011326", "ILX:0731053"),
     ("internal branch of superior laryngeal nerve", "ILX:0793561", "internal laryngeal nerve", "internal superior laryngeal nerve", "FMA:6240"),
     ("external branch of superior laryngeal nerve", "ILX:0793560", "FMA:6243"),
@@ -139,7 +139,7 @@ vagus_branch_terms = [
     ("posterior B gastric branch of vagus nerve", "ILX:0794399"),
     ("posterior C gastric branch of vagus nerve", "ILX:0794400"),
     # ===
-    ("bronchial branch of right vagus nerve" "ILX:0791364", "FMA:53613",),
+    ("bronchial branch of right vagus nerve", "ILX:0791364", "FMA:53613",),
     ("superior cervical cardiac branch of right vagus nerve", "ILX:0786396", "FMA:53598"),
     ("right recurrent laryngeal nerve", "UBERON:0011767", "ILX:0728322"),
     ("extra laryngeal branch of right recurrent laryngeal nerve to larynx", "ILX:0795068"),
@@ -167,7 +167,7 @@ vagus_branch_terms = [
     ("celiac branch of posterior vagal trunk", "ILX:0789580", "FMA:6667"),
     ("greater posterior gastric nerve", "ILX:0788809", "FMA:6689"),
     # following not on interlex:
-    ("pyloric branch of greater posterior gastric nerve", "FMA:6677"),
+    # ("pyloric branch of greater posterior gastric nerve", "FMA:6677"),
 
     # left vagus branches
     ("left vagus nerve", "ILX:0785628", "FMA:6220"),
@@ -236,8 +236,9 @@ vagus_branch_terms = [
     # anterior vagus, a continuation of left vagus
     ("anterior esophageal vagus trunk", "ILX:0794854"),
     ("hepatic branch of anterior vagal trunk", "ILX:0784595", "FMA:6666"),
-    ("greater anterior gastric nerve", "ILX:0793831", "FMA:6684"),
-    ("branch of greater anterior gastric nerve to coeliac nerve plexus", "FMA:53675"),
+    ("greater anterior gastric nerve", "ILX:0793831", "FMA:6684")
+    # not on interlex:
+    # ("branch of greater anterior gastric nerve to coeliac nerve plexus", "FMA:53675"),
 
 ]
 

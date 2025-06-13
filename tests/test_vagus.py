@@ -6,6 +6,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 
 from scaffoldmaker.annotation.annotationgroup import findAnnotationGroupByName
+from scaffoldmaker.annotation.vagus_terms import vagus_branch_terms, vagus_marker_terms
 from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1, get_left_vagus_marker_locations_list
 from scaffoldmaker.utils.read_vagus_data import VagusInputData
 
@@ -16,6 +17,14 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 
 class VagusScaffoldTestCase(unittest.TestCase):
+
+
+    def test_vagus_terms(self):
+        """
+        Test that all vagus terms are UBERON or ILX.
+        """
+        for term in (vagus_branch_terms + vagus_marker_terms):
+            self.assertFalse("fma" in term[1].lower()), "Invalid vagus term" + str(term)
 
     def test_input_vagus_data(self):
         """
