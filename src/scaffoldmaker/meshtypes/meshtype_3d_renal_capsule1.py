@@ -33,11 +33,11 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         return ["Default"]
 
     @classmethod
-    def getDefaultOptions(clscls, parameterSetName="Default"):
+    def getDefaultOptions(cls, parameterSetName="Default"):
         options = {}
         options["Base parameter set"] = "Human 1" if (parameterSetName == "Default") else parameterSetName
-        options["Structure"] = "(1-2-3-4-5)"
         options["Define inner coordinates"] = True
+        options["Elements count along"] = 2
         options["Renal capsule length"] = 1.0
         options["Renal capsule diameter"] = 1.5
         options["Renal capsule bend angle degrees"] = 10
@@ -47,6 +47,7 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
     @classmethod
     def getOrderedOptionNames(cls):
         return [
+            "Elements count along",
             "Renal capsule length",
             "Renal capsule diameter",
             "Renal capsule bend angle degrees",
@@ -57,6 +58,7 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
     def checkOptions(cls, options):
         dependentChanges = False
         for key in [
+            "Elements count along",
             "Renal capsule length",
             "Renal capsule diameter",
             "Renal capsule bend angle degrees",
@@ -75,7 +77,8 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         :return [] empty list of AnnotationGroup, NetworkMesh
         """
         # parameters
-        structure = options["Structure"]
+        structure = options["Structure"] = cls.getLayoutStructure(options)
+        capsuleElementsCount = options["Elements count along"]
         capsuleLength = options["Renal capsule length"]
         capsuleRadius = 0.5 * options["Renal capsule diameter"]
         capsuleBendAngle = options["Renal capsule bend angle degrees"]
@@ -93,7 +96,6 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
 
         renalCapsuleGroup = renalCapsuleGroup.getMeshGroup(mesh)
         elementIdentifier = 1
-        capsuleElementsCount = 4
         meshGroups = [renalCapsuleGroup]
         for e in range(capsuleElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
@@ -159,6 +161,18 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
             innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sid13)
 
         return annotationGroups, networkMesh
+
+    @classmethod
+    def getLayoutStructure(cls, options):
+        """
+        Generate 1D layout structure based on the number of elements count along.
+        :param options: Dict containing options. See getDefaultOptions().
+        :return string version of the 1D layout structure
+        """
+        nodesCountAlong = options["Elements count along"] + 1
+        assert nodesCountAlong > 1
+
+        return f"({'-'.join(str(i) for i in range(1, nodesCountAlong + 1))})"
 
 
 class MeshType_3d_renal_capsule1(Scaffold_base):
@@ -280,7 +294,7 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
             dependentChanges = True
         for i in range(len(annotationCoreBoxMinorCounts)):
             aroundCount = annotationElementsCountsAround[i] if annotationElementsCountsAround[i] \
-                else options["Number of elements around"]
+                else options["Elements count around"]
             maxCoreBoxMinorCount = aroundCount // 2 - 2
             if annotationCoreBoxMinorCounts[i] <= 0:
                 annotationCoreBoxMinorCounts[i] = 0
@@ -296,8 +310,8 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
             elif annotationCoreBoxMinorCounts[i] % 2:
                 annotationCoreBoxMinorCounts[i] += 1
 
-        if options["Target element density along longest segment"] < 1.0:
-            options["Target element density along longest segment"] = 1.0
+        if options["Target element density along longest segment"] < 2.0:
+            options["Target element density along longest segment"] = 2.0
         return dependentChanges
 
     @classmethod
