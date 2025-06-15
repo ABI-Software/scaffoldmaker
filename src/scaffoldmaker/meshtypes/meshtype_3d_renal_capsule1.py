@@ -235,34 +235,26 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
                 cls.getOptionValidScaffoldTypes("Renal capsule network layout")):
             options["Renal capsule network layout"] = ScaffoldPackage(MeshType_1d_renal_capsule_network_layout1)
 
-        minElementsCountAround = None
-        for key in [
-            "Elements count around"
-        ]:
-            if options[key] < 8:
-                options[key] = 8
-            elif options[key] % 4:
-                options[key] += 4 - (options[key] % 4)
-            if (minElementsCountAround is None) or (options[key] < minElementsCountAround):
-                minElementsCountAround = options[key]
+        if options["Elements count around"] < 8:
+            options["Elements count around"] = 8
+        elif options["Elements count around"] % 4:
+            options["Elements count around"] += 4 - (options["Elements count around"] % 4)
 
-        if options["Number of elements through shell"] < 0:
-            options["Number of elements through shell"] = 1
+        if options["Elements count through shell"] < 1:
+            options["Elements count through shell"] = 1
 
         if options["Number of elements across core transition"] < 1:
             options["Number of elements across core transition"] = 1
 
+        minElementsCountAround = options["Elements count around"]
         maxElementsCountCoreBoxMinor = minElementsCountAround // 2 - 2
-        for key in [
-            "Number of elements across core box minor"
-        ]:
-            if options[key] < 2:
-                options[key] = 2
-            elif options[key] > maxElementsCountCoreBoxMinor:
-                options[key] = maxElementsCountCoreBoxMinor
-                dependentChanges = True
-            elif options[key] % 2:
-                options[key] += options[key] % 2
+        if options["Number of elements across core box minor"] < 2:
+            options["Number of elements across core box minor"] = 2
+        elif options["Number of elements across core box minor"] > maxElementsCountCoreBoxMinor:
+            options["Number of elements across core box minor"] = maxElementsCountCoreBoxMinor
+            dependentChanges = True
+        elif options["Number of elements across core box minor"] % 2:
+            options["Number of elements across core box minor"] += options["Number of elements across core box minor"] % 2
 
         annotationElementsCountsAround = options["Annotation elements counts around"]
         if len(annotationElementsCountsAround) == 0:
@@ -271,8 +263,38 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
             for i in range(len(annotationElementsCountsAround)):
                 if annotationElementsCountsAround[i] <= 0:
                     annotationElementsCountsAround[i] = 0
-                elif annotationElementsCountsAround[i] < 4:
-                    annotationElementsCountsAround[i] = 4
+                else:
+                    if annotationElementsCountsAround[i] < 8:
+                        annotationElementsCountsAround[i] = 8
+                    elif annotationElementsCountsAround[i] % 4:
+                        annotationElementsCountsAround[i] += 4 - (annotationElementsCountsAround[i] % 4)
+                    if annotationElementsCountsAround[i] < minElementsCountAround:
+                        minElementsCountAround = annotationElementsCountsAround[i]
+
+        annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"]
+        if len(annotationCoreBoxMinorCounts) == 0:
+            annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"] = [0]
+        if len(annotationCoreBoxMinorCounts) > len(annotationElementsCountsAround):
+            annotationCoreBoxMinorCounts = options["Annotation numbers of elements across core box minor"] = \
+                annotationCoreBoxMinorCounts[:len(annotationElementsCountsAround)]
+            dependentChanges = True
+        for i in range(len(annotationCoreBoxMinorCounts)):
+            aroundCount = annotationElementsCountsAround[i] if annotationElementsCountsAround[i] \
+                else options["Number of elements around"]
+            maxCoreBoxMinorCount = aroundCount // 2 - 2
+            if annotationCoreBoxMinorCounts[i] <= 0:
+                annotationCoreBoxMinorCounts[i] = 0
+                # this may reduce the default
+                if maxCoreBoxMinorCount < options["Number of elements across core box minor"]:
+                    options["Number of elements across core box minor"] = maxCoreBoxMinorCount
+                    dependentChanges = True
+            elif annotationCoreBoxMinorCounts[i] < 2:
+                annotationCoreBoxMinorCounts[i] = 2
+            elif annotationCoreBoxMinorCounts[i] > maxCoreBoxMinorCount:
+                annotationCoreBoxMinorCounts[i] = maxCoreBoxMinorCount
+                dependentChanges = True
+            elif annotationCoreBoxMinorCounts[i] % 2:
+                annotationCoreBoxMinorCounts[i] += 1
 
         if options["Target element density along longest segment"] < 1.0:
             options["Target element density along longest segment"] = 1.0
