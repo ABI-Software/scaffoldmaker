@@ -13,7 +13,6 @@ from cmlibs.zinc.node import Node, NodesetGroup
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.utils import interpolation as interp
 
-
 def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
         node1, derivative1, scale1, cross_derivative1, cross_scale1,
         node2, derivative2, scale2, cross_derivative2, cross_scale2):
@@ -755,3 +754,36 @@ def group_add_connected_elements(group: FieldGroup, other_mesh_group: MeshGroup)
                     del elementid_to_nodeids[elementid]
                     break
         group.setSubelementHandlingMode(old_subelement_mode)
+
+def blendDerivativeBetweenDifferentSizeElements(coordinates, cache, nodes, prevNodeID, transitionNodeID, nextNodeID):
+    """
+    Blends derivatives for nodes between two elements of different lengths. Calculates an end derivative using
+    upstream coordinates and derivative, and a start derivative using downstream coordinates and derivative. The
+    derivative at the junction is then rescaled with the harmonic mean of start and end derivative magnitudes.
+    :param coordinates: coordinate field
+    :param cache: field cache
+    :param nodes: nodeset
+    :param prevNodeID: node identifier of upstream node
+    :param transitionNodeID: node identifier of node between the two elements of different lengths
+    :param nextNodeID: node identifier of downstream node
+    """
+    node = nodes.findNodeByIdentifier(prevNodeID)
+    cache.setNode(node)
+    xPrev = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+    d2Prev = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+
+    node = nodes.findNodeByIdentifier(nextNodeID)
+    cache.setNode(node)
+    xNext = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+    d2Next = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+
+    node = nodes.findNodeByIdentifier(transitionNodeID)
+    cache.setNode(node)
+    xTransition = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+    d2Transition = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+
+    d2_in = interp.computeCubicHermiteEndDerivative(xPrev, d2Prev, xTransition, d2Transition)
+    d2_out = interp.computeCubicHermiteStartDerivative(xTransition, d2Transition, xNext, d2Next)
+    d2MeanMag = 2.0 / ((1.0 / magnitude(d2_in)) + (1.0 / magnitude(d2_out)))
+    d2Mean = set_magnitude(d2Transition, d2MeanMag)
+    coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Mean)

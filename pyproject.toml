@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
+
+[project]
+name = "scaffoldmaker"
+dynamic = ["version"]
+keywords = ["Medical", "Physiology", "Anatomical", "Mesh", "Finite Element", "SPARC"]
+readme = "README.rst"
+license = {file = "LICENSE"}
+authors = [
+    { name="Richard Christie", email="r.christie@auckland.ac.nz" },
+]
+dependencies = [
+    "cmlibs.maths >= 0.7.0",
+    "cmlibs.utils >= 0.6",
+    "cmlibs.zinc >= 4.1",
+    "scaffoldfitter >= 0.9",
+    "scipy",
+    "numpy"
+]
+description = "Python client for generating anatomical scaffolds using Zinc."
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools_scm]
