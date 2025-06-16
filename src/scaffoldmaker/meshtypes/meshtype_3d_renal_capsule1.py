@@ -58,13 +58,24 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
     def checkOptions(cls, options):
         dependentChanges = False
         for key in [
-            "Elements count along",
             "Renal capsule length",
-            "Renal capsule diameter",
-            "Renal capsule bend angle degrees",
-            "Inner proportion default"
+            "Renal capsule diameter"
         ]:
-            pass
+            if options[key] < 0.1:
+                options[key] = 0.1
+
+        if options["Elements count along"] < 2:
+            options["Elements count along"] = 2
+
+        if options["Renal capsule bend angle degrees"] < 0.0:
+            options["Renal capsule bend angle degrees"] = 0.0
+        elif options["Renal capsule bend angle degrees"] > 30.0:
+            options["Renal capsule bend angle degrees"] = 30.0
+
+        if options["Inner proportion default"] < 0.1:
+            options["Inner proportion default"] = 0.1
+        elif options["Inner proportion default"] > 0.9:
+            options["Inner proportion default"] = 0.9
 
         return dependentChanges
 
