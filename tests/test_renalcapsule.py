@@ -60,8 +60,8 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [-1.5818268645898947, -0.9278353405057089, -0.75], tol)
-        assertAlmostEqualList(self, maximums, [1.5818290319384656, 0.7499999999986053, 0.75], tol)
+        assertAlmostEqualList(self, minimums, [-1.583346623141804, -0.9520066012170885, -0.75], tol)
+        assertAlmostEqualList(self, maximums, [1.583349401938375, 0.7499999999986053, 0.75], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -79,15 +79,15 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 4.847649908739891, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 15.287447927204916, delta=tol)
+            self.assertAlmostEqual(volume, 4.844335733470136, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 15.289023987470623, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "core": (80, 1.1338066143026762),
-            "shell": (48, 0.6376433780623295),
-            "renal capsule": (128, 1.7714499923650102)
+            "core": (80, 1.1315894674812224),
+            "shell": (48, 0.636434417387064),
+            "renal capsule": (128, 1.76802388486829)
             }
         for name in expectedSizes3d:
             term = get_kidney_term(name)
@@ -103,8 +103,8 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "shell": (204, 13.489465438804439),
-            "renal capsule": (440, 26.801531053920638)
+            "shell": (204, 13.48337379199411),
+            "renal capsule": (440, 26.78248128640177)
             }
         for name in expectedSizes2d:
             term = get_kidney_term(name)
