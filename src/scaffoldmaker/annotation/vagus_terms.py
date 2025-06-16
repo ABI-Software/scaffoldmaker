@@ -1,6 +1,7 @@
 """
 Common resource for vagus annotation terms.
 """
+from scaffoldmaker.annotation.annotation_utils import annotation_term_id_to_url
 import logging
 
 logger = logging.getLogger(__name__)
@@ -41,9 +42,9 @@ vagus_marker_terms = [
     ("level of jugular notch on the vagus nerve", "ILX:0794644"),
     ("right level of jugular notch on the vagus nerve", "ILX:0794645"),
     ("left level of jugular notch on the vagus nerve", "ILX:0794646"),
-    # ("level of carina", "None"),
-    # ("right level of carina", "None"),
-    # ("left level of carina", "None"),
+    # ("level of carina", ""),
+    # ("right level of carina", ""),
+    # ("left level of carina", ""),
     ("level of sternal angle on the vagus nerve", "ILX:0794647"),
     ("right level of sternal angle on the vagus nerve", "ILX:0794648"),
     ("left level of sternal angle on the vagus nerve", "ILX:0794649"),
@@ -90,7 +91,7 @@ vagus_branch_terms = [
     ("tracheal branch of recurrent laryngeal nerve", "ILX:0793070", "FMA:6249"),
     ("communicating branch of recurrent laryngeal nerve with internal laryngeal nerve", "ILX:0786150", "FMA:53526"),
     ("inferior cervical cardiac branch of vagus nerve", "ILX:0788259", "FMA:6245"),
-    ("thoracic cardiac branch of vagus nerve", "ILX:ILX:0794849"),
+    ("thoracic cardiac branch of vagus nerve", "ILX:0794849"),
     ("esophageal vagus trunk", "ILX:0794853", "esophageal trunk"),
 
     # right vagus branches
@@ -118,7 +119,7 @@ vagus_branch_terms = [
     # following listed as "Upper branch of right internal laryngeal nerve to laryngeal vestibule"
     ("superior branch of right internal laryngeal nerve", "ILX:0784524", "FMA:53575"),
     # nearest to following: "middle branch of internal branch of right superior laryngeal nerve", "ILX:0795865"
-    ("middle branch of right internal laryngeal nerve", "None"),  # NA pending
+    # ("middle branch of right internal laryngeal nerve", ""),  # NA pending
     # following listed as "Lower branch of right internal laryngeal nerve to right aryepiglottic fold"
     ("inferior branch of right internal laryngeal nerve", "ILX:0789165", "FMA:53581"),
     ("communicating branch of right internal laryngeal nerve with right recurrent laryngeal nerve", "ILX:0791006", "FMA:53571"),
@@ -148,10 +149,10 @@ vagus_branch_terms = [
     ("tracheal branch of right recurrent laryngeal nerve", "ILX:0792888", "FMA:53610"),
     # following listed as "right recurrent laryngeal nerve"
     ("right inferior laryngeal nerve", "UBERON:0011767"),  # same code as for left recurrent laryngeal nerve
-    # ("external branch of right inferior laryngeal nerve", "None"),  # NA removed
+    # ("external branch of right inferior laryngeal nerve", ""),  # NA removed
     ("anterior branch of right recurrent laryngeal nerve", "ILX:0795070"),
     ("posterior branch of right recurrent laryngeal nerve", "ILX:0795072"),
-    # ("communicating branch of right recurrent laryngeal nerve with superior cervical ganglion", "None"),  # NA rejected
+    # ("communicating branch of right recurrent laryngeal nerve with superior cervical ganglion", ""),  # NA rejected
     ("communicating branch of right recurrent laryngeal nerve with right internal laryngeal nerve", "ILX:0790555", "FMA:53528"),
     # following listed as "right cardiac branch of recurrent laryngeal nerve"
     ("inferior cervical cardiac branch of right recurrent laryngeal nerve", "ILX:0794235"),
@@ -196,7 +197,7 @@ vagus_branch_terms = [
     ("left branch of superior laryngeal nerve", "ILX:0795822"),  # "left A branch..."
     # following listed as "Upper branch of left internal laryngeal nerve to laryngeal vestibule"
     ("superior branch of left internal laryngeal nerve", "ILX:0785786", "FMA:53576"),
-    ("middle branch of left internal laryngeal nerve", "None"),  # NA pending
+    # ("middle branch of left internal laryngeal nerve", ""),  # NA pending
     # following listed as "Lower branch of left internal laryngeal nerve to left aryepiglottic fold"
     ("inferior branch of left internal laryngeal nerve", "ILX:0785467", "FMA:53582"),
     ("communicating branch of left internal laryngeal nerve with left recurrent laryngeal nerve", "ILX:0789900", "FMA:53572"),
@@ -221,10 +222,10 @@ vagus_branch_terms = [
     ("esophageal branch of left recurrent laryngeal nerve", "ILX:0791513", "FMA:53609"),
     ("tracheal branch of left recurrent laryngeal nerve", "ILX:0785091", "FMA:53611"),
     ("left inferior laryngeal nerve", "UBERON:0011766"),
-    # ("external branch of left inferior laryngeal nerve", "None"),  # NA removed
+    # ("external branch of left inferior laryngeal nerve", ""),  # NA removed
     ("anterior branch of left recurrent laryngeal nerve", "ILX:0795071"),
     ("posterior branch of left recurrent laryngeal nerve", "ILX:0795073"),
-    # ("communicating branch of left recurrent laryngeal nerve with superior cervical ganglion", "None"),  # NA rejected
+    # ("communicating branch of left recurrent laryngeal nerve with superior cervical ganglion", ""),  # NA rejected
     ("communicating branch of left recurrent laryngeal nerve with left internal laryngeal nerve", "ILX:0790440", "FMA:53529"),
     ("inferior cervical cardiac branch of left recurrent laryngeal nerve", "ILX:0794244"),
     # following listed as "Inferior cervical cardiac branch of left vagus nerve to superficial cardiac plexus"
@@ -252,7 +253,7 @@ def get_vagus_term(name):
     """
     for term in vagus_branch_terms:
         if name in term:
-            return term[0], term[1]
+            return annotation_term_id_to_url((term[0], term[1]))
     logger.warning("Unknown vagus term name or ID: '" + name + "'. Using as name without ID")
     return name, ""
 
@@ -265,7 +266,7 @@ def get_vagus_marker_term(name: str):
     """
     for term in vagus_marker_terms:
         if name in term:
-            return term[0], term[1]
+            return annotation_term_id_to_url((term[0], term[1]))
     raise NameError("Vagus annotation term '" + name + "' not found.")
 
 

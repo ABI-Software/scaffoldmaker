@@ -6,6 +6,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 
 from scaffoldmaker.annotation.annotationgroup import findAnnotationGroupByName
+from scaffoldmaker.annotation.annotation_utils import annotation_term_id_to_url
 from scaffoldmaker.annotation.vagus_terms import vagus_branch_terms, vagus_marker_terms
 from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1, get_left_vagus_marker_locations_list
 from scaffoldmaker.utils.read_vagus_data import VagusInputData
@@ -21,10 +22,13 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
     def test_vagus_terms(self):
         """
-        Test that all vagus terms are UBERON or ILX.
+        Test that all vagus terms are UBERON or ILX, and urls.
         """
         for term in (vagus_branch_terms + vagus_marker_terms):
-            self.assertFalse("fma" in term[1].lower()), "Invalid vagus term" + str(term)
+            term_url = annotation_term_id_to_url(term)[1]
+            self.assertTrue((not term_url) or
+                            term_url.startswith("http://purl.obolibrary.org/obo/UBERON_") or
+                            term_url.startswith("http://uri.interlex.org/base/ilx_"), "Invalid vagus term" + str(term))
 
     def test_input_vagus_data(self):
         """
@@ -153,35 +157,35 @@ class VagusScaffoldTestCase(unittest.TestCase):
         #  expected_surface_area, expected_volume)
         expected_group_info = {
             "left vagus nerve": (
-                "ILX:0785628", None, 25,
+                "http://uri.interlex.org/base/ilx_0785628", None, 25,
                 [-1269.8293183474027, -6359.8794918062185, -69.79596358103436],
                 [2163.5065559034797, -1112.4694863693492, 121.49477098496129],
                 [49.69809961146075, 258.19137709267125, 1479.1407307248198],
                 248424548.42757902,
                 32973169952.33672),
             "left superior laryngeal nerve": (
-                "ILX:0788780", "left vagus nerve", 3,
+                "http://uri.interlex.org/base/ilx_0788780", "left vagus nerve", 3,
                 [5888.361608956813, -4417.766403817663, -201.35981775061967],
                 [-1488.8488795282458, 791.7429838047342, 83.0590111566718],
                 [40.03987180084414, 14.864881979714482, 576.0260276199538],
                 9712700.895177323,
                 554689189.2182714),
             "left A branch of superior laryngeal nerve": (
-                "ILX:0795823", "left superior laryngeal nerve", 2,
+                "http://uri.interlex.org/base/ilx_0795823", "left superior laryngeal nerve", 2,
                 [5095.698554751851, -1435.5245960200803, -4.95378510864149],
                 [-1310.3674569985124, 264.340042537044, 53.75707581244285],
                 [9.731322981637277, -12.682910300344247, 299.5737724490257],
                 4680192.321708083,
                 236055059.57983524),
             "left A thoracic cardiopulmonary branch of vagus nerve": (
-                "ILX:0794192", "left vagus nerve", 2,
+                "http://uri.interlex.org/base/ilx_0794192", "left vagus nerve", 2,
                 [20651.94765027247, -2955.4531267489256, -609.718731363599],
                 [-11.845579664618569, -1713.7381754113042, -52.47409739912885],
                 [-8.83290713867791, 10.741342747816361, -348.80482226706044],
                 6206690.003928819,
                 329878058.1182652),
             "left B thoracic cardiopulmonary branch of vagus nerve": (
-                "ILX:0794193", "left vagus nerve", 2,
+                "http://uri.interlex.org/base/ilx_0794193", "left vagus nerve", 2,
                 [22198.762145694476, -3181.553031186403, -628.400239786329],
                 [886.9465489726451, 756.0670892895126, -89.42734555851769],
                 [1.0856990421307273, 39.326727353878596, 343.25743550415484],
@@ -427,8 +431,8 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
         # test sizes of cervical and thoracic parts
         expected_section_info = {
-            "left cervical vagus nerve": ("ILX:0794142", 8),
-            "left thoracic vagus nerve": ("ILX:0787543", 17)}
+            "left cervical vagus nerve": ("http://uri.interlex.org/base/ilx_0794142", 8),
+            "left thoracic vagus nerve": ("http://uri.interlex.org/base/ilx_0787543", 17)}
         for section_name, info in expected_section_info.items():
             expected_id, expected_mesh_size = info
             annotation_group = findAnnotationGroupByName(annotation_groups, section_name)

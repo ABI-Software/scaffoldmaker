@@ -2687,7 +2687,7 @@ Node group:
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 241..260
-Group name: ILX:0795823
+Group name: http://uri.interlex.org/base/ilx_0795823
 !#nodeset nodes
 Node group:
 231,243..263
@@ -2701,7 +2701,7 @@ Node group:
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 201..240
-Group name: ILX:0788780
+Group name: http://uri.interlex.org/base/ilx_0788780
 !#nodeset nodes
 Node group:
 46,202..242
@@ -2715,7 +2715,7 @@ Node group:
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 261..290
-Group name: ILX:0794192
+Group name: http://uri.interlex.org/base/ilx_0794192
 !#nodeset nodes
 Node group:
 141,264..294
@@ -2729,7 +2729,7 @@ Node group:
 !#mesh mesh1d, dimension=1, nodeset=nodes
 Element group:
 291..310
-Group name: ILX:0794193
+Group name: http://uri.interlex.org/base/ilx_0794193
 !#nodeset nodes
 Node group:
 151,295..315

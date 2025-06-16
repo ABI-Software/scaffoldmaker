@@ -561,11 +561,11 @@ class MeshType_3d_nerve1(Scaffold_base):
             return annotation_groups, None
 
         # vagus annotation groups
-        centroid_annotation_group = AnnotationGroup(region, get_vagus_marker_term("vagus centroid"))
+        centroid_annotation_group = AnnotationGroup(region, get_vagus_term("vagus centroid"))
         annotation_groups.append(centroid_annotation_group)
         centroid_mesh_group = centroid_annotation_group.getMeshGroup(mesh1d)
 
-        epineurium_annotation_group = AnnotationGroup(region, get_vagus_marker_term("vagus epineurium"))
+        epineurium_annotation_group = AnnotationGroup(region, get_vagus_term("vagus epineurium"))
         annotation_groups.append(epineurium_annotation_group)
         epineurium_mesh_group = epineurium_annotation_group.getMeshGroup(mesh2d)
 
@@ -1065,11 +1065,11 @@ class MeshType_3d_nerve1(Scaffold_base):
         mesh2d = fieldmodule.findMeshByDimension(2)
         mesh1d = fieldmodule.findMeshByDimension(1)
 
-        epineurium_annotation_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                            get_vagus_marker_term("vagus epineurium"))
+        epineurium_annotation_group = findOrCreateAnnotationGroupForTerm(
+            annotationGroups, region, get_vagus_term("vagus epineurium"))
         epineurium_mesh_group = epineurium_annotation_group.getMeshGroup(mesh2d)
         vagusAnteriorLineAnnotationGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_vagus_marker_term("vagus anterior line"))
+            annotationGroups, region, get_vagus_term("vagus anterior line"))
         vagusAnteriorLineMeshGroup = vagusAnteriorLineAnnotationGroup.getMeshGroup(mesh1d)
 
         faceIterator = epineurium_mesh_group.createElementiterator()
