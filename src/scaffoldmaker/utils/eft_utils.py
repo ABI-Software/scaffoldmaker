@@ -864,6 +864,7 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
     assert len(nodeParameters[0]) == 4
     d3Defined = (meshDimension == 3) and (nodeParameters[0][3] is not None)
     assert len(nodeLayouts) == nodesCount
+    # print(nodeParameters[1][0], nodeParameters[0][0])
     delta12 = sub(nodeParameters[1][0], nodeParameters[0][0])
     delta34 = sub(nodeParameters[3][0], nodeParameters[2][0])
     delta13 = sub(nodeParameters[2][0], nodeParameters[0][0])
@@ -955,7 +956,10 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
             on = n ^ (1 << ed)
             if nodeOrder.index(on) > nodeOrder.index(n):
                 derivativeMagnitude = magnitude(elementDerivative)
-                newMagnitude = 2.0 / ((1.0 / oldDeltaMagnitude) + (1.0 / derivativeMagnitude))
+                if oldDeltaMagnitude:
+                    newMagnitude = 2.0 / ((1.0 / oldDeltaMagnitude) + (1.0 / derivativeMagnitude))
+                else:
+                    newMagnitude = derivativeMagnitude
                 elementDerivative = mult(elementDerivative, newMagnitude / derivativeMagnitude)
                 # update other node delta to work in with this derivative
                 otherElementDerivative = (
