@@ -7,7 +7,7 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.heart_terms import get_heart_term
+from scaffoldmaker.annotation.heart_terms import get_heart_term, heart_terms
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
@@ -15,6 +15,15 @@ from testutils import assertAlmostEqualList
 
 
 class HeartScaffoldTestCase(unittest.TestCase):
+
+    def test_heart_annotations(self):
+        """
+        Test that all heart terms are UBERON or ILX.
+        """
+        for term in heart_terms:
+            upper_id = term[1].upper()
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id), "Invalid heart term" + str(term))
+
 
     def test_heart1(self):
         """
