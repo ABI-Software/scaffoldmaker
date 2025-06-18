@@ -10,7 +10,7 @@ from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
-from scaffoldmaker.annotation.stomach_terms import get_stomach_term
+from scaffoldmaker.annotation.stomach_terms import get_stomach_term, stomach_terms
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
@@ -19,6 +19,15 @@ from testutils import assertAlmostEqualList
 
 
 class StomachScaffoldTestCase(unittest.TestCase):
+
+    def test_stomach_annotations(self):
+        """
+        Test that all stomach terms are UBERON or ILX.
+        """
+        for term in stomach_terms:
+            upper_id = term[1].upper()
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id), "Invalid heart term" + str(term))
+
 
     def test_stomach1(self):
         """
