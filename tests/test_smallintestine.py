@@ -8,7 +8,7 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term, smallintestine_terms
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
@@ -18,6 +18,15 @@ from testutils import assertAlmostEqualList
 
 
 class SmallIntestineScaffoldTestCase(unittest.TestCase):
+
+    def test_smallintestine_annotations(self):
+        """
+        Test that all smallintestine terms are UBERON or ILX.
+        """
+        for term in smallintestine_terms:
+            upper_id = term[1].upper()
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id), "Invalid heart term" + str(term))
+
 
     def test_smallintestine1(self):
         """
