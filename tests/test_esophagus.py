@@ -8,7 +8,7 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
+from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term, esophagus_terms
 from scaffoldmaker.meshtypes.meshtype_3d_esophagus1 import MeshType_3d_esophagus1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
@@ -18,6 +18,14 @@ from testutils import assertAlmostEqualList
 
 class EsophagusScaffoldTestCase(unittest.TestCase):
 
+    def test_esophagus_annotations(self):
+        """
+        Test that all esophagus terms are UBERON or ILX.
+        """
+        for term in esophagus_terms:
+            upper_id = term[1].upper()
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id), "Invalid heart term" + str(term)) 
+            
     def test_esophagus1(self):
         """
         Test creation of esophagus scaffold.
