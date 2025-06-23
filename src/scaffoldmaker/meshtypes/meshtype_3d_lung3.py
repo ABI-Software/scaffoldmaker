@@ -566,14 +566,14 @@ class MeshType_3d_lung3(Scaffold_base):
             if apexSharpFactor != 0.0:
                 sharpeningRidge(apexSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isApex=True)
 
-            if (diaphragm_angle_radians != 0.0) and (diaphragm_proportion > 0.0):
-                form_diaphragm_surface(fieldmodule, coordinates, lungNodeset, diaphragm_angle_radians, bendZ,
-                                       isLeft=isLeft)
-
             if impression_depth_proportion > 0.0:
                 form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, disc_depth,
                                          impression_breadth_proportion, impression_height_proportion,
                                          impression_depth_proportion, lateral_shear_rate, isLeft=isLeft)
+
+            if (diaphragm_angle_radians != 0.0) and (diaphragm_proportion > 0.0):
+                form_diaphragm_surface(fieldmodule, coordinates, lungNodeset, diaphragm_angle_radians, bendZ,
+                                       isLeft=isLeft)
 
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
