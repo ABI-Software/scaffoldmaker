@@ -290,7 +290,6 @@ class MeshType_3d_lung3(Scaffold_base):
         edgeSharpFactor = options["Ventral edge sharpness factor"]
         leftApexMedialDisplacement = options["Left-right apex medial shear displacement"]
         forwardLeftRightApex = options["Left-right apex ventral shear displacement"]
-        # forwardLeftRightBase = options["Left-right base shear displacement"]
         diaphragm_angle_radians = math.radians(options["Diaphragm angle degrees"])
         diaphragm_proportion = options["Diaphragm proportion"]
         disc_breadth = options["Disc breadth"]
@@ -461,10 +460,6 @@ class MeshType_3d_lung3(Scaffold_base):
             annotationGroups, region, ["upper lobe of left lung dorsal", "None"])
         upperLeftDorsalLungMeshGroup = upperLeftDorsalLungGroup.getMeshGroup(mesh)
 
-        middleRightDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, ["middle lobe of right lung dorsal", "None"])
-        middleRightDorsalLungMeshGroup = middleRightDorsalLungGroup.getMeshGroup(mesh)
-
         upperRightDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, ["upper lobe of right lung dorsal", "None"])
         upperRightDorsalLungMeshGroup = upperRightDorsalLungGroup.getMeshGroup(mesh)
@@ -546,9 +541,6 @@ class MeshType_3d_lung3(Scaffold_base):
                 isLeft = True if i == leftLung else False
                 lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
                 scaleNodes(fieldmodule, coordinates, lungNodeset, disc_depth, scale_factor)
-                if elementsCountLateral > 4:
-                    resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
-                                       elementsCountNormal, elementsCountOblique, elementsCountShell)
 
         for i in lungs:
             isLeft = True if i == leftLung else False
@@ -563,6 +555,9 @@ class MeshType_3d_lung3(Scaffold_base):
             rotateLungAngleX = -rotateLeftLungX
             rotateLungAngleZ = rotateLeftLungZ if isLeft else -rotateLeftLungZ
 
+            if not isLeft:
+                flipRightLung(fieldmodule, coordinates, lungNodeset)
+
             rotate_scale_lung(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, oblique_slope_radians)
 
             if edgeSharpFactor != 0.0:
@@ -571,14 +566,14 @@ class MeshType_3d_lung3(Scaffold_base):
             if apexSharpFactor != 0.0:
                 sharpeningRidge(apexSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isApex=True)
 
-            if impression_depth_proportion > 0.0:
-                form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, disc_depth,
-                                         impression_breadth_proportion, impression_height_proportion,
-                                         impression_depth_proportion, lateral_shear_rate)
-
             if (diaphragm_angle_radians != 0.0) and (diaphragm_proportion > 0.0):
                 form_diaphragm_surface(fieldmodule, coordinates, lungNodeset, diaphragm_angle_radians, bendZ,
                                        isLeft=isLeft)
+
+            if impression_depth_proportion > 0.0:
+                form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, disc_depth,
+                                         impression_breadth_proportion, impression_height_proportion,
+                                         impression_depth_proportion, lateral_shear_rate, isLeft=isLeft)
 
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
@@ -1038,9 +1033,42 @@ def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, 
     fieldassignment.assign()
 
 
+def flipRightLung(fieldmodule, coordinates, lungNodesetGroup):
+    """
+    The initial right lung is identical to the left lung. This function flips the right lung to be the mirror image
+    of the left lung.
+    :param fieldmodule: Field module being worked with.
+    :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
+    :return: None.
+    """
+    x = fieldmodule.createFieldComponent(coordinates, 1)
+    y = fieldmodule.createFieldComponent(coordinates, 2)
+    z = fieldmodule.createFieldComponent(coordinates, 3)
+    zero = fieldmodule.createFieldConstant(0.0)
+    minus_1 = fieldmodule.createFieldConstant(-1.0)
+    nx = x * minus_1
+    mz = z
+    nx_mz = fieldmodule.createFieldConcatenate([nx, mz])
+    r = fieldmodule.createFieldMagnitude(nx_mz)
+
+    theta = fieldmodule.createFieldAtan2(mz, nx)
+
+    r_zero = fieldmodule.createFieldEqualTo(r, zero)
+    new_theta = fieldmodule.createFieldIf(r_zero, zero, theta)
+    cos_new_theta = fieldmodule.createFieldCos(new_theta)
+    new_x = r * cos_new_theta
+
+    new_coordinates = fieldmodule.createFieldConcatenate([new_x, y, z])
+
+    fieldassignment = coordinates.createFieldassignment(new_coordinates)
+    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
+
 def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, disc_depth,
                              impression_breadth_proportion, impression_height_proportion,
-                             impression_depth_proportion, lateral_shear_rate):
+                             impression_depth_proportion, lateral_shear_rate, isLeft=True):
     """
     Form mediastinal surface by draping over ellipsoid impression.
     :param fieldmodule: Field module being worked with.
@@ -1052,8 +1080,10 @@ def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_br
     :param impression_height_proportion: Impression height as proportion of disc height, circle chord.
     :param impression_depth_proportion: Impression depth as proportion of disc thickness, giving radii.
     :param lateral_shear_rate: Rate of shear as proportion of depth into disc.
+    :param isLeft: True if left lung, False if right lung.
     :return: None.
     """
+    minus_1 = fieldmodule.createFieldConstant(-1.0)
     # get scaling from ellipse to curve of ellipsoid impression
     b = 0.5 * impression_breadth_proportion * disc_breadth
     h = 0.5 * impression_height_proportion * disc_height
@@ -1077,12 +1107,14 @@ def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_br
     bcx = fieldmodule.createFieldConstant(breadth_cx)
     dd = fieldmodule.createFieldConstant(d)
     bcy = fieldmodule.createFieldConstant(breadth_cy)
-    rb = bcx - x + dd
+    rb = bcx - x + dd if isLeft else bcx + (x + dd)
+    lateral_shear_rate = lateral_shear_rate if isLeft else -lateral_shear_rate
     b_shear_rate = fieldmodule.createFieldConstant(lateral_shear_rate * disc_depth / breadth_radius)
     mod_b_angle = b_angle + b_shear_rate * x
     cosb = fieldmodule.createFieldCos(mod_b_angle)
     sinb = fieldmodule.createFieldSin(mod_b_angle)
     new_x = bcx - rb * cosb
+    new_x = new_x  if isLeft else new_x * minus_1
     new_y = bcy + rb * sinb
 
     new_coordinates = fieldmodule.createFieldConcatenate([new_x, new_y, z])
@@ -1109,10 +1141,12 @@ def form_diaphragm_surface(fieldmodule, coordinates, lungNodesetGroup, diaphragm
     z = fieldmodule.createFieldComponent(coordinates, 3)
     bend_z = fieldmodule.createFieldConstant(diaphragm_bend_z)
     minus_1 = fieldmodule.createFieldConstant(-1.0)
-    nx = x * minus_1
+    nx = x * minus_1 if isLeft else x
     mz = z - bend_z
     nx_mz = fieldmodule.createFieldConcatenate([nx, mz])
     r = fieldmodule.createFieldMagnitude(nx_mz)
+
+    diaphragm_angle_radians = diaphragm_angle_radians if isLeft else -diaphragm_angle_radians
 
     theta = fieldmodule.createFieldAtan2(mz, nx)
     zero = fieldmodule.createFieldConstant(0.0)
@@ -1120,9 +1154,9 @@ def form_diaphragm_surface(fieldmodule, coordinates, lungNodesetGroup, diaphragm
     safe_theta = fieldmodule.createFieldIf(r_zero, zero, theta)
     pi__2 = fieldmodule.createFieldConstant(0.5 * math.pi)
     delta_theta = (pi__2 - safe_theta) * fieldmodule.createFieldConstant(diaphragm_angle_radians / math.pi)
-    new_theta = safe_theta + delta_theta
+    new_theta = safe_theta + delta_theta if isLeft else delta_theta - safe_theta
     cos_new_theta = fieldmodule.createFieldCos(new_theta) * minus_1 if isLeft else fieldmodule.createFieldCos(new_theta)
-    sin_new_theta = fieldmodule.createFieldSin(new_theta)
+    sin_new_theta = fieldmodule.createFieldSin(new_theta) if isLeft else fieldmodule.createFieldSin(new_theta) * minus_1
     new_x = r * cos_new_theta
     new_z = bend_z + r * sin_new_theta
 
