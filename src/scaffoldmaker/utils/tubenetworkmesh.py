@@ -2146,40 +2146,40 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         for i in range(4):
             sParamLayer = []
             for n3 in range(self._elementsCountThroughShell + 1):
-                sParamRingAroundPatchAndRim = []
+                sParamRingAroundRim = []
                 sParam = allCoordinates[i]
                 for n2 in range(int(0.5 * len(allCoordinates[i])), 0, -1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatchAndRim.append(sParam[n2][n3][0])
+                        sParamRingAroundRim.append(sParam[n2][n3][0])
                     elif i == 1: # d1
-                        sParamRingAroundPatchAndRim.append(allCoordinates[i + 1][n2][n3][0]) # becomes d2
+                        sParamRingAroundRim.append(allCoordinates[i + 1][n2][n3][0]) # becomes d2
                     elif i == 2: # d2
-                        sParamRingAroundPatchAndRim.append(mult(allCoordinates[i - 1][n2][n3][0], -1.0)) # becomes -d1
-                sParamRingAroundPatchAndRim += sParam[0][n3]
+                        sParamRingAroundRim.append(mult(allCoordinates[i - 1][n2][n3][0], -1.0)) # becomes -d1
+                sParamRingAroundRim += sParam[0][n3]
 
                 for n2 in range(1, int(0.5 * len(allCoordinates[i]) + 1)):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatchAndRim.append(sParam[n2][n3][-1])
+                        sParamRingAroundRim.append(sParam[n2][n3][-1])
                     elif i == 1: # d1
-                        sParamRingAroundPatchAndRim.append(mult(allCoordinates[i + 1][n2][n3][-1], -1.0))  # becomes -d2
+                        sParamRingAroundRim.append(mult(allCoordinates[i + 1][n2][n3][-1], -1.0))  # becomes -d2
                     elif i == 2: # d2
-                        sParamRingAroundPatchAndRim.append(allCoordinates[i - 1][n2][n3][-1]) # becomes d1
+                        sParamRingAroundRim.append(allCoordinates[i - 1][n2][n3][-1]) # becomes d1
                 for n2 in range(int(0.5 * len(allCoordinates[i])) + 1, len(allCoordinates[i]) - 1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatchAndRim.append(sParam[n2][n3][0])
+                        sParamRingAroundRim.append(sParam[n2][n3][0])
                     elif i == 1: # d1
-                        sParamRingAroundPatchAndRim.append(allCoordinates[i + 1][n2][n3][0]) # becomes d2
+                        sParamRingAroundRim.append(allCoordinates[i + 1][n2][n3][0]) # becomes d2
                     elif i == 2: # d2
-                        sParamRingAroundPatchAndRim.append(mult(allCoordinates[i - 1][n2][n3][0], -1.0)) # becomes -d1
-                sParamRingAroundPatchAndRim += sParam[-1][n3]
+                        sParamRingAroundRim.append(mult(allCoordinates[i - 1][n2][n3][0], -1.0)) # becomes -d1
+                sParamRingAroundRim += sParam[-1][n3]
                 for n2 in range(len(allCoordinates[i]) - 2, int(0.5 * len(allCoordinates[i])), -1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatchAndRim.append(sParam[n2][n3][-1])
+                        sParamRingAroundRim.append(sParam[n2][n3][-1])
                     elif i == 1: # d1
-                        sParamRingAroundPatchAndRim.append(mult(allCoordinates[i + 1][n2][n3][-1], -1.0))  # becomes -d2
+                        sParamRingAroundRim.append(mult(allCoordinates[i + 1][n2][n3][-1], -1.0))  # becomes -d2
                     elif i == 2: # d2
-                        sParamRingAroundPatchAndRim.append(allCoordinates[i - 1][n2][n3][-1]) # becomes d1
-                sParamLayer.append(sParamRingAroundPatchAndRim)
+                        sParamRingAroundRim.append(allCoordinates[i - 1][n2][n3][-1]) # becomes d1
+                sParamLayer.append(sParamRingAroundRim)
             outerRimCoordinates.append(sParamLayer)
 
         # second to last ring
@@ -2201,8 +2201,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundPatch += [sParam[0][n3][0], sParam[0][n3][0]]
                 elif i == 1:
                     sParamRingAroundPatch.append(self._patchCoordinates[i + 1][0][n3][0])
-                    sParamRingAroundPatch.append(sParam[0][n3][0])
-                    #add(self._patchCoordinates[i][0][n3][0], self._patchCoordinates[i + 1][0][n3][0]))
+                    sParamRingAroundPatch.append(add(self._patchCoordinates[i][0][n3][0],
+                                                     self._patchCoordinates[i + 1][0][n3][0])) # sParam[0][n3][0])
                 elif i == 2:
                     sParamRingAroundPatch.append(mult(self._patchCoordinates[i - 1][0][n3][0], -1.0))
                     sParamRingAroundPatch.append(add(mult(self._patchCoordinates[i - 1][0][n3][0], -1.0),
@@ -2213,7 +2213,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 if i == 0 or i == 3:
                     sParamRingAroundPatch += [sParam[0][n3][-1], sParam[0][n3][-1]]
                 elif i == 1: # d1
-                    sParamRingAroundPatch.append(sParam[0][n3][-1])
+                    sParamRingAroundPatch.append(add(self._patchCoordinates[i][0][n3][-1],
+                                                     mult(self._patchCoordinates[i + 1][0][n3][-1], -1.0)))  # becomes d1 - d2, sParam[0][n3][-1])
                     sParamRingAroundPatch.append(mult(self._patchCoordinates[i + 1][0][n3][-1], -1.0)) # becomes -d2
                 elif i == 2: # d2
                     sParamRingAroundPatch.append(add(self._patchCoordinates[i - 1][0][n3][-1],
@@ -2233,8 +2234,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundPatch += [sParam[-1][n3][0], sParam[-1][n3][0]]
                 elif i == 1:
                     sParamRingAroundPatch.append(self._patchCoordinates[i + 1][-1][n3][0]) # d2
-                    sParamRingAroundPatch.append(sParam[-1][n3][0])
-
+                    sParamRingAroundPatch.append(add(self._patchCoordinates[i][-1][n3][0],
+                                                     self._patchCoordinates[i + 1][-1][n3][0])) # d1 + d2 #sParam[-1][n3][0])
                 elif i == 2:
                     sParamRingAroundPatch.append(mult(self._patchCoordinates[i - 1][-1][n3][0], -1.0))  # -d1
                     sParamRingAroundPatch.append(add(mult(self._patchCoordinates[i - 1][-1][n3][0], -1.0),
@@ -2246,7 +2247,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 if i == 0 or i == 3:
                     sParamRingAroundPatch += [sParam[-1][n3][-1], sParam[-1][n3][-1]]
                 elif i == 1:
-                    sParamRingAroundPatch.append(sParam[-1][n3][-1])
+                    sParamRingAroundPatch.append(add(self._patchCoordinates[i][-1][n3][-1],
+                                                     mult(self._patchCoordinates[i + 1][-1][n3][-1], -1.0))) # d1 - d2 sParam[-1][n3][-1])
                     sParamRingAroundPatch.append(mult(self._patchCoordinates[i + 1][-1][n3][-1], -1.0))  # becomes -d2
                 elif i == 2:
                     sParamRingAroundPatch.append(add(self._patchCoordinates[i - 1][-1][n3][-1],
@@ -2267,7 +2269,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
 
         self._rimCoordinates.append(patchRimCoordinates)
         self._rimCoordinates.append(outerRimCoordinates)
-        # print('rimCoordinates =', self._rimCoordinates)
+        print('rimCoordinates =', self._rimCoordinates)
 
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
         """
@@ -3085,6 +3087,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 md1[0] = [-d for d in md1[0]]
                 md2[0] = [-d for d in md2[0]]
                 # print('cx =', mx[0])
+                # print('cd1 =', md1[0])
+                print('cd2 =', md2[0])
+
             return mx[0], md1[0], md2[0], md3[0] if d3Defined else None
         mCount = len(mx)
         cx = [sum(x[c] for x in mx) / mCount for c in range(3)]
@@ -3190,6 +3195,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         if dot(cross(cd1, cd2), ns12) < 0.0:
             cd1, cd2 = cd2, cd1
         # print('cx =', cx)
+        # print('cd1 =', cd1)
+        print('cd2 =', cd2)
+
         return cx, cd1, cd2, cd3
 
     def _determineJunctionSequence(self):
@@ -4187,7 +4195,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                     a[-4], a[-2] = a[-2], a[-4]
                                     a[-3], a[-1] = a[-1], a[-3]
 
-                        if e1 in [1, 2, 3, 4, 7, 8, 9, 10]: #[1, 2, 9, 10, 13, 14, 21, 22]:
+                        if e1 in [1, 2, 9, 10, 13, 14, 21, 22]: # [1, 2, 3, 4, 7, 8, 9, 10] if isMouse
                             print(e1, nids)
                             continue
 
@@ -4207,7 +4215,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         elementtemplate.defineField(coordinates, -1, eft)
                         element = mesh.createElement(elementIdentifier, elementtemplate)
                         element.setNodesByIdentifier(eft, nids)
-                        print(e1, 'Element', elementIdentifier, nids)
+                        # print(e1, 'Element', elementIdentifier, nids)
                         if scalefactors:
                             element.setScaleFactors(eft, scalefactors)
                         segment.setRimElementId(e1, e2, rim_e3, elementIdentifier)
