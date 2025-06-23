@@ -33,119 +33,91 @@ class MeshType_3d_lung3(Scaffold_base):
     def getParameterSetNames(cls):
         return [
             "Default",
-            "Human 1",
-            "Ellipsoid",
-            "Teardrop"]
+            "Human 1 Coarse",
+            "Human 1 Medium",
+            "Human 1 Fine",
+            "Ellipsoid Coarse",
+            "Ellipsoid Medium",
+            "Ellipsoid Fine",
+            "Teardrop Coarse",
+            "Teardrop Medium",
+            "Teardrop Fine"
+        ]
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
-        useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
-        isHuman = "Human" in useParameterSetName
-        if parameterSetName in ["Human 1", "Default"]:
-            options = {
-                "Left lung": True,
-                "Right lung": True,
-                "Open fissures": False,
-                "Number of left lung lobes": 2,
-                "Number of elements lateral": 6,
-                "Number of elements normal": 6,
-                "Number of elements oblique": 6,
-                "Number of elements shell": 0,
-                "Left-right lung spacing": 0.4,
-                "Apex edge sharpness factor": 0.5,
-                "Ventral edge sharpness factor": 0.7,
-                "Left-right apex medial shear displacement": 0.2,
-                "Left-right apex ventral shear displacement": -0.2,
-                "Diaphragm angle degrees": 40.0,
-                "Diaphragm proportion": 0.3,
-                "Disc breadth": 0.8,
-                "Disc height": 1.3,
-                "Disc depth": 0.3,
-                "Impression breadth proportion": 0.9,
-                "Impression height proportion": 0.8,
-                "Impression depth proportion": 1.0,
-                "Lateral shear rate": -1.0,
-                "Left oblique slope degrees": 45.0,
-                "Right oblique slope degrees": 45.0,
-                "Medial curvature": 0.0,
-                "Medial curvature bias": 0.0,
-                "Medial rotation about x-axis degrees": 5.0,
-                "Ventral-medial rotation degrees": 5.0,
-                "Use sizing function": True,
-                "Scale factor": 0.7,
-                "Refine": False,
-                "Refine number of elements": 4,
-            }
-        elif parameterSetName == "Ellipsoid":
-            options = {
-                "Left lung": True,
-                "Right lung": True,
-                "Open fissures": False,
-                "Number of left lung lobes": 2,
-                "Number of elements lateral": 6,
-                "Number of elements normal": 6,
-                "Number of elements oblique": 6,
-                "Number of elements shell": 0,
-                "Left-right lung spacing": 1.0,
-                "Apex edge sharpness factor": 0.0,
-                "Ventral edge sharpness factor": 0.0,
-                "Left-right apex medial shear displacement": 0.0,
-                "Left-right apex ventral shear displacement": 0.0,
-                "Diaphragm angle degrees": 0.0,
-                "Diaphragm proportion": 0.0,
-                "Disc breadth": 0.8,
-                "Disc height": 1.1,
-                "Disc depth": 0.25,
-                "Impression breadth proportion": 0.0,
-                "Impression height proportion": 0.0,
-                "Impression depth proportion": 0.0,
-                "Lateral shear rate": 0.0,
-                "Left oblique slope degrees": 45.0,
-                "Right oblique slope degrees": 45.0,
-                "Medial curvature": 0.0,
-                "Medial curvature bias": 0.0,
-                "Medial rotation about x-axis degrees": 0.0,
-                "Ventral-medial rotation degrees": 0.0,
-                "Use sizing function": False,
-                "Scale factor": 1.0,
-                "Refine": False,
-                "Refine number of elements": 4,
-            }
-        elif parameterSetName == "Teardrop":
-            options = {
-                "Left lung": True,
-                "Right lung": True,
-                "Open fissures": False,
-                "Number of left lung lobes": 2,
-                "Number of elements lateral": 4,
-                "Number of elements normal": 4,
-                "Number of elements oblique": 4,
-                "Number of elements shell": 0,
-                "Left-right lung spacing": 1.0,
-                "Apex edge sharpness factor": 0.0,
-                "Ventral edge sharpness factor": 0.95,
-                "Left-right apex medial shear displacement": 0.0,
-                "Left-right apex ventral shear displacement": 0.0,
-                "Diaphragm angle degrees": 0.0,
-                "Diaphragm proportion": 0.0,
-                "Disc breadth": 0.8,
-                "Disc height": 1.1,
-                "Disc depth": 0.25,
-                "Impression breadth proportion": 0.0,
-                "Impression height proportion": 0.0,
-                "Impression depth proportion": 0.0,
-                "Lateral shear rate": 0.0,
-                "Left oblique slope degrees": 45.0,
-                "Right oblique slope degrees": 45.0,
-                "Medial curvature": 0.0,
-                "Medial curvature bias": 0.0,
-                "Medial rotation about x-axis degrees": 0.0,
-                "Ventral-medial rotation degrees": 0.0,
-                "Use sizing function": False,
-                "Scale factor": 1.0,
-                "Refine": False,
-                "Refine number of elements": 4,
-            }
+        options = {}
+        useParameterSetName = "Human 1 Coarse" if (parameterSetName == "Default") else parameterSetName
+        options["Left lung"] = True
+        options["Right lung"] = True
+        options["Open fissures"] = False
+        options["Number of left lung lobes"] = 2
+        options["Disc breadth"] = 0.8
+        options["Disc height"] = 1.3
+        options["Disc depth"] = 0.3
+        options["Left oblique slope degrees"] = 45.0
+        options["Right oblique slope degrees"] = 45.0
+        options["Refine"] = False
+        options["Refine number of elements"] = 4
+
+        if "Coarse" in useParameterSetName:
+            options["Number of elements lateral"] = 4
+            options["Number of elements normal"] = 6
+            options["Number of elements oblique"] = 6
+            options["Number of elements shell"] = 0
+        elif "Medium" in useParameterSetName:
+            options["Number of elements lateral"] = 4
+            options["Number of elements normal"] = 10
+            options["Number of elements oblique"] = 10
+            options["Number of elements shell"] = 0
+        elif "Fine" in useParameterSetName:
+            options["Number of elements lateral"] = 6
+            options["Number of elements normal"] = 14
+            options["Number of elements oblique"] = 14
+            options["Number of elements shell"] = 0
+
+        if "Human" in useParameterSetName:
+            options["Left-right lung spacing"] = 0.4
+            options["Apex edge sharpness factor"] = 0.5
+            options["Left-right apex medial shear displacement"] = 0.2
+            options["Left-right apex ventral shear displacement"] = -0.2
+            options["Diaphragm angle degrees"] = 30.0
+            options["Diaphragm proportion"] = 0.2
+            options["Impression breadth proportion"] = 1.0
+            options["Impression height proportion"] = 0.8
+            options["Impression depth proportion"] = 1.0
+            options["Lateral shear rate"] = -3.0
+            options["Left oblique slope degrees"] = 45.0
+            options["Right oblique slope degrees"] = 45.0
+            options["Medial curvature"] = 0.0
+            options["Medial curvature bias"] = 0.0
+            options["Medial rotation about x-axis degrees"] = 5.0
+            options["Ventral-medial rotation degrees"] = 10.0
+            options["Use sizing function"] = True
+            options["Scale factor"] = 0.7
+        else:
+            options["Left-right lung spacing"] = 1.0
+            options["Apex edge sharpness factor"] = 0.0
+            options["Left-right apex medial shear displacement"] = 0.0
+            options["Left-right apex ventral shear displacement"] = 0.0
+            options["Diaphragm angle degrees"] = 0.0
+            options["Diaphragm proportion"] = 0.0
+            options["Impression breadth proportion"] = 0.0
+            options["Impression height proportion"] = 0.0
+            options["Impression depth proportion"] = 0.0
+            options["Lateral shear rate"] = 0.0
+            options["Medial curvature"] = 0.0
+            options["Medial curvature bias"] = 0.0
+            options["Medial rotation about x-axis degrees"] = 0.0
+            options["Ventral-medial rotation degrees"] = 0.0
+            options["Use sizing function"] = False
+            options["Scale factor"] = 0.0
+
+        if "Ellipsoid" in useParameterSetName:
+            options["Ventral edge sharpness factor"] = 0.0
+        else:
+            options["Ventral edge sharpness factor"] = 0.7
+
         return options
 
     @classmethod
