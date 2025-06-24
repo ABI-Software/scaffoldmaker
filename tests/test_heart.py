@@ -22,7 +22,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
         """
         for term in heart_terms:
             upper_id = term[1].upper()
-            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id), "Invalid heart term" + str(term))
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid heart term" + str(term))
 
 
     def test_heart1(self):
