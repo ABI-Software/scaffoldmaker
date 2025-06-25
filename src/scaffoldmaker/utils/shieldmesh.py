@@ -1651,13 +1651,14 @@ class ShieldMesh3D:
                                                 (axis == 3 and e3 < midMinorIndex)
                                         )
                                     elif is_base:
-                                        offset = self.elementsCountCoreBoxMajor // 4 if self.elementsCountCoreBoxMajor > 4 else 0
+                                        offset1 = self.elementsCountCoreBoxMajor // 4 - 2 if self.elementsCountCoreBoxMajor > 8 else 0
+                                        offset2 = self.elementsCountCoreBoxMajor // 4 - 1 if self.elementsCountCoreBoxMajor > 4 else 0
                                         add = (
-                                                (axis == 1 and e1 >= midMajorIndex + (offset - 1) and e2 == 0 and e3 < midMinorIndex) or
-                                                (axis == 1 and e1 >= midMajorIndex + offset and e2 == 0 and e3 >= midMinorIndex) or
+                                                (axis == 1 and e1 > midMajorIndex + offset1 and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 1 and e1 > midMajorIndex + offset2 and e2 == 0 and e3 >= midMinorIndex) or
                                                 (axis == 2 and e1 < midMajorIndex and e2 == -1) or
-                                                (axis == 3 and e1 >= midMajorIndex + (offset - 1) and e2 == 0 and e3 < midMinorIndex) or
-                                                (axis == 3 and e1 >= midMajorIndex + offset and e2 == -1 and e3 < midMinorIndex)
+                                                (axis == 3 and e1 > midMajorIndex + offset1 and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 3 and e1 > midMajorIndex + offset2 and e2 == -1 and e3 < midMinorIndex)
                                         )
                                     else:
                                         add = True
