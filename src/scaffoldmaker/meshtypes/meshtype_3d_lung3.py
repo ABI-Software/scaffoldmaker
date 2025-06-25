@@ -372,13 +372,21 @@ class MeshType_3d_lung3(Scaffold_base):
         rightLateralLungGroupMeshGroup = rightLateralLungGroup.getMeshGroup(mesh)
         annotationGroups.append(rightLateralLungGroup)
 
-        # leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", "None"])
-        # leftMedialLungGroupMeshGroup = leftMedialLungGroup.getMeshGroup(mesh)
-        # annotationGroups.append(leftMedialLungGroup)
-        #
-        # rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", "None"])
-        # rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
-        # annotationGroups.append(rightMedialLungGroup)
+        leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", "None"])
+        leftMedialLungGroupMeshGroup = leftMedialLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(leftMedialLungGroup)
+
+        rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", "None"])
+        rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(rightMedialLungGroup)
+
+        leftBaseLungGroup = AnnotationGroup(region, ["base left lung", "None"])
+        leftBaseLungGroupMeshGroup = leftBaseLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(leftBaseLungGroup)
+
+        rightBaseLungGroup = AnnotationGroup(region, ["base right lung", "None"])
+        rightBaseLungGroupMeshGroup = rightBaseLungGroup.getMeshGroup(mesh)
+        annotationGroups.append(rightBaseLungGroup)
 
         if numberOfLeftLung == 2:
             lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
@@ -468,38 +476,38 @@ class MeshType_3d_lung3(Scaffold_base):
         for i in lungs:
             if i == leftLung:
                 if numberOfLeftLung == 2:
-                    meshGroups = [boxMeshGroup, transitionMeshGroup,
+                    meshGroups = [boxMeshGroup, transitionMeshGroup, lungMeshGroup,
                                   leftLungMeshGroup, lowerLeftLungMeshGroup, upperLeftLungMeshGroup,
                                   upperLeftDorsalLungMeshGroup,
                                   mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY, mediastinumLeftGroupMeshGroupZ,
-                                  leftLateralLungGroupMeshGroup,] #leftMedialLungGroupMeshGroup]
-                    annotationTerms = ["box group", "transition group", "left lung",
+                                  leftLateralLungGroupMeshGroup, leftMedialLungGroupMeshGroup, leftBaseLungGroupMeshGroup]
+                    annotationTerms = ["box group", "transition group", "lung", "left lung",
                                        "lower lobe of left lung", "upper lobe of left lung", "upper lobe of left lung dorsal",
                                        "anterior mediastinum of left lung X",
                                        "anterior mediastinum of left lung Y",
                                        "anterior mediastinum of left lung Z",
-                                       "lateral left lung",] #"medial left lung"]
+                                       "lateral left lung", "medial left lung", "base left lung"]
                 else:
-                    meshGroups = [boxMeshGroup, transitionMeshGroup,
+                    meshGroups = [boxMeshGroup, transitionMeshGroup, lungMeshGroup,
                                   leftLungMeshGroup,
                                   mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY, mediastinumLeftGroupMeshGroupZ]
-                    annotationTerms = ["box group", "transition group", "left lung",
+                    annotationTerms = ["box group", "transition group", "lung", "left lung",
                                        "anterior mediastinum of left lung X",
                                        "anterior mediastinum of left lung Y",
                                        "anterior mediastinum of left lung Z"]
             else:
-                meshGroups = [boxMeshGroup, transitionMeshGroup,
+                meshGroups = [boxMeshGroup, transitionMeshGroup, lungMeshGroup,
                               rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
                               upperRightLungMeshGroup, upperRightDorsalLungMeshGroup,
                               mediastinumRightGroupMeshGroupX, mediastinumRightGroupMeshGroupY, mediastinumRightGroupMeshGroupZ,
-                              rightLateralLungGroupMeshGroup,] #rightMedialLungGroupMeshGroup]
-                annotationTerms = ["box group", "transition group", "right lung",
+                              rightLateralLungGroupMeshGroup, rightMedialLungGroupMeshGroup, rightBaseLungGroupMeshGroup]
+                annotationTerms = ["box group", "transition group", "lung", "right lung",
                                    "lower lobe of right lung", "middle lobe of right lung",
                                    "upper lobe of right lung", "upper lobe of right lung dorsal",
                                    "anterior mediastinum of right lung X",
                                    "anterior mediastinum of right lung Y",
                                    "anterior mediastinum of right lung Z",
-                                   "lateral right lung",] #"medial right lung"]
+                                   "lateral right lung", "medial right lung", "base right lung"]
 
             sphere = SphereMesh(fieldmodule, coordinates, centre, axes, elementsCountAcross,
                                 elementsCountShell, elementsCountTransition, shellProportion,
@@ -710,7 +718,9 @@ class MeshType_3d_lung3(Scaffold_base):
 
         side_group = {}
         side_exterior = {}
-        arbSideTerms = ["lateral left lung", "lateral right lung", "medial left lung", "medial right lung"]
+        arbSideTerms = ["lateral left lung", "lateral right lung",
+                        "medial left lung", "medial right lung",
+                        "base left lung", "base right lung"]
         for term in arbSideTerms:
             group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
             group2d = group.getGroup()
@@ -763,18 +773,63 @@ class MeshType_3d_lung3(Scaffold_base):
             if "lobe of" in term:
                 lobe.update({term: group2d})
 
-            # medial and lateral in the subgroup
-            # for sideTerm in ['lateral surface of ', 'medial surface of ']:
-            for sideTerm in ['lateral surface of ']:
+            # lateral in the subgroup
+            for sideTerm in ['lateral surface of ', 'medial surface of ']:
                 surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(sideTerm + term))
                 if ('lateral' in sideTerm) and ('left' in term):
                     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral left lung"]))
-                # elif ('medial' in sideTerm) and ('left' in term):
-                #     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"]))
                 elif ('lateral' in sideTerm) and ('right' in term):
                     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral right lung"]))
-                # elif ('medial' in sideTerm) and ('right' in term):
-                #     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
+
+        # Base surface of lungs (incl. lobes)
+        baseGroup = []
+        baseTerms = ['left lung surface', 'lower lobe of right lung surface', 'middle lobe of right lung surface', 'right lung surface']
+
+        # Base of left lung
+        if numberOfLeftLung > 1:
+            baseTerms = ['lower lobe of left lung surface', 'upper lobe of left lung surface'] + baseTerms
+            baseLeftLowerLung = fm.createFieldAnd(lobe_exterior[baseTerms[0]], side_exterior["base left lung"])
+            baseGroup.append(baseLeftLowerLung)
+            baseLeftUpperLung = fm.createFieldAnd(lobe_exterior[baseTerms[1]], side_exterior["base left lung"])
+            baseGroup.append(baseLeftUpperLung)
+            baseLeftLung = fm.createFieldOr(baseLeftLowerLung, baseLeftUpperLung)
+            baseGroup.append(baseLeftLung)
+        else:
+            baseLeftLung = side_exterior["base left lung"]
+            baseGroup.append(baseLeftLung)
+
+        # Base of right lung
+        baseRightLowerLung = fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'], side_exterior["base right lung"])
+        baseGroup.append(baseRightLowerLung)
+        baseRightMiddleLung = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], side_exterior["base right lung"])
+        baseGroup.append(baseRightMiddleLung)
+        baseRightLung = fm.createFieldOr(baseRightLowerLung, baseRightMiddleLung)
+        baseGroup.append(baseRightLung)
+
+        for term in baseTerms:
+            baseSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("base of " + term))
+            baseSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(baseGroup[baseTerms.index(term)])
+
+        # Medial surface
+        for term in surfaceTerms:
+            baseTerm = term + " surface"
+            group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(term))
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('medial surface of ' + term))
+            if "left" in term:
+                tempMedialLeftLung = fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"])
+                tempBaseLeftLung = baseGroup[baseTerms.index(baseTerm)]
+                medialLeftLung = fm.createFieldXor(tempMedialLeftLung, tempBaseLeftLung)
+                surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(medialLeftLung)
+            elif "right" in term:
+                if "upper" in term:
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
+                else:
+                    tempMediaRightLung = fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"])
+                    tempBaseRightLung = baseGroup[baseTerms.index(baseTerm)]
+                    medialRightLung = fm.createFieldXor(tempMediaRightLung, tempBaseRightLung)
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(medialRightLung)
 
         # Fissures
 

@@ -1553,7 +1553,7 @@ class ShieldMesh3D:
                         if annotationTerms:
                             for idx, term in enumerate(annotationTerms):
                                 add = False
-                                if "transition" in term:
+                                if "transition" in term or term == "lung":
                                     add = True
                                 elif "left" in term:
                                     is_lower = "lower" in term
@@ -1563,6 +1563,7 @@ class ShieldMesh3D:
                                     is_mediastinumZ = "mediastinum" and "lung Z" in term
                                     is_lateral = "lateral" in term
                                     is_medial = "medial" in term
+                                    is_base = "base" in term
 
                                     if is_lower:
                                         add = (axis < 3 and e3 < midMinorIndex) or (axis == 3 and e2 >= 0)
@@ -1590,6 +1591,14 @@ class ShieldMesh3D:
                                                 (axis == 2 and e1 < midMajorIndex) or
                                                 (axis == 3 and e3 < midMinorIndex)
                                         )
+                                    elif is_base:
+                                        offset = self.elementsCountCoreBoxMajor // 4 - 2 if self.elementsCountCoreBoxMajor > 8 else 0
+                                        add = (
+                                                (axis == 1 and e1 > midMajorIndex + offset and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 1 and e1 > midMajorIndex + (1 + offset) and e2 == 0 and e3 == midMinorIndex) or
+                                                (axis == 2 and e1 < midMajorIndex and e2 == -1 and e3 <= midMinorIndex) or
+                                                (axis == 3 and e1 > midMajorIndex + offset and e2 == 0 and e3 < midMinorIndex)
+                                        )
                                     else:
                                         add = True
                                 elif "right" in term:
@@ -1601,6 +1610,7 @@ class ShieldMesh3D:
                                     is_mediastinumZ = "mediastinum" and "lung Z" in term
                                     is_lateral = "lateral" in term
                                     is_medial = "medial" in term
+                                    is_base = "base" in term
 
                                     if is_lower:
                                         add = (axis < 3 and e3 < midMinorIndex) or (axis == 3 and e2 >= 0)
@@ -1639,6 +1649,15 @@ class ShieldMesh3D:
                                                 (axis == 1 and e2 == 0) or
                                                 (axis == 2 and e1 < midMajorIndex) or
                                                 (axis == 3 and e3 < midMinorIndex)
+                                        )
+                                    elif is_base:
+                                        offset = self.elementsCountCoreBoxMajor // 4 if self.elementsCountCoreBoxMajor > 4 else 0
+                                        add = (
+                                                (axis == 1 and e1 >= midMajorIndex + (offset - 1) and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 1 and e1 >= midMajorIndex + offset and e2 == 0 and e3 >= midMinorIndex) or
+                                                (axis == 2 and e1 < midMajorIndex and e2 == -1) or
+                                                (axis == 3 and e1 >= midMajorIndex + (offset - 1) and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 3 and e1 >= midMajorIndex + offset and e2 == -1 and e3 < midMinorIndex)
                                         )
                                     else:
                                         add = True
