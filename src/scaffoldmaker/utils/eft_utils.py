@@ -665,6 +665,11 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]])
         self._nodeLayoutRegularPermuted_d3Defined = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayout5Way12 = HermiteNodeLayout(
+            [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]])
+        self._nodeLayout5Way12_d3Defined = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0],
+             [0.0, 0.0, 1.0]])
         self._nodeLayout6Way12 = HermiteNodeLayout(
             [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0]])
         self._nodeLayout6Way12_d3Defined = HermiteNodeLayout(
@@ -704,6 +709,21 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         nodeLayout = self._nodeLayoutRegularPermuted_d3Defined if d3Defined else self._nodeLayoutRegularPermuted
+        if limitDirections:
+            nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
+        return nodeLayout
+
+    def getNodeLayout5Way12(self, d3Defined, limitDirections=None):
+        """
+        Get node layout for 5-way junction in 1-2 plane, including d1, -d1, d2, -d2, d1 + d2.
+        :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with d3, [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] places no
+        limits on the first derivative, but derivative 2 must be [0, +/-1, 0] and d3 must be [0, 0, 1].
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayout5Way12_d3Defined if d3Defined else self._nodeLayout5Way12
         if limitDirections:
             nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
         return nodeLayout

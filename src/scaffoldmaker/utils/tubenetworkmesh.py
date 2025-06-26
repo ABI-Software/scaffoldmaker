@@ -60,6 +60,7 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
         d3Defined = (meshDimension == 3) and not isLinearThroughShell
         self._nodeLayoutManager = HermiteNodeLayoutManager()
+        self._nodeLayout5Way = self._nodeLayoutManager.getNodeLayout5Way12(d3Defined)
         self._nodeLayout6Way = self._nodeLayoutManager.getNodeLayout6Way12(d3Defined)
         self._nodeLayout8Way = self._nodeLayoutManager.getNodeLayout8Way12(d3Defined)
         self._nodeLayoutFlipD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
@@ -96,6 +97,9 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Create a new standard element field template for modifying.
         """
         return self._mesh.createElementfieldtemplate(self._elementbasis)
+
+    def getNodeLayout5Way(self):
+        return self._nodeLayout5Way
 
     def getNodeLayout6Way(self):
         return self._nodeLayout6Way
@@ -1475,6 +1479,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         return self._rimNodeIds[n2]
 
+    def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
+        return None
+
     def generateMesh(self, generateData: TubeNetworkMeshGenerateData, n2Only=None):
         """
         :param n2Only: If set, create nodes only for that single n2 index along. Must be >= 0!
@@ -1716,10 +1723,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
         coordinates = generateData.getCoordinates()
 
-        nodeLayout6Way = generateData.getNodeLayout6Way()
-        nodeLayout8Way = generateData.getNodeLayout8Way()
-        nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
-
         elementsCountRim = self.getElementsCountRim()
         elementsCountAround = self.getElementsCountAround()
         elementsCountTransition = self.getElementsCountTransition()
@@ -1771,10 +1774,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                                  junction._rimCoordinates[1][n3][rimIndex],
                                  junction._rimCoordinates[2][n3][rimIndex],
                                  junction._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
-                            segmentNodesCount = len(junction._rimIndexToSegmentNodeList[rimIndex])
-                            nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
-                                               nodeLayout6Way if (segmentNodesCount == 3) else
-                                               nodeLayout8Way)
+                            nodeLayouts.append(junction.getRimIndexNodeLayout(generateData, rimIndex))
                     if not junction._segmentsIn[s]:
                         for a in [nids, nodeParameters, nodeLayouts] if (needParameters) else [nids]:
                             a[-4], a[-2] = a[-2], a[-4]
@@ -2608,6 +2608,13 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             self._rimElementIds = [[None] * self._elementsCountAround for _ in range(elementsCountRim)]
         self._rimElementIds[e3][e1] = elementIdentifier
 
+    def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
+        """
+        Return special 5 way node layout at 3-segment rim nodes to keep roundedness around the rim.
+        """
+        return generateData.getNodeLayout5Way()
+
+
     def generateJunctionRimElements(self, junction, generateData):
         """
         Generates rim elements for junction part of the segment after segment nodes and elements have been made.
@@ -2626,8 +2633,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
         coordinates = generateData.getCoordinates()
 
-        nodeLayout6Way = generateData.getNodeLayout6Way()
-        nodeLayout8Way = generateData.getNodeLayout8Way()
         nodeLayoutFlipD1D2 = generateData.getNodeLayoutFlipD1D2()
         nodeLayoutSwapMinusD1D2 = generateData.getNodeLayoutSwapMinusD1D2()
         nodeLayoutSwapD1MinusD2 = generateData.getNodeLayoutSwapD1MinusD2()
@@ -2692,18 +2697,15 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                         e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
                                         (e1 == elementsCountAround // 2 and n1 == n1p) or \
                                         (e1 == elementsCountAround - 1 and n1 == 0):
-                                    # print('A', e1)
                                     nodeLayouts.append(nodeLayoutSwapMinusD1D2)
                                 elif elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment < e1 \
                                         < elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
                                         e1 > elementsCountAround - elementsAlongPatchSegment // 2 - 1 or \
                                         e1 == elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment and n1 == n1p or \
                                         e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 2 and n1 == n1p:
-                                    # print('B', e1)
                                     nodeLayouts.append(nodeLayoutSwapD1MinusD2)
                                 else:
                                     nodeLayouts.append(None)
-                                    # print('C', e1)
 
                     for n1 in [e1, n1p]:  # outside patch
                         rimIndex = junction._segmentNodeToRimIndex[s][n1]
@@ -2714,26 +2716,19 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                  junction._rimCoordinates[1][n3][rimIndex],
                                  junction._rimCoordinates[2][n3][rimIndex],
                                  junction._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
-                            segmentNodesCount = len(junction._rimIndexToSegmentNodeList[rimIndex])
                             if e1 == elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment and n1 == n1p:
                                 nodeLayouts.append(nodeLayoutSwapD1MinusD2)
                             elif e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2:
                                 nodeLayouts.append(nodeLayoutFlipD1D2 if n1 == e1 else nodeLayoutSwapMinusD1D2)
                             elif e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 2 and n1 == n1p:
                                 nodeLayouts.append(nodeLayoutSwapD1MinusD2)
-                                # print('nodeLayoutSwapD1MinusD2')
                             elif e1 < elementsAlongPatchSegment // 2 + 2 or \
                                     elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment < e1 < \
                                     (elementsCountAround + elementsAlongPatchSegment) // 2 + 2 or \
                                     e1 > elementsCountAround - elementsAlongPatchSegment // 2 - 1:
-                                nodeLayouts.append(nodeLayoutFlipD1D2 if (segmentNodesCount == 2) else
-                                                   nodeLayout6Way if (segmentNodesCount == 3) else
-                                                   nodeLayout8Way)
-                                # print('nodeLayoutFlipD1D2' if (segmentNodesCount == 2) else
-                                #       'nodeLayout6Way' if (segmentNodesCount == 3) else 'nodeLayout8Way')
+                                nodeLayouts.append(junction.getRimIndexNodeLayout(generateData, rimIndex))
                             else:
                                 nodeLayouts.append(None)
-                                # print('None layout')
 
                 # exploit efts being same through the rim
                 eft = eftList[e1]
@@ -3984,6 +3979,22 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             segment.setRimElementId(e1, e2, 0, elementIdentifier)
             for annotationMeshGroup in annotationMeshGroups:
                 annotationMeshGroup.addElement(element)
+
+    def getRimIndexNodeLayout(self, generateData, rimIndex):
+        """
+        Get specific node layout for rim index based on segment nodes count.
+        """
+        segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
+        if segmentNodesCount == 2:
+            return generateData.getNodeLayoutFlipD2()
+        if segmentNodesCount == 4:
+            return generateData.getNodeLayout8Way()
+        # 3-segments
+        for segment in self._segments:
+            nodeLayout = segment.getRimIndexNodeLayoutSpecial(generateData, rimIndex)
+            if nodeLayout:
+                return nodeLayout
+        return generateData.getNodeLayout6Way()
 
     def generateMesh(self, generateData: TubeNetworkMeshGenerateData):
         if generateData.isShowTrimSurfaces():
