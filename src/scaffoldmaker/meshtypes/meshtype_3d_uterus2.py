@@ -146,8 +146,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         return ["Default",
                 "Human 1",
                 "Human Pregnant 1",
-                "Mouse 1"
-                ]
+                "Mouse 1",
+                "Rat 1"]
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName="Default"):
@@ -172,6 +172,30 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Cervical depth around external os"] = 0.5
             options["Vagina length"] = 0.5
             options["Vagina width around vagina orifice"] = 0.5
+            options["Vagina depth around vagina orifice"] = 0.5
+            options["Inner proportion body"] = 0.5
+            options["Inner proportion cervix"] = 0.5
+            options["Inner proportion vagina"] = 0.5
+            options["Angle of anteversion degrees"] = 0.0
+        elif parameterSetName == "Rat 1":
+            options["Structure"] = (
+                "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-36.1,"
+                "17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-36.2,"
+                "#-33-34-35-36.3,"
+                "36.4-37-38-39,"
+                "39-40,"
+                "40-41-42")
+            options["Uterine tube length"] = 4.0
+            options["Body length"] = 0.75
+            options["Fundus width between uterine tubes"] = 0.8
+            options["Fundus depth between uterine tubes"] = 0.5
+            options["Cervical length"] = 0.25
+            options["Cervical width around internal os"] = 0.8
+            options["Cervical depth around internal os"] = 0.5
+            options["Cervical width around external os"] = 0.8
+            options["Cervical depth around external os"] = 0.5
+            options["Vagina length"] = 0.5
+            options["Vagina width around vagina orifice"] = 0.8
             options["Vagina depth around vagina orifice"] = 0.5
             options["Inner proportion body"] = 0.5
             options["Inner proportion cervix"] = 0.5
@@ -326,6 +350,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         isPregnant = parameterSetName in 'Human Pregnant 1'
         isMouse = parameterSetName in 'Mouse 1'
+        isRat = parameterSetName in 'Rat 1'
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -336,7 +361,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         # set up element annotations
         uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
-        if isMouse:
+        if isMouse or isRat:
             leftUterineTubeGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
             rightUterineTubeGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
             leftFundusGroup = AnnotationGroup(region, ("left fundus", "None"))
@@ -362,7 +387,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         left = 0
         right = 1
 
-        if isMouse:
+        if isMouse or isRat:
             uterineTubeElementsCount = 16
             fundusPatchElementsCount = 3
             fundusPostBodyJunctionElementsCount = 3
@@ -456,7 +481,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         id12BodyJunction = []
         id13BodyJunction = []
 
-        if isMouse:
+        if isMouse or isRat:
             rC = bodyLength
             thetaLimit = math.radians(60.0)
             for side in (left, right):
@@ -906,8 +931,8 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Default',
             'Human 1',
             'Human Pregnant 1',
-            'Mouse 1'
-            ]
+            'Mouse 1',
+            'Rat 1']
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
@@ -933,7 +958,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Refine number of elements around': 4,
             'Refine number of elements through wall': 1
         }
-        if 'Mouse' in parameterSetName:
+        if 'Mouse' in parameterSetName or 'Rat' in parameterSetName:
             options['Number of elements around'] = 12
             options['Number of elements around uterine tubes'] = 8
             options['Number of elements along uterine tubes'] = 12
@@ -1882,9 +1907,8 @@ class MeshType_3d_uterus2(Scaffold_base):
         New face annotation groups are appended to this list.
         """
         parameterSetName = options['Base parameter set']
-        isHuman = parameterSetName in ("Default", "Human 1", "Human Pregnant 1", "Trifurcation 1",
-                                       "Trifurcation Pregnant 1")
-        isMouse = parameterSetName in ("Mouse 1", "Trifurcation Mouse 1")
+        isHuman = parameterSetName in ("Default", "Human 1", "Human Pregnant 1")
+        isRodent = parameterSetName in ("Mouse 1", "Rat 1")
 
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
@@ -2069,7 +2093,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             rightTransverseCervicalLigament.getMeshGroup(mesh1d).addElementsConditional(
                 is_rightTransverseCervicalLigament)
 
-        if isMouse:
+        if isRodent:
             rightHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine horn"))
             leftHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine horn"))
 
