@@ -780,6 +780,10 @@ class MeshType_3d_lung3(Scaffold_base):
                     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral left lung"]))
                 elif ('lateral' in sideTerm) and ('right' in term):
                     surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral right lung"]))
+                elif ('medial' in sideTerm) and ('left' in term):
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"]))
+                elif ('medial' in sideTerm) and ('right' in term):
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
 
         # Base surface of lungs (incl. lobes)
         baseGroup = []
@@ -809,27 +813,6 @@ class MeshType_3d_lung3(Scaffold_base):
         for term in baseTerms:
             baseSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("base of " + term))
             baseSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(baseGroup[baseTerms.index(term)])
-
-        # Medial surface
-        for term in surfaceTerms:
-            baseTerm = term + " surface"
-            group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(term))
-            group2d = group.getGroup()
-            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
-            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('medial surface of ' + term))
-            if "left" in term:
-                tempMedialLeftLung = fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"])
-                tempBaseLeftLung = baseGroup[baseTerms.index(baseTerm)]
-                medialLeftLung = fm.createFieldXor(tempMedialLeftLung, tempBaseLeftLung)
-                surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(medialLeftLung)
-            elif "right" in term:
-                if "upper" in term:
-                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
-                else:
-                    tempMediaRightLung = fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"])
-                    tempBaseRightLung = baseGroup[baseTerms.index(baseTerm)]
-                    medialRightLung = fm.createFieldXor(tempMediaRightLung, tempBaseRightLung)
-                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(medialRightLung)
 
         # Fissures
 
