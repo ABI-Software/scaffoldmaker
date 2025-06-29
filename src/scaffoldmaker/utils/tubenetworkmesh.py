@@ -3081,6 +3081,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 md2[0] = [-d for d in md2[0]]
             return mx[0], md1[0], md2[0], md3[0] if d3Defined else None
         mCount = len(mx)
+        # get mean x, d3 and surface normal (d1 x d2) at the centre across all segment permutations
         cx = [sum(x[c] for x in mx) / mCount for c in range(3)]
         cd3 = [sum(d3[c] for d3 in md3) / mCount for c in range(3)] if d3Defined else None
         ns12 = [0.0, 0.0, 0.0]
@@ -3105,6 +3106,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             angle = math.atan2(dot(rd[s], axis2), dot(rd[s], axis1))
             angles.append((2.0 * math.pi + angle) if (angle < 0.0) else angle)
         angle = 0.0
+        # get sequence of segments anticlockwise around ns12 starting at segment 0
         sequence = [0]
         for s in range(1, segmentsCount):
             nextAngle = math.pi * 4.0

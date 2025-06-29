@@ -483,7 +483,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         if isMouse or isRat:
             rC = bodyLength
-            thetaLimit = math.radians(60.0)
+            thetaLimit = math.radians(55.0)
             for side in (left, right):
                 rTheta = rC * thetaLimit
                 straightLength = uterineTubeLength - rTheta
