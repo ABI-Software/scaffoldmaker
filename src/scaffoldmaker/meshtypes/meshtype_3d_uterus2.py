@@ -153,31 +153,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {}
         options["Base parameter set"] = parameterSetName
-        if parameterSetName == "Mouse 1":
-            options["Structure"] = (
-                "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-36.1,"
-                "17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-36.2,"
-                "#-33-34-35-36.3,"
-                "36.4-37-38-39,"
-                "39-40,"
-                "40-41-42")
-            options["Uterine tube length"] = 4.0
-            options["Body length"] = 0.75
-            options["Fundus width between uterine tubes"] = 0.5
-            options["Fundus depth between uterine tubes"] = 0.5
-            options["Cervical length"] = 0.25
-            options["Cervical width around internal os"] = 0.5
-            options["Cervical depth around internal os"] = 0.5
-            options["Cervical width around external os"] = 0.5
-            options["Cervical depth around external os"] = 0.5
-            options["Vagina length"] = 0.5
-            options["Vagina width around vagina orifice"] = 0.5
-            options["Vagina depth around vagina orifice"] = 0.5
-            options["Inner proportion body"] = 0.5
-            options["Inner proportion cervix"] = 0.5
-            options["Inner proportion vagina"] = 0.5
-            options["Angle of anteversion degrees"] = 0.0
-        elif parameterSetName == "Rat 1":
+        if parameterSetName == "Rat 1" or "Mouse 1":
             options["Structure"] = (
                 "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-36.1,"
                 "17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-36.2,"
