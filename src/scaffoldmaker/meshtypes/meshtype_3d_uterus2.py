@@ -153,7 +153,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {}
         options["Base parameter set"] = parameterSetName
-        if parameterSetName == "Rat 1" or "Mouse 1":
+        if parameterSetName in ("Mouse 1", "Rat 1"):
             options["Structure"] = (
                 "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-36.1,"
                 "17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-36.2,"
@@ -325,8 +325,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         innerProportionVagina = options["Inner proportion vagina"]
 
         isPregnant = parameterSetName in 'Human Pregnant 1'
-        isMouse = parameterSetName in 'Mouse 1'
         isRat = parameterSetName in 'Rat 1'
+        isRodent = parameterSetName in ("Mouse 1", "Rat 1")
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -337,7 +337,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         # set up element annotations
         uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
-        if isMouse or isRat:
+        if isRodent:
             leftUterineTubeGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
             rightUterineTubeGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
             leftFundusGroup = AnnotationGroup(region, ("left fundus", "None"))
@@ -363,7 +363,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         left = 0
         right = 1
 
-        if isMouse or isRat:
+        if isRodent:
             uterineTubeElementsCount = 16
             fundusPatchElementsCount = 3
             fundusPostBodyJunctionElementsCount = 3
@@ -457,7 +457,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         id12BodyJunction = []
         id13BodyJunction = []
 
-        if isMouse or isRat:
+        if isRodent:
             rC = bodyLength
             thetaLimit = math.radians(55.0)
             for side in (left, right):
@@ -587,7 +587,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             nxPatch.append(x)
             nd1Patch.append(d1FundusPatch)
             xi = i / fundusPatchElementsCount
-            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.01 if (isMouse or isRat) else halfCervicalWidthInternalOs)
+            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.01 if isRodent else
+                                                         halfCervicalWidthInternalOs)
             if isPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
                 width = halfFundusWidth * math.sin(thetaA)
