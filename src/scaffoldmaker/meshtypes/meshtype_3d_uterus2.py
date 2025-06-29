@@ -611,7 +611,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             nxPatch.append(x)
             nd1Patch.append(d1FundusPatch)
             xi = i / fundusPatchElementsCount
-            width = xi * halfFundusWidth + (1.0 - xi) * halfCervicalWidthInternalOs
+            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.01 if (isMouse or isRat) else halfCervicalWidthInternalOs)
             if isPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
                 width = halfFundusWidth * math.sin(thetaA)
