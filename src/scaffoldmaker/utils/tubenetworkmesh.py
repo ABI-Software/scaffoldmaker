@@ -2237,20 +2237,20 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
 
         # Create rim coordinates - include comments on how its structured like the tube indices,calculating annular indexing of outer two layers, inner layer corners where 1 point is represented 3 times
         self._rimCoordinates = []
-        nodesAlongPatch = len(self._patchCoordinates[0])
 
         # get rim coordinates
         outerRimCoordinates = []
         patchRimCoordinates = []
 
         # last ring - REFACTOR!!
-        #halfCountN2 =
+        countN2 = len(allCoordinates[i])
+        halfCountN2 = len(allCoordinates[i]) // 2
         for i in range(4):
             sParamLayer = []
             for n3 in range(self._elementsCountThroughShell + 1):
                 sParamRingAroundRim = []
                 sParam = allCoordinates[i]
-                for n2 in range(len(allCoordinates[i]) // 2, 0, -1): # len(allCoordinates[i]) // 2
+                for n2 in range(halfCountN2, 0, -1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][0])
                     elif i == 1: # d1
@@ -2279,7 +2279,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundRim.append(add(allCoordinates[1][0][n3][-1],
                                                    [-c for c in allCoordinates[2][0][n3][-1]]))
 
-                for n2 in range(1, len(allCoordinates[i]) // 2 + 1):
+                for n2 in range(1, halfCountN2 + 1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][-1])
                     elif i == 1: # d1
@@ -2287,7 +2287,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     elif i == 2: # d2
                         sParamRingAroundRim.append(allCoordinates[1][n2][n3][-1]) # becomes d1
 
-                for n2 in range(len(allCoordinates[i]) // 2 + 1, len(allCoordinates[i]) - 1):
+                for n2 in range(halfCountN2 + 1, countN2 - 1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][0])
                     elif i == 1: # d1
@@ -2317,7 +2317,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundRim.append(add(allCoordinates[1][-1][n3][-1],
                                                    [-c for c in allCoordinates[2][-1][n3][-1]]))
 
-                for n2 in range(len(allCoordinates[i]) - 2, len(allCoordinates[i]) // 2, -1):
+                for n2 in range(countN2 - 2, halfCountN2, -1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][-1])
                     elif i == 1: # d1
@@ -2333,7 +2333,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             for n3 in range(self._elementsCountThroughShell + 1):
                 sParamRingAroundPatch = []
                 sParam = allCoordinates[i]
-                for n2 in range(len(allCoordinates[i]) // 2, 1, -1):
+                for n2 in range(halfCountN2, 1, -1):
                     if i == 0 or i == 3:
                         sParamRingAroundPatch.append(sParam[n2][n3][1])
                     elif i == 1: # d1
@@ -2361,7 +2361,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundPatch += [sParam[1][n3][-2], sParam[1][n3][-2]]
                 elif i == 1: # d1
                     sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][-2],
-                                                     [-c for c in allCoordinates[2][1][n3][-2]]))  # becomes d1 - d2, sParam[0][n3][-1])
+                                                     [-c for c in allCoordinates[2][1][n3][-2]]))  # becomes d1 - d2
                     sParamRingAroundPatch.append([-c for c in allCoordinates[2][1][n3][-2]]) # becomes -d2
                 elif i == 2: # d2
                     sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][-2],
@@ -2369,14 +2369,14 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundPatch.append(allCoordinates[1][1][n3][-2])  # becomes d1
 
                 # Up on left side
-                for n2 in range(2, len(allCoordinates[i]) // 2 + 1):
+                for n2 in range(2, halfCountN2 + 1):
                     if i == 0 or i == 3:
                         sParamRingAroundPatch.append(sParam[n2][n3][-2])
                     elif i == 1: # d1
                         sParamRingAroundPatch.append([-c for c in allCoordinates[2][n2][n3][-2]]) # becomes -d2
                     elif i == 2: # d2
                         sParamRingAroundPatch.append(allCoordinates[1][n2][n3][-2])  # becomes d1
-                for n2 in range(len(allCoordinates[i]) // 2 + 1, len(allCoordinates[i]) - 2):
+                for n2 in range(halfCountN2 + 1, countN2 - 2):
                     if i == 0 or i == 3:
                         sParamRingAroundPatch.append(sParam[n2][n3][1])
                     elif i == 1: # d1
@@ -2389,7 +2389,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 elif i == 1:
                     sParamRingAroundPatch.append(allCoordinates[2][-2][n3][1]) # d2
                     sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][1],
-                                                     allCoordinates[2][-2][n3][1])) # d1 + d2 #sParam[-1][n3][0])
+                                                     allCoordinates[2][-2][n3][1])) # d1 + d2
                 elif i == 2:
                     sParamRingAroundPatch.append([-c for c in allCoordinates[1][-2][n3][1]])  # -d1
                     sParamRingAroundPatch.append(add([-c for c in allCoordinates[1][-2][n3][1]],
@@ -2402,7 +2402,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundPatch += [sParam[-2][n3][-2], sParam[-2][n3][-2]]
                 elif i == 1:
                     sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][-2],
-                                                    [-c for c in allCoordinates[2][-2][n3][-2]])) # d1 - d2 sParam[-1][n3][-1])
+                                                    [-c for c in allCoordinates[2][-2][n3][-2]])) # d1 - d2
                     sParamRingAroundPatch.append([-c for c in allCoordinates[2][-2][n3][-2]])  # becomes -d2
                 elif i == 2:
                     sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][-2],
@@ -2410,7 +2410,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundPatch.append(allCoordinates[1][-2][n3][-2])  # becomes d1
 
                 # down right top half
-                for n2 in range((len(allCoordinates[i]) - 3), len(allCoordinates[i]) // 2, -1):
+                for n2 in range(countN2 - 3, halfCountN2, -1):
                     if i == 0 or i == 3:
                         sParamRingAroundPatch.append(sParam[n2][n3][-2])
                     elif i == 1: # d1
@@ -2424,7 +2424,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         self._rimCoordinates.append(patchRimCoordinates)
         self._rimCoordinates.append(outerRimCoordinates)
         # print('patchRimCoordinates =', patchRimCoordinates)
-        # print(len(patchRimCoordinates), len(patchRimCoordinates[0]), len(patchRimCoordinates[0][0]), len(patchRimCoordinates[0][0][0]))
         # print('rimCoordinates =', self._rimCoordinates)
 
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
@@ -2535,16 +2534,16 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         for n3 in [e3, e3 + 1] if (self._dimension == 3) else [0]:
                             nids += [self._patchNodeIds[e2 + 1][n3][e1],
                                      self._patchNodeIds[e2 + 1][n3][e1 + 1],
-                                     self._patchNodeIds[e2][n3][-(e1 + 1) if e2 == int(0.5 * elementsCountAlong) else e1],
-                                     self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == int(0.5 * elementsCountAlong) else e1 + 1]]
+                                     self._patchNodeIds[e2][n3][-(e1 + 1) if e2 == elementsCountAlong // 2 else e1],
+                                     self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == elementsCountAlong // 2 else e1 + 1]]
 
                         elementIdentifier = generateData.nextElementIdentifier()
                         element = mesh.createElement(elementIdentifier, elementtemplate)
                         element.setNodesByIdentifier(eft, nids)
                     else:
                         for n3 in [e3, e3 + 1]:
-                            nids += [self._patchNodeIds[e2][n3][-(e1 + 1) if e2 == int(0.5 * elementsCountAlong) else e1],
-                                     self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == int(0.5 * elementsCountAlong) else e1 + 1],
+                            nids += [self._patchNodeIds[e2][n3][-(e1 + 1) if e2 == elementsCountAlong // 2 else e1],
+                                     self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == elementsCountAlong // 2 else e1 + 1],
                                      self._patchNodeIds[e2 + 1][n3][e1],
                                      self._patchNodeIds[e2 + 1][n3][e1 + 1]]
                         nodeParameters = []
@@ -2553,7 +2552,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                             for n2 in (e2, e2 + 1):
                                 for n1 in (e1, e1 + 1):
                                     nodeParameters.append(self.getPatchCoordinates(n1, n2, n3))
-                                    nodeLayouts.append(nodeLayoutFlipD1D2 if n2 == int(0.5 * elementsCountAlong) else
+                                    nodeLayouts.append(nodeLayoutFlipD1D2 if n2 == elementsCountAlong // 2 else
                                                        None)
                         elementIdentifier = generateData.nextElementIdentifier()
                         eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
