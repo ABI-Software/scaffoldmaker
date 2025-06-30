@@ -2643,6 +2643,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
         d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
         coordinates = generateData.getCoordinates()
+        nodes = generateData.getNodes()
+        fieldcache = generateData.getFieldcache()
 
         nodeLayoutFlipD1D2 = generateData.getNodeLayoutFlipD1D2()
         nodeLayoutSwapMinusD1D2 = generateData.getNodeLayoutSwapMinusD1D2()
@@ -2661,6 +2663,30 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         s = junction._segments.index(self)
         e2 = (elementsCountAlong - 1) if junction._segmentsIn[s] else 0
         n2 = (elementsCountAlong - 1) if junction._segmentsIn[s] else 1
+
+        # smooth directions of midpoints
+        for n3 in range(elementsCountRimRegular + 1):
+            for i in range(2):
+                nids = []
+                sx = []
+                sd1 = []
+                for n1 in range(elementsAlongPatchSegment // 2 + 1 if i == 0 else
+                                elementsCountAround // 2 + elementsAlongPatchSegment // 2 + 1,
+                                elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 4 if i == 0 else
+                                elementsCountAround - elementsAlongPatchSegment // 2):
+                    rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                    nids.append(junction._rimNodeIds[n3][rimIndex])
+                    sx.append(junction._rimCoordinates[0][n3][rimIndex])
+                    if (i == 0 and n1 < elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 2) or \
+                            (i and n1 > elementsCountAround - elementsAlongPatchSegment // 2 - 1):
+                        sd1.append(junction._rimCoordinates[1][n3][rimIndex])
+                    else:
+                         sd1.append([-1.0 * c for c in junction._rimCoordinates[2][n3][rimIndex]])
+                sd1Smoothed = smoothCubicHermiteDerivativesLine(sx, sd1, fixStartDerivative=True, fixEndDerivative=True)
+                for n1 in range(1, len(nids) - 1):
+                    node = nodes.findNodeByIdentifier(nids[n1])
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1Smoothed[n1])
 
         for e3 in range(elementsCountRimRegular):
             rim_e3 = e3 + 1 if junction._isCore else e3
