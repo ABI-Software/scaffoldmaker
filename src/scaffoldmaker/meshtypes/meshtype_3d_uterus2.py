@@ -200,7 +200,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Inner proportion body"] = 0.8
             options["Inner proportion cervix"] = 0.15
             options["Inner proportion vagina"] = 0.8
-            options["Angle of anteversion degrees"] = 90.0
+            options["Angle of anteversion degrees"] = 70.0
         else:
             options["Structure"] = (
                 "1-2-3-4-5-6-7-8-23.1,"
@@ -224,7 +224,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Inner proportion body"] = 0.75
             options["Inner proportion cervix"] = 0.15
             options["Inner proportion vagina"] = 0.8
-            options["Angle of anteversion degrees"] = 90.0
+            options["Angle of anteversion degrees"] = 70.0
 
         options["Define inner coordinates"] = True
         options["Uterine tube diameter"] = 0.5
