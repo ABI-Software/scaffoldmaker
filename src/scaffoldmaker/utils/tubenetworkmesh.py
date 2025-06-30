@@ -2215,7 +2215,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         r[n2][n3].append(value)
 
             allCoordinates = rx, rd1, rd2, rd3
-        # print('All coord =', allCoordinates)
+        # print('allCoord =', allCoordinates)
 
         # Extract patch coordinates
         r = copy.deepcopy(allCoordinates)
@@ -2283,6 +2283,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         sParamRingAroundRim.append(mult(allCoordinates[2][n2][n3][-1], -1.0))  # becomes -d2
                     elif i == 2: # d2
                         sParamRingAroundRim.append(allCoordinates[1][n2][n3][-1]) # becomes d1
+
                 for n2 in range(len(allCoordinates[i])//2 + 1, len(allCoordinates[i]) - 1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][0])
@@ -2328,90 +2329,99 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             sParamLayer = []
             for n3 in range(self._elementsCountThroughShell + 1):
                 sParamRingAroundPatch = []
-                sParam = self._patchCoordinates[i]
-                for n2 in range(int(0.5 * nodesAlongPatch), 0, -1):
+                sParam = allCoordinates[i]
+                for n2 in range(len(allCoordinates[i]) // 2, 1, -1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2][n3][0])
+                        sParamRingAroundPatch.append(sParam[n2][n3][1])
                     elif i == 1: # d1
-                        sParamRingAroundPatch.append(self._patchCoordinates[2][n2][n3][0])  # becomes d2
+                        sParamRingAroundPatch.append(allCoordinates[2][n2][n3][1])  # becomes d2
                     elif i == 2:  # d2
-                        sParamRingAroundPatch.append([-c for c in self._patchCoordinates[1][n2][n3][0]]) # becomes -d1
+                        sParamRingAroundPatch.append([-c for c in allCoordinates[1][n2][n3][1]]) # becomes -d1
                 # triple points at bottom right
                 # sParamRingAroundPatch += [sParam[0][n3][0], sParam[0][n3][0]]
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch += [sParam[0][n3][0], sParam[0][n3][0]]
+                    sParamRingAroundPatch += [sParam[1][n3][1], sParam[1][n3][1]]
                 elif i == 1:
                     # i + 1 --> 2 etc.
-                    sParamRingAroundPatch.append(self._patchCoordinates[2][0][n3][0])
-                    sParamRingAroundPatch.append(add(self._patchCoordinates[1][0][n3][0],
-                                                     self._patchCoordinates[2][0][n3][0])) # sParam[0][n3][0])
+                    sParamRingAroundPatch.append(allCoordinates[2][1][n3][1])
+                    sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][1],
+                                                     allCoordinates[2][1][n3][1])) # sParam[0][n3][0])
                 elif i == 2:
-                    sParamRingAroundPatch.append(mult(self._patchCoordinates[1][0][n3][0], -1.0))
+                    sParamRingAroundPatch.append(mult(allCoordinates[1][1][n3][1], -1.0))
                     # -d1 + d2
-                    sParamRingAroundPatch.append(add([-c for c in self._patchCoordinates[1][0][n3][0]],
-                                                     self._patchCoordinates[2][0][n3][0]))
+                    sParamRingAroundPatch.append(add([-c for c in allCoordinates[1][1][n3][1]],
+                                                     allCoordinates[2][1][n3][1]))
                 # straight bottom
-                sParamRingAroundPatch += sParam[0][n3]
+                sParamRingAroundPatch += sParam[1][n3][1: -1]
                 # triple pts on bottom left
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch += [sParam[0][n3][-1], sParam[0][n3][-1]]
+                    sParamRingAroundPatch += [sParam[1][n3][-2], sParam[1][n3][-2]]
                 elif i == 1: # d1
-                    sParamRingAroundPatch.append(add(self._patchCoordinates[1][0][n3][-1],
-                                                     mult(self._patchCoordinates[2][0][n3][-1], -1.0)))  # becomes d1 - d2, sParam[0][n3][-1])
-                    sParamRingAroundPatch.append(mult(self._patchCoordinates[2][0][n3][-1], -1.0)) # becomes -d2
+                    sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][-2],
+                                                     mult(allCoordinates[2][1][n3][-2], -1.0)))  # becomes d1 - d2, sParam[0][n3][-1])
+                    sParamRingAroundPatch.append(mult(allCoordinates[2][1][n3][-2], -1.0)) # becomes -d2
                 elif i == 2: # d2
-                    sParamRingAroundPatch.append(add(self._patchCoordinates[1][0][n3][-1],
-                                                     self._patchCoordinates[2][0][n3][-1]))  # becomes d1 + d2
-                    sParamRingAroundPatch.append(self._patchCoordinates[1][0][n3][-1])  # becomes d1
+                    sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][-2],
+                                                     allCoordinates[2][1][n3][-2]))  # becomes d1 + d2
+                    sParamRingAroundPatch.append(allCoordinates[1][1][n3][-2])  # becomes d1
 
                 # Up on left side
-                for n2 in range(nodesAlongPatch - 2):
+                for n2 in range(2, len(allCoordinates[i]) // 2 + 1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2 + 1][n3][-1])
+                        sParamRingAroundPatch.append(sParam[n2][n3][-2])
                     elif i == 1: # d1
-                        sParamRingAroundPatch.append(mult(self._patchCoordinates[2][n2 + 1][n3][-1], -1.0)) # becomes -d2
+                        sParamRingAroundPatch.append(mult(allCoordinates[2][n2][n3][-2], -1.0)) # becomes -d2
                     elif i == 2: # d2
-                        sParamRingAroundPatch.append(self._patchCoordinates[1][n2 + 1][n3][-1])  # becomes d1
+                        sParamRingAroundPatch.append(allCoordinates[1][n2][n3][-2])  # becomes d1
+                for n2 in range(len(allCoordinates[i]) // 2 + 1, len(allCoordinates[i]) - 2):
+                    if i == 0 or i == 3:
+                        sParamRingAroundPatch.append(sParam[n2][n3][1])
+                    elif i == 1: # d1
+                        sParamRingAroundPatch.append(allCoordinates[2][n2][n3][1]) # becomes d2
+                    elif i == 2: # d2
+                        sParamRingAroundPatch.append(mult(allCoordinates[1][n2][n3][1], -1.0))  # becomes -d1
                 # triple pts on top left
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch += [sParam[-1][n3][0], sParam[-1][n3][0]]
+                    sParamRingAroundPatch += [sParam[-2][n3][1], sParam[-2][n3][1]]
                 elif i == 1:
-                    sParamRingAroundPatch.append(self._patchCoordinates[2][-1][n3][0]) # d2
-                    sParamRingAroundPatch.append(add(self._patchCoordinates[1][-1][n3][0],
-                                                     self._patchCoordinates[2][-1][n3][0])) # d1 + d2 #sParam[-1][n3][0])
+                    sParamRingAroundPatch.append(allCoordinates[2][-2][n3][1]) # d2
+                    sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][1],
+                                                     allCoordinates[2][-2][n3][1])) # d1 + d2 #sParam[-1][n3][0])
                 elif i == 2:
-                    sParamRingAroundPatch.append(mult(self._patchCoordinates[1][-1][n3][0], -1.0))  # -d1
-                    sParamRingAroundPatch.append(add(mult(self._patchCoordinates[1][-1][n3][0], -1.0),
-                                                     self._patchCoordinates[2][-1][n3][0]))  # -d1 + d2
+                    sParamRingAroundPatch.append(mult(allCoordinates[1][-2][n3][1], -1.0))  # -d1
+                    sParamRingAroundPatch.append(add(mult(allCoordinates[1][-2][n3][1], -1.0),
+                                                     allCoordinates[2][-2][n3][1]))  # -d1 + d2
 
                 # straight across top
-                sParamRingAroundPatch += sParam[-1][n3]
+                sParamRingAroundPatch += sParam[-2][n3][1: -1]
                 # Triple points top right
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch += [sParam[-1][n3][-1], sParam[-1][n3][-1]]
+                    sParamRingAroundPatch += [sParam[-2][n3][-2], sParam[-2][n3][-2]]
                 elif i == 1:
-                    sParamRingAroundPatch.append(add(self._patchCoordinates[1][-1][n3][-1],
-                                                     mult(self._patchCoordinates[2][-1][n3][-1], -1.0))) # d1 - d2 sParam[-1][n3][-1])
-                    sParamRingAroundPatch.append(mult(self._patchCoordinates[2][-1][n3][-1], -1.0))  # becomes -d2
+                    sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][-2],
+                                                     mult(allCoordinates[2][-2][n3][-2], -1.0))) # d1 - d2 sParam[-1][n3][-1])
+                    sParamRingAroundPatch.append(mult(allCoordinates[2][-2][n3][-2], -1.0))  # becomes -d2
                 elif i == 2:
-                    sParamRingAroundPatch.append(add(self._patchCoordinates[1][-1][n3][-1],
-                                                     self._patchCoordinates[2][-1][n3][-1])) # d1 + d2
-                    sParamRingAroundPatch.append(self._patchCoordinates[1][-1][n3][-1])  # becomes d1
+                    sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][-2],
+                                                     allCoordinates[2][-2][n3][-2])) # d1 + d2
+                    sParamRingAroundPatch.append(allCoordinates[1][-2][n3][-2])  # becomes d1
 
                 # down right top half
-                for n2 in range(nodesAlongPatch - 2, int(0.5 * nodesAlongPatch), -1):
+                for n2 in range((len(allCoordinates[i]) - 3), len(allCoordinates[i]) // 2, -1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2][n3][0])
+                        sParamRingAroundPatch.append(sParam[n2][n3][-2])
                     elif i == 1: # d1
                         sParamRingAroundPatch.append(
-                            mult(self._patchCoordinates[2][n2][n3][0], -1.0)) # becomes -d2
+                            mult(allCoordinates[2][n2][n3][-2], -1.0)) # becomes -d2
                     elif i == 2: # d2
-                        sParamRingAroundPatch.append(self._patchCoordinates[1][n2][n3][0])  # becomes d1
+                        sParamRingAroundPatch.append(allCoordinates[1][n2][n3][-2])  # becomes d1
                 sParamLayer.append(sParamRingAroundPatch)
             patchRimCoordinates.append(sParamLayer)
 
         self._rimCoordinates.append(patchRimCoordinates)
         self._rimCoordinates.append(outerRimCoordinates)
+        # print('patchRimCoordinates =', patchRimCoordinates)
+        # print(len(patchRimCoordinates), len(patchRimCoordinates[0]), len(patchRimCoordinates[0][0]), len(patchRimCoordinates[0][0][0]))
         # print('rimCoordinates =', self._rimCoordinates)
 
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
@@ -2490,14 +2500,16 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             nodeIdPatch += [sNodeId[0][n3][0], sNodeId[0][n3][0]]
             nodeIdPatch += sNodeId[0][n3]
             nodeIdPatch += [sNodeId[0][n3][-1], sNodeId[0][n3][-1]]
-            for n2 in range(nodesAlongPatch - 2):
+            for n2 in range(nodesAlongPatch // 2):
                 nodeIdPatch.append(sNodeId[n2 + 1][n3][-1])
+            for n2 in range(nodesAlongPatch // 2, nodesAlongPatch - 2):
+                nodeIdPatch.append(sNodeId[n2 + 1][n3][0])
 
             nodeIdPatch += [sNodeId[-1][n3][0], sNodeId[-1][n3][0]]
             nodeIdPatch += sNodeId[-1][n3]
             nodeIdPatch += [sNodeId[-1][n3][-1], sNodeId[-1][n3][-1]]
             for n2 in range(nodesAlongPatch - 2, int(0.5 * nodesAlongPatch), -1):
-                nodeIdPatch.append(sNodeId[n2][n3][0])
+                nodeIdPatch.append(sNodeId[n2][n3][-1])
             self._rimNodeIds.append(nodeIdPatch)
 
         # print('rimNodeId =', self._rimNodeIds)
@@ -2532,7 +2544,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                      self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == int(0.5 * elementsCountAlong) else e1 + 1],
                                      self._patchNodeIds[e2 + 1][n3][e1],
                                      self._patchNodeIds[e2 + 1][n3][e1 + 1]]
-                        scalefactors = []
                         nodeParameters = []
                         nodeLayouts = []
                         for n3 in (e3, e3 + 1):
@@ -2694,6 +2705,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                             segmentNodesCount = len(junction._rimIndexToSegmentNodeList[rimIndex])
                             if segmentNodesCount == 2:
                                 if e1 < elementsAlongPatchSegment // 2 + 2 or \
+                                    elementsCountAround // 2 < e1 < elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
                                         e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
                                         (e1 == elementsCountAround // 2 and n1 == n1p) or \
                                         (e1 == elementsCountAround - 1 and n1 == 0):
