@@ -479,7 +479,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                     x = xUterineTube[i]
                     d1 = d1UterineTube[i]
                     d3 = [0.0, 0.0, uterineTubeRadius]
-                    d2Direction = cross(normalize(d3), normalize(mult(d1, -1)))
+                    d2Direction = cross(normalize(d3), normalize([-c for c in d1]))
                     d2 = set_magnitude(d2Direction, -uterineTubeRadius)
                     d12 = zero
                     d13 = zero
