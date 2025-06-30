@@ -103,10 +103,10 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                     elementsCountAround = segment.getElementsCountAround()
                     if "left" in annotationTerm[0]:
                         e1FundusLimitStart = 0
-                        e1FundusRange = int(0.5 * (elementsCountAround // 2 - (1 if elementsCountAround % 2 == 1 else 0)))
+                        e1FundusRange = (elementsCountAround // 2 - (1 if elementsCountAround % 2 == 1 else 0)) // 2
                     else:
-                        e1FundusLimitStart = int(0.25 * elementsCountAround)
-                        e1FundusRange = int(0.5 * elementsCountAround)
+                        e1FundusLimitStart = elementsCountAround // 4
+                        e1FundusRange = elementsCountAround // 2
                     for e1 in range(elementsCountAround):
                         for e2 in range(elementsCountAlong):
                             for e3 in range(elementsCountRim):
@@ -2149,13 +2149,13 @@ def reorderNodesForMapping(xList, elementsCountThroughWall):
     """
 
     """
-    elementsCountPerLayer = int(len(xList) / (elementsCountThroughWall + 1))
+    elementsCountPerLayer = len(xList) // (elementsCountThroughWall + 1)
     xReordered = []
     for n3 in range(elementsCountThroughWall + 1):
         xLayer = xList[elementsCountPerLayer * n3:elementsCountPerLayer * (n3 + 1)]
         xLayerReversed = list(reversed(xLayer))
-        xLayerOrdered = xLayerReversed[int(0.5 * len(xLayerReversed)):] + \
-                        xLayerReversed[0: int(0.5 * len(xLayerReversed))]
+        xLayerOrdered = xLayerReversed[len(xLayerReversed) // 2:] + \
+                        xLayerReversed[0: len(xLayerReversed) // 2]
         xReordered += xLayerOrdered
 
     return xReordered

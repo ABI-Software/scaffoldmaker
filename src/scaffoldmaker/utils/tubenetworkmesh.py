@@ -1878,7 +1878,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             for s in (1, 0):
                 segment = connectedSegments[s]
                 elementsCountAroundSegmentIn = segment.getElementsCountAround()
-                halfElementsCountAroundSegmentIn = int(0.5 * elementsCountAroundSegmentIn)
+                halfElementsCountAroundSegmentIn = elementsCountAroundSegmentIn // 2
                 rawTrackSurface = segment.getRawTrackSurface(layer)
                 xRawTrackSurface = rawTrackSurface._nx
                 d1RawTrackSurface = rawTrackSurface._nd1
@@ -1893,19 +1893,22 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 if s: # ML: we know that segment 2 is in desired direction
                     for i in range(elementsCountAlongSegmentIn + 1):
                         baseCount = i * elementsCountAroundSegmentIn
-                        xCombinedTrackSurface += xRawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) - 1:
-                                                                  baseCount + int(0.75 * elementsCountAroundSegmentIn + 2)]
-                        d1CombinedTrackSurface += d1RawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) - 1:
-                                                                    baseCount + int(0.75 * elementsCountAroundSegmentIn + 2)]
-                        d2CombinedTrackSurface += d2RawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) - 1:
-                                                                    baseCount + int(0.75 * elementsCountAroundSegmentIn + 2)]
+                        xCombinedTrackSurface += \
+                            xRawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                             baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+                        d1CombinedTrackSurface += \
+                            d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+                        d2CombinedTrackSurface += \
+                            d2RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
                         if i == elementsCountAlongSegmentIn:
                             xAlongCombinedTrackSurfaceMid += \
-                                xRawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) - 1:
-                                                 baseCount + int(0.75 * elementsCountAroundSegmentIn + 2)]
+                                xRawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                                 baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
                             d1AlongCombinedTrackSurfaceMid += \
-                                d1RawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) - 1:
-                                                 baseCount + int(0.75 * elementsCountAroundSegmentIn + 2)]
+                                d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                                 baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
 
                 else: # ML: we know that segment 1 is in opposite direction
                     xAlongAround = []
@@ -1918,26 +1921,26 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         d2Around = []
 
                         if i == 0:
-                            xAround += xRawTrackSurface[int(0.25 * elementsCountAroundSegmentIn) + 1::-1]
-                            d1Around += d1RawTrackSurface[int(0.25 * elementsCountAroundSegmentIn) + 1::-1]
-                            d2Around += d2RawTrackSurface[int(0.25 * elementsCountAroundSegmentIn) + 1::-1]
+                            xAround += xRawTrackSurface[elementsCountAroundSegmentIn // 4 + 1::-1]
+                            d1Around += d1RawTrackSurface[elementsCountAroundSegmentIn // 4 + 1::-1]
+                            d2Around += d2RawTrackSurface[elementsCountAroundSegmentIn // 4 + 1::-1]
                         else:
                             xAround += \
-                                xRawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) + 1: baseCount - 1: -1]
+                                xRawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 + 1: baseCount - 1: -1]
                             d1Around += \
-                                d1RawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) + 1: baseCount - 1: -1]
+                                d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 + 1: baseCount - 1: -1]
                             d2Around += \
-                                d2RawTrackSurface[baseCount + int(0.25 * elementsCountAroundSegmentIn) + 1: baseCount - 1: -1]
+                                d2RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 + 1: baseCount - 1: -1]
 
                         xAround += \
                             xRawTrackSurface[baseCount + elementsCountAroundSegmentIn - 1:
-                                             baseCount + int(0.75 * elementsCountAroundSegmentIn - 2): -1]
+                                             baseCount + 3 * elementsCountAroundSegmentIn // 4 - 2: -1]
                         d1Around += \
                             d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn - 1:
-                                              baseCount + int(0.75 * elementsCountAroundSegmentIn - 2): -1]
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 - 2: -1]
                         d2Around += \
                             d2RawTrackSurface[baseCount + elementsCountAroundSegmentIn - 1:
-                                              baseCount + int(0.75 * elementsCountAroundSegmentIn - 2): -1]
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 - 2: -1]
 
                         xAlongAround.append(xAround)
                         d1Around = [mult(c, -1) for c in d1Around]
@@ -1951,7 +1954,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         d2CombinedTrackSurface += d2AlongAround[i]
 
             combinedTrackSurface = TrackSurface(halfElementsCountAroundSegmentIn + 2,
-                                                int(elementsCountAlongSegmentIn * 2.0),
+                                                elementsCountAlongSegmentIn * 2,
                                                 xCombinedTrackSurface, d1CombinedTrackSurface, d2CombinedTrackSurface,
                                                 loop1=False)
 
@@ -1981,7 +1984,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             xA = evaluateCoordinatesOnCurve(xAlongCombinedTrackSurfaceMid, d1AlongCombinedTrackSurfaceMid,
                                             nLocation, False, derivative=False)
 
-            startLocationSecondHalf = (int(0.5 * len(xAlongCombinedTrackSurfaceMid) + 1), 0.0)
+            startLocationSecondHalf = (len(xAlongCombinedTrackSurfaceMid) // 2 + 1, 0.0)
             nLocation, oLocation = getNearestLocationBetweenCurves(
                 xAlongCombinedTrackSurfaceMid, d1AlongCombinedTrackSurfaceMid,
                 xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3, nLoop=False,
@@ -1995,7 +1998,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             positionA = combinedTrackSurface.findNearestPosition(xA)
             proportionA = combinedTrackSurface.getProportion(positionA)
 
-            # xB = xCurveBetweenTrackAndTrim3[int(0.5 * sampleElementCount)]
+            # xB = xCurveBetweenTrackAndTrim3[sampleElementCount // 2]
             positionB = combinedTrackSurface.findNearestPosition(xB)
             proportionB = combinedTrackSurface.getProportion(positionB)
 
@@ -2079,7 +2082,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
 
             # Sample across the patch from segment 1 to segment 2 but forcing paths to go through sampled points
             # around mid-plane
-            nodesAround = int(0.5 * (elementsCountAroundSegmentOut - 2.0 * halfElementsCountAroundSegmentIn)) + 1
+            nodesAround = (elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 2 + 1
             xEnd = []
             dEnd = []
             for i in range(len(sxAlongTubeSide)):
@@ -2094,8 +2097,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         startDerivative = None
                         endProportion = sProportionsMidPlane[i]
                         endDerivativeMag = \
-                            magnitude(sub(sxMidPlane[i], sxAlongTubeBothSides[0][i]))/\
-                            int(0.25 * (elementsCountAroundSegmentOut - 2.0 * halfElementsCountAroundSegmentIn))
+                            magnitude(sub(sxMidPlane[i], sxAlongTubeBothSides[0][i]))/ \
+                            ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4)
                         endDerivative = set_magnitude(sd2MidPlane[i], endDerivativeMag)
 
                         xEnd.append(sxMidPlane[i])
@@ -2105,7 +2108,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         startProportion = sProportionsMidPlane[i]
                         startDerivativeMag = \
                             magnitude(sub(sxAlongTubeBothSides[1][i], sxMidPlane[i])) / \
-                            int(0.25 * (elementsCountAroundSegmentOut - 2.0 * halfElementsCountAroundSegmentIn))
+                            ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4)
                         startDerivative = set_magnitude(sd2MidPlane[i], startDerivativeMag)
                         endPosition = combinedTrackSurface.findNearestPosition(sxAlongTubeBothSides[1][i])
                         endProportion = combinedTrackSurface.getProportion(endPosition)
@@ -2114,7 +2117,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sxAlongPatchSide, sd1AlongPatchSide, sd2AlongPatchSide, sd3AlongPatchSide = \
                         combinedTrackSurface.createHermiteCurvePoints(
                             startProportion[0], startProportion[1], endProportion[0], endProportion[1],
-                            int(0.25 * (elementsCountAroundSegmentOut - 2.0 * halfElementsCountAroundSegmentIn)),
+                            ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4),
                             derivativeStart=startDerivative, derivativeEnd=endDerivative)[0:4]
 
                     # if s and i == 2:
@@ -2148,7 +2151,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     d2Around.append(sd2AlongPatchInLayer[n2][n1])
                 d2Around = smoothCubicHermiteDerivativesLine(xAround, d2Around)
                 for n2 in range(halfElementsCountAroundSegmentIn + 1):
-                    if n2 < int(0.5 * halfElementsCountAroundSegmentIn + 1):
+                    if n2 < halfElementsCountAroundSegmentIn // 2 + 1:
                         sd2AlongPatchInLayer[n2][n1] = mult(d2Around[n2], -1.0)
                     else:
                         sd2AlongPatchInLayer[n2][n1] = d2Around[n2]
@@ -2163,7 +2166,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 sd1Along = sd1AlongPatchInLayer[n2]
                 sd2Along = sd2AlongPatchInLayer[n2]
                 # sd3Along = sd2AlongPatchInLayer[n2]
-                if n2 > int(0.5 * halfElementsCountAroundSegmentIn):
+                if n2 > halfElementsCountAroundSegmentIn // 2:
                     sxAlong.reverse()
                     sd1Along.reverse()
                     sd2Along.reverse()
@@ -2229,8 +2232,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         self._patchCoordinates = r[0], r[1], r[2], r[3]
         # print('Patch coord =', self._patchCoordinates)
 
-        self._patchNodeIds = [None] * (int(halfElementsCountAroundSegmentIn) - 1)
-        self._patchElementIds = [None] * (int(halfElementsCountAroundSegmentIn) - 2)
+        self._patchNodeIds = [None] * (halfElementsCountAroundSegmentIn - 1)
+        self._patchElementIds = [None] * (halfElementsCountAroundSegmentIn - 2)
 
         # Create rim coordinates - include comments on how its structured like the tube indices,calculating annular indexing of outer two layers, inner layer corners where 1 point is represented 3 times
         self._rimCoordinates = []
@@ -2247,7 +2250,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             for n3 in range(self._elementsCountThroughShell + 1):
                 sParamRingAroundRim = []
                 sParam = allCoordinates[i]
-                for n2 in range(len(allCoordinates[i])//2, 0, -1): # len(allCoordinates[i]) // 2
+                for n2 in range(len(allCoordinates[i]) // 2, 0, -1): # len(allCoordinates[i]) // 2
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][0])
                     elif i == 1: # d1
@@ -2276,7 +2279,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundRim.append(add(allCoordinates[1][0][n3][-1],
                                                    [-c for c in allCoordinates[2][0][n3][-1]]))
 
-                for n2 in range(1, len(allCoordinates[i])//2 + 1):
+                for n2 in range(1, len(allCoordinates[i]) // 2 + 1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][-1])
                     elif i == 1: # d1
@@ -2284,7 +2287,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     elif i == 2: # d2
                         sParamRingAroundRim.append(allCoordinates[1][n2][n3][-1]) # becomes d1
 
-                for n2 in range(len(allCoordinates[i])//2 + 1, len(allCoordinates[i]) - 1):
+                for n2 in range(len(allCoordinates[i]) // 2 + 1, len(allCoordinates[i]) - 1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][0])
                     elif i == 1: # d1
@@ -2314,7 +2317,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     sParamRingAroundRim.append(add(allCoordinates[1][-1][n3][-1],
                                                    [-c for c in allCoordinates[2][-1][n3][-1]]))
 
-                for n2 in range(len(allCoordinates[i]) - 2, len(allCoordinates[i])//2, -1):
+                for n2 in range(len(allCoordinates[i]) - 2, len(allCoordinates[i]) // 2, -1):
                     if i == 0 or i == 3:
                         sParamRingAroundRim.append(sParam[n2][n3][-1])
                     elif i == 1: # d1
@@ -2493,9 +2496,9 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         self._rimNodeIds = []
         nodesAlongPatch = elementsCountAlong + 1
         sNodeId = self._patchNodeIds
-        for n3 in range(int(self._elementsCountThroughShell + 1)):
+        for n3 in range(self._elementsCountThroughShell + 1):
             nodeIdPatch = []
-            for n2 in range(int(0.5 * nodesAlongPatch), 0, -1):
+            for n2 in range(nodesAlongPatch // 2, 0, -1):
                 nodeIdPatch.append(sNodeId[n2][n3][0])
             nodeIdPatch += [sNodeId[0][n3][0], sNodeId[0][n3][0]]
             nodeIdPatch += sNodeId[0][n3]
@@ -2508,7 +2511,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             nodeIdPatch += [sNodeId[-1][n3][0], sNodeId[-1][n3][0]]
             nodeIdPatch += sNodeId[-1][n3]
             nodeIdPatch += [sNodeId[-1][n3][-1], sNodeId[-1][n3][-1]]
-            for n2 in range(nodesAlongPatch - 2, int(0.5 * nodesAlongPatch), -1):
+            for n2 in range(nodesAlongPatch - 2, nodesAlongPatch // 2, -1):
                 nodeIdPatch.append(sNodeId[n2][n3][-1])
             self._rimNodeIds.append(nodeIdPatch)
 
@@ -2528,7 +2531,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     elementtemplate = elementtemplateStd
                     eft = eftStd
                     nids = []
-                    if e2 < int(elementsCountAlong * 0.5):
+                    if e2 < elementsCountAlong // 2:
                         for n3 in [e3, e3 + 1] if (self._dimension == 3) else [0]:
                             nids += [self._patchNodeIds[e2 + 1][n3][e1],
                                      self._patchNodeIds[e2 + 1][n3][e1 + 1],
