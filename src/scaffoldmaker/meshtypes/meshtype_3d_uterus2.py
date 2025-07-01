@@ -609,8 +609,10 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 id12 = mult(nd12Patch[i], innerProportionBody)
             else:
                 xi = i / fundusPatchElementsCount
-                width = (1.0 - xi) * halfCervicalWidthInternalOs * innerProportionCervix + \
-                        xi * halfFundusWidth * innerProportionBody
+                width = xi * halfFundusWidth * innerProportionBody + \
+                        (1.0 - xi) * (halfFundusWidth * 0.01 * innerProportionBody if isRodent else
+                                      halfCervicalWidthInternalOs * innerProportionCervix)
+
                 id2 = [0.0, width, 0.0]
                 id12 = [0.0,
                         (halfFundusWidth * innerProportionBody -
