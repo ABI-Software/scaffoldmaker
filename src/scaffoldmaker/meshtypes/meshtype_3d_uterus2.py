@@ -1983,7 +1983,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_inner)
 
         lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of uterine cervix"))
+                                                           get_uterus_term("uterine cervix"))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
 
         serosaOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
