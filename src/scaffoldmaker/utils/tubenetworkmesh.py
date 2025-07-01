@@ -2552,9 +2552,9 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         element.setNodesByIdentifier(eft, nids)
                         if scalefactors:
                             element.setScaleFactors(eft, scalefactors)
-                        for annotationMeshGroup in annotationMeshGroups:
-                            annotationMeshGroup.addElement(element)
-                        patchElementIds.append(elementIdentifier)
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
+                    patchElementIds.append(elementIdentifier)
                     self._patchElementIds[e2].append(patchElementIds)
 
     def getPatchCoordinates(self, n1, n2, n3):

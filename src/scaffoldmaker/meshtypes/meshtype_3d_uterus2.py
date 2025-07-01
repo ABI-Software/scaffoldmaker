@@ -107,27 +107,29 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
             segment.addSideD3ElementsToMeshGroup(True, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, dorsalMeshGroup)
             for annotationTerm in annotationTerms:
-                if "left fundus" in annotationTerm[0] or "right fundus" in annotationTerm[0]:
-                    elementsCountRim = segment.getElementsCountRim()
-                    elementsCountAlong = segment.getSampledElementsCountAlong()
-                    elementsCountAround = segment.getElementsCountAround()
-                    if "left" in annotationTerm[0]:
-                        e1FundusLimitStart = 0
-                        e1FundusRange = (elementsCountAround // 2 - (1 if elementsCountAround % 2 == 1 else 0)) // 2
-                    else:
-                        e1FundusLimitStart = elementsCountAround // 4
-                        e1FundusRange = elementsCountAround // 2
-                    for e1 in range(elementsCountAround):
-                        for e2 in range(elementsCountAlong):
-                            for e3 in range(elementsCountRim):
-                                elementIdentifier = segment.getRimElementId(e1, e2, e3)
-                                if elementIdentifier is not None:
-                                    element = mesh.findElementByIdentifier(elementIdentifier)
-                                    if (e1 >= e1FundusLimitStart and e1 < e1FundusLimitStart + e1FundusRange) or \
-                                            ("left" in annotationTerm[0] and e1 >= elementsCountAround - e1FundusRange):
-                                        fundusMeshGroup.addElement(element)
-                                    else:
-                                        bodyMeshGroup.addElement(element)
+                # if "left fundus" in annotationTerm[0] or "right fundus" in annotationTerm[0]:
+                #     elementsCountRim = segment.getElementsCountRim()
+                #     elementsCountAlong = segment.getSampledElementsCountAlong()
+                #     elementsCountAround = segment.getElementsCountAround()
+                #     if "left" in annotationTerm[0]:
+                #         e1FundusLimitStart = 0
+                #         e1FundusRange = (elementsCountAround // 2 - (1 if elementsCountAround % 2 == 1 else 0)) // 2
+                #     else:
+                #         e1FundusLimitStart = elementsCountAround // 4
+                #         e1FundusRange = elementsCountAround // 2
+                #     for e1 in range(elementsCountAround):
+                #         for e2 in range(elementsCountAlong):
+                #             for e3 in range(elementsCountRim):
+                #                 elementIdentifier = segment.getRimElementId(e1, e2, e3)
+                #                 if elementIdentifier is not None:
+                #                     element = mesh.findElementByIdentifier(elementIdentifier)
+                #                     if (e1 >= e1FundusLimitStart and e1 < e1FundusLimitStart + e1FundusRange) or \
+                #                             ("left" in annotationTerm[0] and e1 >= elementsCountAround - e1FundusRange):
+                #                         fundusMeshGroup.addElement(element)
+                #                     else:
+                #                         bodyMeshGroup.addElement(element)
+                if "fundus" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(fundusMeshGroup)
                 if "body" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(bodyMeshGroup)
                 if "cervix" in annotationTerm[0]:
@@ -376,7 +378,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         bodyGroup = AnnotationGroup(region, get_uterus_term("body of uterus"))
         cervixGroup = AnnotationGroup(region, ("cervix", ""))
         vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
-        fundusPatchGroup = AnnotationGroup(region, ("fundus patch", ""))
+        fundusPatchGroup = AnnotationGroup(region, get_uterus_term("fundus of uterus"))
         annotationGroups = [uterusGroup, leftOviductGroup, rightOviductGroup, leftFundusGroup,
                             rightFundusGroup, fundusPatchGroup,
                             bodyGroup, cervixGroup, vaginaGroup]
@@ -1067,7 +1069,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             name = layoutAnnotationGroup.getName()
             if "oviduct" in name or "uterine horn" in name:
                 elementsCountAlong = options['Number of elements along oviduct']
-            elif "body" in name or "fundus patch" in name:
+            elif "body" in name or "fundus" in name:
                 elementsCountAlong = options['Number of elements along body']
             elif "cervix" in name:
                 elementsCountAlong = options['Number of elements along cervix']
@@ -1077,7 +1079,7 @@ class MeshType_3d_uterus2(Scaffold_base):
 
             if "oviduct" in name or "uterine horn" in name or "left fundus" in name or "right fundus" in name:
                 elementsCountAround = options['Number of elements around oviduct']
-            elif "body" in name or "fundus patch" in name:
+            elif "body" in name or "fundus" in name:
                 elementsCountAround = options['Number of elements around']
             annotationElementsCountsAround.append(elementsCountAround)
 
