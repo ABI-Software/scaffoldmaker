@@ -161,6 +161,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "36.4-37-38-39,"
                 "39-40,"
                 "40-41-42")
+            options["Uterine tube diameter"] = 0.5
             options["Uterine tube length"] = 4.0
             options["Body length"] = 0.75
             options["Fundus width between uterine tubes"] = 0.8
@@ -185,6 +186,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "31.4-32-33-34-35-36-37-38-39-40-41-42-43,"
                 "43-44,"
                 "44-45-46-47-48")
+            options["Uterine tube diameter"] = 0.35
             options["Uterine tube length"] = 10.0
             options["Body length"] = 30.0
             options["Fundus width between uterine tubes"] = 28.0
@@ -209,6 +211,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "23.4-24-25-26-27-28-29,"
                 "29-30-31,"
                 "31-32-33-34-35-36-37-38")
+            options["Uterine tube diameter"] = 0.35
             options["Uterine tube length"] = 10.0
             options["Body length"] = 7.0
             options["Fundus width between uterine tubes"] = 8.0
@@ -227,7 +230,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Angle of anteversion degrees"] = 70.0
 
         options["Define inner coordinates"] = True
-        options["Uterine tube diameter"] = 0.5
         options["Inner proportion uterine tubes"] = 0.5
 
         return options
