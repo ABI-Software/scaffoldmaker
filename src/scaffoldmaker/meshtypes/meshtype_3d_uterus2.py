@@ -1197,15 +1197,15 @@ class MeshType_3d_uterus2(Scaffold_base):
         # add human specific annotations
         allMarkers = {}
         if isHuman:
-            allMarkers = {"junction of left round ligament with uterus": {"x": [-3.00693, -4.65703, 0.0]},
-                          "junction of right round ligament with uterus": {"x": [-3.00693, 4.65703, 0.0]},
+            allMarkers = {"junction of left round ligament with uterus": {"x": [-0.495368, -4.54665, 0.0]},
+                          "junction of right round ligament with uterus": {"x": [-0.495368, 4.54665, 0.0]},
                           "junction of left uterosacral ligament with uterus": {"x": [7.0, -2.75, 0.0]},
                           "junction of right uterosacral ligament with uterus": {"x": [7.0, 2.75, 0.0]}}
         elif isPregnant:
             allMarkers = {"junction of left round ligament with uterus": {"x": [-2.81269, -16.7248, 0.0]},
                           "junction of right round ligament with uterus": {"x": [-2.81269, 16.7248, 0.0]},
-                          "junction of left uterosacral ligament with uterus": {"x": [45.0, -2.75, 0.0]},
-                          "junction of right uterosacral ligament with uterus": {"x": [45, 2.75, 0]}}
+                          "junction of left uterosacral ligament with uterus": {"x": [30, -2.75, 0.0]},
+                          "junction of right uterosacral ligament with uterus": {"x": [30, 2.75, 0]}}
 
         for key in allMarkers:
             x = allMarkers[key]["x"]
