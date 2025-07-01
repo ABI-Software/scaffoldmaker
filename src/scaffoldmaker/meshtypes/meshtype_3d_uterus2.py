@@ -1976,7 +1976,8 @@ class MeshType_3d_uterus2(Scaffold_base):
         uterineCavity.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_leftOviduct)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_rightOviduct)
-
+        uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_upperCervix)
+        
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                           get_uterus_term("serosa of body of uterus"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_outer)
