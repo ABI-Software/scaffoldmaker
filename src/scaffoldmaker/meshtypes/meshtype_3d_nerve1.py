@@ -1357,14 +1357,15 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                 projection_error = magnitude(normal_projection)
                 if projection_error < rms_error:
                     # skip orientation points within rmsError of trunk centroid as inaccurate
-                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location", curve_location,
-                                   "as projection error", projection_error, "is less than trunk RMS error", rms_error)
+                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location " +
+                                   str(curve_location) + " as projection error " + str(projection_error) +
+                                   " is less than trunk RMS error " + str(rms_error))
                     continue
                 dirp = normalize(projection)
                 if math.fabs(dot(dir1, dirp)) > 0.5:
                     # skip orientation points with severely non-normal projection e.g. past end of curve
-                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location", curve_location,
-                                    "as projection is oblique or co-linear with centroid curve")
+                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location " +
+                                   str(curve_location) + " as projection is oblique or co-linear with centroid curve")
                     continue
                 dir2 = normalize(cross(dirp, dir1))
                 dir3 = cross(dir1, dir2)
