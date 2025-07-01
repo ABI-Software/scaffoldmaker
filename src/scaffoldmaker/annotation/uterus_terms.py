@@ -37,7 +37,6 @@ uterus_terms = [
     ("serosa of left horn", ""),
     ("serosa of right horn", ""),
     ("serosa of right oviduct", ""),
-    ("serosa of uterine cervix", ""),
     ("serosa of uterus", "UBERON:0001297"),
     ("serosa of vagina", ""),
     ("uterine cervix", "UBERON:0000002", "ILX:0724162", "FMA:17740"),
