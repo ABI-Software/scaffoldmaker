@@ -1963,7 +1963,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_outer)
 
         lumenOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of vagina"))
+                                                           get_uterus_term("vaginal canal"))
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
         leftGroup = getAnnotationGroupForTerm(annotationGroups, ("left uterus", ""))
