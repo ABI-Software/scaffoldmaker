@@ -429,14 +429,14 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 meshGroup.addElement(element)
             elementIdentifier += 1
 
-        meshGroups = [uterusMeshGroup, cervixGroup.getMeshGroup(mesh)]
+        meshGroups = [cervixGroup.getMeshGroup(mesh)]
         for e in range(cervixElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
 
-        meshGroups = [uterusMeshGroup, vaginaGroup.getMeshGroup(mesh)]
+        meshGroups = [vaginaGroup.getMeshGroup(mesh)]
         for e in range(vaginaElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
