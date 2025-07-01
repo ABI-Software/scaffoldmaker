@@ -1878,6 +1878,9 @@ class MeshType_3d_uterus2(Scaffold_base):
             annotationGroups, region, get_uterus_term("myometrium"))
         myometriumGroup.getMeshGroup(mesh).addElementsConditional(uterusGroup.getGroup())
 
+        upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
+        uterusGroup.getMeshGroup(mesh).addElementsConditional(upperCervixGroup.getGroup())
+
         return annotationGroups, None
 
     @classmethod
