@@ -45,10 +45,10 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
         self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
         self._bodyGroup = self.getOrCreateAnnotationGroup(get_uterus_term("body of uterus"))
         # force these annotation group names in base class
-        self._leftGroup = self.getOrCreateAnnotationGroup(get_uterus_term("left uterus"))
-        self._rightGroup = self.getOrCreateAnnotationGroup(get_uterus_term("right uterus"))
-        self._dorsalGroup = self.getOrCreateAnnotationGroup(get_uterus_term("dorsal uterus"))
-        self._ventralGroup = self.getOrCreateAnnotationGroup(get_uterus_term("ventral uterus"))
+        self._leftGroup = self.getOrCreateAnnotationGroup(("left uterus", ""))
+        self._rightGroup = self.getOrCreateAnnotationGroup(("right uterus", ""))
+        self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal uterus", ""))
+        self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral uterus", ""))
 
     def getFundusMeshGroup(self):
         return self._fundusGroup.getMeshGroup(self._mesh)
@@ -352,12 +352,11 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         bodyGroup = AnnotationGroup(region, get_uterus_term("body of uterus"))
         cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
         vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
-        bodyJunctionGroup = AnnotationGroup(region, get_uterus_term("body junction"))
 
         fundusPatchGroup = AnnotationGroup(region, ("fundus patch", "None"))
         annotationGroups = [uterusGroup, leftUterineTubeGroup, rightUterineTubeGroup, leftFundusGroup,
                             rightFundusGroup, fundusPatchGroup,
-                            bodyGroup, cervixGroup, vaginaGroup, bodyJunctionGroup]
+                            bodyGroup, cervixGroup, vaginaGroup]
 
         uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
         elementIdentifier = 1
@@ -399,10 +398,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
-
-        node = nodes.findNodeByIdentifier(elementIdentifier)
-        bodyJunctionNodesetGroup = bodyJunctionGroup.getNodesetGroup(nodes)
-        bodyJunctionNodesetGroup.addNode(node)
 
         meshGroups = [uterusMeshGroup, bodyGroup.getMeshGroup(mesh)]
         for e in range(fundusPostBodyJunctionElementsCount):
@@ -1895,7 +1890,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         fm = region.getFieldmodule()
         uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
-        fundusGroup = getAnnotationGroupForTerm(annotationGroups, ("fundus of uterus", "None"))
+        fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
         cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
         vaginaGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("vagina"))
 
@@ -1971,10 +1966,10 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                            get_uterus_term("lumen of vagina"))
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
-        leftGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterus"))
-        rightGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterus"))
-        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("dorsal uterus"))
-        ventralGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("ventral uterus"))
+        leftGroup = getAnnotationGroupForTerm(annotationGroups, ("left uterus", ""))
+        rightGroup = getAnnotationGroupForTerm(annotationGroups, ("right uterus", ""))
+        dorsalGroup = getAnnotationGroupForTerm(annotationGroups, ("dorsal uterus", ""))
+        ventralGroup = getAnnotationGroupForTerm(annotationGroups, ("ventral uterus", ""))
 
         # leftFundusGroup = getAnnotationGroupForTerm(annotationGroups, ("left fundus", "None"))
         # rightFundusGroup = getAnnotationGroupForTerm(annotationGroups, ("right fundus", "None"))
@@ -2008,7 +2003,7 @@ class MeshType_3d_uterus2(Scaffold_base):
 
             is_pubocervical = fm.createFieldAnd(is_body_outer, is_cervix_outer)
             pubocervical = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_uterus_term("pubocervical ligament (TA98)"))
+                                                            get_uterus_term("pubocervical ligament"))
             pubocervical.getMeshGroup(mesh1d).addElementsConditional(is_pubocervical)
 
             is_internal_os = fm.createFieldAnd(is_body_inner, is_cervix_inner)
