@@ -342,18 +342,18 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         if isRodent:
             leftUterineTubeGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
             rightUterineTubeGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
-            leftFundusGroup = AnnotationGroup(region, ("left fundus", "None"))
-            rightFundusGroup = AnnotationGroup(region, ("right fundus", "None"))
+            leftFundusGroup = AnnotationGroup(region, ("left fundus", ""))
+            rightFundusGroup = AnnotationGroup(region, ("right fundus", ""))
         else:
             leftUterineTubeGroup = AnnotationGroup(region, get_uterus_term("left uterine tube"))
             rightUterineTubeGroup = AnnotationGroup(region, get_uterus_term("right uterine tube"))
-            leftFundusGroup = AnnotationGroup(region, ("left fundus", "None"))
-            rightFundusGroup = AnnotationGroup(region, ("right fundus", "None"))
+            leftFundusGroup = AnnotationGroup(region, ("left fundus", ""))
+            rightFundusGroup = AnnotationGroup(region, ("right fundus", ""))
         bodyGroup = AnnotationGroup(region, get_uterus_term("body of uterus"))
         cervixGroup = AnnotationGroup(region, get_uterus_term("uterine cervix"))
         vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
 
-        fundusPatchGroup = AnnotationGroup(region, ("fundus patch", "None"))
+        fundusPatchGroup = AnnotationGroup(region, ("fundus patch", ""))
         annotationGroups = [uterusGroup, leftUterineTubeGroup, rightUterineTubeGroup, leftFundusGroup,
                             rightFundusGroup, fundusPatchGroup,
                             bodyGroup, cervixGroup, vaginaGroup]
@@ -923,7 +923,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Number of elements through wall': 1,
             'Number of elements along uterine tubes': 6,
             'Number of elements along body': 4,
-            'Number of elements along cervix': 1,
+            'Number of elements along cervix': 2,
             'Number of elements along vagina': 6,
             'Target element density along longest segment': 5.5,
             'Use linear through wall': False, # True needs work
