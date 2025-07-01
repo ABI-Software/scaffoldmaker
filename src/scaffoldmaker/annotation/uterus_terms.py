@@ -40,6 +40,7 @@ uterus_terms = [
     ("serosa of uterus", "UBERON:0001297"),
     ("serosa of vagina", ""),
     ("uterine cervix", "UBERON:0000002", "ILX:0724162", "FMA:17740"),
+    ("uterine cavity", "UBERON:0013769", "ILX:0727680", "FMA:17745"),
     ("uterine horn", "UBERON:000224"),
     ("uterine wall", "UBERON:0000459", "ILX:0735839", "FMA:17560"),
     ("uterus", "UBERON:0000995", "ILX:0726002", "FMA:17558"),

@@ -1912,6 +1912,8 @@ class MeshType_3d_uterus2(Scaffold_base):
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
         uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
+        leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
+        rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right oviduct"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
         cervixGroup = getAnnotationGroupForTerm(annotationGroups, ("cervix", ""))
@@ -1931,6 +1933,9 @@ class MeshType_3d_uterus2(Scaffold_base):
         is_uterus = uterusGroup.getGroup()
         is_uterus_outer = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_1)
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
+
+        is_leftOviduct = leftOviductGroup.getGroup()
+        is_rightOviduct = rightOviductGroup.getGroup()
 
         is_fundus = fundusGroup.getGroup()
         is_fundus_outer = fm.createFieldAnd(is_fundus, is_exterior_face_xi3_1)
@@ -1961,9 +1966,11 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                             get_uterus_term("serosa of uterus"))
         serosaOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
 
-        lumenOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of uterus"))
-        lumenOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
+        uterineCavity = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                           get_uterus_term("uterine cavity"))
+        uterineCavity.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
+        uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_leftOviduct)
+        uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_rightOviduct)
 
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                           get_uterus_term("serosa of body of uterus"))
