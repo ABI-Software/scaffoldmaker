@@ -57,10 +57,6 @@ vagus_marker_terms = [
     ("level of aortic hiatus on the vagus nerve", "ILX:0794656"),
     ("right level of aortic hiatus on the vagus nerve", "ILX:0794657"),
     ("left level of aortic hiatus on the vagus nerve", "ILX:0794658"),
-    # vagus built-in annotations
-    ("vagus centroid", ""),
-    ("vagus epineurium", ""),
-    ("vagus anterior line", "")
 ]
 
 vagus_branch_terms = [
@@ -127,7 +123,7 @@ vagus_branch_terms = [
     ("right cervical cardiopulmonary branch of vagus nerve", "ILX:0794153"),  # common branch
     ("right A cervical cardiopulmonary branch of vagus nerve", "ILX:0794154"),
     ("right B cervical cardiopulmonary branch of vagus nerve", "ILX:0794155"),
-    ("right pulmonary branch of vagus nerve", "ILX:0787735", "FMA:6671"),  # common branch
+    ("right pulmonary branch of the vagus nerve", "ILX:0787735", "FMA:6671"),  # common branch
     ("right pulmonary branch A of the vagus nerve", "ILX:0795074"),
     ("right pulmonary branch B of the vagus nerve", "ILX:0795075"),
     ("right pulmonary branch C of the vagus nerve", "ILX:0795076"),
@@ -204,7 +200,7 @@ vagus_branch_terms = [
     ("communicating branch of left external laryngeal nerve with left superior cardiac nerve", "ILX:0787107", "FMA:53562"),
     ("left A cervical cardiopulmonary branch of vagus nerve", "ILX:0794160"),
     ("left B cervical cardiopulmonary branch of vagus nerve", "ILX:0794161"),
-    ("pulmonary branch of left vagus nerve", "ILX:0792971", "FMA:6679"),
+    ("left pulmonary branch of the vagus nerve", "ILX:0792971", "FMA:6679"),
     ("left pulmonary branch A of the vagus nerve", "ILX:0795079"),
     ("left pulmonary branch B of the vagus nerve", "ILX:0795080"),
     ("left pulmonary branch C of the vagus nerve", "ILX:0795081"),
@@ -237,10 +233,14 @@ vagus_branch_terms = [
     # anterior vagus, a continuation of left vagus
     ("anterior esophageal vagus trunk", "ILX:0794854"),
     ("hepatic branch of anterior vagal trunk", "ILX:0784595", "FMA:6666"),
-    ("greater anterior gastric nerve", "ILX:0793831", "FMA:6684")
+    ("greater anterior gastric nerve", "ILX:0793831", "FMA:6684"),
     # not on interlex:
     # ("branch of greater anterior gastric nerve to coeliac nerve plexus", "FMA:53675"),
 
+    # vagus built-in annotations
+    ("vagus centroid", ""),
+    ("vagus epineurium", ""),
+    ("vagus anterior line", "")
 ]
 
 
@@ -280,4 +280,71 @@ def marker_name_in_terms(name: str):
     return False
 
 
+def get_left_vagus_marker_locations_list():
+    # vagus markers location in material coordinates between 0 to 1
+    left_termNameVagusLengthList = {
+        # cervical region
+        "left level of superior border of jugular foramen on the vagus nerve": 0.02737296,
+        "left level of inferior border of jugular foramen on the vagus nerve": 0.04434952,
+        # "left level of inferior border of cranium on the vagus nerve": 0.0588,
+        # "left level of C1 transverse process on the vagus nerve": 0.10276128,
+        "left level of angle of the mandible on the vagus nerve": 0.12533074,
+        # "left level of greater horn of hyoid on the vagus nerve": 0.14595904,
+        "left level of carotid bifurcation on the vagus nerve": 0.15738364,
+        "left level of laryngeal prominence on the vagus nerve": 0.20541934,
+        # thoracic region
+        "left level of superior border of the clavicle on the vagus nerve": 0.33847976,
+        "left level of jugular notch on the vagus nerve": 0.38062311,
+        "left level of sternal angle on the vagus nerve": 0.48395264,
+        # "left level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
+        # abdominal region
+        # "left level of esophageal hiatus on the vagus nerve": 0.813852428,
+        # "left level of aortic hiatus on the vagus nerve": 0.9323824,
+        # "left level of end of trunk": 1.0  # note this term is also not on the list of annotations
+    }
+    return left_termNameVagusLengthList
 
+
+def get_right_vagus_marker_locations_list():
+    # vagus markers location in material coordinates between 0 to 1
+    right_termNameVagusLengthList = {
+        # cervical region
+        "right level of superior border of jugular foramen on the vagus nerve": 0.02762944,
+        "right level of inferior border of jugular foramen on the vagus nerve": 0.04434952,
+        # "right level of inferior border of cranium on the vagus nerve": 0.0588,
+        # "right level of C1 transverse process on the vagus nerve": 0.10276128,
+        "right level of angle of the mandible on the vagus nerve": 0.12648368,
+        # "right level of greater horn of hyoid on the vagus nerve": 0.14595904,
+        "right level of carotid bifurcation on the vagus nerve": 0.17798550,
+        "right level of laryngeal prominence on the vagus nerve": 0.23144827,
+        # thoracic region
+        "right level of superior border of the clavicle on the vagus nerve": 0.33948916,
+        "right level of jugular notch on the vagus nerve": 0.38937585,
+        "right level of sternal angle on the vagus nerve": 0.48764507,
+        # "right level of 1 cm superior to start of esophageal plexus on the vagus nerve": 0.52988032,
+        # abdominal region
+        # "right level of esophageal hiatus on the vagus nerve": 0.813852428,
+        # "right level of aortic hiatus on the vagus nerve": 0.9323824,
+    }
+    return right_termNameVagusLengthList
+
+
+def is_bony_landmark(marker_name):
+    """
+    Checks if supplied marker_name is a bony landmark.
+    Not used currently.
+    """
+    bony_landmarks_names = [
+        "level of superior border of jugular foramen on the vagus nerve",
+        "level of inferior border of jugular foramen on the vagus nerve",
+        "level of inferior border of cranium on the vagus nerve",
+        "level of C1 transverse process on the vagus nerve",
+        "level of angle of the mandible on the vagus nerve",
+        "level of greater horn of hyoid on the vagus nerve",
+        "level of superior border of the clavicle on the vagus nerve",
+        "level of jugular notch on the vagus nerve",
+        "level of sternal angle on the vagus nerve"
+    ]
+    if marker_name in bony_landmarks_names:
+        return True
+    return False
