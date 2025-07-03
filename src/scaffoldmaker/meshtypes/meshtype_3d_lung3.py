@@ -79,8 +79,6 @@ class MeshType_3d_lung3(Scaffold_base):
         if "Human" in useParameterSetName:
             options["Left-right lung spacing"] = 0.4
             options["Apex edge sharpness factor"] = 0.5
-            options["Left-right apex medial shear displacement"] = 0.2
-            options["Left-right apex ventral shear displacement"] = -0.2
             options["Diaphragm angle degrees"] = 30.0
             options["Diaphragm proportion"] = 0.2
             options["Impression breadth proportion"] = 1.0
@@ -92,14 +90,13 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Medial curvature"] = 0.0
             options["Medial curvature bias"] = 0.0
             options["Medial rotation about x-axis degrees"] = 5.0
+            options["Dorsal-ventral rotation degrees"] = 10.0
             options["Ventral-medial rotation degrees"] = 10.0
             options["Use sizing function"] = True
             options["Scale factor"] = 0.7
         else:
             options["Left-right lung spacing"] = 1.0
             options["Apex edge sharpness factor"] = 0.0
-            options["Left-right apex medial shear displacement"] = 0.0
-            options["Left-right apex ventral shear displacement"] = 0.0
             options["Diaphragm angle degrees"] = 0.0
             options["Diaphragm proportion"] = 0.0
             options["Impression breadth proportion"] = 0.0
@@ -109,6 +106,7 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Medial curvature"] = 0.0
             options["Medial curvature bias"] = 0.0
             options["Medial rotation about x-axis degrees"] = 0.0
+            options["Dorsal-ventral rotation degrees"] = 0.0
             options["Ventral-medial rotation degrees"] = 0.0
             options["Use sizing function"] = False
             options["Scale factor"] = 0.0
@@ -150,6 +148,7 @@ class MeshType_3d_lung3(Scaffold_base):
             "Medial curvature",
             "Medial curvature bias",
             "Medial rotation about x-axis degrees",
+            "Dorsal-ventral rotation degrees",
             "Ventral-medial rotation degrees",
             "Use sizing function",
             "Scale factor",
@@ -224,6 +223,7 @@ class MeshType_3d_lung3(Scaffold_base):
 
         for angle in [
             "Medial rotation about x-axis degrees",
+            "Dorsal-ventral rotation degrees",
             "Ventral-medial rotation degrees"
         ]:
             if options[angle] < -90.0:
@@ -260,8 +260,6 @@ class MeshType_3d_lung3(Scaffold_base):
         lungSpacing = options["Left-right lung spacing"] * 0.5
         apexSharpFactor = options["Apex edge sharpness factor"]
         edgeSharpFactor = options["Ventral edge sharpness factor"]
-        leftApexMedialDisplacement = options["Left-right apex medial shear displacement"]
-        forwardLeftRightApex = options["Left-right apex ventral shear displacement"]
         diaphragm_angle_radians = math.radians(options["Diaphragm angle degrees"])
         diaphragm_proportion = options["Diaphragm proportion"]
         disc_breadth = options["Disc breadth"]
@@ -276,6 +274,7 @@ class MeshType_3d_lung3(Scaffold_base):
         leftLungMedialCurvature = options["Medial curvature"]
         lungMedialCurvatureBias = options["Medial curvature bias"]
         rotateLeftLungX = options["Medial rotation about x-axis degrees"]
+        rotateLeftLungY = options["Dorsal-ventral rotation degrees"]
         rotateLeftLungZ = options["Ventral-medial rotation degrees"]
 
         rangeOfRequiredElements = [
@@ -531,8 +530,8 @@ class MeshType_3d_lung3(Scaffold_base):
             oblique_slope_radians = left_oblique_slope_radians if i == leftLung else right_oblique_slope_radians
             bendZ = (diaphragm_proportion - 0.5) * disc_height
             lungMedialCurvature = -leftLungMedialCurvature if isLeft else leftLungMedialCurvature
-            apexMedialDisplacement = leftApexMedialDisplacement if isLeft else -leftApexMedialDisplacement
-            rotateLungAngleX = -rotateLeftLungX
+            rotateLungAngleX = rotateLeftLungX
+            rotateLungAngleY = rotateLeftLungY if isLeft else -rotateLeftLungY
             rotateLungAngleZ = rotateLeftLungZ if isLeft else -rotateLeftLungZ
 
             if not isLeft:
@@ -565,18 +564,13 @@ class MeshType_3d_lung3(Scaffold_base):
             if rotateLungAngleX != 0.0:
                 rotateLungs(rotateLungAngleX, fieldmodule, coordinates, lungNodeset, axis=1)
 
+            if rotateLungAngleY != 0.0:
+                rotateLungs(rotateLungAngleY, fieldmodule, coordinates, lungNodeset, axis=2)
+
             if rotateLungAngleZ != 0.0:
                 rotateLungs(rotateLungAngleZ, fieldmodule, coordinates, lungNodeset, axis=3)
 
             translateLungLocation(fieldmodule, coordinates, lungNodeset, spacing, bendZ)
-
-            if apexMedialDisplacement != 0.0:
-                medialShearRadian = math.atan(apexMedialDisplacement / height)
-                tiltLungs(medialShearRadian, 0, 0, 0, fieldmodule, coordinates, lungNodeset)
-
-            if forwardLeftRightApex != 0.0:
-                ventralShearRadian = math.atan(forwardLeftRightApex / height)
-                tiltLungs(0, ventralShearRadian, 0, 0, fieldmodule, coordinates, lungNodeset, isApex=True)
 
             smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
                                          elementsCountNormal, elementsCountOblique, elementsCountShell)
@@ -1213,21 +1207,24 @@ def rotateLungs(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
     :param axis: Axis of rotation.
     :return: None
     """
-    rotateAngle = -rotateAngle / 180 * math.pi  # negative value due to right handed rule
+    rotateAngle = -math.radians(rotateAngle)  # negative value due to right handed rule
 
     if axis == 1:
         rotateMatrix = fm.createFieldConstant([1.0, 0.0, 0.0,
                                                0.0, math.cos(rotateAngle), math.sin(rotateAngle),
                                                0.0, -math.sin(rotateAngle), math.cos(rotateAngle)])
-
+    elif axis == 2:
+        rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), 0.0, -math.sin(rotateAngle),
+                                               0.0, 1.0, 0.0,
+                                               math.sin(rotateAngle), 0.0, math.cos(rotateAngle)])
     elif axis == 3:
         rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), math.sin(rotateAngle), 0.0,
                                                -math.sin(rotateAngle), math.cos(rotateAngle), 0.0,
                                                0.0, 0.0, 1.0])
 
-    translate_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
+    rotated_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
 
-    fieldassignment = coordinates.createFieldassignment(translate_coordinates)
+    fieldassignment = coordinates.createFieldassignment(rotated_coordinates )
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
@@ -1311,49 +1308,7 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBre
     taper_coordinates = fm.createFieldMultiply(origin, transformation_matrix)
     translate_coordinates = fm.createFieldSubtract(taper_coordinates, offset)
 
-    # if isApex:
-    #     y = fm.createFieldComponent(coordinates, 2)
-    #     isRightSide = fm.createFieldGreaterThan(y, fm.createFieldConstant(-0.05))
-    #     translate_coordinates = fm.createFieldIf(isRightSide, coordinates, translate_coordinates)
-
     fieldassignment = coordinates.createFieldassignment(translate_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
-
-
-def tiltLungs(tiltApex_xAxis, tiltApex_yAxis, tiltDiap_yAxis, tiltDiap_xAxis, fm, coordinates, lungNodesetGroup,
-              isApex=False):
-    """
-    Applies a shear transformation to the lung mesh to achieve tilting effects at both the apex and diaphragm.
-    :param tiltApex_xAxis: Shear factor along the x-axis for the lung apex, tilting the top of the lung forward or backward.
-    :param tiltApex_yAxis: Shear factor along the y-axis for the lung apex, tilting the top of the lung side-to-side.
-    :param tiltDiap_yAxis: Shear factor along the y-axis for the diaphragm, controlling side-to-side tilt at the base.
-    :param tiltDiap_xAxis: Shear factor along the x-axis for the diaphragm, controlling forward or backward tilt at the base.
-    :param fm: Field module used to create and manage fields and transformations.
-    :param coordinates: The coordinate field of the lung, initially with a circular profile in the y-z plane.
-    :param lungNodesetGroup: The Zinc NodesetGroup containing the nodes to be transformed.
-    :param isApex: If True, only transform coordinates above the lung base (apex region). If False, transform
-    coordinates at or below the lung base (diaphragm region).
-    """
-    # FieldConstant - Matrix = [   x1,    x4, sh_zx,
-    #                              x2,    x5, sh_zy,
-    #                           sh_xz, sh_yz,    x9]
-    sh_xz = tiltApex_xAxis
-    sh_yz = tiltApex_yAxis
-    sh_zy = tiltDiap_yAxis
-    sh_zx = tiltDiap_xAxis
-
-    shearMatrix = fm.createFieldConstant([1.0, 0.0, sh_xz, 0.0, 1.0, sh_yz, sh_zx, sh_zy, 1.0])
-    newCoordinates = fm.createFieldMatrixMultiply(3, shearMatrix, coordinates)
-
-    if tiltApex_yAxis != 0.0:
-        z = fm.createFieldComponent(coordinates, 3)
-        bendZ = fm.createFieldConstant(0.0)
-
-        z_tilt = fm.createFieldGreaterThan(z, bendZ) if isApex else fm.createFieldLessThan(z, bendZ)
-        newCoordinates = fm.createFieldIf(z_tilt, newCoordinates, coordinates)
-
-    fieldassignment = coordinates.createFieldassignment(newCoordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
