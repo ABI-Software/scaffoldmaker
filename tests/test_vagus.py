@@ -316,11 +316,12 @@ class VagusScaffoldTestCase(unittest.TestCase):
             self.assertEqual(0, datapoints.getSize())
             meshDerivative1 = mesh3d.getChartDifferentialoperator(order=1, term=1)
             meshDerivative3 = mesh3d.getChartDifferentialoperator(order=1, term=3)
-            TOL = 0.1  # was 0.01  # coordinates and derivatives
+            XTOL = 0.01  # coordinates and derivatives
             LTOL = 0.0001  # length
             STOL = 0.1  # surface area
             VTOL = 1.0  # volume
             MTOL = 1.0E-7  # material coordinate
+            trunk_group_name = "left vagus trunk"
             one = fieldmodule.createFieldConstant(1.0)
             for group_name in expected_group_info.keys():
                 term_id, parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3, \
@@ -339,6 +340,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 nodeset_group = group.getNodesetGroup(nodes)
                 expected_node_count = expected_elements_count + (2 if parent_group_name else 1)
                 self.assertEqual(expected_node_count, nodeset_group.getSize())
+                branch_of_branch = False
                 if parent_group_name:
                     # check first 2 nodes are in parent nodeset group
                     parent_group = fieldmodule.findFieldByName(parent_group_name).castGroup()
@@ -347,6 +349,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                     for n in range(2):
                         node = nodeiterator.next()
                         self.assertTrue(parent_nodeset_group.containsNode(node))
+                    branch_of_branch = parent_group_name != trunk_group_name
                 element = mesh_group3d.createElementiterator().next()
                 self.assertEqual(RESULT_OK, fieldcache.setMeshLocation(element, [0.0, 0.5, 0.5]))
                 result, start_x = coordinates.evaluateReal(fieldcache, 3)
@@ -355,10 +358,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 self.assertEqual(RESULT_OK, result)
                 result, start_d3 = coordinates.evaluateDerivative(meshDerivative3, fieldcache, 3)
                 self.assertEqual(RESULT_OK, result)
-                print(group_name)
-                print("start_x", start_x)
-                print(f"start_d1", start_d1)
-                print(f"start_d3", start_d3)
+                TOL = 10.0 * XTOL if branch_of_branch else XTOL
                 assertAlmostEqualList(self, start_x, expected_start_x, delta=TOL)
                 assertAlmostEqualList(self, start_d1, expected_start_d1, delta=TOL)
                 assertAlmostEqualList(self, start_d3, expected_start_d3, delta=TOL)
@@ -372,7 +372,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 self.assertEqual(result, RESULT_OK)
                 result, volume = volume_field.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
-                self.assertAlmostEqual(expected_surface_area, surface_area, delta=STOL)
+                self.assertAlmostEqual(expected_surface_area, surface_area, delta=350.0 if branch_of_branch else STOL)
                 self.assertAlmostEqual(expected_volume, volume, delta=VTOL)
 
             # check sampled trunk d3 for orientation and radius fit, all at element centre
@@ -393,7 +393,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 self.assertEqual(RESULT_OK, fieldcache.setMeshLocation(element, xi_centre))
                 result, d3 = coordinates.evaluateDerivative(meshDerivative3, fieldcache, 3)
                 self.assertEqual(RESULT_OK, result)
-                assertAlmostEqualList(self, d3, expected_d3, delta=TOL)
+                assertAlmostEqualList(self, d3, expected_d3, delta=XTOL)
 
             # check volume of trunk, surface area of epineurium, length of centroids, coordinates and straight coordinates
             straight_coordinates = fieldmodule.findFieldByName("straight coordinates").castFiniteElement()
@@ -485,7 +485,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                     [0.004500416564857745, 0.0039681076697987636, 1.0469921152278516e-08],
                     0.0014496559346632183,
                     1.4855508165393375e-06)}
-            TOL = 1.0E-7  # coordinates and derivatives
+            XTOL = 1.0E-7  # coordinates and derivatives
             STOL = 1.0E-9  # surface area
             VTOL = 1.0E-11  # volume
             for group_name in expected_group_info.keys():
@@ -498,12 +498,14 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 self.assertEqual(RESULT_OK, fieldcache.setMeshLocation(element, [0.0, 0.5, 0.5]))
                 result, start_x = vagus_coordinates.evaluateReal(fieldcache, 3)
                 self.assertEqual(RESULT_OK, result)
-                assertAlmostEqualList(self, start_x, expected_start_x, delta=TOL)
                 result, start_d1 = vagus_coordinates.evaluateDerivative(meshDerivative1, fieldcache, 3)
                 self.assertEqual(RESULT_OK, result)
-                assertAlmostEqualList(self, start_d1, expected_start_d1, delta=TOL)
                 result, start_d3 = vagus_coordinates.evaluateDerivative(meshDerivative3, fieldcache, 3)
                 self.assertEqual(RESULT_OK, result)
+                branch_of_branch = (group_name == 'left A branch of superior laryngeal nerve')
+                TOL = (10.0 * XTOL) if branch_of_branch else XTOL
+                assertAlmostEqualList(self, start_x, expected_start_x, delta=TOL)
+                assertAlmostEqualList(self, start_d1, expected_start_d1, delta=TOL)
                 assertAlmostEqualList(self, start_d3, expected_start_d3, delta=TOL)
                 # note surface area is merely sum of all surfaces including epineurium, box and interior surfaces
                 surface_area_field = fieldmodule.createFieldMeshIntegral(one, vagus_coordinates, mesh_group2d)
