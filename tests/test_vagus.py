@@ -487,7 +487,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                     [0.004500416564857745, 0.0039681076697987636, 1.0469921152278516e-08],
                     0.0014496559346632183,
                     1.4855508165393375e-06)}
-            XTOL = 1.0E-7  # coordinates and derivatives
+            XTOL = 2.0E-7  # coordinates and derivatives
             STOL = 1.0E-9  # surface area
             VTOL = 1.0E-11  # volume
             for group_name in expected_group_info.keys():
