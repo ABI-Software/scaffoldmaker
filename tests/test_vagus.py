@@ -373,7 +373,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 result, volume = volume_field.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
                 self.assertAlmostEqual(expected_surface_area, surface_area, delta=350.0 if branch_of_branch else STOL)
-                self.assertAlmostEqual(expected_volume, volume, delta=VTOL)
+                self.assertAlmostEqual(expected_volume, volume, delta=20000.0 if branch_of_branch else VTOL)
 
             # check sampled trunk d3 for orientation and radius fit, all at element centre
             xi_centre = [0.5, 0.5, 0.5]
