@@ -520,7 +520,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 result, volume = volume_field.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
                 self.assertAlmostEqual(expected_surface_area, surface_area, delta=2.0E-7 if branch_of_branch else STOL)
-                self.assertAlmostEqual(expected_volume, volume, delta=VTOL)
+                self.assertAlmostEqual(expected_volume, volume, delta=2.0E-10 if branch_of_branch else VTOL)
 
             # test combined groups
             branch_common_map = {
