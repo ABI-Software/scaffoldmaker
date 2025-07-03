@@ -261,39 +261,39 @@ class VagusScaffoldTestCase(unittest.TestCase):
             expected_group_info = {
                 "left vagus nerve": (
                     "http://uri.interlex.org/base/ilx_0785628", None, 25,
-                    [-1269.8293183474027, -6359.8794918062185, -69.79596358103436],
-                    [2163.5065559034797, -1112.4694863693492, 121.49477098496129],
-                    [49.69809961146075, 258.19137709267125, 1479.1407307248198],
-                    248424548.42757902,
-                    32973169952.33672),
+                    [-1269.8048516184547, -6359.977051431916, -69.78642824721726],
+                    [2163.657939271601, -1111.9771974322234, 121.45057496461462],
+                    [49.68213484225328, 258.2220400479382, 1479.1356481323735],
+                    248430668.23162192,
+                    32973643021.906002),
                 "left superior laryngeal nerve": (
                     "http://uri.interlex.org/base/ilx_0788780", "left vagus nerve", 3,
-                    [5888.361608956813, -4417.766403817663, -201.35981775061967],
-                    [-1488.8488795282458, 791.7429838047342, 83.0590111566718],
-                    [40.03987180084414, 14.864881979714482, 576.0260276199538],
-                    9712700.895177323,
-                    554689189.2182714),
+                    [5923.104657597037, -4450.247919770724, -196.91175665569304],
+                    [-1473.665051675918, 858.0807042974036, 37.61890734384076],
+                    [29.08457359713975, 24.68196779670643, 576.3537772211523],
+                    9788808.200600598,
+                    558709236.3511268),
                 "left A branch of superior laryngeal nerve": (
                     "http://uri.interlex.org/base/ilx_0795823", "left superior laryngeal nerve", 2,
-                    [5095.698554751851, -1435.5245960200803, -4.95378510864149],
-                    [-1310.3674569985124, 264.340042537044, 53.75707581244285],
-                    [9.731322981637277, -12.682910300344247, 299.5737724490257],
-                    4680192.321708083,
-                    236055059.57983524),
+                    [5105.456364262517, -1456.268405569011, 0.18793093373064806],
+                    [-1289.581295107282, 381.4601337342457, 17.4939305617649],
+                    [2.990626464088564, -3.646186476940329, 299.9629335060045],
+                    4696615.9900110625,
+                    236649716.13221297),
                 "left A thoracic cardiopulmonary branch of vagus nerve": (
                     "http://uri.interlex.org/base/ilx_0794192", "left vagus nerve", 2,
-                    [20651.94765027247, -2955.4531267489256, -609.718731363599],
-                    [-11.845579664618569, -1713.7381754113042, -52.47409739912885],
-                    [-8.83290713867791, 10.741342747816361, -348.80482226706044],
-                    6206690.003928819,
-                    329878058.1182652),
+                    [20637.123232118385, -2947.094130818923, -608.014306886659],
+                    [99.3811573594032, -1713.8817535655435, -61.05879554434691],
+                    [-8.860965678419234, 11.91104819082625, -348.7579634464091],
+                    6201808.834555441,
+                    328598403.66705346),
                 "left B thoracic cardiopulmonary branch of vagus nerve": (
-                    "http://uri.interlex.org/base/ilx_0794193", "left vagus nerve", 2,
-                    [22198.762145694476, -3181.553031186403, -628.400239786329],
-                    [886.9465489726451, 756.0670892895126, -89.42734555851769],
-                    [1.0856990421307273, 39.326727353878596, 343.25743550415484],
-                    4386798.475452815,
-                    230441652.0883617)
+                    "http://uri.interlex.org/base/ilx_0794193", "left vagus nerve", 1,
+                    [22164.37254634065, -3219.4137858081867, -620.4335804280934],
+                    [1775.1656728388923, 1620.6261382213854, -217.236772843207],
+                    [2.3594134224331356, 43.375834887613564, 342.871791578891],
+                    4658643.2842846215,
+                    267729615.1145657)
             }
             groups_count = len(expected_group_info)
 
@@ -304,7 +304,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
             self.assertTrue(coordinates.isValid())
             self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
             mesh3d = fieldmodule.findMeshByDimension(3)
-            expected_elements_count = 34
+            expected_elements_count = 33
             self.assertEqual(expected_elements_count, mesh3d.getSize())
             mesh2d = fieldmodule.findMeshByDimension(2)
             self.assertEqual(expected_elements_count * 9 + groups_count, mesh2d.getSize())
@@ -317,6 +317,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
             meshDerivative1 = mesh3d.getChartDifferentialoperator(order=1, term=1)
             meshDerivative3 = mesh3d.getChartDifferentialoperator(order=1, term=3)
             TOL = 0.01  # coordinates and derivatives
+            LTOL = 0.0001  # length
             STOL = 0.1  # surface area
             VTOL = 1.0  # volume
             MTOL = 1.0E-7  # material coordinate
@@ -374,14 +375,15 @@ class VagusScaffoldTestCase(unittest.TestCase):
             xi_centre = [0.5, 0.5, 0.5]
             # (element_identifier, expected_d3)
             expected_d3_info = [
-                (2, [-58.6320893646309, 252.10632092292698, 1160.1294488820856]),
-                (4, [-466.62766145492685, 684.2084398271177, 792.1096579340568]),
-                (6, [-39.95762551866224, 626.8288519565403, 194.81718412021738]),
-                (8, [-3.574742930372935, 202.7684810518603, 665.5762493112433]),
-                (10, [-35.304634943338584, -271.8616602272858, 641.3892257020541]),
-                (12, [-185.8222316950974, -564.9761535332963, 246.0793858722639]),
-                (14, [1.0315516085406102, -474.6578157024839, 117.94936286585241]),
-                (16, [-3.5248364119734674, -465.9424087280286, 105.13518670585816])]
+                (2, [-58.61783307229305, 252.12576421778604, 1160.1311747920795]),
+                (4, [-466.6104180485502, 684.1844267896083, 792.1344245659976]),
+                (6, [-39.96816960556015, 626.8518820786068, 194.7956076398493]),
+                (8, [-3.5724520665194177, 202.78915581284485, 665.5701348977416]),
+                (10, [-35.32843904524995, -271.90830737446174, 641.3643386269923]),
+                (12, [-185.7857471471036, -564.9499544682276, 246.03766692690448]),
+                (14, [1.024675995239022, -474.64623017953363, 117.92958351592786]),
+                (16, [-3.5041316672463836, -465.94920208179235, 105.11830084069737])]
+
             for element_identifier, expected_d3 in expected_d3_info:
                 element = mesh3d.findElementByIdentifier(element_identifier)
                 self.assertEqual(RESULT_OK, fieldcache.setMeshLocation(element, xi_centre))
@@ -400,9 +402,9 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 fieldcache.clearLocation()
                 result, volume = volume_field.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
-                expected_volume = 32973169952.33672 if (coordinate_field is coordinates) else 33282446696.00908
+                expected_volume = 32973643021.906002 if (coordinate_field is coordinates) else 33282940849.74868
                 self.assertAlmostEqual(expected_volume, volume, delta=STOL)
-                expected_elements_count = 34
+                expected_elements_count = 33
                 group = fieldmodule.findFieldByName("vagus epineurium").castGroup()
                 mesh_group2d = group.getMeshGroup(mesh2d)
                 self.assertEqual(expected_elements_count * 4, mesh_group2d.getSize())
@@ -411,7 +413,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 fieldcache.clearLocation()
                 result, surface_area = surface_area_field.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
-                expected_surface_area = 72152126.79268955 if (coordinate_field is coordinates) else 72475953.00156902
+                expected_surface_area = 72273975.5732966 if (coordinate_field is coordinates) else 72581935.90689336
                 self.assertAlmostEqual(expected_surface_area, surface_area, delta=STOL)
                 group = fieldmodule.findFieldByName("vagus centroid").castGroup()
                 mesh_group1d = group.getMeshGroup(mesh1d)
@@ -420,7 +422,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 length_field.setNumbersOfPoints(4)
                 result, length = length_field.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
-                self.assertAlmostEqual(75773.76066920695, length, delta=STOL)
+                self.assertAlmostEqual(75894.09718530288, length, delta=LTOL)
 
             # check all markers are added
             marker_group = fieldmodule.findFieldByName("marker").castGroup()
@@ -456,29 +458,29 @@ class VagusScaffoldTestCase(unittest.TestCase):
                     0.07044881379783888,
                     0.00014399999999999916),
                 'left superior laryngeal nerve': (
-                    [0.000881946577575204, 0.00046342826229338254, 0.13157231647692647],
-                    [0.012375232591217526, 0.011945671613974565, -0.007050424464461594],
-                    [-0.004122294839398416, 0.004267844200042748, -0.00014529821484897398],
-                    0.002002117608655125,
-                    2.002583526823736e-06),
+                    [0.0004810143452341199, 0.00016215537359726758, 0.1315566022306105],
+                    [0.012918159918245761, 0.011858038889900713, -0.005993045531008481],
+                    [-0.004009185375038346, 0.004374444695059173, -0.00014749081697862376],
+                    0.0019961825738478577,
+                    1.9965460129518142e-06),
                 'left A branch of superior laryngeal nerve': (
-                    [0.02817015018376029, 0.025803094067409528, 0.11477792076676165],
-                    [-0.010775661380116038, -0.013815688836866404, -0.014572453104873985],
-                    [-0.004342817670527603, 0.004084144597586936, -0.0007112995737230954],
-                    0.0015430135555127994,
-                    1.4763762746144708e-06),
+                    [0.029038466228280567, 0.02563897682357003, 0.11742199136150967],
+                    [-0.009398043228514652, -0.013415035881397646, -0.017342847114134856],
+                    [-0.004251880840935028, 0.004133184586737899, -0.0009537255926423682],
+                    0.0016020806733303852,
+                    1.5300531912537515e-06),
                 'left A thoracic cardiopulmonary branch of vagus nerve': (
-                    [-0.00033316105639673993, 1.7775357276363264e-05, 0.38136799563066826],
-                    [-0.026876114055372165, 0.011301086871669301, 0.0045715391201361375],
-                    [-0.002302094674267968, -0.005536330847622523, -0.00012166893939763446],
-                    0.002076223576695471,
-                    2.1241213756367916e-06),
+                    [-0.00023305107492456, -5.219544526299368e-06, 0.381097023646834],
+                    [-0.02667084814216207, 0.011012987852591622, 0.006327322474065759],
+                    [-0.002266194165367729, -0.005551192787385297, -0.0001201586042652858],
+                    0.002078138926255945,
+                    2.1261681901588285e-06),
                 'left B thoracic cardiopulmonary branch of vagus nerve': (
-                    [0.0010023426903899028, -0.0015549456000039472, 0.4067480269851232],
-                    [0.011289784094864912, -0.01261655629280709, 0.010640904036129741],
-                    [0.00446818676605633, 0.00400443416074313, 6.442917430682371e-07],
-                    0.0014410574883490532,
-                    1.4381927734194566e-06)}
+                    [0.0005132914610188526, -0.0009107494333354117, 0.4063642319952978],
+                    [0.02359392799517729, -0.02679536894825348, 0.020864764064142793],
+                    [0.004500416564857745, 0.0039681076697987636, 1.0469921152278516e-08],
+                    0.0014496559346632183,
+                    1.4855508165393375e-06)}
             TOL = 1.0E-7  # coordinates and derivatives
             STOL = 1.0E-9  # surface area
             VTOL = 1.0E-11  # volume

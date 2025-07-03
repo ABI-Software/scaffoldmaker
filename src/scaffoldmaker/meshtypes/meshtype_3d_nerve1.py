@@ -2,7 +2,7 @@ import math
 import logging
 
 from cmlibs.maths.vectorops import (
-    add, cross, dot, magnitude, matrix_mult, matrix_inv, mult, normalize, rejection, set_magnitude, sub)
+    add, cross, distance, dot, magnitude, matrix_mult, matrix_inv, mult, normalize, rejection, set_magnitude, sub)
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.utils.zinc.field import (
     find_or_create_field_group, find_or_create_field_coordinates)
@@ -560,6 +560,16 @@ class MeshType_3d_nerve1(Scaffold_base):
 
         parent_parameters = {}
         parent_parameters[trunk_group_name] = (tx, td1, td2, td12, td3, td13, tnid)
+        # the first branch node mainly marks connection on the parent/trunk centroid,
+        # hence the following code starts branches from a proportion of parent radius
+        # out, up to an upper limit on the proportion of the first segment:
+        PARENT_RADIUS_PROPORTION = 0.5
+        FIRST_SEGMENT_MAX_CUT_XI = 0.5
+        branch_max_element_length = trunk_mean_element_length
+
+        derivative_xi1 = mesh3d.getChartDifferentialoperator(1, 1)
+        derivative_xi2 = mesh3d.getChartDifferentialoperator(1, 2)
+        derivative_xi3 = mesh3d.getChartDifferentialoperator(1, 3)
 
         # following is assigned to branch coordinates before finding trunk location
         branch_start_coordinates = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
@@ -599,28 +609,49 @@ class MeshType_3d_nerve1(Scaffold_base):
                     branch_start_coordinates, coordinates, parent_mesh_group)
                 find_parent_location.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
                 del parent_group
-            branch_start_x = branch_px[1 if (len(branch_px) > 2) else 0]
             fieldcache.clearLocation()
-            branch_start_coordinates.assignReal(fieldcache, branch_start_x)
+            branch_start_coordinates.assignReal(fieldcache, branch_px[0])
             parent_element, parent_xi = find_parent_location.evaluateMeshLocation(fieldcache, 3)
             if not parent_element.isValid():
                 logger.error("Nerve: branch " + branch_name + " start point could not be found in parent nerve")
                 continue
-            cxd2 = 2.0 * (parent_xi[1] - 0.5)
-            cxd3 = 2.0 * (parent_xi[2] - 0.5)
+            # get radius at parent_location
+            fieldcache.setMeshLocation(parent_element, parent_xi)
+            _, d2 = coordinates.evaluateDerivative(derivative_xi2, fieldcache, 3)
+            _, d3 = coordinates.evaluateDerivative(derivative_xi3, fieldcache, 3)
+            parent_radius = 0.25 * (magnitude(d2) + magnitude(d3))
+            first_distance = distance(branch_px[1], branch_px[0])
+            xi = min(FIRST_SEGMENT_MAX_CUT_XI, PARENT_RADIUS_PROPORTION * parent_radius / first_distance)
+            new_start_x = add(mult(branch_px[0], 1.0 - xi), mult(branch_px[1], xi))
+
+            # cut the first part of the branch:
+            px = [new_start_x] + branch_px[1:]
+            ax, ad1 = get_curve_from_points(px, maximum_element_length=branch_max_element_length)
+            bx, bd1 = fit_hermite_curve(ax, ad1, px)
+            branch_length = getCubicHermiteCurvesLength(bx, bd1)
+            branch_elements_count = math.ceil(branch_length / branch_max_element_length)
+            # previously had minimum of 2 elements along branch as can't attach sub-branches from first element
+            # branch_elements_count = max(2, branch_elements_count)
+            cx, cd1 = sampleCubicHermiteCurves(bx, bd1, branch_elements_count)[0:2]
+
+            # find the parent location at the fitted branch start location
+            fieldcache.clearLocation()
+            branch_start_coordinates.assignReal(fieldcache, cx[0])
+            parent_element, parent_xi = find_parent_location.evaluateMeshLocation(fieldcache, 3)
+            if not parent_element.isValid():
+                logger.error("Nerve: branch " + branch_name + " fitted start point could not be found in parent nerve")
+                continue
             parent_first_element = parent_mesh_group.createElementiterator().next()
             parent_location = (parent_element.getIdentifier() - parent_first_element.getIdentifier(), parent_xi[0])
             if (not trunk_is_parent) and (parent_location[0] == 0):
                 # can't have branch from the root element of a branch
+                if parent_mesh_group.getSize() == 1:
+                    logger.error("Nerve: can't make branch " + branch_name +
+                                 " off single element parent " + branch_parent_name)
+                    continue
                 parent_location = (1, 0.0)
-            branch_max_element_length = trunk_mean_element_length
-            # unless only 2 points, don't want first point which only marks connection on trunk centroid
-            px = branch_px[1:] if (len(branch_px) > 2) else branch_px
-            ax, ad1 = get_curve_from_points(px, maximum_element_length=branch_max_element_length)
-            bx, bd1 = fit_hermite_curve(ax, ad1, px)
-            branch_length = getCubicHermiteCurvesLength(bx, bd1)
-            branch_elements_count = max(2, math.ceil(branch_length / branch_max_element_length))
-            cx, cd1 = sampleCubicHermiteCurves(bx, bd1, branch_elements_count, arcLengthDerivatives=True)[0:2]
+            cxd2 = 2.0 * (parent_xi[1] - 0.5)
+            cxd3 = 2.0 * (parent_xi[2] - 0.5)
 
             # parent interpolation
             pn1 = parent_location[0]
@@ -768,9 +799,6 @@ class MeshType_3d_nerve1(Scaffold_base):
         straight_coordinates = fieldmodule.findFieldByName("other coordinates").castFiniteElement()
         straight_coordinates.setName("straight coordinates")
 
-        derivative_xi1 = mesh3d.getChartDifferentialoperator(1, 1)
-        derivative_xi2 = mesh3d.getChartDifferentialoperator(1, 2)
-        derivative_xi3 = mesh3d.getChartDifferentialoperator(1, 3)
         zero = [0.0, 0.0, 0.0]
 
         # assign vagus coordinates

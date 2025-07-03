@@ -1698,8 +1698,8 @@ def get_curve_from_points(px, maximum_element_length=None, number_of_elements=No
                     sum_x = add(sum_x, wtx)
                     break
             x = div(sum_x, 2.0 * delta_length)
-            nx.append(x)
-            nd1.append(zero)
+        nx.append(x)
+        nd1.append(zero)
     nx.append(copy.copy(px[-1]))
     nd1.append(zero)
     # smooth with harmonic mean, get the length and resample to the desired number of even-sized elements

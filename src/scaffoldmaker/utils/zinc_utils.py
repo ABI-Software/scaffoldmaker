@@ -954,7 +954,7 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
 
     # calibrated by scaling the model: a power of 3 relationship
     curvature_penalty = ((points_count * data_proportion) / (points_per_element * elements_count) *
-                         1.0E-8 * (curve_length ** 3))
+                         1.0E-6 * (curve_length ** 3))
     fit1 = FitterStepFit()
     fitter.addFitterStep(fit1)
     fit1.setGroupCurvaturePenalty(None, [curvature_penalty])
