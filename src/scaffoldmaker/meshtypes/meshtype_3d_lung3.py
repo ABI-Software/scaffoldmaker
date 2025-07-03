@@ -52,9 +52,9 @@ class MeshType_3d_lung3(Scaffold_base):
         options["Right lung"] = True
         options["Open fissures"] = False
         options["Number of left lung lobes"] = 2
-        options["Disc breadth"] = 0.8
-        options["Disc height"] = 1.3
-        options["Disc depth"] = 0.3
+        options["Ellipsoid breadth"] = 0.8
+        options["Ellipsoid height"] = 1.0
+        options["Ellipsoid depth"] = 0.6
         options["Left oblique slope degrees"] = 45.0
         options["Right oblique slope degrees"] = 45.0
         options["Refine"] = False
@@ -78,9 +78,7 @@ class MeshType_3d_lung3(Scaffold_base):
 
         if "Human" in useParameterSetName:
             options["Left-right lung spacing"] = 0.4
-            options["Base sharpness factor"] = 0.5
-            options["Diaphragm angle degrees"] = 30.0
-            options["Diaphragm proportion"] = 0.2
+            options["Base lateral edge sharpness factor"] = 0.5
             options["Impression breadth proportion"] = 1.0
             options["Impression height proportion"] = 0.8
             options["Impression depth proportion"] = 1.0
@@ -89,23 +87,19 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Right oblique slope degrees"] = 45.0
             options["Medial curvature"] = 0.0
             options["Medial curvature bias"] = 0.0
-            options["Medial rotation about x-axis degrees"] = 5.0
             options["Dorsal-ventral rotation degrees"] = 10.0
             options["Ventral-medial rotation degrees"] = 10.0
             options["Use sizing function"] = True
             options["Scale factor"] = 0.7
         else:
             options["Left-right lung spacing"] = 1.0
-            options["Base sharpness factor"] = 0.0
-            options["Diaphragm angle degrees"] = 0.0
-            options["Diaphragm proportion"] = 0.0
+            options["Base lateral edge sharpness factor"] = 0.0
             options["Impression breadth proportion"] = 0.0
             options["Impression height proportion"] = 0.0
             options["Impression depth proportion"] = 0.0
             options["Lateral shear rate"] = 0.0
             options["Medial curvature"] = 0.0
             options["Medial curvature bias"] = 0.0
-            options["Medial rotation about x-axis degrees"] = 0.0
             options["Dorsal-ventral rotation degrees"] = 0.0
             options["Ventral-medial rotation degrees"] = 0.0
             options["Use sizing function"] = False
@@ -129,25 +123,22 @@ class MeshType_3d_lung3(Scaffold_base):
             "Number of elements normal",
             "Number of elements oblique",
             "Number of elements shell",
+            "Ellipsoid breadth",
+            "Ellipsoid height",
+            "Ellipsoid depth",
             "Left-right lung spacing",
-            "Base sharpness factor",
+            "Base lateral edge sharpness factor",
             "Ventral edge sharpness factor",
-            "Diaphragm angle degrees",
-            "Diaphragm proportion",
-            "Disc breadth",
-            "Disc height",
-            "Disc depth",
+            "Medial curvature",
+            "Medial curvature bias",
+            "Dorsal-ventral rotation degrees",
+            "Ventral-medial rotation degrees",
+            "Left oblique slope degrees",
+            "Right oblique slope degrees",
             "Impression breadth proportion",
             "Impression height proportion",
             "Impression depth proportion",
             "Lateral shear rate",
-            "Left oblique slope degrees",
-            "Right oblique slope degrees",
-            "Medial curvature",
-            "Medial curvature bias",
-            "Medial rotation about x-axis degrees",
-            "Dorsal-ventral rotation degrees",
-            "Ventral-medial rotation degrees",
             "Use sizing function",
             "Scale factor",
             "Refine",
@@ -182,13 +173,12 @@ class MeshType_3d_lung3(Scaffold_base):
             dependentChanges = True
 
         for dimension in [
-            "Disc breadth",
-            "Disc height",
-            "Disc depth"]:
+            "Ellipsoid breadth",
+            "Ellipsoid height",
+            "Ellipsoid depth"]:
             if options[dimension] <= 0.0:
                 options[dimension] = 1.0
         for dimension in [
-            "Diaphragm proportion",
             "Impression depth proportion",
             "Impression height proportion",
             "Impression breadth proportion"]:
@@ -201,7 +191,7 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Left-right lung spacing"] = 0.0
 
         for dimension in [
-            "Base sharpness factor",
+            "Base lateral edge sharpness factor",
             "Ventral edge sharpness factor",
             "Medial curvature bias"
         ]:
@@ -211,7 +201,6 @@ class MeshType_3d_lung3(Scaffold_base):
                 options[dimension] = 1.0
 
         for angle in [
-            "Medial rotation about x-axis degrees",
             "Dorsal-ventral rotation degrees",
             "Ventral-medial rotation degrees"
         ]:
@@ -247,13 +236,11 @@ class MeshType_3d_lung3(Scaffold_base):
         elementsCountShell = options["Number of elements shell"]
         elementsCountTransition = 1
         lungSpacing = options["Left-right lung spacing"] * 0.5
-        baseSharpFactor = options["Base sharpness factor"]
+        baseSharpFactor = options["Base lateral edge sharpness factor"]
         edgeSharpFactor = options["Ventral edge sharpness factor"]
-        diaphragm_angle_radians = math.radians(options["Diaphragm angle degrees"])
-        diaphragm_proportion = options["Diaphragm proportion"]
-        disc_breadth = options["Disc breadth"]
-        disc_height = options["Disc height"]
-        disc_depth = options["Disc depth"]
+        ellipsoid_breadth = options["Ellipsoid breadth"]
+        ellipsoid_height = options["Ellipsoid height"]
+        ellipsoid_depth = options["Ellipsoid depth"]
         impression_breadth_proportion = options["Impression breadth proportion"]
         impression_height_proportion = options["Impression height proportion"]
         impression_depth_proportion = options["Impression depth proportion"]
@@ -262,7 +249,6 @@ class MeshType_3d_lung3(Scaffold_base):
         right_oblique_slope_radians = math.radians(options["Right oblique slope degrees"])
         leftLungMedialCurvature = options["Medial curvature"]
         lungMedialCurvatureBias = options["Medial curvature bias"]
-        rotateLeftLungX = options["Medial rotation about x-axis degrees"]
         rotateLeftLungY = options["Dorsal-ventral rotation degrees"]
         rotateLeftLungZ = options["Ventral-medial rotation degrees"]
 
@@ -454,7 +440,7 @@ class MeshType_3d_lung3(Scaffold_base):
         axis1 = [1.0, 0.0, 0.0]
         axis2 = [0.0, 1.0, 0.0]
         axis3 = [0.0, 0.0, 1.0]
-        axes = [[disc_depth, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
+        axes = [[ellipsoid_depth * 0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
 
         elementsCountAcross = [elementsCountLateral, elementsCountOblique, elementsCountNormal]
         shellProportion = 1.0
@@ -508,25 +494,25 @@ class MeshType_3d_lung3(Scaffold_base):
             for i in lungs:
                 isLeft = True if i == leftLung else False
                 lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
-                scaleNodes(fieldmodule, coordinates, lungNodeset, disc_depth, scale_factor)
+                scaleNodes(fieldmodule, coordinates, lungNodeset, ellipsoid_depth, scale_factor)
 
         for i in lungs:
             isLeft = True if i == leftLung else False
             lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
-            halfBreadth = disc_breadth * 0.5
-            height = disc_height
+            halfBreadth = ellipsoid_breadth * 0.5
+            height = ellipsoid_height
             spacing = -lungSpacing if i == leftLung else lungSpacing
             oblique_slope_radians = left_oblique_slope_radians if i == leftLung else right_oblique_slope_radians
-            bendZ = (diaphragm_proportion - 0.5) * disc_height
+            bendZ = - 0.5 * ellipsoid_height
             lungMedialCurvature = -leftLungMedialCurvature if isLeft else leftLungMedialCurvature
-            rotateLungAngleX = rotateLeftLungX
             rotateLungAngleY = rotateLeftLungY if isLeft else -rotateLeftLungY
             rotateLungAngleZ = rotateLeftLungZ if isLeft else -rotateLeftLungZ
 
             if not isLeft:
                 flipRightLung(fieldmodule, coordinates, lungNodeset)
 
-            rotate_scale_lung(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, oblique_slope_radians)
+            rotate_scale_lung(fieldmodule, coordinates, lungNodeset, ellipsoid_breadth, ellipsoid_height,
+                              oblique_slope_radians)
 
             if edgeSharpFactor != 0.0:
                 sharpeningRidge(edgeSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth)
@@ -535,13 +521,9 @@ class MeshType_3d_lung3(Scaffold_base):
                 sharpeningRidge(baseSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isBase=True)
 
             if impression_depth_proportion > 0.0:
-                form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, disc_depth,
-                                         impression_breadth_proportion, impression_height_proportion,
+                form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, ellipsoid_breadth, ellipsoid_height,
+                                         ellipsoid_depth, impression_breadth_proportion, impression_height_proportion,
                                          impression_depth_proportion, lateral_shear_rate, isLeft=isLeft)
-
-            if (diaphragm_angle_radians != 0.0) and (diaphragm_proportion > 0.0):
-                form_diaphragm_surface(fieldmodule, coordinates, lungNodeset, diaphragm_angle_radians, bendZ,
-                                       isLeft=isLeft)
 
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
@@ -549,9 +531,6 @@ class MeshType_3d_lung3(Scaffold_base):
                                    stationaryPointXY=[0.0, 0.0],
                                    bias=lungMedialCurvatureBias,
                                    dorsalVentralXi=dorsalVentralXi)
-
-            if rotateLungAngleX != 0.0:
-                rotateLungs(rotateLungAngleX, fieldmodule, coordinates, lungNodeset, axis=1)
 
             if rotateLungAngleY != 0.0:
                 rotateLungs(rotateLungAngleY, fieldmodule, coordinates, lungNodeset, axis=2)
@@ -985,15 +964,15 @@ class MeshType_3d_lung3(Scaffold_base):
         for key, group in boxTransition_group.items():
             annotationGroups.remove(group)
 
-def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, oblique_slope_radians):
+def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_breadth, ellipsoid_height, oblique_slope_radians):
     """
-    Rotate and scale lung disc to achieve oblique slope, height and breadth.
+    Rotate and scale lung ellipsoid to achieve oblique slope, height and breadth.
     Transformation tries to conserve original right angle between major and minor axes,
     and keep element sizes around to similar sizes.
     :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param disc_breadth: Breadth of lung ellipse.
-    :param disc_height: Height of lung ellipse.
+    :param ellipsoid_breadth: Breadth of lung ellipse.
+    :param ellipsoid_height: Height of lung ellipse.
     :param oblique_slope_radians: Slope of oblique fissure, where a positive angle tilts down ventrally.
     :return: None
     """
@@ -1011,14 +990,14 @@ def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, 
     cos_phi = fieldmodule.createFieldCos(phi)
     sin_phi = fieldmodule.createFieldSin(phi)
 
-    scaling = 2.0 * (math.atan(disc_breadth / disc_height) - 0.25 * math.pi)
+    scaling = 2.0 * (math.atan(ellipsoid_breadth / ellipsoid_height) - 0.25 * math.pi)
     cc = fieldmodule.createFieldConstant(scaling)
     delta_phi = cc * cos_phi * sin_phi
     new_theta = phi + delta_phi
     cos_new_theta = fieldmodule.createFieldCos(new_theta)
     sin_new_theta = fieldmodule.createFieldSin(new_theta)
-    new_y = r * cos_new_theta * fieldmodule.createFieldConstant(disc_breadth)
-    new_z = r * sin_new_theta * fieldmodule.createFieldConstant(disc_height)
+    new_y = r * cos_new_theta * fieldmodule.createFieldConstant(ellipsoid_breadth)
+    new_z = r * sin_new_theta * fieldmodule.createFieldConstant(ellipsoid_height)
     new_coordinates = fieldmodule.createFieldConcatenate([x, new_y, new_z])
 
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
@@ -1059,32 +1038,32 @@ def flipRightLung(fieldmodule, coordinates, lungNodesetGroup):
     fieldassignment.assign()
 
 
-def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_breadth, disc_height, disc_depth,
+def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_breadth, ellipsoid_height, ellipsoid_depth,
                              impression_breadth_proportion, impression_height_proportion,
                              impression_depth_proportion, lateral_shear_rate, isLeft=True):
     """
     Form mediastinal surface by draping over ellipsoid impression.
     :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param disc_breadth: Breadth of lung disc ellipse.
-    :param disc_height: Height of lung disc ellipse.
-    :param disc_depth: Depth/thickness of lung disc half ellipsoid.
-    :param impression_breadth_proportion: Impression breadth as proportion of disc breadth, circle chord.
-    :param impression_height_proportion: Impression height as proportion of disc height, circle chord.
-    :param impression_depth_proportion: Impression depth as proportion of disc thickness, giving radii.
-    :param lateral_shear_rate: Rate of shear as proportion of depth into disc.
+    :param ellipsoid_breadth: Breadth of lung ellipsoid.
+    :param ellipsoid_height: Height of lung ellipsoid.
+    :param ellipsoid_depth: Depth/thickness of lung ellipsoid.
+    :param impression_breadth_proportion: Impression breadth as proportion of ellipsoid breadth, circle chord.
+    :param impression_height_proportion: Impression height as proportion of ellipsoid height, circle chord.
+    :param impression_depth_proportion: Impression depth as proportion of ellipsoid thickness, giving radii.
+    :param lateral_shear_rate: Rate of shear as proportion of depth into ellipsoid.
     :param isLeft: True if left lung, False if right lung.
     :return: None.
     """
     minus_1 = fieldmodule.createFieldConstant(-1.0)
     # get scaling from ellipse to curve of ellipsoid impression
-    b = 0.5 * impression_breadth_proportion * disc_breadth
-    h = 0.5 * impression_height_proportion * disc_height
-    d = impression_depth_proportion * disc_depth
+    b = 0.5 * impression_breadth_proportion * ellipsoid_breadth
+    h = 0.5 * impression_height_proportion * ellipsoid_height
+    d = impression_depth_proportion * 0.5 * ellipsoid_depth
     breadth_radius = 0.5 * (b * b + d * d) / d
     breadth_angle = 2.0 * math.asin(b / breadth_radius)
     breadth_cx = breadth_radius - d
-    breadth_cy = 0.5 * disc_breadth - b
+    breadth_cy = 0.5 * ellipsoid_breadth - b
     height_radius = 0.5 * (h * h + d * d) / d
     height_angle = 2.0 * math.asin(h / height_radius)
     height_cx = height_radius - d
@@ -1093,16 +1072,16 @@ def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_br
     x = fieldmodule.createFieldComponent(coordinates, 1)
     y = fieldmodule.createFieldComponent(coordinates, 2)
     z = fieldmodule.createFieldComponent(coordinates, 3)
-    b_angle_factor = fieldmodule.createFieldConstant(breadth_angle / disc_breadth)
+    b_angle_factor = fieldmodule.createFieldConstant(breadth_angle / ellipsoid_breadth)
     b_angle = fieldmodule.createFieldMultiply(y, b_angle_factor)
-    h_angle_factor = fieldmodule.createFieldConstant(height_angle / disc_height)
+    h_angle_factor = fieldmodule.createFieldConstant(height_angle / ellipsoid_height)
     h_angle = fieldmodule.createFieldMultiply(z, h_angle_factor)
     bcx = fieldmodule.createFieldConstant(breadth_cx)
     dd = fieldmodule.createFieldConstant(d)
     bcy = fieldmodule.createFieldConstant(breadth_cy)
     rb = bcx - x + dd if isLeft else bcx + (x + dd)
     lateral_shear_rate = lateral_shear_rate if isLeft else -lateral_shear_rate
-    b_shear_rate = fieldmodule.createFieldConstant(lateral_shear_rate * disc_depth / breadth_radius)
+    b_shear_rate = fieldmodule.createFieldConstant(lateral_shear_rate * 0.5 * ellipsoid_depth / breadth_radius)
     mod_b_angle = b_angle + b_shear_rate * x
     cosb = fieldmodule.createFieldCos(mod_b_angle)
     sinb = fieldmodule.createFieldSin(mod_b_angle)
@@ -1111,49 +1090,6 @@ def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, disc_br
     new_y = bcy + rb * sinb
 
     new_coordinates = fieldmodule.createFieldConcatenate([new_x, new_y, z])
-
-    fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
-
-
-def form_diaphragm_surface(fieldmodule, coordinates, lungNodesetGroup, diaphragm_angle_radians, diaphragm_bend_z,
-                           isLeft=True):
-    """
-    Form diaphragm surface by bending model up, phasing out to nothing at the apex.
-    :param fieldmodule: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param diaphragm_angle_radians: Angle of diaphragm from down mediastinal surface.
-    :param diaphragm_bend_z: Z coordinate of centre of diaphragm bend.
-    :param isLeft: True if left lung, False if right lung.
-    :return: None.
-    """
-    x = fieldmodule.createFieldComponent(coordinates, 1)
-    y = fieldmodule.createFieldComponent(coordinates, 2)
-    z = fieldmodule.createFieldComponent(coordinates, 3)
-    bend_z = fieldmodule.createFieldConstant(diaphragm_bend_z)
-    minus_1 = fieldmodule.createFieldConstant(-1.0)
-    nx = x * minus_1 if isLeft else x
-    mz = z - bend_z
-    nx_mz = fieldmodule.createFieldConcatenate([nx, mz])
-    r = fieldmodule.createFieldMagnitude(nx_mz)
-
-    diaphragm_angle_radians = diaphragm_angle_radians if isLeft else -diaphragm_angle_radians
-
-    theta = fieldmodule.createFieldAtan2(mz, nx)
-    zero = fieldmodule.createFieldConstant(0.0)
-    r_zero = fieldmodule.createFieldEqualTo(r, zero)
-    safe_theta = fieldmodule.createFieldIf(r_zero, zero, theta)
-    pi__2 = fieldmodule.createFieldConstant(0.5 * math.pi)
-    delta_theta = (pi__2 - safe_theta) * fieldmodule.createFieldConstant(diaphragm_angle_radians / math.pi)
-    new_theta = safe_theta + delta_theta if isLeft else delta_theta - safe_theta
-    cos_new_theta = fieldmodule.createFieldCos(new_theta) * minus_1 if isLeft else fieldmodule.createFieldCos(new_theta)
-    sin_new_theta = fieldmodule.createFieldSin(new_theta) if isLeft else fieldmodule.createFieldSin(new_theta) * minus_1
-    new_x = r * cos_new_theta
-    new_z = bend_z + r * sin_new_theta
-
-    new_coordinates = fieldmodule.createFieldConcatenate([new_x, y, new_z])
 
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
@@ -1198,11 +1134,7 @@ def rotateLungs(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
     """
     rotateAngle = -math.radians(rotateAngle)  # negative value due to right handed rule
 
-    if axis == 1:
-        rotateMatrix = fm.createFieldConstant([1.0, 0.0, 0.0,
-                                               0.0, math.cos(rotateAngle), math.sin(rotateAngle),
-                                               0.0, -math.sin(rotateAngle), math.cos(rotateAngle)])
-    elif axis == 2:
+    if axis == 2:
         rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), 0.0, -math.sin(rotateAngle),
                                                0.0, 1.0, 0.0,
                                                math.sin(rotateAngle), 0.0, math.cos(rotateAngle)])
@@ -1299,14 +1231,14 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBre
     fieldassignment.assign()
 
 
-def scaleNodes(fieldmodule, coordinates, lungNodesetGroup, disc_depth, scale_factor):
+def scaleNodes(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_depth, scale_factor):
     """
     Redistribute lung nodes so that the outermost nodes remain in place while inner nodes are scaled outward.
     The scaling factor is 1 at the outer boundary and increases towards the center, causing nodes to shift outward.
     :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in the y-z plane.
     :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param disc_depth: Depth of lung ellipse.
+    :param ellipsoid_depth: Depth of lung ellipsoid.
     :param scale_factor: Maximum scaling effect at the center (should be > 1 for expansion).
     """
     x = fieldmodule.createFieldComponent(coordinates, 1)
@@ -1319,8 +1251,8 @@ def scaleNodes(fieldmodule, coordinates, lungNodesetGroup, disc_depth, scale_fac
     four = fieldmodule.createFieldConstant(4.0)
 
     tol = 1.0E-3
-
-    aa = fieldmodule.createFieldConstant((disc_depth + disc_depth * tol) ** 2)
+    half_depth = 0.5 * ellipsoid_depth
+    aa = fieldmodule.createFieldConstant((half_depth + half_depth * tol) ** 2)
     b = fieldmodule.createFieldConstant(0.5)
     cc = fieldmodule.createFieldConstant((0.5 + 0.5 * tol) ** 2)
 
