@@ -398,6 +398,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
             # check volume of trunk, surface area of epineurium, length of centroids, coordinates and straight coordinates
             straight_coordinates = fieldmodule.findFieldByName("straight coordinates").castFiniteElement()
             self.assertTrue(straight_coordinates.isValid())
+            STOL = 100.0
             for coordinate_field in (coordinates, straight_coordinates):
                 group = fieldmodule.findFieldByName("left vagus nerve").castGroup()
                 mesh_group3d = group.getMeshGroup(mesh3d)
