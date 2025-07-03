@@ -78,7 +78,7 @@ class MeshType_3d_lung3(Scaffold_base):
 
         if "Human" in useParameterSetName:
             options["Left-right lung spacing"] = 0.4
-            options["Apex edge sharpness factor"] = 0.5
+            options["Base sharpness factor"] = 0.5
             options["Diaphragm angle degrees"] = 30.0
             options["Diaphragm proportion"] = 0.2
             options["Impression breadth proportion"] = 1.0
@@ -96,7 +96,7 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Scale factor"] = 0.7
         else:
             options["Left-right lung spacing"] = 1.0
-            options["Apex edge sharpness factor"] = 0.0
+            options["Base sharpness factor"] = 0.0
             options["Diaphragm angle degrees"] = 0.0
             options["Diaphragm proportion"] = 0.0
             options["Impression breadth proportion"] = 0.0
@@ -130,10 +130,8 @@ class MeshType_3d_lung3(Scaffold_base):
             "Number of elements oblique",
             "Number of elements shell",
             "Left-right lung spacing",
-            "Apex edge sharpness factor",
+            "Base sharpness factor",
             "Ventral edge sharpness factor",
-            "Left-right apex medial shear displacement",
-            "Left-right apex ventral shear displacement",
             "Diaphragm angle degrees",
             "Diaphragm proportion",
             "Disc breadth",
@@ -203,21 +201,12 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Left-right lung spacing"] = 0.0
 
         for dimension in [
-            "Apex edge sharpness factor",
+            "Base sharpness factor",
             "Ventral edge sharpness factor",
-            "Left-right apex medial shear displacement",
             "Medial curvature bias"
         ]:
             if options[dimension] < 0.0:
                 options[dimension] = 0.0
-            elif options[dimension] > 1.0:
-                options[dimension] = 1.0
-
-        for dimension in [
-            "Left-right apex ventral shear displacement",
-        ]:
-            if options[dimension] < -1.0:
-                options[dimension] = -1.0
             elif options[dimension] > 1.0:
                 options[dimension] = 1.0
 
@@ -258,7 +247,7 @@ class MeshType_3d_lung3(Scaffold_base):
         elementsCountShell = options["Number of elements shell"]
         elementsCountTransition = 1
         lungSpacing = options["Left-right lung spacing"] * 0.5
-        apexSharpFactor = options["Apex edge sharpness factor"]
+        baseSharpFactor = options["Base sharpness factor"]
         edgeSharpFactor = options["Ventral edge sharpness factor"]
         diaphragm_angle_radians = math.radians(options["Diaphragm angle degrees"])
         diaphragm_proportion = options["Diaphragm proportion"]
@@ -542,8 +531,8 @@ class MeshType_3d_lung3(Scaffold_base):
             if edgeSharpFactor != 0.0:
                 sharpeningRidge(edgeSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth)
 
-            if apexSharpFactor != 0.0:
-                sharpeningRidge(apexSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isApex=True)
+            if baseSharpFactor != 0.0:
+                sharpeningRidge(baseSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isBase=True)
 
             if impression_depth_proportion > 0.0:
                 form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, disc_breadth, disc_height, disc_depth,
@@ -1276,33 +1265,30 @@ def bendingAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, stationaryP
     fieldassignment.assign()
 
 
-def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBreadth, isApex=False):
+def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBreadth, isBase=False):
     """
     Linearly transforms the coordinates of the edge on the anterior side of the lung giving the effect of sharpening
-    if isApex is False. If isApex is True, then the function transforms the coordinates of the edge on the posterior side
-    giving the effect of blunting.
+    if isBase is False. If isBase is True, then the function transforms the coordinates of the base.
     :param sharpeningFactor: A value between 0 and 1, where 1 represents the maximum sharpness.
     :param fm: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
     :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
     :param halfBreadth: Half breadth of lung.
-    :param isApex: False if transforming the anterior edge, True if transforming the posterior edge of the lung.
+    :param isBase: False if transforming the anterior edge, True if transforming the base of the lung.
     """
     # Transformation matrix = [ -k1y + 1, | [x,
     #                                 1, |  y,
     #                                 1] |  z]
-    yLength = 0.1 * halfBreadth if isApex else 0.75 * halfBreadth
+    yLength = 0.1 * halfBreadth if isBase else 0.75 * halfBreadth
     offset = fm.createFieldConstant([0.0, yLength, 0.0])
     origin = fm.createFieldAdd(coordinates, offset)
-    k1 = -sharpeningFactor / (halfBreadth * 1.75) if isApex else -sharpeningFactor / (halfBreadth * 1.75)
-    scale = fm.createFieldConstant([0.0, -k1, 0.0]) if isApex else fm.createFieldConstant([0.0, k1, 0.0])
-    # scale = fm.createFieldConstant([0.0, -k1, 0.0]) if isApex else fm.createFieldConstant([0.0, k1, 0.0])
+    k1 = -sharpeningFactor / (halfBreadth * 1.75) if isBase else -sharpeningFactor / (halfBreadth * 1.75)
+    scale = fm.createFieldConstant([0.0, -k1, 0.0]) if isBase else fm.createFieldConstant([0.0, k1, 0.0])
 
     scaleFunction = fm.createFieldMultiply(origin, scale)
     constant = fm.createFieldConstant([0.0, 1.0, 1.0])
     constantFunction = fm.createFieldAdd(scaleFunction, constant)
-    componentIndices = [3, 2, 3] if isApex else [2, 3, 3]
-    # componentIndices = [3, 3, 2] if isApex else [2, 3, 3]
+    componentIndices = [3, 2, 3] if isBase else [2, 3, 3]
 
     transformation_matrix = fm.createFieldComponent(constantFunction, componentIndices)
     taper_coordinates = fm.createFieldMultiply(origin, transformation_matrix)
