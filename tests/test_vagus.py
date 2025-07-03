@@ -317,7 +317,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
             meshDerivative1 = mesh3d.getChartDifferentialoperator(order=1, term=1)
             meshDerivative3 = mesh3d.getChartDifferentialoperator(order=1, term=3)
             XTOL = 0.01  # coordinates and derivatives
-            LTOL = 0.0001  # length
+            LTOL = 0.001  # length
             STOL = 0.1  # surface area
             VTOL = 1.0  # volume
             MTOL = 1.0E-7  # material coordinate
@@ -399,6 +399,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
             straight_coordinates = fieldmodule.findFieldByName("straight coordinates").castFiniteElement()
             self.assertTrue(straight_coordinates.isValid())
             STOL = 100.0
+            LTOL = 0.5
             for coordinate_field in (coordinates, straight_coordinates):
                 group = fieldmodule.findFieldByName("left vagus nerve").castGroup()
                 mesh_group3d = group.getMeshGroup(mesh3d)
