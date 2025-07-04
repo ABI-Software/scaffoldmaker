@@ -120,22 +120,15 @@ vagus_branch_terms = [
     ("inferior branch of right internal laryngeal nerve", "ILX:0789165", "FMA:53581"),
     ("communicating branch of right internal laryngeal nerve with right recurrent laryngeal nerve", "ILX:0791006", "FMA:53571"),
     ("communicating branch of right external laryngeal nerve with right superior cardiac nerve", "ILX:0787405", "FMA:53561"),
-    ("right cervical cardiopulmonary branch of vagus nerve", "ILX:0794153"),  # common branch
-    ("right A cervical cardiopulmonary branch of vagus nerve", "ILX:0794154"),
-    ("right B cervical cardiopulmonary branch of vagus nerve", "ILX:0794155"),
-    ("right pulmonary branch of the vagus nerve", "ILX:0787735", "FMA:6671"),  # common branch
-    ("right pulmonary branch A of the vagus nerve", "ILX:0795074"),
-    ("right pulmonary branch B of the vagus nerve", "ILX:0795075"),
-    ("right pulmonary branch C of the vagus nerve", "ILX:0795076"),
-    ("right pulmonary branch D of the vagus nerve", "ILX:0795077"),
-    ("right pulmonary branch E of the vagus nerve", "ILX:0795078"),
-    # === temporary branches used in the japanese dataset
-    ("right A lateral pulmonary branch of vagus nerve", "ILX:0794278"),
-    ("right B lateral pulmonary branch of vagus nerve", "ILX:0794279"),
-    ("posterior A gastric branch of vagus nerve", "ILX:0794398"),
-    ("posterior B gastric branch of vagus nerve", "ILX:0794399"),
-    ("posterior C gastric branch of vagus nerve", "ILX:0794400"),
-    # ===
+    ("right branch of cervical vagus nerve to sympathetic chain, cardiovascular, and pulmonary structures", "ILX:0796411"),
+    ("right cardiovascular branch of cranial nerve bundle", "ILX:0795539"),
+    ("right cardiovascular branch of cervical vagus nerve", "ILX:0794846"),
+    ("right cardiovascular branch of thoracic vagus nerve", "ILX:0794851"),
+    ("right cervical cardiopulmonary branch of vagus nerve", "ILX:0794153"),
+    ("right thoracic cardiopulmonary branch of vagus nerve", "ILX:0794180"),
+    ("right pulmonary branch of the vagus nerve", "ILX:0787735", "FMA:6671"),
+    ("right lateral pulmonary branch of vagus nerve", "ILX:0794277"),
+    ("right medial pulmonary branch of vagus nerve", "ILX:0794254"),
     ("bronchial branch of right vagus nerve", "ILX:0791364", "FMA:53613",),
     ("superior cervical cardiac branch of right vagus nerve", "ILX:0786396", "FMA:53598"),
     ("right recurrent laryngeal nerve", "UBERON:0011767", "ILX:0728322"),
@@ -158,6 +151,8 @@ vagus_branch_terms = [
     ("cardiac branch of right vagus to deep cardiac plexus", "ILX:0791784", "FMA:6711"),
     # following listed as "right branch of thoracic vagus nerve to esophagus"
     ("right branch of right vagus nerve to esophageal nerve plexus", "ILX:0794299"),
+    ("right branch between of thoracic vagus nerve and esophagus plexus", "ILX:0796071", "right branch of thoracic vagus nerve to esophageal plexus"),
+
 
     # posterior vagus, a continuation of right vagus
     ("posterior esophageal vagus trunk", "ILX:0794858"),
@@ -171,12 +166,14 @@ vagus_branch_terms = [
     ("left vagus X nerve trunk", "UBERON:0035020", "ILX:0736691"),
     ("left cervical vagus nerve", "ILX:0794142"),
     ("left thoracic vagus nerve", "ILX:0787543", "FMA:18174"),
-    ("left thoracic cardiac branch of vagus nerve", "ILX:0794213", "left thoracic cardiac branch"),  # "left A..."
-    ("left thoracic cardiopulmonary branch of vagus nerve", "ILX:0794191", "left thoracic cardiopulmonary branch"),  # "left A..."
+    ("left thoracic cardiac branch of vagus nerve", "ILX:0794213", "left thoracic cardiac branch"),
+    ("left thoracic cardiopulmonary branch of vagus nerve", "ILX:0794191", "left thoracic cardiopulmonary branch"),
     ("left meningeal branch of left vagus nerve", "ILX:0792358", "FMA:53542"),
     ("left branch between vagus nerve and glossopharyngeal nerve", "ILX:0790685", "FMA:53560"),
     ("left auricular branch of left vagus nerve", "ILX:0789344", "FMA:53535"),
     ("communicating branch of auricular branch of left vagus nerve with left facial nerve", "ILX:0787673", "FMA:53588"),
+    ("left branch between cranial nerve bundle and superior cervical ganglion", "ILX:0796404"),
+    ("left cranial nerve bundle to cervical spinal nerve", "ILX:0795553"),
     # following listed as "left branch between auricular branch and facial nerve"
     ("communicating branch of auricular branch of left vagus nerve with left posterior auricular nerve", "ILX:0786219", "FMA:53590"),
     ("left pharyngeal branch of left vagus nerve to pharyngeal nerve plexus", "ILX:0789210", "FMA:53636"),
@@ -190,7 +187,7 @@ vagus_branch_terms = [
     ("left internal laryngeal nerve", "ILX:0791167", "FMA:53540"),
     # following listed as "Left external branch of superior laryngeal nerve"
     ("left external laryngeal nerve", "ILX:0789760", "FMA:53538"),
-    ("left branch of superior laryngeal nerve", "ILX:0795822"),  # "left A branch..."
+    ("left branch of superior laryngeal nerve", "ILX:0795822"),
     # following listed as "Upper branch of left internal laryngeal nerve to laryngeal vestibule"
     ("superior branch of left internal laryngeal nerve", "ILX:0785786", "FMA:53576"),
     # ("middle branch of left internal laryngeal nerve", ""),  # NA pending
@@ -198,18 +195,14 @@ vagus_branch_terms = [
     ("inferior branch of left internal laryngeal nerve", "ILX:0785467", "FMA:53582"),
     ("communicating branch of left internal laryngeal nerve with left recurrent laryngeal nerve", "ILX:0789900", "FMA:53572"),
     ("communicating branch of left external laryngeal nerve with left superior cardiac nerve", "ILX:0787107", "FMA:53562"),
-    ("left A cervical cardiopulmonary branch of vagus nerve", "ILX:0794160"),
-    ("left B cervical cardiopulmonary branch of vagus nerve", "ILX:0794161"),
+    ("left cardiovascular branch of cranial nerve bundle", "ILX:0795540"),
+    ("left cardiovascular branch of cervical vagus nerve", "ILX:0794847"),
+    ("left cardiovascular branch of thoracic vagus nerve", "ILX:0794852"),
+    ("left cervical cardiopulmonary branch of vagus nerve", "ILX:0794159"),
+    ("left thoracic cardiopulmonary branch of vagus nerve", "ILX:0794191"),
     ("left pulmonary branch of the vagus nerve", "ILX:0792971", "FMA:6679"),
-    ("left pulmonary branch A of the vagus nerve", "ILX:0795079"),
-    ("left pulmonary branch B of the vagus nerve", "ILX:0795080"),
-    ("left pulmonary branch C of the vagus nerve", "ILX:0795081"),
-    ("left pulmonary branch D of the vagus nerve", "ILX:0795082"),
-    ("left pulmonary branch E of the vagus nerve", "ILX:0795083"),
-    # === temporary branches used in the japanese dataset
-    ("left A medial pulmonary branch of vagus nerve", "ILX:0794266"),
-    ("left B medial pulmonary branch of vagus nerve", "ILX:0794267"),
-    # ===
+    ("left lateral pulmonary branch of vagus nerve", "ILX:0794288"),
+    ("left medial pulmonary branch of vagus nerve", "ILX:0794265"),
     ("bronchial branch of left vagus nerve", "ILX:0791685", "FMA:53558"),
     ("superior cervical cardiac branch of left vagus nerve", "ILX:0791998", "FMA:53599"),
     ("left recurrent laryngeal nerve", "UBERON:0011766", "ILX:0724431"),
@@ -229,6 +222,7 @@ vagus_branch_terms = [
     ("thoracic cardiac branch of left vagus nerve", "ILX:0791489", "FMA:53605"),
     ("cardiac branch of left vagus to deep cardiac plexus", "ILX:0795087"),
     ("left branch of left vagus nerve to esophageal nerve plexus", "ILX:0794310"),
+    ("left branch between thoracic vagus nerve and esophagus plexus", "ILX:0796087", "left branch of thoracic vagus nerve to esophageal plexus"),
 
     # anterior vagus, a continuation of left vagus
     ("anterior esophageal vagus trunk", "ILX:0794854"),
