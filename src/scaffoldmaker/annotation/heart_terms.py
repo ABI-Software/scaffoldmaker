@@ -5,7 +5,7 @@ Common resource for heart annotation terms.
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 heart_terms = [
     # heart - volume terms
-    ("heart", "UBERON:0000948", "FMA:7088"),  # group of the entire heart
+    ("heart", "UBERON:0000948", "FMA:7088"),  # group of the entire heart. Currently not annotated in the scaffold. 
     ("epicardial fat", "UBERON:0015129"),  # not used
     ("epicardium", "UBERON:0002348", "FMA:9461"),  # volumetric layer outside myocardium to pericardial cavity
     # heart - surface terms
