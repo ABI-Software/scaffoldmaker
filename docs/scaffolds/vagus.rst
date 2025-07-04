@@ -2,7 +2,8 @@ Vagus Scaffold
 ================
 
 The current subject-specific vagus scaffold is ``3D Nerve 1`` built from ``class MeshType_3d_nerve1``.
-The vagus scaffold needs an input file with segmentations to built from it.
+Each subject-specific vagus scaffold is built from an input file containing segmentations of the trunk, branches,
+level markers, radius and orientation points for that subject.
 
 Input file requirements
 -----------------------
@@ -15,9 +16,11 @@ The following annotations could be used for vagus trunk:
 * left/right thoracic trunk
 * left/right cervical vagus nerve
 * left/right thoracic vagus nerve
+* left/right vagus X nerve trunk
 
-All vagal branches should be annotated with 'branch' or 'nerve' keyword. They all should have distinctive names,
-e.g. there should not be several branches with the same name.
+All vagal branches should be annotated with 'branch' or 'nerve' keyword. Each branch should have a distinct name,
+including accepted variant names containing letters A, B, C, etc., so there should not be multiple branches with
+the same name.
 
 The input file should also have included some of the anatomical landmarks to be able to locate the vagus in the body
 and to estimate vagus nerve real length. The current minimum is two included landmarks as marker datapoints.
@@ -33,7 +36,7 @@ The list of approved landmarks is as follows.
 * left/right level of sternal angle on the vagus nerve
 
 Orientation points could be included in the input file for better nerve fitting. If included, they should be listed as
-``nodes``, not ``datapoints``. The following annotations could be used and acceptable for orientation nodes:
+``nodes``, not ``datapoints``. The following annotation group names must be used for orientation nodes:
 
 * orientation left
 * orientation anterior
@@ -55,15 +58,15 @@ The vagus scaffold is provided with the following parameter sets:
 Coordinates
 -----------
 
-The vagus box scaffold defines the geometric, straight and material coordinates.
+The vagus box scaffold defines geometric, straight and material coordinates.
 
-The geometric ``coordinates`` field is built using the coordinates supplied by the input file.
+The ``geometric coordinates`` field is fitted to the coordinates supplied in the input file.
 
-The straight ``coordinates`` field defines a coordinate system with a straight line as vagus trunk, with origin as
-the top of the trunk and conserving trunk length from geometric coordinates. The branches have the same geometry and
-curvature as in geometric coordinates.
+The ``straight coordinates`` field defines a coordinate system with a straight line as vagus trunk, with origin as
+the top of the trunk and conserving trunk length from geometric coordinates. The branches have the same dimensions and
+relative directions to their origin on a parent branch or trunk, but are straight.
 
-The material ``coordinates`` field defines a coordinate system to give permanent locations for landmarks on the vagus.
+The ``material coordinates`` field defines a coordinate system to give permanent locations for landmarks on the vagus.
 It is defined as a straight line as vagus trunk, with origin as the top of the vagus trunk and 1 as the bottom end
 of the vagus trunk. The branches are defined as lines with the same orientation as when they are leaving the trunk.
 
@@ -76,6 +79,9 @@ annotated with standard term names and identifiers from a controlled vocabulary.
 
 Each subject-specific vagus box scaffold has the following defined groups of 3-D elements:
 
-* vagus centroid
-* vagus epineurium
-* vagus anterior line
+* vagus centroid - centroid of nerve/branch, useful for later fitting centroid data in another
+geometric configuration such as in-body/MRI tracings.
+* vagus epineurium - approximately round representation of surface of epineurium, useful for later fitting
+to precise contours of the epineurium boundary.
+* vagus anterior line - line on anterior edge of epineurium, useful for later fitting anterior orientation points
+in another geometric configuration.
