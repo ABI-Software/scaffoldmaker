@@ -1269,6 +1269,9 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         rx.append(x)
         rd1.append(d1)
         node = nodeiterator.next()
+    # get mean_radius to eliminate outlier orientation points
+    mean_radius = sum(pr) / len(pr) if pr else default_trunk_radius
+    max_orientation_projection_error = 8.0 * mean_radius
 
     # remove all datapoints from previous fits.
     datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
@@ -1325,6 +1328,14 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                     # skip orientation points with severely non-normal projection e.g. past end of curve
                     logger.warning("Nerve: Ignoring orientation point '" + name + "' at location " +
                                    str(curve_location) + " as projection is oblique or co-linear with centroid curve")
+                    continue
+                if projection_error > max_orientation_projection_error:
+                    # skip orientation points too far from centroid
+                    logger.warning("Nerve: Ignoring orientation point '" + name + "' at location " +
+                                   str(curve_location) + " with coordinates " + str(data_x) +
+                                   " as projection error " + str(projection_error) + " exceeds " +
+                                   str(max_orientation_projection_error / mean_radius) + "x mean radius " +
+                                   str(mean_radius))
                     continue
                 dir2 = normalize(cross(dirp, dir1))
                 dir3 = cross(dir1, dir2)
