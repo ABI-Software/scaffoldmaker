@@ -126,7 +126,7 @@ vagus_branch_terms = [
     ("right cardiovascular branch of thoracic vagus nerve", "ILX:0794851"),
     ("right cervical cardiopulmonary branch of vagus nerve", "ILX:0794153"),
     ("right thoracic cardiopulmonary branch of vagus nerve", "ILX:0794180"),
-    ("right pulmonary branch of  vagus nerve", "ILX:0796017"),
+    ("right pulmonary branch of vagus nerve", "ILX:0796017"),
     ("right lateral pulmonary branch of vagus nerve", "ILX:0794277"),
     ("right medial pulmonary branch of vagus nerve", "ILX:0794254"),
     ("bronchial branch of right vagus nerve", "ILX:0791364", "FMA:53613",),
