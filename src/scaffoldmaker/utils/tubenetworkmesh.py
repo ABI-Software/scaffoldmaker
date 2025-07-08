@@ -1389,12 +1389,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param e1Start: Start element index around. Can be negative which supports wrapping.
         :param e1Limit: Limit element index around.
         :param e3Start: Start element index rim.
-        :param e3Limit: Limi element index rim.
+        :param e3Limit: Limit element index rim.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
         elementsCountAlong = self.getSampledElementsCountAlong()
-        elementsCountAround = self.getElementsCountAround()
         mesh = meshGroup.getMasterMesh()
         for e2 in range(elementsCountAlong):
             rimSlice = self._rimElementIds[e2]
@@ -1402,7 +1401,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
                     partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
                             elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
-                    # print(partElementIdentifiersList)
                     if None in elementIdentifiersList:
                         break
                     for elementIdentifier in partElementIdentifiersList:
@@ -1818,6 +1816,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         self._patchCoordinates = None
         self._patchRimNodeIds = None
         self._patchElementIds = None  # [e2][e3][e1]
+
 
     def sample(self, fixedElementsCountAlong, targetElementLength):
         # Note: only implemented for useOuterTrimSurfaces=True
@@ -2555,7 +2554,46 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     for annotationMeshGroup in annotationMeshGroups:
                         annotationMeshGroup.addElement(element)
                     patchElementIds.append(elementIdentifier)
-                    self._patchElementIds[e2].append(patchElementIds)
+                self._patchElementIds[e2].append(patchElementIds)
+
+        self._rimElementIds = [None] * (len(self._patchElementIds) // 2 + 2)
+        elementsAlongPatch = elementsCountAlong
+        sElementId = self._patchElementIds
+
+        elementsAlongPatchRim = len(self._patchElementIds) // 2 # Number of rings in patch
+        elementsAroundPatch = len(self._patchElementIds[0][0])
+
+        if elementsAroundPatch:
+            for i in range(elementsAlongPatchRim):
+                for e3 in range(self._elementsCountThroughShell):
+                    if sElementId:
+                        elementIdPatch = []
+                        e2StartIdx = elementsAlongPatch // 2 - i - 1
+                        e2EndIdx = elementsAlongPatch // 2 + i
+                        e1StartIdx = elementsAlongPatchRim - (i + 1)
+                        e1EndIdx = elementsAroundPatch - e1StartIdx - 1
+
+                        if e1EndIdx > e1StartIdx:
+                            for e2 in range(elementsAlongPatch // 2 - 1, e2StartIdx, -1):
+                                elementIdPatch.append(sElementId[e2][e3][e1StartIdx])
+                            elementIdPatch += [sElementId[e2StartIdx][e3][e1StartIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+
+                            elementIdPatch += sElementId[e2StartIdx][e3][e1StartIdx + 1:e1EndIdx]
+                            elementIdPatch += [sElementId[e2StartIdx][e3][e1EndIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+
+                            for e2 in range(e2StartIdx + 1, e2StartIdx + (e2EndIdx - e2StartIdx) // 2 + 1):
+                                elementIdPatch.append(sElementId[e2][e3][e1EndIdx])
+                            for e2 in range(e2StartIdx + (e2EndIdx - e2StartIdx) // 2 + 1, e2EndIdx):
+                                elementIdPatch.append(sElementId[e2][e3][e1StartIdx])
+
+                            elementIdPatch += [sElementId[e2EndIdx][e3][e1StartIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+                            elementIdPatch += sElementId[e2EndIdx][e3][e1StartIdx + 1:e1EndIdx]
+                            elementIdPatch += [sElementId[e2EndIdx][e3][e1EndIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+
+                            for e2 in range(e2EndIdx - 1, e2StartIdx + (e2EndIdx - e2StartIdx) // 2, -1):
+                                elementIdPatch.append(sElementId[e2][e3][e1EndIdx])
+
+                            self._rimElementIds[i] = [elementIdPatch]
 
     def getPatchCoordinates(self, n1, n2, n3):
         """
@@ -2596,19 +2634,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 self._rimCoordinates[n2][1][n3][n1],
                 self._rimCoordinates[n2][2][n3][n1],
                 self._rimCoordinates[n2][3][n3][n1] if self._rimCoordinates[n2][3] else None)
-
-    def setRimElementId(self, e1, e2, e3, elementIdentifier): # Not sure
-        """
-        Set a rim element ID. Only called by adjacent junctions.
-        :param e1: Element index around.
-        :param e2: Element index along segment.
-        :param e3: Element index from inner to outer rim.
-        :param elementIdentifier: Element identifier.
-        """
-        if not self._rimElementIds:
-            elementsCountRim = self.getElementsCountRim()
-            self._rimElementIds = [[None] * self._elementsCountAround for _ in range(elementsCountRim)]
-        self._rimElementIds[e3][e1] = elementIdentifier
 
     def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
         """
@@ -2687,11 +2712,12 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                  e1 == elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment or \
                                  e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
                                  e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 2)
+                isSecondCorner = (e1 == elementsAlongPatchSegment // 2 + 1 or \
+                                  e1 == elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 3 or \
+                                  e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 + 1 or \
+                                  e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 1)
                 # Skip the second corner element
-                if e1 == elementsAlongPatchSegment // 2 + 1 or \
-                        e1 == elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 3 or \
-                        e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 + 1 or \
-                        e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 1:
+                if isSecondCorner:
                     continue
 
                 nids = []
@@ -2782,6 +2808,29 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 for annotationMeshGroup in annotationMeshGroups:
                     annotationMeshGroup.addElement(element)
 
+    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Add ranges of rim elements to mesh group.
+        :param e1Start: Start element index around. Can be negative which supports wrapping.
+        :param e1Limit: Limit element index around.
+        :param e3Start: Start element index rim.
+        :param e3Limit: Limit element index rim.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = len(self._rimElementIds) - 1
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            rimSlice = self._rimElementIds[e2]
+            if rimSlice:
+                for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
+                    partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
+                            elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
+                    for elementIdentifier in partElementIdentifiersList:
+                        if elementIdentifier is None:
+                            continue
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
 
 class TubeNetworkMeshJunction(NetworkMeshJunction):
     """
