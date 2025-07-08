@@ -200,9 +200,9 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Vagina length"] = 0.5
             options["Vagina width around vagina orifice"] = 0.8
             options["Vagina depth around vagina orifice"] = 0.5
-            options["Inner proportion body"] = 0.5
-            options["Inner proportion cervix"] = 0.5
-            options["Inner proportion vagina"] = 0.5
+            options["Inner proportion body"] = 0.75
+            options["Inner proportion cervix"] = 0.75
+            options["Inner proportion vagina"] = 0.75
             options["Angle of anteversion degrees"] = 0.0
         elif parameterSetName == "Human Pregnant 1":
             options["Structure"] = (
