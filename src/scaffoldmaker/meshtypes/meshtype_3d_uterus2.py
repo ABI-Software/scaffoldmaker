@@ -1917,8 +1917,12 @@ class MeshType_3d_uterus2(Scaffold_base):
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
         uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
-        leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
-        rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right oviduct"))
+        if isHuman:
+            leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
+            rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right oviduct"))
+        elif isRodent:
+            leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine horn"))
+            rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine horn"))
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
         cervixGroup = getAnnotationGroupForTerm(annotationGroups, ("cervix", ""))
@@ -1977,7 +1981,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_leftOviduct)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_rightOviduct)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_upperCervix)
-        
+
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                           get_uterus_term("serosa of body of uterus"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_outer)
@@ -2112,14 +2116,11 @@ class MeshType_3d_uterus2(Scaffold_base):
                 is_rightTransverseCervicalLigament)
 
         if isRodent:
-            rightHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right uterine horn"))
-            leftHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine horn"))
-
-            is_rightHorn = rightHornGroup.getGroup()
+            is_rightHorn = rightOviductGroup.getGroup()
             is_rightHorn_outer = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_1)
             is_rightHorn_inner = fm.createFieldAnd(is_rightHorn, is_exterior_face_xi3_0)
 
-            is_leftHorn = leftHornGroup.getGroup()
+            is_leftHorn = leftOviductGroup.getGroup()
             is_leftHorn_outer = fm.createFieldAnd(is_leftHorn, is_exterior_face_xi3_1)
             is_leftHorn_inner = fm.createFieldAnd(is_leftHorn, is_exterior_face_xi3_0)
 
@@ -2144,6 +2145,7 @@ class MeshType_3d_uterus2(Scaffold_base):
         annotationGroups.remove(cervixGroup)
         annotationGroups.remove(upperCervixGroup)
         annotationGroups.remove(lowerCervixGroup)
+
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """
