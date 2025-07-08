@@ -529,6 +529,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         for r, value in zip((rx, rd1, rd2, rd3), (x, d1, d2, d3)):
                             r[n2][n3].append(value)
             self._rimCoordinates = rx, rd1, rd2, rd3
+
         self._rimNodeIds = [None] * (elementsCountAlong + 1)
         self._rimElementIds = [None] * elementsCountAlong
         self._boxElementIds = [None] * elementsCountAlong
@@ -2234,185 +2235,185 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         self._patchNodeIds = [None] * (halfElementsCountAroundSegmentIn - 1)
         self._patchElementIds = [None] * (halfElementsCountAroundSegmentIn - 2)
 
-        # Create rim coordinates - include comments on how its structured like the tube indices,calculating annular indexing of outer two layers, inner layer corners where 1 point is represented 3 times
+        # Create rim coordinates that are structured same way as the segment tube indices [n2][n3][n1], calculating
+        # annular indexing of two layers (n2), from inlet to outlet direction with the inner layer corner points being
+        # represented 3 times. n3 goes from inner to outer wall. n1 starts from the d2 direction defined by the network
+        # layout
+
         self._rimCoordinates = []
-
-        # get rim coordinates
-        outerRimCoordinates = []
-        patchRimCoordinates = []
-
-        # last ring
-        countN2 = len(allCoordinates[i])
-        halfCountN2 = len(allCoordinates[i]) // 2
         for i in range(4):
+            countN2 = len(allCoordinates[i])
+            halfCountN2 = len(allCoordinates[i]) // 2
+            # for n2 in range(2): # just two "rings" from outermost boundary of patch and rim
+            sParamRing = []
+            # Outer boundary of patch
             sParamLayer = []
             for n3 in range(self._elementsCountThroughShell + 1):
-                sParamRingAroundRim = []
+                sParamRingAround = []
                 sParam = allCoordinates[i]
                 for n2 in range(halfCountN2, 0, -1):
                     if i == 0 or i == 3:
-                        sParamRingAroundRim.append(sParam[n2][n3][0])
+                        sParamRingAround.append(sParam[n2][n3][1])
                     elif i == 1: # d1
-                        sParamRingAroundRim.append(allCoordinates[2][n2][n3][0]) # becomes d2
-                    elif i == 2: # d2
-                        sParamRingAroundRim.append([-c for c in allCoordinates[1][n2][n3][0]]) # becomes -d1
-
-                # Bottom right
-                if i == 0 or i == 3:
-                    sParamRingAroundRim.append(sParam[0][n3][0])
-                elif i == 1:
-                    sParamRingAroundRim.append(add(allCoordinates[1][0][n3][0],
-                                                   allCoordinates[2][0][n3][0])) # d1 + d2
-                elif i == 2:
-                    sParamRingAroundRim.append(add([-c for c in allCoordinates[1][0][n3][0]],
-                                                   allCoordinates[2][0][n3][0])) # -d1 + d2
-                sParamRingAroundRim += sParam[0][n3][1:-1]
-
-                # Bottom left
-                if i == 0 or i == 3:
-                    sParamRingAroundRim.append(sParam[0][n3][-1])
-                elif i == 1:
-                    sParamRingAroundRim.append(add(allCoordinates[1][0][n3][-1],
-                                                   [-c for c in allCoordinates[2][0][n3][-1]])) # d1 - d2
-                elif i == 2:
-                    sParamRingAroundRim.append(add(allCoordinates[1][0][n3][-1],
-                                                   allCoordinates[2][0][n3][-1])) # d1 + d2
-
-                for n2 in range(1, halfCountN2 + 1):
-                    if i == 0 or i == 3:
-                        sParamRingAroundRim.append(sParam[n2][n3][-1])
-                    elif i == 1: # d1
-                        sParamRingAroundRim.append([-c for c in allCoordinates[2][n2][n3][-1]])  # becomes -d2
-                    elif i == 2: # d2
-                        sParamRingAroundRim.append(allCoordinates[1][n2][n3][-1]) # becomes d1
-
-                for n2 in range(halfCountN2 + 1, countN2 - 1):
-                    if i == 0 or i == 3:
-                        sParamRingAroundRim.append(sParam[n2][n3][0])
-                    elif i == 1: # d1
-                        sParamRingAroundRim.append(allCoordinates[2][n2][n3][0]) # becomes d2
-                    elif i == 2: # d2
-                        sParamRingAroundRim.append([-c for c in allCoordinates[1][n2][n3][0]]) # becomes -d1
-
-                # top left
-                if i == 0 or i == 3:
-                    sParamRingAroundRim.append(sParam[-1][n3][0])
-                elif i == 1:
-                    sParamRingAroundRim.append(add(allCoordinates[1][-1][n3][0],
-                                                   allCoordinates[2][-1][n3][0])) # d1 + d2
-                elif i == 2:
-                    sParamRingAroundRim.append(add([-c for c in allCoordinates[1][-1][n3][0]],
-                                                   allCoordinates[2][-1][n3][0])) # -d1 + d2
-
-                sParamRingAroundRim += sParam[-1][n3][1:-1]
-
-                # top right
-                if i == 0 or i == 3:
-                    sParamRingAroundRim.append(sParam[-1][n3][-1])
-                elif i == 1:
-                    sParamRingAroundRim.append(add(allCoordinates[1][-1][n3][-1],
-                                                   [-c for c in allCoordinates[2][-1][n3][-1]])) # d1 - d2
-                elif i == 2:
-                    sParamRingAroundRim.append(add(allCoordinates[1][-1][n3][-1],
-                                                   allCoordinates[2][-1][n3][-1])) # d1 + d2
-
-                for n2 in range(countN2 - 2, halfCountN2, -1):
-                    if i == 0 or i == 3:
-                        sParamRingAroundRim.append(sParam[n2][n3][-1])
-                    elif i == 1: # d1
-                        sParamRingAroundRim.append([-c for c in allCoordinates[2][n2][n3][-1]])  # becomes -d2
-                    elif i == 2: # d2
-                        sParamRingAroundRim.append(allCoordinates[1][n2][n3][-1]) # becomes d1
-                sParamLayer.append(sParamRingAroundRim)
-            outerRimCoordinates.append(sParamLayer)
-
-        # second to last ring
-        for i in range(4):
-            sParamLayer = []
-            for n3 in range(self._elementsCountThroughShell + 1):
-                sParamRingAroundPatch = []
-                sParam = allCoordinates[i]
-                for n2 in range(halfCountN2, 0, -1):
-                    if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2][n3][1])
-                    elif i == 1: # d1
-                        sParamRingAroundPatch.append(allCoordinates[2][n2][n3][1])  # becomes d2
+                        sParamRingAround.append(allCoordinates[2][n2][n3][1])  # becomes d2
                     elif i == 2:  # d2
-                        sParamRingAroundPatch.append([-c for c in allCoordinates[1][n2][n3][1]]) # becomes -d1
+                        sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][1]]) # becomes -d1
                 # triple points at bottom right
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch.append(sParam[1][n3][1])
+                    sParamRingAround.append(sParam[1][n3][1])
                 elif i == 1:
-                    sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][1],
+                    sParamRingAround.append(add(allCoordinates[1][1][n3][1],
                                                      allCoordinates[2][1][n3][1])) # d1 + d2
                 elif i == 2:
-                    sParamRingAroundPatch.append(add([-c for c in allCoordinates[1][1][n3][1]],
+                    sParamRingAround.append(add([-c for c in allCoordinates[1][1][n3][1]],
                                                      allCoordinates[2][1][n3][1])) # -d1 + d2
                 # straight bottom
-                sParamRingAroundPatch += sParam[1][n3][1: -1]
+                sParamRingAround += sParam[1][n3][1: -1]
                 # triple pts on bottom left
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch.append(sParam[1][n3][-2])
+                    sParamRingAround.append(sParam[1][n3][-2])
                 elif i == 1: # d1
-                    sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][-2],
+                    sParamRingAround.append(add(allCoordinates[1][1][n3][-2],
                                                      [-c for c in allCoordinates[2][1][n3][-2]]))  # becomes d1 - d2
                 elif i == 2: # d2
-                    sParamRingAroundPatch.append(add(allCoordinates[1][1][n3][-2],
+                    sParamRingAround.append(add(allCoordinates[1][1][n3][-2],
                                                      allCoordinates[2][1][n3][-2]))  # becomes d1 + d2
 
                 # Up on left side
                 for n2 in range(1, halfCountN2 + 1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2][n3][-2])
+                        sParamRingAround.append(sParam[n2][n3][-2])
                     elif i == 1: # d1
-                        sParamRingAroundPatch.append([-c for c in allCoordinates[2][n2][n3][-2]]) # becomes -d2
+                        sParamRingAround.append([-c for c in allCoordinates[2][n2][n3][-2]]) # becomes -d2
                     elif i == 2: # d2
-                        sParamRingAroundPatch.append(allCoordinates[1][n2][n3][-2])  # becomes d1
+                        sParamRingAround.append(allCoordinates[1][n2][n3][-2])  # becomes d1
                 for n2 in range(halfCountN2 + 1, countN2 - 1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2][n3][1])
+                        sParamRingAround.append(sParam[n2][n3][1])
                     elif i == 1: # d1
-                        sParamRingAroundPatch.append(allCoordinates[2][n2][n3][1]) # becomes d2
+                        sParamRingAround.append(allCoordinates[2][n2][n3][1]) # becomes d2
                     elif i == 2: # d2
-                        sParamRingAroundPatch.append([-c for c in allCoordinates[1][n2][n3][1]])  # becomes -d1
+                        sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][1]])  # becomes -d1
                 # triple pts on top left
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch.append(sParam[-2][n3][1])
+                    sParamRingAround.append(sParam[-2][n3][1])
                 elif i == 1:
-                    sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][1],
+                    sParamRingAround.append(add(allCoordinates[1][-2][n3][1],
                                                      allCoordinates[2][-2][n3][1])) # d1 + d2
                 elif i == 2:
-                    sParamRingAroundPatch.append(add([-c for c in allCoordinates[1][-2][n3][1]],
+                    sParamRingAround.append(add([-c for c in allCoordinates[1][-2][n3][1]],
                                                      allCoordinates[2][-2][n3][1]))  # -d1 + d2
 
                 # straight across top
-                sParamRingAroundPatch += sParam[-2][n3][1: -1]
+                sParamRingAround += sParam[-2][n3][1: -1]
 
                 # Triple points top right
                 if i == 0 or i == 3:
-                    sParamRingAroundPatch.append(sParam[-2][n3][-2])
+                    sParamRingAround.append(sParam[-2][n3][-2])
                 elif i == 1:
-                    sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][-2],
+                    sParamRingAround.append(add(allCoordinates[1][-2][n3][-2],
                                                     [-c for c in allCoordinates[2][-2][n3][-2]])) # d1 - d2
                 elif i == 2:
-                    sParamRingAroundPatch.append(add(allCoordinates[1][-2][n3][-2],
+                    sParamRingAround.append(add(allCoordinates[1][-2][n3][-2],
                                                      allCoordinates[2][-2][n3][-2])) # d1 + d2
                 # down right top half
                 for n2 in range(countN2 - 2, halfCountN2, -1):
                     if i == 0 or i == 3:
-                        sParamRingAroundPatch.append(sParam[n2][n3][-2])
+                        sParamRingAround.append(sParam[n2][n3][-2])
                     elif i == 1: # d1
-                        sParamRingAroundPatch.append(
+                        sParamRingAround.append(
                             [-c for c in allCoordinates[2][n2][n3][-2]]) # becomes -d2
                     elif i == 2: # d2
-                        sParamRingAroundPatch.append(allCoordinates[1][n2][n3][-2])  # becomes d1
-                sParamLayer.append(sParamRingAroundPatch)
-            patchRimCoordinates.append(sParamLayer)
+                        sParamRingAround.append(allCoordinates[1][n2][n3][-2])  # becomes d1
+                sParamLayer.append(sParamRingAround)
+            sParamRing.append(sParamLayer)
 
-        self._rimCoordinates.append(patchRimCoordinates)
-        self._rimCoordinates.append(outerRimCoordinates)
-        # print('patchRimCoordinates =', patchRimCoordinates)
-        # print('rimCoordinates =', self._rimCoordinates)
+            # Outer boundary of rim
+            sParamLayer = []
+            for n3 in range(self._elementsCountThroughShell + 1):
+                sParamRingAround = []
+                sParam = allCoordinates[i]
+
+                for n2 in range(halfCountN2, 0, -1):
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[n2][n3][0])
+                    elif i == 1:  # d1
+                        sParamRingAround.append(allCoordinates[2][n2][n3][0])  # becomes d2
+                    elif i == 2:  # d2
+                        sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][0]])  # becomes -d1
+                # Bottom right
+                if i == 0 or i == 3:
+                    sParamRingAround.append(sParam[0][n3][0])
+                elif i == 1:
+                    sParamRingAround.append(add(allCoordinates[1][0][n3][0],
+                                                   allCoordinates[2][0][n3][0]))  # d1 + d2
+                elif i == 2:
+                    sParamRingAround.append(add([-c for c in allCoordinates[1][0][n3][0]],
+                                                   allCoordinates[2][0][n3][0]))  # -d1 + d2
+                sParamRingAround += sParam[0][n3][1:-1]
+
+                # Bottom left
+                if i == 0 or i == 3:
+                    sParamRingAround.append(sParam[0][n3][-1])
+                elif i == 1:
+                    sParamRingAround.append(add(allCoordinates[1][0][n3][-1],
+                                                   [-c for c in allCoordinates[2][0][n3][-1]]))  # d1 - d2
+                elif i == 2:
+                    sParamRingAround.append(add(allCoordinates[1][0][n3][-1],
+                                                   allCoordinates[2][0][n3][-1]))  # d1 + d2
+
+                for n2 in range(1, halfCountN2 + 1):
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[n2][n3][-1])
+                    elif i == 1:  # d1
+                        sParamRingAround.append(
+                            [-c for c in allCoordinates[2][n2][n3][-1]])  # becomes -d2
+                    elif i == 2:  # d2
+                        sParamRingAround.append(allCoordinates[1][n2][n3][-1])  # becomes d1
+
+                for n2 in range(halfCountN2 + 1, countN2 - 1):
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[n2][n3][0])
+                    elif i == 1:  # d1
+                        sParamRingAround.append(allCoordinates[2][n2][n3][0])  # becomes d2
+                    elif i == 2:  # d2
+                        sParamRingAround.append(
+                            [-c for c in allCoordinates[1][n2][n3][0]])  # becomes -d1
+
+                # top left
+                if i == 0 or i == 3:
+                    sParamRingAround.append(sParam[-1][n3][0])
+                elif i == 1:
+                    sParamRingAround.append(add(allCoordinates[1][-1][n3][0],
+                                                   allCoordinates[2][-1][n3][0]))  # d1 + d2
+                elif i == 2:
+                    sParamRingAround.append(add([-c for c in allCoordinates[1][-1][n3][0]],
+                                                   allCoordinates[2][-1][n3][0]))  # -d1 + d2
+
+                sParamRingAround += sParam[-1][n3][1:-1]
+
+                # top right
+                if i == 0 or i == 3:
+                    sParamRingAround.append(sParam[-1][n3][-1])
+                elif i == 1:
+                    sParamRingAround.append(add(allCoordinates[1][-1][n3][-1],
+                                                   [-c for c in allCoordinates[2][-1][n3][-1]]))  # d1 - d2
+                elif i == 2:
+                    sParamRingAround.append(add(allCoordinates[1][-1][n3][-1],
+                                                   allCoordinates[2][-1][n3][-1]))  # d1 + d2
+
+                for n2 in range(countN2 - 2, halfCountN2, -1):
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[n2][n3][-1])
+                    elif i == 1:  # d1
+                        sParamRingAround.append(
+                            [-c for c in allCoordinates[2][n2][n3][-1]])  # becomes -d2
+                    elif i == 2:  # d2
+                        sParamRingAround.append(allCoordinates[1][n2][n3][-1])  # becomes d1
+                sParamLayer.append(sParamRingAround)
+            sParamRing.append(sParamLayer)
+            self._rimCoordinates.append(sParamRing)
+
 
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
         """
@@ -2422,25 +2423,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         :return: sx[nAround]
         """
         pathIndexPatch = 0 if pathIndex else 1
-        return self._rimCoordinates[nodeIndexAlong][0][pathIndexPatch]
-
-    def getRimCoordinatesListAlong(self, n1, n2List, n3):
-        """
-        Get list of parameters for n2 indexes along segment at given n1, n3.
-        :param n1: Node index around segment.
-        :param n2List: List of node indexes along segment.
-        :param n3: Node index from inner to outer rim.
-        :return: [x[], d1[], d2[], d3[]]. d3[] may be None
-        """
-
-        # print('in Patch getRimCoordinatesListAlong', len(self._rimCoordinates))
-        paramsList = []
-        for i in range(4):
-            params = []
-            for n2 in n2List:
-                params.append(self._rimCoordinates[n2][i][n3][n1] if self._rimCoordinates[n2][i] else None)
-            paramsList.append(params)
-        return paramsList
+        return self._rimCoordinates[0][nodeIndexAlong][pathIndexPatch]
 
     def generateMesh(self, generateData: TubeNetworkMeshGenerateData, n2Only=None):
         """
@@ -2483,6 +2466,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         self._rimNodeIds = []
         nodesAlongPatch = elementsCountAlong + 1
         sNodeId = self._patchNodeIds
+        nodesAround = []
         for n3 in range(self._elementsCountThroughShell + 1):
             nodeIdPatch = []
             for n2 in range(nodesAlongPatch // 2, 0, -1):
@@ -2500,9 +2484,9 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             nodeIdPatch += [sNodeId[-1][n3][-1], sNodeId[-1][n3][-1]]
             for n2 in range(nodesAlongPatch - 2, nodesAlongPatch // 2, -1):
                 nodeIdPatch.append(sNodeId[n2][n3][-1])
-            self._rimNodeIds.append(nodeIdPatch)
-
-        # print('rimNodeId =', self._rimNodeIds)
+            nodesAround.append(nodeIdPatch)
+        self._rimNodeIds.append(nodesAround)
+        self._rimNodeIds.append([])
 
         # create elements
         annotationMeshGroups = generateData.getAnnotationMeshGroups(self._annotationTerms)
@@ -2609,31 +2593,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 self._patchCoordinates[1][n2][n3][n1],
                 self._patchCoordinates[2][n2][n3][n1],
                 self._patchCoordinates[3][n2][n3][n1] if self._patchCoordinates[3] else None)
-
-    def getRimNodeId(self, n1, n2, n3):
-        """
-        Get a rim node ID for a point.
-        :param n1: Node index around.
-        :param n2: Node index along segment.
-        :param n3: Node index from inner to outer rim.
-        :return: Node identifier.
-        """
-        return self._rimNodeIds[n3][n1]
-
-    def getRimCoordinates(self, n1, n2, n3):
-        """
-        Get rim parameters (transition through shell) parameters at a point.
-        This was what rim coordinates should have been.
-        :param n1: Node index around.
-        :param n2: Node index along segment.
-        :param n3: Node index from first core transition row or inner to outer shell.
-        :return: x, d1, d2, d3
-        """
-
-        return (self._rimCoordinates[n2][0][n3][n1],
-                self._rimCoordinates[n2][1][n3][n1],
-                self._rimCoordinates[n2][2][n3][n1],
-                self._rimCoordinates[n2][3][n3][n1] if self._rimCoordinates[n2][3] else None)
 
     def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
         """
