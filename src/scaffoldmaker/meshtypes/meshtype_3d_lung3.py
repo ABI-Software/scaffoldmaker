@@ -38,10 +38,7 @@ class MeshType_3d_lung3(Scaffold_base):
             "Human 1 Fine",
             "Ellipsoid Coarse",
             "Ellipsoid Medium",
-            "Ellipsoid Fine",
-            "Teardrop Coarse",
-            "Teardrop Medium",
-            "Teardrop Fine"
+            "Ellipsoid Fine"
         ]
 
     @classmethod
@@ -54,7 +51,8 @@ class MeshType_3d_lung3(Scaffold_base):
         options["Number of left lung lobes"] = 2
         options["Ellipsoid breadth"] = 0.8
         options["Ellipsoid height"] = 1.0
-        options["Ellipsoid depth"] = 0.6
+        options["Ellipsoid depth"] = 0.5
+        options["Left-right lung spacing"] = 0.6
         options["Left oblique slope degrees"] = 45.0
         options["Right oblique slope degrees"] = 45.0
         options["Refine"] = False
@@ -77,38 +75,25 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Number of elements shell"] = 0
 
         if "Human" in useParameterSetName:
-            options["Left-right lung spacing"] = 0.4
             options["Base lateral edge sharpness factor"] = 0.5
-            options["Impression breadth proportion"] = 1.0
-            options["Impression height proportion"] = 0.8
-            options["Impression depth proportion"] = 1.0
-            options["Lateral shear rate"] = -3.0
+            options["Ventral edge sharpness factor"] = 0.7
             options["Left oblique slope degrees"] = 45.0
             options["Right oblique slope degrees"] = 45.0
-            options["Medial curvature"] = 0.0
-            options["Medial curvature bias"] = 0.0
-            options["Dorsal-ventral rotation degrees"] = 10.0
-            options["Ventral-medial rotation degrees"] = 10.0
+            options["Medial curvature"] = 3.0
+            options["Medial curvature bias"] = 1.0
+            options["Dorsal-ventral rotation degrees"] = 20.0
+            options["Ventral-medial rotation degrees"] = 0.0
             options["Use sizing function"] = True
             options["Scale factor"] = 0.7
         else:
-            options["Left-right lung spacing"] = 1.0
             options["Base lateral edge sharpness factor"] = 0.0
-            options["Impression breadth proportion"] = 0.0
-            options["Impression height proportion"] = 0.0
-            options["Impression depth proportion"] = 0.0
-            options["Lateral shear rate"] = 0.0
+            options["Ventral edge sharpness factor"] = 0.0
             options["Medial curvature"] = 0.0
             options["Medial curvature bias"] = 0.0
             options["Dorsal-ventral rotation degrees"] = 0.0
             options["Ventral-medial rotation degrees"] = 0.0
             options["Use sizing function"] = False
             options["Scale factor"] = 0.0
-
-        if "Ellipsoid" in useParameterSetName:
-            options["Ventral edge sharpness factor"] = 0.0
-        else:
-            options["Ventral edge sharpness factor"] = 0.7
 
         return options
 
@@ -135,10 +120,6 @@ class MeshType_3d_lung3(Scaffold_base):
             "Ventral-medial rotation degrees",
             "Left oblique slope degrees",
             "Right oblique slope degrees",
-            "Impression breadth proportion",
-            "Impression height proportion",
-            "Impression depth proportion",
-            "Lateral shear rate",
             "Use sizing function",
             "Scale factor",
             "Refine",
@@ -177,14 +158,6 @@ class MeshType_3d_lung3(Scaffold_base):
             "Ellipsoid height",
             "Ellipsoid depth"]:
             if options[dimension] <= 0.0:
-                options[dimension] = 1.0
-        for dimension in [
-            "Impression depth proportion",
-            "Impression height proportion",
-            "Impression breadth proportion"]:
-            if options[dimension] <= -1.0:
-                options[dimension] = 0.0
-            elif options[dimension] > 1.0:
                 options[dimension] = 1.0
 
         if options["Left-right lung spacing"] < 0.0:
@@ -241,10 +214,6 @@ class MeshType_3d_lung3(Scaffold_base):
         ellipsoid_breadth = options["Ellipsoid breadth"]
         ellipsoid_height = options["Ellipsoid height"]
         ellipsoid_depth = options["Ellipsoid depth"]
-        impression_breadth_proportion = options["Impression breadth proportion"]
-        impression_height_proportion = options["Impression height proportion"]
-        impression_depth_proportion = options["Impression depth proportion"]
-        lateral_shear_rate = options["Lateral shear rate"]
         left_oblique_slope_radians = math.radians(options["Left oblique slope degrees"])
         right_oblique_slope_radians = math.radians(options["Right oblique slope degrees"])
         leftLungMedialCurvature = options["Medial curvature"]
@@ -519,11 +488,6 @@ class MeshType_3d_lung3(Scaffold_base):
 
             if baseSharpFactor != 0.0:
                 sharpeningRidge(baseSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isBase=True)
-
-            if impression_depth_proportion > 0.0:
-                form_mediastinal_surface(fieldmodule, coordinates, lungNodeset, ellipsoid_breadth, ellipsoid_height,
-                                         ellipsoid_depth, impression_breadth_proportion, impression_height_proportion,
-                                         impression_depth_proportion, lateral_shear_rate, isLeft=isLeft)
 
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
@@ -1038,64 +1002,6 @@ def flipRightLung(fieldmodule, coordinates, lungNodesetGroup):
     fieldassignment.assign()
 
 
-def form_mediastinal_surface(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_breadth, ellipsoid_height, ellipsoid_depth,
-                             impression_breadth_proportion, impression_height_proportion,
-                             impression_depth_proportion, lateral_shear_rate, isLeft=True):
-    """
-    Form mediastinal surface by draping over ellipsoid impression.
-    :param fieldmodule: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param ellipsoid_breadth: Breadth of lung ellipsoid.
-    :param ellipsoid_height: Height of lung ellipsoid.
-    :param ellipsoid_depth: Depth/thickness of lung ellipsoid.
-    :param impression_breadth_proportion: Impression breadth as proportion of ellipsoid breadth, circle chord.
-    :param impression_height_proportion: Impression height as proportion of ellipsoid height, circle chord.
-    :param impression_depth_proportion: Impression depth as proportion of ellipsoid thickness, giving radii.
-    :param lateral_shear_rate: Rate of shear as proportion of depth into ellipsoid.
-    :param isLeft: True if left lung, False if right lung.
-    :return: None.
-    """
-    minus_1 = fieldmodule.createFieldConstant(-1.0)
-    # get scaling from ellipse to curve of ellipsoid impression
-    b = 0.5 * impression_breadth_proportion * ellipsoid_breadth
-    h = 0.5 * impression_height_proportion * ellipsoid_height
-    d = impression_depth_proportion * 0.5 * ellipsoid_depth
-    breadth_radius = 0.5 * (b * b + d * d) / d
-    breadth_angle = 2.0 * math.asin(b / breadth_radius)
-    breadth_cx = breadth_radius - d
-    breadth_cy = 0.5 * ellipsoid_breadth - b
-    height_radius = 0.5 * (h * h + d * d) / d
-    height_angle = 2.0 * math.asin(h / height_radius)
-    height_cx = height_radius - d
-    height_cy = breadth_cy
-
-    x = fieldmodule.createFieldComponent(coordinates, 1)
-    y = fieldmodule.createFieldComponent(coordinates, 2)
-    z = fieldmodule.createFieldComponent(coordinates, 3)
-    b_angle_factor = fieldmodule.createFieldConstant(breadth_angle / ellipsoid_breadth)
-    b_angle = fieldmodule.createFieldMultiply(y, b_angle_factor)
-    h_angle_factor = fieldmodule.createFieldConstant(height_angle / ellipsoid_height)
-    h_angle = fieldmodule.createFieldMultiply(z, h_angle_factor)
-    bcx = fieldmodule.createFieldConstant(breadth_cx)
-    dd = fieldmodule.createFieldConstant(d)
-    bcy = fieldmodule.createFieldConstant(breadth_cy)
-    rb = bcx - x + dd if isLeft else bcx + (x + dd)
-    lateral_shear_rate = lateral_shear_rate if isLeft else -lateral_shear_rate
-    b_shear_rate = fieldmodule.createFieldConstant(lateral_shear_rate * 0.5 * ellipsoid_depth / breadth_radius)
-    mod_b_angle = b_angle + b_shear_rate * x
-    cosb = fieldmodule.createFieldCos(mod_b_angle)
-    sinb = fieldmodule.createFieldSin(mod_b_angle)
-    new_x = bcx - rb * cosb
-    new_x = new_x  if isLeft else new_x * minus_1
-    new_y = bcy + rb * sinb
-
-    new_coordinates = fieldmodule.createFieldConcatenate([new_x, new_y, z])
-
-    fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
-
-
 def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, bendZ):
     """
     Translates the lung mesh along the x- and z-axes to adjust its position within the anatomical space.
@@ -1211,22 +1117,43 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBre
     # Transformation matrix = [ -k1y + 1, | [x,
     #                                 1, |  y,
     #                                 1] |  z]
-    yLength = 0.1 * halfBreadth if isBase else 0.75 * halfBreadth
-    offset = fm.createFieldConstant([0.0, yLength, 0.0])
+    if isBase:
+        # Taper the lower portion of the lung near base (z = 0)
+        threshold = 0.3 * halfBreadth
+        offset_vector = [0.0, 0.0, -threshold]
+        scale_vector = [0.0, 0.0, sharpeningFactor / (halfBreadth * 1.75)]
+        constant_vector = [1.0, 1.0, 1.0]
+        component_indices = [3, 2, 2]
+    else:
+        # Taper the anterior edge of the lung along y-axis
+        threshold = None  # No conditional needed
+        offset_vector = [0.0, 0.75 * halfBreadth, 0.0]
+        scale_vector = [0.0, -sharpeningFactor / (halfBreadth * 1.75), 0.0]
+        constant_vector = [0.0, 1.0, 1.0]
+        component_indices = [2, 3, 3]
+
+    offset = fm.createFieldConstant(offset_vector)
     origin = fm.createFieldAdd(coordinates, offset)
-    k1 = -sharpeningFactor / (halfBreadth * 1.75) if isBase else -sharpeningFactor / (halfBreadth * 1.75)
-    scale = fm.createFieldConstant([0.0, -k1, 0.0]) if isBase else fm.createFieldConstant([0.0, k1, 0.0])
 
+    scale = fm.createFieldConstant(scale_vector)
     scaleFunction = fm.createFieldMultiply(origin, scale)
-    constant = fm.createFieldConstant([0.0, 1.0, 1.0])
+
+    constant = fm.createFieldConstant(constant_vector)
     constantFunction = fm.createFieldAdd(scaleFunction, constant)
-    componentIndices = [3, 2, 3] if isBase else [2, 3, 3]
 
-    transformation_matrix = fm.createFieldComponent(constantFunction, componentIndices)
+    transformation_matrix = fm.createFieldComponent(constantFunction, component_indices)
     taper_coordinates = fm.createFieldMultiply(origin, transformation_matrix)
-    translate_coordinates = fm.createFieldSubtract(taper_coordinates, offset)
+    translated_coordinates = fm.createFieldSubtract(taper_coordinates, offset)
 
-    fieldassignment = coordinates.createFieldassignment(translate_coordinates)
+    if isBase:
+        z_component = fm.createFieldComponent(coordinates, [3])
+        threshold_field = fm.createFieldConstant(threshold)
+        is_below_threshold = fm.createFieldLessThan(z_component, threshold_field)
+        result = fm.createFieldIf(is_below_threshold, translated_coordinates, coordinates)
+    else:
+        result = translated_coordinates
+
+    fieldassignment = coordinates.createFieldassignment(result)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
