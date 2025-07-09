@@ -2,7 +2,6 @@
 Generates a 3-D uterus mesh from a 1-D network layout, with variable
 numbers of elements around, along and through wall.
 """
-import copy
 
 from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, normalize, magnitude, \
     axis_angle_to_rotation_matrix
@@ -16,18 +15,13 @@ from scaffoldmaker.annotation.uterus_terms import get_uterus_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
-from scaffoldmaker.utils.eftfactory_bicubichermitelinear import eftfactory_bicubichermitelinear
-from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
-from scaffoldmaker.utils.eft_utils import setEftScaleFactorIds, remapEftNodeValueLabel
-from scaffoldmaker.utils.geometry import sampleEllipsePoints, createEllipsoidPoints
-from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurvesSmooth, \
-    smoothCurveSideCrossDerivatives, smoothCubicHermiteDerivativesLine, \
-    getNearestLocationBetweenCurves, interpolateCubicHermite, sampleCubicHermiteCurves
+from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives, smoothCubicHermiteDerivativesLine,\
+    interpolateCubicHermite, sampleCubicHermiteCurves
 from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
     PatchTubeNetworkMeshSegment
 from scaffoldmaker.utils.zinc_utils import group_add_connected_elements, get_nodeset_path_ordered_field_parameters
-from scaffoldmaker.utils.tracksurface import TrackSurface
+
 
 import math
 
@@ -84,8 +78,8 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
             coreBoundaryScalingMode = self._defaultCoreBoundaryScalingMode
 
             return PatchTubeNetworkMeshSegment(networkSegment, pathParametersList, elementsCountAround,
-                                      self._elementsCountThroughShell, self._isCore, elementsCountCoreBoxMinor,
-                                      self._elementsCountTransition, coreBoundaryScalingMode)  # args
+                                               self._elementsCountThroughShell, self._isCore, elementsCountCoreBoxMinor,
+                                               self._elementsCountTransition, coreBoundaryScalingMode)
 
         return super(UterusTubeNetworkMeshBuilder, self).createSegment(networkSegment)
 
@@ -107,27 +101,6 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
             segment.addSideD3ElementsToMeshGroup(True, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, dorsalMeshGroup)
             for annotationTerm in annotationTerms:
-                # if "left fundus" in annotationTerm[0] or "right fundus" in annotationTerm[0]:
-                #     elementsCountRim = segment.getElementsCountRim()
-                #     elementsCountAlong = segment.getSampledElementsCountAlong()
-                #     elementsCountAround = segment.getElementsCountAround()
-                #     if "left" in annotationTerm[0]:
-                #         e1FundusLimitStart = 0
-                #         e1FundusRange = (elementsCountAround // 2 - (1 if elementsCountAround % 2 == 1 else 0)) // 2
-                #     else:
-                #         e1FundusLimitStart = elementsCountAround // 4
-                #         e1FundusRange = elementsCountAround // 2
-                #     for e1 in range(elementsCountAround):
-                #         for e2 in range(elementsCountAlong):
-                #             for e3 in range(elementsCountRim):
-                #                 elementIdentifier = segment.getRimElementId(e1, e2, e3)
-                #                 if elementIdentifier is not None:
-                #                     element = mesh.findElementByIdentifier(elementIdentifier)
-                #                     if (e1 >= e1FundusLimitStart and e1 < e1FundusLimitStart + e1FundusRange) or \
-                #                             ("left" in annotationTerm[0] and e1 >= elementsCountAround - e1FundusRange):
-                #                         fundusMeshGroup.addElement(element)
-                #                     else:
-                #                         bodyMeshGroup.addElement(element)
                 if "fundus" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(fundusMeshGroup)
                 if "body" in annotationTerm[0]:
@@ -361,27 +334,21 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         fieldmodule = region.getFieldmodule()
         mesh = fieldmodule.findMeshByDimension(1)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         # set up element annotations
         uterusGroup = AnnotationGroup(region, get_uterus_term("uterus"))
         if isRodent:
             leftOviductGroup = AnnotationGroup(region, get_uterus_term("left uterine horn"))
             rightOviductGroup = AnnotationGroup(region, get_uterus_term("right uterine horn"))
-            leftFundusGroup = AnnotationGroup(region, ("left fundus", ""))
-            rightFundusGroup = AnnotationGroup(region, ("right fundus", ""))
         else:
             leftOviductGroup = AnnotationGroup(region, get_uterus_term("left oviduct"))
             rightOviductGroup = AnnotationGroup(region, get_uterus_term("right oviduct"))
-            leftFundusGroup = AnnotationGroup(region, ("left fundus", ""))
-            rightFundusGroup = AnnotationGroup(region, ("right fundus", ""))
         bodyGroup = AnnotationGroup(region, get_uterus_term("body of uterus"))
         cervixGroup = AnnotationGroup(region, ("cervix", ""))
         vaginaGroup = AnnotationGroup(region, get_uterus_term("vagina"))
         fundusPatchGroup = AnnotationGroup(region, get_uterus_term("fundus of uterus"))
-        annotationGroups = [uterusGroup, leftOviductGroup, rightOviductGroup, leftFundusGroup,
-                            rightFundusGroup, fundusPatchGroup,
-                            bodyGroup, cervixGroup, vaginaGroup]
+        annotationGroups = [uterusGroup, leftOviductGroup, rightOviductGroup, fundusPatchGroup, bodyGroup,
+                            cervixGroup, vaginaGroup]
 
         uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
         elementIdentifier = 1
@@ -540,10 +507,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                         d3 = [0.0, 0.0, oviductRadius]
                         d12 = [0.0, 0.0, 0.0]
                         d13 = [0.0, 0.0, 0.0]
-                        # id2 = mult(d2, innerProportionOviducts)
-                        # id3 = mult(d3, innerProportionOviducts)
-                        # id12 = mult(d12, innerProportionOviducts)
-                        # id13 = mult(d13, innerProportionOviducts)
                     else: # in ellipse zone
                         theta = math.acos(x[1] / halfFundusWidth)
                         if abs(halfFundusDepth * math.sin(theta)) < oviductRadius:
@@ -552,28 +515,13 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                             d12 = [0.0, 0.0, 0.0]
                             d13 = [0.0, 0.0, 0.0]
                         else:
-                            d2 = [halfFundusDepth * math.sin(theta) * (-1.0 if side == left else 1.0), 0.0, 0.0] # fundusHeight??
+                            d2 = [halfFundusDepth * math.sin(theta) * (-1.0 if side == left else 1.0), 0.0, 0.0]
                             d3 = [0.0, 0.0, halfFundusDepth * math.sin(theta)]
                             d12 = [halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth),
                                    0.0, 0.0]
                             d13 = [0.0, 0.0,
                                    halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth) *
                                    (-1.0 if side == left else 1.0)]
-
-                        # if abs(halfFundusDepth * innerProportionBody * math.sin(theta)) < uterineTubeRadius * innerProportionUterineTubes:
-                        #     id2 = [innerProportionUterineTubes * (-uterineTubeRadius if side == left else uterineTubeRadius), 0.0, 0.0]
-                        #     id3 = [0.0, 0.0, uterineTubeRadius * innerProportionUterineTubes]
-                        #     id12 = [0.0, 0.0, 0.0]
-                        #     id13 = [0.0, 0.0, 0.0]
-                        # else:
-                        #     id2 = [innerProportionBody * halfFundusDepth * math.sin(theta) * (-1.0 if side == left else 1.0), 0.0,
-                        #               0.0]  # fundusHeight??
-                        #     id3 = [0.0, 0.0, innerProportionBody * halfFundusDepth * math.sin(theta)]
-                        #     id12 = [innerProportionBody * halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth),
-                        #            0.0, 0.0]
-                        #     id13 = [0.0, 0.0,
-                        #            innerProportionBody * halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth) *
-                        #            (-1.0 if side == left else 1.0)]
 
                     id2 = mult(d2, innerProportionOviducts)
                     id3 = mult(d3, innerProportionOviducts)
@@ -953,7 +901,6 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Target element density along longest segment': 5.5,
             'Use linear through wall': False, # True needs work
             'Show trim surfaces': False,
-            'Show pseudo-segment': False,
             'Refine': False,
             'Refine number of elements along': 4,
             'Refine number of elements around': 4,
@@ -982,7 +929,6 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Number of elements along vagina',
             'Use linear through wall',
             'Show trim surfaces',
-            'Show pseudo-segment',
             'Refine',
             'Refine number of elements along',
             'Refine number of elements around',
@@ -1056,11 +1002,6 @@ class MeshType_3d_uterus2(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
-        # elementsCountThroughWall = options["Number of elements through wall"]
-        # elementsCountAroundUterineTube = options["Number of elements around oviduct"]
-        # elementsCountAroundBody = options["Number of elements around"]
-        # useLinerThroughWall = options["Use linear through wall"]
-
         annotationElementsCountsAlong = []
         annotationElementsCountsAround = []
         for layoutAnnotationGroup in layoutAnnotationGroups:
@@ -1107,113 +1048,8 @@ class MeshType_3d_uterus2(Scaffold_base):
         coordinates = findOrCreateFieldCoordinates(fieldmodule)
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
-        # fieldcache = fieldmodule.createFieldcache()
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(coordinates)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_VALUE, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
-
         mesh = fieldmodule.findMeshByDimension(3)
-        # useCrossDerivatives = False
-        # if useLinerThroughWall:
-        #     eftfactory = eftfactory_bicubichermitelinear(mesh, useCrossDerivatives)
-        # else:
-        #     eftfactory = eftfactory_tricubichermite(mesh, useCrossDerivatives)
-        #
-        # eft = eftfactory.createEftBasic()
-        #
-        # elementtemplate = mesh.createElementtemplate()
-        # elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        # elementtemplate.defineField(coordinates, -1, eft)
-        # elementtemplateX = mesh.createElementtemplate()
-        # elementtemplateX.setElementShapeType(Element.SHAPE_TYPE_CUBE)
-        #
-        # mesh2d = fieldmodule.findMeshByDimension(2)
-        #
-        # # Identify boundary nodes
-        # fieldmodule.defineAllFaces()
-        # fundusPatchGroup = getAnnotationGroupForTerm(annotationGroups, ("fundus patch", "None"))
-        # leftFundusGroup = getAnnotationGroupForTerm(annotationGroups, ("left fundus", "None"))
-        # rightFundusGroup = getAnnotationGroupForTerm(annotationGroups, ("right fundus", "None"))
-        # bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
-        #
-        # for annotationGroup in [fundusPatchGroup, leftFundusGroup, rightFundusGroup, bodyGroup]:
-        #     annotationGroup.addSubelements()
-        #
-        # is_fundusPatch = fundusPatchGroup.getGroup()
-        # is_leftFundus = leftFundusGroup.getGroup()
-        # is_rightFundus = rightFundusGroup.getGroup()
-        # is_body = bodyGroup.getGroup()
-        #
-        # is_leftSegmentBoundary = fieldmodule.createFieldAnd(is_leftFundus, is_fundusPatch)
-        # is_rightSegmentBoundary = fieldmodule.createFieldAnd(is_rightFundus, is_fundusPatch)
-        # is_bodySegmentBoundary = fieldmodule.createFieldAnd(is_body, is_fundusPatch)
-        #
-        # leftSegmentBoundary = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-        #                                                          ["left segment boundary", "None"])
-        # leftSegmentBoundary.getMeshGroup(mesh2d).addElementsConditional(is_leftSegmentBoundary)
-        # leftSegmentBoundaryNodeset = leftSegmentBoundary.getNodesetGroup(nodes)
-        #
-        # rightSegmentBoundary = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-        #                                                          ["right segment boundary", "None"])
-        # rightSegmentBoundary.getMeshGroup(mesh2d).addElementsConditional(is_rightSegmentBoundary)
-        # rightSegmentBoundaryNodeset = rightSegmentBoundary.getNodesetGroup(nodes)
-        #
-        # bodySegmentBoundary = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-        #                                                          ["body segment boundary", "None"])
-        # bodySegmentBoundary.getMeshGroup(mesh2d).addElementsConditional(is_bodySegmentBoundary)
-        # bodySegmentBoundaryNodeset = bodySegmentBoundary.getNodesetGroup(nodes)
-        #
-        # for nodeset in [leftSegmentBoundaryNodeset, rightSegmentBoundaryNodeset, bodySegmentBoundaryNodeset]:
-        #     nodeIDs = []
-        #     xBoundary = []
-        #     d2Boundary = []
-        #     nodeIter = nodeset.createNodeiterator()
-        #     node = nodeIter.next()
-        #     fieldcache.setNode(node)
-        #     while node.isValid():
-        #         nodeIDs.append(node.getIdentifier())
-        #         xBoundary.append(coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1])
-        #         d2Boundary.append(coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1])
-        #         node = nodeIter.next()
-        #         fieldcache.setNode(node)
-        #
-        #     if nodeset == leftSegmentBoundaryNodeset:
-        #         nodeIdsTmp = copy.deepcopy(nodeIDs)
-        #         xTmp = copy.deepcopy(xBoundary)
-        #         d2Tmp = copy.deepcopy(d2Boundary)
-        #         # reorder
-        #         nodeIdsLeftSegmentBoundary = reorderNodesForMapping(nodeIdsTmp, elementsCountThroughWall)
-        #         xLeftSegmentBoundary = reorderNodesForMapping(xTmp, elementsCountThroughWall)
-        #         d2LeftSegmentBoundary = reorderNodesForMapping(d2Tmp, elementsCountThroughWall)
-        #
-        #     elif nodeset == rightSegmentBoundaryNodeset:
-        #         nodeIdsRightSegmentBoundary = copy.deepcopy(nodeIDs)
-        #         xRightSegmentBoundary = copy.deepcopy(xBoundary)
-        #         d2RightSegmentBoundary = copy.deepcopy(d2Boundary)
-        #
-        #     elif nodeset == bodySegmentBoundaryNodeset:
-        #         # print(nodeIDs)
-        #         nodeIdsBodySegmentBoundary = copy.deepcopy(nodeIDs[4 * (elementsCountThroughWall + 1):]) # remove the 2 corners on both sides
-        #         xBodySegmentBoundary = copy.deepcopy(xBoundary[4 * (elementsCountThroughWall + 1):])
-        #         d2BodySegmentBoundary = copy.deepcopy(d2Boundary[4 * (elementsCountThroughWall + 1):])
-        #
-        # # print("left", nodeIdsLeftSegmentBoundary)
-        # # print("right", nodeIdsRightSegmentBoundary)
-        # # print("body", nodeIdsBodySegmentBoundary)
-        #
-        # # Remove fundus patch
-        # if not options['Show pseudo-segment']:
-        #     destroyGroup = fundusPatchGroup.getGroup()
-        #     mesh.destroyElementsConditional(destroyGroup)
-        #     nodes.destroyNodesConditional(destroyGroup)
-        #     del destroyGroup
-        #
-        uterusGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterus"))
-        # fundusGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("fundus of uterus"))
-        #
+
         # add human specific annotations
         allMarkers = {}
         if isHuman:
@@ -1236,646 +1072,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             for group in annotationGroups:
                 group.getNodesetGroup(nodes).addNode(markerNode)
 
-        # # Make patch
-        # networkLayoutOptions = options['Network layout']
-        # networkSettings = networkLayoutOptions.getScaffoldSettings()
-        # fundusHeight = networkSettings["Fundus height scale"] * networkSettings["Body length"]
-        # halfFundusDepth = networkSettings["Fundus depth between oviducts"] * 0.5
-        # halfFundusWidth = networkSettings["Fundus width between oviducts"] * 0.5
-        # innerProportionBody = networkSettings["Inner proportion body"]
-        #
-        # networkSegments = networkMesh.getNetworkSegments()
-        # layoutFieldmodule = layoutRegion.getFieldmodule()
-        # layoutNodes = layoutFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # layoutCoordinates = layoutFieldmodule.findFieldByName('coordinates')
-        # bodyJunctionGroup = layoutFieldmodule.findFieldByName("body junction").castGroup()
-        # bodyJunctionNodeset = bodyJunctionGroup.getNodesetGroup(layoutNodes)
-        #
-        # bodyJunctionNodeID = []
-        # nodeiterator = bodyJunctionNodeset.createNodeiterator()
-        # node = nodeiterator.next()
-        # while node.isValid():
-        #     bodyJunctionNodeID.append(node.getIdentifier())
-        #     node = nodeiterator.next()
-        #
-        # nodes_IDs = []
-        # versions = []
-        # for segment in networkSegments:
-        #     segmentNodesID = segment.getNodeIdentifiers()
-        #     for i in range(len(segmentNodesID)):
-        #         if segmentNodesID[i] in bodyJunctionNodeID:
-        #             nodes_IDs.append(segmentNodesID[i])
-        #             versions.append(segment.getNodeVersions()[i])
-        #
-        # cx, cd1, cd2, cd3, cd12, cd13 = get_nodeset_path_ordered_field_parameters(
-        #     bodyJunctionNodeset, layoutCoordinates,
-        #     [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-        #      Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3,
-        #      Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D2_DS1DS3], nodes_IDs, versions)
-        #
-        # xBodyJunction = cx[0]
-        # d2BodyJunctionSegment1 = set_magnitude(cd2[1], fundusHeight)
-        # d3BodyJunctionSegment1 = set_magnitude(cd3[1], halfFundusDepth)
-        # zero = [0.0, 0.0, 0.0]
-        #
-        # # dorsal = 0
-        # # ventral = 1
-        # # xAll = []
-        # # d1All = []
-        # # d2All = []
-        # #
-        # # for n3 in range(elementsCountThroughWall + 1):
-        # #     sf = (1.0 - innerProportionBody) / elementsCountThroughWall * n3 + innerProportionBody
-        # #     d2 = mult(d2BodyJunctionSegment1, sf)
-        # #     d3 = mult(d3BodyJunctionSegment1, sf)
-        # #     xMid, d1Mid = sampleEllipsePoints(xBodyJunction, d2, d3, 0.5 * math.pi, 1.5 * math.pi,
-        # #                                       int(elementsCountAroundUterineTube * 0.5))
-        # #
-        # #     elementsCountAlongPatch = int((elementsCountAroundBody - elementsCountAroundUterineTube) * 0.5)
-        # #     newNodesCountAlongPatch = elementsCountAlongPatch - 1
-        # #
-        # #     # print('nodesRightSegmentBoundary = ', nodeIdsRightSegmentBoundary)
-        # #     # print('len(xLeftSegmentBoundary) = ', len(xLeftSegmentBoundary))
-        # #     # for n in range(1, len(xMid) - 1):
-        # #     n = int(0.5 * len(xMid))
-        # #     idxAtSegment = n + int(((elementsCountAroundUterineTube * 0.5) + 1) * n3)
-        # #     nStart = xRightSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else xLeftSegmentBoundary[
-        # #         idxAtSegment]
-        # #     nEnd = xLeftSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else xRightSegmentBoundary[
-        # #         idxAtSegment]
-        # #     d2Start = d2RightSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else d2LeftSegmentBoundary[
-        # #         idxAtSegment]
-        # #     d2End = [-1 * c for c in d2LeftSegmentBoundary[idxAtSegment]] \
-        # #         if n <= int(0.5 * len(xMid)) else [-1 * c for c in d2RightSegmentBoundary[idxAtSegment]]
-        # #
-        # #     sf = 2.0 if isPregnant else 1.5 # make top round
-        # #     nx = [nStart, xMid[n], nEnd]
-        # #     nd1 = [d2Start,
-        # #            [0.0, sf * (-halfFundusWidth if n <= int(0.5 * len(xMid)) else halfFundusWidth), 0.0],
-        # #            d2End]
-        # #
-        # #     px, pd1 = sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountAlongPatch)[:2]
-        # #     pd1 = smoothCubicHermiteDerivativesLine(px, pd1)
-        # #
-        # #     xAlongApex = px[1:-1]
-        # #     # d1AlongApex = pd1[1:-1]
-        # #     #
-        # #     # xRowList = [xBodySegmentBoundary[newNodesCountAlongPatch * 2 * n3:
-        # #     #                                  newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]]
-        # #     # d1RowList = [[zero for c in range(newNodesCountAlongPatch)]]
-        # #     # d2RowList = [d2BodySegmentBoundary[newNodesCountAlongPatch * 2 * n3:
-        # #     #                                    newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]]
-        # #     # frontBodySegmentBoundaryNodes = nodeIdsBodySegmentBoundary[
-        # #     #                                 newNodesCountAlongPatch * 2 * n3:
-        # #     #                                 newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]
-        # #     xDorsalBodySegmentBoundary = xBodySegmentBoundary[
-        # #                                 newNodesCountAlongPatch * 2 * n3:
-        # #                                 newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]
-        # #     d2DorsalBodySegmentBoundary = d2BodySegmentBoundary[
-        # #                                  newNodesCountAlongPatch * 2 * n3:
-        # #                                  newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]
-        # #
-        # #     xVentralBodySegmentBoundary = \
-        # #        xBodySegmentBoundary[
-        # #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        # #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2]
-        # #     d2VentralBodySegmentBoundary = \
-        # #         d2BodySegmentBoundary[
-        # #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        # #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2]
-        # #     # nodeIdsVentralBodySegmentBoundary = \
-        # #     #     list(reversed(nodeIdsBodySegmentBoundary[
-        # #     #                   newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        # #     #                   newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2]))
-        # #     # print(nodeIdsVentralBodySegmentBoundary)
-        # #
-        # #     xLayer = []
-        # #     d1Layer = []
-        # #     d2Layer = []
-        # #     for side in (dorsal, ventral):
-        # #         if side == ventral:
-        # #             xAlongApex.reverse()
-        # #             xSideOfBodySegmentBoundary = xVentralBodySegmentBoundary
-        # #             d2SideOfBodySegmentBoundary = d2VentralBodySegmentBoundary
-        # #         else:
-        # #             xSideOfBodySegmentBoundary = xDorsalBodySegmentBoundary
-        # #             d2SideOfBodySegmentBoundary = d2DorsalBodySegmentBoundary
-        # #         pxAlongAll = []
-        # #         pd2AlongAll = []
-        # #         for n1 in range(len(xSideOfBodySegmentBoundary)):
-        # #             sf = 1.0 #2.0 if isPregnant else 1.5
-        # #             nx = [xAlongApex[n1], xSideOfBodySegmentBoundary[n1]]
-        # #             nd2 = [[0.0, 0.0, sf * halfFundusDepth * (1.0 if side == dorsal else -1.0)],
-        # #                    d2SideOfBodySegmentBoundary[n1]]
-        # #             px, pd2 = sampleCubicHermiteCurves(nx, nd2, int(0.25 * elementsCountAroundUterineTube))[:2]
-        # #             pd2 = smoothCubicHermiteDerivativesLine(px, pd2)
-        # #             pxAlongAll.append(px)
-        # #             pd2AlongAll.append(pd2)
-        # #
-        # #         for n2 in range(int(0.25 * elementsCountAroundUterineTube)):
-        # #             nx = []
-        # #             nd1 = []
-        # #             nd2 = []
-        # #             for n1 in range(len(xDorsalBodySegmentBoundary)):
-        # #                 nx.append(pxAlongAll[n1][n2])
-        # #                 nd2.append(pd2AlongAll[n1][n2])
-        # #                 if n1 == len(xDorsalBodySegmentBoundary) - 1:
-        # #                     nd1.append(sub(pxAlongAll[n1][n2], pxAlongAll[n1 - 1][n2]))
-        # #                 else:
-        # #                     nd1.append(sub(pxAlongAll[n1 + 1][n2], pxAlongAll[n1][n2]))
-        # #             nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
-        # #             if side == ventral and n2 == 0:
-        # #                 pass
-        # #             else:
-        # #                 xLayer.append(nx)
-        # #                 d1Layer.append(nd1)
-        # #                 d2Layer.append(nd2)
-        # #
-        # #     xAll.append(xLayer)
-        # #     d1All.append(d1Layer)
-        # #     d2All.append(d2Layer)
-        # #
-        # # # Re-arrange rows to get into correct layers and order from front to back
-        # # xNewNodes = []
-        # # d1NewNodes = []
-        # # d2NewNodes = []
-        # # for n3 in range(elementsCountThroughWall + 1):
-        # #     nxLayer = []
-        # #     nd1Layer = []
-        # #     nd2Layer = []
-        # #     for n2 in range(int(0.5 * elementsCountAroundUterineTube - 1)):
-        # #         if n2 < int(0.25 * elementsCountAroundUterineTube):
-        # #             n2Idx = int(0.25 * elementsCountAroundUterineTube - (n2 + 1))
-        # #             # print('if,', n2Idx)
-        # #         else:
-        # #             n2Idx = n2
-        # #             # print('else,', n2Idx)
-        # #         nxLayer.append(xAll[n3][n2Idx])
-        # #         nd1Layer.append(d1All[n3][n2Idx])
-        # #         nd2Layer.append(d2All[n3][n2Idx])
-        # #     xNewNodes.append(nxLayer)
-        # #     d1NewNodes.append(nd1Layer)
-        # #     d2NewNodes.append(nd2Layer)
-        # #
-        # # # for p2 in range(len(xNewNodes[0])):
-        # # #     for p3 in range(elementsCountThroughWall + 1):
-        # # #         for p1 in range(len(xNewNodes[0][p2])):
-        # # #             node = nodes.createNode(nodeIdentifier, nodetemplate)
-        # # #             fieldcache.setNode(node)
-        # # #             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, xNewNodes[p3][p2][p1])
-        # # #             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1NewNodes[p3][p2][p1])
-        # # #             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2NewNodes[p3][p2][p1])
-        # # #             nodeIdentifier += 1
-        # #
-        # #     # Make nodes
-        # #     nodeIDsNewNodes = []
-        # #     frontBodyNodeIDs = []
-        # #     backBodyNodeIDs = []
-        # #     for layer in range(elementsCountThroughWall + 1):
-        # #         frontBodyNodeIDs.append([nodeIdsRightSegmentBoundary[layer * (int(elementsCountAroundUterineTube * 0.5 + 1))]] +
-        # #                             nodeIdsBodySegmentBoundary[newNodesCountAlongPatch * 2 * layer : newNodesCountAlongPatch * 2 * layer + newNodesCountAlongPatch] +
-        # #                             [nodeIdsLeftSegmentBoundary[layer * int(elementsCountAroundUterineTube * 0.5 + 1)]])
-        # #
-        # #         backBodyNodeIDs.append(
-        # #             [nodeIdsLeftSegmentBoundary[(layer + 1) * int(elementsCountAroundUterineTube * 0.5) + layer]] +
-        # #              nodeIdsBodySegmentBoundary[newNodesCountAlongPatch * 2 * layer + newNodesCountAlongPatch : newNodesCountAlongPatch * 2 * layer + 2 * newNodesCountAlongPatch] +
-        # #             [nodeIdsRightSegmentBoundary[(layer + 1) * int(elementsCountAroundUterineTube * 0.5) + layer]])
-        # #
-        # #     nodeIDsNewNodes.append(frontBodyNodeIDs)
-        # #     for row in range(len(xNewNodes[0])):
-        # #         nodeIDsLayer = []
-        # #         for layer in range(len(xNewNodes)):
-        # #             if row <= int(0.5 * (len(xNewNodes[0]) - 1)):
-        # #                 nodeIDsAround = [nodeIdsRightSegmentBoundary[1 + row + layer * int(0.5 * elementsCountAroundUterineTube + 1)]]
-        # #                 print(nodeIDsAround)
-        # #             else:
-        # #                 nodeIDsAround = [nodeIdsLeftSegmentBoundary[row + 1 + layer * int(0.5 * elementsCountAroundUterineTube + 1)]]
-        # #             for col in range(len(xNewNodes[0][row])):
-        # #                 colIdx = col #if row <= int(0.5 * (len(xNewNodes[0]) - 1)) else -(col + 1)
-        # #                 node = nodes.createNode(nodeIdentifier, nodetemplate)
-        # #                 fieldcache.setNode(node)
-        # #                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, xNewNodes[layer][row][colIdx])
-        # #                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1NewNodes[layer][row][colIdx])
-        # #                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2NewNodes[layer][row][colIdx])
-        # #                 if not useLinerThroughWall:
-        # #                     if layer < len(xNewNodes) - 1:
-        # #                         d3 = sub(xNewNodes[layer + 1][row][colIdx], xNewNodes[layer][row][colIdx])
-        # #                     else:
-        # #                         d3 = sub(xNewNodes[layer][row][colIdx], xNewNodes[layer - 1][row][colIdx])
-        # #                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-        # #                 nodeIDsAround.append(nodeIdentifier)
-        # #                 nodeIdentifier += 1
-        # #             if row <= int(0.5 * (len(xNewNodes[0]) - 1)):
-        # #                 nodeIDsAround.append(nodeIdsLeftSegmentBoundary[1 + row + layer * int(0.5 * elementsCountAroundUterineTube + 1)])
-        # #             else:
-        # #                 nodeIDsAround.append(
-        # #                     nodeIdsRightSegmentBoundary[1 + row + layer * int(0.5 * elementsCountAroundUterineTube + 1)])
-        # #             nodeIDsLayer.append(nodeIDsAround)
-        # #         nodeIDsNewNodes.append(nodeIDsLayer)
-        # #     nodeIDsNewNodes.append(backBodyNodeIDs)
-        #
-        # # original
-        # xNewNodes = []
-        # d1NewNodes = []
-        # d2NewNodes = []
-        # for n3 in range(elementsCountThroughWall + 1):
-        #     sf = (1.0 - innerProportionBody) / elementsCountThroughWall * n3 + innerProportionBody
-        #     d2 = mult(d2BodyJunctionSegment1, sf)
-        #     d3 = mult(d3BodyJunctionSegment1, sf)
-        #     xMid, d1Mid = sampleEllipsePoints(xBodyJunction, d2, d3, 0.5 * math.pi, 1.5*math.pi,
-        #                                       int(elementsCountAroundUterineTube * 0.5))
-        #
-        #     elementsCountAlongPatch = int((elementsCountAroundBody - elementsCountAroundUterineTube) * 0.5)
-        #     newNodesCountAlongPatch = elementsCountAlongPatch - 1
-        #     xRowList = [xBodySegmentBoundary[newNodesCountAlongPatch * 2 * n3:
-        #                                      newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]]
-        #     d1RowList = [[zero for c in range(newNodesCountAlongPatch)]]
-        #     d2RowList = [d2BodySegmentBoundary[newNodesCountAlongPatch * 2 * n3:
-        #                                        newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]]
-        #     frontBodySegmentBoundaryNodes = nodeIdsBodySegmentBoundary[newNodesCountAlongPatch * 2 * n3:
-        #                                      newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]
-        #     d2FrontBodySegmentBoundary = d2BodySegmentBoundary[newNodesCountAlongPatch * 2 * n3:
-        #                                        newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch]
-        #
-        #     # print('nodesRightSegmentBoundary = ', nodeIdsRightSegmentBoundary)
-        #     # print('len(xLeftSegmentBoundary) = ', len(xLeftSegmentBoundary))
-        #     for n in range(1, len(xMid) - 1):
-        #         idxAtSegment = n + int(((elementsCountAroundUterineTube * 0.5) + 1) * n3)
-        #         nStart = xRightSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else xLeftSegmentBoundary[idxAtSegment]
-        #         nEnd = xLeftSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else xRightSegmentBoundary[idxAtSegment]
-        #         d2Start = d2RightSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else d2LeftSegmentBoundary[idxAtSegment]
-        #         d2End = [-1 * c for c in d2LeftSegmentBoundary[idxAtSegment]] if n <= int(0.5 * len(xMid)) else [-1 * c for c in d2RightSegmentBoundary[idxAtSegment]]
-        #         nodeIDStart = nodeIdsRightSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else nodeIdsLeftSegmentBoundary[
-        #             idxAtSegment]
-        #         nodeIDEnd = nodeIdsLeftSegmentBoundary[idxAtSegment] if n <= int(0.5 * len(xMid)) else nodeIdsRightSegmentBoundary[
-        #             idxAtSegment]
-        #         sf = 2.0 if isPregnant else 1.5
-        #         nx = [nStart, xMid[n], nEnd]
-        #         nd1 = [d2Start,
-        #                [0.0, sf * (-halfFundusWidth if n <= int(0.5 * len(xMid)) else halfFundusWidth), 0.0],
-        #                d2End]
-        #
-        #         px, pd1 = sampleCubicHermiteCurvesSmooth(nx, nd1, elementsCountAlongPatch)[:2]
-        #         pd1 = smoothCubicHermiteDerivativesLine(px, pd1)
-        #
-        #         # if isPregnant: # CHECK!
-        #         #     node = nodes.findNodeByIdentifier(nodeIDStart)
-        #         #     fieldcache.setNode(node)
-        #         #     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, pd1[0])
-        #         #
-        #         #     node = nodes.findNodeByIdentifier(nodeIDEnd)
-        #         #     fieldcache.setNode(node)
-        #         #     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, mult(pd1[-1], -1))
-        #
-        #         pxNew = px[1:-1]
-        #         pd1New = pd1[1:-1]
-        #
-        #         if n > int(0.5*len(xMid)):
-        #             pxNew.reverse()
-        #             pd1New.reverse()
-        #
-        #         xRowList.append(pxNew)
-        #         d1RowList.append(pd1New)
-        #         d2RowList.append([[] for c in range(len(pxNew))])
-        #
-        #     backBodySegmentBoundaryNodes = \
-        #         list(reversed(nodeIdsBodySegmentBoundary[
-        #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2]))
-        #     d2BackBodySegmentBoundary = \
-        #         list(reversed(d2BodySegmentBoundary[
-        #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        #                       newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2]))
-        #     xRowList.append(
-        #         list(reversed(xBodySegmentBoundary[newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        #                                            newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2])))
-        #     d1RowList.append([zero for c in range(newNodesCountAlongPatch)])
-        #     d2RowList.append(
-        #         list(reversed(d2BodySegmentBoundary[newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch:
-        #                                             newNodesCountAlongPatch * 2 * n3 + newNodesCountAlongPatch * 2])))
-        #
-        #     for n1 in range(newNodesCountAlongPatch):
-        #         # nodes in front
-        #         d2AlongAll = []
-        #         xAlong = [xRowList[0][n1]]
-        #         d2Along = [d2RowList[0][n1]]
-        #         for n2 in range(1, int(0.5 * len(xRowList) + 1)):
-        #             xAlong += [xRowList[n2][n1]]
-        #             d2Along += [sub(xRowList[n2 - 1][n1], xRowList[n2][n1])]
-        #         d2Along[-1] = set_magnitude([0.0, 0.0, 1.0], magnitude(d2Along[-1]))
-        #         d2Along = smoothCubicHermiteDerivativesLine(list(reversed(xAlong)),
-        #                                                     list(reversed(d2Along)), fixStartDirection=True)
-        #         # Replace with end derivative
-        #         node = nodes.findNodeByIdentifier(frontBodySegmentBoundaryNodes[n1])
-        #         fieldcache.setNode(node)
-        #         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1,
-        #                                       mult((add(d2Along[-1], d2FrontBodySegmentBoundary[n1])), 0.5))
-        #
-        #         d2AlongAll += list(reversed(d2Along))
-        #         # nodes at the back
-        #         xAlong = [xRowList[n2][n1]]
-        #         d2AlongBack = [[-1 * c for c in d2Along[-1]]]
-        #         for n2 in range(int(0.5 * len(xRowList) + 1), len(xRowList) - 1):
-        #             xAlong += [xRowList[n2][n1]]
-        #             d2AlongBack += [sub(xRowList[n2 + 1][n1], xRowList[n2][n1])]
-        #         xAlong += [xRowList[-1][n1]]
-        #         d2AlongBack += [d2RowList[-1][n1]]
-        #         d2AlongBack = smoothCubicHermiteDerivativesLine(xAlong, d2AlongBack, fixStartDirection=True)
-        #
-        #         # Replace with end derivative
-        #         node = nodes.findNodeByIdentifier(backBodySegmentBoundaryNodes[n1])
-        #         fieldcache.setNode(node)
-        #         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1,
-        #                                       mult((add(d2AlongBack[-1], d2BackBodySegmentBoundary[n1])), 0.5))
-        #         d2AlongAll += d2AlongBack[1:]
-        #
-        #         for n2 in range(1, len(d2AlongAll) - 1):
-        #             d2RowList[n2][n1] = d2AlongAll[n2]
-        #
-        #     xNewNodes.append(xRowList)
-        #     d1NewNodes.append(d1RowList)
-        #     d2NewNodes.append(d2RowList)
-        #
-        # # print('nodeIdsLeftSegmentBoundary', nodeIdsLeftSegmentBoundary)
-        # # Make nodes
-        # nodeIDsNewNodes = []
-        # frontBodyNodeIDs = []
-        # backBodyNodeIDs = []
-        # for layer in range(elementsCountThroughWall + 1):
-        #     frontBodyNodeIDs.append([nodeIdsRightSegmentBoundary[layer * (int(elementsCountAroundUterineTube * 0.5 + 1))]] +
-        #                         nodeIdsBodySegmentBoundary[newNodesCountAlongPatch * 2 * layer : newNodesCountAlongPatch * 2 * layer + newNodesCountAlongPatch] +
-        #                         [nodeIdsLeftSegmentBoundary[layer * int(elementsCountAroundUterineTube * 0.5 + 1)]])
-        #
-        #     backBodyNodeIDs.append(
-        #         [nodeIdsLeftSegmentBoundary[(layer + 1) * int(elementsCountAroundUterineTube * 0.5) + layer]] +
-        #          nodeIdsBodySegmentBoundary[newNodesCountAlongPatch * 2 * layer + newNodesCountAlongPatch : newNodesCountAlongPatch * 2 * layer + 2 * newNodesCountAlongPatch] +
-        #         [nodeIdsRightSegmentBoundary[(layer + 1) * int(elementsCountAroundUterineTube * 0.5) + layer]])
-        #
-        # nodeIDsNewNodes.append(frontBodyNodeIDs)
-        # for row in range(1, len(xNewNodes[0]) - 1):
-        #     nodeIDsLayer = []
-        #     for layer in range(len(xNewNodes)):
-        #         if row <= int(0.5 * (len(xNewNodes[0]) - 1)):
-        #             nodeIDsAround = [nodeIdsRightSegmentBoundary[row + layer * int(0.5 * elementsCountAroundUterineTube + 1)]]
-        #         else:
-        #             nodeIDsAround = [nodeIdsLeftSegmentBoundary[row + layer * int(0.5 * elementsCountAroundUterineTube + 1)]]
-        #         for col in range(len(xNewNodes[0][row])):
-        #             colIdx = col if row <= int(0.5 * (len(xNewNodes[0]) - 1)) else -(col + 1)
-        #             node = nodes.createNode(nodeIdentifier, nodetemplate)
-        #             fieldcache.setNode(node)
-        #             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, xNewNodes[layer][row][colIdx])
-        #             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1NewNodes[layer][row][colIdx])
-        #             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2NewNodes[layer][row][colIdx])
-        #             if not useLinerThroughWall:
-        #                 if layer < len(xNewNodes) - 1:
-        #                     d3 = sub(xNewNodes[layer + 1][row][colIdx], xNewNodes[layer][row][colIdx])
-        #                 else:
-        #                     d3 = sub(xNewNodes[layer][row][colIdx], xNewNodes[layer - 1][row][colIdx])
-        #                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-        #             nodeIDsAround.append(nodeIdentifier)
-        #             nodeIdentifier += 1
-        #         if row <= int(0.5 * (len(xNewNodes[0]) - 1)):
-        #             nodeIDsAround.append(nodeIdsLeftSegmentBoundary[row + layer * int(0.5 * elementsCountAroundUterineTube + 1)])
-        #         else:
-        #             nodeIDsAround.append(
-        #                 nodeIdsRightSegmentBoundary[row + layer * int(0.5 * elementsCountAroundUterineTube + 1)])
-        #         nodeIDsLayer.append(nodeIDsAround)
-        #     nodeIDsNewNodes.append(nodeIDsLayer)
-        # nodeIDsNewNodes.append(backBodyNodeIDs)
-        #
-        # # print(nodeIDsNewNodes)
-        # # for n2 in range(len(nodeIDsNewNodes)):
-        # #     for n3 in range(len(nodeIDsNewNodes[n2])):
-        # #         print(nodeIDsNewNodes[n2][n3])
-        #
-        # # print(len(nodeIDsNewNodes), len(nodeIDsNewNodes[0]), len(nodeIDsNewNodes[0][0]))
-        #
-        # leftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("left uterus"))
-        # rightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("right uterus"))
-        # dorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("dorsal uterus"))
-        # ventralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("ventral uterus"))
-        #
-        # # Make elements
-        # for e2 in range(len(nodeIDsNewNodes) - 1):
-        #     for e3 in range(elementsCountThroughWall):
-        #         for e1 in range(newNodesCountAlongPatch + 1):
-        #             e1Idx = -(e1 + 1) if e2 == int(0.5 * len(nodeIDsNewNodes)) else e1
-        #             e1IdxNext = -(e1 + 2) if e2 == int(0.5 * len(nodeIDsNewNodes)) else e1 + 1
-        #             bni1 = nodeIDsNewNodes[(e2 + 1) if e2 < 0.5*len(nodeIDsNewNodes) - 1 else e2][e3][e1Idx]
-        #             bni2 = nodeIDsNewNodes[(e2 + 1) if e2 < 0.5*len(nodeIDsNewNodes) - 1 else e2][e3][e1IdxNext]
-        #             bni3 = nodeIDsNewNodes[e2 if e2 < 0.5*len(nodeIDsNewNodes) -1  else e2 + 1][e3][e1]
-        #             bni4 = nodeIDsNewNodes[e2 if e2 < 0.5*len(nodeIDsNewNodes) - 1 else e2 + 1][e3][e1 + 1]
-        #             bni5 = nodeIDsNewNodes[(e2 + 1) if e2 < 0.5*len(nodeIDsNewNodes) - 1  else e2][e3 + 1][e1Idx]
-        #             bni6 = nodeIDsNewNodes[(e2 + 1) if e2 < 0.5*len(nodeIDsNewNodes) - 1 else e2][e3 + 1][e1IdxNext]
-        #             bni7 = nodeIDsNewNodes[e2 if e2 < 0.5*len(nodeIDsNewNodes) - 1 else e2 + 1][e3 + 1][e1]
-        #             bni8 = nodeIDsNewNodes[e2 if e2 < 0.5*len(nodeIDsNewNodes) - 1 else e2 + 1][e3 + 1][e1 + 1]
-        #             nodeIdentifiers = [bni1, bni2, bni3, bni4, bni5, bni6, bni7, bni8]
-        #             elementtemplate1 = elementtemplate
-        #             eft1 = eft
-        #             scaleFactors = []
-        #
-        #             if e2 == 0:
-        #                 if e1 == 0:
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [])])
-        #                     remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-        #                     # print('A', elementIdentifier) # , "-", nodeIdentifiers)
-        #                 elif e1 == newNodesCountAlongPatch:
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [])])
-        #                     remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-        #                     # print('B', elementIdentifier)
-        #                 elementtemplateX.defineField(coordinates, -1, eft1)
-        #                 elementtemplate1 = elementtemplateX
-        #                 # print('check', elementIdentifier, "-", nodeIdentifiers)
-        #
-        #             elif len(nodeIDsNewNodes) * 0.5 < 2:
-        #                 scaleFactors = [-1.0]
-        #                 eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                 setEftScaleFactorIds(eft1, [1], [])
-        #                 if e1 == 0: # Right
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [])])
-        #                     remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     # print('C', elementIdentifier)
-        #                 elif e1 == newNodesCountAlongPatch: # Left
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [])])
-        #                     remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-        #                     # print('D', elementIdentifier)
-        #                 else:
-        #                     remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     # print('E', elementIdentifier)
-        #                 elementtemplateX.defineField(coordinates, -1, eft1)
-        #                 elementtemplate1 = elementtemplateX
-        #
-        #             elif 0 < e2 <= int(len(nodeIDsNewNodes) * 0.5) - 1: # the one between body boundary and touching row in the middle
-        #                 if e1 == 0: # Right
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [])])
-        #                     # print('F', elementIdentifier)
-        #                 elif e1 == newNodesCountAlongPatch: # Left
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [])])
-        #                     # print('G', elementIdentifier)
-        #                 elementtemplateX.defineField(coordinates, -1, eft1)
-        #                 elementtemplate1 = elementtemplateX
-        #             elif e2 == int(len(nodeIDsNewNodes) * 0.5):
-        #                 # print(elementIdentifier, '-', nodeIdentifiers)
-        #                 scaleFactors = [-1.0]
-        #                 eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                 setEftScaleFactorIds(eft1, [1], [])
-        #                 if e1 == 0:
-        #                     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     # print('H', elementIdentifier, '-', nodeIdentifiers)
-        #                 elif e1 == newNodesCountAlongPatch:
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [])])
-        #                     # print('I', elementIdentifier, nodeIdentifiers)
-        #                 else:
-        #                     remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 2, 5, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     # print('J', elementIdentifier)
-        #
-        #                 elementtemplateX.defineField(coordinates, -1, eft1)
-        #                 elementtemplate1 = elementtemplateX
-        #
-        #             elif len(nodeIDsNewNodes) * 0.5 > 2 and int(0.5 * len(nodeIDsNewNodes)) < e2 < len(nodeIDsNewNodes)-2:
-        #                 if e1 == 0:
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 3, 5, 7], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [])])
-        #                     # print('K', elementIdentifier)
-        #
-        #                 elif e1 == newNodesCountAlongPatch:
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 4, 6, 8], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [])])
-        #                     # print('L', elementIdentifier)
-        #
-        #                 elementtemplateX.defineField(coordinates, -1, eft1)
-        #                 elementtemplate1 = elementtemplateX
-        #
-        #             elif e2 == len(nodeIDsNewNodes) - 2:
-        #                 if e1 == 0:
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [1])])
-        #                     remapEftNodeValueLabel(eft1, [1, 5], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [])])
-        #                     remapEftNodeValueLabel(eft1, [3, 7], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-        #
-        #                 elif e1 == newNodesCountAlongPatch:
-        #                     scaleFactors = [-1.0]
-        #                     eft1 = eftfactory.createEftNoCrossDerivatives()
-        #                     setEftScaleFactorIds(eft1, [1], [])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #                     remapEftNodeValueLabel(eft1, [2, 6], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, [])])
-        #                     remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS2,
-        #                                            [(Node.VALUE_LABEL_D_DS1, []), (Node.VALUE_LABEL_D_DS2, [])])
-        #                     remapEftNodeValueLabel(eft1, [4, 8], Node.VALUE_LABEL_D_DS1,
-        #                                            [(Node.VALUE_LABEL_D_DS2, [1])])
-        #
-        #                 elementtemplateX.defineField(coordinates, -1, eft1)
-        #                 elementtemplate1 = elementtemplateX
-        #
-        #             element = mesh.createElement(elementIdentifier, elementtemplate1)
-        #             result = element.setNodesByIdentifier(eft1, nodeIdentifiers)
-        #             if scaleFactors:
-        #                 element.setScaleFactors(eft1, scaleFactors)
-        #             groups = [uterusGroup, fundusGroup]
-        #             if e2 < int(0.5 * len(nodeIDsNewNodes)):
-        #                 groups.append(dorsalGroup)
-        #                 if e1 < newNodesCountAlongPatch * 0.5:
-        #                     groups.append(rightGroup)
-        #                 else:
-        #                     groups.append(leftGroup)
-        #             else:
-        #                 groups.append(ventralGroup)
-        #                 if e1 < newNodesCountAlongPatch * 0.5:
-        #                     groups.append(leftGroup)
-        #                 else:
-        #                     groups.append(rightGroup)
-        #
-        #             for annotationGroup in groups:
-        #                 meshGroup = annotationGroup.getMeshGroup(mesh)
-        #                 meshGroup.addElement(element)
-        #             elementIdentifier = elementIdentifier + 1
-        #
-        # # annotationGroups.remove(leftSegmentBoundary)
-        # # annotationGroups.remove(rightSegmentBoundary)
-        # # annotationGroups.remove(bodySegmentBoundary)
-        # # annotationGroups.remove(fundusPatchGroup)
-
+        uterusGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterus"))
         myometriumGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, get_uterus_term("myometrium"))
         myometriumGroup.getMeshGroup(mesh).addElementsConditional(uterusGroup.getGroup())
@@ -2017,9 +1214,6 @@ class MeshType_3d_uterus2(Scaffold_base):
         dorsalGroup = getAnnotationGroupForTerm(annotationGroups, ("dorsal uterus", ""))
         ventralGroup = getAnnotationGroupForTerm(annotationGroups, ("ventral uterus", ""))
 
-        # leftFundusGroup = getAnnotationGroupForTerm(annotationGroups, ("left fundus", "None"))
-        # rightFundusGroup = getAnnotationGroupForTerm(annotationGroups, ("right fundus", "None"))
-
         if isHuman:
             leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
             is_leftOviduct = leftOviductGroup.getGroup()
@@ -2140,8 +1334,6 @@ class MeshType_3d_uterus2(Scaffold_base):
                                                                  get_uterus_term("lumen of left horn"))
             lumenOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_inner)
 
-        # annotationGroups.remove(leftFundusGroup)
-        # annotationGroups.remove(rightFundusGroup)
         annotationGroups.remove(cervixGroup)
         annotationGroups.remove(upperCervixGroup)
         annotationGroups.remove(lowerCervixGroup)
@@ -2190,20 +1382,3 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, d12)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)
-
-def reorderNodesForMapping(xList, elementsCountThroughWall):
-    """
-
-    """
-    elementsCountPerLayer = len(xList) // (elementsCountThroughWall + 1)
-    xReordered = []
-    for n3 in range(elementsCountThroughWall + 1):
-        xLayer = xList[elementsCountPerLayer * n3:elementsCountPerLayer * (n3 + 1)]
-        xLayerReversed = list(reversed(xLayer))
-        xLayerOrdered = xLayerReversed[len(xLayerReversed) // 2:] + \
-                        xLayerReversed[0: len(xLayerReversed) // 2]
-        xReordered += xLayerOrdered
-
-    return xReordered
-
-

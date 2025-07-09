@@ -1486,17 +1486,17 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param n2Only: If set, create nodes only for that single n2 index along. Must be >= 0!
         """
         # keeping this code to enable display of raw segment trim surfaces for future diagnostics
-        if (not n2Only) and generateData.isShowTrimSurfaces():
-            dimension = generateData.getMeshDimension()
-            nodeIdentifier, elementIdentifier = generateData.getNodeElementIdentifiers()
-            faceIdentifier = elementIdentifier if (dimension == 2) else None
-            annotationGroup = generateData.getNewTrimAnnotationGroup()
-            nodeIdentifier, faceIdentifier = \
-                self._rawTrackSurfaceList[0].generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
-                                                      group_name=annotationGroup.getName())
-            if dimension == 2:
-                elementIdentifier = faceIdentifier
-            generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
+        # if (not n2Only) and generateData.isShowTrimSurfaces():
+        #     dimension = generateData.getMeshDimension()
+        #     nodeIdentifier, elementIdentifier = generateData.getNodeElementIdentifiers()
+        #     faceIdentifier = elementIdentifier if (dimension == 2) else None
+        #     annotationGroup = generateData.getNewTrimAnnotationGroup()
+        #     nodeIdentifier, faceIdentifier = \
+        #         self._rawTrackSurfaceList[0].generateMesh(generateData.getRegion(), nodeIdentifier, faceIdentifier,
+        #                                               group_name=annotationGroup.getName())
+        #     if dimension == 2:
+        #         elementIdentifier = faceIdentifier
+        #     generateData.setNodeElementIdentifiers(nodeIdentifier, elementIdentifier)
 
         elementsCountAlong = len(self._rimCoordinates[0]) - 1
         elementsCountRim = self.getElementsCountRim()
