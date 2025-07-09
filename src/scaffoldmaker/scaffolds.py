@@ -53,16 +53,12 @@ from scaffoldmaker.meshtypes.meshtype_3d_spinalnerve1 import \
 from scaffoldmaker.meshtypes.meshtype_3d_stellate1 import MeshType_3d_stellate1
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.meshtypes.meshtype_3d_stomachhuman1 import MeshType_3d_stomachhuman1
-from scaffoldmaker.meshtypes.meshtype_3d_test import MeshType_3d_test
-from scaffoldmaker.meshtypes.meshtype_3d_test2 import MeshType_3d_test2
 from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve1 import (
     MeshType_3d_trigeminalnerve1, MeshType_1d_human_trigeminal_nerve_network_layout1)
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
-from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
-from scaffoldmaker.meshtypes.meshtype_3d_uterus2 import (MeshType_3d_uterus2, MeshType_1d_uterus_network_layout1)
-from scaffoldmaker.meshtypes.meshtype_3d_uterus3 import MeshType_3d_uterus3
+from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import (MeshType_3d_uterus1, MeshType_1d_uterus_network_layout1)
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import (
     MeshType_3d_wholebody2, MeshType_1d_human_body_network_layout1)
@@ -122,23 +118,19 @@ class Scaffolds(object):
             MeshType_3d_stellate1,
             MeshType_3d_stomach1,
             MeshType_3d_stomachhuman1,
-            MeshType_3d_test,
-            MeshType_3d_test2,
             MeshType_3d_trigeminalnerve1,
             MeshType_3d_tube1,
             MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
-            MeshType_3d_uterus2,
-            MeshType_3d_uterus3,
             MeshType_3d_wholebody1,
             MeshType_3d_wholebody2
             ]
         self._allPrivateScaffoldTypes = [
-            MeshType_1d_uterus_network_layout1,
             MeshType_1d_human_body_network_layout1,
             MeshType_1d_human_spinal_nerve_network_layout1,
-            MeshType_1d_human_trigeminal_nerve_network_layout1
+            MeshType_1d_human_trigeminal_nerve_network_layout1,
+            MeshType_1d_uterus_network_layout1
             ]
 
     def findScaffoldTypeByName(self, name):

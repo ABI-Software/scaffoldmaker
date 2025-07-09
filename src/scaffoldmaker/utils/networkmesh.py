@@ -105,7 +105,7 @@ class NetworkSegment:
         """
         :param networkNodes: List of NetworkNodes from start to end. Must be at least 2.
         :param nodeVersions: List of node versions to use for derivatives at network nodes.
-        :param isPatch:
+        :param isPatch: True if segment at the other end of the junction requires a patch.
         """
         assert isinstance(networkNodes, list) and (len(networkNodes) > 1) and (len(nodeVersions) == len(networkNodes))
         self._networkNodes = networkNodes
@@ -876,7 +876,7 @@ class NetworkMeshBuilder(ABC):
                 junctions[0].generateMesh(generateData)
                 generatedJunctions.add(junctions[0])
             if networkSegment.isPatch():
-                continue
+                continue # so as not to make patch mesh twice
             segment.generateMesh(generateData)
             if junctions[1] not in generatedJunctions:
                 junctions[1].generateMesh(generateData)

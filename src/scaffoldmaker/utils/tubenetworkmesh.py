@@ -2265,7 +2265,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         """
         :param n2Only: Ignored. Always makes whole patch.
         """
-        
+
         # create nodes
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
