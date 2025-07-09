@@ -11,8 +11,7 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCrea
     getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, \
-    sampleCubicHermiteCurves, DerivativeScalingMode
+from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
 from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, disconnectFieldMeshGroupBoundaryNodes
@@ -138,7 +137,8 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Number of elements lateral"] = 2
         for key in [
             "Number of elements normal",
-            "Number of elements oblique"]:
+            "Number of elements oblique"
+        ]:
             if options[key] < 4:
                 options[key] = 4
             elif options[key] % 2:
@@ -156,7 +156,8 @@ class MeshType_3d_lung3(Scaffold_base):
         for dimension in [
             "Ellipsoid breadth",
             "Ellipsoid height",
-            "Ellipsoid depth"]:
+            "Ellipsoid depth"
+        ]:
             if options[dimension] <= 0.0:
                 options[dimension] = 1.0
 
@@ -197,7 +198,7 @@ class MeshType_3d_lung3(Scaffold_base):
         """
         isLeftLung = options["Left lung"]
         isRightLung = options["Right lung"]
-        isOpenfissure = options["Open fissures"]
+        isOpenFissure = options["Open fissures"]
         hasAccessoryLobe = False
         numberOfLeftLung = options["Number of left lung lobes"]
         useSerendipity = True
@@ -283,27 +284,27 @@ class MeshType_3d_lung3(Scaffold_base):
         annotationTerms.append("middle lobe of right lung")
         meshGroups.append(middleRightLungMeshGroup)
 
-        mediastinumLeftGroupX = AnnotationGroup(region,["anterior mediastinum of left lung X", "None"])
+        mediastinumLeftGroupX = AnnotationGroup(region, ["anterior mediastinum of left lung X", "None"])
         mediastinumLeftGroupMeshGroupX = mediastinumLeftGroupX.getMeshGroup(mesh)
         annotationGroups.append(mediastinumLeftGroupX)
 
-        mediastinumLeftGroupY = AnnotationGroup(region,["anterior mediastinum of left lung Y", "None"])
+        mediastinumLeftGroupY = AnnotationGroup(region, ["anterior mediastinum of left lung Y", "None"])
         mediastinumLeftGroupMeshGroupY = mediastinumLeftGroupY.getMeshGroup(mesh)
         annotationGroups.append(mediastinumLeftGroupY)
 
-        mediastinumLeftGroupZ = AnnotationGroup(region,["anterior mediastinum of left lung Z", "None"])
+        mediastinumLeftGroupZ = AnnotationGroup(region, ["anterior mediastinum of left lung Z", "None"])
         mediastinumLeftGroupMeshGroupZ = mediastinumLeftGroupZ.getMeshGroup(mesh)
         annotationGroups.append(mediastinumLeftGroupZ)
 
-        mediastinumRightGroupX = AnnotationGroup(region,["anterior mediastinum of right lung X", "None"])
+        mediastinumRightGroupX = AnnotationGroup(region, ["anterior mediastinum of right lung X", "None"])
         mediastinumRightGroupMeshGroupX = mediastinumRightGroupX.getMeshGroup(mesh)
         annotationGroups.append(mediastinumRightGroupX)
 
-        mediastinumRightGroupY = AnnotationGroup(region,["anterior mediastinum of right lung Y", "None"])
+        mediastinumRightGroupY = AnnotationGroup(region, ["anterior mediastinum of right lung Y", "None"])
         mediastinumRightGroupMeshGroupY = mediastinumRightGroupY.getMeshGroup(mesh)
         annotationGroups.append(mediastinumRightGroupY)
 
-        mediastinumRightGroupZ = AnnotationGroup(region,["anterior mediastinum of right lung Z", "None"])
+        mediastinumRightGroupZ = AnnotationGroup(region, ["anterior mediastinum of right lung Z", "None"])
         mediastinumRightGroupMeshGroupZ = mediastinumRightGroupZ.getMeshGroup(mesh)
         annotationGroups.append(mediastinumRightGroupZ)
 
@@ -344,7 +345,7 @@ class MeshType_3d_lung3(Scaffold_base):
             annotationTerms.append("upper lobe of left lung")
             meshGroups.append(upperLeftLungMeshGroup)
 
-        if hasAccessoryLobe: # currently not used
+        if hasAccessoryLobe:  # currently not used
             # Annotation groups
             rightLungAccessoryLobeGroup = AnnotationGroup(region, get_lung_term("right lung accessory lobe"))
             rightLungAccessoryLobeMeshGroup = rightLungAccessoryLobeGroup.getMeshGroup(mesh)
@@ -368,15 +369,6 @@ class MeshType_3d_lung3(Scaffold_base):
         # Nodeset group
         leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
         rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
-        lungNodesetGroup = lungGroup.getNodesetGroup(nodes)
-
-        if numberOfLeftLung == 2:
-            lowerLeftLungNodesetGroup = lowerLeftLungGroup.getNodesetGroup(nodes)
-            upperLeftLungNodesetGroup = upperLeftLungGroup.getNodesetGroup(nodes)
-
-            lowerRightLungNodesetGroup = lowerRightLungGroup.getNodesetGroup(nodes)
-            middleRightLungNodesetGroup = middleRightLungGroup.getNodesetGroup(nodes)
-            upperRightLungNodesetGroup = upperRightLungGroup.getNodesetGroup(nodes)
 
         # Arbitrary anatomical groups and nodesets
         upperLeftDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
@@ -386,7 +378,6 @@ class MeshType_3d_lung3(Scaffold_base):
         upperRightDorsalLungGroup = findOrCreateAnnotationGroupForTerm(
             annotationGroups, region, ["upper lobe of right lung dorsal", "None"])
         upperRightDorsalLungMeshGroup = upperRightDorsalLungGroup.getMeshGroup(mesh)
-
 
         # # Marker points/groups
         # leftApexGroup = findOrCreateAnnotationGroupForTerm(
@@ -404,11 +395,7 @@ class MeshType_3d_lung3(Scaffold_base):
         # rightMedialGroup = findOrCreateAnnotationGroupForTerm(
         #     annotationGroups, region, get_lung_term("medial base of right lung"))
 
-
         centre = [0.0, 0.0, 0.0]
-        axis1 = [1.0, 0.0, 0.0]
-        axis2 = [0.0, 1.0, 0.0]
-        axis3 = [0.0, 0.0, 1.0]
         axes = [[ellipsoid_depth * 0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
 
         elementsCountAcross = [elementsCountLateral, elementsCountOblique, elementsCountNormal]
@@ -422,10 +409,13 @@ class MeshType_3d_lung3(Scaffold_base):
                     meshGroups = [boxMeshGroup, transitionMeshGroup, lungMeshGroup,
                                   leftLungMeshGroup, lowerLeftLungMeshGroup, upperLeftLungMeshGroup,
                                   upperLeftDorsalLungMeshGroup,
-                                  mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY, mediastinumLeftGroupMeshGroupZ,
-                                  leftLateralLungGroupMeshGroup, leftMedialLungGroupMeshGroup, leftBaseLungGroupMeshGroup]
+                                  mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY,
+                                  mediastinumLeftGroupMeshGroupZ,
+                                  leftLateralLungGroupMeshGroup, leftMedialLungGroupMeshGroup,
+                                  leftBaseLungGroupMeshGroup]
                     annotationTerms = ["box group", "transition group", "lung", "left lung",
-                                       "lower lobe of left lung", "upper lobe of left lung", "upper lobe of left lung dorsal",
+                                       "lower lobe of left lung", "upper lobe of left lung",
+                                       "upper lobe of left lung dorsal",
                                        "anterior mediastinum of left lung X",
                                        "anterior mediastinum of left lung Y",
                                        "anterior mediastinum of left lung Z",
@@ -433,7 +423,8 @@ class MeshType_3d_lung3(Scaffold_base):
                 else:
                     meshGroups = [boxMeshGroup, transitionMeshGroup, lungMeshGroup,
                                   leftLungMeshGroup,
-                                  mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY, mediastinumLeftGroupMeshGroupZ]
+                                  mediastinumLeftGroupMeshGroupX, mediastinumLeftGroupMeshGroupY,
+                                  mediastinumLeftGroupMeshGroupZ]
                     annotationTerms = ["box group", "transition group", "lung", "left lung",
                                        "anterior mediastinum of left lung X",
                                        "anterior mediastinum of left lung Y",
@@ -442,8 +433,10 @@ class MeshType_3d_lung3(Scaffold_base):
                 meshGroups = [boxMeshGroup, transitionMeshGroup, lungMeshGroup,
                               rightLungMeshGroup, lowerRightLungMeshGroup, middleRightLungMeshGroup,
                               upperRightLungMeshGroup, upperRightDorsalLungMeshGroup,
-                              mediastinumRightGroupMeshGroupX, mediastinumRightGroupMeshGroupY, mediastinumRightGroupMeshGroupZ,
-                              rightLateralLungGroupMeshGroup, rightMedialLungGroupMeshGroup, rightBaseLungGroupMeshGroup]
+                              mediastinumRightGroupMeshGroupX, mediastinumRightGroupMeshGroupY,
+                              mediastinumRightGroupMeshGroupZ,
+                              rightLateralLungGroupMeshGroup, rightMedialLungGroupMeshGroup,
+                              rightBaseLungGroupMeshGroup]
                 annotationTerms = ["box group", "transition group", "lung", "right lung",
                                    "lower lobe of right lung", "middle lobe of right lung",
                                    "upper lobe of right lung", "upper lobe of right lung dorsal",
@@ -463,46 +456,44 @@ class MeshType_3d_lung3(Scaffold_base):
             for i in lungs:
                 isLeft = True if i == leftLung else False
                 lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
-                scaleNodes(fieldmodule, coordinates, lungNodeset, ellipsoid_depth, scale_factor)
+                scaleInternalLungNodes(fieldmodule, coordinates, lungNodeset, ellipsoid_depth, scale_factor)
 
         for i in lungs:
             isLeft = True if i == leftLung else False
             lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
             halfBreadth = ellipsoid_breadth * 0.5
-            height = ellipsoid_height
             spacing = -lungSpacing if i == leftLung else lungSpacing
             oblique_slope_radians = left_oblique_slope_radians if i == leftLung else right_oblique_slope_radians
-            bendZ = - 0.5 * ellipsoid_height
+            zOffset = -0.5 * ellipsoid_height
             lungMedialCurvature = -leftLungMedialCurvature if isLeft else leftLungMedialCurvature
             rotateLungAngleY = rotateLeftLungY if isLeft else -rotateLeftLungY
             rotateLungAngleZ = rotateLeftLungZ if isLeft else -rotateLeftLungZ
 
             if not isLeft:
-                flipRightLung(fieldmodule, coordinates, lungNodeset)
+                mirrorLeftLungToRight(fieldmodule, coordinates, lungNodeset)
 
             rotate_scale_lung(fieldmodule, coordinates, lungNodeset, ellipsoid_breadth, ellipsoid_height,
                               oblique_slope_radians)
 
             if edgeSharpFactor != 0.0:
-                sharpeningRidge(edgeSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth)
+                taperLungEdge(edgeSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth)
 
             if baseSharpFactor != 0.0:
-                sharpeningRidge(baseSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isBase=True)
+                taperLungEdge(baseSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth, isBase=True)
 
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
-                bendingAroundZAxis(lungMedialCurvature, fieldmodule, coordinates, lungNodeset,
-                                   stationaryPointXY=[0.0, 0.0],
-                                   bias=lungMedialCurvatureBias,
-                                   dorsalVentralXi=dorsalVentralXi)
+                bendLungMeshAroundZAxis(lungMedialCurvature, fieldmodule, coordinates, lungNodeset,
+                                        stationaryPointXY=[0.0, 0.0], bias=lungMedialCurvatureBias,
+                                        dorsalVentralXi=dorsalVentralXi)
 
             if rotateLungAngleY != 0.0:
-                rotateLungs(rotateLungAngleY, fieldmodule, coordinates, lungNodeset, axis=2)
+                rotateLungMeshAboutAxis(rotateLungAngleY, fieldmodule, coordinates, lungNodeset, axis=2)
 
             if rotateLungAngleZ != 0.0:
-                rotateLungs(rotateLungAngleZ, fieldmodule, coordinates, lungNodeset, axis=3)
+                rotateLungMeshAboutAxis(rotateLungAngleZ, fieldmodule, coordinates, lungNodeset, axis=3)
 
-            translateLungLocation(fieldmodule, coordinates, lungNodeset, spacing, bendZ)
+            translateLungLocation(fieldmodule, coordinates, lungNodeset, spacing, zOffset)
 
             smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral,
                                          elementsCountNormal, elementsCountOblique, elementsCountShell)
@@ -511,7 +502,7 @@ class MeshType_3d_lung3(Scaffold_base):
             smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal,
                                          elementsCountOblique, elementsCountShell)
 
-            if isOpenfissure:
+            if isOpenFissure:
                 setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
                                   Node.VALUE_LABEL_D_DS3]
                 nodeParameters = get_nodeset_field_parameters(lungNodeset, coordinates, setValueLabels)[1]
@@ -690,7 +681,8 @@ class MeshType_3d_lung3(Scaffold_base):
             group2d = group.getGroup()
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
 
-            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(term + " surface"))
+            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                              get_lung_term(term + " surface"))
             if (not openFissures) or (term == "right lung accessory lobe"):
                 surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(group2d_exterior)
 
@@ -701,19 +693,25 @@ class MeshType_3d_lung3(Scaffold_base):
 
             # lateral in the subgroup
             for sideTerm in ['lateral surface of ', 'medial surface of ']:
-                surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(sideTerm + term))
+                surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term(sideTerm + term))
                 if ('lateral' in sideTerm) and ('left' in term):
-                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral left lung"]))
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                        fm.createFieldAnd(group2d_exterior, side_exterior["lateral left lung"]))
                 elif ('lateral' in sideTerm) and ('right' in term):
-                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["lateral right lung"]))
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                        fm.createFieldAnd(group2d_exterior, side_exterior["lateral right lung"]))
                 elif ('medial' in sideTerm) and ('left' in term):
-                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"]))
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                        fm.createFieldAnd(group2d_exterior, side_exterior["medial left lung"]))
                 elif ('medial' in sideTerm) and ('right' in term):
-                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
+                    surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                        fm.createFieldAnd(group2d_exterior, side_exterior["medial right lung"]))
 
         # Base surface of lungs (incl. lobes)
         baseGroup = []
-        baseTerms = ['left lung surface', 'lower lobe of right lung surface', 'middle lobe of right lung surface', 'right lung surface']
+        baseTerms = ['left lung surface', 'lower lobe of right lung surface', 'middle lobe of right lung surface',
+                     'right lung surface']
 
         # Base of left lung
         if numberOfLeftLung > 1:
@@ -729,15 +727,18 @@ class MeshType_3d_lung3(Scaffold_base):
             baseGroup.append(baseLeftLung)
 
         # Base of right lung
-        baseRightLowerLung = fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'], side_exterior["base right lung"])
+        baseRightLowerLung = fm.createFieldAnd(lobe_exterior['lower lobe of right lung surface'],
+                                               side_exterior["base right lung"])
         baseGroup.append(baseRightLowerLung)
-        baseRightMiddleLung = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], side_exterior["base right lung"])
+        baseRightMiddleLung = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'],
+                                                side_exterior["base right lung"])
         baseGroup.append(baseRightMiddleLung)
         baseRightLung = fm.createFieldOr(baseRightLowerLung, baseRightMiddleLung)
         baseGroup.append(baseRightLung)
 
         for term in baseTerms:
-            baseSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term("base of " + term))
+            baseSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_lung_term("base of " + term))
             baseSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(baseGroup[baseTerms.index(term)])
 
         # Fissures
@@ -764,7 +765,8 @@ class MeshType_3d_lung3(Scaffold_base):
                     fissureGroup = fm.createFieldAnd(
                         lobe["upper lobe of right lung"], lobe["middle lobe of right lung"])
 
-                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(fissureTerm))
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                         get_lung_term(fissureTerm))
                 fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fissureGroup)
                 fissureGroup_temp = fissureGroup
 
@@ -772,10 +774,13 @@ class MeshType_3d_lung3(Scaffold_base):
                     temp_splitTerm = fissureTerm.split("of")
                     if (temp_splitTerm[0] in lobeFissureTerm) and (temp_splitTerm[1] in lobeFissureTerm):
                         if "oblique fissure of upper lobe of right lung" in lobeFissureTerm:
-                            fissureGroup = fm.createFieldAnd(fissureGroup_temp, arbLobe_2dgroup['upper lobe of right lung dorsal'])
+                            fissureGroup = fm.createFieldAnd(fissureGroup_temp,
+                                                             arbLobe_2dgroup['upper lobe of right lung dorsal'])
                         elif "oblique fissure of middle lobe of right lung" in lobeFissureTerm:
-                            fissureGroup = fm.createFieldAnd(fissureGroup_temp, fm.createFieldNot(arbLobe_2dgroup['upper lobe of right lung dorsal']))
-                        fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(lobeFissureTerm))
+                            fissureGroup = fm.createFieldAnd(fissureGroup_temp, fm.createFieldNot(
+                                arbLobe_2dgroup['upper lobe of right lung dorsal']))
+                        fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                                 get_lung_term(lobeFissureTerm))
                         fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fissureGroup)
 
             # add fissures to lobe surface groups
@@ -814,34 +819,43 @@ class MeshType_3d_lung3(Scaffold_base):
 
         if openFissures:
             if numberOfLeftLung > 1:
-                obliqueLowerLeft = fm.createFieldOr(fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi2_1),
-                                                    fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi3_1))
+                obliqueLowerLeft = fm.createFieldOr(
+                    fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi2_1),
+                    fm.createFieldAnd(lobe_exterior['lower lobe of left lung surface'], is_xi3_1))
 
-                tempUpperLeft = fm.createFieldXor(fm.createFieldAnd(lobe_exterior['upper lobe of left lung surface'], is_exterior),
-                                                     arbLobe_exterior['upper lobe of left lung dorsal'])
+                tempUpperLeft = fm.createFieldXor(
+                    fm.createFieldAnd(lobe_exterior['upper lobe of left lung surface'], is_exterior),
+                    arbLobe_exterior['upper lobe of left lung dorsal'])
 
-                obliqueUpperLeft = fm.createFieldOr(fm.createFieldAnd(lobe_exterior['upper lobe of left lung surface'], is_xi2_0),
-                                                    tempUpperLeft)
+                obliqueUpperLeft = fm.createFieldOr(
+                    fm.createFieldAnd(lobe_exterior['upper lobe of left lung surface'], is_xi2_0),
+                    tempUpperLeft)
 
-                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'lower lobe of left lung'))
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                    'oblique fissure of ' + 'lower lobe of left lung'))
                 fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueLowerLeft)
 
-                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'upper lobe of left lung'))
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                    'oblique fissure of ' + 'upper lobe of left lung'))
                 fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueUpperLeft)
 
                 obliqueLeft = fm.createFieldOr(obliqueUpperLeft, obliqueLowerLeft)
-                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'left lung'))
+                fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                    'oblique fissure of ' + 'left lung'))
                 fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueLeft)
 
-                leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('left lung surface'))
-                leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(lobe_exterior['left lung surface'], fm.createFieldNot(obliqueLeft)))
+                leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                          get_lung_term('left lung surface'))
+                leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(
+                    fm.createFieldAnd(lobe_exterior['left lung surface'], fm.createFieldNot(obliqueLeft)))
 
                 for term in ("lower lobe of left lung surface", "upper lobe of left lung surface"):
                     leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(
                         annotationGroups, region, get_lung_term(term))
                     leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(lobe_exterior[term])
             else:
-                leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('left lung surface'))
+                leftLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                          get_lung_term('left lung surface'))
                 leftLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(lobe_exterior['left lung surface'])
 
             obliqueLowerRight = fm.createFieldOr(
@@ -874,7 +888,8 @@ class MeshType_3d_lung3(Scaffold_base):
 
             tempHorizontalMiddleRight2 = fm.createFieldAnd(lobe_exterior['middle lobe of right lung surface'], is_xi3_0)
 
-            horizontalMiddleRight = fm.createFieldAnd(tempHorizontalMiddleRight1, fm.createFieldNot(tempHorizontalMiddleRight2))
+            horizontalMiddleRight = fm.createFieldAnd(tempHorizontalMiddleRight1,
+                                                      fm.createFieldNot(tempHorizontalMiddleRight2))
 
             tempHorizontalUpperRight1 = fm.createFieldOr(
                 fm.createFieldAnd(lobe_exterior['upper lobe of right lung surface'], is_xi1_0),
@@ -888,7 +903,8 @@ class MeshType_3d_lung3(Scaffold_base):
 
             fissureRight = fm.createFieldOr(obliqueRight, horizontalRight)
 
-            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('right lung surface'))
+            rightLungSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                       get_lung_term('right lung surface'))
             rightLungSurface = fm.createFieldAnd(lobe_exterior['right lung surface'], fm.createFieldNot(fissureRight))
             rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(rightLungSurface)
 
@@ -898,25 +914,32 @@ class MeshType_3d_lung3(Scaffold_base):
                     annotationGroups, region, get_lung_term(term))
                 rightLungSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(lobe_exterior[term])
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'lower lobe of right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'oblique fissure of ' + 'lower lobe of right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueLowerRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'middle lobe of right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'oblique fissure of ' + 'middle lobe of right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueMiddleRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'upper lobe of right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'oblique fissure of ' + 'upper lobe of right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueUpperRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'middle lobe of right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'horizontal fissure of ' + 'middle lobe of right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalMiddleRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'upper lobe of right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'horizontal fissure of ' + 'upper lobe of right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalUpperRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('oblique fissure of ' + 'right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'oblique fissure of ' + 'right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(obliqueRight)
 
-            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term('horizontal fissure of ' + 'right lung'))
+            fissureSurfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(
+                'horizontal fissure of ' + 'right lung'))
             fissureSurfaceGroup.getMeshGroup(mesh2d).addElementsConditional(horizontalRight)
 
         for key, value in arbLobe_group.items():
@@ -928,13 +951,16 @@ class MeshType_3d_lung3(Scaffold_base):
         for key, group in boxTransition_group.items():
             annotationGroups.remove(group)
 
-def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_breadth, ellipsoid_height, oblique_slope_radians):
+
+def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_breadth, ellipsoid_height,
+                      oblique_slope_radians):
     """
     Rotate and scale lung ellipsoid to achieve oblique slope, height and breadth.
     Transformation tries to conserve original right angle between major and minor axes,
     and keep element sizes around to similar sizes.
     :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
     :param ellipsoid_breadth: Breadth of lung ellipse.
     :param ellipsoid_height: Height of lung ellipse.
     :param oblique_slope_radians: Slope of oblique fissure, where a positive angle tilts down ventrally.
@@ -969,7 +995,7 @@ def rotate_scale_lung(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_brea
     fieldassignment.assign()
 
 
-def flipRightLung(fieldmodule, coordinates, lungNodesetGroup):
+def mirrorLeftLungToRight(fieldmodule, coordinates, lungNodesetGroup):
     """
     The initial right lung is identical to the left lung. This function flips the right lung to be the mirror image
     of the left lung.
@@ -981,28 +1007,18 @@ def flipRightLung(fieldmodule, coordinates, lungNodesetGroup):
     x = fieldmodule.createFieldComponent(coordinates, 1)
     y = fieldmodule.createFieldComponent(coordinates, 2)
     z = fieldmodule.createFieldComponent(coordinates, 3)
-    zero = fieldmodule.createFieldConstant(0.0)
-    minus_1 = fieldmodule.createFieldConstant(-1.0)
-    nx = x * minus_1
-    mz = z
-    nx_mz = fieldmodule.createFieldConcatenate([nx, mz])
-    r = fieldmodule.createFieldMagnitude(nx_mz)
 
-    theta = fieldmodule.createFieldAtan2(mz, nx)
+    minus_one = fieldmodule.createFieldConstant(-1.0)
+    mirrored_x = x * minus_one
 
-    r_zero = fieldmodule.createFieldEqualTo(r, zero)
-    new_theta = fieldmodule.createFieldIf(r_zero, zero, theta)
-    cos_new_theta = fieldmodule.createFieldCos(new_theta)
-    new_x = r * cos_new_theta
-
-    new_coordinates = fieldmodule.createFieldConcatenate([new_x, y, z])
+    new_coordinates = fieldmodule.createFieldConcatenate([mirrored_x, y, z])
 
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
 
-def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, bendZ):
+def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, zOffset):
     """
     Translates the lung mesh along the x- and z-axes to adjust its position within the anatomical space.
     :param fm: Field module used for creating and managing fields.
@@ -1010,8 +1026,7 @@ def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, be
     :param lungNodesetGroup: Zinc NodesetGroup containing the nodes of the lung to be transformed.
     :param spaceFromCentre: The distance to translate the lung along the x-axis, allowing lateral positioning relative
     to the centerline (i.e. x = 0) of the body.
-    :param bendZ: The amount to translate the lung along the z-axis, typically at a position where the diaphragm and the
-    medial surface meets.
+    :param zOffset: The amount to translate the lung along the z-axis, so that the base lateral edge is at z = 0.
     :return: None
     """
     x = fm.createFieldComponent(coordinates, 1)
@@ -1020,7 +1035,7 @@ def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, be
     spaceFromCentre = fm.createFieldConstant(spaceFromCentre)
 
     new_x = x + spaceFromCentre
-    new_z = z - fm.createFieldConstant(bendZ)
+    new_z = z - fm.createFieldConstant(zOffset)
     new_coordinates = fm.createFieldConcatenate([new_x, y, new_z])
 
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
@@ -1028,9 +1043,9 @@ def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, be
     fieldassignment.assign()
 
 
-def rotateLungs(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
+def rotateLungMeshAboutAxis(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
     """
-    Rotate the lung mesh at the center of the elements about z-axis
+    Rotates the lung mesh coordinates about a specified axis using the right-hand rule.
     :param rotateAngle: Angle of rotation in degrees.
     :param fm: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
@@ -1038,6 +1053,9 @@ def rotateLungs(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
     :param axis: Axis of rotation.
     :return: None
     """
+    if axis not in (2, 3):
+        raise ValueError("Axis must be 2 (y), or 3 (z).")
+
     rotateAngle = -math.radians(rotateAngle)  # negative value due to right handed rule
 
     if axis == 2:
@@ -1051,7 +1069,7 @@ def rotateLungs(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
 
     rotated_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
 
-    fieldassignment = coordinates.createFieldassignment(rotated_coordinates )
+    fieldassignment = coordinates.createFieldassignment(rotated_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
@@ -1070,7 +1088,8 @@ def getDorsalVentralXiField(fm, coordinates, halfBreadth):
     return (y + hl) / fl
 
 
-def bendingAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, stationaryPointXY, bias=0.0, dorsalVentralXi=None):
+def bendLungMeshAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, stationaryPointXY, bias=0.0,
+                            dorsalVentralXi=None):
     """
     Transform coordinates by bending with curvature about a centre point the radius in
     x direction from stationaryPointXY.
@@ -1103,10 +1122,11 @@ def bendingAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, stationaryP
     fieldassignment.assign()
 
 
-def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBreadth, isBase=False):
+def taperLungEdge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBreadth, isBase=False):
     """
-    Linearly transforms the coordinates of the edge on the anterior side of the lung giving the effect of sharpening
-    if isBase is False. If isBase is True, then the function transforms the coordinates of the base.
+    Applies a tapering transformation to the lung geometry to sharpen the anterior edge or the base.
+    If isBase is False, it sharpens the anterior edge (along the y-axis).
+    If isBase is True, it sharpens the base (along the z-axis), but only for nodes below a certain height.
     :param sharpeningFactor: A value between 0 and 1, where 1 represents the maximum sharpness.
     :param fm: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
@@ -1126,7 +1146,6 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBre
         component_indices = [3, 2, 2]
     else:
         # Taper the anterior edge of the lung along y-axis
-        threshold = None  # No conditional needed
         offset_vector = [0.0, 0.75 * halfBreadth, 0.0]
         scale_vector = [0.0, -sharpeningFactor / (halfBreadth * 1.75), 0.0]
         constant_vector = [0.0, 1.0, 1.0]
@@ -1158,7 +1177,7 @@ def sharpeningRidge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfBre
     fieldassignment.assign()
 
 
-def scaleNodes(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_depth, scale_factor):
+def scaleInternalLungNodes(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_depth, scale_factor):
     """
     Redistribute lung nodes so that the outermost nodes remain in place while inner nodes are scaled outward.
     The scaling factor is 1 at the outer boundary and increases towards the center, causing nodes to shift outward.
@@ -1207,173 +1226,6 @@ def scaleNodes(fieldmodule, coordinates, lungNodesetGroup, ellipsoid_depth, scal
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
-
-
-def resampleShellNodes(fieldmodule, coordinates, lungNodeset, elementsCountLateral, elementsCountNormal,
-                       elementsCountOblique, elementsCountShell):
-    """
-    Resample shell nodes around the ellipsoid in the yz plane so that the shell nodes are aligned linearly.
-    :param fieldmodule: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in the y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param elementsCountLateral: Number of elements along the lateral direction.
-    :param elementsCountNormal: Number of elements along the normal direction.
-    :param elementsCountOblique: Number of elements along the oblique direction.
-    :param elementsCountShell: Number of elements across the shell layer.
-    """
-    elementsCountLateral -= 2 * elementsCountShell
-    elementsCountNormal -= 2 * elementsCountShell
-    elementsCountOblique -= 2 * elementsCountShell
-
-    setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                      Node.VALUE_LABEL_D_DS3]
-    nodes = lungNodeset
-    nodeParameters = get_nodeset_field_parameters(nodes, coordinates, setValueLabels)[1]
-    sNodeIdentifier = nodeParameters[0][0]
-    nodeParametersDict = dict(nodeParameters)
-    elementsCountAround = getElementsCountAround(elementsCountNormal, elementsCountOblique)
-    boundaryNids = getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elementsCountOblique,
-                                              elementsCountAround, elementsCountShell, sNodeIdentifier=sNodeIdentifier)
-
-    fieldcache = fieldmodule.createFieldcache()
-
-    # resample across oblique direction
-    normalMidIndex = (elementsCountNormal - 1) // 2
-    for e3 in [0, -1]:
-        for e2 in range(1, elementsCountNormal - 2):
-            if (e3 == 0 and e2 < normalMidIndex) or (e3 == -1 and e2 >= normalMidIndex):
-                sNodeIdentifier = [boundaryNids[0][e2][e3]]
-                mNodeIdentifier = [boundaryNids[c][e2][e3] for c in range(1, elementsCountLateral - 2)]
-                eNodeIdentifier = [boundaryNids[-1][e2][e3]]
-            else:
-                sNodeIdentifier = [boundaryNids[-1][e2][e3]]
-                mNodeIdentifier = [boundaryNids[c][e2][e3] for c in range(-2, -(elementsCountLateral - 1), -1)]
-                eNodeIdentifier = [boundaryNids[0][e2][e3]]
-            snids = sNodeIdentifier + mNodeIdentifier + eNodeIdentifier
-
-            bx, bd1 = zip(*[nodeParametersDict.get(id)[:2] for id in snids])
-            bx, bd1 = [b[0] for b in bx], [d[0] for d in bd1]
-
-            tx, td1 = sampleCubicHermiteCurves(bx, bd1, elementsCountLateral - 2, arcLengthDerivatives=True)[:2]
-            if elementsCountLateral > 4:
-                td1[1:-1] = smoothCubicHermiteDerivativesLine(tx[1:-1], td1[1:-1])
-
-            for n in range(len(snids)):
-                node = nodes.findNodeByIdentifier(snids[n])
-                fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, td1[n])
-
-    lateralMidIndex = (elementsCountLateral - 1) // 2
-    for e1 in range(1, elementsCountLateral - 2):
-        for e2 in [0, -1]:
-            for e3 in [0, -1]:
-                sNodeIdentifier = [boundaryNids[e1][normalMidIndex][e3]]
-                eNodeIdentifier = [boundaryNids[e1][e2][e3]]
-                midRange = range(normalMidIndex - 1, 0, -1) if e2 == 0 else range(normalMidIndex + 1,
-                                                                                  elementsCountNormal - 2)
-                mNodeIdentifier = [boundaryNids[e1][c][e3] for c in midRange]
-                snids = sNodeIdentifier + mNodeIdentifier + eNodeIdentifier
-
-                bx, bd, n2List = [], [], []
-                for n, id in enumerate(snids):
-                    n2 = 1 if (e1 > lateralMidIndex and e2 == e3 and n == len(snids) - 1) or \
-                              (e1 < lateralMidIndex and e2 != e3 and n == len(snids) - 1) else 2
-                    n2List.append(n2)
-                    bx.append(nodeParametersDict.get(id)[0][0])
-                    bd.append(nodeParametersDict.get(id)[n2][0])
-                bd[0] = mult(bd[0], -1) if e2 == 0 else bd[0]
-
-                tx, td = sampleCubicHermiteCurves(bx, bd, len(bx) - 1, elementLengthStartEndRatio=0.7,
-                                                  arcLengthDerivatives=True)[:2]
-
-                for n, id in enumerate(snids):
-                    n2 = n2List[n]
-                    node = nodes.findNodeByIdentifier(id)
-                    fieldcache.setNode(node)
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
-                    label = Node.VALUE_LABEL_D_DS1 if n2 == 1 else Node.VALUE_LABEL_D_DS2
-                    coordinates.setNodeParameters(fieldcache, -1, label, 1, td[n])
-
-    # resample across normal direction
-    obliqueMidIndex = (elementsCountOblique - 1) // 2
-    for e3 in range(1, elementsCountOblique - 2):
-        if e3 == obliqueMidIndex:
-            continue
-        else:
-            for e2 in [0, -1]:
-                sNodeIdentifier = [boundaryNids[0][e2][e3]]
-                eNodeIdentifier = [boundaryNids[-1][e2][e3]]
-                mNodeIdentifier = [boundaryNids[c][e2][e3] for c in range(1, elementsCountLateral - 2)]
-                snids = sNodeIdentifier + mNodeIdentifier + eNodeIdentifier
-
-                bx, bd, n2List, dirList = [], [], [], []
-                for n, id in enumerate(snids):
-                    halfIndex = len(snids) // 2
-                    isLeftHalf = n <= halfIndex
-                    isRightHalf = n < halfIndex
-
-                    if (e2 == 0 and e3 < obliqueMidIndex) or (e2 != 0 and e3 > obliqueMidIndex):
-                        n2 = 1 if isLeftHalf else 2
-                        dir = 1 if isLeftHalf else -1
-                    else:
-                        n2 = 2 if isRightHalf else 1
-                        dir = 1 if isRightHalf else -1
-
-                    n2List.append(n2)
-                    dirList.append(dir)
-                    bx.append(nodeParametersDict[id][0][0])
-                    bd.append(mult(nodeParametersDict[id][n2][0], dir))
-
-                tx, td = sampleCubicHermiteCurves(bx, bd, elementsCountLateral - 2, arcLengthDerivatives=True)[:2]
-
-                for n, id in enumerate(snids):
-                    n2, dir = n2List[n], dirList[n]
-                    node = nodes.findNodeByIdentifier(id)
-                    fieldcache.setNode(node)
-                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
-                    label = Node.VALUE_LABEL_D_DS1 if n2 == 1 else Node.VALUE_LABEL_D_DS2
-                    coordinates.setNodeParameters(fieldcache, -1, label, 1, mult(td[n], dir))
-
-    for e1 in range(1, elementsCountLateral - 2):
-        for e2, e3 in [(0, 0), (0, -1), (-1, 0), (-1, -1)]:
-            sNodeIdentifier = [boundaryNids[e1][e2][e3]]
-            eNodeIdentifier = [boundaryNids[e1][e2][obliqueMidIndex]]
-            midRange = range(e3 + 1, obliqueMidIndex) if e3 == 0 else range(elementsCountOblique - 3, obliqueMidIndex,
-                                                                            -1)
-            mNodeIdentifier = [boundaryNids[e1][e2][c] for c in midRange]
-            snids = sNodeIdentifier + mNodeIdentifier + eNodeIdentifier
-
-            bx, bd, n2List, dirList = [], [], [], []
-            for n, id in enumerate(snids):
-                isLast = (n == len(snids) - 1)
-                if e1 == lateralMidIndex:
-                    n2, dir = 2, (-1 if isLast and (e2 == e3) else 1)
-                else:
-                    isRightSide = e1 > lateralMidIndex
-                    sameEdge = e2 == e3
-                    if isLast:
-                        n2 = 1
-                        dir = -1 if (isRightSide and not sameEdge) or (not isRightSide and sameEdge) else 1
-                    else:
-                        n2 = 1 if (isRightSide and sameEdge) or (not isRightSide and not sameEdge) else 2
-                        dir = 1
-
-                n2List.append(n2)
-                dirList.append(dir)
-                bx.append(nodeParametersDict[id][0][0])
-                bd.append(mult(nodeParametersDict[id][n2][0], dir))
-
-            tx, td = sampleCubicHermiteCurves(bx, bd, len(bx) - 1, elementLengthStartEndRatio=1.3,
-                                              arcLengthDerivatives=True)[:2]
-
-            for n, id in enumerate(snids):
-                n2, dir = n2List[n], dirList[n]
-                node = nodes.findNodeByIdentifier(id)
-                fieldcache.setNode(node)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, tx[n])
-                label = Node.VALUE_LABEL_D_DS1 if n2 == 1 else Node.VALUE_LABEL_D_DS2
-                coordinates.setNodeParameters(fieldcache, -1, label, 1, mult(td[n], dir))
 
 
 def smoothD3ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountLateral, elementsCountNormal,
@@ -1452,7 +1304,6 @@ def smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
     :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field.
     :param lungNodeset: Zinc NodesetGroup containing nodes to transform.
-    :param elementsCountLateral: Number of elements along the lateral direction.
     :param elementsCountNormal: Number of elements along the normal direction.
     :param elementsCountOblique: Number of elements along the oblique direction.
     :param elementsCountShell: Number of elements across the shell layer.
@@ -1476,23 +1327,23 @@ def smoothD1ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
             snids = nodeIds[e1][e2]
             sx, sd1 = [], []
             if e1 == -1:
-                dir = 1 if e2 < midNormalIndex else -1
+                direction = 1 if e2 < midNormalIndex else -1
             else:
-                dir = -1 if e2 < midNormalIndex else 1
-            for id in snids:
-                sx.append(nodeParametersDict[id][0][0])
-                sd1.append(mult(nodeParametersDict[id][1][0], dir))
+                direction = -1 if e2 < midNormalIndex else 1
+            for nid in snids:
+                sx.append(nodeParametersDict[nid][0][0])
+                sd1.append(mult(nodeParametersDict[nid][1][0], direction))
 
             sd1 = smoothCubicHermiteDerivativesLine(sx, sd1,
                                                     fixStartDirection=True, fixEndDirection=True,
                                                     magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
 
             fieldcache = fieldmodule.createFieldcache()
-            for n, id in enumerate(snids):
-                node = nodes.findNodeByIdentifier(id)
+            for n, nid in enumerate(snids):
+                node = nodes.findNodeByIdentifier(nid)
                 fieldcache.setNode(node)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, mult(sd1[n], dir))
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, mult(sd1[n], direction))
 
 
 def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elementsCountNormal, elementsCountOblique,
@@ -1515,7 +1366,6 @@ def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
     nodeParameters = get_nodeset_field_parameters(nodes, coordinates, setValueLabels)[1]
     sNodeIdentifier = nodeParameters[0][0]
     nodeParametersDict = dict(nodeParameters)
-    elementsCountAround = getElementsCountAround(elementsCountNormal, elementsCountOblique)
 
     nNodes = len(nodeParameters)
     nodeIds = getBoxRowNodeIdentifiers(elementsCountNormal, elementsCountOblique, nNodes, sNodeIdentifier)
@@ -1528,31 +1378,31 @@ def smoothD2ShellNodeDerivatives(fieldmodule, coordinates, lungNodeset, elements
             sx, sd2 = [], []
             n2List, dirList = [], []
             for e2 in range(elementsCountNormal - 1):
-                id = nodeIds[e1][e2][e3]
+                nid = nodeIds[e1][e2][e3]
                 if e1 == 0:
                     n2 = 1 if (e2 == 0 and e3 < midObliqueIndex) or (
-                                e2 == elementsCountNormal - 2 and e3 > midObliqueIndex) else 2
+                            e2 == elementsCountNormal - 2 and e3 > midObliqueIndex) else 2
                 else:
                     n2 = 1 if (e2 == 0 and e3 > midObliqueIndex) or (
-                                e2 == elementsCountNormal - 2 and e3 < midObliqueIndex) else 2
-                dir = -1 if e2 < midNormalIndex else 1
-                snids.append(id)
+                            e2 == elementsCountNormal - 2 and e3 < midObliqueIndex) else 2
+                direction = -1 if e2 < midNormalIndex else 1
+                snids.append(nid)
                 n2List.append(n2)
-                dirList.append(dir)
-                sx.append(nodeParametersDict[id][0][0])
-                sd2.append(mult(nodeParametersDict[id][n2][0], dir))
+                dirList.append(direction)
+                sx.append(nodeParametersDict[nid][0][0])
+                sd2.append(mult(nodeParametersDict[nid][n2][0], direction))
 
             sd2 = smoothCubicHermiteDerivativesLine(sx, sd2, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
 
             fieldcache = fieldmodule.createFieldcache()
-            for n, id in enumerate(snids):
-                node = nodes.findNodeByIdentifier(id)
+            for n, nid in enumerate(snids):
+                node = nodes.findNodeByIdentifier(nid)
                 n2 = n2List[n]
-                dir = dirList[n]
+                direction = dirList[n]
                 label = Node.VALUE_LABEL_D_DS1 if n2 == 1 else Node.VALUE_LABEL_D_DS2
                 fieldcache.setNode(node)
                 coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, sx[n])
-                coordinates.setNodeParameters(fieldcache, -1, label, 1, mult(sd2[n], dir))
+                coordinates.setNodeParameters(fieldcache, -1, label, 1, mult(sd2[n], direction))
 
 
 def getElementsCountAround(elementsCountNormal, elementsCountOblique):
@@ -1621,10 +1471,10 @@ def getBoundaryNodeIdentifiers(elementsCountLateral, elementsCountNormal, elemen
                 for e2 in range(2):
                     boundaryNids[e1][e3].append(nid)
                     increment_value = elementsCountOblique + (elementsCountShell * 2) \
-                        if (e1 > 0 and e1 < elementsCountLateral - 2) else elementsCountOblique - 2
+                        if (0 < e1 < elementsCountLateral - 2) else elementsCountOblique - 2
                     nid += increment_value
 
-            if e1 > 0 and e1 < elementsCountLateral - 2:
+            if 0 < e1 < elementsCountLateral - 2:
                 if e3 + 1 == 1 or e3 + 1 == elementsCountNormal - 2:
                     nid = boundaryNids[e1][e3][-1] + ((elementsCountOblique - 1) * (elementsCountShell + 1)) + 1
                 else:

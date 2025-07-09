@@ -863,9 +863,11 @@ class LungScaffoldTestCase(unittest.TestCase):
         """
         scaffold = MeshType_3d_lung3
         parameterSetNames = scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default", "Human 1", "Ellipsoid", "Teardrop"])
-        options = scaffold.getDefaultOptions("Human 1")
-        self.assertEqual(32, len(options))
+        self.assertEqual(parameterSetNames,
+                         ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine",
+                          "Ellipsoid Coarse", "Ellipsoid Medium", "Ellipsoid Fine"])
+        options = scaffold.getDefaultOptions("Human 1 Coarse")
+        self.assertEqual(24, len(options))
         self.assertFalse(scaffold.checkOptions(options))
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -883,17 +885,17 @@ class LungScaffoldTestCase(unittest.TestCase):
             for annotationGroup in annotationGroups:
                 if annotationGroup not in originalAnnotationGroups:
                     annotationGroup.addSubelements()
-        self.assertEqual(35, len(annotationGroups))
+        self.assertEqual(47, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(320, mesh3d.getSize())
+        self.assertEqual(192, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(1056, mesh2d.getSize())
+        self.assertEqual(640, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1180, mesh1d.getSize())
+        self.assertEqual(728, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(446, nodes.getSize())
+        self.assertEqual(282, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -904,8 +906,8 @@ class LungScaffoldTestCase(unittest.TestCase):
         # material_coordinates = fieldmodule.findFieldByName("lung coordinates").castFiniteElement()
         # self.assertTrue(material_coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.7152851868444945, -0.4127164324274756, -0.1766756622256938], tol)
-        assertAlmostEqualList(self, maximums, [0.7152851868444945, 0.4443180439927746, 0.92297222451744], tol)
+        assertAlmostEqualList(self, minimums, [-0.49579674925410316, -0.4001240254114016, 0.030022530355930388], tol)
+        assertAlmostEqualList(self, maximums, [0.49579674925410316, 0.32599256612772604, 0.9699773293585018], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -921,61 +923,61 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 8.795149836731147, delta=tol)
+        self.assertAlmostEqual(surfaceArea, 4.7307941028882645, delta=tol)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume,  0.44671929161376966, delta=tol)
+        self.assertAlmostEqual(volume,  0.25043810841552017, delta=tol)
 
         # check some annotationGroups:
         expectedSizes3d = {
-            # "lung": 88,
-            "left lung": 160,
-            "right lung": 160,
-            "upper lobe of left lung": 80,
-            "lower lobe of left lung": 80,
-            "upper lobe of right lung": 40,
-            "middle lobe of right lung": 40,
-            "lower lobe of right lung": 80,
-            }
+            "lung": 128,
+            "left lung": 96,
+            "right lung": 96,
+            "upper lobe of left lung": 48,
+            "lower lobe of left lung": 48,
+            "upper lobe of right lung": 24,
+            "middle lobe of right lung": 24,
+            "lower lobe of right lung": 48,
+        }
         for name in expectedSizes3d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
             size = group.getMeshGroup(mesh3d).getSize()
             self.assertEqual(expectedSizes3d[name], size, name)
 
         expectedSizes2d = {
-            # "base of left lung surface": 12,
-            # "base of lower lobe of left lung surface": 8,
-            # "base of upper lobe of left lung surface": 4,
-            # "base of right lung surface": 12,
-            # "base of lower lobe of right lung surface": 8,
-            # "base of middle lobe of right lung surface": 4,
-            "horizontal fissure of right lung": 16,
-            "horizontal fissure of middle lobe of right lung": 16,
-            "horizontal fissure of upper lobe of right lung": 16,
-            'lateral surface of lower lobe of left lung': 24,
-            'lateral surface of upper lobe of left lung': 24,
-            'lateral surface of lower lobe of right lung': 24,
-            'lateral surface of middle lobe of right lung': 12,
-            'lateral surface of upper lobe of right lung': 12,
-            # 'medial surface of lower lobe of left lung': 42,
-            # 'medial surface of upper lobe of left lung': 42,
-            # 'medial surface of lower lobe of right lung': 42,
-            # 'medial surface of middle lobe of right lung': 21,
-            # 'medial surface of upper lobe of right lung': 21,
-            "oblique fissure of left lung": 32,
-            "oblique fissure of right lung": 32,
-            "oblique fissure of lower lobe of left lung": 32,
-            "oblique fissure of upper lobe of left lung": 32,
-            "oblique fissure of lower lobe of right lung": 32,
-            "oblique fissure of middle lobe of right lung": 16,
-            "oblique fissure of upper lobe of right lung": 16,
-            "left lung surface": 96,
-            "lower lobe of left lung surface": 80,
-            "upper lobe of left lung surface": 80,
-            "right lung surface": 96,
-            "lower lobe of right lung surface": 80,
-            "middle lobe of right lung surface": 56,
-            "upper lobe of right lung surface": 56,
+            "base of left lung surface": 6,
+            "base of lower lobe of left lung surface": 5,
+            "base of upper lobe of left lung surface": 1,
+            "base of right lung surface": 10,
+            "base of lower lobe of right lung surface": 5,
+            "base of middle lobe of right lung surface": 5,
+            "horizontal fissure of right lung": 10,
+            "horizontal fissure of middle lobe of right lung": 10,
+            "horizontal fissure of upper lobe of right lung": 10,
+            'lateral surface of lower lobe of left lung': 16,
+            'lateral surface of upper lobe of left lung': 16,
+            'lateral surface of lower lobe of right lung': 16,
+            'lateral surface of middle lobe of right lung': 8,
+            'lateral surface of upper lobe of right lung': 8,
+            'medial surface of lower lobe of left lung': 16,
+            'medial surface of upper lobe of left lung': 16,
+            'medial surface of lower lobe of right lung': 16,
+            'medial surface of middle lobe of right lung': 8,
+            'medial surface of upper lobe of right lung': 8,
+            "oblique fissure of left lung": 20,
+            "oblique fissure of right lung": 20,
+            "oblique fissure of lower lobe of left lung": 20,
+            "oblique fissure of upper lobe of left lung": 20,
+            "oblique fissure of lower lobe of right lung": 20,
+            "oblique fissure of middle lobe of right lung": 10,
+            "oblique fissure of upper lobe of right lung": 10,
+            "left lung surface": 64,
+            "lower lobe of left lung surface": 52,
+            "upper lobe of left lung surface": 52,
+            "right lung surface": 64,
+            "lower lobe of right lung surface": 52,
+            "middle lobe of right lung surface": 36,
+            "upper lobe of right lung surface": 36,
         }
         for name in expectedSizes2d:
             group = getAnnotationGroupForTerm(annotationGroups, get_lung_term(name))
@@ -1011,7 +1013,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # refine 2x2x2 and check result
         # need to use original annotation groups to get temporaries
         annotationGroups = originalAnnotationGroups
-        self.assertEqual(21, len(annotationGroups))  # including temporary groups
+        self.assertEqual(24, len(annotationGroups))  # including temporary groups
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
@@ -1030,16 +1032,16 @@ class LungScaffoldTestCase(unittest.TestCase):
         for annotation in annotationGroups:
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
-        self.assertEqual(35, len(annotationGroups))
+        self.assertEqual(47, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(2560, mesh3d.getSize())
+        self.assertEqual(1536, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(8064, mesh2d.getSize())
+        self.assertEqual(4864, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(8504, mesh1d.getSize())
+        self.assertEqual(5168, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(3002, nodes.getSize())
+        self.assertEqual(1842, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
