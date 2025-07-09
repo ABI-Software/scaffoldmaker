@@ -1803,33 +1803,32 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
 class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
     """
-    Insert docstring
+    New class derived from TubeNetworkMeshSegment, used for making a patch to cover a segment opening. Only work for
+    inlet segment with a junction on the other end. Note that outlet segment and core cases are not implemented yet.
     """
 
     def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
                  isCore=False, elementsCountCoreBoxMinor: int=2, elementsCountTransition: int=1,
                  coreBoundaryScalingMode: int=1):
+
         super(PatchTubeNetworkMeshSegment, self).__init__(
             networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
             isCore, elementsCountCoreBoxMinor, elementsCountTransition, coreBoundaryScalingMode)
 
-        # define new members here
         self._patchCoordinates = None
         self._patchRimNodeIds = None
-        self._patchElementIds = None  # [e2][e3][e1]
-
+        self._patchElementIds = None
 
     def sample(self, fixedElementsCountAlong, targetElementLength):
-        # Note: only implemented for useOuterTrimSurfaces=True
-        # Only works if tubes are coming in tangentially.
-        # assert (not self._junctions[0]) and (self._junctions[1])
-        # sample patch across inner/outer track surfaces within trim surfaces (from junction)
-        # must have a junction at one end
+        """
+        Samples coordinates along (dorsal/ventral) and around (left/right) patch. Geometry of the patch is derived from
+        a combined track surface of the tube segments that are coming in tangentially. The trim surfaces from the outlet
+        segment is used to define the boundary of the patch.
+        """
         outer = 0
         inner = 1
 
         junction = self._junctions[1]
-        segmentCountAtJunction = junction.getSegmentsCount()
         connectedSegments = junction.getSegments()
 
         # ML: hard code for uterus layout
@@ -1838,27 +1837,12 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         segment3 = connectedSegments[2] # patch tube
         elementsCountAroundSegmentOut = segment3.getElementsCountAround()
 
-        # # DELETE
-        # segment4 = connectedSegments[3]  # body
-        # rawTrackSurface = segment4.getRawTrackSurface(1)
-        # print('nx =', rawTrackSurface._nx)
-        # print('nd1 =', rawTrackSurface._nd1)
-        # print('nd2 =', rawTrackSurface._nd2)
-
-        # trimSurfaces[0] is outer, [1] is inner, I think!
-        # ML: Only using outer trim surfaces in uterus
-        # trimSurfaces1 = junction.getTrimSurfaces(segment1)[0]
-        # trimSurfaces2 = junction.getTrimSurfaces(segment2)[0]
-        # trimSurfaces3 = junction.getTrimSurfaces(segment3)[0]
-
         sampleElementCount = 20
 
-        # make a combined track surface from the raw (or sampled?) surfaces of segments 1 and 2
+        # make a combined track surface from the surfaces of segments 1 and 2
         sxAlongPatchAllLayers = []
         sd1AlongPatchAllLayers = []
         sd2AlongPatchAllLayers = []
-        # sd3AlongPatchAllLayers = []
-        sxCheck = []
 
         for layer in (outer, inner):
             xCombinedTrackSurface = []
@@ -1868,10 +1852,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             trimSurfaces2 = junction.getTrimSurfaces(segment2)[layer]
             trimSurfaces3 = junction.getTrimSurfaces(segment3)[layer]
 
-            # if layer == 1:
-            #     print('nx =', trimSurfaces2._nx)
-            #     print('nd1 =', trimSurfaces2._nd1)
-            #     print('nd2 =', trimSurfaces2._nd2)
             xAlongCombinedTrackSurfaceMid = []
             d1AlongCombinedTrackSurfaceMid = []
 
@@ -1883,10 +1863,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 xRawTrackSurface = rawTrackSurface._nx
                 d1RawTrackSurface = rawTrackSurface._nd1
                 d2RawTrackSurface = rawTrackSurface._nd2
-
-                # print('cx =', xRawTrackSurface)
-                # print('cd1 =', d1RawTrackSurface)
-                # print('cd2 =', d2RawTrackSurface)
 
                 elementsCountAlongSegmentIn = int(len(xRawTrackSurface) / elementsCountAroundSegmentIn - 1)
                 # Extract coordinates from top half of the inlet tubes
@@ -1958,20 +1934,10 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                                 xCombinedTrackSurface, d1CombinedTrackSurface, d2CombinedTrackSurface,
                                                 loop1=False)
 
-            # print("xNewTrack =", combinedTrackSurface._nx)
-            # print("d1NewTrack =", combinedTrackSurface._nd1)
-            # print("d2NewTrack =", combinedTrackSurface._nd2)
-
             # find intersection between trim surfaces and combined track surface
             # Trim surface 3
             xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3, cProportions, loop = \
                 trimSurfaces3.findIntersectionCurve(combinedTrackSurface, curveElementsCount=sampleElementCount)
-
-            # if layer == 0:
-                # print('xAlongCombinedTrackSurfaceMid =', xAlongCombinedTrackSurfaceMid)
-                # print('d1AlongCombinedTrackSurfaceMid =', d1AlongCombinedTrackSurfaceMid)
-                # print('xCurveBetweenTrackAndTrim3 =', xCurveBetweenTrackAndTrim3)
-                # print('d1CurveBetweenTrackAndTrim3 =', d1CurveBetweenTrackAndTrim3)
 
             # Use curve between track+trim 3 and middle of combined track to find starting and ending pt of mid-plane of
             # combined track surface
@@ -1994,11 +1960,9 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                             nLocation, False, derivative=False)
 
             # Sample points along mid-plane of combined track surface
-            # xA = xCurveBetweenTrackAndTrim3[0]
             positionA = combinedTrackSurface.findNearestPosition(xA)
             proportionA = combinedTrackSurface.getProportion(positionA)
 
-            # xB = xCurveBetweenTrackAndTrim3[sampleElementCount // 2]
             positionB = combinedTrackSurface.findNearestPosition(xB)
             proportionB = combinedTrackSurface.getProportion(positionB)
 
@@ -2010,15 +1974,10 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                                               endProportion[0], endProportion[1],
                                                               halfElementsCountAroundSegmentIn)
 
-            # print('sxMidPlane =', sxMidPlane)
-            # print('sd1MidPlane =', sd1MidPlane)
-            # print('sd2MidPlane =', sd2MidPlane)
-
             sxAlongTubeBothSides = []
             sxAlongPatchInLayer = []
             sd1AlongPatchInLayer = []
             sd2AlongPatchInLayer = []
-            # sd3AlongPatchInLayer = []
 
             for s in (1, 0):
                 # Inlet trim surface
@@ -2027,9 +1986,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1, cProportions, loop = \
                     inletTrimSurfaces.findIntersectionCurve(combinedTrackSurface, startPosition,
                                                             curveElementsCount=sampleElementCount)
-
-                # print('xCurveBetweenTrack1AndTrim1 =', xCurveBetweenTrackAndTrim1)
-                # print('d1CurveBetweenTrack1AndTrim1 =', d1CurveBetweenTrackAndTrim1)
 
                 # Search for intersection pt on first half of curve1
                 startLocationFirstHalf = (0, 0.0)
@@ -2040,9 +1996,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
 
                 xCurve1, dCurve1 = evaluateCoordinatesOnCurve(xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1,
                                                               location1, False, derivative=True)
-                # print('xCurve1 = ', xCurve1)
-                # print('dCurve1 =', dCurve1)
-                # print('location1', location1)
 
                 # Search for intersection pt on second half of curve1
                 startLocationSecondHalf = (len(xCurveBetweenTrackAndTrim1)-2, 0.0)
@@ -2053,9 +2006,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                                     startLocation=startLocationSecondHalf)[0:2]
                 xCurve2, dCurve2 = evaluateCoordinatesOnCurve(xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1,
                                                               location2, False, derivative=True)
-                # print('location2', location2)
-                # print('xCurve2 = ', xCurve2)
-                # print('dCurve2 =', dCurve2)
 
                 nx = []
                 nd1 = []
@@ -2077,8 +2027,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 if proportionA[0] > proportionB[0]:
                     sxAlongTubeSide.reverse()
                 sxAlongTubeBothSides.append(sxAlongTubeSide)
-
-            # print('sxAlongTubeBothSides =', sxAlongTubeBothSides)
 
             # Sample across the patch from segment 1 to segment 2 but forcing paths to go through sampled points
             # around mid-plane
@@ -2120,27 +2068,14 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                             ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4),
                             derivativeStart=startDerivative, derivativeEnd=endDerivative)[0:4]
 
-                    # if s and i == 2:
-                    #     print('sxAlongPatchSide =', sxAlongPatchSide)
-                    #     print('sd1AlongPatchSide =', sd1AlongPatchSide)
-                    #     print('sd2AlongPatchSide =', sd2AlongPatchSide)
-
                     sxAlongPatch += sxAlongPatchSide if j else sxAlongPatchSide[0:-1]
                     sd1AlongPatch += sd1AlongPatchSide if j else sd1AlongPatchSide[0:-1]
                     sd2AlongPatch += sd2AlongPatchSide if j else sd2AlongPatchSide[0:-1]
                     sd3AlongPatch += sd3AlongPatchSide if j else sd3AlongPatchSide[0:-1]
 
-                # if i == 2:
-                #     print('sxAlongPatch =', sxAlongPatch)
-                #     print('sd1AlongPatch =', sd1AlongPatch)
-                #     print('sd2AlongPatch =', sd2AlongPatch)
-
                 sxAlongPatchInLayer.append(sxAlongPatch)
                 sd1AlongPatchInLayer.append(sd1AlongPatch)
                 sd2AlongPatchInLayer.append(sd2AlongPatch)
-                # sd3AlongPatchInLayer.append(sd3AlongPatch)
-            # print('xEnd =', xEnd)
-            # print('dEnd =', dEnd)
 
             # Smooth d2 and arrange directions
             for n1 in range(nodesAround):
@@ -2160,12 +2095,10 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
             sxAlongOrdered = []
             sd1AlongOrdered = []
             sd2AlongOrdered = []
-            # sd3AlongOrdered = []
             for n2 in range(halfElementsCountAroundSegmentIn + 1):
                 sxAlong = sxAlongPatchInLayer[n2]
                 sd1Along = sd1AlongPatchInLayer[n2]
                 sd2Along = sd2AlongPatchInLayer[n2]
-                # sd3Along = sd2AlongPatchInLayer[n2]
                 if n2 > halfElementsCountAroundSegmentIn // 2:
                     sxAlong.reverse()
                     sd1Along.reverse()
@@ -2173,24 +2106,10 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 sxAlongOrdered.append(sxAlong)
                 sd1AlongOrdered.append(sd1Along)
                 sd2AlongOrdered.append(sd2Along)
-                # sd3AlongOrdered.append(sd3Along)
 
             sxAlongPatchAllLayers.append(sxAlongOrdered)
             sd1AlongPatchAllLayers.append(sd1AlongOrdered)
             sd2AlongPatchAllLayers.append(sd2AlongOrdered)
-            # sd3AlongPatchAllLayers.append(sd3AlongOrdered)
-
-        # for n3 in range(len(sxAlongPatchAllLayers)):
-        #     for n2 in range(len(sxAlongPatchAllLayers[n3])):
-        #         for n1 in range(len(sxAlongPatchAllLayers[n3][n2])):
-        #             sd3AlongPatchAllLayers[n3][n2][n1] = sub(sxAlongPatchAllLayers[1][n2][n1],
-        #                                                      sxAlongPatchAllLayers[0][n2][n1])
-
-        # print('sxAlongPatchAllLayers =', sxAlongPatchAllLayers)
-        # print('sd1AlongPatchAllLayers =', sd1AlongPatchAllLayers)
-        # print('sd2AlongPatchAllLayers =', sd2AlongPatchAllLayers)
-        # print('sd3AlongPatchAllLayers =', sd3AlongPatchAllLayers)
-        # print(len(sxAlongPatchAllLayers), len(sxAlongPatchAllLayers[0]), len(sxAlongPatchAllLayers[0][0]))
 
         rx, rd1, rd2, rd3 = [], [], [], []
         shellFactor = 1.0 / self._elementsCountThroughShell
@@ -2218,7 +2137,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     for r, value in zip((rx, rd1, rd2, rd3), (x, d1, d2, d3)):
                         r[n2][n3].append(value)
             allCoordinates = rx, rd1, rd2, rd3
-        # print('allCoord =', allCoordinates)
 
         # Extract patch coordinates
         r = copy.deepcopy(allCoordinates)
@@ -2230,8 +2148,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     r[i][n2][n3].pop(0)
                     r[i][n2][n3].pop()
         self._patchCoordinates = r[0], r[1], r[2], r[3]
-
-        # print('Patch coord =', self._patchCoordinates)
 
         self._patchNodeIds = [None] * (halfElementsCountAroundSegmentIn - 1)
         self._patchElementIds = [None] * (halfElementsCountAroundSegmentIn - 2)
@@ -2337,7 +2253,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
 
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
         """
-        Get a ring of sampled coordinates at the supplied node index.
+        Get a ring of rim coordinates at the supplied node index.
         :param pathIndex: 0 for outer/primary, 1 or -1 for inner/secondary.
         :param nodeIndexAlong: Node index from 0 to self._elementsCountAlong, or negative to count from end.
         :return: sx[nAround]
@@ -2349,8 +2265,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         """
         :param n2Only: Ignored. Always makes whole patch.
         """
-        # make all nodes for the patch (except for the outer layer which is made by the junction
-
+        
         # create nodes
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
