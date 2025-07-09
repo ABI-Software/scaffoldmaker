@@ -8,11 +8,12 @@ from __future__ import division
 import copy
 from enum import Enum
 
-from cmlibs.maths.vectorops import cross, normalize
-from cmlibs.zinc.element import Element
+from cmlibs.maths.vectorops import cross, normalize, transpose
+from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds
+from scaffoldmaker.utils.eft_utils import remapEftNodeValueLabel, setEftScaleFactorIds, HermiteNodeLayoutManager, \
+    determineCubicHermiteSerendipityEft
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.interpolation import DerivativeScalingMode, sampleCubicHermiteCurves, \
     smoothCubicHermiteDerivativesLine
@@ -27,8 +28,8 @@ class ShieldShape2D(Enum):
 
 class ShieldShape3D(Enum):
     SHIELD_SHAPE_FULL = 1
-    SHIELD_SHAPE_HALF_AAP = 2    # AAP is a hemisphere where x_a3>=0
-    SHIELD_SHAPE_OCTANT_PPP = 3   # PPP means positive axis1, positive axis2, positive axis3.
+    SHIELD_SHAPE_HALF_AAP = 2  # AAP is a hemisphere where x_a3>=0
+    SHIELD_SHAPE_OCTANT_PPP = 3  # PPP means positive axis1, positive axis2, positive axis3.
     SHIELD_SHAPE_OCTANT_PNP = 4
     SHIELD_SHAPE_OCTANT_NNP = 5
     SHIELD_SHAPE_OCTANT_NPP = 6
@@ -48,7 +49,7 @@ class ShieldMesh2D:
     Shield mesh generator.
     """
 
-    def __init__(self, elementsCountAcross, elementsCountUpFull, elementsCountRim, trackSurface: TrackSurface=None,
+    def __init__(self, elementsCountAcross, elementsCountUpFull, elementsCountRim, trackSurface: TrackSurface = None,
                  elementsCountAlong=1, shieldMode=ShieldShape2D.SHIELD_SHAPE_LOWER_HALF,
                  shieldType=ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR):
         """
@@ -89,30 +90,30 @@ class ShieldMesh2D:
         assert elementsCountUpFull >= (elementsCountRim + 2)
         self.elementsCountAcross = elementsCountAcross
         self.elementsCountUpFull = elementsCountUpFull
-        elementsCountUp = elementsCountUpFull//2 if shieldMode == ShieldShape2D.SHIELD_SHAPE_FULL\
+        elementsCountUp = elementsCountUpFull // 2 if shieldMode == ShieldShape2D.SHIELD_SHAPE_FULL \
             else elementsCountUpFull
         self.elementsCountUp = elementsCountUp
         self.elementsCountRim = elementsCountRim
         self.elementsCountAlong = elementsCountAlong
         self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
-        elementsCountAcrossNonRim = self.elementsCountAcross - 2*elementsCountRim
-        self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
+        elementsCountAcrossNonRim = self.elementsCountAcross - 2 * elementsCountRim
+        self.elementsCountAroundFull = 2 * self.elementsCountUpRegular + elementsCountAcrossNonRim
         self.trackSurface = trackSurface
         self._mode = shieldMode
         self._type = shieldType
-        self.px = [[] for _ in range(elementsCountAlong+1)]
-        self.pd1 = [[] for _ in range(elementsCountAlong+1)]
-        self.pd2 = [[] for _ in range(elementsCountAlong+1)]
-        self.pd3 = [[] for _ in range(elementsCountAlong+1)]
-        self.nodeId = [[] for _ in range(elementsCountAlong+1)]
-        for n3 in range(elementsCountAlong+1):
+        self.px = [[] for _ in range(elementsCountAlong + 1)]
+        self.pd1 = [[] for _ in range(elementsCountAlong + 1)]
+        self.pd2 = [[] for _ in range(elementsCountAlong + 1)]
+        self.pd3 = [[] for _ in range(elementsCountAlong + 1)]
+        self.nodeId = [[] for _ in range(elementsCountAlong + 1)]
+        for n3 in range(elementsCountAlong + 1):
             for n2 in range(elementsCountUpFull + 1):
                 for p in [self.px[n3], self.pd1[n3], self.pd2[n3], self.pd3[n3], self.nodeId[n3]]:
-                    p.append([None]*(elementsCountAcross + 1))
+                    p.append([None] * (elementsCountAcross + 1))
         if trackSurface:
-            self.pProportions = [[None]*(elementsCountAcross + 1) for n2 in range(elementsCountUp + 1)]
+            self.pProportions = [[None] * (elementsCountAcross + 1) for n2 in range(elementsCountUp + 1)]
         if shieldType == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
-            self.elementId = [[[None]*elementsCountAcross for n2 in range(elementsCountUpFull)]
+            self.elementId = [[[None] * elementsCountAcross for n2 in range(elementsCountUpFull)]
                               for e3 in range(elementsCountAlong)]
         else:
             self.elementId = [[None] * elementsCountAcross for n2 in range(elementsCountUpFull)]
@@ -183,7 +184,7 @@ class ShieldMesh2D:
                 2, arcLengthDerivatives=True)[0: 2]
             ltx.append(tx[1])
         #  x = [ (ltx[0][c] + ltx[1][c] + ltx[2][c])/3.0 for c in range(3) ]
-        x = [(ltx[0][c] + ltx[2][c])/2.0 for c in range(3)]
+        x = [(ltx[0][c] + ltx[2][c]) / 2.0 for c in range(3)]
         if self.trackSurface:
             p = self.trackSurface.findNearestPosition(x, startPosition=self.trackSurface.createPositionProportion(*(
                 self.pProportions[n2b][n1c])))
@@ -201,10 +202,10 @@ class ShieldMesh2D:
         if not self.trackSurface:
             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                 self.pd2[n3][n2b][n1b] = normalize(cross(self.pd3[n3][n2b][n1b],
-                                                                               self.pd1[n3][n2b][n1b]))
+                                                         self.pd1[n3][n2b][n1b]))
             elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                 self.pd3[n3][n2b][n1b] = normalize(cross(self.pd1[n3][n2b][n1b],
-                                                                               self.pd2[n3][n2b][n1b]))
+                                                         self.pd2[n3][n2b][n1b]))
         # right
         rtx = []
         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
@@ -240,7 +241,7 @@ class ShieldMesh2D:
                  [-d for d in self.pd1[n3][n2b][m1c]]], 2, arcLengthDerivatives=True)[0: 2]
             rtx.append(tx[1])
         #  x = [ (rtx[0][c] + rtx[1][c] + rtx[2][c])/3.0 for c in range(3) ]
-        x = [(rtx[0][c] + rtx[2][c])/2.0 for c in range(3)]
+        x = [(rtx[0][c] + rtx[2][c]) / 2.0 for c in range(3)]
         if self.trackSurface:
             p = self.trackSurface.findNearestPosition(x, startPosition=self.trackSurface.createPositionProportion(*(
                 self.pProportions[n2b][m1c])))
@@ -258,10 +259,10 @@ class ShieldMesh2D:
         if not self.trackSurface:
             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                 self.pd2[n3][n2b][m1b] = normalize(cross(self.pd3[n3][n2b][m1b],
-                                                                               self.pd1[n3][n2b][m1b]))
+                                                         self.pd1[n3][n2b][m1b]))
             elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                 self.pd3[n3][n2b][m1b] = normalize(cross(self.pd1[n3][n2b][m1b],
-                                                                               self.pd2[n3][n2b][m1b]))
+                                                         self.pd2[n3][n2b][m1b]))
 
     def smoothDerivativesToTriplePoints(self, n3, fixAllDirections=False):
         """
@@ -313,7 +314,7 @@ class ShieldMesh2D:
             tx = []
             td2 = []
             for n2 in range(0, n2c):
-                tx .append(self.px[n3][n2][n1b])
+                tx.append(self.px[n3][n2][n1b])
                 td2.append(self.pd2[n3][n2][n1b] if (n2 < n2b) else
                            [(self.pd1[n3][n2][n1b][c] + self.pd2[n3][n2][n1b][c]) for c in range(3)])
             td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixAllDirections=fixAllDirections, fixEndDerivative=True,
@@ -324,7 +325,7 @@ class ShieldMesh2D:
             tx = []
             td2 = []
             for n2 in range(0, n2c):
-                tx .append(self.px[n3][n2][m1b])
+                tx.append(self.px[n3][n2][m1b])
                 td2.append(self.pd2[n3][n2][m1b] if (n2 < n2b) else
                            [(-self.pd1[n3][n2][m1b][c] + self.pd2[n3][n2][m1b][c]) for c in range(3)])
             td2 = smoothCubicHermiteDerivativesLine(tx, td2, fixAllDirections=fixAllDirections, fixEndDerivative=True,
@@ -403,19 +404,19 @@ class ShieldMesh2D:
                     signs.append(sign)
                 derv = (abs(mapping[0]), abs(mapping[1]))
                 sign = 1 if perm[derv] > 0 else -1
-                signs.append(signs[0]*signs[1]*sign)
+                signs.append(signs[0] * signs[1] * sign)
                 dervMapping = (derv[0], derv[1], abs(perm[derv]))
                 temp1 = copy.deepcopy(self.pd3)
                 temp2 = copy.deepcopy(self.pd2)
                 for n2 in range(self.elementsCountUpFull + 1):
-                    for n3 in range(self.elementsCountAlong+1):
+                    for n3 in range(self.elementsCountAlong + 1):
                         for n1 in range(self.elementsCountAcross + 1):
                             if self.px[n3][n2][n1]:
                                 is_on_square = ((self.px[n3][n2][0] and self.px[n3][0][n1]) or n2 in tripleRow)
                                 if (is_on_square and square) or (not is_on_square and not square):
-                                    dct[dervMapping[0]][n3][n2][n1] = [signs[0]*c for c in self.pd1[n3][n2][n1]]
-                                    dct[dervMapping[1]][n3][n2][n1] = [signs[1]*c for c in temp1[n3][n2][n1]]
-                                    dct[dervMapping[2]][n3][n2][n1] = [signs[2]*c for c in temp2[n3][n2][n1]]
+                                    dct[dervMapping[0]][n3][n2][n1] = [signs[0] * c for c in self.pd1[n3][n2][n1]]
+                                    dct[dervMapping[1]][n3][n2][n1] = [signs[1] * c for c in temp1[n3][n2][n1]]
+                                    dct[dervMapping[2]][n3][n2][n1] = [signs[2] * c for c in temp2[n3][n2][n1]]
             square = False
 
     def generateNodesForOtherHalf(self, mirrorPlane):
@@ -429,10 +430,11 @@ class ShieldMesh2D:
             for n3 in range(self.elementsCountAlong + 1):
                 for n1 in range(self.elementsCountAcross + 1):
                     if self.px[n3][n2][n1]:
-                        self.px[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorImageOfPoint(self.px[n3][n2][n1])
-                        self.pd1[n3][2*self.elementsCountUp-n2][n1] = mirror.reverseMirrorVector(self.pd1[n3][n2][n1])
-                        self.pd2[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd2[n3][n2][n1])
-                        self.pd3[n3][2*self.elementsCountUp-n2][n1] = mirror.mirrorVector(self.pd3[n3][n2][n1])
+                        self.px[n3][2 * self.elementsCountUp - n2][n1] = mirror.mirrorImageOfPoint(self.px[n3][n2][n1])
+                        self.pd1[n3][2 * self.elementsCountUp - n2][n1] = mirror.reverseMirrorVector(
+                            self.pd1[n3][n2][n1])
+                        self.pd2[n3][2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(self.pd2[n3][n2][n1])
+                        self.pd3[n3][2 * self.elementsCountUp - n2][n1] = mirror.mirrorVector(self.pd3[n3][n2][n1])
 
     def generateNodes(self, fieldmodule, coordinates, startNodeIdentifier, rangeOfRequiredElements=None,
                       mirrorPlane=None):
@@ -456,21 +458,15 @@ class ShieldMesh2D:
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS3, 1)
         cache = fieldmodule.createFieldcache()
 
-        # for n2 in range(self.elementsCountUp, -1, -1):
-        #    s = ""
-        #    for n1 in range(self.elementsCountAcross + 1):
-        #        s += str(n1) if self.px[1][n2][n1] else " "
-        #    print(n2, s, n2 - self.elementsCountUp - 1)
-
         if self._mode == ShieldShape2D.SHIELD_SHAPE_FULL and mirrorPlane:
             self.generateNodesForOtherHalf(mirrorPlane)
 
         for n2 in range(self.elementsCountUpFull + 1):
-            for n3 in range(self.elementsCountAlong+1):
+            for n3 in range(self.elementsCountAlong + 1):
                 for n1 in range(self.elementsCountAcross + 1):
                     if rangeOfRequiredElements:
-                        if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0]\
-                                or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0]\
+                        if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0] \
+                                or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0] \
                                 or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
                             continue
                     if self.px[n3][n2][n1]:
@@ -527,24 +523,24 @@ class ShieldMesh2D:
         e2a = self.elementsCountRim
         e2b = self.elementsCountRim + 1
         e2c = self.elementsCountRim + 2
-        e2z = 2*self.elementsCountUp-1-self.elementsCountRim
+        e2z = 2 * self.elementsCountUp - 1 - self.elementsCountRim
         e2y = e2z - 1
         e2x = e2z - 2
         for e3 in range(self.elementsCountAlong):
             for e2 in range(self.elementsCountUpFull):
                 for e1 in range(self.elementsCountAcross):
                     if rangeOfRequiredElements:
-                        if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or\
-                                e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0]\
+                        if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or \
+                                e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0] \
                                 or e1 >= rangeOfRequiredElements[1][1] or e1 < rangeOfRequiredElements[1][0]:
                             continue
                     eft1 = eft
                     scalefactors = None
                     if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                         nids = [self.nodeId[e3][e2][e1], self.nodeId[e3][e2 + 1][e1],
-                                self.nodeId[e3+1][e2][e1], self.nodeId[e3+1][e2 + 1][e1],
+                                self.nodeId[e3 + 1][e2][e1], self.nodeId[e3 + 1][e2 + 1][e1],
                                 self.nodeId[e3][e2][e1 + 1], self.nodeId[e3][e2 + 1][e1 + 1],
-                                self.nodeId[e3+1][e2][e1 + 1], self.nodeId[e3+1][e2 + 1][e1 + 1]]
+                                self.nodeId[e3 + 1][e2][e1 + 1], self.nodeId[e3 + 1][e2 + 1][e1 + 1]]
                     elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                         nids = [self.nodeId[0][e2][e1], self.nodeId[0][e2][e1 + 1],
                                 self.nodeId[0][e2 + 1][e1], self.nodeId[0][e2 + 1][e1 + 1],
@@ -556,15 +552,15 @@ class ShieldMesh2D:
                         if (e2 < e2a) or (e2 > e2z):
                             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                 if e2 < e2a:
-                                    nids = [self.nodeId[e3][e2+1][e1], self.nodeId[e3][e2+1][e1+1],
-                                            self.nodeId[e3+1][e2+1][e1], self.nodeId[e3+1][e2+1][e1+1],
-                                            self.nodeId[e3][e2][e1], self.nodeId[e3][e2][e1+1],
-                                            self.nodeId[e3+1][e2][e1],  self.nodeId[e3+1][e2][e1+1]]
+                                    nids = [self.nodeId[e3][e2 + 1][e1], self.nodeId[e3][e2 + 1][e1 + 1],
+                                            self.nodeId[e3 + 1][e2 + 1][e1], self.nodeId[e3 + 1][e2 + 1][e1 + 1],
+                                            self.nodeId[e3][e2][e1], self.nodeId[e3][e2][e1 + 1],
+                                            self.nodeId[e3 + 1][e2][e1], self.nodeId[e3 + 1][e2][e1 + 1]]
                                 elif e2 > e2z:
-                                    nids = [self.nodeId[e3][e2][e1+1], self.nodeId[e3][e2][e1],
-                                            self.nodeId[e3+1][e2][e1+1], self.nodeId[e3+1][e2][e1],
-                                            self.nodeId[e3][e2+1][e1+1], self.nodeId[e3][e2+1][e1],
-                                            self.nodeId[e3+1][e2+1][e1+1], self.nodeId[e3+1][e2+1][e1]]
+                                    nids = [self.nodeId[e3][e2][e1 + 1], self.nodeId[e3][e2][e1],
+                                            self.nodeId[e3 + 1][e2][e1 + 1], self.nodeId[e3 + 1][e2][e1],
+                                            self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3][e2 + 1][e1],
+                                            self.nodeId[e3 + 1][e2 + 1][e1 + 1], self.nodeId[e3 + 1][e2 + 1][e1]]
                         elif (e2 == e2a) or (e2 == e2z):
                             # bottom and top row elements
                             if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
@@ -625,16 +621,16 @@ class ShieldMesh2D:
                                 e2r = e1
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                     if e2 == e2b:
-                                        nids = [self.nodeId[e3][e2c][e1+1], self.nodeId[e3][e2r+1][e1b],
-                                                self.nodeId[e3+1][e2c][e1+1], self.nodeId[e3+1][e2r+1][e1b],
+                                        nids = [self.nodeId[e3][e2c][e1 + 1], self.nodeId[e3][e2r + 1][e1b],
+                                                self.nodeId[e3 + 1][e2c][e1 + 1], self.nodeId[e3 + 1][e2r + 1][e1b],
                                                 self.nodeId[e3][e2c][e1], self.nodeId[e3][e2r][e1b],
-                                                self.nodeId[e3+1][e2c][e1], self.nodeId[e3+1][e2r][e1b]]
+                                                self.nodeId[e3 + 1][e2c][e1], self.nodeId[e3 + 1][e2r][e1b]]
                                     if e2 == e2y:
-                                        e2r = 2*self.elementsCountUp - e1-1
-                                        nids = [self.nodeId[e3][e2r][e1b], self.nodeId[e3][e2y][e1+1],
-                                                self.nodeId[e3+1][e2r][e1b], self.nodeId[e3+1][e2y][e1+1],
-                                                self.nodeId[e3][e2r+1][e1b], self.nodeId[e3][e2y][e1],
-                                                self.nodeId[e3+1][e2r+1][e1b], self.nodeId[e3+1][e2y][e1]]
+                                        e2r = 2 * self.elementsCountUp - e1 - 1
+                                        nids = [self.nodeId[e3][e2r][e1b], self.nodeId[e3][e2y][e1 + 1],
+                                                self.nodeId[e3 + 1][e2r][e1b], self.nodeId[e3 + 1][e2y][e1 + 1],
+                                                self.nodeId[e3][e2r + 1][e1b], self.nodeId[e3][e2y][e1],
+                                                self.nodeId[e3 + 1][e2r + 1][e1b], self.nodeId[e3 + 1][e2y][e1]]
                                 elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                                     setEftScaleFactorIds(eft1, [1], [])
@@ -656,14 +652,14 @@ class ShieldMesh2D:
                                     scalefactors = [-1.0]
                                     if e2 == e2b:
                                         nids[0] = self.nodeId[e3][e2a][e1b]
-                                        nids[2] = self.nodeId[e3+1][e2a][e1b]
+                                        nids[2] = self.nodeId[e3 + 1][e2a][e1b]
                                         tripleN = [5, 7]
                                         remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, []),
                                                                 (Node.VALUE_LABEL_D_DS3, [])])
                                     elif e2 == e2y:
-                                        nids[1] = self.nodeId[e3][e2z+1][e1b]
-                                        nids[3] = self.nodeId[e3+1][e2z+1][e1b]
+                                        nids[1] = self.nodeId[e3][e2z + 1][e1b]
+                                        nids[3] = self.nodeId[e3 + 1][e2z + 1][e1b]
                                         tripleN = [6, 8]
                                         remapEftNodeValueLabel(eft1, tripleN, Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
@@ -690,13 +686,13 @@ class ShieldMesh2D:
                                         setEftScaleFactorIds(eft1, [1], [])
                                         scalefactors = [-1.0]
                                         nids[4] = self.nodeId[e3][e2a][e1z]
-                                        nids[6] = self.nodeId[e3+1][e2a][e1z]
+                                        nids[6] = self.nodeId[e3 + 1][e2a][e1z]
                                         remapEftNodeValueLabel(eft1, [1, 3], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, [1]),
                                                                 (Node.VALUE_LABEL_D_DS3, [])])
                                     elif e2 == e2y:
-                                        nids[5] = self.nodeId[e3][e2z+1][e1z]
-                                        nids[7] = self.nodeId[e3+1][e2z+1][e1z]
+                                        nids[5] = self.nodeId[e3][e2z + 1][e1z]
+                                        nids[7] = self.nodeId[e3 + 1][e2z + 1][e1z]
                                         remapEftNodeValueLabel(eft1, [2, 4], Node.VALUE_LABEL_D_DS3,
                                                                [(Node.VALUE_LABEL_D_DS1, []),
                                                                 (Node.VALUE_LABEL_D_DS3, [])])
@@ -717,15 +713,15 @@ class ShieldMesh2D:
                                 if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                                     if e2 == e2b:
                                         nids = [self.nodeId[e3][e2r][e1z], self.nodeId[e3][e2c][e1],
-                                                self.nodeId[e3+1][e2r][e1z], self.nodeId[e3+1][e2c][e1],
-                                                self.nodeId[e3][e2r-1][e1z], self.nodeId[e3][e2c][e1+1],
-                                                self.nodeId[e3+1][e2r-1][e1z], self.nodeId[e3+1][e2c][e1+1]]
+                                                self.nodeId[e3 + 1][e2r][e1z], self.nodeId[e3 + 1][e2c][e1],
+                                                self.nodeId[e3][e2r - 1][e1z], self.nodeId[e3][e2c][e1 + 1],
+                                                self.nodeId[e3 + 1][e2r - 1][e1z], self.nodeId[e3 + 1][e2c][e1 + 1]]
                                     elif e2 == e2y:
-                                        e2r = e2z+e1-e1z
+                                        e2r = e2z + e1 - e1z
                                         nids[1] = self.nodeId[e3][e2r][e1z]
-                                        nids[3] = self.nodeId[e3+1][e2r][e1z]
-                                        nids[5] = self.nodeId[e3][e2r+1][e1z]
-                                        nids[7] = self.nodeId[e3+1][e2r+1][e1z]
+                                        nids[3] = self.nodeId[e3 + 1][e2r][e1z]
+                                        nids[5] = self.nodeId[e3][e2r + 1][e1z]
+                                        nids[7] = self.nodeId[e3 + 1][e2r + 1][e1z]
                                 elif self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_REGULAR:
                                     eft1 = tricubichermite.createEftNoCrossDerivatives()
                                     setEftScaleFactorIds(eft1, [1], [])
@@ -742,9 +738,9 @@ class ShieldMesh2D:
                         if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                             if e1 < e1a:
                                 nids = [self.nodeId[e3][e2 + 1][e1 + 1], self.nodeId[e3][e2][e1 + 1],
-                                        self.nodeId[e3+1][e2 + 1][e1 + 1], self.nodeId[e3+1][e2][e1 + 1],
+                                        self.nodeId[e3 + 1][e2 + 1][e1 + 1], self.nodeId[e3 + 1][e2][e1 + 1],
                                         self.nodeId[e3][e2 + 1][e1], self.nodeId[e3][e2][e1],
-                                        self.nodeId[e3+1][e2 + 1][e1], self.nodeId[e3+1][e2][e1]]
+                                        self.nodeId[e3 + 1][e2 + 1][e1], self.nodeId[e3 + 1][e2][e1]]
                             elif e1 == e1a:
                                 # map left column elements
                                 eft1 = tricubichermite.createEftNoCrossDerivatives()
@@ -765,7 +761,7 @@ class ShieldMesh2D:
                         result3 = element.setScaleFactors(eft1, scalefactors)
                     else:
                         result3 = 7
-                    # print('create element shield', elementIdentifier, result2, result3, nids)
+
                     if self._type == ShieldRimDerivativeMode.SHIELD_RIM_DERIVATIVE_MODE_AROUND:
                         self.elementId[e3][e2][e1] = elementIdentifier
                     else:
@@ -776,7 +772,6 @@ class ShieldMesh2D:
                         if e3 < elementEnd[c]:
                             meshGroup.addElement(element)
                             break
-
 
         return elementIdentifier
 
@@ -816,8 +811,21 @@ class ShieldMesh3D:
         self.elementsCountAcross = elementsCountAcross
         self.elementsCountRim = elementsCountRim
         # self.elementsCountUpRegular = elementsCountUp - 2 - elementsCountRim
-        self.elementsCountAcrossNonRim = [ne - 2*elementsCountRim for ne in elementsCountAcross]
+        self.elementsCountAcrossNonRim = [ne - 2 * elementsCountRim for ne in elementsCountAcross]
         # self.elementsCountAroundFull = 2*self.elementsCountUpRegular + elementsCountAcrossNonRim
+
+        self.elementsCountAlong = self.elementsCountAcross[0]
+        self.elementsCountAcrossMajor = self.elementsCountAcross[1]
+        self.elementsCountAcrossMinor = self.elementsCountAcross[2]
+
+        self.elementsCountCoreBoxAlong = self.elementsCountAlong - 2
+        self.elementsCountCoreBoxMajor = self.elementsCountAcrossMajor - 2
+        self.elementsCountCoreBoxMinor = self.elementsCountAcrossMinor - 2
+        self.elementsCountAround = (self.elementsCountAcross[2] - 1) * 2 + (self.elementsCountAcross[1] - 3) * 2
+
+        self.startNodeIdentifier = 1
+        self.nodeLayoutManager = HermiteNodeLayoutManager()
+
         self._boxDerivatives = box_derivatives
         self._boxMapping = None
         self._element_needs_scale_factor = False
@@ -831,12 +839,14 @@ class ShieldMesh3D:
         self.pd2 = [[] for _ in range(elementsCountAcross[2] + 1)]
         self.pd3 = [[] for _ in range(elementsCountAcross[2] + 1)]
         self.nodeId = [[] for _ in range(elementsCountAcross[2] + 1)]
+        self.nodeParameters = []
+
         for n3 in range(elementsCountAcross[2] + 1):
             for n2 in range(elementsCountAcross[0] + 1):
                 for p in [self.px[n3], self.pd1[n3], self.pd2[n3], self.pd3[n3], self.nodeId[n3]]:
-                    p.append([None]*(elementsCountAcross[1] + 1))
+                    p.append([None] * (elementsCountAcross[1] + 1))
 
-        self.elementId = [[[None]*elementsCountAcross[1] for n2 in range(elementsCountAcross[0])]
+        self.elementId = [[[None] * elementsCountAcross[1] for n2 in range(elementsCountAcross[0])]
                           for e3 in range(elementsCountAcross[2])]
 
     # node types
@@ -910,7 +920,7 @@ class ShieldMesh3D:
         :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
         :return: next nodeIdentifier.
          """
-        nodeIdentifier = startNodeIdentifier
+        nodeIdentifier = self.startNodeIdentifier = startNodeIdentifier
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
@@ -927,10 +937,11 @@ class ShieldMesh3D:
         for n2 in range(self.elementsCountAcross[0] + 1):
             for n3 in range(self.elementsCountAcross[2] + 1):
                 for n1 in range(self.elementsCountAcross[1] + 1):
-                    if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0]\
-                            or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0]\
-                            or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
-                        continue
+                    if rangeOfRequiredElements:
+                        if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0] \
+                                or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0] \
+                                or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
+                            continue
                     if self.px[n3][n2][n1]:
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         self.nodeId[n3][n2][n1] = nodeIdentifier
@@ -939,6 +950,11 @@ class ShieldMesh3D:
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, self.pd1[n3][n2][n1])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, self.pd2[n3][n2][n1])
                         coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS3, 1, self.pd3[n3][n2][n1])
+
+                        nodeParameters = [self.px[n3][n2][n1], self.pd1[n3][n2][n1], self.pd2[n3][n2][n1],
+                                          self.pd3[n3][n2][n1]]
+                        self.nodeParameters.append(nodeParameters)
+
                         nodeIdentifier += 1
 
         return nodeIdentifier
@@ -1034,7 +1050,7 @@ class ShieldMesh3D:
             triple12rightderivs = [-1, -2, 3]
 
         return corner1derivs, corner2derivs, corner3derivs, boundary12leftderivs, boundary12rightderivs, \
-               triple12leftderivs, triple12rightderivs
+            triple12leftderivs, triple12rightderivs
 
     def get_box_mapping_for_other_octants(self, octant_number, octant1_box_derivatives=None):
         """
@@ -1099,13 +1115,13 @@ class ShieldMesh3D:
         :return: nids, node s for given element represented by its indexes (e3,e2,e1).
         """
         nids_default = [self.getNodeId(octant_number, e3, e2, e1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3, e2+1, e1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3+1, e2, e1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3+1, e2+1, e1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3, e2, e1+1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3, e2+1, e1+1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3+1, e2, e1+1, e3zo, e1zo),
-                        self.getNodeId(octant_number, e3+1, e2+1, e1+1, e3zo, e1zo)]
+                        self.getNodeId(octant_number, e3, e2 + 1, e1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3 + 1, e2, e1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3 + 1, e2 + 1, e1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3, e2, e1 + 1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3, e2 + 1, e1 + 1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3 + 1, e2, e1 + 1, e3zo, e1zo),
+                        self.getNodeId(octant_number, e3 + 1, e2 + 1, e1 + 1, e3zo, e1zo)]
 
         # change the order of nodes according to the box derivatives.
         boxMappingOctant1 = self.get_box_mapping_for_other_octants(1, octant1_box_derivatives=self._boxDerivatives)
@@ -1115,6 +1131,571 @@ class ShieldMesh3D:
             nids[lnm_octant1[ln] - 1] = nids_default[ln - 1]
 
         return nids
+
+    def getBoxNodeIds(self, rangeOfRequiredElements):
+        """
+        Retrieves a structured list of node IDs for box core within a 3D sphere.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
+        :return: A nested list of node Ids, structured according to elementsCountAlong (axis1), elementsCountAcrossMajor
+        (axis2), and elementsCountAcrossMinor (axis3).
+        """
+        boxNodeIds = []
+        start = self.elementsCountRim + 1
+        end = self.elementsCountRim
+        for n2 in range(start, self.elementsCountAlong - end):
+            layer = []
+            for n3 in range(start, self.elementsCountAcrossMinor - end):
+                row = []
+                for n1 in range(start, self.elementsCountAcrossMajor - end):
+                    nid = self.nodeId[n3][n2][n1]
+                    if rangeOfRequiredElements:
+                        if n3 > rangeOfRequiredElements[2][1] or n3 < rangeOfRequiredElements[2][0] \
+                                or n2 > rangeOfRequiredElements[0][1] or n2 < rangeOfRequiredElements[0][0] \
+                                or n1 > rangeOfRequiredElements[1][1] or n1 < rangeOfRequiredElements[1][0]:
+                            continue
+                    if nid:
+                        row.append(nid)
+                if row:
+                    layer.append(row)
+            if layer:
+                boxNodeIds.append(layer)
+
+        return boxNodeIds
+
+    def getTransitionNodeIds(self, axis, rangeOfRequiredElements):
+        """
+        Retrieves a structured list of node IDs for transition layer within a 3D sphere.
+        :param axis: The axis along which to extract transition nodes. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
+        :return: A nested list of node IDs based on the specified axis.
+        """
+        assert axis in [1, 2, 3]
+
+        transitionNodeIds = []
+        start, end = (0, -1)
+        for i in range(self.elementsCountRim + 1):
+            transitionNodeIds.append([])
+            if axis == 1:
+                for n3 in range(self.elementsCountAcrossMinor + 1):
+                    check_index1 = rangeOfRequiredElements[0][0] if rangeOfRequiredElements[0][0] > 0 else i
+                    check_index2 = rangeOfRequiredElements[1][0] if rangeOfRequiredElements[1][0] > 0 else i
+                    if self.nodeId[n3][check_index1][check_index2] is None:
+                        continue
+                    layer = []
+                    for n2 in [start, end]:
+                        row = [self.nodeId[n3][n2][n1] for n1 in range(self.elementsCountAcrossMajor + 1) if
+                               self.nodeId[n3][n2][n1]]
+                        if row:
+                            layer.append(row)
+                    if layer:
+                        transitionNodeIds[i].append(layer)
+                transitionNodeIds[i] = transpose(transitionNodeIds[i])
+            elif axis == 2:
+                for n3 in range(self.elementsCountAcrossMinor + 1):
+                    check_index1 = rangeOfRequiredElements[0][0] if rangeOfRequiredElements[0][0] > 0 else i
+                    check_index2 = rangeOfRequiredElements[1][0] if rangeOfRequiredElements[1][0] > 0 else i
+                    if self.nodeId[n3][check_index1][check_index2] is None:
+                        continue
+                    layer = []
+                    for n2 in range(self.elementsCountAlong + 1):
+                        row = [self.nodeId[n3][n2][n1] for n1 in [start, end] if self.nodeId[n3][n2][n1]]
+                        if row:
+                            layer.append(row)
+                    if layer:
+                        transitionNodeIds[i].append(transpose(layer))
+                transitionNodeIds[i] = transpose(transitionNodeIds[i])
+            else:  # axis == 3
+                for n3 in [start, end]:
+                    layer = []
+                    for n2 in range(self.elementsCountAlong + 1):
+                        check_index = rangeOfRequiredElements[1][0] if rangeOfRequiredElements[1][0] > 0 else i
+                        if self.nodeId[n3][n2][check_index] is None:
+                            continue
+                        row = [self.nodeId[n3][n2][n1] for n1 in range(self.elementsCountAcrossMajor + 1) if
+                               self.nodeId[n3][n2][n1]]
+                        if row:
+                            layer.append(row)
+                    if layer:
+                        transitionNodeIds[i].append(layer)
+            start += 1
+            end -= 1
+        transitionNodeIds.reverse()
+        return transitionNodeIds
+
+    def getNodeParameters(self, idx):
+        # return self.nodeParameters[nid].get("nodeParameters", "ID not found")
+        return self.nodeParameters[idx]
+
+    def getBoxBoundaryLocation(self, axis, m, n, rangeOfRequiredElements):
+        """
+        Determines: 1. Where the node is located on the box boundary. There are four side locations: Top, bottom, left,
+        and right; and 2. the location of a triple point relative to the solid core box. There are four locations:
+        Top left, top right, bottom left, and bottom right.
+        Location is 0 if not located at any of the four specified locations.
+        :param axis: The axis along which to work on. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param m, n: index across major and minor axis, respectively.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
+        :return: Side location identifier and triple point location identifier.
+        """
+        assert axis in [1, 2, 3]
+
+        adjustedElementsCountMajor = self.elementsCountCoreBoxMajor - 2 * self.elementsCountRim
+        adjustedElementsCountMinor = self.elementsCountCoreBoxMinor - 2 * self.elementsCountRim
+        adjustedElementsCountAlong = self.elementsCountAlong - (2 * self.elementsCountRim + 2)
+        mStart, nStart = 0, 0
+        if axis == 1:
+            default_mEnd, default_nEnd = adjustedElementsCountMajor, adjustedElementsCountMinor
+
+            mm = m + rangeOfRequiredElements[1][0] - (self.elementsCountRim + 1) if rangeOfRequiredElements[1][
+                                                                                        0] > 0 else m
+            mEnd = min(rangeOfRequiredElements[1][1], default_mEnd) if rangeOfRequiredElements[1][
+                                                                           0] > 0 else default_mEnd
+
+            nn = n + rangeOfRequiredElements[2][0] - (self.elementsCountRim + 1) if rangeOfRequiredElements[2][
+                                                                                        0] > 0 else n
+            nEnd = min(rangeOfRequiredElements[2][1], default_nEnd) if rangeOfRequiredElements[2][
+                                                                           0] > 0 else default_nEnd
+        elif axis == 2:
+            default_mEnd, default_nEnd = adjustedElementsCountAlong, adjustedElementsCountMinor
+
+            mm = m + rangeOfRequiredElements[0][0] - (self.elementsCountRim + 1) if rangeOfRequiredElements[0][
+                                                                                        0] > 0 else m
+            mEnd = min(rangeOfRequiredElements[0][1], default_mEnd) if rangeOfRequiredElements[0][
+                                                                           0] > 0 else default_mEnd
+
+            nn = n + rangeOfRequiredElements[2][0] - (self.elementsCountRim + 1) if rangeOfRequiredElements[2][
+                                                                                        0] > 0 else n
+            nEnd = min(rangeOfRequiredElements[2][1], default_nEnd) if rangeOfRequiredElements[2][
+                                                                           0] > 0 else default_nEnd
+        if axis == 3:
+            default_mEnd, default_nEnd = adjustedElementsCountMajor, adjustedElementsCountAlong
+
+            mm = m + rangeOfRequiredElements[1][0] - (self.elementsCountRim + 1) if rangeOfRequiredElements[1][
+                                                                                        0] > 0 else m
+            mEnd = min(rangeOfRequiredElements[1][1], default_mEnd) if rangeOfRequiredElements[1][
+                                                                           0] > 0 else default_mEnd
+
+            nn = n + rangeOfRequiredElements[0][0] - (self.elementsCountRim + 1) if rangeOfRequiredElements[0][
+                                                                                        0] > 0 else n
+            nEnd = min(rangeOfRequiredElements[0][1], default_nEnd) if rangeOfRequiredElements[0][
+                                                                           0] > 0 else default_nEnd
+
+        # determine boundary location
+        if mStart < mm < mEnd:
+            location = 1 if nn == nEnd else -1 if nn == 0 else 0  # Top or Bottom
+        elif nStart < nn < nEnd:
+            location = 2 if mm == 0 else -2 if mm == mEnd else 0  # Left or Right
+        else:
+            location = 0
+
+        # determine triple point location
+        tpLocation = 0
+        if location == 0:
+            if nn == nEnd:
+                tpLocation = 1 if mm == 0 else -1  # Top Left or Top Right
+            elif nn == 0:
+                tpLocation = 2 if mm == 0 else -2  # Bottom Left or Bottom Right
+
+        return location, tpLocation
+
+    def getNodeLayoutBoxShield(self, axis, location, isFront=True):
+        """
+        Special node layout for generating box-shield transition elements.
+        There are four layouts relative to the core box: Top (location = 1); bottom (location = -1);
+        left (location = 2); and right (location = -2).
+        :param axis: The axis along which to work on. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param location: Location identifier identifying four corners of solid core box.
+        :param isFront: True if generating elements at the front side of a sphere respective to the axis, False if
+        generating at the backend of a sphere.
+        :return: Node layout.
+        """
+        assert axis in [1, 2, 3]
+        assert location in [1, -1, 2, -2, 0]
+
+        nodeLayouts = self.nodeLayoutManager.getNodeLayoutSphereBoxShield(axis, isFront)
+
+        if location == 1:  # "Top"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Bottom"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = None
+
+        return nodeLayout
+
+    def getNodeLayoutSphereShell(self, location):
+        """
+        Special node layout for generating sphere shell transition elements.
+        There are four layouts specific to each corner (triple point) of the shell: Top left (location = 1);
+        top right (location = -1); bottom left (location = 2); and bottom right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :return: Node layout.
+        """
+        if location == 0:
+            nodeLayout = self.nodeLayoutManager.getNodeLayoutSphereTransition()
+        else:
+            nodeLayout = self.nodeLayoutManager.getNodeLayoutSphereShellTriplePoint()
+
+        return nodeLayout
+
+    def getNodeLayoutSphereBoxShieldTriplePoint(self, axis, location, isFront=True):
+        """
+        Special node layout for generating sphere box-shield transition elements at triple points.
+        There are four layouts relative to the core box: Top left (location = 1); top right (location = -1);
+        bottom left (location = 2); and bottom right (location = -2).
+        :param axis: The axis along which to extract transition nodes. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param location: Location identifier identifying four corners of solid core box.
+        :param isFront: True if generating elements at the front side of a sphere respective to the axis, False if
+        generating at the backend of a sphere.
+        :return: Node layout.
+        """
+        assert axis in [1, 2, 3]
+        assert location in [1, -1, 2, -2, 0]
+
+        nodeLayouts = self.nodeLayoutManager.getNodeLayoutSphereBoxShieldTriplePoint(axis, isFront)
+        layout_map = {1: 0, -1: 1, 2: 2, -2: 3}
+
+        return nodeLayouts[layout_map[location]] if location in layout_map else None
+
+    def generateBoxElementsSerendipity(self, fieldmodule, coordinates, elementIdentifier, rangeOfRequiredElements,
+                                       meshGroups=[],
+                                       annotationTerms=[]):
+        """
+        Blackbox function for generating core box elements using serendipity.
+        :param fieldmodule: Zinc fieldmodule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :param elementIdentifier: First element identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
+        :param meshGroups: Zinc mesh groups to add elements to.
+        :return: next elementIdentifier.
+        """
+        mesh = fieldmodule.findMeshByDimension(3)
+
+        elementbasis = fieldmodule.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY)
+        eft = mesh.createElementfieldtemplate(elementbasis)
+
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementtemplate.defineField(coordinates, -1, eft)
+
+        boxNodeIds = self.getBoxNodeIds(rangeOfRequiredElements)
+
+        e2range = range(len(boxNodeIds) - 1)
+        e3range = range(len(boxNodeIds[0]) - 1)
+        e1range = range(len(boxNodeIds[0][0]) - 1)
+
+        midMinorIndex = self.elementsCountCoreBoxMinor // 2
+        midMajorIndex = self.elementsCountCoreBoxMajor // 2
+        nElementsSide = self.elementsCountCoreBoxMajor * self.elementsCountCoreBoxMinor
+
+        for e2 in e2range:
+            e2p = e2 + 1
+            for e1 in e1range:
+                e1p = e1 + 1
+                for e3 in e3range:
+                    nids = []
+                    for n3 in [e3, e3 + 1]:
+                        nids += [boxNodeIds[e2p][n3][e1], boxNodeIds[e2][n3][e1], boxNodeIds[e2p][n3][e1p],
+                                 boxNodeIds[e2][n3][e1p]]
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+
+                    if annotationTerms:
+                        for idx, term in enumerate(annotationTerms):
+                            if "box" in term:
+                                meshGroups[idx].addElement(element)
+                            elif "left" in term:
+                                meshGroups[idx].addElement(element)
+                                li = next((i for i, term in enumerate(annotationTerms) if 'lower' in term), -1)
+                                ui = next((i for i, term in enumerate(annotationTerms) if 'upper' in term), -1)
+                                di = next((i for i, term in enumerate(annotationTerms) if 'dorsal' in term), -1)
+
+                                val1 = (elementIdentifier - 1) % nElementsSide
+                                checkValue = (val1 % self.elementsCountCoreBoxMinor)
+
+                                if checkValue < midMinorIndex:
+                                    meshGroups[li].addElement(element)
+                                else:
+                                    meshGroups[ui].addElement(element)
+                                break
+                            elif "right" in term:
+                                meshGroups[idx].addElement(element)
+                                li = next((i for i, term in enumerate(annotationTerms) if 'lower' in term), -1)
+                                mi = next((i for i, term in enumerate(annotationTerms) if 'middle' in term), -1)
+                                ui = next((i for i, term in enumerate(annotationTerms) if 'upper' in term), -1)
+                                di = next((i for i, term in enumerate(annotationTerms) if 'dorsal' in term), -1)
+
+                                val1 = (elementIdentifier - 1) % nElementsSide
+                                checkValue = (val1 % self.elementsCountCoreBoxMinor)
+
+                                if checkValue < midMinorIndex:
+                                    meshGroups[li].addElement(element)
+                                elif checkValue >= midMinorIndex and e1 >= midMajorIndex:
+                                    meshGroups[mi].addElement(element)
+                                else:
+                                    meshGroups[ui].addElement(element)
+                                    meshGroups[di].addElement(element)
+                                break
+                    else:
+                        meshGroups[0].addElement(element)
+
+                    elementIdentifier += 1
+
+        return elementIdentifier
+
+    def generateShieldElementsSerendipity(self, fieldmodule, coordinates, axis, elementIdentifier,
+                                          rangeOfRequiredElements, meshGroups=[], annotationTerms=[]):
+        """
+        Blackbox function for generating transition shield elements using serendipity.
+        :param fieldmodule: Zinc fieldmodule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :param axis: The axis along which to generate elements. Must be 1 (x-axis), 2 (y-axis), or 3 (z-axis).
+        :param elementIdentifier: First element identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
+        :param meshGroups: Zinc mesh groups to add elements to.
+        :return: next elementIdentifier.
+        """
+        mesh = fieldmodule.findMeshByDimension(3)
+
+        sid = self.startNodeIdentifier
+        boxNodeIds = self.getBoxNodeIds(rangeOfRequiredElements)
+        if axis > 1:
+            boxNodeIds = transpose(boxNodeIds)
+        transitionNodeIds = self.getTransitionNodeIds(axis, rangeOfRequiredElements)
+
+        nodeLayoutSphereTransition = self.nodeLayoutManager.getNodeLayoutSphereTransition()
+
+        if not transitionNodeIds:
+            return elementIdentifier
+
+        e3range = range(len(transitionNodeIds[0][0]) - 1)
+        e1range = range(len(transitionNodeIds[0][0][0]) - 1)
+
+        midMinorIndex = (len(transitionNodeIds[0][0]) - 1) // 2
+        midMajorIndex = (len(transitionNodeIds[0][0][0]) - 1) // 2
+
+        if len(transitionNodeIds[0]) == 1:
+            idx = axis - 1
+            if rangeOfRequiredElements[idx][0] != 0:
+                e2range = [-1]
+            elif rangeOfRequiredElements[idx][1] != self.elementsCountAlong - 2:
+                e2range = [0]
+        else:
+            e2range = [0, -1]
+
+        for i in range(self.elementsCountRim + 1):
+            for e2 in e2range:  # iterate over front and back layers
+                isFront = (e2 == 0)
+                switch = (axis <= 1) ^ isFront
+                for e3 in e3range:
+                    for e1 in e1range:
+                        nids, nodeParameters, nodeLayouts = [], [], []
+                        for n3 in [e3, e3 + 1]:
+                            for n1 in [e1 + 1, e1]:
+                                nid = transitionNodeIds[i][e2][n3][n1]
+                                idx = nid - sid
+                                nodeParameter = self.getNodeParameters(idx)
+                                location, tpLocation = self.getBoxBoundaryLocation(axis, n1, n3,
+                                                                                   rangeOfRequiredElements)
+                                nodeLayout = self.getNodeLayoutSphereShell(tpLocation)
+
+                                nids += [nid]
+                                nodeParameters.append(nodeParameter)
+                                nodeLayouts.append(nodeLayout)
+                        if switch:
+                            for a in [nids, nodeParameters, nodeLayouts]:
+                                a[-2], a[-1] = a[-1], a[-2]
+                                a[-4], a[-3] = a[-3], a[-4]
+                        for n3 in [e3, e3 + 1]:
+                            for n1 in [e1 + 1, e1]:
+                                if i > 0:
+                                    nid = transitionNodeIds[i - 1][e2][n3][n1]
+                                else:
+                                    nid = boxNodeIds[n3][n1][e2] if axis == 2 else boxNodeIds[e2][n3][n1]
+                                idx = nid - sid
+                                nodeParameter = self.getNodeParameters(idx)
+                                location, tpLocation = self.getBoxBoundaryLocation(axis, n1, n3,
+                                                                                   rangeOfRequiredElements)
+
+                                if i > 0:
+                                    nodeLayout = self.getNodeLayoutSphereShell(tpLocation)
+                                else:
+                                    if location == 0 and tpLocation == 0:
+                                        nodeLayout = nodeLayoutSphereTransition
+                                    elif location != 0 and tpLocation == 0:
+                                        nodeLayout = self.getNodeLayoutBoxShield(axis, location, isFront=isFront)
+                                    else:
+                                        nodeLayout = self.getNodeLayoutSphereBoxShieldTriplePoint(axis, tpLocation,
+                                                                                                  isFront=isFront)
+
+                                nids += [nid]
+                                nodeParameters.append(nodeParameter)
+                                nodeLayouts.append(nodeLayout)
+                        if switch:
+                            for a in [nids, nodeParameters, nodeLayouts]:
+                                a[-2], a[-1] = a[-1], a[-2]
+                                a[-4], a[-3] = a[-3], a[-4]
+
+                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                        elementtemplate = mesh.createElementtemplate()
+                        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        elementtemplate.defineField(coordinates, -1, eft)
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                        element.setNodesByIdentifier(eft, nids)
+                        if scalefactors:
+                            element.setScaleFactors(eft, scalefactors)
+
+                        if annotationTerms:
+                            for idx, term in enumerate(annotationTerms):
+                                add = False
+                                if "transition" in term or term == "lung":
+                                    add = True
+                                elif "left" in term:
+                                    is_lower = "lower" in term
+                                    is_upper = "upper" in term
+                                    is_mediastinumX = "mediastinum" and "lung X" in term
+                                    is_mediastinumY = "mediastinum" and "lung Y" in term
+                                    is_mediastinumZ = "mediastinum" and "lung Z" in term
+                                    is_lateral = "lateral" in term
+                                    is_medial = "medial" in term
+                                    is_base = "base" in term
+
+                                    if is_lower:
+                                        add = (axis < 3 and e3 < midMinorIndex) or (axis == 3 and e2 >= 0)
+                                    elif is_upper:
+                                        add = (axis < 3 and e3 >= midMinorIndex) or (axis == 3 and e2 < 0)
+                                    elif is_mediastinumX:
+                                        if self.elementsCountCoreBoxAlong > 2:
+                                            add = ((axis == 2 and e1 > midMajorIndex and e2 < 0) or
+                                                   (axis == 3 and e2 < 0 and e3 > midMinorIndex))
+                                        else:
+                                            add = (axis == 1 and e1 == e1range[-1])
+                                    elif is_mediastinumY:
+                                        add = (axis == 2 and e1 == midMajorIndex and e2 < 0 and e3 >= midMinorIndex)
+                                    elif is_mediastinumZ:
+                                        add = (axis == 3 and e2 < 0 and e3 == midMinorIndex)
+                                    elif is_lateral:
+                                        add = (
+                                                (axis == 1 and e2 == -1) or
+                                                (axis == 2 and e1 >= midMajorIndex) or
+                                                (axis == 3 and e3 >= midMinorIndex)
+                                        )
+                                    elif is_medial:
+                                        add = (
+                                                (axis == 1 and e2 == 0) or
+                                                (axis == 2 and e1 < midMajorIndex) or
+                                                (axis == 3 and e3 < midMinorIndex)
+                                        )
+                                    elif is_base:
+                                        offset = self.elementsCountCoreBoxMajor // 4 - 2 if self.elementsCountCoreBoxMajor > 8 else 0
+                                        add = (
+                                                (axis == 1 and e1 > midMajorIndex + offset and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 1 and e1 > midMajorIndex + (1 + offset) and e2 == 0 and e3 == midMinorIndex) or
+                                                (axis == 2 and e1 < midMajorIndex and e2 == -1 and e3 <= midMinorIndex) or
+                                                (axis == 3 and e1 > midMajorIndex + offset and e2 == 0 and e3 < midMinorIndex)
+                                        )
+                                    else:
+                                        add = True
+                                elif "right" in term:
+                                    is_lower = "lower" in term
+                                    is_middle = "middle" in term
+                                    is_upper = "upper" in term
+                                    is_mediastinumX = "mediastinum" and "lung X" in term
+                                    is_mediastinumY = "mediastinum" and "lung Y" in term
+                                    is_mediastinumZ = "mediastinum" and "lung Z" in term
+                                    is_lateral = "lateral" in term
+                                    is_medial = "medial" in term
+                                    is_base = "base" in term
+
+                                    if is_lower:
+                                        add = (axis < 3 and e3 < midMinorIndex) or (axis == 3 and e2 >= 0)
+                                    elif is_middle:
+                                        add = (
+                                                (axis < 3 and e3 >= midMinorIndex and axis == 1 and e1 >= midMajorIndex) or
+                                                (axis == 3 and e2 < 0 and e1 >= midMajorIndex) or
+                                                (axis < 3 and e3 >= midMinorIndex and axis == 2 and e2 < 0)
+                                        )
+                                    elif is_upper:
+                                        add = (
+                                                (axis < 3 and e3 >= midMinorIndex and axis == 1 and e1 < midMajorIndex) or
+                                                (axis == 3 and e2 < 0 and e1 < midMajorIndex) or
+                                                (axis < 3 and e3 >= midMinorIndex and axis == 2 and e2 >= 0)
+                                        )
+                                    elif is_mediastinumX:
+                                        if self.elementsCountCoreBoxAlong > 2:
+                                            add = (
+                                                    (axis == 2 and e1 > midMajorIndex and e2 < 0) or
+                                                    (axis == 3 and e2 < 0 and e3 > midMinorIndex)
+                                            )
+                                        else:
+                                            add = (axis == 1 and e1 == e1range[-1])
+                                    elif is_mediastinumY:
+                                        add = (axis == 2 and e1 == midMajorIndex and e2 < 0 and e3 >= midMinorIndex)
+                                    elif is_mediastinumZ:
+                                        add = (axis == 3 and e2 < 0 and e3 == midMinorIndex)
+                                    elif is_lateral:
+                                        add = (
+                                                (axis == 1 and e2 == -1) or
+                                                (axis == 2 and e1 >= midMajorIndex) or
+                                                (axis == 3 and e3 >= midMinorIndex)
+                                        )
+                                    elif is_medial:
+                                        add = (
+                                                (axis == 1 and e2 == 0) or
+                                                (axis == 2 and e1 < midMajorIndex) or
+                                                (axis == 3 and e3 < midMinorIndex)
+                                        )
+                                    elif is_base:
+                                        offset1 = self.elementsCountCoreBoxMajor // 4 - 2 if self.elementsCountCoreBoxMajor > 8 else 0
+                                        offset2 = self.elementsCountCoreBoxMajor // 4 - 1 if self.elementsCountCoreBoxMajor > 4 else 0
+                                        add = (
+                                                (axis == 1 and e1 > midMajorIndex + offset1 and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 1 and e1 > midMajorIndex + offset2 and e2 == 0 and e3 >= midMinorIndex) or
+                                                (axis == 2 and e1 < midMajorIndex and e2 == -1) or
+                                                (axis == 3 and e1 > midMajorIndex + offset1 and e2 == 0 and e3 < midMinorIndex) or
+                                                (axis == 3 and e1 > midMajorIndex + offset2 and e2 == -1 and e3 < midMinorIndex)
+                                        )
+                                    else:
+                                        add = True
+                                if add:
+                                    meshGroups[idx].addElement(element)
+                        else:
+                            # should only have box and transition mesh groups by default
+                            meshGroups[1].addElement(element)
+
+                        elementIdentifier += 1
+
+        return elementIdentifier
+
+
+    def generateElementsSerendipity(self, fieldmodule, coordinates, startElementIdentifier, rangeOfRequiredElements,
+                                    meshGroups=[],
+                                    annotationTerms=[]):
+        """
+        Blackbox function for generating sphere mesh elements using serendipity.
+        The function first generates the box mesh isside the sphere and then shield mesh surrounding the box, in the
+        order of x-, y-, and z-directions.
+        :param fieldmodule: Zinc fieldmodule to create elements in.
+        :param coordinates: Coordinate field to define.
+        :param startElementIdentifier: First element identifier to use.
+        :param rangeOfRequiredElements: Only the elements and nodes for the given range is generated.
+        :param meshGroups: Zinc mesh groups to add elements to.
+        :return: next elementIdentifier.
+        """
+        # box
+        elementIdentifier = self.generateBoxElementsSerendipity(fieldmodule, coordinates, startElementIdentifier,
+                                                                rangeOfRequiredElements, meshGroups, annotationTerms)
+        # shield
+        for axis in [1, 2, 3]:
+            elementIdentifier = self.generateShieldElementsSerendipity(fieldmodule, coordinates, axis, elementIdentifier,
+                                                                       rangeOfRequiredElements, meshGroups, annotationTerms)
+
+        return elementIdentifier
 
     def generateElements(self, fieldmodule, coordinates, startElementIdentifier, rangeOfRequiredElements,
                          meshGroups=[]):
@@ -1143,10 +1724,11 @@ class ShieldMesh3D:
         for e3 in range(self.elementsCountAcross[2]):
             for e2 in range(self.elementsCountAcross[0]):
                 for e1 in range(self.elementsCountAcross[1]):
-                    if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or\
-                            e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0]\
-                            or e1 >= rangeOfRequiredElements[1][1] or e1 < rangeOfRequiredElements[1][0]:
-                        continue
+                    if rangeOfRequiredElements:
+                        if e3 >= rangeOfRequiredElements[2][1] or e3 < rangeOfRequiredElements[2][0] or \
+                                e2 >= rangeOfRequiredElements[0][1] or e2 < rangeOfRequiredElements[0][0] \
+                                or e1 >= rangeOfRequiredElements[1][1] or e1 < rangeOfRequiredElements[1][0]:
+                            continue
 
                     scalefactors = None
                     self._element_needs_scale_factor = False
@@ -1159,7 +1741,7 @@ class ShieldMesh3D:
                     element_shell = shell_element(e3o, e2o, e1o, e3zo, e1zo)
                     e3yo, e2bo, e1yo = e3zo - 1, 1 + self.elementsCountRim, e1zo - 1
 
-                    eft1 = eft if element_type == self.ELEMENT_REGULAR else\
+                    eft1 = eft if element_type == self.ELEMENT_REGULAR else \
                         tricubichermite.createEftNoCrossDerivatives()
 
                     nids = self.get_element_node_identifiers(octant_number, e3, e2, e1, e3zo, e1zo)
@@ -1167,8 +1749,8 @@ class ShieldMesh3D:
                     boxMapping = self.get_box_mapping_for_other_octants(octant_number,
                                                                         octant1_box_derivatives=self._boxDerivatives)
                     lnm = self.local_node_mapping(boxMapping)
-                    corner1derivs, corner2derivs, corner3derivs, boundary12leftderivs, boundary12rightderivs,\
-                        triple12leftderivs, triple12rightderivs =\
+                    corner1derivs, corner2derivs, corner3derivs, boundary12leftderivs, boundary12rightderivs, \
+                        triple12leftderivs, triple12rightderivs = \
                         self.set_derivatives_for_irregular_nodes(octant_number)
 
                     if element_type == self.ELEMENT_REGULAR:
@@ -1752,6 +2334,9 @@ class ShieldMesh3D:
                     else:
                         for meshGroup in meshGroups[1:2]:
                             meshGroup.addElement(element)
+                    if len(meshGroups) > 2:
+                        meshGroup = meshGroups[-1]
+                        meshGroup.addElement(element)
 
         return elementIdentifier
 
@@ -1777,9 +2362,9 @@ class ShieldMesh3D:
         xi_global_to_default_map = {xi_dm[abs(boxMapping[0])]: abs(boxMapping_default[0]),
                                     xi_dm[abs(boxMapping[1])]: abs(boxMapping_default[1]),
                                     xi_dm[abs(boxMapping[2])]: abs(boxMapping_default[2])}
-        signs = [1 if boxMapping[c]*boxMapping_default[c] > 0 else -1 for c in range(3)]
-        xi_sign_change = [signs[abs(boxMapping_default[0])-1], signs[abs(boxMapping_default[1])-1],
-                          signs[abs(boxMapping_default[2])-1]]
+        signs = [1 if boxMapping[c] * boxMapping_default[c] > 0 else -1 for c in range(3)]
+        xi_sign_change = [signs[abs(boxMapping_default[0]) - 1], signs[abs(boxMapping_default[1]) - 1],
+                          signs[abs(boxMapping_default[2]) - 1]]
 
         lnm = {}
         signs = [xi_sign_change[xi_global_to_default_map['xi1'] - 1],
@@ -1802,9 +2387,9 @@ class ShieldMesh3D:
         deriv_default_to_global_map = {xi_dm[abs(boxMapping_default[0])]: abs(boxMapping[0]),
                                        xi_dm[abs(boxMapping_default[1])]: abs(boxMapping[1]),
                                        xi_dm[abs(boxMapping_default[2])]: abs(boxMapping[2])}
-        signs = [1 if boxMapping[c]*boxMapping_default[c] > 0 else -1 for c in range(3)]
-        deriv_sign_change = [signs[abs(boxMapping_default[0])-1], signs[abs(boxMapping_default[1])-1],
-                             signs[abs(boxMapping_default[2])-1]]
+        signs = [1 if boxMapping[c] * boxMapping_default[c] > 0 else -1 for c in range(3)]
+        deriv_sign_change = [signs[abs(boxMapping_default[0]) - 1], signs[abs(boxMapping_default[1]) - 1],
+                             signs[abs(boxMapping_default[2]) - 1]]
 
         self._xi_mapping = {1: xi_default_to_global_map['xi1'], 2: xi_default_to_global_map['xi2'],
                             3: xi_default_to_global_map['xi3']}
@@ -1891,21 +2476,21 @@ class ShieldMesh3D:
         elif octant_number == 2:
             e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, e1, self.elementsCountAcross[0] // 2 - 1 - e2
         elif octant_number == 3:
-            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - 1 - e2,\
+            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - 1 - e2, \
                             self.elementsCountAcross[1] // 2 - 1 - e1
         elif octant_number == 4:
-            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - 1 - e1,\
+            e3o, e2o, e1o = e3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - 1 - e1, \
                             e2 - self.elementsCountAcross[0] // 2
         elif octant_number == 5:
-            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, self.elementsCountAcross[1] - 1 - e1,\
-                            self.elementsCountAcross[0]//2 - 1 - e2
+            e3o, e2o, e1o = self.elementsCountAcross[2] // 2 - 1 - e3, self.elementsCountAcross[1] - 1 - e1, \
+                            self.elementsCountAcross[0] // 2 - 1 - e2
         elif octant_number == 6:
-            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, e2, self.elementsCountAcross[1] // 2 - 1 - e1
+            e3o, e2o, e1o = self.elementsCountAcross[2] // 2 - 1 - e3, e2, self.elementsCountAcross[1] // 2 - 1 - e1
         elif octant_number == 7:
-            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, e1, e2 - self.elementsCountAcross[0]//2
+            e3o, e2o, e1o = self.elementsCountAcross[2] // 2 - 1 - e3, e1, e2 - self.elementsCountAcross[0] // 2
         elif octant_number == 8:
-            e3o, e2o, e1o = self.elementsCountAcross[2]//2 - 1 - e3, self.elementsCountAcross[0] - 1 - e2,\
-                            e1 - self.elementsCountAcross[1]//2
+            e3o, e2o, e1o = self.elementsCountAcross[2] // 2 - 1 - e3, self.elementsCountAcross[0] - 1 - e2, \
+                            e1 - self.elementsCountAcross[1] // 2
 
         return e3o, e2o, e1o
 
@@ -1915,25 +2500,25 @@ class ShieldMesh3D:
         :return: n3, n2, n1, sphere element indexes.
         """
         if octant_number == 1:
-            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, n2o, n1o + self.elementsCountAcross[1] // 2
+            n3, n2, n1 = n3o + self.elementsCountAcross[2] // 2, n2o, n1o + self.elementsCountAcross[1] // 2
         elif octant_number == 2:
-            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] // 2 - n1o, n2o
+            n3, n2, n1 = n3o + self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] // 2 - n1o, n2o
         elif octant_number == 3:
-            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] - n2o,\
+            n3, n2, n1 = n3o + self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - n2o, \
                          self.elementsCountAcross[1] // 2 - n1o
         elif octant_number == 4:
-            n3, n2, n1 = n3o + self.elementsCountAcross[2]//2, self.elementsCountAcross[0] // 2 + n1o,\
+            n3, n2, n1 = n3o + self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] // 2 + n1o, \
                          self.elementsCountAcross[1] - n2o
         elif octant_number == 5:
-            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0]//2 - n1o,\
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0] // 2 - n1o, \
                          self.elementsCountAcross[1] - n2o
         elif octant_number == 6:
-            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n2o, self.elementsCountAcross[1]//2 - n1o
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n2o, self.elementsCountAcross[1] // 2 - n1o
         elif octant_number == 7:
-            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n1o + self.elementsCountAcross[0]//2, n2o
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, n1o + self.elementsCountAcross[0] // 2, n2o
         elif octant_number == 8:
-            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0] - n2o,\
-                         self.elementsCountAcross[1]//2 + n1o
+            n3, n2, n1 = self.elementsCountAcross[2] // 2 - n3o, self.elementsCountAcross[0] - n2o, \
+                         self.elementsCountAcross[1] // 2 + n1o
 
         return n3, n2, n1
 
@@ -1947,21 +2532,21 @@ class ShieldMesh3D:
         elif octant_number == 2:
             n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, n1, self.elementsCountAcross[0] // 2 - n2
         elif octant_number == 3:
-            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - n2,\
+            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[0] - n2, \
                             self.elementsCountAcross[1] // 2 - n1
         elif octant_number == 4:
-            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - n1,\
-                            n2 - self.elementsCountAcross[0]//2
+            n3o, n2o, n1o = n3 - self.elementsCountAcross[2] // 2, self.elementsCountAcross[1] - n1, \
+                            n2 - self.elementsCountAcross[0] // 2
         elif octant_number == 5:
-            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[1] - n1,\
-                            self.elementsCountAcross[0]//2 - n2
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[1] - n1, \
+                            self.elementsCountAcross[0] // 2 - n2
         elif octant_number == 6:
-            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n2, self.elementsCountAcross[1]//2 - n1
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n2, self.elementsCountAcross[1] // 2 - n1
         elif octant_number == 7:
-            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n1, n2 - self.elementsCountAcross[0]//2
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, n1, n2 - self.elementsCountAcross[0] // 2
         elif octant_number == 8:
-            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[0] - n2,\
-                            n1 - self.elementsCountAcross[1]//2
+            n3o, n2o, n1o = self.elementsCountAcross[2] // 2 - n3, self.elementsCountAcross[0] - n2, \
+                            n1 - self.elementsCountAcross[1] // 2
 
         return n3o, n2o, n1o
 
