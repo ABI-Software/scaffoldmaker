@@ -899,7 +899,7 @@ class MeshType_3d_uterus2(Scaffold_base):
             'Number of elements along cervix': 2,
             'Number of elements along vagina': 6,
             'Target element density along longest segment': 5.5,
-            'Use linear through wall': False, # True needs work
+            'Use linear through wall': True,
             'Show trim surfaces': False,
             'Refine': False,
             'Refine number of elements along': 4,

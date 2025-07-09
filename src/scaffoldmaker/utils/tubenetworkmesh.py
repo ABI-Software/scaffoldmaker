@@ -2193,12 +2193,13 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         # print(len(sxAlongPatchAllLayers), len(sxAlongPatchAllLayers[0]), len(sxAlongPatchAllLayers[0][0]))
 
         rx, rd1, rd2, rd3 = [], [], [], []
+        shellFactor = 1.0 / self._elementsCountThroughShell
         for n2 in range(len(sxAlongPatchAllLayers[0])):
             for r in (rx, rd1, rd2, rd3):
                 r.append([])
             otx, otd1, otd2 = sxAlongPatchAllLayers[0][n2], sd1AlongPatchAllLayers[0][n2], sd2AlongPatchAllLayers[0][n2]
             itx, itd1, itd2 = sxAlongPatchAllLayers[1][n2], sd1AlongPatchAllLayers[1][n2], sd2AlongPatchAllLayers[1][n2]
-            wd3 = [sub(otx[n1], itx[n1]) for n1 in range(len(otx))]
+            wd3 = [mult(sub(otx[n1], itx[n1]), shellFactor) for n1 in range(len(otx))]
             for n3 in range(self._elementsCountThroughShell + 1):
                 oFactor = n3 / self._elementsCountThroughShell
                 iFactor = 1.0 - oFactor
@@ -2216,7 +2217,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     d3 = wd3[n1]
                     for r, value in zip((rx, rd1, rd2, rd3), (x, d1, d2, d3)):
                         r[n2][n3].append(value)
-
             allCoordinates = rx, rd1, rd2, rd3
         # print('allCoord =', allCoordinates)
 
@@ -2517,7 +2517,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         """
         return generateData.getNodeLayout5Way()
 
-
     def generateJunctionRimElements(self, junction, generateData):
         """
         Generates rim elements for junction part of the segment after segment nodes and elements have been made.
@@ -2533,7 +2532,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(
             Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
-        d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
+        isLinearThroughShell = generateData.isLinearThroughShell()
+        d3Defined = (meshDimension == 3) and not isLinearThroughShell
         coordinates = generateData.getCoordinates()
         nodes = generateData.getNodes()
         fieldcache = generateData.getFieldcache()
@@ -2579,6 +2579,20 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     node = nodes.findNodeByIdentifier(nids[n1])
                     fieldcache.setNode(node)
                     coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1Smoothed[n1])
+
+        # Recalculate d3 if not linear through shell
+        if not isLinearThroughShell:
+            shellFactor = 1.0 / self._elementsCountThroughShell
+            for n1 in range(elementsCountAround):
+                rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                ox = junction._rimCoordinates[0][-1][rimIndex]
+                ix = junction._rimCoordinates[0][0][rimIndex]
+                d3 = mult(sub(ox, ix), shellFactor)
+                for n3 in range(elementsCountRimRegular + 1):
+                    nid = junction._rimNodeIds[n3][rimIndex]
+                    node = nodes.findNodeByIdentifier(nid)
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
 
         for e3 in range(elementsCountRimRegular):
             rim_e3 = e3 + 1 if junction._isCore else e3
