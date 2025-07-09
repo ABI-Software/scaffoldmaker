@@ -2230,6 +2230,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     r[i][n2][n3].pop(0)
                     r[i][n2][n3].pop()
         self._patchCoordinates = r[0], r[1], r[2], r[3]
+
         # print('Patch coord =', self._patchCoordinates)
 
         self._patchNodeIds = [None] * (halfElementsCountAroundSegmentIn - 1)
@@ -2442,7 +2443,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         for n3 in (e3, e3 + 1):
                             for n2 in (e2, e2 + 1):
                                 for n1 in (e1, e1 + 1):
-                                    nodeParameters.append(self.getPatchCoordinates(n1, n2, n3))
+                                    nodeParameters.append(self.getPatchCoordinates(n1, n2, n3, isLinearThroughShell))
                                     nodeLayouts.append(nodeLayoutFlipD1D2 if n2 == elementsCountAlong // 2 else
                                                        None)
                         elementIdentifier = generateData.nextElementIdentifier()
@@ -2492,26 +2493,23 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                             elementIdPatch += [sElementId[e2EndIdx][e3][e1StartIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
                             elementIdPatch += sElementId[e2EndIdx][e3][e1StartIdx + 1:e1EndIdx]
                             elementIdPatch += [sElementId[e2EndIdx][e3][e1EndIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
-
                             for e2 in range(e2EndIdx - 1, e2StartIdx + (e2EndIdx - e2StartIdx) // 2, -1):
                                 elementIdPatch.append(sElementId[e2][e3][e1EndIdx])
-
                             self._rimElementIds[i] = [elementIdPatch]
 
-    def getPatchCoordinates(self, n1, n2, n3):
+    def getPatchCoordinates(self, n1, n2, n3, isLinearThroughShell):
         """
-        UPDATE!!
-        Get rim parameters (transition through shell) parameters at a point.
-        This was what rim coordinates should have been.
+        Get patch parameters at a point.
         :param n1: Node index around.
-        :param n2: Node index along segment.
-        :param n3: Node index from first core transition row or inner to outer shell.
+        :param n2: Node index along patch.
+        :param n3: Node index from inner to outer shell.
+        :param isLinearThroughShell: True for linear through shell so no d3 is returned.
         :return: x, d1, d2, d3
         """
         return (self._patchCoordinates[0][n2][n3][n1],
                 self._patchCoordinates[1][n2][n3][n1],
                 self._patchCoordinates[2][n2][n3][n1],
-                self._patchCoordinates[3][n2][n3][n1] if self._patchCoordinates[3] else None)
+                None if isLinearThroughShell else self._patchCoordinates[3][n2][n3][n1])
 
     def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
         """
