@@ -976,10 +976,7 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
             on = n ^ (1 << ed)
             if nodeOrder.index(on) > nodeOrder.index(n):
                 derivativeMagnitude = magnitude(elementDerivative)
-                if oldDeltaMagnitude:
-                    newMagnitude = 2.0 / ((1.0 / oldDeltaMagnitude) + (1.0 / derivativeMagnitude))
-                else:
-                    newMagnitude = derivativeMagnitude
+                newMagnitude = 2.0 / ((1.0 / oldDeltaMagnitude) + (1.0 / derivativeMagnitude))
                 elementDerivative = mult(elementDerivative, newMagnitude / derivativeMagnitude)
                 # update other node delta to work in with this derivative
                 otherElementDerivative = (
