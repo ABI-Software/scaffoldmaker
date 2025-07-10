@@ -27,7 +27,7 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDeriva
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils.tubenetworkmesh import (
     TubeNetworkMeshSegment, getPathRawTubeCoordinates, resampleTubeCoordinates)
-from scaffoldmaker.utils.zinc_utils import generateCurveMesh, get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.zinc_utils import generate_curve_mesh, get_nodeset_path_ordered_field_parameters
 
 from testutils import assertAlmostEqualList
 
@@ -722,11 +722,11 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # context = Context("Curve nearest and intersection")
         # region = context.getDefaultRegion()
-        # generateCurveMesh(region, curve1_x, curve1_d1)
-        # generateCurveMesh(region, curve2_x, curve2_d1)
-        # generateCurveMesh(region, curve3_x, curve3_d1)
-        # generateCurveMesh(region, curve4_x, curve4_d1)
-        # generateCurveMesh(region, loop1_x, loop1_d1, loop=True)
+        # generate_curve_mesh(region, curve1_x, curve1_d1)
+        # generate_curve_mesh(region, curve2_x, curve2_d1)
+        # generate_curve_mesh(region, curve3_x, curve3_d1)
+        # generate_curve_mesh(region, curve4_x, curve4_d1)
+        # generate_curve_mesh(region, loop1_x, loop1_d1, loop=True)
         # fieldmodule = region.getFieldmodule()
         # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         # nodetemplate = nodes.createNodetemplate()
@@ -776,8 +776,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
 
         # context = Context("TrackSurface")
         # region = context.getDefaultRegion()
-        # generateCurveMesh(region, curve3_x, curve3_d1)
-        # generateCurveMesh(region, curve4_x, curve4_d1)
+        # generate_curve_mesh(region, curve3_x, curve3_d1)
+        # generate_curve_mesh(region, curve4_x, curve4_d1)
         # surf2.generateMesh(region)
         # fieldmodule = region.getFieldmodule()
         # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
@@ -907,8 +907,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
         #     curveNodesetGroup.addNode(node)
-        # generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generateCurveMesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections1(self):
         """
@@ -1103,8 +1103,8 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
         #     curveNodesetGroup.addNode(node)
-        # generateCurveMesh(region, ax, ad1, aloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generateCurveMesh(region, cx, cd1, cloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, ax, ad1, aloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, cx, cd1, cloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections1_coarse(self):
         """
@@ -1443,9 +1443,9 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, pd2[n])
         #     curveNodesetGroup.addNode(node)
-        # generateCurveMesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generateCurveMesh(region, bx, bd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generateCurveMesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, bx, bd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections3(self):
         """
@@ -1567,7 +1567,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
         #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
         #     curveNodesetGroup.addNode(node)
-        # generateCurveMesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_2d_tube_intersections_bifurcation(self):
         """
@@ -1786,7 +1786,7 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # curveGroupName = "curve"
         # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
         # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # generateCurveMesh(region, cx, cd1, loop=False, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
+        # generate_curve_mesh(region, cx, cd1, loop=False, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
         # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         # nodetemplate = nodes.createNodetemplate()
         # nodetemplate.defineField(curveCoordinates)
