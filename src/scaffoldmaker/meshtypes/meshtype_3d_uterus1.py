@@ -162,16 +162,16 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "40-41-42")
             options["Oviduct diameter"] = 0.5
             options["Oviduct length"] = 4.0
-            options["Body length"] = 0.75
-            options["Fundus width between oviducts"] = 0.8
+            options["Body length"] = 0.4
+            options["Fundus width between oviducts"] = 0.7
             options["Fundus depth between oviducts"] = 0.5
-            options["Cervical length"] = 0.25
-            options["Cervical width around internal os"] = 0.8
+            options["Cervical length"] = 0.1
+            options["Cervical width around internal os"] = 0.7
             options["Cervical depth around internal os"] = 0.5
-            options["Cervical width around external os"] = 0.8
+            options["Cervical width around external os"] = 0.7
             options["Cervical depth around external os"] = 0.5
-            options["Vagina length"] = 0.5
-            options["Vagina width around vagina orifice"] = 0.8
+            options["Vagina length"] = 0.8
+            options["Vagina width around vagina orifice"] = 0.7
             options["Vagina depth around vagina orifice"] = 0.5
             options["Inner proportion body"] = 0.75
             options["Inner proportion cervix"] = 0.75
@@ -448,7 +448,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         if isRodent:
             rC = bodyLength
-            thetaLimit = math.radians(55.0)
+            thetaLimit = math.radians(45.0)
             for side in (left, right):
                 rTheta = rC * thetaLimit
                 straightLength = oviductLength - rTheta
@@ -557,7 +557,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             nxPatch.append(x)
             nd1Patch.append(d1FundusPatch)
             xi = i / fundusPatchElementsCount
-            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.01 if isRodent else
+            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.5 if isRodent else
                                                          halfCervicalWidthInternalOs)
             if isPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
@@ -580,7 +580,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             else:
                 xi = i / fundusPatchElementsCount
                 width = xi * halfFundusWidth * innerProportionBody + \
-                        (1.0 - xi) * (halfFundusWidth * 0.01 * innerProportionBody if isRodent else
+                        (1.0 - xi) * (halfFundusWidth * 0.5 * innerProportionBody if isRodent else
                                       halfCervicalWidthInternalOs * innerProportionCervix)
 
                 id2 = [0.0, width, 0.0]
