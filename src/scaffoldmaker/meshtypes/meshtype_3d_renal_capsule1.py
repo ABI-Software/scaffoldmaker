@@ -102,7 +102,7 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         mesh = fieldmodule.findMeshByDimension(1)
 
         # set up element annotations
-        renalCapsuleGroup = AnnotationGroup(region, get_kidney_term("renal capsule"))
+        renalCapsuleGroup = AnnotationGroup(region, get_kidney_term("kidney capsule"))
         annotationGroups = [renalCapsuleGroup]
 
         renalCapsuleGroup = renalCapsuleGroup.getMeshGroup(mesh)
