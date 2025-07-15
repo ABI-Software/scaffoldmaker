@@ -22,8 +22,7 @@ class CapMesh:
     """
 
     def __init__(self, elementsCountAround, elementsCountCoreBoxMajor, elementsCountCoreBoxMinor,
-                 elementsCountThroughShell, elementsCountTransition, networkPathParameters, tubeBoxCoordinates,
-                 tubeTransitionCoordinates, tubeShellCoordinates, isCap, isCore):
+                 elementsCountThroughShell, elementsCountTransition, networkPathParameters, isCap, isCore):
         """
         :param elementsCountAround: Number of elements around this segment.
         :param elementsCountCoreBoxMajor: Number of elements across core box major axis.
@@ -32,9 +31,6 @@ class CapMesh:
         :param elementsCountTransition: Number of elements across transition zone between core box elements and
         rim elements.
         :param networkPathParameters: List containing path parameters of a tube network.
-        :param tubeBoxCoordinates: List of coordinates and derivatives for nodes that form tube box elements.
-        :param tubeTransitionCoordinates: List of coordinates and derivatives for nodes that form tube transition elements.
-        :param tubeShellCoordinates: List of coordinates and derivatives for nodes that form tube rim elements.
         :param isCap: List [startCap, endCap] with boolean values. True if the tube segment requires a cap at the
         start of a segment, or at the end of a segment, respectively. [True, True] if the segment requires cap at both
         ends.
@@ -50,9 +46,9 @@ class CapMesh:
         self._elementsCountTransition = elementsCountTransition
 
         self._networkPathParameters = networkPathParameters
-        self._tubeBoxCoordinates = tubeBoxCoordinates # tube box coordinates
-        self._tubeTransitionCoordinates = tubeTransitionCoordinates # tube transition coordinates
-        self._tubeShellCoordinates = tubeShellCoordinates # tube rim coordinates
+        self._tubeBoxCoordinates = None  # tube box coordinates
+        self._tubeTransitionCoordinates = None  # tube transition coordinates
+        self._tubeShellCoordinates = None  # tube rim coordinates
 
         self._isStartCap = None
         self._generateData = None
@@ -87,6 +83,12 @@ class CapMesh:
         # [rim][base, shield][nAround]
         self._endCapElementIds = None
         # elementIds that form the cap at the end of a tube segment.
+        self._startExtElementIds = None
+        self._endExtElementIds = None
+
+        # annotation groups created if core:
+        self._coreGroup = None
+        self._shellGroup = None
 
     def _extendTubeEnds(self):
         """
@@ -206,7 +208,7 @@ class CapMesh:
                         xList.append(tx)
                     self._shellCoordinates[idx][0][n3][m] = xList
 
-    def _determineCapCoordinatesWithoutCore(self):
+    def _sampleCapCoordinatesWithoutCore(self):
         """
         Calculates coordinates and derivatives for the cap elements. It first calculates the coordinates for the apex
         nodes, and then calculates the coordinates for rim nodes on the shell surface.
@@ -356,7 +358,7 @@ class CapMesh:
             for n3 in range(elementsCountThroughShell + 1):
                 d3List[n3][1][n1] = sd3[n3]
 
-    def _determineCapCoordinatesWithCore(self, s):
+    def _sampleCapCoordinatesWithCore(self, s):
         """
         Blackbox function for calculating coordinates and derivatives for the cap elements.
         It first calculates the coordinates for shell nodes, then calculates for box nodes.
@@ -368,14 +370,14 @@ class CapMesh:
         idx = 0 if isStartCap else -1
         centre = self._networkPathParameters[0][0][idx]
 
-        self._extendTubeEnds() # extend tube end
+        self._extendTubeEnds()  # extend tube end
         # shell nodes
         nodesCountRim = self._getNodesCountRim()
         for n3 in range(nodesCountRim):
             ox = self._getRimExtCoordinatesAround(n3)[0]
             radius = self._getRadius(ox)
-            radii = self._getTubeRadii(centre, n3, idx) # radii for spheroid
-            oRadii = [1.0, radius, radius] # original radii used to create the sphere
+            radii = self._getTubeRadii(centre, n3, idx)  # radii for spheroid
+            oRadii = [1.0, radius, radius]  # original radii used to create the sphere
             ratio = self._getRatioBetweenTwoRadii(radii, oRadii)
             # ratio between original radii for the sphere and the new radii for spheroid
             self._calculateMajorAndMinorNodesCoordinates(n3, centre, ratio)
@@ -468,7 +470,7 @@ class CapMesh:
         refAxis = normalize(layoutD2)
         rotateAngle = (math.pi / elementsCountAcrossMinor) if self._isStartCap else \
             -(math.pi / elementsCountAcrossMinor)
-        minorAxisNodesCoordinates = [[], []] # [startCap, endCap]
+        minorAxisNodesCoordinates = [[], []]  # [startCap, endCap]
         n1 = self._elementsCountAround * 3 // 4
         ix = self._getTubeRimCoordinates(n1, idx, n3)
         for n in range(1, elementsCountAcrossMinor):
@@ -482,10 +484,10 @@ class CapMesh:
         refAxis = normalize(layoutD3)
         rotateAngle = (math.pi / elementsCountAcrossMajor) if self._isStartCap else \
             -(math.pi / elementsCountAcrossMajor)
-        majorAxisNodesCoordinates = [[], []] # [startCap, endCap]
+        majorAxisNodesCoordinates = [[], []]  # [startCap, endCap]
         ix = self._getTubeRimCoordinates(0, idx, n3)
-        for m in range(1,elementsCountAcrossMajor):
-            for nx in [0, 1]: # [x, d1]
+        for m in range(1, elementsCountAcrossMajor):
+            for nx in [0, 1]:  # [x, d1]
                 vi = sub(ix[nx], centre) if nx == 0 else ix[nx]
                 vi = div(vi, ratio[1])
                 vr = rotate_vector_around_vector(vi, refAxis, m * rotateAngle)
@@ -585,7 +587,8 @@ class CapMesh:
                     continue
                 nx, nd1 = (self._sampleCurvesOnSphere(x1, x2, centre, elementsOut) if n == 0 else
                            self._sampleCurvesOnSphere(x2, x1, centre, elementsOut))
-                start, end = ((n + 1, midMinorIndex) if n == 0 else (midMinorIndex + 1, self._elementsCountCoreBoxMinor))
+                start, end = (
+                    (n + 1, midMinorIndex) if n == 0 else (midMinorIndex + 1, self._elementsCountCoreBoxMinor))
                 for c in range(start, end):
                     idx_c = c % (len(nx) - 1)
                     self._shellCoordinates[idx][0][n3][m][c] = nx[idx_c]
@@ -601,7 +604,8 @@ class CapMesh:
                     continue
                 nx, nd2 = (self._sampleCurvesOnSphere(x1, x2, centre, elementsOut) if m == 0 else
                            self._sampleCurvesOnSphere(x2, x1, centre, elementsOut))
-                start, end = ((m + 1, midMajorIndex) if m == 0 else (midMajorIndex + 1, self._elementsCountCoreBoxMajor))
+                start, end = (
+                    (m + 1, midMajorIndex) if m == 0 else (midMajorIndex + 1, self._elementsCountCoreBoxMajor))
                 for c in range(start, end):
                     idx_c = c % (len(nx) - 1)
                     self._shellCoordinates[idx][0][n3][c][n] = nx[idx_c]
@@ -1186,7 +1190,8 @@ class CapMesh:
                         node = nodes.createNode(nodeIdentifier, nodetemplate)
                         fieldcache.setNode(node)
                         for nodeValue, rValue in zip([Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1,
-                                                      Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3], [rx, rd1, rd2, rd3]):
+                                                      Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3],
+                                                     [rx, rd1, rd2, rd3]):
                             coordinates.setNodeParameters(fieldcache, -1, nodeValue, 1, rValue)
                         capNodeIds[n3][m].append(nodeIdentifier)
             else:
@@ -1248,9 +1253,9 @@ class CapMesh:
         for n3 in range(nodesCountRim):
             n3p = n3 - (elementsCountTransition - 1)
             tx = self._transitionExtCoordinates[idx] if self._isCore and elementsCountTransition > 1 and n3 < (
-                        elementsCountTransition - 1) else self._shellExtCoordinates[idx]
+                    elementsCountTransition - 1) else self._shellExtCoordinates[idx]
             rx, rd1, rd2, rd3 = [tx[i][n3 if self._isCore and elementsCountTransition > 1 and n3 < (
-                        elementsCountTransition - 1) else n3p] for i in range(4)]
+                    elementsCountTransition - 1) else n3p] for i in range(4)]
             ringNodeIds = []
             for n1 in range(self._elementsCountAround):
                 nodeIdentifier = generateData.nextNodeIdentifier()
@@ -1324,8 +1329,8 @@ class CapMesh:
                             for s in [0, 1, 4, 7, 10]:
                                 scalefactors[s] *= -1
                         element.setScaleFactors(eftCap, scalefactors)
-                        # for annotationMeshGroup in annotationMeshGroups:
-                        #     annotationMeshGroup.addElement(element)
+                        for annotationMeshGroup in annotationMeshGroups:
+                            annotationMeshGroup.addElement(element)
                         capElementIds[e3][e2].append(elementIdentifier)
                 else:
                     idx = 0 if isStartCap else -1
@@ -1349,7 +1354,7 @@ class CapMesh:
         else:
             self._endCapElementIds = capElementIds
 
-    def _generateElementsWithCore(self):
+    def _generateElementsWithCore(self, annotationMeshGroups):
         """
         Blackbox function for generating cap elements. Used only when the tube segment has a core.
         """
@@ -1398,7 +1403,8 @@ class CapMesh:
             for e1 in range(elementsCountCoreBoxMinor):
                 nids, nodeParameters, nodeLayouts = [], [], []
                 for n1 in [e1, e1 + 1]:
-                    nids += [capNodeIds[0][e3][n1], capNodeIds[0][e3p][n1], boxExtNodeIds[e3][n1], boxExtNodeIds[e3p][n1]]
+                    nids += [capNodeIds[0][e3][n1], capNodeIds[0][e3p][n1],
+                             boxExtNodeIds[e3][n1], boxExtNodeIds[e3p][n1]]
                     if not isStartCap:
                         for a in [nids]:
                             a[-4], a[-2] = a[-2], a[-4]
@@ -1406,6 +1412,8 @@ class CapMesh:
                 elementIdentifier = generateData.nextElementIdentifier()
                 element = mesh.createElement(elementIdentifier, elementtemplateStd)
                 element.setNodesByIdentifier(eftStd, nids)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
                 boxElementIds[e3].append(elementIdentifier)
         capElementIds.append(boxElementIds)
 
@@ -1432,7 +1440,8 @@ class CapMesh:
                         nodeLayoutCapBoxShield = generateData.getNodeLayoutCapBoxShield(boxLocation, isStartCap)
                         nodeLayoutCapBoxShieldTriplePoint = generateData.getNodeLayoutCapBoxShieldTriplePoint(tpLocation, isStartCap)
                         if nid in boxBoundaryNodeIds[0]:
-                            nodeLayouts.append(nodeLayoutCapBoxShield if tpLocation == 0 else nodeLayoutCapBoxShieldTriplePoint)
+                            nodeLayouts.append(
+                                nodeLayoutCapBoxShield if tpLocation == 0 else nodeLayoutCapBoxShieldTriplePoint)
                         else:
                             nodeLayouts.append(None)
                     if not isStartCap:
@@ -1447,6 +1456,8 @@ class CapMesh:
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
                     element.setScaleFactors(eft, scalefactors)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
                 boxshieldElementIds[e3].append(elementIdentifier)
         capElementIds.append(boxshieldElementIds)
 
@@ -1470,6 +1481,8 @@ class CapMesh:
                     elementIdentifier = generateData.nextElementIdentifier()
                     element = mesh.createElement(elementIdentifier, elementtemplateStd)
                     element.setNodesByIdentifier(eftStd, nids)
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
                     shieldElementIds[e2].append(elementIdentifier)
             capElementIds.append(shieldElementIds)
 
@@ -1492,7 +1505,7 @@ class CapMesh:
             nodeLayoutCapShellTransitionTriplePoint = generateData.getNodeLayoutCapShellTriplePoint(shellLocation)
             for n3 in [0, 1]:
                 for n1 in [e1, n1p]:
-                    nid = boxBoundaryNodeIds[n3][n1] if n3 == 0 else rimBoundaryNodeIds[n3 -1][n1]
+                    nid = boxBoundaryNodeIds[n3][n1] if n3 == 0 else rimBoundaryNodeIds[n3 - 1][n1]
                     nids += [nid]
                     mi, ni = boxBoundaryNodeToCapIndex[n3][n1] if n3 == 0 else rimBoundaryNodeToCapIndex[n3 - 1][n1]
                     location, tpLocation = self._getBoxBoundaryLocation(mi, ni)
@@ -1533,6 +1546,8 @@ class CapMesh:
             element.setNodesByIdentifier(eft, nids)
             if scalefactors:
                 element.setScaleFactors(eft, scalefactors)
+            for annotationMeshGroup in annotationMeshGroups:
+                annotationMeshGroup.addElement(element)
             ringElementIds.append(elementIdentifier)
         capElementIds.append(ringElementIds)
 
@@ -1572,6 +1587,8 @@ class CapMesh:
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
                     element.setScaleFactors(eft, scalefactors)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
                 rimElementIds.append(elementIdentifier)
             capElementIds.append(rimElementIds)
 
@@ -1580,7 +1597,7 @@ class CapMesh:
         else:
             self._endCapElementIds.append(capElementIds)
 
-    def _generateExtendedTubeElements(self, tubeBoxNodeIds, tubeRimNodeIds):
+    def _generateExtendedTubeElements(self, tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups):
         """
         Blackbox function for generating extended tube elements.
         :param tubeBoxNodeIds: List of tube box nodes.
@@ -1598,11 +1615,18 @@ class CapMesh:
         boxExtNodeIds = self._boxExtNodeIds[idx]
         rimExtNodeIds = self._rimExtNodeIds[idx]
 
+        if isStartCap:
+            self._startExtElementIds = [] if self._startExtElementIds is None else self._startExtElementIds
+        else:
+            self._endExtElementIds = [] if self._endExtElementIds is None else self._endExtElementIds
+
         if self._isCore:
             boxExtBoundaryNodeIds, boxExtBoundaryNodesToBoxIds = self._createBoundaryNodeIdsList(boxExtNodeIds)
             tubeBoxBoundaryNodeIds, tubeBoxBoundaryNodesToBoxIds = self._createBoundaryNodeIdsList(tubeBoxNodeIds[idx])
             # create box elements
+            boxElementIds = []
             for e3 in range(self._elementsCountCoreBoxMajor):
+                boxElementIds.append([])
                 e3p = e3 + 1
                 for e1 in range(self._elementsCountCoreBoxMinor):
                     nids = []
@@ -1616,13 +1640,14 @@ class CapMesh:
                     elementIdentifier = generateData.nextElementIdentifier()
                     element = mesh.createElement(elementIdentifier, elementtemplateStd)
                     element.setNodesByIdentifier(eftStd, nids)
-                    # for annotationMeshGroup in annotationMeshGroups:
-                    #     annotationMeshGroup.addElement(element)
-                boxExtElementIds.append(elementIdentifier)
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
+                    boxElementIds[e3].append(elementIdentifier)
+            boxExtElementIds.append(boxElementIds)
 
             # create core transition elements first layer after box
             triplePointIndexesList = self._getTriplePointIndexes()
-            ringExtElementIds = []
+            boxElementIds = []
             for e1 in range(self._elementsCountAround):
                 nids, nodeParameters, nodeLayouts = [], [], []
                 n1p = (e1 + 1) % self._elementsCountAround
@@ -1674,15 +1699,20 @@ class CapMesh:
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
                     element.setScaleFactors(eft, scalefactors)
-                # for annotationMeshGroup in annotationMeshGroups:
-                #     annotationMeshGroup.addElement(element)
-                ringExtElementIds.append(elementIdentifier)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
+                boxElementIds.append(elementIdentifier)
+            boxExtElementIds.append(boxElementIds)
 
         # create regular rim elements - all elements outside first transition layer
         elementsCountRim = self._getElementsCountRim()
         elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
+        nTransition = elementsCountRimRegular - self._elementsCountThroughShell
         for e3 in range(elementsCountRimRegular):
-            ringExtElementIds = []
+            if e3 < nTransition:
+                boxElementIds = []
+            else:
+                rimExtElementIds.append([])
             lastTransition = self._isCore and (e3 == (self._elementsCountTransition - 2))
             for e1 in range(self._elementsCountAround):
                 elementtemplate, eft = elementtemplateStd, eftStd
@@ -1723,25 +1753,40 @@ class CapMesh:
                 element.setNodesByIdentifier(eft, nids)
                 if scalefactors:
                     element.setScaleFactors(eft, scalefactors)
-                # for annotationMeshGroup in annotationMeshGroups:
-                #     annotationMeshGroup.addElement(element)
-                ringExtElementIds.append(elementIdentifier)
-        #     self._rimElementIds[e2].append(ringExtElementIds)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
+                if e3 < nTransition:
+                    boxElementIds.append(elementIdentifier)
+                else:
+                    rimExtElementIds[-1].append(elementIdentifier)
+            if e3 < nTransition:
+                boxExtElementIds.append(boxElementIds)
 
-    def sampleCoordinates(self):
+        if isStartCap:
+            self._startExtElementIds.append(boxExtElementIds)
+            self._startExtElementIds.append(rimExtElementIds)
+        else:
+            self._endExtElementIds.append(boxExtElementIds)
+            self._endExtElementIds.append(rimExtElementIds)
+
+    def sampleCoordinates(self, tubeBoxCoordinates, tubeTransitionCoordinates, tubeShellCoordinates):
         """
         Sample cap coordinates.
         """
+        self._tubeBoxCoordinates = tubeBoxCoordinates  # tube box coordinates
+        self._tubeTransitionCoordinates = tubeTransitionCoordinates  # tube transition coordinates
+        self._tubeShellCoordinates = tubeShellCoordinates  # tube rim coordinates
+
         if self._isCore:
             self._createShellCoordinatesList()
         for s in range(2):
             self._isStartCap = True if self._isCap[0] and s == 0 else False
             if self._isCap[s]:
                 if self._isCore:
-                    self._determineCapCoordinatesWithCore(s)
+                    self._sampleCapCoordinatesWithCore(s)
                 else:
                     self._extendTubeEnds()
-                    self._determineCapCoordinatesWithoutCore()
+                    self._sampleCapCoordinatesWithoutCore()
             else:
                 continue
 
@@ -1770,16 +1815,165 @@ class CapMesh:
         :param tubeBoxNodeIds: List of tube box nodes.
         :param tubeRimNodeIds: List of tube rim nodes.
         :param annotationMeshGroups: List of all annotated mesh groups.
-        :param coreBoundaryScalingMode: Mode 1 to set scale factors, 2 to add version 2 to d3 for the boundary nodes
-        and assigning values to that version equal to the scale factors x version 1.
         :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
         of a tube segment.
         :param isCore: True for generating a solid core inside the tube, False for regular tube network.
         """
         self._isStartCap = isStartCap
         if isCore:
-            self._generateElementsWithCore()
-            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds)
+            self._generateElementsWithCore(annotationMeshGroups)
+            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups)
         else:
             self._generateElementsWithoutCore(elementsCountRim, annotationMeshGroups)
-            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds)
+            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups)
+
+    def _addElementsFromIdentifiers(self, mesh, meshGroup, identifiers, tRange=None, mRange=None, nRange=None,
+                                    e2Range=None):
+        """
+        Adds elements to the mesh group based on a structured list of element identifiers.
+        :param mesh: The master mesh object used to look up elements by identifier.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        :param identifiers: A nested list of element identifiers.
+        :param tRange: Range of transition indices.
+        :param mRange: Range along the major axis.
+        :param nRange: Range along the minor axis.
+        :param e2Range: Range around the tube, for ring/circular indexing.
+        """
+        for t in tRange:
+            if mRange is not None and nRange is not None:
+                for m in mRange:
+                    for n in nRange:
+                        elementIdentifier = identifiers[t][m][n]
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
+            elif e2Range is not None:
+                for e2 in e2Range:
+                    elementIdentifier = identifiers[t][e2]
+                    element = mesh.findElementByIdentifier(elementIdentifier)
+                    meshGroup.addElement(element)
+
+    def addBoxElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None):
+        """
+        Add ranges of box elements to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        :param e1Range: Range between start and limit element indexes in major / d2 direction.
+        :param e2Range: Range between start and limit element indexes around the tube.
+        :param e3Range: Range between start and limit element indexes in minor / d3 direction.
+        """
+        elementsCountAround = self._elementsCountAround
+        elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
+        elementsCountCoreBoxMinor = self._elementsCountCoreBoxMinor
+        elementsCountTransition = self._elementsCountTransition
+
+        mesh = meshGroup.getMasterMesh()
+        e1Range = range(elementsCountCoreBoxMajor) if e1Range is None else e1Range
+        e2Range = range(elementsCountAround) if e2Range is None else e2Range
+        e3Range = range(elementsCountCoreBoxMinor) if e3Range is None else e3Range
+
+        for i, isCap in enumerate(self._isCap):
+            if not isCap:
+                continue
+
+            isStart = (i == 0)
+            capElementIds = self._startCapElementIds if isStart else self._endCapElementIds
+            extElementIds = self._startExtElementIds if isStart else self._endExtElementIds
+
+            # Cap base block (structured m, t, n)
+            self._addElementsFromIdentifiers(mesh, meshGroup, capElementIds[0],
+                                             tRange=range(elementsCountTransition + 1), mRange=e1Range, nRange=e3Range)
+
+            # Cap tube elements (t, e2)
+            self._addElementsFromIdentifiers(mesh, meshGroup, capElementIds[1],
+                                             tRange=range(elementsCountTransition), e2Range=e2Range)
+
+            # Extension base block (just one layer at t=0)
+            self._addElementsFromIdentifiers(mesh, meshGroup, extElementIds[0][0:1],
+                                             tRange=[0], mRange=e1Range, nRange=e3Range)
+
+            # Extension tube (t > 0, e2)
+            self._addElementsFromIdentifiers(mesh, meshGroup, extElementIds[0],
+                                             tRange=range(1, elementsCountTransition + 1), e2Range=e2Range)
+
+    def addShellElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None):
+        """
+        Add ranges of shell elements to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        :param e1Range: Range between start and limit element indexes in major / d2 direction.
+        :param e2Range: Range between start and limit element indexes around the tube.
+        :param e3Range: Range between start and limit element indexes in minor / d3 direction.
+        """
+        elementsCountAround = self._elementsCountAround
+        elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
+        elementsCountCoreBoxMinor = self._elementsCountCoreBoxMinor
+        elementsCountTransition = self._elementsCountTransition
+        elementsCountThroughShell = self._elementsCountThroughShell
+
+        mesh = meshGroup.getMasterMesh()
+        e1Range = range(elementsCountCoreBoxMajor) if e1Range is None else e1Range
+        e2Range = range(elementsCountAround) if e2Range is None else e2Range
+        e3Range = range(elementsCountCoreBoxMinor) if e3Range is None else e3Range
+
+        for i, isCap in enumerate(self._isCap):
+            if not isCap:
+                continue
+
+            isStart = (i == 0)
+            capElementIds = self._startCapElementIds if isStart else self._endCapElementIds
+            extElementIds = self._startExtElementIds if isStart else self._endExtElementIds
+
+            tCapShellRange = range(elementsCountTransition + 1, elementsCountTransition + 1 + elementsCountThroughShell)
+            self._addElementsFromIdentifiers(mesh, meshGroup, capElementIds[0],
+                                             tRange=tCapShellRange, mRange=e1Range, nRange=e3Range)
+
+            tTubeShellRange = range(elementsCountTransition, elementsCountTransition + elementsCountThroughShell)
+            self._addElementsFromIdentifiers(mesh, meshGroup, capElementIds[1], tRange=tTubeShellRange, e2Range=e2Range)
+
+            tExtShellRange = range(elementsCountThroughShell)
+            self._addElementsFromIdentifiers(mesh, meshGroup, extElementIds[1], tRange=tExtShellRange, e2Range=e2Range)
+
+    def addAllElementsToMeshGroup(self, meshGroup):
+        """
+        Add all elements in the segment to mesh group.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        self.addBoxElementsToMeshGroup(meshGroup)
+        self.addShellElementsToMeshGroup(meshGroup)
+
+    def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d2 or -d2, often matching left and right.
+        Only works with even numbers around and phase starting at +d2.
+        :param side: False for +d2 direction, True for -d2 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        e2Start = (self._elementsCountAround // 4) if side else -((self._elementsCountAround + 2) // 4)
+        e2Limit = e2Start + (self._elementsCountAround // 2)
+        e2Limit = e2Limit + 1 if (self._elementsCountAround % 4) == 2 else e2Limit
+        e2Range = range(e2Start, e2Limit)
+        if self._isCore:
+            e1Start = (self._elementsCountCoreBoxMajor // 2) if side else 0
+            e1Limit = self._elementsCountCoreBoxMajor if side else ((self._elementsCountCoreBoxMajor + 1) // 2)
+            e1Range = range(e1Start, e1Limit)
+            self.addBoxElementsToMeshGroup(meshGroup, e1Range=e1Range, e2Range=e2Range)
+        else:
+            e1Range = None
+        self.addShellElementsToMeshGroup(meshGroup, e1Range=e1Range, e2Range=e2Range)
+
+    def addSideD3ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d3 or -d3, often matching anterior/ventral and posterior/dorsal.
+        Only works with even numbers around and phase starting at +d2.
+        :param side: False for +d3 direction, True for -d3 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        e2Start = (self._elementsCountAround // 2) if side else 0
+        e2Limit = e2Start + (self._elementsCountAround // 2)
+        e2Range = range(e2Start, e2Limit)
+        if self._isCore:
+            e3Start = 0 if side else (self._elementsCountCoreBoxMinor // 2)
+            e3Limit = ((self._elementsCountCoreBoxMinor + 1) // 2) if side else self._elementsCountCoreBoxMinor
+            e3Range = range(e3Start, e3Limit)
+            self.addBoxElementsToMeshGroup(meshGroup, e2Range=e2Range, e3Range=e3Range)
+        else:
+            e3Range = None
+        self.addShellElementsToMeshGroup(meshGroup, e2Range=e2Range, e3Range=e3Range)

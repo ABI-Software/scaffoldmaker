@@ -87,6 +87,7 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._rightGroup = None
         self._dorsalGroup = None
         self._ventralGroup = None
+        self._renalCapsuleGroup = None
 
     def getStandardElementtemplate(self):
         return self._standardElementtemplate, self._standardEft
@@ -279,6 +280,11 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral", ""))
         return self._ventralGroup.getMeshGroup(self._mesh)
 
+    def getRenalCapsuleMeshGroup(self):
+        if not self._renalCapsuleGroup:
+            self._renalCapsuleGroup = self.getOrCreateAnnotationGroup(("renal capsule", ""))
+        return self._renalCapsuleGroup.getMeshGroup(self._mesh)
+
     def getNewTrimAnnotationGroup(self):
         self._trimAnnotationGroupCount += 1
         return self.getOrCreateAnnotationGroup(("trim surface " + "{:03d}".format(self._trimAnnotationGroupCount), ""))
@@ -379,7 +385,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         self._networkPathParameters = pathParametersList
         self._isCap = networkSegment.isCap()
-        self._capmesh = None
+        if self._isCap:
+            self._capMesh = CapMesh(self._elementsCountAround, self._elementsCountCoreBoxMajor,
+                                    self._elementsCountCoreBoxMinor, self._elementsCountThroughShell,
+                                    self._elementsCountTransition, self._networkPathParameters,
+                                    self._isCap, self._isCore)
 
     def getCoreBoundaryScalingMode(self):
         modes = (1, 2, 3, 4) if self._isCap else (1, 2)
@@ -394,6 +404,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def getIsCore(self):
         return self._isCore
+
+    def getIsCap(self):
+        return self._isCap
+
+    def getCapMesh(self):
+        return self._capMesh
 
     def getElementsCountCoreBoxMajor(self):
         return self._elementsCountCoreBoxMajor
@@ -615,11 +631,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         if self._isCap:
             # sample coordinates for the cap mesh at the ends of a tube segment
-            self._capmesh = CapMesh(self._elementsCountAround, self._elementsCountCoreBoxMajor,
-                                    self._elementsCountCoreBoxMinor, self._elementsCountThroughShell,
-                                    self._elementsCountTransition, self._networkPathParameters, self._boxCoordinates,
-                                    self._transitionCoordinates, self._rimCoordinates, self._isCap, self._isCore)
-            self._capmesh.sampleCoordinates()
+            self._capMesh.sampleCoordinates(self._boxCoordinates, self._transitionCoordinates, self._rimCoordinates)
 
     def _sampleCoreCoordinates(self, elementsCountAlong):
         """
@@ -1629,11 +1641,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         self._rimNodeIds[n2] = rimNodeIds
                         continue
 
-            capmesh = self._capmesh
+            capMesh = self._capMesh
             # create cap nodes at the start section of a tube segment
             if self._isCap[0] and n2 == 0:
                 isStartCap = True
-                capmesh.generateNodes(generateData, isStartCap, self._isCore)
+                capMesh.generateNodes(generateData, isStartCap, self._isCore)
 
             # create core box nodes
             if self._boxCoordinates:
@@ -1689,7 +1701,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             # create cap nodes at the end section of a tube segment
             if self._isCap[-1] and n2 == elementsCountAlong:
                 isStartCap = False
-                self._endCapNodeIds = capmesh.generateNodes(generateData, isStartCap, self._isCore)
+                self._endCapNodeIds = capMesh.generateNodes(generateData, isStartCap, self._isCore)
 
         # create a new list containing box node ids are located at the boundary
         if self._isCore:
@@ -1710,11 +1722,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             # create cap elements
             if self._isCap[0] and e2 == 0:
                 isStartCap = True
-                capmesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
+                capMesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
                                          annotationMeshGroups, isStartCap, self._isCore)
             elif self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
                 isStartCap = False
-                capmesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
+                capMesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
                                          annotationMeshGroups, isStartCap, self._isCore)
 
             if self._isCore:
@@ -3346,8 +3358,14 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
             shellMeshGroup = generateData.getShellMeshGroup()
             for networkSegment in self._networkMesh.getNetworkSegments():
                 segment = self._segments[networkSegment]
+                segmentCaps = segment.getIsCap()
                 segment.addCoreElementsToMeshGroup(coreMeshGroup)
                 segment.addShellElementsToMeshGroup(shellMeshGroup)
+                for isCap in segmentCaps:
+                    if isCap:
+                        capMesh = segment.getCapMesh()
+                        capMesh.addBoxElementsToMeshGroup(coreMeshGroup)
+                        capMesh.addShellElementsToMeshGroup(shellMeshGroup)
 
 
 class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
@@ -3368,6 +3386,11 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
         ventralMeshGroup = generateData.getVentralMeshGroup()
         for networkSegment in self._networkMesh.getNetworkSegments():
             segment = self._segments[networkSegment]
+            segmentCaps = segment.getIsCap()
+            if True in segmentCaps:
+                capMesh = segment.getCapMesh()
+            else:
+                capMesh = None
             annotationTerms = segment.getAnnotationTerms()
             for annotationTerm in annotationTerms:
                 if "left" in annotationTerm[0]:
@@ -3380,8 +3403,14 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                 # segment on main axis
                 segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
                 segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
+                if capMesh:
+                    capMesh.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
+                    capMesh.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+            if capMesh:
+                capMesh.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+                capMesh.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
 
 
 class TubeEllipseGenerator:
