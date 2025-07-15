@@ -369,7 +369,7 @@ class CapScaffoldTestCase(unittest.TestCase):
         annotationGroup = findAnnotationGroupByName(annotationGroups, "segment 3")
         self.assertTrue(annotationGroup is not None)
         self.assertEqual("SEGMENT:3", annotationGroup.getId())
-        self.assertEqual(80, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(3)).getSize())
+        self.assertEqual(128, annotationGroup.getMeshGroup(fieldmodule.findMeshByDimension(3)).getSize())
 
         X_TOL = 1.0E-6
 

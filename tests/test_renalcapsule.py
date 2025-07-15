@@ -118,3 +118,6 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
+
+if __name__ == "__main__":
+    unittest.main()
