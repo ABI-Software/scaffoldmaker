@@ -85,9 +85,9 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
         # check some annotation groups:
 
         expectedSizes3d = {
-            "core": (80, 1.1315894674812224),
-            "shell": (48, 0.636434417387064),
-            "renal capsule": (128, 1.76802388486829)
+            "core": (176, 2.880428953529323),
+            "shell": (112, 1.9640545714444255),
+            "kidney capsule": (288, 4.844483524973759)
             }
         for name in expectedSizes3d:
             term = get_kidney_term(name)
@@ -103,8 +103,8 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "shell": (204, 13.48337379199411),
-            "renal capsule": (440, 26.78248128640177)
+            "shell": (448, 37.8673195697525),
+            "kidney capsule": (920, 66.45790167672409)
             }
         for name in expectedSizes2d:
             term = get_kidney_term(name)
