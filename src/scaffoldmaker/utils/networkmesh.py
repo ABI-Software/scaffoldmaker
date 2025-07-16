@@ -876,7 +876,7 @@ class NetworkMeshBuilder(ABC):
                 junctions[0].generateMesh(generateData)
                 generatedJunctions.add(junctions[0])
             if networkSegment.isPatch():
-                continue # so as not to make patch mesh twice
+                continue  # so as not to make patch mesh twice
             segment.generateMesh(generateData)
             if junctions[1] not in generatedJunctions:
                 junctions[1].generateMesh(generateData)

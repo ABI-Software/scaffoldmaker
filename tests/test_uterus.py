@@ -1,4 +1,3 @@
-import copy
 import unittest
 
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName

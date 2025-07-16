@@ -506,7 +506,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                         d3 = [0.0, 0.0, oviductRadius]
                         d12 = [0.0, 0.0, 0.0]
                         d13 = [0.0, 0.0, 0.0]
-                    else: # in ellipse zone
+                    else:  # in ellipse zone
                         theta = math.acos(x[1] / halfFundusWidth)
                         if abs(halfFundusDepth * math.sin(theta)) < oviductRadius:
                             d2 = [-oviductRadius if side == left else oviductRadius, 0.0, 0.0]
@@ -1025,7 +1025,7 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         uterusTubeNetworkMeshBuilder = UterusTubeNetworkMeshBuilder(
             networkMesh,
-            targetElementDensityAlongLongestSegment=2.0, # not used
+            targetElementDensityAlongLongestSegment=2.0,  # not used
             layoutAnnotationGroups=layoutAnnotationGroups,
             annotationElementsCountsAlong=annotationElementsCountsAlong,
             defaultElementsCountAround=options['Number of elements around'],

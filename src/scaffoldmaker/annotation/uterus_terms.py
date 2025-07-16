@@ -16,7 +16,7 @@ uterus_terms = [
     ("left broad ligament of uterus", ""),
     ("left transverse cervical ligament", ""),
     ("left uterine horn", "UBERON:0009020"),
-    ("left oviduct", "UBERON:0001303", "ILX:0734218", "FMA:18484"), # left uterine tube
+    ("left oviduct", "UBERON:0001303", "ILX:0734218", "FMA:18484"),  # left uterine tube
     ("lumen of body of uterus", ""),
     ("lumen of fundus of uterus", ""),
     ("lumen of left horn", ""),
@@ -30,7 +30,7 @@ uterus_terms = [
     ("right broad ligament of uterus", ""),
     ("right transverse cervical ligament", ""),
     ("right uterine horn", "UBERON:0009022"),
-    ("right oviduct", "UBERON:0001302", "ILX:0724908", "FMA:18483"), # right uterine tube
+    ("right oviduct", "UBERON:0001302", "ILX:0724908", "FMA:18483"),  # right uterine tube
     ("serosa of body of uterus", ""),
     ("serosa of fundus of uterus", ""),
     ("serosa of left oviduct", ""),

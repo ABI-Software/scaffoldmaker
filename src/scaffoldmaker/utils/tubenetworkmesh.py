@@ -1832,9 +1832,9 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         connectedSegments = junction.getSegments()
 
         # ML: hard code for uterus layout
-        segment1 = connectedSegments[0] # left tube
-        segment2 = connectedSegments[1] # right tube
-        segment3 = connectedSegments[2] # patch tube
+        segment1 = connectedSegments[0]  # left tube
+        segment2 = connectedSegments[1]  # right tube
+        segment3 = connectedSegments[2]  # patch tube
         elementsCountAroundSegmentOut = segment3.getElementsCountAround()
 
         sampleElementCount = 20
@@ -1866,7 +1866,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
 
                 elementsCountAlongSegmentIn = int(len(xRawTrackSurface) / elementsCountAroundSegmentIn - 1)
                 # Extract coordinates from top half of the inlet tubes
-                if s: # ML: we know that segment 2 is in desired direction
+                if s:  # ML: we know that segment 2 is in desired direction
                     for i in range(elementsCountAlongSegmentIn + 1):
                         baseCount = i * elementsCountAroundSegmentIn
                         xCombinedTrackSurface += \
@@ -1886,7 +1886,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                                 d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
                                                  baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
 
-                else: # ML: we know that segment 1 is in opposite direction
+                else:  # ML: we know that segment 1 is in opposite direction
                     xAlongAround = []
                     d1AlongAround = []
                     d2AlongAround = []
@@ -2175,28 +2175,28 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     for n2 in range(halfCountN2, 0, -1):
                         if i == 0 or i == 3:
                             sParamRingAround.append(sParam[n2][n3][startIdx])
-                        elif i == 1: # d1
+                        elif i == 1:  # d1
                             sParamRingAround.append(allCoordinates[2][n2][n3][startIdx])  # becomes d2
                         elif i == 2:  # d2
-                            sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][startIdx]]) # becomes -d1
+                            sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][startIdx]])  # becomes -d1
                     # triple points at bottom right
                     if i == 0 or i == 3:
                         sParamRingAround.append(sParam[startIdx][n3][startIdx])
                     elif i == 1:
                         sParamRingAround.append(add(allCoordinates[1][startIdx][n3][startIdx],
-                                                    allCoordinates[2][startIdx][n3][startIdx])) # d1 + d2
+                                                    allCoordinates[2][startIdx][n3][startIdx]))  # d1 + d2
                     elif i == 2:
                         sParamRingAround.append(add([-c for c in allCoordinates[1][startIdx][n3][startIdx]],
-                                                    allCoordinates[2][startIdx][n3][startIdx])) # -d1 + d2
+                                                    allCoordinates[2][startIdx][n3][startIdx]))  # -d1 + d2
                     # straight bottom
                     sParamRingAround += sParam[startIdx][n3][1: -1]
                     # triple pts on bottom left
                     if i == 0 or i == 3:
                         sParamRingAround.append(sParam[startIdx][n3][endIdx])
-                    elif i == 1: # d1
+                    elif i == 1:  # d1
                         sParamRingAround.append(add(allCoordinates[1][startIdx][n3][endIdx],
-                                                    [-c for c in allCoordinates[2][startIdx][n3][endIdx]])) # becomes d1 - d2
-                    elif i == 2: # d2
+                                                    [-c for c in allCoordinates[2][startIdx][n3][endIdx]]))  # becomes d1 - d2
+                    elif i == 2:  # d2
                         sParamRingAround.append(add(allCoordinates[1][startIdx][n3][endIdx],
                                                     allCoordinates[2][startIdx][n3][endIdx]))  # becomes d1 + d2
 
@@ -2204,23 +2204,23 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                     for n2 in range(1, halfCountN2 + 1):
                         if i == 0 or i == 3:
                             sParamRingAround.append(sParam[n2][n3][endIdx])
-                        elif i == 1: # d1
-                            sParamRingAround.append([-c for c in allCoordinates[2][n2][n3][endIdx]]) # becomes -d2
-                        elif i == 2: # d2
-                            sParamRingAround.append(allCoordinates[1][n2][n3][endIdx]) # becomes d1
+                        elif i == 1:  # d1
+                            sParamRingAround.append([-c for c in allCoordinates[2][n2][n3][endIdx]])  # becomes -d2
+                        elif i == 2:  # d2
+                            sParamRingAround.append(allCoordinates[1][n2][n3][endIdx])  # becomes d1
                     for n2 in range(halfCountN2 + 1, countN2 - 1):
                         if i == 0 or i == 3:
                             sParamRingAround.append(sParam[n2][n3][startIdx])
-                        elif i == 1: # d1
-                            sParamRingAround.append(allCoordinates[2][n2][n3][startIdx]) # becomes d2
-                        elif i == 2: # d2
-                            sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][startIdx]]) # becomes -d1
+                        elif i == 1:  # d1
+                            sParamRingAround.append(allCoordinates[2][n2][n3][startIdx])  # becomes d2
+                        elif i == 2:  # d2
+                            sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][startIdx]])  # becomes -d1
                     # triple pts on top left
                     if i == 0 or i == 3:
                         sParamRingAround.append(sParam[endIdx][n3][startIdx])
                     elif i == 1:
                         sParamRingAround.append(add(allCoordinates[1][endIdx][n3][startIdx],
-                                                    allCoordinates[2][endIdx][n3][startIdx])) # d1 + d2
+                                                    allCoordinates[2][endIdx][n3][startIdx]))  # d1 + d2
                     elif i == 2:
                         sParamRingAround.append(add([-c for c in allCoordinates[1][endIdx][n3][startIdx]],
                                                     allCoordinates[2][endIdx][n3][startIdx]))  # -d1 + d2
@@ -2233,18 +2233,17 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                         sParamRingAround.append(sParam[endIdx][n3][endIdx])
                     elif i == 1:
                         sParamRingAround.append(add(allCoordinates[1][endIdx][n3][endIdx],
-                                                    [-c for c in allCoordinates[2][endIdx][n3][endIdx]])) # d1 - d2
+                                                    [-c for c in allCoordinates[2][endIdx][n3][endIdx]]))  # d1 - d2
                     elif i == 2:
                         sParamRingAround.append(add(allCoordinates[1][endIdx][n3][endIdx],
-                                                    allCoordinates[2][endIdx][n3][endIdx])) # d1 + d2
+                                                    allCoordinates[2][endIdx][n3][endIdx]))  # d1 + d2
                     # down right top half
                     for n2 in range(countN2 - 2, halfCountN2, -1):
                         if i == 0 or i == 3:
                             sParamRingAround.append(sParam[n2][n3][endIdx])
-                        elif i == 1: # d1
-                            sParamRingAround.append(
-                                [-c for c in allCoordinates[2][n2][n3][endIdx]]) # becomes -d2
-                        elif i == 2: # d2
+                        elif i == 1:  # d1
+                            sParamRingAround.append([-c for c in allCoordinates[2][n2][n3][endIdx]])  # becomes -d2
+                        elif i == 2:  # d2
                             sParamRingAround.append(allCoordinates[1][n2][n3][endIdx])  # becomes d1
                     sParamLayer.append(sParamRingAround)
                 sParamRing.append(sParamLayer)
@@ -2379,7 +2378,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         elementsAlongPatch = elementsCountAlong
         sElementId = self._patchElementIds
 
-        elementsAlongPatchRim = len(self._patchElementIds) // 2 # Number of rings in patch
+        elementsAlongPatchRim = len(self._patchElementIds) // 2  # Number of rings in patch
         elementsAroundPatch = len(self._patchElementIds[0][0])
 
         if elementsAroundPatch:
@@ -2663,7 +2662,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         # parameters used for solid core
         self._isCore = self._segments[0].getIsCore()
-        self._boxCoordinates = None # [nAlong][nAcrossMajor][nAcrossMinor]
+        self._boxCoordinates = None  # [nAlong][nAcrossMajor][nAcrossMinor]
         self._boxNodeIds = None
         # sequence of segment indexes for bifurcation or trifurcation, proceding in increasing angle around a plane.
         # See: self._determineJunctionSequence()
@@ -3808,7 +3807,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                 self._segmentsIn, self._sequence, maxMajorSegment, top)
                         else:
                             nodeLayout = nodeLayout6Way
-                    elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
+                    elif self._segmentsCount == 4 and self._segmentsIn[s]:  # Trifurcation case
                         location = \
                             1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
                         nodeLayout = (nodeLayout6Way if self._sequence == [0, 1, 3, 2] else
