@@ -884,7 +884,6 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
     assert len(nodeParameters[0]) == 4
     d3Defined = (meshDimension == 3) and (nodeParameters[0][3] is not None)
     assert len(nodeLayouts) == nodesCount
-    # print(nodeParameters[1][0], nodeParameters[0][0])
     delta12 = sub(nodeParameters[1][0], nodeParameters[0][0])
     delta34 = sub(nodeParameters[3][0], nodeParameters[2][0])
     delta13 = sub(nodeParameters[2][0], nodeParameters[0][0])

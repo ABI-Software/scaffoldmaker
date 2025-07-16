@@ -2,7 +2,6 @@
 Generates a 3-D uterus mesh from a 1-D network layout, with variable
 numbers of elements around, along and through wall.
 """
-
 from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, normalize, magnitude, \
     axis_angle_to_rotation_matrix
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
@@ -21,8 +20,8 @@ from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
     PatchTubeNetworkMeshSegment
 from scaffoldmaker.utils.zinc_utils import group_add_connected_elements, get_nodeset_path_ordered_field_parameters
-
 import math
+
 
 class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
 
@@ -56,6 +55,7 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
 
     def getLowerCervixMeshGroup(self):
         return self._lowerCervixGroup.getMeshGroup(self._mesh)
+
 
 class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
     """
@@ -226,7 +226,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Inner proportion cervix"] = 0.15
             options["Inner proportion vagina"] = 0.8
             options["Angle of anteversion degrees"] = 70.0
-
         options["Define inner coordinates"] = True
         options["Inner proportion oviducts"] = 0.5
 
@@ -325,7 +324,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         innerProportionVagina = options["Inner proportion vagina"]
 
         isPregnant = parameterSetName in 'Human Pregnant 1'
-        isRat = parameterSetName in 'Rat 1'
         isRodent = parameterSetName in ("Mouse 1", "Rat 1")
 
         networkMesh = NetworkMesh(structure)
@@ -848,7 +846,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         return annotationGroups, networkMesh
 
-
     @classmethod
     def getInteractiveFunctions(cls):
         """
@@ -884,7 +881,6 @@ class MeshType_3d_uterus1(Scaffold_base):
 
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
-
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options = {
             'Base parameter set': useParameterSetName,
@@ -1364,7 +1360,6 @@ def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None)
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, d12)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
-
 
 def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=None, d13=None):
     """

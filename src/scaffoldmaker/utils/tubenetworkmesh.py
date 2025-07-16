@@ -1811,7 +1811,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
     def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
                  isCore=False, elementsCountCoreBoxMinor: int=2, elementsCountTransition: int=1,
                  coreBoundaryScalingMode: int=1):
-
         super(PatchTubeNetworkMeshSegment, self).__init__(
             networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
             isCore, elementsCountCoreBoxMinor, elementsCountTransition, coreBoundaryScalingMode)
@@ -2157,7 +2156,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         # annular indexing of two layers (n2), from inlet to outlet direction with the inner layer corner points being
         # represented 3 times. n3 goes from inner to outer wall. n1 starts from the d2 direction defined by the network
         # layout
-
         patch = 0
         rim = 1
         self._rimCoordinates = []
@@ -2250,7 +2248,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                 sParamRing.append(sParamLayer)
             self._rimCoordinates.append(sParamRing)
 
-
     def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
         """
         Get a ring of rim coordinates at the supplied node index.
@@ -2265,7 +2262,6 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
         """
         :param n2Only: Ignored. Always makes whole patch.
         """
-
         # create nodes
         coordinates = generateData.getCoordinates()
         fieldcache = generateData.getFieldcache()
