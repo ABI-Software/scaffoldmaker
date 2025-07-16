@@ -1801,6 +1801,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 for annotationMeshGroup in annotationMeshGroups:
                     annotationMeshGroup.addElement(element)
 
+
 class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
     """
     New class derived from TubeNetworkMeshSegment, used for making a patch to cover a segment opening. Only work for
@@ -2635,6 +2636,7 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
                             continue
                         element = mesh.findElementByIdentifier(elementIdentifier)
                         meshGroup.addElement(element)
+
 
 class TubeNetworkMeshJunction(NetworkMeshJunction):
     """
