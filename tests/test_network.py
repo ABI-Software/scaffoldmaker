@@ -125,7 +125,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 1.9298521868503136, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 1.9298310795249618, delta=X_TOL)
 
     def test_2d_tube_network_snake(self):
         """
@@ -232,8 +232,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5665129624437777, -0.5965021612011158, -0.5986773748973171], X_TOL)
-        assertAlmostEqualList(self, maximums, [0.5665129624437776, 0.5965021612011158, 0.5986773748973171], X_TOL)
+        assertAlmostEqualList(self, minimums, [-0.5665335029054949, -0.5965021612011158, -0.5986833860590594], X_TOL)
+        assertAlmostEqualList(self, maximums, [0.5665335029054949, 0.5965021612011158, 0.5986833860590595], X_TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -242,7 +242,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 4.040046496468388, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 4.040053575361621, delta=X_TOL)
 
     def test_2d_tube_network_trifurcation(self):
         """
@@ -287,7 +287,7 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             fieldcache = fieldmodule.createFieldcache()
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 2.7920346454678393, delta=X_TOL)
+            self.assertAlmostEqual(surfaceArea, 2.791976505648992, delta=X_TOL)
 
     def test_2d_tube_network_vase(self):
         """

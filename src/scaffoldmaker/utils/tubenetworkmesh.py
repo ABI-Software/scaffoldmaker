@@ -2850,7 +2850,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nd1 = []
                     nd2 = []
                     nd12 = []
-                    trimWidthFactors = (0.25, 1.75) #if self._useOuterTrimSurfaces else (0.75, 1.25)
+                    trimWidthFactors = (0.25, 1.75) if self._useOuterTrimSurfaces else (0.75, 1.25)
                     d2scale = trimWidthFactors[1] - trimWidthFactors[0]
                     for factor in trimWidthFactors:
                         for n1 in range(trimPointsCountAround):
