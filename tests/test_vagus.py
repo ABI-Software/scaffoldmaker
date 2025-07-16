@@ -233,12 +233,13 @@ class VagusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(options.get('Number of elements along the trunk'), 50)
         self.assertEqual(options.get('Trunk proportion'), 1.0)
         self.assertEqual(options.get('Trunk fit number of iterations'), 5)
-        self.assertEqual(options.get('Default trunk diameter mm'), 3.0)
+        self.assertEqual(options.get('Default trunk diameter'), 3.0)
         self.assertEqual(options.get('Branch diameter trunk proportion'), 0.5)
         # change options to make test fast and consistent, with minor effect on result:
         options['Number of elements along the trunk pre-fit'] = 10
         options['Number of elements along the trunk'] = 25
         options['Trunk fit number of iterations'] = 2
+        options['Default trunk diameter'] = 300.0
 
         # test with original ordered, and reordered vagus data file
         for i in range(2):

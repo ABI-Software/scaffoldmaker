@@ -104,7 +104,7 @@ class Scaffold_base:
         returned as the second return value.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return: list of AnnotationGroup, construction object (or None)
+        :return: list of AnnotationGroup, ConstructionObject-derived object (or None)
         """
         return [], None
 
