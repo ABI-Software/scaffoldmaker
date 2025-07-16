@@ -232,8 +232,8 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5665335029054949, -0.5965021612011158, -0.5986833860590594], X_TOL)
-        assertAlmostEqualList(self, maximums, [0.5665335029054949, 0.5965021612011158, 0.5986833860590595], X_TOL)
+        assertAlmostEqualList(self, minimums, [-0.5665335420558559, -0.5965021612011158, -0.5986833971069179], X_TOL)
+        assertAlmostEqualList(self, maximums, [0.5665335420558559, 0.5965021612011159, 0.5986833971069178], X_TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
