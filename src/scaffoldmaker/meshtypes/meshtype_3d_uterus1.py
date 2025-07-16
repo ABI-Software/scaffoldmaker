@@ -1203,6 +1203,18 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                            get_uterus_term("vaginal canal"))
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
+        lumenOfUterusVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_uterus_term("lumen of uterus and vagina"))
+        lumenOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
+        lumenOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
+        lumenOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
+
+        serosaOfUterusVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                  get_uterus_term("serosa of uterus and vagina"))
+        serosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
+        serosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
+        serosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_outer)
+
         leftGroup = getAnnotationGroupForTerm(annotationGroups, ("left uterus", ""))
         rightGroup = getAnnotationGroupForTerm(annotationGroups, ("right uterus", ""))
         dorsalGroup = getAnnotationGroupForTerm(annotationGroups, ("dorsal uterus", ""))
