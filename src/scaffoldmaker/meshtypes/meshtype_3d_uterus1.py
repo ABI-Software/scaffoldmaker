@@ -22,7 +22,6 @@ from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetw
     PatchTubeNetworkMeshSegment
 from scaffoldmaker.utils.zinc_utils import group_add_connected_elements, get_nodeset_path_ordered_field_parameters
 
-import copy
 import math
 
 class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
@@ -144,7 +143,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     def getParameterSetNames(cls):
         return ["Default",
                 "Human 1",
-                "Human Pregnant 1",
+                # "Human Pregnant 1",
                 "Mouse 1",
                 "Rat 1"]
 
@@ -879,7 +878,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         return [
             'Default',
             'Human 1',
-            'Human Pregnant 1',
+            # 'Human Pregnant 1',
             'Mouse 1',
             'Rat 1']
 
