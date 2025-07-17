@@ -1532,4 +1532,4 @@ class NerveMetadata(ConstructionObject):
         :param quantity_name: Name of quantity to add a value for.
         :param value: Any value serialisable by json.dumps().
         """
-        self._metadata[quantity_name] = max_error
+        self._metadata[quantity_name] = value
