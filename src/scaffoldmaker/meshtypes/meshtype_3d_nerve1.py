@@ -1513,7 +1513,7 @@ class NerveMetadata(ConstructionObject):
         self._top_level_name = top_level_name
         self._metadata = {}
 
-    def get_metadata(self):
+    def getMetadata(self):
         return {self._top_level_name: self._metadata}
 
     def set_name_rms_max_error(self, quantity_name, rms_error, max_error):

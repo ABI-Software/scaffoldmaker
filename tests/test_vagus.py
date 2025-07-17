@@ -254,8 +254,20 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 reorder_vagus_test_data1(self, data_region)
 
             # check annotation groups
-            annotation_groups = scaffold.generateMesh(region, options)[0]
+            annotation_groups, nerve_metadata = scaffold.generateMesh(region, options)
             self.assertEqual(len(annotation_groups), 20)
+            metadataDict = nerve_metadata.getMetadata()["vagus nerve"]
+            TOL = 1.0E-6
+            expectedMetadataDict = {
+                'trunk centroid fit error rms': 1.6796999717877277,
+                'trunk centroid fit error max': 6.004413110311745,
+                'trunk radius fit error rms': 0.20126533544206293,
+                'trunk radius fit error max': 1.0496575899143181,
+                'trunk twist angle fit error degrees rms': 3.9094139417227405,
+                'trunk twist angle fit error degrees max': 9.786303215289262}
+            self.assertEqual(len(metadataDict), len(expectedMetadataDict))
+            for key, value in metadataDict.items():
+                self.assertAlmostEqual(value, expectedMetadataDict[key], delta=TOL)
 
             # (term_id, parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3,
             #  expected_surface_area, expected_volume)

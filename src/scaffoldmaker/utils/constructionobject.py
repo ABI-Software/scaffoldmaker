@@ -11,7 +11,7 @@ class ConstructionObject:
     """
 
     @abstractmethod
-    def get_metadata(self) -> dict:
+    def getMetadata(self) -> dict:
         """
         Override to get scaffold-specific metadata.
         """
