@@ -18,7 +18,7 @@ dependencies = [
     "cmlibs.maths >= 0.7.1",
     "cmlibs.utils >= 0.12.5",
     "cmlibs.zinc >= 4.2.1",
-    "fieldfitter >= 0.5.1",
+    "fieldfitter >= 0.6.0",
     "scaffoldfitter >= 0.11.1",
     "scipy",
     "numpy"
