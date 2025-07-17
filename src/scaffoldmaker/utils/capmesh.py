@@ -11,7 +11,7 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft
 from scaffoldmaker.utils.eftfactory_tricubichermite import eftfactory_tricubichermite
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLoop, smoothCubicHermiteDerivativesLine, \
-    sampleCubicHermiteCurves, interpolateSampleCubicHermite
+    sampleCubicHermiteCurves, interpolateSampleCubicHermite, DerivativeScalingMode
 from scaffoldmaker.utils.spheremesh import calculate_arc_length, local_to_global_coordinates, spherical_to_cartesian, \
     calculate_azimuth
 
@@ -391,6 +391,7 @@ class CapMesh:
         self._determineBoxDerivatives()
 
         self._remapCapCoordinates()
+        self._smoothDerivatives()
 
     def _createShellCoordinatesList(self):
         """
@@ -668,6 +669,12 @@ class CapMesh:
         n1m, n1n = 0, self._elementsCountAround // 4
         ixm, ixn = (self._getTubeRimCoordinates(n, idx, n3)[0] for n in [n1m, n1n])
         majorRadius, minorRadius = (magnitude(sub(coord, centre)) for coord in [ixm, ixn])
+        # if majorRadius > minorRadius:
+        #     xRadius = majorRadius / minorRadius
+        # elif majorRadius < minorRadius:
+        #     xRadius = minorRadius / majorRadius
+        # else:
+        #     xRadius = 1.0
         return [1.0, majorRadius, minorRadius]
 
     def _determineShellDerivatives(self):
@@ -818,17 +825,17 @@ class CapMesh:
                         self._boxCoordinates[idx][3][mi][n] = td3[mi]
 
         # smooth derivatives
-        for m in range(1, self._elementsCountCoreBoxMajor):
+        for m in range(self._elementsCountCoreBoxMajor + 1):
             nx = self._boxCoordinates[idx][0][m]
             nd3 = self._boxCoordinates[idx][3][m]
             sd3 = smoothCubicHermiteDerivativesLine(nx, nd3)
-            for n in range(1, self._elementsCountCoreBoxMinor):
+            for n in range(self._elementsCountCoreBoxMinor + 1):
                 self._boxCoordinates[idx][3][m][n] = sd3[n]
-        for n in range(self._elementsCountCoreBoxMinor):
+        for n in range(self._elementsCountCoreBoxMinor + 1):
             nx = [self._boxCoordinates[idx][0][m][n] for m in range(self._elementsCountCoreBoxMajor + 1)]
             nd1 = [self._boxCoordinates[idx][1][m][n] for m in range(self._elementsCountCoreBoxMajor + 1)]
             sd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
-            for m in range(1, self._elementsCountCoreBoxMajor):
+            for m in range(self._elementsCountCoreBoxMajor + 1):
                 self._boxCoordinates[idx][1][m][n] = sd1[m]
 
     def _determineBoxDerivatives(self):
@@ -843,8 +850,110 @@ class CapMesh:
                 itx = self._boxCoordinates[idx][0][m][n]
                 d2 = mult(sub(otx, itx), signValue)
                 self._boxCoordinates[idx][2][m][n] = d2
-                self._boxCoordinates[idx][1][m][n] = set_magnitude(self._boxCoordinates[idx][1][m][n], magnitude(d2))
-                self._boxCoordinates[idx][3][m][n] = set_magnitude(self._boxCoordinates[idx][3][m][n], magnitude(d2))
+
+    def _smoothDerivatives(self):
+        """
+        Smooths derivatives to eliminate zero Jacobian contours at the cap-tube joint.
+        """
+        nodesCountCoreBoxMajor = self._getNodesCountCoreBoxMajor()
+        nodesCountCoreBoxMinor = self._getNodesCountCoreBoxMinor()
+        nodesCountRim = self._getNodesCountRim()
+        nloop = self._getNodesCountRim()
+
+        idx = 0 if self._isStartCap else -1
+        if self._isCap[idx]:
+            boxCoordinates = self._boxCoordinates[idx]
+            boxExtCoordinates = self._boxExtCoordinates[idx]
+            shellCoordinates = self._shellCoordinates[idx]
+            tubeBoxCoordinates = self._tubeBoxCoordinates
+            boxBoundaryNodeToBoxId = self._createBoxBoundaryNodeIdsList()
+
+            # smooth derivatives along d2 for box
+            for m in range(nodesCountCoreBoxMajor):
+                for n in range(nodesCountCoreBoxMinor):
+                    nx = [boxCoordinates[0][m][n], boxExtCoordinates[0][m][n], tubeBoxCoordinates[0][idx][m][n]]
+                    nd2 = [boxCoordinates[2][m][n], boxExtCoordinates[2][m][n], tubeBoxCoordinates[2][idx][m][n]]
+                    sd2 = smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True,
+                                                            magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                    boxCoordinates[2][m][n] = sd2[0]
+                    boxExtCoordinates[2][m][n] = sd2[1]
+
+            # smooth derivatives along d3 for shell
+            for m in range(nodesCountCoreBoxMajor):
+                for n in range(nodesCountCoreBoxMinor):
+                    bx = boxCoordinates[0][m][n]
+                    bd3 = sub(shellCoordinates[0][0][m][n], bx)
+                    nx = [bx] + [shellCoordinates[0][n3][m][n] for n3 in range(nloop)]
+                    nd3 = [bd3] + [shellCoordinates[3][n3][m][n] for n3 in range(nloop)]
+                    sd3 = smoothCubicHermiteDerivativesLine(nx, nd3, fixAllDirections=True,
+                                                            magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                    for n3 in range(nloop):
+                        shellCoordinates[3][n3][m][n] = sd3[n3 + 1]
+
+            # smooth transition/shell ext coordinates along d2
+            for n2 in range(self._elementsCountAround):
+                m, n = boxBoundaryNodeToBoxId[n2]
+                for n3 in range(nodesCountRim - 1):
+                    tx = self._getRimExtCoordinatesAround(n3)[0][n2]
+                    bx = shellCoordinates[0][n3][m][n]
+                    bd2 = sub(bx, tx)
+                    nx = [bx, tx]
+                    nd2 = [bd2, self._getRimExtCoordinatesAround(n3)[2][n2]]
+                    sd2 = smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True,
+                                                            magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                    if self._elementsCountTransition - 1 > n3:
+                        self._transitionExtCoordinates[idx][2][n3][n2] = sd2[1]
+                    else:
+                        n3p = n3 - 1 - self._elementsCountTransition if self._elementsCountTransition > 1 else n3
+                        self._shellExtCoordinates[idx][2][n3p][n2] = sd2[1]
+
+            # smooth shell ext coordinates along d3
+            for n2 in range(self._elementsCountAround):
+                m, n = boxBoundaryNodeToBoxId[n2]
+                bx = boxCoordinates[0][m][n]
+                tx = [self._getRimExtCoordinatesAround(n3)[0][n2] for n3 in range(nodesCountRim)]
+                bd3 = sub(bx, tx[0])
+                td3 = [self._getRimExtCoordinatesAround(n3)[3][n2] for n3 in range(nodesCountRim)]
+                nx = [bx] + tx
+                nd3 = [bd3] + td3
+                sd3 = smoothCubicHermiteDerivativesLine(nx, nd3, fixAllDirections=True,
+                                                        magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                self._shellExtCoordinates[idx][3][0][n2] = sd3[1]
+
+    def _createBoxBoundaryNodeIdsList(self):
+        """
+        Creates a list (in a circular format similar to other rim node id lists) of core box node ids that are
+        located at the boundary of the core. This list is used to easily stitch inner rim nodes with box nodes.
+        Used specifically for solid core at the junction.
+        :return: A list of box node ids stored in a circular format, and a lookup list that translates indexes used in
+        boxBoundaryNodeIds list to indexes that can be used in boxCoordinates list.
+        """
+        boxBoundaryNodeToBoxId = []
+        elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
+        elementsCountCoreBoxMinor = self._elementsCountCoreBoxMinor
+        coreBoxMajorNodesCount = elementsCountCoreBoxMajor + 1
+        coreBoxMinorNodesCount = elementsCountCoreBoxMinor + 1
+
+        for n3 in range(coreBoxMajorNodesCount):
+            if n3 == 0 or n3 == coreBoxMajorNodesCount - 1:
+                n1List = list(range(coreBoxMinorNodesCount)) if n3 == 0 else (
+                    list(range(coreBoxMinorNodesCount - 1, -1, -1)))
+                for n1 in n1List:
+                    boxBoundaryNodeToBoxId.append([n3, n1])
+            else:
+                for n1 in [-1, 0]:
+                    boxBoundaryNodeToBoxId.append([n3, n1])
+
+        start = elementsCountCoreBoxMajor - 2
+        idx = elementsCountCoreBoxMinor + 2
+        for n in range(int(start), -1, -1):
+            boxBoundaryNodeToBoxId.append(boxBoundaryNodeToBoxId.pop(idx + 2 * n))
+
+        nloop = elementsCountCoreBoxMinor // 2
+        for _ in range(nloop):
+            boxBoundaryNodeToBoxId.insert(len(boxBoundaryNodeToBoxId), boxBoundaryNodeToBoxId.pop(0))
+
+        return boxBoundaryNodeToBoxId
 
     def _createBoundaryNodeIdsList(self, nodeIds):
         """
@@ -1789,6 +1898,8 @@ class CapMesh:
                     self._sampleCapCoordinatesWithoutCore()
             else:
                 continue
+
+        return self._boxExtCoordinates, self._transitionExtCoordinates, self._shellExtCoordinates
 
     def generateNodes(self, generateData, isStartCap=True, isCore=False):
         """

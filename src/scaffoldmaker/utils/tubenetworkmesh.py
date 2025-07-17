@@ -383,6 +383,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
         self._boxElementIds = None  # [along][major][minor]
 
+        self._boxExtCoordinates = None
+        self._transitionExtCoordinates = None
+        self.rimExtCoordinates = None
+
         self._networkPathParameters = pathParametersList
         self._isCap = networkSegment.isCap()
         if self._isCap:
@@ -631,7 +635,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         if self._isCap:
             # sample coordinates for the cap mesh at the ends of a tube segment
-            self._capMesh.sampleCoordinates(self._boxCoordinates, self._transitionCoordinates, self._rimCoordinates)
+            self._boxExtCoordinates, self._transitionExtCoordinates, self.rimExtCoordinates = (
+                self._capMesh.sampleCoordinates(self._boxCoordinates, self._transitionCoordinates, self._rimCoordinates))
+
+            self._smoothD2DerivativesAtCapTubeJoint()
 
     def _sampleCoreCoordinates(self, elementsCountAlong):
         """
@@ -1147,6 +1154,48 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                                                       boxBoundaryNodeToBoxId[n2].pop(0))
 
         return boxBoundaryNodeIds, boxBoundaryNodeToBoxId
+
+    def _smoothD2DerivativesAtCapTubeJoint(self):
+        """
+        Smooths D2 derivatives at the joint where the cap and the tube surfaces join to eliminate zero Jacobian contours.
+        """
+        for i in [0, -1]:
+            if not self._isCap[i]:
+                continue
+
+            capCoordinates = self._boxExtCoordinates[i]
+            for m in range(self._elementsCountCoreBoxMajor + 1):
+                for n in range(self._elementsCountCoreBoxMinor + 1):
+                    nx = [capCoordinates[0][m][n], self._boxCoordinates[0][i][m][n]]
+                    nd2 = [capCoordinates[2][m][n], self._boxCoordinates[2][i][m][n]]
+                    if i == -1:
+                        nx.reverse()
+                        nd2.reverse()
+                    sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
+                    self._boxCoordinates[2][i][m][n] = sd2[1]
+
+            capCoordinates = self.rimExtCoordinates[i]
+            for n3 in range(self._elementsCountThroughShell + 1):
+                for n1 in range(self._elementsCountAround):
+                    nx = [capCoordinates[0][n3][n1], self._rimCoordinates[0][i][n3][n1]]
+                    nd2 = [capCoordinates[2][n3][n1], self._rimCoordinates[2][i][n3][n1]]
+                    if i == -1:
+                        nx.reverse()
+                        nd2.reverse()
+                    sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
+                    self._rimCoordinates[2][i][n3][n1] = sd2[1]
+
+            if self._transitionExtCoordinates is not None:
+                capCoordinates = self._transitionExtCoordinates[i]
+                for n3 in range(self._elementsCountTransition - 1):
+                    for n1 in range(self._elementsCountAround):
+                        nx = [capCoordinates[0][n3][n1], self._transitionCoordinates[0][i][n3][n1]]
+                        nd2 = [capCoordinates[2][n3][n1], self._transitionCoordinates[2][i][n3][n1]]
+                        if i == -1:
+                            nx.reverse()
+                            nd2.reverse()
+                        sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
+                        self._transitionCoordinates[2][i][n3][n1] = sd2[1]
 
     @classmethod
     def blendSampledCoordinates(cls, segment1, nodeIndexAlong1, segment2, nodeIndexAlong2):
