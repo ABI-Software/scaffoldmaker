@@ -146,6 +146,34 @@ def getEllipseRadiansToX(ax, bx, dx, initialTheta):
     return theta
 
 
+def getEllipsePointAtTrueAngle(a, b, angle_radians):
+    """
+    Get coordinates of intersection point of ellipse centred at origin with line radiating from origin at an angle.
+    :param a: x/major axis length.
+    :param b: y/minor axis length.
+    :param angle_radians: Angle in radians starting at x axis, increasing towards y axis.
+    :return: x, y
+    """
+    # ellipse equation: x ** 2 / a ** 2 + y ** 2 / b ** 2 - 1 = 0
+    cos_angle = math.cos(angle_radians)
+    sin_angle = math.sin(angle_radians)
+    # normal to line direction:
+    ni = sin_angle
+    nj = -cos_angle
+    # line equation: ni * x + nj * y = 0
+    if math.fabs(nj) > math.fabs(ni):
+        # substitute y and solve for x
+        denominator = 1.0 / (a * a) + (ni * ni) / (nj * nj * b * b)
+        x = math.copysign(math.sqrt(1.0 / denominator), cos_angle)
+        y = (-ni / nj) * x
+    else:
+        # substitute y and solve for x
+        denominator = 1.0 / (b * b) + (nj * nj) / (ni * ni * a * a)
+        y = math.copysign(math.sqrt(1.0 / denominator), sin_angle)
+        x = (-nj / ni) * y
+    return x, y
+
+
 def sampleEllipsePoints(centre: list, majorAxis: list, minorAxis: list, angle1Radians: float, angle2Radians: float,
                         elementCount: int):
     """

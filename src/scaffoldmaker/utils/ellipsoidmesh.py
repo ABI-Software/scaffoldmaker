@@ -11,36 +11,62 @@ class EllipsoidMesh:
     Generates a solid ellipsoid of hexahedral elements with oblique cross axes suited to describing lung geometry.
     """
 
-    def __init__(self, element_counts, transition_element_count, sizes, axis1_rotation_radians, axis3_rotation_radians):
+    def __init__(self, element_counts, transition_element_count, axis_lengths,
+                 axis2_x_rotation_radians, axis3_x_rotation_radians):
+        """
+
+        :param element_counts:
+        :param transition_element_count:
+        :param axis_lengths: List of 3 ellipse axis lengths [a, b, c] in x, y, z direction
+        :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
+        :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
+        """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
         self._element_counts = element_counts
         self._transition_element_count = transition_element_count
-        self._sizes = sizes
-        self._axis1_rotation_radians = axis1_rotation_radians
-        self._axis3_rotation_radians = axis3_rotation_radians
-        self._box_element_count1 = self._element_counts[0] - self._transition_element_count * 2
-        self._box_element_count2 = self._element_counts[1] - self._transition_element_count * 2
-        self._rim_element_count_around12 = (self._element_counts[0] + self._element_counts[1]) * 2
-        parameters = [None] * 4  # x, d1, d2, d3
-        self._box_coordinates = []  # over n3, n2, n1, d
-        self._box_nids = []
-        self._rim_coordinates = []  # over n3, n2 (through wall), n1 (around), d
-        self._rim_nids = []
+        self._axis_lengths = axis_lengths
+        self._axis2_x_rotation_radians = axis2_x_rotation_radians
+        self._axis3_x_rotation_radians = axis3_x_rotation_radians
+        none_parameters = [None] * 4  # x, d1, d2, d3
+        self._nx = []  # shield mesh with holes over n3, n2, n1, d
+        self._nids = []
+        half_counts = [count // 2 for count in self._element_counts]
         for n3 in range(self._element_counts[2] + 1):
-            box_coordinates_layer = [[copy.copy(parameters) for n1 in range(self._box_element_count1 + 1)]
-                         for n2 in range(self._box_element_count2 + 1)]
-            self._box_coordinates.append(box_coordinates_layer)
-            box_nids_layer = [[None] * (self._box_element_count1 + 1) for n2 in range(self._box_element_count2 + 1)]
-            self._box_nids.append(box_nids_layer)
-            # no rim ring in start/end transition layers
-            has_rim = self._transition_element_count <= n3 < (self._element_counts[2] - self._transition_element_count)
-            rim_coordinates_layer = [[copy.copy(parameters) for nc in range(self._rim_element_count_around12)]
-                                     for nr in range(self._transition_element_count)] if has_rim else None
-            self._rim_coordinates.append(rim_coordinates_layer)
-            rim_nids_layer = [[None] * self._rim_element_count_around12
-                              for nr in range(self._transition_element_count)] if has_rim else None
-            self._rim_nids.append(rim_nids_layer)
+            # index into transition zone
+            trans3 = (self._transition_element_count - n3) if (n3 < half_counts[2]) else \
+                (self._transition_element_count + n3 - self._element_counts[2])
+            nx_layer = []
+            nids_layer = []
+            # print(n3, trans3)
+            for n2 in range(self._element_counts[1] + 1):
+                # index into transition zone
+                trans2 = (self._transition_element_count - n2) if (n2 < half_counts[1]) else \
+                    (self._transition_element_count + n2 - self._element_counts[1])
+                nx_row = []
+                nids_row = []
+                # s = ""
+                for n1 in range(self._element_counts[0] + 1):
+                    # index into transition zone
+                    trans1 = (self._transition_element_count - n1) if (n1 < half_counts[0]) else \
+                        (self._transition_element_count + n1 - self._element_counts[0])
+                    if (((trans1 <= 0) and (trans2 <= 0) and (trans3 <= 0)) or
+                            (trans1 == trans2 == trans3) or
+                            ((trans1 < 0) and ((trans2 == trans3) or (trans2 < 0))) or
+                            ((trans2 < 0) and ((trans3 == trans1) or (trans3 < 0))) or
+                            ((trans3 < 0) and ((trans1 == trans2) or (trans1 < 0)))):
+                        parameters = copy.copy(none_parameters)
+                        # s += "[]"
+                    else:
+                        parameters = None
+                        # s += "  "
+                    nx_row.append(parameters)
+                    nids_row.append(None)
+                nx_layer.append(nx_row)
+                nids_layer.append(nids_row)
+                # print(s)
+            self._nx.append(nx_layer)
+            self._nids.append(nids_layer)
 
     def build(self):
         pass
@@ -63,34 +89,22 @@ class EllipsoidMesh:
 
         node_identifier = 1
         for n3 in range(self._element_counts[2] + 1):
-            for n2 in range(self._box_element_count2 + 1):
-                for n1 in range(self._box_element_count1 + 1):
-                    x, d1, d2, d3 = self._box_coordinates[n3][n2][n1]
-                    if x:
-                        node = nodes.createNode(node_identifier, nodetemplate)
-                        self._box_nids[n3][n2][n1] = node_identifier
-                        fieldcache.setNode(node)
-                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                        if d1:
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                        if d2:
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                        if d3:
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                        node_identifier += 1
-            if self._rim_coordinates[n3]:
-                for nr in range(self._transition_element_count):
-                    for nc in range(self._rim_element_count_around12):
-                        x, d1, d2, d3 = self._rim_coordinates[n3][nr][nc]
-                        if x:
-                            node = nodes.createNode(node_identifier, nodetemplate)
-                            self._rim_nids[n3][nr][nc] = node_identifier
-                            fieldcache.setNode(node)
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-                            if d1:
-                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
-                            if d2:
-                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
-                            if d3:
-                                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
-                            node_identifier += 1
+            for n2 in range(self._element_counts[1] + 1):
+                for n1 in range(self._element_counts[0] + 1):
+                    parameters = self._nx[n3][n2][n1]
+                    if not parameters:
+                        continue
+                    x, d1, d2, d3 = parameters
+                    if not x:
+                        continue  # while in development
+                    node = nodes.createNode(node_identifier, nodetemplate)
+                    self._nids[n3][n2][n1] = node_identifier
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    if d1:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    if d2:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    if d3:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    node_identifier += 1

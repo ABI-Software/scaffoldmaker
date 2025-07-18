@@ -20,15 +20,15 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
     @classmethod
     def getDefaultOptions(cls, parameterSetName='Default'):
         options = {
-            "Number of elements across axis 1": 6,
-            "Number of elements across axis 2": 4,
+            "Number of elements across axis 1": 4,
+            "Number of elements across axis 2": 6,
             "Number of elements across axis 3": 8,
             "Number of transition elements": 1,
-            "Size x": 1.5,
-            "Size y": 1.0,
-            "Size z": 2.0,
-            "Axis 1 rotation y degrees": 0.0,
-            "Axis 3 relative rotation y degrees": -90.0,
+            "Axis length x": 1.0,
+            "Axis length y": 1.5,
+            "Axis length z": 2.0,
+            "Axis 2 x-rotation degrees": 0.0,
+            "Axis 3 x-rotation degrees": 90.0,
             "Refine": False,
             "Refine number of elements": 4,
         }
@@ -41,11 +41,11 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Number of elements across axis 2",
             "Number of elements across axis 3",
             "Number of transition elements",
-            "Size x",
-            "Size y",
-            "Size z",
-            "Axis 1 rotation y degrees",
-            "Axis 3 relative rotation y degrees",
+            "Axis length x",
+            "Axis length y",
+            "Axis length z",
+            "Axis 2 x-rotation degrees",
+            "Axis 3 x-rotation degrees",
             "Refine",
             "Refine number of elements"
         ]
@@ -74,22 +74,12 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             dependent_changes = True
 
         for key in [
-            "Size x",
-            "Size y",
-            "Size z"
+            "Axis length x",
+            "Axis length y",
+            "Axis length z"
         ]:
             if options[key] <= 0.0:
                 options[key] = 1.0
-
-        rotation_ranges = [
-            ("Axis 1 rotation y degrees", -90, 90.0),
-            ("Axis 3 relative rotation y degrees", -150.0, -30.0)
-        ]
-        for key, min_value, max_value in rotation_ranges:
-            if options[key] <= min_value:
-                options[key] = min_value
-            elif options[key] > max_value:
-                options[key] = max_value
 
         for key in [
             "Refine number of elements"
@@ -110,15 +100,15 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         element_counts = [options[key] for key in [
             "Number of elements across axis 1", "Number of elements across axis 2", "Number of elements across axis 3"]]
         transition_element_count = options["Number of transition elements"]
-        sizes = [options[key] for key in ["Size x", "Size y", "Size z"]]
-        axis1_rotation_radians = math.radians(options["Axis 1 rotation y degrees"])
-        axis3_rotation_radians = axis1_rotation_radians + math.radians(options["Axis 3 relative rotation y degrees"])
+        axis_lengths = [options[key] for key in ["Axis length x", "Axis length y", "Axis length z"]]
+        axis2_x_rotation_radians = math.radians(options["Axis 2 x-rotation degrees"])
+        axis3_x_rotation_radians = math.radians(options["Axis 3 x-rotation degrees"])
 
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
-        ellipsoid = EllipsoidMesh(element_counts, transition_element_count, sizes,
-                                  axis1_rotation_radians, axis3_rotation_radians)
+        ellipsoid = EllipsoidMesh(element_counts, transition_element_count, axis_lengths,
+                                  axis2_x_rotation_radians, axis3_x_rotation_radians)
         ellipsoid.build()
         ellipsoid.generateMesh(fieldmodule, coordinates)
 
