@@ -391,7 +391,7 @@ class CapMesh:
         self._determineBoxDerivatives()
 
         self._remapCapCoordinates()
-        self._smoothDerivatives()
+        self._smoothDerivatives(ratio)
 
     def _createShellCoordinatesList(self):
         """
@@ -475,7 +475,7 @@ class CapMesh:
         n1 = self._elementsCountAround * 3 // 4
         ix = self._getTubeRimCoordinates(n1, idx, n3)
         for n in range(1, elementsCountAcrossMinor):
-            for nx in [0, 1]:
+            for nx in [0, 1]: # x coord and d1 derivatives
                 vi = sub(ix[nx], centre) if nx == 0 else mult(ix[nx], -1)
                 vi = div(vi, ratio[2])
                 vr = rotate_vector_around_vector(vi, refAxis, n * rotateAngle)
@@ -628,6 +628,9 @@ class CapMesh:
         layoutD3 = normalize(self._networkPathParameters[0][4][idx])
         thetaD2 = angle(layoutD2, [0.0, 1.0, 0.0])
         thetaD3 = angle(layoutD3, [0.0, 0.0, 1.0])
+        #
+        # if layoutD2[0] < 0.0:
+        #     thetaD2 *= -1.0
 
         mCount = self._elementsCountCoreBoxMajor + 1 if self._isCore else 1
         nCount = self._elementsCountCoreBoxMinor + 1 if self._isCore else self._elementsCountAround
@@ -669,13 +672,12 @@ class CapMesh:
         n1m, n1n = 0, self._elementsCountAround // 4
         ixm, ixn = (self._getTubeRimCoordinates(n, idx, n3)[0] for n in [n1m, n1n])
         majorRadius, minorRadius = (magnitude(sub(coord, centre)) for coord in [ixm, ixn])
-        # if majorRadius > minorRadius:
-        #     xRadius = majorRadius / minorRadius
-        # elif majorRadius < minorRadius:
-        #     xRadius = minorRadius / majorRadius
-        # else:
-        #     xRadius = 1.0
-        return [1.0, majorRadius, minorRadius]
+        xRadius = 1.0
+        if majorRadius > minorRadius:
+            xRadius = math.cbrt(majorRadius / minorRadius)
+        elif majorRadius < minorRadius:
+            xRadius = math.cbrt(minorRadius / majorRadius)
+        return [xRadius, majorRadius, minorRadius]
 
     def _determineShellDerivatives(self):
         """
@@ -851,7 +853,7 @@ class CapMesh:
                 d2 = mult(sub(otx, itx), signValue)
                 self._boxCoordinates[idx][2][m][n] = d2
 
-    def _smoothDerivatives(self):
+    def _smoothDerivatives(self, ratio):
         """
         Smooths derivatives to eliminate zero Jacobian contours at the cap-tube joint.
         """
@@ -867,6 +869,7 @@ class CapMesh:
             shellCoordinates = self._shellCoordinates[idx]
             tubeBoxCoordinates = self._tubeBoxCoordinates
             boxBoundaryNodeToBoxId = self._createBoxBoundaryNodeIdsList()
+            midMajorIndex = self._elementsCountCoreBoxMajor // 2
 
             # smooth derivatives along d2 for box
             for m in range(nodesCountCoreBoxMajor):
@@ -877,6 +880,43 @@ class CapMesh:
                                                             magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
                     boxCoordinates[2][m][n] = sd2[0]
                     boxExtCoordinates[2][m][n] = sd2[1]
+
+            # smooth derivatives along d2 for shell
+            if ratio != [1.0, 1.0, 1.0]:
+                for n3 in range(nloop):
+                    for m in range(nodesCountCoreBoxMajor):
+                        cx = [shellCoordinates[0][n3][m][n] for n in range(nodesCountCoreBoxMinor)]
+                        cd2 = [shellCoordinates[2][n3][m][n] for n in range(nodesCountCoreBoxMinor)]
+
+                        start = -self._elementsCountCoreBoxMinor // 2 - m
+                        end = self._elementsCountCoreBoxMinor // 2 + m
+                        rimIndex = [start, end] if idx == 0 else [end, start]
+                        rimExt = self._getRimExtCoordinatesAround(n3)
+                        ex = [rimExt[0][n2] for n2 in rimIndex]
+                        ed2 = [rimExt[2][n2] for n2 in rimIndex]
+
+                        if idx == -1:
+                            cx.reverse()
+                            cd2.reverse()
+
+                        nx = [ex[0]] + cx + [ex[1]]
+                        if idx == 0:
+                            nd2 = [mult(ed2[0], -1.0)] + cd2 + [ed2[1]]
+                        else:
+                            nd2 = [ed2[0]] + cd2 + [mult(ed2[1], -1.0)]
+
+                        if m == midMajorIndex:
+                            sd2 = smoothCubicHermiteDerivativesLine(nx, nd2,
+                                                                    magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)[1:-1]
+                        else:
+                            sd2 = smoothCubicHermiteDerivativesLine(nx, nd2, fixAllDirections=True,
+                                                                    magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)[1:-1]
+
+                        if idx == -1:
+                            sd2.reverse()
+
+                        for n in range(nodesCountCoreBoxMinor):
+                            shellCoordinates[2][n3][m][n] = sd2[n]
 
             # smooth derivatives along d3 for shell
             for m in range(nodesCountCoreBoxMajor):
