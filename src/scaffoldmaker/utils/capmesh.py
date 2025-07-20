@@ -628,9 +628,9 @@ class CapMesh:
         layoutD3 = normalize(self._networkPathParameters[0][4][idx])
         thetaD2 = angle(layoutD2, [0.0, 1.0, 0.0])
         thetaD3 = angle(layoutD3, [0.0, 0.0, 1.0])
-        #
-        # if layoutD2[0] < 0.0:
-        #     thetaD2 *= -1.0
+
+        if layoutD2[0] < 0.0:
+            thetaD2 *= -1.0
 
         mCount = self._elementsCountCoreBoxMajor + 1 if self._isCore else 1
         nCount = self._elementsCountCoreBoxMinor + 1 if self._isCore else self._elementsCountAround
