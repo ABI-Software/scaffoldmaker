@@ -79,15 +79,15 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 4.844335733470136, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 15.289023987470623, delta=tol)
+            self.assertAlmostEqual(volume, 4.8399524698282725, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 15.277545756184905, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "core": (176, 2.880428953529323),
-            "shell": (112, 1.9640545714444255),
-            "kidney capsule": (288, 4.844483524973759)
+            "core": (176, 2.8838746320298183),
+            "shell": (112, 1.9560431675458367),
+            "kidney capsule": (288, 4.839917799575645)
             }
         for name in expectedSizes3d:
             term = get_kidney_term(name)
@@ -103,8 +103,8 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "shell": (448, 37.8673195697525),
-            "kidney capsule": (920, 66.45790167672409)
+            "shell": (448, 37.84060276636123),
+            "kidney capsule": (920, 66.4453245855002)
             }
         for name in expectedSizes2d:
             term = get_kidney_term(name)
