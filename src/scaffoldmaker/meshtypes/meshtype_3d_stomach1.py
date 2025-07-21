@@ -123,21 +123,21 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
             'meshEdits': exnode_string_from_nodeset_field_parameters(
                 ['coordinates'],
                 [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D2_DS1DS2, Node.VALUE_LABEL_D_DS3, Node.VALUE_LABEL_D2_DS1DS3], [[
-                (1, [[11.750,-111.874,1127.887], [7.636,-5.715,-7.930], [5.678,1.265,4.556], [-8.397,13.092,24.878], [-0.708,-3.530,1.862], [-0.807,-7.995,7.596]]),
-                (2, [[23.789,-117.922,1120.040], [26.354,-6.724,-6.404], [4.223,6.205,10.864], [10.037,1.800,8.968], [-1.192,-11.215,6.869], [-2.926,-13.889,10.204]]),
-                (3, [[63.704,-120.094,1123.374], [[0.500,-9.138,-13.405],[50.106,1.267,11.056]], [[37.742,-3.477,3.778],[-2.509,7.605,10.499]], [[3.190,-0.590,-0.290],[3.190,-0.590,-0.290]], [[-5.452,-34.121,23.056],[-1.379,-10.790,7.486]], [[-0.100,-1.220,0.550],[-0.100,-1.220,0.550]]]),
-                (4, [[61.247,-99.931,1152.681], [0.346,-2.728,-3.873], [11.320,-0.365,1.269], [15.701,-3.029,2.832], [-0.653,-5.931,4.119], [-5.756,-22.456,14.946]]),
-                (5, [[61.743,-103.510,1147.760], [0.413,-3.592,-5.311], [24.159,-2.387,3.493], [10.039,-1.491,0.928], [-2.982,-15.339,10.142], [-2.384,-12.784,8.034]]),
-                (6, [[62.381,-107.527,1141.785], [0.249,-4.737,-7.073], [30.559,-2.973,3.067], [5.720,-0.448,-0.071], [-3.839,-23.420,15.550], [-0.206,-5.098,2.599]]),
-                (7, [[62.800,-113.150,1133.665], [0.116,-6.546,-9.651], [35.408,-3.630,2.888], [4.541,-0.488,0.325], [-4.677,-29.659,20.061], [-0.383,-3.012,1.219]]),
-                (8, [[64.339,-131.197,1107.233], [0.086,-11.682,-16.915], [39.201,-3.705,2.758], [0.490,-2.470,-4.030], [-5.108,-35.712,24.638], [0.260,0.760,0.250]]),
-                (9, [[62.912,-143.954,1088.811], [-5.216,-12.408,-17.967], [34.623,-8.161,-4.415], [-4.950,-4.940,-8.800], [-4.917,-34.532,25.275], [0.770,0.610,1.050]]),
-                (10, [[53.361,-155.397,1072.006], [-15.833,-9.775,-15.486], [25.117,-13.916,-16.896], [-14.190,-3.410,-7.580], [-2.355,-30.712,21.794], [2.030,4.350,-1.240]]),
-                (11, [[32.110,-162.230,1059.680], [-22.173,-3.681,-8.142], [10.067,-16.126,-20.126], [-15.400,0.330,-0.620], [-2.559,-23.629,17.653], [1.200,8.620,-5.080]]),
-                (12, [[10.560,-162.970,1055.650], [-20.956,2.164,-0.908], [-0.696,-13.976,-17.241], [-8.750,2.830,4.760], [-2.502,-18.048,14.732], [-1.000,7.490,-3.260]]),
-                (13, [[-8.740,-158.280,1057.630], [-17.269,8.027,2.588], [-6.253,-10.164,-10.200], [-2.630,4.430,6.290], [-3.442,-11.913,13.981], [-1.380,7.080,-2.660]]),
-                (14, [[-23.260,-147.620,1060.640], [-11.787,11.369,1.720], [-5.807,-5.321,-4.621], [-0.700,3.020,1.710], [-3.207,-4.764,9.515], [-2.080,5.830,-2.460]]),
-                (15, [[-32.281,-136.261,1061.249], [-6.125,11.114,-0.493], [-5.735,-3.374,-4.823], [-2.070,-0.220,-4.520], [-4.630,-2.238,7.071], [-4.400,2.440,0.570]]) 
+                (1, [[8.225,-110.042,1130.494], [17.674,-15.065,-22.956], [6.092,0.940,4.074], [1.229,3.363,5.229], [-0.669,-3.559,1.821], [0.256,-3.730,2.087]]),
+                (2, [[27.268,-119.049,1120.363], [29.345,-6.635,-5.589], [3.536,6.355,11.021], [-4.563,2.025,2.177], [-1.229,-11.215,6.861], [1.619,-4.227,2.277]]),
+                (3, [[63.704,-120.094,1123.374], [[0.842,-9.011,-13.227],[41.742,4.358,11.135]], [[37.708,-3.017,4.455],[-3.481,6.664,10.443]], [[1.955,-0.619,-0.927],[1.246,-0.837,-1.425]], [[-5.447,-34.193,22.949],[-0.678,-11.218,6.933]], [[-0.269,-2.561,2.982],[-1.558,4.051,-2.388]]]),
+                (4, [[61.247,-99.931,1152.681], [0.427,-3.349,-4.397], [11.314,-0.313,1.337], [16.186,-3.105,3.004], [-0.672,-5.774,4.333], [-3.234,-9.056,7.808]]),
+                (5, [[61.743,-103.510,1147.760], [0.565,-3.807,-5.444], [24.118,-2.068,3.951], [9.485,-0.404,2.240], [-2.996,-15.211,10.328], [-1.475,-9.388,4.780]]),
+                (6, [[62.381,-107.527,1141.785], [0.559,-4.813,-7.053], [30.505,-2.333,4.010], [5.777,-1.924,-2.194], [-3.842,-23.362,15.637], [-0.957,-6.170,6.414]]),
+                (7, [[62.800,-113.150,1133.665], [0.642,-6.292,-9.204], [35.350,-2.675,4.295], [3.358,1.888,3.501], [-4.676,-29.711,19.984], [-0.685,-6.454,2.135]]),
+                (8, [[64.339,-131.197,1107.233], [-0.327,-11.961,-17.331], [39.197,-4.146,2.121], [-1.413,0.507,0.138], [-5.109,-35.662,24.710], [0.316,-0.518,0.671]]),
+                (9, [[62.912,-143.954,1088.811], [-5.607,-12.396,-18.044], [34.482,-8.485,-4.886], [-6.065,-6.479,-11.671], [-4.921,-34.543,25.260], [1.721,3.665,0.276]]),
+                (10, [[53.361,-155.397,1072.006], [-15.827,-9.773,-15.483], [25.119,-13.915,-16.894], [-19.643,-7.564,-13.701], [-2.356,-30.712,21.794], [-0.170,4.599,-5.192]]),
+                (11, [[32.110,-162.230,1059.680], [-22.173,-3.681,-8.142], [10.068,-16.126,-20.126], [-12.488,0.413,0.532], [-2.559,-23.629,17.653], [1.057,6.496,-3.159]]),
+                (12, [[10.560,-162.970,1055.650], [-20.956,2.164,-0.908], [-0.697,-13.976,-17.241], [-8.999,3.378,5.491], [-2.502,-18.048,14.732], [1.647,5.538,-1.785]]),
+                (13, [[-8.740,-158.280,1057.630], [-17.269,8.027,2.588], [-6.253,-10.164,-10.200], [-3.575,5.519,6.887], [-3.442,-11.913,13.981], [-3.280,8.069,-2.019]]),
+                (14, [[-23.260,-147.620,1060.640], [-11.776,11.361,1.718], [-5.807,-5.321,-4.621], [1.528,2.286,2.595], [-3.207,-4.763,9.515], [-0.837,5.004,-3.547]]),
+                (15, [[-32.281,-136.261,1061.249], [-8.825,12.725,0.137], [-5.485,-3.752,-4.834], [-0.599,1.952,0.267], [-4.191,-2.983,7.070], [0.644,-1.559,-1.898]])
                 ]]),
                 
             'userAnnotationGroups': [
@@ -496,7 +496,7 @@ def getDefaultNetworkLayoutScaffoldPackage(cls, parameterSetName):
                 }]
         })
 
-def getDefaultOstiumSettings():
+def getDefaultOstiumSettings(parameterSetName):
     """
     Generate list of default options for ostium.
     """
@@ -516,6 +516,8 @@ def getDefaultOstiumSettings():
                 'Refine number of elements around': 4,
                 'Refine number of elements along': 4,
                 'Refine number of elements through wall': 1}
+    if 'Human 2' in parameterSetName:
+        options['Number of elements along'] = 2
 
     return options
 
@@ -627,6 +629,7 @@ class MeshType_3d_stomach1(Scaffold_base):
             options['Longitudinal muscle layer relative thickness'] = 0.25
             options['Limiting ridge'] = False
 
+        options['Base parameter set'] = parameterSetName
         return options
 
     @staticmethod
@@ -1301,6 +1304,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     :return allAnnotationGroups, nextNodeIdentifier, nextElementIdentifier, elementsAlongSections, nodeIdxDistal,
     xDistal, d1Distal, d2Distal, d3Distal, arclengthDuodenumCP, xPrev, d2Prev
     """
+    parameterSetName = options['Base parameter set']
     elementsCountAroundEso = options['Number of elements around esophagus']
     elementsCountAroundDuod = options['Number of elements around duodenum']
     elementsCountAlong = options['Number of elements along']
@@ -1312,7 +1316,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     useCrossDerivatives = False
     useCubicHermiteThroughWall = not (options['Use linear through wall'])
 
-    ostiumOptions = getDefaultOstiumSettings()
+    ostiumOptions = getDefaultOstiumSettings(parameterSetName)
     GEJSettings = updateOstiumOptions(options, ostiumOptions)
     elementsAlongEsophagus = GEJSettings['Number of elements along']
     elementsThroughEsophagusWall = GEJSettings['Number of elements through wall']
@@ -1322,6 +1326,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     GEJSettings['Use linear through ostium wall'] = options['Use linear through wall']
     GEJSettings['Use linear through vessel wall'] = options['Use linear through wall']
 
+    stomachStartElementIdentifier = elementIdentifier
     elementsCountAcrossCardia = 1
     cardiaDiameterFactor = 1.4  # scale to ostium diameter
     sf = (cardiaDiameterFactor - 1) * ostiumRadius
@@ -2429,7 +2434,7 @@ def createStomachMesh3d(region, fm, coordinates, stomachTermsAlong, allAnnotatio
     # Create elements
     fundusMucosaElementIdentifiers = []
     elementIdxMat = []
-    n = 0
+    n = stomachStartElementIdentifier - 1
     for n2 in range(elementsAlongEsophagus):
         elementIdxThroughWall = []
         for n3 in range(elementsThroughEsophagusWall):

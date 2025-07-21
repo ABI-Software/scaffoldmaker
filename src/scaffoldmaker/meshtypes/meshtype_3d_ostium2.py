@@ -1005,7 +1005,7 @@ def generateOstiumMesh(region, options, trackSurface, centralPath, startNodeIden
             forceMidLinearXi3=not useCubicHermiteThroughVesselWall,
             maxStartThickness=vesselWallThickness, maxEndThickness=vesselWallThickness,
             elementsCountRadial=elementsCountAlong, meshGroups=rowMeshGroups, wallAnnotationGroups=wallAnnotationGroups,
-            coordinates=coordinates)
+            coordinates=coordinates, rescaleStartDerivatives=True)
 
         # To visualise central path
         # nodeIdentifierLine = nodeIdentifier
