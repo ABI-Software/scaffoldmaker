@@ -632,13 +632,18 @@ class CapMesh:
         if layoutD2[0] < 0.0:
             thetaD2 *= -1.0
 
-        mCount = self._elementsCountCoreBoxMajor + 1 if self._isCore else 1
+        mCount = self._elementsCountCoreBoxMajor + 1 if self._isCore else 2
         nCount = self._elementsCountCoreBoxMinor + 1 if self._isCore else self._elementsCountAround
         # process shell coordinates
         for m in range(mCount):
-            mp = m if self._isCore else 1
             for n in range(nCount):
-                btx = self._shellCoordinates[idx][0][n3][mp][n]
+                if not self._isCore and m == 0:
+                    if n > 0:
+                        continue
+                    else:
+                        btx = self._shellCoordinates[idx][0][n3][m]
+                else:
+                    btx = self._shellCoordinates[idx][0][n3][m][n]
                 btx = sub(btx, centre)
                 # apply forward transformations
                 for vec, theta in [(layoutD3, thetaD2), (layoutD2, thetaD3)]:
@@ -649,7 +654,13 @@ class CapMesh:
                 for vec, theta in [(layoutD2, -thetaD3), (layoutD3, -thetaD2)]:
                     btx = rotate_vector_around_vector(btx, vec, theta)
                 # update shell coordinates
-                self._shellCoordinates[idx][0][n3][mp][n] = add(btx, centre)
+                if not self._isCore and m == 0:
+                    if n > 0:
+                        continue
+                    else:
+                        self._shellCoordinates[idx][0][n3][m] = add(btx, centre)
+                else:
+                    self._shellCoordinates[idx][0][n3][m][n] = add(btx, centre)
 
     def _getRatioBetweenTwoRadii(self, radii, oRadii):
         """

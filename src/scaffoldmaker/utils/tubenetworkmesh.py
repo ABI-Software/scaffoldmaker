@@ -637,7 +637,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             # sample coordinates for the cap mesh at the ends of a tube segment
             self._boxExtCoordinates, self._transitionExtCoordinates, self.rimExtCoordinates = (
                 self._capMesh.sampleCoordinates(self._boxCoordinates, self._transitionCoordinates, self._rimCoordinates))
-
+            # if self._isCore:
             self._smoothD2DerivativesAtCapTubeJoint()
 
     def _sampleCoreCoordinates(self, elementsCountAlong):
@@ -1159,10 +1159,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         Smooths D2 derivatives at the joint where the cap and the tube surfaces join to eliminate zero Jacobian contours.
         """
-        for i in [0, -1]:
-            if not self._isCap[i]:
-                continue
-
+        def smoothBoxDerivatives():
             capCoordinates = self._boxExtCoordinates[i]
             for m in range(self._elementsCountCoreBoxMajor + 1):
                 for n in range(self._elementsCountCoreBoxMinor + 1):
@@ -1174,6 +1171,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
                     self._boxCoordinates[2][i][m][n] = sd2[1]
 
+        def smoothRimDerivatives():
             capCoordinates = self.rimExtCoordinates[i]
             for n3 in range(self._elementsCountThroughShell + 1):
                 for n1 in range(self._elementsCountAround):
@@ -1196,6 +1194,17 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                             nd2.reverse()
                         sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
                         self._transitionCoordinates[2][i][n3][n1] = sd2[1]
+
+        for i in [0, -1]:
+            if not self._isCap[i]:
+                continue
+
+            if self._isCore:
+                smoothBoxDerivatives()
+                smoothRimDerivatives()
+            else:
+                smoothRimDerivatives()
+
 
     @classmethod
     def blendSampledCoordinates(cls, segment1, nodeIndexAlong1, segment2, nodeIndexAlong2):
