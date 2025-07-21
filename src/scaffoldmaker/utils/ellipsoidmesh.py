@@ -74,10 +74,10 @@ class EllipsoidMesh:
         """
         Determine coordinates and derivatives over and within ellipsoid.
         """
-
+        half_counts = [count // 2 for count in self._element_counts]
         # get outside curve in 1-2 plane starting in 1 = x direction, 1st quadrant of 1-2 loop
 
-        elements_count_q12 = (self._element_counts[0] // 2) + (self._element_counts[1] // 2) - 2
+        elements_count_q12 = half_counts[0] + half_counts[1] - 2
         start_x = [self._axis_lengths[0], 0.0, 0.0]
         start_d1 = [0.0, math.cos(self._axis2_x_rotation_radians), math.sin(self._axis2_x_rotation_radians)]
         start_d2 = [0.0, math.cos(self._axis3_x_rotation_radians), math.sin(self._axis3_x_rotation_radians)]
@@ -87,91 +87,129 @@ class EllipsoidMesh:
         end_d2 = [0.0] + getEllipseTangentAtPoint(self._axis_lengths[1], self._axis_lengths[2], end_x[1:])
         px, pd1, pd2 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
                                               start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count_q12)
-        self._setCoordinatesAroundRim(
+        self._set_coordinates_around_rim(
             [px, pd1, pd2], [[0, 1, 2]],
-            [self._element_counts[0], self._element_counts[1] // 2, self._element_counts[2] // 2],
+            [self._element_counts[0], half_counts[1], half_counts[2]],
             [[0, 1, 0], [-1, 0, 0]])
         # mirror and add 2nd quadrant of 1-2 loop
         for x, d1 in zip(px, pd1):
             x[0] = -x[0]
             d1[1] = -d1[1]
             d1[2] = -d1[2]
-        self._setCoordinatesAroundRim(
+        self._set_coordinates_around_rim(
             [px, pd1, pd2], [[0, 1, 2]],
-            [0, self._element_counts[1] // 2, self._element_counts[2] // 2],
+            [0, half_counts[1], half_counts[2]],
             [[0, 1, 0], [1, 0, 0]])
         # mirror and add 3rd quadrant of 1-2 loop
         for x, d1 in zip(px, pd1):
             x[1] = -x[1]
             x[2] = -x[2]
             d1[0] = -d1[0]
-        self._setCoordinatesAroundRim(
+        self._set_coordinates_around_rim(
             [px, pd1, pd2], [[0, 1, 2]],
-            [0, self._element_counts[1] // 2, self._element_counts[2] // 2],
+            [0, half_counts[1], half_counts[2]],
             [[0, -1, 0], [1, 0, 0]])
         # mirror and add 4th quadrant of 1-2 loop
         for x, d1 in zip(px, pd1):
             x[0] = -x[0]
             d1[1] = -d1[1]
             d1[2] = -d1[2]
-        self._setCoordinatesAroundRim(
+        self._set_coordinates_around_rim(
             [px, pd1, pd2], [[0, 1, 2]],
-            [self._element_counts[0], self._element_counts[1] // 2, self._element_counts[2] // 2],
+            [self._element_counts[0], half_counts[1], half_counts[2]],
             [[0, -1, 0], [-1, 0, 0]])
 
         # get outside curve in 1-3 plane starting in 1 = x direction, 1st quadrant of 1-3 loop
 
-        elements_count_q13 = (self._element_counts[0] // 2) + (self._element_counts[2] // 2) - 2
-        start_x = [self._axis_lengths[0], 0.0, 0.0]
-        start_d1 = [0.0, math.cos(self._axis2_x_rotation_radians), math.sin(self._axis2_x_rotation_radians)]
-        start_d2 = [0.0, math.cos(self._axis3_x_rotation_radians), math.sin(self._axis3_x_rotation_radians)]
+        elements_count_q13 = half_counts[0] + half_counts[2] - 2
+        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
+        start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
         end_x = [0.0] + getEllipsePointAtTrueAngle(
             self._axis_lengths[1], self._axis_lengths[2], self._axis3_x_rotation_radians)
         end_d2 = [-1.0, 0.0, 0.0]
         end_d1 = [0.0] + [-d for d in getEllipseTangentAtPoint(self._axis_lengths[1], self._axis_lengths[2], end_x[1:])]
         px, pd2, pd1 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
                                               start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q13)
-        self._setCoordinatesAroundRim(
-            [px, pd1, pd2], [[0, 1, 2]],
-            [self._element_counts[0], self._element_counts[1] // 2, self._element_counts[2] // 2],
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, 2], [0, 2, -1]], start_indexes,
             [[0, 0, 1], [-1, 0, 0]])
         # mirror and add 2nd quadrant of 1-3 loop
         for x, d1, d2 in zip(px, pd1, pd2):
             x[0] = -x[0]
             d1[0] = -d1[0]
             d2[0] = -d2[0]
-        self._setCoordinatesAroundRim(
-            [px, pd1, pd2], [[0, 1, 2], [0, 1, -2]],
-            [0, self._element_counts[1] // 2, self._element_counts[2] // 2],
-            [[0, 0, 1], [1, 0, 0]])
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, 2], [0, 2, 1]],
+            [0, half_counts[1], half_counts[2]],
+            [[0, 0, 1], [1, 0, 0]], skip_first=True, skip_last=True)
         # mirror and add 3rd quadrant of 1-3 loop
         for x, d1, d2 in zip(px, pd1, pd2):
             x[1] = -x[1]
             x[2] = -x[2]
-            # d1[1] = -d1[1]
-            # d1[2] = -d1[2]
             d2[0] = -d2[0]
-        self._setCoordinatesAroundRim(
-            [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]],
-            [0, self._element_counts[1] // 2, self._element_counts[2] // 2],
-            [[0, 0, -1], [1, 0, 0]])
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, 2], [0, 2, 1]],
+            [0, half_counts[1], half_counts[2]],
+            [[0, 0, -1], [1, 0, 0]], skip_first=True)
         # mirror and add 4th quadrant of 1-3 loop
         for x, d1, d2 in zip(px, pd1, pd2):
             x[0] = -x[0]
             d1[0] = -d1[0]
             d2[0] = -d2[0]
-        self._setCoordinatesAroundRim(
-            [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]],
-            [self._element_counts[0], self._element_counts[1] // 2, self._element_counts[2] // 2],
-            [[0, 0, -1], [-1, 0, 0]])
-        # centre
-        n3 = self._element_counts[2] // 2
-        n2 = self._element_counts[1] // 2
-        n1 = self._element_counts[0] // 2
-        self._nx[n3][n2][n1] = [
-            [0.0, 0.0, 0.0], [self._axis_lengths[0], 0.0, 0.0], [0.0, self._axis_lengths[1], 0.0], [0.0, 0.0, self._axis_lengths[2]]]
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, 2], [0, 2, -1]],
+            [self._element_counts[0], half_counts[1], half_counts[2]],
+            [[0, 0, -1], [-1, 0, 0]], skip_first=True, skip_last=True)
 
-    def _setCoordinatesAroundRim(self, parameters, parameter_indexes, start_indexes, index_increments):
+        # get outside curve in 2-3 plane starting in 2 direction, 1st quadrant of 2-3 loop
+        elements_count_q23 = half_counts[1] + half_counts[2] - 2
+        start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
+        start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
+        end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
+        end_d1 = [-d for d in end_d1]
+        end_d2 = [-d for d in end_d2]
+        px, pd2, pd1 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
+                                              start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q23)
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]], start_indexes,
+            [[0, 0, 1], [0, -1, 0]])
+        # mirror and add 3rd quadrant of 1-3 loop (which has same form as 1st quadrant)
+        for x, d1, d2 in zip(px, pd1, pd2):
+            x[1] = -x[1]
+            x[2] = -x[2]
+            d1[0] = -d1[0]
+            d2[1] = -d2[1]
+            d2[2] = -d2[2]
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, -2], [0, -1, 2]],
+            [half_counts[0], 0, half_counts[2]],
+            [[0, 0, -1], [0, 1, 0]])
+        # sample 2nd quadrant of 1-3 loop and blend end derivatives
+        start_indexes = [half_counts[0], 0, half_counts[2]]
+        start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
+        end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
+        px, pd2, pd1 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
+                                              start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q23)
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, 2]], start_indexes,
+            [[0, 0, 1], [0, 1, 0]], blend=True)
+        # mirror and add 4th quadrant of 1-3 loop (which has same form as 2nd quadrant)
+        for x, d1, d2 in zip(px, pd1, pd2):
+            x[1] = -x[1]
+            x[2] = -x[2]
+            d1[0] = -d1[0]
+            d2[1] = -d2[1]
+            d2[2] = -d2[2]
+        self._set_coordinates_around_rim(
+            [px, pd1, pd2], [[0, 1, -2]],
+            [half_counts[0], self._element_counts[1], half_counts[2]],
+            [[0, 0, -1], [0, -1, 0]], blend=True)
+
+
+    def _set_coordinates_around_rim(self, parameters, parameter_indexes, start_indexes, index_increments,
+                                 skip_first=False, skip_last=False, blend=False):
         """
         Insert parameters around the rim into the coordinates array.
         :param parameters: List of lists of N node parameters e.g. [px, pd1, pd2]
@@ -181,6 +219,9 @@ class EllipsoidMesh:
         :param start_indexes: Index of first point.
         :param index_increments: List of increments in indexes. Starts with first and after at each corner, then
         cycles back to first.
+        :param skip_first: Set to True to skip the first value.
+        :param skip_last: Set to True to skip the last value.
+        :param blend: Set to True to 50:50 blend parameters with any old parameters at location.
         """
         half_counts = [count // 2 for count in self._element_counts]
         indexes = start_indexes
@@ -191,12 +232,20 @@ class EllipsoidMesh:
         trans = [(self._transition_element_count - indexes[c]) if (indexes[c] < half_counts[c]) else
                  (self._transition_element_count + indexes[c] - self._element_counts[c]) for c in range(3)]
         max_trans = max(trans)
-        for n in range(len(parameters[0])):
+        start_n = 1 if skip_first else 0
+        limit_n = len(parameters[0]) - (1 if skip_last else 0)
+        for n in range(start_n, limit_n):
+            if n > 0:
+                while True:
+                    indexes = [indexes[c] + index_increment[c] for c in range(3)]
+                    # skip over blank transition coordinates
+                    if self._nx[indexes[2]][indexes[1]][indexes[0]]:
+                        break
             for parameter, pix in zip(parameters, parameter_index):
-                if pix < 0:
-                    self._nx[indexes[2]][indexes[1]][indexes[0]][-pix] = [-d for d in parameter[n]]
-                else:
-                    self._nx[indexes[2]][indexes[1]][indexes[0]][pix] = copy.copy(parameter[n])
+                new_parameter = [-d for d in parameter[n]] if (pix < 0) else copy.copy(parameter[n])
+                old_parameter = self._nx[indexes[2]][indexes[1]][indexes[0]][abs(pix)] if blend else None
+                self._nx[indexes[2]][indexes[1]][indexes[0]][abs(pix)] = \
+                    [0.5 * (old_parameter[c] + new_parameter[c]) for c in range(3)] if old_parameter else new_parameter
             trans = [(self._transition_element_count - indexes[c]) if (indexes[c] < half_counts[c]) else
                      (self._transition_element_count + indexes[c] - self._element_counts[c]) for c in range(3)]
             if trans.count(max_trans) > 1:
@@ -208,13 +257,8 @@ class EllipsoidMesh:
                 if increment_number == len(index_increments):
                     increment_number = 0
                 index_increment = index_increments[increment_number]
-            while True:
-                indexes = [indexes[c] + index_increment[c] for c in range(3)]
-                # skip over blank transition coordinates
-                if self._nx[indexes[2]][indexes[1]][indexes[0]]:
-                    break
 
-    def generateMesh(self, fieldmodule, coordinates):
+    def generate_mesh(self, fieldmodule, coordinates):
         """
         After build() has been called, generate nodes and elements of ellipsoid.
         Client is expected to run within ChangeManager(fieldmodule).

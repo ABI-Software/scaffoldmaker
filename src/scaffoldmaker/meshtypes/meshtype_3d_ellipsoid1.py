@@ -110,7 +110,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         ellipsoid = EllipsoidMesh(element_counts, transition_element_count, axis_lengths,
                                   axis2_x_rotation_radians, axis3_x_rotation_radians)
         ellipsoid.build()
-        ellipsoid.generateMesh(fieldmodule, coordinates)
+        ellipsoid.generate_mesh(fieldmodule, coordinates)
 
         return [], None
 
