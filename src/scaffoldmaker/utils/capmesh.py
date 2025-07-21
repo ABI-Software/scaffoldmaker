@@ -229,7 +229,7 @@ class CapMesh:
         innerWidth = innerLength = outerRadius - shellThickness
 
         elementLengthRatioEquatorApex = 1.0
-        lengthRatio = 1.0
+        lengthRatio = 2.0
 
         bOuter = 2.0 / (1.0 + elementLengthRatioEquatorApex / lengthRatio)
         aOuter = 1.0 - bOuter
@@ -685,9 +685,9 @@ class CapMesh:
         majorRadius, minorRadius = (magnitude(sub(coord, centre)) for coord in [ixm, ixn])
         xRadius = 1.0
         if majorRadius > minorRadius:
-            xRadius = math.cbrt(majorRadius / minorRadius)
+            xRadius = math.pow((majorRadius / minorRadius), 1/3)
         elif majorRadius < minorRadius:
-            xRadius = math.cbrt(minorRadius / majorRadius)
+            xRadius = math.pow((minorRadius / majorRadius), 1/3)
         return [xRadius, majorRadius, minorRadius]
 
     def _determineShellDerivatives(self):
