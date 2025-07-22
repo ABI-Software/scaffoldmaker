@@ -386,11 +386,15 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
 
         renalPyramidMeshGroup = renalPyramidGroup.getMeshGroup(mesh)
         minorCalyxElementsCount = 1
-        renalPyramidElementsCount = 2
+        pyramidElementsCount = 3
         for calyx in minorCalyxList:
             for side in range(nMinorCalyxesList[calyx]):
-                for count, groupCount in [(minorCalyxElementsCount, renalPyramidElementsCount)]:
+                for count, groupCount in [(minorCalyxElementsCount, pyramidElementsCount)]:
                     for e in range(count):
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        renalPyramidMeshGroup.addElement(element)
+                        elementIdentifier += 1
+                    for e in range(pyramidElementsCount):
                         element = mesh.findElementByIdentifier(elementIdentifier)
                         renalPyramidMeshGroup.addElement(element)
                         elementIdentifier += 1
