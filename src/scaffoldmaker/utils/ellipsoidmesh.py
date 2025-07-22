@@ -311,6 +311,35 @@ class EllipsoidMesh:
             [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
             [[0, 0, 1]], [2], [-1, -2], fix_start_direction=True)
 
+        # mirror octant over x = 0
+        for n3 in range(half_counts[2], self._element_counts[2] + 1):
+            for n2 in range(half_counts[1], self._element_counts[1] + 1):
+                for n1 in range(half_counts[0] + 1, self._element_counts[0] + 1):
+                    parameters = self._nx[n3][n2][n1]
+                    if not parameters or not parameters[0]:
+                        continue
+                    x, d1, d2, d3 = parameters
+                    x = [-x[0], x[1], x[2]]
+                    d1 = [d1[0], -d1[1], -d1[2]] if d1 else None
+                    d2 = [-d2[0], d2[1], d2[2]] if d2 else None
+                    d3 = [-d3[0], d3[1], d3[2]] if d3 else None
+                    self._nx[n3][n2][self._element_counts[0] - n1] = [x, d1, d2, d3]
+
+        # mirror quadrant about both y = 0 and z = 0
+        for n3 in range(half_counts[2], self._element_counts[2] + 1):
+            for n2 in range(half_counts[1], self._element_counts[1] + 1):
+                for n1 in range(self._element_counts[0] + 1):
+                    parameters = self._nx[n3][n2][n1]
+                    if not parameters or not parameters[0]:
+                        continue
+                    x, d1, d2, d3 = parameters
+                    x = [x[0], -x[1], -x[2]]
+                    d1 = [-d1[0], d1[1], d1[2]] if d1 else None
+                    d2 = [-d2[0], d2[1], d2[2]] if d2 else None
+                    d3 = [d3[0], d3[1], -d3[2]] if d3 else None
+                    self._nx[self._element_counts[2] - n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
+
+
     def _next_increment_out_of_bounds(self, indexes, index_increment):
         for c in range(3):
             index = indexes[c] + index_increment[c]
@@ -513,7 +542,7 @@ class EllipsoidMesh:
             # bottom rectangle
             bottom_nids = self._nids[0]
             last_nids_row = None
-            for i2, n2 in enumerate(reversed(rim_indexes[1])):
+            for i2, n2 in enumerate(rim_indexes[1]):
                 nids_row = []
                 for i1, n1 in enumerate(reversed(rim_indexes[0])):
                     nids_row.append(bottom_nids[n2][n1])
@@ -570,16 +599,16 @@ class EllipsoidMesh:
                         elementtemplate = elementtemplate_regular
                         eft = eft_regular
                         scalefactors = None
-                        if n3 in (0, self._element_counts[2]):
+                        if n3 in (rim_indexes[2][1], self._element_counts[2]):
                             node_parameters = [
                                 last_parameters_row[n], last_parameters_row[(n + 1) % elements_count_around12],
                                 parameters_row[n], parameters_row[(n + 1) % elements_count_around12]]
-                            if n3 == 0:
+                            if n3 == rim_indexes[2][1]:
                                 node_layouts = [node_layout_permuted, node_layout_permuted, None, None]
                                 if last_corners_row[n]:
-                                    node_layouts[0] = node_layout_triple_points[q]
+                                    node_layouts[0] = node_layout_triple_points[(5 - q) % 4]
                                 elif last_corners_row[(n + 1) % elements_count_around12]:
-                                    node_layouts[1] = node_layout_triple_points[q]
+                                    node_layouts[1] = node_layout_triple_points[(5 - q) % 4]
                             else:
                                 node_layouts = [None, None, node_layout_permuted, node_layout_permuted]
                                 if corners_row[n]:

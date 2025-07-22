@@ -685,11 +685,11 @@ class HermiteNodeLayoutManager:
         self._nodeLayoutTriplePoint2DQ1 = HermiteNodeLayout(
             [[-1.0, 0.0], [0.0, -1.0], [1.0, 1.0]])
         self._nodeLayoutTriplePoint2DQ2 = HermiteNodeLayout(
-            [[1.0, 0.0], [0.0, -1.0], [-1.0, 1.0]])
+            [[0.0, -1.0], [1.0, 0.0], [-1.0, 1.0]])
         self._nodeLayoutTriplePoint2DQ3 = HermiteNodeLayout(
             [[1.0, 0.0], [0.0, 1.0], [-1.0, -1.0]])
         self._nodeLayoutTriplePoint2DQ4 = HermiteNodeLayout(
-            [[-1.0, 0.0], [0.0, 1.0], [1.0, -1.0]])
+            [[0.0, 1.0], [-1.0, 0.0], [1.0, -1.0]])
         self._nodeLayoutTriplePointTopLeft = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
         self._nodeLayoutTriplePointTopRight = HermiteNodeLayout(
