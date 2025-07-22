@@ -682,6 +682,14 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 1.0, 0.0],
              [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [1.0, -1.0, 0.0],
              [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayoutTriplePoint2DQ1 = HermiteNodeLayout(
+            [[-1.0, 0.0], [0.0, -1.0], [1.0, 1.0]])
+        self._nodeLayoutTriplePoint2DQ2 = HermiteNodeLayout(
+            [[1.0, 0.0], [0.0, -1.0], [-1.0, 1.0]])
+        self._nodeLayoutTriplePoint2DQ3 = HermiteNodeLayout(
+            [[1.0, 0.0], [0.0, 1.0], [-1.0, -1.0]])
+        self._nodeLayoutTriplePoint2DQ4 = HermiteNodeLayout(
+            [[-1.0, 0.0], [0.0, 1.0], [1.0, -1.0]])
         self._nodeLayoutTriplePointTopLeft = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
         self._nodeLayoutTriplePointTopRight = HermiteNodeLayout(
@@ -731,11 +739,20 @@ class HermiteNodeLayoutManager:
         """
         return self._nodeLayout8Way12_d3Defined if d3Defined else self._nodeLayout8Way12
 
+    def getNodeLayoutTriplePoint2D(self):
+        """
+        Get node layout for triple-point corners of 2D quadrants.
+        :return: List of 4 HermiteNodeLayout.
+        """
+        nodeLayouts = [self._nodeLayoutTriplePoint2DQ1, self._nodeLayoutTriplePoint2DQ2,
+                       self._nodeLayoutTriplePoint2DQ3, self._nodeLayoutTriplePoint2DQ4]
+        return nodeLayouts
+
     def getNodeLayoutTriplePoint(self):
         """
         Get node layout for triple-point corners of core box elements. There are four corners (Top Left, Top Right,
         Bottom Left, and Bottom Right) each with its specific node layout.
-        :return: HermiteNodeLayout.
+        :return: List of 4 HermiteNodeLayout.
         """
         nodeLayouts = [self._nodeLayoutTriplePointTopLeft, self._nodeLayoutTriplePointTopRight,
                        self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]

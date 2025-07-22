@@ -23,6 +23,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Number of elements across axis 1": 4,
             "Number of elements across axis 2": 6,
             "Number of elements across axis 3": 8,
+            "2D surface only": True,
             "Number of transition elements": 1,
             "Axis length x": 1.0,
             "Axis length y": 1.5,
@@ -41,6 +42,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Number of elements across axis 2",
             "Number of elements across axis 3",
             "Number of transition elements",
+            "2D surface only",
             "Axis length x",
             "Axis length y",
             "Axis length z",
@@ -103,12 +105,13 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         axis_lengths = [options[key] for key in ["Axis length x", "Axis length y", "Axis length z"]]
         axis2_x_rotation_radians = math.radians(options["Axis 2 x-rotation degrees"])
         axis3_x_rotation_radians = math.radians(options["Axis 3 x-rotation degrees"])
+        surface_only = options["2D surface only"]
 
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
         ellipsoid = EllipsoidMesh(element_counts, transition_element_count, axis_lengths,
-                                  axis2_x_rotation_radians, axis3_x_rotation_radians)
+                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
         ellipsoid.build()
         ellipsoid.generate_mesh(fieldmodule, coordinates)
 

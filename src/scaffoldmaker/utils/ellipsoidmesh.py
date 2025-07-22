@@ -3,9 +3,16 @@ Utilities for building solid ellipsoid meshes from hexahedral elements.
 """
 import copy
 import math
+from cmlibs.maths.vectorops import add, magnitude, mult, set_magnitude, sub
+from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
-from scaffoldmaker.utils.geometry import getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, sampleCurveOnEllipsoid
+from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
+from scaffoldmaker.utils.geometry import (
+    getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
+    moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteArcLength, interpolateCubicHermite, smoothCubicHermiteDerivativesLine)
 
 
 class EllipsoidMesh:
@@ -14,7 +21,7 @@ class EllipsoidMesh:
     """
 
     def __init__(self, element_counts, transition_element_count, axis_lengths,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians):
+                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False):
         """
 
         :param element_counts:
@@ -22,6 +29,7 @@ class EllipsoidMesh:
         :param axis_lengths: List of 3 ellipse axis lengths [a, b, c] in x, y, z direction
         :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
         :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
+        :param surface_only: Set to True to only make nodes and 2-D elements on the surface.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
@@ -30,6 +38,7 @@ class EllipsoidMesh:
         self._axis_lengths = axis_lengths
         self._axis2_x_rotation_radians = axis2_x_rotation_radians
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
+        self._surface_only = surface_only
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
@@ -75,9 +84,10 @@ class EllipsoidMesh:
         Determine coordinates and derivatives over and within ellipsoid.
         """
         half_counts = [count // 2 for count in self._element_counts]
+
         # get outside curve in 1-2 plane starting in 1 = x direction, 1st quadrant of 1-2 loop
 
-        elements_count_q12 = half_counts[0] + half_counts[1] - 2
+        elements_count_q12 = half_counts[0] + half_counts[1] - 2 * self._transition_element_count
         start_x = [self._axis_lengths[0], 0.0, 0.0]
         start_d1 = [0.0, math.cos(self._axis2_x_rotation_radians), math.sin(self._axis2_x_rotation_radians)]
         start_d2 = [0.0, math.cos(self._axis3_x_rotation_radians), math.sin(self._axis3_x_rotation_radians)]
@@ -121,7 +131,7 @@ class EllipsoidMesh:
 
         # get outside curve in 1-3 plane starting in 1 = x direction, 1st quadrant of 1-3 loop
 
-        elements_count_q13 = half_counts[0] + half_counts[2] - 2
+        elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
         start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
         start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
         end_x = [0.0] + getEllipsePointAtTrueAngle(
@@ -162,7 +172,7 @@ class EllipsoidMesh:
             [[0, 0, -1], [-1, 0, 0]], skip_first=True, skip_last=True)
 
         # get outside curve in 2-3 plane starting in 2 direction, 1st quadrant of 2-3 loop
-        elements_count_q23 = half_counts[1] + half_counts[2] - 2
+        elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
         start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
         start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
         end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
@@ -207,6 +217,106 @@ class EllipsoidMesh:
             [half_counts[0], self._element_counts[1], half_counts[2]],
             [[0, 0, -1], [0, -1, 0]], blend=True)
 
+        # sample octant between positive 1, 2 and 3 axes
+
+        regular_row_counts = [half_counts[i] - self._transition_element_count - 1 for i in range(3)]
+        offset_half_counts = [half_counts[i] + regular_row_counts[i] for i in range(3)]
+        # 1-2 curve in 3-direction
+        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
+        end_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
+        for i in range(regular_row_counts[2] + 1):
+            start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+            end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
+            px, pd1, pd2 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
+                                                  start_x, start_d1, start_d2, end_x, end_d1, end_d2,
+                                                  elements_count_q12)
+            self._set_coordinates_around_rim(
+                [px, pd1, pd2], [[0, 1, 2]], start_indexes,
+                [[0, 1, 0], [-1, 0, 0]])
+            start_indexes[2] += 1
+            end_indexes[2] += 1
+        # 1-3 curve in 2-direction
+        start_indexes = [self._element_counts[0], half_counts[1], offset_half_counts[2]]
+        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
+        for i in range(regular_row_counts[1] + 1):
+            start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+            end_x, end_d2, end_d1 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
+            end_d2 = [-d for d in end_d2]
+            px, pd2, pd1 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
+                                                  start_x, start_d2, start_d1, end_x, end_d2, end_d1,
+                                                  elements_count_q13 - regular_row_counts[2])
+            self._set_coordinates_around_rim(
+                [px, pd1, pd2], [[0, 1, 2], [0, 2, -1]], start_indexes,
+                [[0, 0, 1], [-1, 0, 0]])
+            if (i > 0) and (regular_row_counts[2] > 0):
+                self._smooth_coordinates_around_rim(
+                    [self._element_counts[0], half_counts[1] + i, half_counts[2]],
+                    [half_counts[0], half_counts[1] + i, self._element_counts[2]],
+                    [[0, 0, 1], [-1, 0, 0]], [2, -1], [-1],
+                    fix_start_direction=True, fix_end_direction=True)
+            start_indexes[1] += 1
+            end_indexes[1] += 1
+        # 2-3 curve in 1-direction
+        start_indexes = [half_counts[0], self._element_counts[1], offset_half_counts[2]]
+        end_indexes = [half_counts[0], offset_half_counts[1], self._element_counts[2]]
+        for i in range(regular_row_counts[0] + 1):
+            start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+            end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
+            end_d1 = [-d for d in end_d1]
+            end_d2 = [-d for d in end_d2]
+            px, pd2, pd1 = sampleCurveOnEllipsoid(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2],
+                                                  start_x, start_d2, start_d1, end_x, end_d2, end_d1,
+                                                  elements_count_q23 - regular_row_counts[1] - regular_row_counts[2])
+            self._set_coordinates_around_rim(
+                [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]], start_indexes,
+                [[0, 0, 1], [0, -1, 0]])
+            if (i > 0) and ((regular_row_counts[1] > 0) or (regular_row_counts[2] > 0)):
+                self._smooth_coordinates_around_rim(
+                    [half_counts[0] + i, self._element_counts[1], half_counts[2]],
+                    [half_counts[0] + i, half_counts[1], self._element_counts[2]],
+                    [[0, 0, 1], [0, -1, 0]], [2, -2], [-2],
+                    fix_start_direction=True, fix_end_direction=True)
+            start_indexes[0] += 1
+            end_indexes[0] += 1
+        # 3-way point
+        pa1 = self._nx[self._element_counts[2]][self._element_counts[1]][offset_half_counts[0]]
+        pa2 = self._nx[self._element_counts[2]][offset_half_counts[1]][self._element_counts[0]]
+        pa3 = self._nx[offset_half_counts[2]][self._element_counts[1]][self._element_counts[0]]
+        pb1 = self._nx[offset_half_counts[2]][offset_half_counts[1]][self._element_counts[0]]
+        pb2 = self._nx[offset_half_counts[2]][self._element_counts[1]][offset_half_counts[0]]
+        pb3 = self._nx[self._element_counts[2]][offset_half_counts[1]][offset_half_counts[0]]
+        ax, ad, bx, bd = pa1[0], pa1[1], pb1[0], mult(add(pb1[1], pb1[2]), -1.0)
+        mag = computeCubicHermiteArcLength(ax, ad, bx, bd, False)
+        x1 = interpolateCubicHermite(ax, set_magnitude(ad, mag), bx, set_magnitude(bd, mag), 0.5)
+        ax, ad, bx, bd = pa2[0], pa2[2], pb2[0], sub(pb2[1], pb2[2])
+        mag = computeCubicHermiteArcLength(ax, ad, bx, bd, True)
+        x2 = interpolateCubicHermite(ax, set_magnitude(ad, mag), bx, set_magnitude(bd, mag), 0.5)
+        ax, ad, bx, bd = pa3[0], pa3[2], pb3[0], mult(add(pb3[1], pb3[2]), -1.0)
+        mag = computeCubicHermiteArcLength(ax, ad, bx, bd, True)
+        x3 = interpolateCubicHermite(ax, set_magnitude(ad, mag), bx, set_magnitude(bd, mag), 0.5)
+        x = [(x1[c] + x2[c] + x3[c]) / 3.0 for c in range(3)]
+        x = moveCoordinatesToEllipsoidSurface(self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2], x)
+        parameters = [x, sub(x, pa1[0]), sub(x, pa2[0]), None]
+        self._nx[self._element_counts[2]][self._element_counts[1]][self._element_counts[0]] = parameters
+        self._smooth_coordinates_around_rim(
+            [offset_half_counts[0], self._element_counts[1], self._element_counts[2]],
+            [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
+            [[1, 0, 0]], [1], [1], fix_start_direction=True)
+        self._smooth_coordinates_around_rim(
+            [self._element_counts[0], offset_half_counts[1], self._element_counts[2]],
+            [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
+            [[0, 1, 0]], [2], [2], fix_start_direction=True)
+        self._smooth_coordinates_around_rim(
+            [self._element_counts[0], self._element_counts[1], offset_half_counts[2]],
+            [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
+            [[0, 0, 1]], [2], [-1, -2], fix_start_direction=True)
+
+    def _next_increment_out_of_bounds(self, indexes, index_increment):
+        for c in range(3):
+            index = indexes[c] + index_increment[c]
+            if (index < 0) or (index > self._element_counts[c]):
+                return True
+        return False
 
     def _set_coordinates_around_rim(self, parameters, parameter_indexes, start_indexes, index_increments,
                                  skip_first=False, skip_last=False, blend=False):
@@ -229,9 +339,6 @@ class EllipsoidMesh:
         parameter_index = parameter_indexes[0]
         increment_number = 0
         index_increment = index_increments[0]
-        trans = [(self._transition_element_count - indexes[c]) if (indexes[c] < half_counts[c]) else
-                 (self._transition_element_count + indexes[c] - self._element_counts[c]) for c in range(3)]
-        max_trans = max(trans)
         start_n = 1 if skip_first else 0
         limit_n = len(parameters[0]) - (1 if skip_last else 0)
         for n in range(start_n, limit_n):
@@ -241,14 +348,7 @@ class EllipsoidMesh:
                     # skip over blank transition coordinates
                     if self._nx[indexes[2]][indexes[1]][indexes[0]]:
                         break
-            for parameter, pix in zip(parameters, parameter_index):
-                new_parameter = [-d for d in parameter[n]] if (pix < 0) else copy.copy(parameter[n])
-                old_parameter = self._nx[indexes[2]][indexes[1]][indexes[0]][abs(pix)] if blend else None
-                self._nx[indexes[2]][indexes[1]][indexes[0]][abs(pix)] = \
-                    [0.5 * (old_parameter[c] + new_parameter[c]) for c in range(3)] if old_parameter else new_parameter
-            trans = [(self._transition_element_count - indexes[c]) if (indexes[c] < half_counts[c]) else
-                     (self._transition_element_count + indexes[c] - self._element_counts[c]) for c in range(3)]
-            if trans.count(max_trans) > 1:
+            if self._next_increment_out_of_bounds(indexes, index_increment):
                 parameter_number += 1
                 if parameter_number == len(parameter_indexes):
                     parameter_number = 0
@@ -257,6 +357,102 @@ class EllipsoidMesh:
                 if increment_number == len(index_increments):
                     increment_number = 0
                 index_increment = index_increments[increment_number]
+            for parameter, pix in zip(parameters, parameter_index):
+                new_parameter = [-d for d in parameter[n]] if (pix < 0) else copy.copy(parameter[n])
+                old_parameter = self._nx[indexes[2]][indexes[1]][indexes[0]][abs(pix)] if blend else None
+                self._nx[indexes[2]][indexes[1]][indexes[0]][abs(pix)] = \
+                    [0.5 * (old_parameter[c] + new_parameter[c]) for c in range(3)] if old_parameter else new_parameter
+
+    def _smooth_coordinates_around_rim(self, start_indexes, end_indexes, index_increments,
+                                       derivative_indexes, end_derivative_index,
+                                       fix_start_direction=True, fix_end_direction=True,
+                                       blend_start=False, blend_end=False):
+        """
+        Insert parameters around the rim into the coordinates array.
+        :param start_indexes: Indexes of first point.
+        :param end_indexes: Indexes of last point.
+        :param index_increments: List of increments in indexes. Starts with first and after at each corner, then
+        cycles back to first.
+        :param derivative_indexes: List of signed derivative parameter index to along where d1=1, d2=2, d3=3.
+        Starts with first and advances after each corner, then cycles back to first. Can be negative to invert vector.
+        e.g. [1, -2] for d1 then -d2 after first corner.
+        :param end_derivative_index: List of signed derivative indexes to apply on the last point
+        e.g. [1, -2] gives d1 - d2.
+        :param fix_start_direction: Set to True to keep the start direction but scale its magnitude.
+        :param fix_end_direction: Set to True to keep the end direction but scale its magnitude.
+        :param blend_start: Set to True to 50:50 blend parameters with any old parameters at start location.
+        :param blend_end: Set to True to 50:50 blend parameters with any old parameters at end location.
+        """
+        half_counts = [count // 2 for count in self._element_counts]
+        indexes = start_indexes
+        derivative_number = 0
+        derivative_index = derivative_indexes[0]
+        increment_number = 0
+        index_increment = index_increments[0]
+        indexes_list = []
+        derivative_index_list = []
+        px = []
+        pd = []
+        n = 0
+        while True:
+            if n > 0:
+                if indexes == end_indexes:
+                    break
+                while True:
+                    indexes = [indexes[c] + index_increment[c] for c in range(3)]
+                    # skip over blank transition coordinates
+                    if self._nx[indexes[2]][indexes[1]][indexes[0]]:
+                        break
+            if self._next_increment_out_of_bounds(indexes, index_increment):
+                derivative_number += 1
+                if derivative_number == len(derivative_indexes):
+                    derivative_number = 0
+                derivative_index = derivative_indexes[derivative_number]
+                increment_number += 1
+                if increment_number == len(index_increments):
+                    increment_number = 0
+                index_increment = index_increments[increment_number]
+            parameters = self._nx[indexes[2]][indexes[1]][indexes[0]]
+            x = parameters[0]
+            use_derivative_index = end_derivative_index if (indexes == end_indexes) else [derivative_index]
+            indexes_list.append(copy.copy(indexes))
+            derivative_index_list.append(copy.copy(use_derivative_index))
+            d = [0.0, 0.0, 0.0]
+            for i in range(len(use_derivative_index)):
+                pix = use_derivative_index[i]
+                if pix < 0:
+                    pix = -pix
+                    values = [-ad for ad in parameters[pix]]
+                else:
+                    values = parameters[pix]
+                d = add(d, values)
+            px.append(x)
+            pd.append(d)
+            n += 1
+        sd = smoothCubicHermiteDerivativesLine(
+            px, pd, fixStartDirection=fix_start_direction, fixEndDirection=fix_end_direction,
+            fixEndDerivative=len(end_derivative_index) > 1)
+        for n in range(len(sd)):
+            sd[n] = moveDerivativeToEllipsoidSurface(
+                self._axis_lengths[0], self._axis_lengths[1], self._axis_lengths[2], px[n], sd[n])
+        sd = smoothCubicHermiteDerivativesLine(
+            px, sd, fixAllDirections=True, fixEndDerivative=len(end_derivative_index) > 1)
+        last_n = len(sd) - 1
+        for n in range(len(sd)):
+            indexes = indexes_list[n]
+            derivative_index = derivative_index_list[n]
+            parameters = self._nx[indexes[2]][indexes[1]][indexes[0]]
+            if len(derivative_index) == 1:
+                pix = derivative_index[0]
+                new_parameter = [-d for d in sd[n]] if (pix < 0) else sd[n]
+                pix = abs(pix)
+                if (blend_start and (n == 0)) or (blend_end and (n == last_n)):
+                    # blend
+                    parameters[pix] = [0.5 * (parameters[pix][c] + new_parameter[c]) for c in range(3)]
+                else:
+                    parameters[pix] = new_parameter
+            # else:
+            #     # not putting back values if summed parameters
 
     def generate_mesh(self, fieldmodule, coordinates):
         """
@@ -296,3 +492,126 @@ class EllipsoidMesh:
                     if d3:
                         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                     node_identifier += 1
+
+        node_layout_manager = HermiteNodeLayoutManager()
+
+        if self._surface_only:
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            element_identifier = 1
+            elementtemplate_regular = mesh2d.createElementtemplate()
+            elementtemplate_regular.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+            bicubic_hermite_serendipity_basis = (
+                fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY))
+            eft_regular = mesh2d.createElementfieldtemplate(bicubic_hermite_serendipity_basis)
+            elementtemplate_regular.defineField(coordinates, -1, eft_regular)
+            elementtemplate_special = mesh2d.createElementtemplate()
+            elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
+            half_counts = [count // 2 for count in self._element_counts]
+            rim_indexes = [[0] + [self._transition_element_count + 1 + j
+                                  for j in range(self._element_counts[i] - 2 * self._transition_element_count - 1)] +
+                           [self._element_counts[i]] for i in range(3)]
+            # bottom rectangle
+            bottom_nids = self._nids[0]
+            last_nids_row = None
+            for i2, n2 in enumerate(reversed(rim_indexes[1])):
+                nids_row = []
+                for i1, n1 in enumerate(reversed(rim_indexes[0])):
+                    nids_row.append(bottom_nids[n2][n1])
+                    if (i2 > 0) and (i1 > 0):
+                        nids = [last_nids_row[i1 - 1], last_nids_row[i1], nids_row[i1 - 1], nids_row[i1]]
+                        if None in nids:
+                            continue
+                        element = mesh2d.createElement(element_identifier, elementtemplate_regular)
+                        element.setNodesByIdentifier(eft_regular, nids)
+                        # print("Element", element_identifier, "nids", nids)
+                        element_identifier += 1
+                last_nids_row = nids_row
+            # around sides
+            node_layout_permuted = node_layout_manager.getNodeLayoutRegularPermuted(d3Defined=False)
+            node_layout_triple_points = node_layout_manager.getNodeLayoutTriplePoint2D()
+            index_increments = [[0, 1, 0], [-1, 0, 0], [0, -1, 0], [1, 0, 0]]
+            increment_number = 0
+            index_increment = index_increments[0]
+            elements_count_around12 = \
+                2 * (self._element_counts[0] + self._element_counts[1] - 4 * self._transition_element_count)
+            last_nids_row = None
+            last_parameters_row = None
+            last_corners_row = None
+            for n3 in rim_indexes[2]:
+                indexes = [self._element_counts[0], half_counts[1], n3]
+                nids_row = []
+                parameters_row = []
+                corners_row = []
+                for n in range(elements_count_around12):
+                    if n > 0:
+                        while True:
+                            indexes = [indexes[c] + index_increment[c] for c in range(3)]
+                            # skip over blank transition coordinates
+                            if self._nx[indexes[2]][indexes[1]][indexes[0]]:
+                                break
+                    nids_row.append(self._nids[indexes[2]][indexes[1]][indexes[0]])
+                    parameters_row.append(self._nx[indexes[2]][indexes[1]][indexes[0]])
+                    if self._next_increment_out_of_bounds(indexes, index_increment):
+                        corners_row.append(True)
+                        increment_number += 1
+                        if increment_number == len(index_increments):
+                            increment_number = 0
+                        index_increment = index_increments[increment_number]
+                    else:
+                        corners_row.append(False)
+                if n3 > 0:
+                    quarter_elements_count_around12 = elements_count_around12 // 4
+                    for n in range(elements_count_around12):
+                        nids = [last_nids_row[n], last_nids_row[(n + 1) % elements_count_around12],
+                                nids_row[n], nids_row[(n + 1) % elements_count_around12]]
+                        if None in nids:
+                            continue
+                        q = n // quarter_elements_count_around12
+                        elementtemplate = elementtemplate_regular
+                        eft = eft_regular
+                        scalefactors = None
+                        if n3 in (0, self._element_counts[2]):
+                            node_parameters = [
+                                last_parameters_row[n], last_parameters_row[(n + 1) % elements_count_around12],
+                                parameters_row[n], parameters_row[(n + 1) % elements_count_around12]]
+                            if n3 == 0:
+                                node_layouts = [node_layout_permuted, node_layout_permuted, None, None]
+                                if last_corners_row[n]:
+                                    node_layouts[0] = node_layout_triple_points[q]
+                                elif last_corners_row[(n + 1) % elements_count_around12]:
+                                    node_layouts[1] = node_layout_triple_points[q]
+                            else:
+                                node_layouts = [None, None, node_layout_permuted, node_layout_permuted]
+                                if corners_row[n]:
+                                    node_layouts[2] = node_layout_triple_points[q]
+                                elif corners_row[(n + 1) % elements_count_around12]:
+                                    node_layouts[3] = node_layout_triple_points[q]
+                            eft, scalefactors = \
+                                determineCubicHermiteSerendipityEft(mesh2d, node_parameters, node_layouts)
+                            elementtemplate_special.defineField(coordinates, -1, eft)
+                            elementtemplate = elementtemplate_special
+                        element = mesh2d.createElement(element_identifier, elementtemplate)
+                        element.setNodesByIdentifier(eft, nids)
+                        if scalefactors:
+                            element.setScaleFactors(eft, scalefactors)
+                        # print("Element", element_identifier, "nids", nids)
+                        element_identifier += 1
+                last_nids_row = nids_row
+                last_parameters_row = parameters_row
+                last_corners_row = corners_row
+            # top rectangle
+            top_nids = self._nids[self._element_counts[2]]
+            last_nids_row = None
+            for i2, n2 in enumerate(rim_indexes[1]):
+                nids_row = []
+                for i1, n1 in enumerate(rim_indexes[0]):
+                    nids_row.append(top_nids[n2][n1])
+                    if (i2 > 0) and (i1 > 0):
+                        nids = [last_nids_row[i1 - 1], last_nids_row[i1], nids_row[i1 - 1], nids_row[i1]]
+                        if None in nids:
+                            continue
+                        element = mesh2d.createElement(element_identifier, elementtemplate_regular)
+                        element.setNodesByIdentifier(eft_regular, nids)
+                        # print("Element", element_identifier, "nids", nids)
+                        element_identifier += 1
+                last_nids_row = nids_row
