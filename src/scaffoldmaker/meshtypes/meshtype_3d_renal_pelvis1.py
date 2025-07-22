@@ -139,12 +139,23 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             "Lower/upper minor calyx bifurcation angle degrees",
             "Lower/upper minor calyx bend angle degrees",
             "Renal pyramid length",
-            "Renal pyramid width",
-            "Inner proportion default",
-            "Inner proportion ureter"
+            "Renal pyramid width"
         ]:
             if options[key] < 0.1:
-                options[key] = 0.1 # check again
+                options[key] = 0.1
+
+        for key in [
+            "Number of calyxes at top minor calyx",
+            "Number of calyxes at upper minor calyx",
+            "Number of calyxes at middle major calyx",
+            "Number of calyxes at lower minor calyx",
+            "Number of calyxes at bottom minor calyx"
+        ]:
+            if options[key] < 1:
+                options[key] = 1
+            elif options[key] > 2:
+                options[key] = 2
+
         for key in [
             "Inner proportion default",
             "Inner proportion ureter"
@@ -153,6 +164,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                 options[key] = 0.1
             elif options[key] > 0.9:
                 options[key] = 0.9
+
         for key, angleRange in {
             "Ureter bend angle degrees": (0.0, 45.0),
             "Major calyx angle degrees": (130.0, 200.0),
