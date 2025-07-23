@@ -521,10 +521,13 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                     x = [rx, ry, 0.0]
                     if side in (lowerMinor, upperMinor):
                         # bend lower and upper minor calyxes based on specified bend angle
-                        theta = math.radians(-minorCalyxBendAngle) if calyx == bottomMajor else math.radians(minorCalyxBendAngle)
-                        rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
-                        ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
-                        x = [rx, ry, 0.0]
+                        ec = nMinorCalyxesList[1] if side == lowerMinor else nMinorCalyxesList[4]
+                        minorCalyxBendAngle = 0 if ec < 2 else minorCalyxBendAngle
+                        if minorCalyxBendAngle > 0:
+                            theta = math.radians(-minorCalyxBendAngle) if calyx == bottomMajor else math.radians(minorCalyxBendAngle)
+                            rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
+                            ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
+                            x = [rx, ry, 0.0]
                     sd1 = sub(x, sx)
                     minorCalyxNodeIdentifiers.append(nodeIdentifier)
                     minorCalyxXList.append(x)

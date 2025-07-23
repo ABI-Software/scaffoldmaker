@@ -1193,7 +1193,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param n2: Node index along segment, including negative indexes from end.
         :return: Node IDs arrays, or None if not set.
         """
-        return self._boxNodeIds[n2]
+        return None if self._boxNodeIds is None else self._boxNodeIds[n2]
 
     def getBoxBoundaryNodeIds(self, n1, n2):
         """
@@ -1652,6 +1652,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 elementsCountAcrossMinor = self.getCoreBoxMinorNodesCount() - 1
                 elementsCountAcrossMajor = self.getCoreBoxMajorNodesCount() - 1
                 for e3 in range(elementsCountAcrossMajor):
+                    if self._boxNodeIds[e2] is None:
+                        continue
                     e3p = e3 + 1
                     elementIds = []
                     for e1 in range(elementsCountAcrossMinor):
@@ -1671,6 +1673,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 triplePointIndexesList = self.getTriplePointIndexes()
                 ringElementIds = []
                 for e1 in range(self._elementsCountAround):
+                    if self._boxBoundaryNodeIds[e2] is None:
+                        continue
                     nids, nodeParameters, nodeLayouts = [], [], []
                     n1p = (e1 + 1) % self._elementsCountAround
                     location = self.getTriplePointLocation(e1)
