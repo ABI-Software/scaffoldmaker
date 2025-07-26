@@ -102,7 +102,9 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         element_counts = [options[key] for key in [
             "Number of elements across axis 1", "Number of elements across axis 2", "Number of elements across axis 3"]]
         transition_element_count = options["Number of transition elements"]
-        axis_lengths = [options[key] for key in ["Axis length x", "Axis length y", "Axis length z"]]
+        a = options["Axis length x"]
+        b = options["Axis length y"]
+        c = options["Axis length z"]
         axis2_x_rotation_radians = math.radians(options["Axis 2 x-rotation degrees"])
         axis3_x_rotation_radians = math.radians(options["Axis 3 x-rotation degrees"])
         surface_only = options["2D surface only"]
@@ -110,7 +112,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
-        ellipsoid = EllipsoidMesh(element_counts, transition_element_count, axis_lengths,
+        ellipsoid = EllipsoidMesh(a, b, c, element_counts, transition_element_count,
                                   axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
         ellipsoid.build()
         ellipsoid.generate_mesh(fieldmodule, coordinates)

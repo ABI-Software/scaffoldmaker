@@ -129,13 +129,30 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
     origMag = 0.5*(magnitude(d1) + magnitude(d2))
     scaling = 1.0
     for iters in range(100):
-        mag = origMag*scaling
-        arcLength = getCubicHermiteArcLength(v1, [ d*scaling for d in d1 ], v2, [ d*scaling for d in d2 ])
-        if math.fabs(arcLength - mag) < 0.000001*arcLength:
+        mag = origMag * scaling
+        arcLength = getCubicHermiteArcLength(v1, [d * scaling for d in d1], v2, [d * scaling for d in d2])
+        if math.fabs(arcLength - mag) < 1.0E-6 * arcLength:
             #print('compute scaling', v1, d1, v2, d2, '\n  --> scaling',scaling)
             return scaling
-        scaling *= arcLength/mag
+        scaling *= arcLength / mag
     print('computeCubicHermiteDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
+    return scaling
+
+def computeHermiteLagrangeDerivativeScaling(v1, d1, v2):
+    """
+    Compute scaling for d1 to equal arc length.
+    :return: Scale factor to multiply d1.
+    """
+    origMag = magnitude(d1)
+    scaling = 1.0
+    for iters in range(100):
+        mag = origMag * scaling
+        d2 = interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
+        arcLength = getCubicHermiteArcLength(v1, [d * scaling for d in d1], v2, d2)
+        if math.fabs(arcLength - mag) < 1.0E-6 * arcLength:
+            return scaling
+        scaling *= arcLength / mag
+    print('computeHermiteLagrangeDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
     return scaling
 
 def computeCubicHermiteStartDerivative(v1, d1_in, v2, d2):
