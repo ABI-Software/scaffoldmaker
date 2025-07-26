@@ -23,7 +23,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Number of elements across axis 1": 4,
             "Number of elements across axis 2": 6,
             "Number of elements across axis 3": 8,
-            "2D surface only": True,
+            "2D surface only": False,
             "Number of transition elements": 1,
             "Axis length x": 1.0,
             "Axis length y": 1.5,
