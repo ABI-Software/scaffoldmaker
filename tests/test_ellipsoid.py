@@ -1,7 +1,9 @@
-from cmlibs.zinc.context import Context
-from cmlibs.zinc.field import Field
+from cmlibs.maths.vectorops import magnitude
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.zinc.context import Context
+from cmlibs.zinc.field import Field
+from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.meshtypes.meshtype_3d_ellipsoid1 import MeshType_3d_ellipsoid1
 from testutils import assertAlmostEqualList
@@ -33,8 +35,6 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         self.assertEqual(4, options.get("Refine number of elements"))
         # set test options
         options["2D surface only"] = True
-        options["Axis 2 x-rotation degrees"] = -45.0
-        options["Axis 3 x-rotation degrees"] = 45.0
 
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -56,18 +56,32 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-1.0, -1.4882638616539217, -1.9598574478664705], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [1.0, 1.4882638616539217, 1.9598574478664705], 1.0E-6)
+        TOL = 1.0E-6
+        assertAlmostEqualList(self, minimums, [-1.0, -1.5, -2.0], TOL)
+        assertAlmostEqualList(self, maximums, [1.0, 1.5, 2.0], TOL)
+        # test symmetry of 3-way points
+        fieldcache = fieldmodule.createFieldcache()
+        node_3way1 = nodes.findNodeByIdentifier(90)
+        fieldcache.setNode(node_3way1)
+        result, x_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d1_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, d2_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        node_3way2 = nodes.findNodeByIdentifier(78)
+        fieldcache.setNode(node_3way2)
+        result, x_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d1_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, d2_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        assertAlmostEqualList(self, x_3way2, [x_3way1[0], -x_3way1[1], x_3way1[2]], TOL)
+        assertAlmostEqualList(self, d1_3way2, [d1_3way1[0], -d1_3way1[1], d1_3way1[2]], TOL)
+        assertAlmostEqualList(self, d2_3way2, [-d2_3way1[0], d2_3way1[1], -d2_3way1[2]], TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh2d)
             surfaceAreaField.setNumbersOfPoints(4)
-        fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 27.843226402805207, delta=1.0E-4)
-
+        self.assertAlmostEqual(surfaceArea, 27.87058861564834, delta=1.0E-4)
 
 if __name__ == "__main__":
     unittest.main()

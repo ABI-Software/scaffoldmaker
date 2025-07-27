@@ -2,7 +2,7 @@
 Interpolation functions shared by mesh generators.
 """
 
-from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, mult, normalize, sub, set_magnitude
+from cmlibs.maths.vectorops import add, cross, distance, div, dot, magnitude, mult, normalize, sub, set_magnitude
 import copy
 import math
 from collections.abc import Sequence
@@ -141,14 +141,18 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
 def computeHermiteLagrangeDerivativeScaling(v1, d1, v2):
     """
     Compute scaling for d1 to equal arc length.
+    :param d1: Seems more reliable to pass a unit vector direction here.
     :return: Scale factor to multiply d1.
     """
     origMag = magnitude(d1)
+    # start with scaling which makes this equal to distance from v1 to v2
+    scaling = distance(v1, v2) / origMag
     scaling = 1.0
     for iters in range(100):
         mag = origMag * scaling
-        d2 = interpolateHermiteLagrangeDerivative(v1, d1, v2, 1.0)
-        arcLength = getCubicHermiteArcLength(v1, [d * scaling for d in d1], v2, d2)
+        scaled_d1 = [d * scaling for d in d1]
+        d2 = interpolateHermiteLagrangeDerivative(v1, scaled_d1, v2, 1.0)
+        arcLength = getCubicHermiteArcLength(v1, scaled_d1, v2, d2)
         if math.fabs(arcLength - mag) < 1.0E-6 * arcLength:
             return scaling
         scaling *= arcLength / mag

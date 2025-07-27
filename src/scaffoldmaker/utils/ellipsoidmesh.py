@@ -208,27 +208,29 @@ class EllipsoidMesh:
         elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
         elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
 
-        # determine 3-way point location from mean of nearest regular row points:
-        start = self._nx[half_counts[2] + regular_row_counts[2]][half_counts[1]][self._element_counts[0]]
-        end = self._nx[half_counts[2] + regular_row_counts[2]][self._element_counts[1]][half_counts[0]]
-        px, pd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[1], None, end[0], end[1], None, elements_count_q12)
-        ax, ad1 = px[regular_row_counts[1] + 1], pd1[regular_row_counts[1] + 1]
-        start = self._nx[half_counts[2]][self._element_counts[1]][half_counts[0] + regular_row_counts[0]]
-        end = self._nx[self._element_counts[2]][half_counts[1]][half_counts[0] + regular_row_counts[0]]
-        px, pd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, end[0], [-d for d in end[2]], None, elements_count_q23)
-        bx, bd2 = px[regular_row_counts[2] + 1], pd2[regular_row_counts[2] + 1]
-
-        start = self._nx[half_counts[2]][half_counts[1] + regular_row_counts[1]][self._element_counts[0]]
-        end = self._nx[self._element_counts[2]][half_counts[1] + regular_row_counts[1]][half_counts[0]]
-        px, pd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, end[0], [-d for d in end[1]], None, elements_count_q13)
-        cx, cd2 = px[regular_row_counts[2] + 1], pd2[regular_row_counts[2] + 1]
-
+        # determine 3-way point location from mean of overweighted curves in line with it
+        point1 = self._nx[self._element_counts[2]][self._element_counts[1]][half_counts[0]]
+        point2 = self._nx[self._element_counts[2]][half_counts[1]][self._element_counts[0]]
+        point3 = self._nx[half_counts[2]][self._element_counts[1]][self._element_counts[0]]
+        min_weight = 1
+        weight = [regular_row_counts[i] + min_weight for i in range(3)]
+        weight[0] /= magnitude(point1[0])
+        weight[1] /= magnitude(point2[0])
+        weight[2] /= magnitude(point3[0])
+        offset = 1
+        overweighting = 1.5
+        ax = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c, point1[0], point1[1], None, point2[0], [-d for d in point2[2]], None,
+            elements_count_q12, start_weight=weight[0], end_weight=weight[1],
+            overweighting=overweighting)[0][regular_row_counts[0] + offset]
+        bx = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c, point3[0], point3[2], None, point1[0], [-d for d in point1[1]], None,
+            elements_count_q13, start_weight=weight[2], end_weight=weight[0],
+            overweighting=overweighting)[0][regular_row_counts[2] + offset]
+        cx = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c, point3[0], point3[2], None, point2[0], [-d for d in point2[2]], None,
+            elements_count_q23, start_weight=weight[2], end_weight=weight[1],
+            overweighting=overweighting)[0][regular_row_counts[2] + offset]
         x_3way = moveCoordinatesToEllipsoidSurface(
             self._a, self._b, self._c, [(ax[c] + bx[c] + cx[c]) / 3.0 for c in range(3)])
 
@@ -252,7 +254,8 @@ class EllipsoidMesh:
             start[0], start[2], None, x_3way, None, None, regular_row_counts[2] + 1)
         cd1 = start[1]
         # use the minimum magnitude in all 3 directions
-        d_mag = min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
+        d_factor = 0.6
+        d_mag = d_factor * min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
         d1_3way = set_magnitude(ad1[-1], d_mag)
         d2_3way = set_magnitude(bd2[-1], d_mag)
 
@@ -382,45 +385,29 @@ class EllipsoidMesh:
         elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
         elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
 
-        # determine 3-way point location from mean of nearest regular row points:
-        start = self._nx[half_counts[2] + regular_row_counts[2]][0][half_counts[0]]
-        end = self._nx[half_counts[2] + regular_row_counts[2]][half_counts[1]][self._element_counts[0]]
-        px, pd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[1], None, end[0], end[1], None, elements_count_q12)
-        ax, ad1 = px[regular_row_counts[0] + 1], pd1[regular_row_counts[0] + 1]
-        start = self._nx[half_counts[2]][0][half_counts[0] + regular_row_counts[0]]
-        end = self._nx[self._element_counts[2]][half_counts[1]][half_counts[0] + regular_row_counts[0]]
-        px, pd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, end[0], end[2], None, elements_count_q23)
-        bx, bd2 = px[regular_row_counts[2] + 1], pd2[regular_row_counts[2] + 1]
-        start = self._nx[half_counts[2]][half_counts[1] - regular_row_counts[1]][self._element_counts[0]]
-        end = self._nx[self._element_counts[2]][half_counts[1] - regular_row_counts[1]][half_counts[0]]
-        px, pd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, end[0], [-d for d in end[1]], None, elements_count_q13)
-        cx, cd2 = px[regular_row_counts[2] + 1], pd2[regular_row_counts[2] + 1]
-        # alternative approach:
-        # point1 = self._nx[self._element_counts[2]][0][half_counts[0]]
-        # point2 = self._nx[self._element_counts[2]][half_counts[1]][self._element_counts[0]]
-        # point3 = self._nx[half_counts[2]][0][self._element_counts[0]]
-        # min_weight = 1
-        # weight = [regular_row_counts[i] + min_weight for i in range(3)]
-        # # weight[0] /= magnitude(point1[0])
-        # # weight[1] /= magnitude(point2[0])
-        # # weight[2] /= magnitude(point3[0])
-        # offset = 1
-        # ax = sampleCurveOnEllipsoid(
-        #     self._a, self._b, self._c, point1[0], point1[1], None, point2[0], point2[2], None,
-        #     elements_count_q12, start_weight=weight[0], end_weight=weight[1])[0][regular_row_counts[0] + offset]
-        # bx = sampleCurveOnEllipsoid(
-        #     self._a, self._b, self._c, point3[0], point3[2], None, point1[0], [-d for d in point1[1]], None,
-        #     elements_count_q13, start_weight=weight[2], end_weight=weight[0])[0][regular_row_counts[2] + offset]
-        # cx = sampleCurveOnEllipsoid(
-        #     self._a, self._b, self._c, point3[0], point3[2], None, point2[0], point2[2], None,
-        #     elements_count_q23, start_weight=weight[2], end_weight=weight[1])[0][regular_row_counts[2] + offset]
-
+        # determine 3-way point location from mean of overweighted curves in line with it
+        point1 = self._nx[self._element_counts[2]][0][half_counts[0]]
+        point2 = self._nx[self._element_counts[2]][half_counts[1]][self._element_counts[0]]
+        point3 = self._nx[half_counts[2]][0][self._element_counts[0]]
+        min_weight = 1
+        weight = [regular_row_counts[i] + min_weight for i in range(3)]
+        weight[0] /= magnitude(point1[0])
+        weight[1] /= magnitude(point2[0])
+        weight[2] /= magnitude(point3[0])
+        offset = 1
+        overweighting = 1.5
+        ax = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c, point1[0], point1[1], None, point2[0], point2[2], None,
+            elements_count_q12, start_weight=weight[0], end_weight=weight[1],
+            overweighting=overweighting)[0][regular_row_counts[0] + offset]
+        bx = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c, point3[0], point3[2], None, point1[0], [-d for d in point1[1]], None,
+            elements_count_q13, start_weight=weight[2], end_weight=weight[0],
+            overweighting=overweighting)[0][regular_row_counts[2] + offset]
+        cx = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c, point3[0], point3[2], None, point2[0], point2[2], None,
+            elements_count_q23, start_weight=weight[2], end_weight=weight[1],
+            overweighting=overweighting)[0][regular_row_counts[2] + offset]
         x_3way = moveCoordinatesToEllipsoidSurface(
             self._a, self._b, self._c, [(ax[c] + bx[c] + cx[c]) / 3.0 for c in range(3)])
         # visualise ax, bx, cx:
@@ -448,7 +435,8 @@ class EllipsoidMesh:
             start[0], start[2], None, x_3way, None, None, regular_row_counts[2] + 1)
         cd1 = start[1]
         # use the minimum magnitude in all 3 directions
-        d_mag = min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
+        d_factor = 0.6
+        d_mag = d_factor * min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
         d1_3way = set_magnitude(ad1[-1], d_mag)
         d2_3way = set_magnitude([-d for d in bd2[-1]], d_mag)
 
@@ -470,7 +458,8 @@ class EllipsoidMesh:
         bd1[-1] = ad1[-1]
         self._set_coordinates_around_rim([ax, ad1, ad2], [[0, 1, 2]], a_start_indexes, [[1, 0, 0]])
         self._set_coordinates_around_rim([bx, bd1, bd2], [[0, 1, -2]], b_start_indexes, [[0, -1, 0]], blend_start=True)
-        self._set_coordinates_around_rim([cx, cd1, cd2], [[0, 1, 2]], c_start_indexes, [[0, 0, 1]], skip_end=True)
+        self._set_coordinates_around_rim([cx, cd1, cd2], [[0, 1, 2]], c_start_indexes, [[0, 0, 1]],
+                                         blend_start=True, skip_end=True)
 
         # 1-2 curve in 3-direction
         min_weight = 2

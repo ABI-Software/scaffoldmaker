@@ -9,8 +9,8 @@ import math
 
 from cmlibs.maths.vectorops import add, distance, magnitude, mult, normalize, cross, set_magnitude, rejection
 from scaffoldmaker.utils.interpolation import (
-    computeCubicHermiteDerivativeScaling, computeHermiteLagrangeDerivativeScaling, interpolateHermiteLagrangeDerivative,
-    sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth)
+    computeCubicHermiteDerivativeScaling, computeHermiteLagrangeDerivativeScaling, getCubicHermiteArcLength,
+    interpolateHermiteLagrangeDerivative, sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth)
 from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 
 
@@ -492,7 +492,7 @@ def moveDerivativeToEllipsoidSurface(a, b, c, x, start_d):
 
 
 def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
-                           start_weight=None, end_weight=None, end_transition=False):
+                           start_weight=None, end_weight=None, overweighting=1.0, end_transition=False):
     """
     Samples an even-spaced Hermite curve from start point and direction to end point and direction.
     Also interpolates side derivatives.
@@ -510,42 +510,50 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
     :param elements_count: Number of elements to sample.
     :param start_weight, end_weight: Optional relative weights for start/end d1. If not supplied, weighting is
     by distance from the other end.
+    :param overweighting: Multiplier of arc length to use with initial curve to exaggerate end derivatives.
     :param end_transition: If supplied with end_d1, modify size of last element to fit end_d1.
     :return: x[], d1[], d2[]
     """
+    assert (not end_transition) or end_d1
+    end_d1_mag = magnitude(end_d1) if end_d1 else None
     length = distance(start_x, end_x)
     # initial cubic interpolation, weighting derivatives by distance to other end
-    if not end_d1:
-        scaling = computeHermiteLagrangeDerivativeScaling(start_x, start_d1, end_x)
-        end_d1 = interpolateHermiteLagrangeDerivative(start_x, [d * scaling for d in start_d1], end_x, 1.0)
-        end_d1 = moveDerivativeToEllipsoidSurface(a, b, c, end_x, end_d1)
+    start_d = start_d1
+    end_d = end_d1
+    if not end_d:
+        start_d = normalize(start_d)
+        scaling = computeHermiteLagrangeDerivativeScaling(start_x, start_d, end_x)
+        start_d = [d * scaling for d in start_d]
+        end_d = interpolateHermiteLagrangeDerivative(start_x, start_d, end_x, 1.0)
+        end_d = moveDerivativeToEllipsoidSurface(a, b, c, end_x, end_d)
     if start_weight and end_weight:
-        start_d = set_magnitude(start_d1, (length * start_weight) / (start_weight + end_weight))
-        end_d = set_magnitude(end_d1, (length * end_weight) / (start_weight + end_weight))
+        start_d = set_magnitude(start_d, (length * start_weight) / (start_weight + end_weight))
+        end_d = set_magnitude(end_d, (length * end_weight) / (start_weight + end_weight))
     else:
         start_distance = magnitude(start_x)
         end_distance = magnitude(end_x)
-        start_d = set_magnitude(start_d1, (length * end_distance) / (start_distance + end_distance))
-        end_d = set_magnitude(end_d1, (length * end_distance) / (start_distance + end_distance))
-    scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d)
+        start_d = set_magnitude(start_d, (length * end_distance) / (start_distance + end_distance))
+        end_d = set_magnitude(end_d, (length * end_distance) / (start_distance + end_distance))
+    scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d) * overweighting
     start_d = mult(start_d, scaling)
     end_d = mult(end_d, scaling)
     px, pd1 = sampleCubicHermiteCurvesSmooth([start_x, end_x], [start_d, end_d], elements_count)[0:2]
     iter_count = 2
-    if end_transition:
-        assert end_d1
-        # this ensures last element has size adjusted to exactly fit derivative next to regular-sized elements
-        end_length_fraction = 0.5
-        end_add_length = 0.5 * magnitude(end_d1)
-    else:
-        end_add_length = 0.0
-        end_length_fraction = 1.0
     for iter in range(iter_count):
         for n in range(1, elements_count):
             px[n] = moveCoordinatesToEllipsoidSurface(a, b, c, px[n])
             pd1[n] = moveDerivativeToEllipsoidSurface(a, b, c, px[n], pd1[n])
-        px, pd1 = sampleCubicHermiteCurves(
-            px, pd1, elements_count, addLengthEnd=end_add_length, lengthFractionEnd=end_length_fraction)[0:2]
+        if end_transition:
+            if elements_count == 1:
+                # sampleCubicHermiteCurves doesn't work properly with 1 element...
+                arc_length = getCubicHermiteArcLength(px[0], pd1[0], px[1], pd1[1])
+                pd1[0] = set_magnitude(pd1[0], 2.0 * arc_length - end_d1_mag)
+                pd1[1] = set_magnitude(pd1[1], end_d1_mag)
+            else:
+                px, pd1 = sampleCubicHermiteCurves(
+                    px, pd1, elements_count, addLengthEnd=0.5 * end_d1_mag, lengthFractionEnd=0.5)[0:2]
+        else:
+            px, pd1 = sampleCubicHermiteCurves(px, pd1, elements_count)[0:2]
     if start_d2:
         if not end_d2:
             end_d2 = moveDerivativeToEllipsoidSurface(a, b, c, px[-1], start_d2)
