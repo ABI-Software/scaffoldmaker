@@ -34,7 +34,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
     def getParameterSetNames(cls):
         return [
             "Default",
-            "Human 1"
+            "Human 1",
+            "Rat 1"
         ]
 
     @classmethod
@@ -46,7 +47,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Structure"] = (
                 "1-2, 2-3.1,3.2-4,3.3-5,3.4-6,4.2-7,4.3-8,"
                 "6.2-9,6.3-10,7.2-11,7.3-12,8.2-13,8.3-14,5.2-15,5.3-16,9.2-17,9.3-18,10.2-19,10.3-20,"
-                "11-21-22-23,12-24-25-26,13-27-28-29,14-30-31-32,15-33-34-35,16-36-37-38,17-39-40-41,18-42-43-44,19-45-46-47,20-48-49-50")
+                "11-21-22-23,12-24-25-26,13-27-28-29,14-30-31-32,15-33-34-35,16-36-37-38,17-39-40-41,18-42-43-44,19-45-46-47,20-48-49-50"
+            )
 
             options["Define inner coordinates"] = True
             options["Top major calyx"] = True
@@ -68,6 +70,44 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Major calyx angle degrees"] = 170
             options["Middle major calyx length"] = 0.5
             options["Major to bottom/top minor calyx length"] = 0.6
+            options["Major to lower/upper minor calyx length"] = 0.3
+            options["Bottom/top minor calyx length"] = 0.2
+            options["Lower/upper minor calyx length"] = 0.2
+            options["Minor calyx radius"] = 0.1
+            options["Bottom/top minor calyx bifurcation angle degrees"] = 90
+            options["Bottom/top minor calyx rotate angle degrees"] = 0
+            options["Lower/upper minor calyx bifurcation angle degrees"] = 90
+            options["Lower/upper minor calyx bend angle degrees"] = 10
+            options["Renal pyramid length"] = 0.5
+            options["Renal pyramid width"] = 0.5
+            options["Inner proportion default"] = 0.8
+            options["Inner proportion ureter"] = 0.7
+
+        elif "Rat 1" in parameterSetName:
+            options["Structure"] = (
+                "1-2, 2-3.1,3.2-4,4-5,5-6-7-8"
+            )
+
+            options["Define inner coordinates"] = True
+            options["Top major calyx"] = False
+            options["Middle major calyx"] = True
+            options["Bottom major calyx"] = False
+            options["Upper minor calyx"] = False
+            options["Lower minor calyx"] = False
+            options["Rotate upper, middle and lower minor calyxes"] = True
+            options["Number of calyxes at top minor calyx"] = 1
+            options["Number of calyxes at middle major calyx"] = 1
+            options["Number of calyxes at bottom minor calyx"] = 1
+            options["Number of calyxes at upper minor calyx"] = 1
+            options["Number of calyxes at lower minor calyx"] = 1
+            options["Ureter length"] = 3.0
+            options["Ureter radius"] = 0.1
+            options["Ureter bend angle degrees"] = 45
+            options["Major calyx length"] = 0.6
+            options["Major calyx radius"] = 0.1
+            options["Major calyx angle degrees"] = 170
+            options["Middle major calyx length"] = 0.4
+            options["Major to bottom/top minor calyx length"] = 0.3
             options["Major to lower/upper minor calyx length"] = 0.3
             options["Bottom/top minor calyx length"] = 0.2
             options["Lower/upper minor calyx length"] = 0.2
