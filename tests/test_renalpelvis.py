@@ -47,13 +47,13 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(656, mesh3d.getSize())
+        self.assertEqual(672, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(2476, mesh2d.getSize())
+        self.assertEqual(2532, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(2991, mesh1d.getSize())
+        self.assertEqual(3063, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(1172, nodes.getSize())
+        self.assertEqual(1204, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -62,8 +62,8 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.7789485582121838, -2.128648920925165, -0.25340433034411736], tol)
-        assertAlmostEqualList(self, maximums, [4.04142135623731, 1.5517905914526038, 0.2534043303441174], tol)
+        assertAlmostEqualList(self, minimums, [0.7789485582121838, -2.250268470689302, -0.1318007396451522], tol)
+        assertAlmostEqualList(self, maximums, [4.188222198878539, 2.250268470689302, 0.1318007396451522], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -81,18 +81,18 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.4091337158319937, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 13.670578210256929, delta=tol)
+            self.assertAlmostEqual(volume, 0.41239028202973105, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 15.14363706045464, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "core": (320, 0.2200233669825981),
-            "major calyx": (48, 0.015284024590047216),
-            "minor calyx": (80, 0.014873238147161206),
-            "renal pelvis": (176, 0.07598967760825394),
-            "renal pyramid": (80, 0.017177432136007482),
-            "shell": (336, 0.18913226215956122),
+            "core": (240, 0.19386743947037463),
+            "major calyx": (64, 0.025523445233479505),
+            "minor calyx": (160, 0.039595947108606436),
+            "renal pelvis": (272, 0.10994753925440572),
+            "renal pyramid": (480, 0.3199459642092786),
+            "shell": (432, 0.21852600996918725),
             "ureter": (64, 0.049524462117630445)
             }
         for name in expectedSizes3d:
@@ -109,13 +109,11 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "core": (1302, 12.615540404295311),
-            "major calyx": (208, 1.837248623082175),
-            "minor calyx": (358, 1.8841596431915135),
-            "renal pelvis": (734, 7.5061456904809285),
-            "renal pyramid": (382, 2.1844517878410996),
-            "shell": (1454, 18.19860793812061),
-            "ureter": (264, 4.292647846731792)
+            "major calyx": (272, 3.0306454318904343),
+            "minor calyx": (692, 4.858039077961195),
+            "renal pelvis": (1132, 11.555677753247785),
+            "renal pyramid": (1780, 18.695951082914355),
+            "ureter": (264, 4.2985089237162715)
             }
         for name in expectedSizes2d:
             term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
@@ -129,3 +127,6 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
+
+if __name__ == "__main__":
+    unittest.main()
