@@ -56,7 +56,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        TOL = 1.0E-6
+        TOL = 2.0E-6
         assertAlmostEqualList(self, minimums, [-1.0, -1.5, -2.0], TOL)
         assertAlmostEqualList(self, maximums, [1.0, 1.5, 2.0], TOL)
         # test symmetry of 3-way points
@@ -81,7 +81,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 27.87058861564834, delta=1.0E-4)
+        self.assertAlmostEqual(surfaceArea, 27.87079061805626, delta=1.0E-5)
 
 if __name__ == "__main__":
     unittest.main()

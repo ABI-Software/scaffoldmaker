@@ -3,16 +3,18 @@ Utilities for building solid ellipsoid meshes from hexahedral elements.
 """
 import copy
 import math
-from cmlibs.maths.vectorops import add, magnitude, mult, set_magnitude, sub
+from cmlibs.maths.vectorops import add, cross, div, magnitude, mult, set_magnitude, sub
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
+
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
 from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
     moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
 from scaffoldmaker.utils.interpolation import (
-    computeCubicHermiteArcLength, interpolateCubicHermite, smoothCubicHermiteDerivativesLine)
+    sampleHermiteCurve, smoothCubicHermiteDerivativesLine)
+from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
 
 
 class EllipsoidMesh:
@@ -92,6 +94,17 @@ class EllipsoidMesh:
         elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
         elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
 
+        opp_element_counts = [half_counts[i] - self._transition_element_count for i in range(3)]
+        trimesh = QuadTriangleMesh(
+            opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
+            sample_curve=lambda start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
+                                start_weight=None, end_weight=None, overweighting=1.0, end_transition=False:
+            sampleCurveOnEllipsoid(
+                self._a, self._b, self._c, start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
+                start_weight, end_weight, overweighting, end_transition),
+            move_x_to_surface=lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x),
+            move_d_to_surface=lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d))
+
         # get outside curve in 1-2 plane starting in 1 = x direction, 1st quadrant of 1-2 loop
         start_x = [self._a, 0.0, 0.0]
         start_d1 = [0.0, math.cos(self._axis2_x_rotation_radians), math.sin(self._axis2_x_rotation_radians)]
@@ -99,38 +112,62 @@ class EllipsoidMesh:
         end_x = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis2_x_rotation_radians)
         end_d1 = [-1.0, 0.0, 0.0]
         end_d2 = [0.0] + getEllipseTangentAtPoint(self._b, self._c, end_x[1:])
-        px, pd1, pd2 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
+        ax, ad1, ad2 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
                                               start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count_q12)
-        self._set_coordinates_around_rim(
-            [px, pd1, pd2], [[0, 1, 2]],
-            [self._element_counts[0], half_counts[1], half_counts[2]],
-            [[0, 1, 0], [-1, 0, 0]])
+        trimesh.set_edge_parameters12(ax, ad1, ad2)
+        # self._set_coordinates_around_rim(
+        #     [px, pd1, pd2], [[0, 1, 2]],
+        #     [self._element_counts[0], half_counts[1], half_counts[2]],
+        #     [[0, 1, 0], [-1, 0, 0]])
         # get outside curve in 1-3 plane starting in 1 = x direction, 1st quadrant of 1-3 loop
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+        # start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
+        # start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+        start_x, start_d1, start_d2 = ax[0], ad1[0], ad2[0]
         end_x = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis3_x_rotation_radians)
         end_d2 = [-1.0, 0.0, 0.0]
         end_d1 = [0.0] + [-d for d in getEllipseTangentAtPoint(self._b, self._c, end_x[1:])]
-        px, pd2, pd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
+        bx, bd2, bd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
                                               start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q13)
-        self._set_coordinates_around_rim(
-            [px, pd1, pd2], [[0, 1, 2], [0, 2, -1]], start_indexes,
-            [[0, 0, 1], [-1, 0, 0]])
-
+        trimesh.set_edge_parameters13(bx, bd1, bd2)
+        # self._set_coordinates_around_rim(
+        #     [px, pd1, pd2], [[0, 1, 2], [0, 2, -1]], start_indexes,
+        #     [[0, 0, 1], [-1, 0, 0]])
         # get outside curve in 2-3 plane starting in 2 direction, 1st quadrant of 2-3 loop
-        start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
-        start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
-        end_d1 = [-d for d in end_d1]
-        end_d2 = [-d for d in end_d2]
-        px, pd2, pd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
+        # start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
+        # start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
+        start_x, start_d1, start_d2 = ax[-1], ad1[-1], ad2[-1]
+        # end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
+        # end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
+        # end_d1 = [-d for d in end_d1]
+        # end_d2 = [-d for d in end_d2]
+        end_x, end_d1, end_d2 = bx[-1], bd2[-1], [-d for d in bd1[-1]]
+        cx, cd2, cd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
                                               start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q23)
-        self._set_coordinates_around_rim(
-            [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]], start_indexes,
-            [[0, 0, 1], [0, -1, 0]])
+        trimesh.set_edge_parameters23(cx, cd1, cd2)
+        # self._set_coordinates_around_rim(
+        #     [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]], start_indexes,
+        #     [[0, 0, 1], [0, -1, 0]])
 
-        self._sample_surface_octant1()
+        trimesh.build()
+
+        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
+        for n3 in range(opp_element_counts[2]):
+            px, pd1, pd2 = trimesh.get_parameters12(n3)
+            self._set_coordinates_around_rim([px, pd1, pd2], [[0, 1, 2]], start_indexes, [[0, 1, 0], [-1, 0, 0]])
+            start_indexes[2] += 1
+        start_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
+        for n2 in range(opp_element_counts[1]):
+            px, pd1, pd2 = trimesh.get_parameters31(n2, opp_element_counts[0] + 1)
+            self._set_coordinates_around_rim([px, pd1, pd2], [[0, 1, 2]], start_indexes, [[1, 0, 0], [0, 0, -1]])
+            start_indexes[1] += 1
+        start_indexes = [half_counts[0], self._element_counts[1], self._element_counts[2]]
+        px, pd1, pd2 = trimesh.get_parameters_diagonal()
+        self._set_coordinates_around_rim([px, pd1, pd2], [[0, 1, 2]], start_indexes, [[1, 0, 0], [0, 0, -1]])
+
+        # self._build_surface_octant1()
+
+        # if not self._surface_only:
+        #     self._build_plane12_quadrant1()
 
         # transfer parameters on bottom plane of octant1 to octant2 for blending
         n3 = half_counts[2]
@@ -142,10 +179,12 @@ class EllipsoidMesh:
                 x = parameters[0]
                 d1 = parameters[1]
                 d2 = parameters[2]
+                d3 = parameters[3]
                 x = [x[0], -x[1], -x[2]]
                 d1 = [-d1[0], d1[1], d1[2]]
                 d2 = [-d2[0], d2[1], d2[2]]
-                self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, None]
+                d3 = [d3[0], -d3[1], -d3[2]] if d3 else None  # GRC fix
+                self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
 
         # sample 2nd quadrant of 1-3 loop and blend end derivatives
         start_indexes = [half_counts[0], 0, half_counts[2]]
@@ -158,7 +197,7 @@ class EllipsoidMesh:
             [px, pd1, pd2], [[0, 1, 2]], start_indexes,
             [[0, 0, 1], [0, 1, 0]], blend_start=True, blend_end=True)
 
-        self._sample_surface_octant2()
+        self._build_surface_octant2()
 
         # transfer blended d2 derivatives on bottom plane of octant2 back to octant1
         n3 = half_counts[2]
@@ -198,7 +237,7 @@ class EllipsoidMesh:
                     d3 = [d3[0], d3[1], -d3[2]] if d3 else None
                     self._nx[self._element_counts[2] - n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
 
-    def _sample_surface_octant1(self):
+    def _build_surface_octant1(self):
         """
         Sample surface octant between positive 1, positive 2 and positive 3 axes
         """
@@ -294,13 +333,13 @@ class EllipsoidMesh:
             px, _ = sampleCurveOnEllipsoid(
                 self._a, self._b, self._c,
                 start[0], start[1], None, corner[0], corner[1], None, regular_row_counts[1] + 1,
-                start_weight=regular_row_counts[0] + min_weight, end_weight=min_weight)
+                start_weight=regular_row_counts[1] + min_weight, end_weight=min_weight)
             self._set_coordinates_around_rim(
                 [px], [[0]], start_indexes, [[0, 1, 0]], skip_start=True, skip_end=True)
             px, _ = sampleCurveOnEllipsoid(
                 self._a, self._b, self._c,
                 corner[0], corner[1], None, end[0], end[1], None, regular_row_counts[0] + 1,
-                start_weight=min_weight, end_weight=regular_row_counts[1] + min_weight)
+                start_weight=min_weight, end_weight=regular_row_counts[0] + min_weight)
             self._set_coordinates_around_rim(
                 [px], [[0]], corner_indexes, [[-1, 0, 0]], skip_start=True, skip_end=True)
         # 1-3 curve in 2-direction
@@ -375,7 +414,24 @@ class EllipsoidMesh:
             self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[0, 0, 1], [0, -1, 0]], [2, -2], [-2],
                 fix_start_direction=True, fix_end_direction=True)
 
-    def _sample_surface_octant2(self):
+        if not self._surface_only:
+            # add d3:
+            d3_mag = min(self._a / half_counts[0], self._b / half_counts[1], self._c / half_counts[2])
+            for n3 in range(half_counts[2], self._element_counts[2] + 1):
+                nx_layer = self._nx[n3]
+                for n2 in range(half_counts[1], self._element_counts[1] + 1):
+                    nx_row = nx_layer[n2]
+                    for n1 in range(half_counts[0], self._element_counts[0] + 1):
+                        nx = nx_row[n1]
+                        if nx and nx[0]:
+                            # surface normal:
+                            # nx[3] = set_magnitude([
+                            #     nx[0][0] / (self._a * self._a),
+                            #     nx[0][1] / (self._b * self._b),
+                            #     nx[0][2] / (self._c * self._c)], d3_mag)
+                            nx[3] = set_magnitude(nx[0], d3_mag)
+
+    def _build_surface_octant2(self):
         """
         Sample surface octant between positive 1, negative 2 and positive 3 axes
         """
@@ -582,7 +638,6 @@ class EllipsoidMesh:
         :param blend_middle: Set to True to blend parameters with any old parameters at middle locations.
         :param blend_end: Set to True to blend parameters with any old parameters at end location.
         """
-        half_counts = [count // 2 for count in self._element_counts]
         indexes = start_indexes
         parameter_number = 0
         parameter_index = parameter_indexes[0]
@@ -727,7 +782,10 @@ class EllipsoidMesh:
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         nodetemplate = nodes.createNodetemplate()
         nodetemplate.defineField(coordinates)
-        for value_label in [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]:
+        value_labels = [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2]
+        if not self._surface_only:
+            value_labels.append(Node.VALUE_LABEL_D_DS3)
+        for value_label in value_labels:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, value_label, 1)
 
         node_identifier = 1
