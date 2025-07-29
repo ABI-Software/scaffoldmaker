@@ -25,23 +25,22 @@ class EllipsoidMesh:
     def __init__(self, a, b, c, element_counts, transition_element_count,
                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False):
         """
-
-        :param element_counts:
-        :param transition_element_count:
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
         :param c: Axis length (radius) in z direction.
+        :param element_counts: Number of elements across full ellipse in a, b, c.
+        :param transition_element_count: Number of transition elements around outside >= 1.
         :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
         :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
         :param surface_only: Set to True to only make nodes and 2-D elements on the surface.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
-        self._element_counts = element_counts
-        self._transition_element_count = transition_element_count
         self._a = a
         self._b = b
         self._c = c
+        self._element_counts = element_counts
+        self._transition_element_count = transition_element_count
         self._axis2_x_rotation_radians = axis2_x_rotation_radians
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
@@ -93,81 +92,77 @@ class EllipsoidMesh:
         elements_count_q12 = half_counts[0] + half_counts[1] - 2 * self._transition_element_count
         elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
         elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
-
         opp_element_counts = [half_counts[i] - self._transition_element_count for i in range(3)]
-        trimesh = QuadTriangleMesh(
-            opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
-            sample_curve=lambda start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
-                                start_weight=None, end_weight=None, overweighting=1.0, end_transition=False:
+
+        axis1 = [self._a, 0.0, 0.0]
+        axis2 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis2_x_rotation_radians)
+        axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis3_x_rotation_radians)
+        axis_d1 = div(axis1, half_counts[0])
+        axis_d2 = div(axis2, half_counts[1])
+        axis_d3 = div(axis3, half_counts[2])
+
+        sample_curve_on_ellipsoid = (
+            lambda start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
+                   start_weight=None, end_weight=None, overweighting=1.0, end_transition=False:
             sampleCurveOnEllipsoid(
                 self._a, self._b, self._c, start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
-                start_weight, end_weight, overweighting, end_transition),
-            move_x_to_surface=lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x),
-            move_d_to_surface=lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d))
+                start_weight, end_weight, overweighting, end_transition))
+        move_x_to_ellipsoid_surface = lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
+        move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
+        d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
+        # surface normal:
+        # evaluate_ellipsoid_surface_d3 = lambda tx, td1, td2: set_magnitude(
+        #     [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], d3_mag)
+        evaluate_ellipsoid_surface_d3 = lambda tx, td1, td2: set_magnitude(tx, d3_mag)
 
-        # get outside curve in 1-2 plane starting in 1 = x direction, 1st quadrant of 1-2 loop
-        start_x = [self._a, 0.0, 0.0]
-        start_d1 = [0.0, math.cos(self._axis2_x_rotation_radians), math.sin(self._axis2_x_rotation_radians)]
-        start_d2 = [0.0, math.cos(self._axis3_x_rotation_radians), math.sin(self._axis3_x_rotation_radians)]
-        end_x = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis2_x_rotation_radians)
-        end_d1 = [-1.0, 0.0, 0.0]
-        end_d2 = [0.0] + getEllipseTangentAtPoint(self._b, self._c, end_x[1:])
-        ax, ad1, ad2 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
-                                              start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count_q12)
-        trimesh.set_edge_parameters12(ax, ad1, ad2)
-        # self._set_coordinates_around_rim(
-        #     [px, pd1, pd2], [[0, 1, 2]],
-        #     [self._element_counts[0], half_counts[1], half_counts[2]],
-        #     [[0, 1, 0], [-1, 0, 0]])
-        # get outside curve in 1-3 plane starting in 1 = x direction, 1st quadrant of 1-3 loop
-        # start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        # start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
-        start_x, start_d1, start_d2 = ax[0], ad1[0], ad2[0]
-        end_x = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis3_x_rotation_radians)
-        end_d2 = [-1.0, 0.0, 0.0]
-        end_d1 = [0.0] + [-d for d in getEllipseTangentAtPoint(self._b, self._c, end_x[1:])]
-        bx, bd2, bd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
-                                              start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q13)
-        trimesh.set_edge_parameters13(bx, bd1, bd2)
-        # self._set_coordinates_around_rim(
-        #     [px, pd1, pd2], [[0, 1, 2], [0, 2, -1]], start_indexes,
-        #     [[0, 0, 1], [-1, 0, 0]])
-        # get outside curve in 2-3 plane starting in 2 direction, 1st quadrant of 2-3 loop
-        # start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
-        # start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
-        start_x, start_d1, start_d2 = ax[-1], ad1[-1], ad2[-1]
-        # end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        # end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
-        # end_d1 = [-d for d in end_d1]
-        # end_d2 = [-d for d in end_d2]
-        end_x, end_d1, end_d2 = bx[-1], bd2[-1], [-d for d in bd1[-1]]
-        cx, cd2, cd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
-                                              start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q23)
-        trimesh.set_edge_parameters23(cx, cd1, cd2)
-        # self._set_coordinates_around_rim(
-        #     [px, pd1, pd2], [[0, 1, 2], [0, -1, -2]], start_indexes,
-        #     [[0, 0, 1], [0, -1, 0]])
+        octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count)
 
-        trimesh.build()
+        # get outside curve from axis 1 to axis 2
+        abx, abd1, abd2 = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c,
+            axis1, axis_d2, axis_d3,
+            axis2, [-1.0, 0.0, 0.0], [0.0] + getEllipseTangentAtPoint(self._b, self._c, axis2[1:]),
+            elements_count_q12)
+        # get outside curve from axis 1 to axis 3
+        acx, acd2, acd1 = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c,
+            abx[0], abd2[0], abd1[0], axis3, [-1.0, 0.0, 0.0],
+            [0.0] + [-d for d in getEllipseTangentAtPoint(self._b, self._c, axis3[1:])],
+            elements_count_q13)
+        # get outside curve from axis 2 to axis 3
+        bcx, bcd2, bcd1 = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c,
+            abx[-1], abd2[-1], abd1[-1],
+            acx[-1], [-d for d in acd1[-1]], acd2[-1],
+            elements_count_q23)
+        # fix first/last derivatives so correct regardless of order set in QuadTriangleMesh
+        abd2[0] = acd2[0]
+        abd2[-1] = bcd2[0]
+        acd1[-1] = [-d for d in bcd2[-1]]
 
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        for n3 in range(opp_element_counts[2]):
-            px, pd1, pd2 = trimesh.get_parameters12(n3)
-            self._set_coordinates_around_rim([px, pd1, pd2], [[0, 1, 2]], start_indexes, [[0, 1, 0], [-1, 0, 0]])
-            start_indexes[2] += 1
-        start_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for n2 in range(opp_element_counts[1]):
-            px, pd1, pd2 = trimesh.get_parameters31(n2, opp_element_counts[0] + 1)
-            self._set_coordinates_around_rim([px, pd1, pd2], [[0, 1, 2]], start_indexes, [[1, 0, 0], [0, 0, -1]])
-            start_indexes[1] += 1
-        start_indexes = [half_counts[0], self._element_counts[1], self._element_counts[2]]
-        px, pd1, pd2 = trimesh.get_parameters_diagonal()
-        self._set_coordinates_around_rim([px, pd1, pd2], [[0, 1, 2]], start_indexes, [[1, 0, 0], [0, 0, -1]])
+        # make outer surface of octant 1
+        outer_surface1 = QuadTriangleMesh(
+            opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
+            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface)
+        outer_surface1.set_edge_parameters12(abx, abd1, abd2)
+        outer_surface1.set_edge_parameters13(acx, acd1, acd2)
+        outer_surface1.set_edge_parameters23(bcx, bcd1, bcd2)
+        outer_surface1.build()
+        if not self._surface_only:
+            d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
+            outer_surface1.calculate_d3(evaluate_ellipsoid_surface_d3)
+        octant1.set_outer_surface(outer_surface1)
 
-        # self._build_surface_octant1()
-
-        # if not self._surface_only:
-        #     self._build_plane12_quadrant1()
+        # copy octant1 into ellipsoid
+        octant_parameters = octant1.get_parameters()
+        for n3 in range(half_counts[2] + 1):
+            octant_nx_layer = octant_parameters[n3]
+            nx_layer = self._nx[half_counts[2] + n3]
+            for n2 in range(half_counts[1] + 1):
+                octant_nx_row = octant_nx_layer[n2]
+                nx_row = nx_layer[half_counts[1] + n2]
+                for n1 in range(half_counts[0] + 1):
+                    nx_row[half_counts[0] + n1] = copy.deepcopy(octant_nx_row[n1])
 
         # transfer parameters on bottom plane of octant1 to octant2 for blending
         n3 = half_counts[2]
@@ -186,18 +181,57 @@ class EllipsoidMesh:
                 d3 = [d3[0], -d3[1], -d3[2]] if d3 else None  # GRC fix
                 self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
 
-        # sample 2nd quadrant of 1-3 loop and blend end derivatives
-        start_indexes = [half_counts[0], 0, half_counts[2]]
-        start_x, start_d1, start_d2 = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]][:3]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        end_x, end_d1, end_d2 = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]][:3]
-        px, pd2, pd1 = sampleCurveOnEllipsoid(self._a, self._b, self._c,
-                                              start_x, start_d2, start_d1, end_x, end_d2, end_d1, elements_count_q23)
-        self._set_coordinates_around_rim(
-            [px, pd1, pd2], [[0, 1, 2]], start_indexes,
-            [[0, 0, 1], [0, 1, 0]], blend_start=True, blend_end=True)
+        octant2 = EllipsoidOctantMesh(
+            self._b, self._a, self._c, [half_counts[1], half_counts[0], half_counts[2]], self._transition_element_count)
 
-        self._build_surface_octant2()
+        # get outside curve from axis -2 to axis 1, mirrored from ab curve
+        mbax = [[x[0], -x[1], -x[2]] for x in reversed(abx)]
+        mbad1 = [[-d1[0], d1[1], d1[2]] for d1 in reversed(abd1)]
+        mbad2 = [[-d2[0], d2[1], d2[2]] for d2 in reversed(abd2)]
+        # get outside curve from axis -2 to axis 3
+        mbcx, mbcd2, mbcd1 = sampleCurveOnEllipsoid(
+            self._a, self._b, self._c,
+            mbax[0], mbad2[0], mbad1[0],
+            acx[-1], acd1[-1], [-d for d in acd2[-1]],
+            elements_count_q23)
+
+        # make outer surface of octant 2
+        outer_surface2 = QuadTriangleMesh(
+            opp_element_counts[1], opp_element_counts[0], opp_element_counts[2],
+            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface)
+        outer_surface2.set_edge_parameters12(mbax, mbad1, mbad2)
+        outer_surface2.set_edge_parameters13(mbcx, mbcd1, mbcd2)
+        outer_surface2.set_edge_parameters23(acx, acd1, acd2)
+        outer_surface2.build()
+        if not self._surface_only:
+            d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
+            outer_surface2.calculate_d3(evaluate_ellipsoid_surface_d3)
+        octant2.set_outer_surface(outer_surface2)
+
+        # copy octant2 into ellipsoid, blending existing derivatives
+        octant_parameters = octant2.get_parameters()
+        for n3 in range(half_counts[2] + 1):
+            octant_nx_layer = octant_parameters[n3]
+            nx_layer = self._nx[half_counts[2] + n3]
+            for n2 in range(half_counts[0] + 1):
+                octant_nx_row = octant_nx_layer[n2]
+                for n1 in range(half_counts[1] + 1):
+                    octant_nx = octant_nx_row[n1]
+                    if octant_nx:
+                        nx = nx_layer[half_counts[1] - n1][half_counts[0] + n2]
+                        nx[0] = copy.copy(octant_nx[0])
+                        for pix in range(1, 4):
+                            if (n3 < half_counts[2]) or (pix == 3):
+                                d = octant_nx[pix]
+                            else:
+                                d = octant_nx[2] if (pix == 1) else [-d for d in octant_nx[1]] if octant_nx[1] else None
+                            if d:
+                                if nx[pix]:
+                                    # expect derivatives to be the same direction and blend magnitude with harmonic mean
+                                    mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(d)))
+                                    nx[pix] = set_magnitude(nx[pix], mean_mag)
+                                else:
+                                    nx[pix] = copy.copy(d)
 
         # transfer blended d2 derivatives on bottom plane of octant2 back to octant1
         n3 = half_counts[2]
@@ -236,382 +270,6 @@ class EllipsoidMesh:
                     d2 = [-d2[0], d2[1], d2[2]] if d2 else None
                     d3 = [d3[0], d3[1], -d3[2]] if d3 else None
                     self._nx[self._element_counts[2] - n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
-
-    def _build_surface_octant1(self):
-        """
-        Sample surface octant between positive 1, positive 2 and positive 3 axes
-        """
-        half_counts = [count // 2 for count in self._element_counts]
-        regular_row_counts = [half_counts[i] - self._transition_element_count - 1 for i in range(3)]
-        elements_count_q12 = half_counts[0] + half_counts[1] - 2 * self._transition_element_count
-        elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
-        elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
-
-        # determine 3-way point location from mean of overweighted curves in line with it
-        point1 = self._nx[self._element_counts[2]][self._element_counts[1]][half_counts[0]]
-        point2 = self._nx[self._element_counts[2]][half_counts[1]][self._element_counts[0]]
-        point3 = self._nx[half_counts[2]][self._element_counts[1]][self._element_counts[0]]
-        min_weight = 1
-        weight = [regular_row_counts[i] + min_weight for i in range(3)]
-        weight[0] /= magnitude(point1[0])
-        weight[1] /= magnitude(point2[0])
-        weight[2] /= magnitude(point3[0])
-        offset = 1
-        overweighting = 1.5
-        ax = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c, point1[0], point1[1], None, point2[0], [-d for d in point2[2]], None,
-            elements_count_q12, start_weight=weight[0], end_weight=weight[1],
-            overweighting=overweighting)[0][regular_row_counts[0] + offset]
-        bx = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c, point3[0], point3[2], None, point1[0], [-d for d in point1[1]], None,
-            elements_count_q13, start_weight=weight[2], end_weight=weight[0],
-            overweighting=overweighting)[0][regular_row_counts[2] + offset]
-        cx = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c, point3[0], point3[2], None, point2[0], [-d for d in point2[2]], None,
-            elements_count_q23, start_weight=weight[2], end_weight=weight[1],
-            overweighting=overweighting)[0][regular_row_counts[2] + offset]
-        x_3way = moveCoordinatesToEllipsoidSurface(
-            self._a, self._b, self._c, [(ax[c] + bx[c] + cx[c]) / 3.0 for c in range(3)])
-
-        # sample with hermite-lagrange interpolation from sides to 3-way point derivatives
-        a_start_indexes = [half_counts[0], self._element_counts[1], self._element_counts[2]]
-        start = self._nx[a_start_indexes[2]][a_start_indexes[1]][a_start_indexes[0]]
-        ax, ad1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[1], None, x_3way, None, None, regular_row_counts[0] + 1)
-        ad2 = start[2]
-        b_start_indexes = [self._element_counts[0], half_counts[1], self._element_counts[2]]
-        start = self._nx[b_start_indexes[2]][b_start_indexes[1]][b_start_indexes[0]]
-        bx, bd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, x_3way, None, None, regular_row_counts[1] + 1)
-        bd1 = start[1]
-        c_start_indexes = [self._element_counts[0], self._element_counts[1], half_counts[2]]
-        start = self._nx[c_start_indexes[2]][c_start_indexes[1]][c_start_indexes[0]]
-        cx, cd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, x_3way, None, None, regular_row_counts[2] + 1)
-        cd1 = start[1]
-        # use the minimum magnitude in all 3 directions
-        d_factor = 0.6
-        d_mag = d_factor * min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
-        d1_3way = set_magnitude(ad1[-1], d_mag)
-        d2_3way = set_magnitude(bd2[-1], d_mag)
-
-        # smooth sample from sides to 3-way points using end derivatives
-        min_weight = 2
-        ax, ad1, ad2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            ax[0], ad1[0], ad2, x_3way, d1_3way, None, regular_row_counts[0] + 1,
-            start_weight=regular_row_counts[0] + min_weight, end_weight=min_weight, end_transition=True)
-        bx, bd2, bd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            bx[0], bd2[0], bd1, x_3way, d2_3way, None, regular_row_counts[1] + 1,
-            start_weight=regular_row_counts[1] + min_weight, end_weight=min_weight, end_transition=True)
-        cx, cd2, cd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            cx[0], cd2[0], cd1, x_3way, [-d for d in add(d1_3way, d2_3way)], None, regular_row_counts[2] + 1,
-            start_weight=regular_row_counts[2] + min_weight, end_weight=min_weight, end_transition=True)
-        ad2[-1] = bd2[-1]
-        bd1[-1] = ad1[-1]
-        self._set_coordinates_around_rim([ax, ad1, ad2], [[0, 1, 2]], a_start_indexes, [[1, 0, 0]])
-        self._set_coordinates_around_rim([bx, bd1, bd2], [[0, 1, 2]], b_start_indexes, [[0, 1, 0]])
-        self._set_coordinates_around_rim([cx, cd1, cd2], [[0, 1, 2]], c_start_indexes, [[0, 0, 1]], skip_end=True)
-
-        # 1-2 curve in 3-direction
-        min_weight = 2
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        corner_indexes = [self._element_counts[0], self._element_counts[1], half_counts[2]]
-        end_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
-        for i in range(regular_row_counts[2]):
-            start_indexes[2] += 1
-            corner_indexes[2] += 1
-            end_indexes[2] += 1
-            start = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]]
-            corner = self._nx[corner_indexes[2]][corner_indexes[1]][corner_indexes[0]]
-            end = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]]
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                start[0], start[1], None, corner[0], corner[1], None, regular_row_counts[1] + 1,
-                start_weight=regular_row_counts[1] + min_weight, end_weight=min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], start_indexes, [[0, 1, 0]], skip_start=True, skip_end=True)
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                corner[0], corner[1], None, end[0], end[1], None, regular_row_counts[0] + 1,
-                start_weight=min_weight, end_weight=regular_row_counts[0] + min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], corner_indexes, [[-1, 0, 0]], skip_start=True, skip_end=True)
-        # 1-3 curve in 2-direction
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        corner_indexes = [self._element_counts[0], half_counts[1], self._element_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[1]):
-            start_indexes[1] += 1
-            corner_indexes[1] += 1
-            end_indexes[1] += 1
-            start = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]]
-            corner = self._nx[corner_indexes[2]][corner_indexes[1]][corner_indexes[0]]
-            end = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]]
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                start[0], start[2], None, corner[0], [-d for d in corner[1]], None, regular_row_counts[2] + 1,
-                start_weight=regular_row_counts[2] + min_weight, end_weight=min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], start_indexes, [[0, 0, 1]], skip_start=True, skip_end=True, blend_middle=True)
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                corner[0], [-d for d in corner[1]], None, end[0], [-d for d in end[1]], None, regular_row_counts[0] + 1,
-                    start_weight=min_weight, end_weight=regular_row_counts[0] + min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], corner_indexes, [[-1, 0, 0]], skip_start=True, skip_end=True, blend_middle=True)
-        # 2-3 curve in 1-direction
-        start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
-        corner_indexes = [half_counts[0], self._element_counts[1], self._element_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[0]):
-            start_indexes[0] += 1
-            corner_indexes[0] += 1
-            end_indexes[0] += 1
-            start = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]]
-            corner = self._nx[corner_indexes[2]][corner_indexes[1]][corner_indexes[0]]
-            end = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]]
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                start[0], start[2], None, corner[0], [-d for d in corner[2]], None, regular_row_counts[2] + 1,
-                start_weight=regular_row_counts[2] + min_weight, end_weight=min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], start_indexes, [[0, 0, 1]], skip_start=True, skip_end=True, blend_middle=True)
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                corner[0], [-d for d in corner[2]], None, end[0], [-d for d in end[2]], None, regular_row_counts[1] + 1,
-                start_weight=min_weight, end_weight=regular_row_counts[1] + min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], corner_indexes, [[0, -1, 0]], skip_start=True, skip_end=True, blend_middle=True)
-
-        # smooth 1-2 curves
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        end_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
-        for i in range(regular_row_counts[2]):
-            start_indexes[2] += 1
-            end_indexes[2] += 1
-            self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[0, 1, 0], [-1, 0, 0]], [1, 1], [1],
-                fix_start_direction=True, fix_end_direction=True)
-        # smooth 1-3 curves
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[1]):
-            start_indexes[1] += 1
-            end_indexes[1] += 1
-            self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[0, 0, 1], [-1, 0, 0]], [2, -1], [-1],
-                fix_start_direction=True, fix_end_direction=True)
-        # smooth 2-3 curves
-        start_indexes = [half_counts[0], self._element_counts[1], half_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[0]):
-            start_indexes[0] += 1
-            end_indexes[0] += 1
-            self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[0, 0, 1], [0, -1, 0]], [2, -2], [-2],
-                fix_start_direction=True, fix_end_direction=True)
-
-        if not self._surface_only:
-            # add d3:
-            d3_mag = min(self._a / half_counts[0], self._b / half_counts[1], self._c / half_counts[2])
-            for n3 in range(half_counts[2], self._element_counts[2] + 1):
-                nx_layer = self._nx[n3]
-                for n2 in range(half_counts[1], self._element_counts[1] + 1):
-                    nx_row = nx_layer[n2]
-                    for n1 in range(half_counts[0], self._element_counts[0] + 1):
-                        nx = nx_row[n1]
-                        if nx and nx[0]:
-                            # surface normal:
-                            # nx[3] = set_magnitude([
-                            #     nx[0][0] / (self._a * self._a),
-                            #     nx[0][1] / (self._b * self._b),
-                            #     nx[0][2] / (self._c * self._c)], d3_mag)
-                            nx[3] = set_magnitude(nx[0], d3_mag)
-
-    def _build_surface_octant2(self):
-        """
-        Sample surface octant between positive 1, negative 2 and positive 3 axes
-        """
-        half_counts = [count // 2 for count in self._element_counts]
-        regular_row_counts = [half_counts[i] - self._transition_element_count - 1 for i in range(3)]
-        elements_count_q12 = half_counts[0] + half_counts[1] - 2 * self._transition_element_count
-        elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
-        elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
-
-        # determine 3-way point location from mean of overweighted curves in line with it
-        point1 = self._nx[self._element_counts[2]][0][half_counts[0]]
-        point2 = self._nx[self._element_counts[2]][half_counts[1]][self._element_counts[0]]
-        point3 = self._nx[half_counts[2]][0][self._element_counts[0]]
-        min_weight = 1
-        weight = [regular_row_counts[i] + min_weight for i in range(3)]
-        weight[0] /= magnitude(point1[0])
-        weight[1] /= magnitude(point2[0])
-        weight[2] /= magnitude(point3[0])
-        offset = 1
-        overweighting = 1.5
-        ax = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c, point1[0], point1[1], None, point2[0], point2[2], None,
-            elements_count_q12, start_weight=weight[0], end_weight=weight[1],
-            overweighting=overweighting)[0][regular_row_counts[0] + offset]
-        bx = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c, point3[0], point3[2], None, point1[0], [-d for d in point1[1]], None,
-            elements_count_q13, start_weight=weight[2], end_weight=weight[0],
-            overweighting=overweighting)[0][regular_row_counts[2] + offset]
-        cx = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c, point3[0], point3[2], None, point2[0], point2[2], None,
-            elements_count_q23, start_weight=weight[2], end_weight=weight[1],
-            overweighting=overweighting)[0][regular_row_counts[2] + offset]
-        x_3way = moveCoordinatesToEllipsoidSurface(
-            self._a, self._b, self._c, [(ax[c] + bx[c] + cx[c]) / 3.0 for c in range(3)])
-        # visualise ax, bx, cx:
-        # self._nx[0][self._element_counts[1]][0][0] = ax
-        # self._nx[0][self._element_counts[1]][self._element_counts[0]][0] = bx
-        # self._nx[self._element_counts[2]][0][0][0] = cx
-
-        # sample with hermite-lagrange interpolation from sides to 3-way point derivatives
-        a_start_indexes = [half_counts[0], 0, self._element_counts[2]]
-        start = self._nx[a_start_indexes[2]][a_start_indexes[1]][a_start_indexes[0]]
-        ax, ad1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[1], None, x_3way, None, None, regular_row_counts[0] + 1)
-        ad2 = start[2]
-        b_start_indexes = [self._element_counts[0], half_counts[1], self._element_counts[2]]
-        start = self._nx[b_start_indexes[2]][b_start_indexes[1]][b_start_indexes[0]]
-        bx, bd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], [-d for d in start[2]], None, x_3way, None, None, regular_row_counts[1] + 1)
-        bd1 = start[1]
-        c_start_indexes = [self._element_counts[0], 0, half_counts[2]]
-        start = self._nx[c_start_indexes[2]][c_start_indexes[1]][c_start_indexes[0]]
-        cx, cd2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            start[0], start[2], None, x_3way, None, None, regular_row_counts[2] + 1)
-        cd1 = start[1]
-        # use the minimum magnitude in all 3 directions
-        d_factor = 0.6
-        d_mag = d_factor * min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
-        d1_3way = set_magnitude(ad1[-1], d_mag)
-        d2_3way = set_magnitude([-d for d in bd2[-1]], d_mag)
-
-        # smooth sample from sides to 3-way points using end derivatives
-        min_weight = 2
-        ax, ad1, ad2 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            ax[0], ad1[0], ad2, x_3way, d1_3way, None, regular_row_counts[0] + 1,
-            start_weight=regular_row_counts[0] + min_weight, end_weight=min_weight, end_transition=True)
-        bx, bd2, bd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            bx[0], bd2[0], bd1, x_3way, [-d for d in d2_3way], None, regular_row_counts[1] + 1,
-            start_weight=regular_row_counts[1] + min_weight, end_weight=min_weight, end_transition=True)
-        cx, cd2, cd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            cx[0], cd2[0], cd1, x_3way, sub(d2_3way, d1_3way), None, regular_row_counts[2] + 1,
-            start_weight=regular_row_counts[2] + min_weight, end_weight=min_weight, end_transition=True)
-        ad2[-1] = bd2[-1]
-        bd1[-1] = ad1[-1]
-        self._set_coordinates_around_rim([ax, ad1, ad2], [[0, 1, 2]], a_start_indexes, [[1, 0, 0]])
-        self._set_coordinates_around_rim([bx, bd1, bd2], [[0, 1, -2]], b_start_indexes, [[0, -1, 0]], blend_start=True)
-        self._set_coordinates_around_rim([cx, cd1, cd2], [[0, 1, 2]], c_start_indexes, [[0, 0, 1]],
-                                         blend_start=True, skip_end=True)
-
-        # 1-2 curve in 3-direction
-        min_weight = 2
-        start_indexes = [half_counts[0], 0, half_counts[2]]
-        corner_indexes = [self._element_counts[0], 0, half_counts[2]]
-        end_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        for i in range(regular_row_counts[2]):
-            start_indexes[2] += 1
-            corner_indexes[2] += 1
-            end_indexes[2] += 1
-            start = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]]
-            corner = self._nx[corner_indexes[2]][corner_indexes[1]][corner_indexes[0]]
-            end = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]]
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                start[0], start[1], None, corner[0], corner[1], None, regular_row_counts[0] + 1,
-                start_weight=regular_row_counts[0] + min_weight, end_weight=min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], start_indexes, [[1, 0, 0]], skip_start=True, skip_end=True)
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                corner[0], corner[1], None, end[0], end[1], None, regular_row_counts[1] + 1,
-                start_weight=min_weight, end_weight=regular_row_counts[1] + min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], corner_indexes, [[0, 1, 0]], skip_start=True, skip_end=True)
-        # 1-3 curve in 2-direction
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        corner_indexes = [self._element_counts[0], half_counts[1], self._element_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[1]):
-            start_indexes[1] -= 1
-            corner_indexes[1] -= 1
-            end_indexes[1] -= 1
-            start = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]]
-            corner = self._nx[corner_indexes[2]][corner_indexes[1]][corner_indexes[0]]
-            end = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]]
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                start[0], start[2], None, corner[0], [-d for d in corner[1]], None, regular_row_counts[2] + 1,
-                start_weight=regular_row_counts[2] + min_weight, end_weight=min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], start_indexes, [[0, 0, 1]], skip_start=True, skip_end=True, blend_middle=True)
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                corner[0], [-d for d in corner[1]], None, end[0], [-d for d in end[1]], None, regular_row_counts[0] + 1,
-                    start_weight=min_weight, end_weight=regular_row_counts[0] + min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], corner_indexes, [[-1, 0, 0]], skip_start=True, skip_end=True, blend_middle=True)
-        # 2-3 curve in 1-direction
-        start_indexes = [half_counts[0], 0, half_counts[2]]
-        corner_indexes = [half_counts[0], 0, self._element_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[0]):
-            start_indexes[0] += 1
-            corner_indexes[0] += 1
-            end_indexes[0] += 1
-            start = self._nx[start_indexes[2]][start_indexes[1]][start_indexes[0]]
-            corner = self._nx[corner_indexes[2]][corner_indexes[1]][corner_indexes[0]]
-            end = self._nx[end_indexes[2]][end_indexes[1]][end_indexes[0]]
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                start[0], start[2], None, corner[0], corner[2], None, regular_row_counts[2] + 1,
-                start_weight=regular_row_counts[2] + min_weight, end_weight=min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], start_indexes, [[0, 0, 1]], skip_start=True, skip_end=True, blend_middle=True)
-            px, _ = sampleCurveOnEllipsoid(
-                self._a, self._b, self._c,
-                corner[0], corner[2], None, end[0], end[2], None, regular_row_counts[1] + 1,
-                start_weight=min_weight, end_weight=regular_row_counts[1] + min_weight)
-            self._set_coordinates_around_rim(
-                [px], [[0]], corner_indexes, [[0, 1, 0]], skip_start=True, skip_end=True, blend_middle=True)
-
-        # smooth 1-2 curves
-        start_indexes = [half_counts[0], 0, half_counts[2]]
-        end_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        for i in range(regular_row_counts[2]):
-            start_indexes[2] += 1
-            end_indexes[2] += 1
-            self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[1, 0, 0], [0, 1, 0]], [1, 1], [1],
-                fix_start_direction=True, fix_end_direction=True, blend_start=True, blend_end=True)
-        # smooth 1-3 curves
-        start_indexes = [self._element_counts[0], half_counts[1], half_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[1]):
-            start_indexes[1] -= 1
-            end_indexes[1] -= 1
-            self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[0, 0, 1], [-1, 0, 0]], [2, -1], [-1],
-                fix_start_direction=True, fix_end_direction=True, blend_start=True, blend_end=True)
-        # smooth 2-3 curves
-        start_indexes = [half_counts[0], 0, half_counts[2]]
-        end_indexes = [half_counts[0], half_counts[1], self._element_counts[2]]
-        for i in range(regular_row_counts[0]):
-            start_indexes[0] += 1
-            end_indexes[0] += 1
-            self._smooth_derivatives_around_rim(start_indexes, end_indexes, [[0, 0, 1], [0, 1, 0]], [2], [2],
-                fix_start_direction=True, fix_end_direction=True, blend_start=True, blend_end=True)
 
     def _next_increment_out_of_bounds(self, indexes, index_increment):
         for c in range(3):
@@ -768,12 +426,16 @@ class EllipsoidMesh:
             # else:
             #     # not putting back values if summed parameters
 
-    def generate_mesh(self, fieldmodule, coordinates):
+    def generate_mesh(self, fieldmodule, coordinates, start_node_identifier=1, start_element_identifier=1):
         """
         After build() has been called, generate nodes and elements of ellipsoid.
         Client is expected to run within ChangeManager(fieldmodule).
         :param fieldmodule: Owning fieldmodule to create mesh in.
         :param coordinates: Coordinate field to define.
+        :param start_node_identifier: Identifier to define for first node and incremented thereafter.
+        :param start_element_identifier: Identifier to define for first element and incremented thereafter.
+        Note this is for mesh2d if surface_only, otherwise mesh3d.
+        return next node identifier, next element identifier for objects after this.
         """
         fieldcache = fieldmodule.createFieldcache()
 
@@ -788,7 +450,7 @@ class EllipsoidMesh:
         for value_label in value_labels:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, value_label, 1)
 
-        node_identifier = 1
+        node_identifier = start_node_identifier
         for n3 in range(self._element_counts[2] + 1):
             for n2 in range(self._element_counts[1] + 1):
                 for n1 in range(self._element_counts[0] + 1):
@@ -811,10 +473,10 @@ class EllipsoidMesh:
                     node_identifier += 1
 
         node_layout_manager = HermiteNodeLayoutManager()
+        element_identifier = start_element_identifier
 
         if self._surface_only:
             mesh2d = fieldmodule.findMeshByDimension(2)
-            element_identifier = 1
             elementtemplate_regular = mesh2d.createElementtemplate()
             elementtemplate_regular.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
             bicubic_hermite_serendipity_basis = (
@@ -932,3 +594,167 @@ class EllipsoidMesh:
                         # print("Element", element_identifier, "nids", nids)
                         element_identifier += 1
                 last_nids_row = nids_row
+        return node_identifier, element_identifier
+
+class EllipsoidOctantMesh:
+    """
+    Generates one octant of an ellipsoid, 2-D surface or full 3-D volume.
+    2-D outer surface is merely added from a QuadTriangleMesh.
+    3-D volume requires 3 axis-aligned and outer surfaces to each be set from a QuadTriangleMesh,
+    then the interior can be built.
+    """
+
+    def __init__(self, a, b, c, element_counts, transition_element_count):
+        """
+        A 2-D or 3-D Octant of an ellipsoid.
+        Coordinates nx are indexed in 1, 2, 3 directions from origin at index 0, 0, 0
+        with holes around the corners and 3-way points.
+        :param a: Axis length (radius) in x direction.
+        :param b: Axis length (radius) in y direction.
+        :param c: Axis length (radius) in z direction.
+        :param element_counts: Number of elements across octant only in 1, 2, 3 axes.
+        :param transition_element_count: Number of transition elements around outside >= 1.
+        """
+        assert all((count >= 2) for count in element_counts)
+        assert 1 <= transition_element_count <= (min(element_counts) - 1)
+        self._a = a
+        self._b = b
+        self._c = c
+        self._element_counts = element_counts
+        self._transition_element_count = transition_element_count
+        self._element_count12 = element_counts[0] + element_counts[1] - 2 * transition_element_count
+        self._element_count13 = element_counts[0] + element_counts[2] - 2 * transition_element_count
+        self._element_count23 = element_counts[1] + element_counts[2] - 2 * transition_element_count
+        # counts of elements to 3-way point opposite to 3 node at axis 1, axis 2, axis 3
+        self._opp_counts = [self._element_counts[i] - self._transition_element_count for i in range(3)]
+        none_parameters = [None] * 4  # x, d1, d2, d3
+        self._nx = []  # shield mesh with holes over n3, n2, n1, d
+        for n3 in range(element_counts[2] + 1):
+            # index into transition zone
+            trans3 = transition_element_count + n3 - element_counts[2]
+            nx_layer = []
+            for n2 in range(element_counts[1] + 1):
+                # index into transition zone
+                trans2 = transition_element_count + n2 - element_counts[1]
+                nx_row = []
+                # s = ""
+                for n1 in range(element_counts[0] + 1):
+                    # index into transition zone
+                    trans1 = transition_element_count + n1 - element_counts[0]
+                    if (((trans1 <= 0) and (trans2 <= 0) and (trans3 <= 0)) or
+                            (trans1 == trans2 == trans3) or
+                            ((trans1 < 0) and ((trans2 == trans3) or (trans2 < 0))) or
+                            ((trans2 < 0) and ((trans3 == trans1) or (trans3 < 0))) or
+                            ((trans3 < 0) and ((trans1 == trans2) or (trans1 < 0)))):
+                        parameters = copy.copy(none_parameters)
+                        # s += "[]"
+                    else:
+                        parameters = None
+                        # s += "  "
+                    nx_row.append(parameters)
+                nx_layer.append(nx_row)
+                # print(s)
+            self._nx.append(nx_layer)
+
+    def get_parameters(self):
+        """
+        Get parameters array e.g. for copying to ellipsoid.
+        :return: Internal parameters array self._nx. Not to be modified.
+        """
+        return self._nx
+
+    def set_outer_surface(self, trimesh: QuadTriangleMesh):
+        """
+        Set parameters of the outer surface along 1-2 edge of triangle.
+        :param trimesh: Coordinates to set on outer surface.
+        """
+        assert trimesh.get_element_count12() == self._element_count12
+        assert trimesh.get_element_count13() == self._element_count13
+        assert trimesh.get_element_count23() == self._element_count23
+        start_indexes = [self._element_counts[0], 0, 0]
+        for n3 in range(self._opp_counts[2]):
+            px, pd1, pd2, pd3 = trimesh.get_parameters12(n3)
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 2, 3]], start_indexes, [[0, 1, 0], [-1, 0, 0]])
+            start_indexes[2] += 1
+        start_indexes = [0, 0, self._element_counts[2]]
+        for n2 in range(self._opp_counts[1]):
+            px, pd1, pd2, pd3 = trimesh.get_parameters31(n2, self._opp_counts[0] + 1)
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 2, 3]], start_indexes, [[1, 0, 0]])
+            start_indexes[1] += 1
+        start_indexes = [0, self._element_counts[1], self._element_counts[2]]
+        px, pd1, pd2, pd3 = trimesh.get_parameters_diagonal()
+        self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 2, 3]], start_indexes, [[1, 0, 0]])
+
+    def _get_corner(self, indexes):
+        """
+        Get integer indicating which corner if any the indexes are on.
+        :param indexes: Index across 1, 2, 3 directions.
+        :return: 0 if not a corner, 1 if 2-3 corner, 2 if 1-3 corner, 3 if 1-2 corner, 4 if 1-2-3 corner.
+        """
+        # get transition index outward or negative in the regular core box.
+        trans = [self._transition_element_count + indexes[i] - self._element_counts[i] for i in range(3)]
+        if (trans[0] >= 0) and (trans[0] == trans[1] == trans[2]):
+            return 4
+        if (trans[2] < 0) and (trans[0] >= 0) and (trans[0] == trans[1]):
+            return 3
+        if (trans[1] < 0) and (trans[2] >= 0) and (trans[0] == trans[2]):
+            return 2
+        if (trans[0] < 0) and (trans[1] >= 0) and (trans[1] == trans[2]):
+            return 1
+        return 0
+
+    def _set_coordinates_across(self, parameters, parameter_indexes, start_indexes, index_increments,
+                                skip_start=False, skip_end=False, blend=False):
+        """
+        Insert parameters across the coordinates array.
+        :param parameters: List of lists of N node parameters e.g. [px, pd1, pd2, pd3]
+        :param parameter_indexes: Lists of parameter indexes where x=0, d1=1, d2=2, d3=3. Starts with first and
+        advances at each corner, then cycles back to first. Can be negative to invert vector.
+        e.g. [[0, 1, 2], [0, -2, 1]] for [x, d1, d2] then [x, -d2, d1] from first corner.
+        :param start_indexes: Indexes into nx array for start point.
+        :param index_increments: List of increments in indexes. Starts with first and uses next from each corner, then
+        cycles back to first.
+        :param skip_start: Set to True to skip the first value.
+        :param skip_end: Set to True to skip the last value.
+        :param blend: Set to True to blend parameters with any old parameters at locations.
+        """
+        indexes = start_indexes
+        parameter_number = 0
+        parameter_index = parameter_indexes[0]
+        increment_number = 0
+        index_increment = index_increments[0]
+        start_n = 1 if skip_start else 0
+        last_n = len(parameters[0]) - 1
+        limit_n = len(parameters[0]) - (1 if skip_end else 0)
+        for n in range(start_n, limit_n):
+            if n > 0:
+                while True:
+                    indexes = [indexes[c] + index_increment[c] for c in range(3)]
+                    # skip over blank transition coordinates
+                    if self._nx[indexes[2]][indexes[1]][indexes[0]]:
+                        break
+            corner = self._get_corner(indexes)
+            next_indexes = [indexes[c] + index_increment[c] for c in range(3)]
+            if corner and (corner != self._get_corner(next_indexes)):
+                parameter_number += 1
+                if parameter_number == len(parameter_indexes):
+                    parameter_number = 0
+                parameter_index = parameter_indexes[parameter_number]
+                increment_number += 1
+                if increment_number == len(index_increments):
+                    increment_number = 0
+                index_increment = index_increments[increment_number]
+            nx = self._nx[indexes[2]][indexes[1]][indexes[0]]
+            for parameter, spix in zip(parameters, parameter_index):
+                new_parameter = [-d for d in parameter[n]] if (spix < 0) else copy.copy(parameter[n])
+                pix = abs(spix)
+                if blend and nx[pix]:
+                    if pix == 0:
+                        x = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
+                        nx[pix] = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
+                    else:
+                        # expect derivatives to be the same direction and blend magnitude with harmonic mean
+                        mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(new_parameter)))
+                        nx[pix] = set_magnitude(nx[pix], mean_mag)
+                else:
+                    nx[pix] = new_parameter

@@ -46,7 +46,7 @@ class QuadTriangleMesh:
         self._node_count12 = self._element_count12 + 1
         self._node_count13 = self._element_count13 + 1
         self._node_count23 = self._element_count23 + 1
-        none_parameters = [None] * 3  # x, d1, d2
+        none_parameters = [None] * 4  # x, d1, d2
         self._nx = []
         for n13 in range(self._node_count13):
             nx_row = []
@@ -63,47 +63,71 @@ class QuadTriangleMesh:
             # print(s)
             self._nx.append(nx_row)
 
-    def set_edge_parameters12(self, px, pd1, pd2):
+    def get_element_count1(self):
+        return self._element_count1
+
+    def get_element_count2(self):
+        return self._element_count2
+
+    def get_element_count3(self):
+        return self._element_count3
+
+    def get_element_count12(self):
+        return self._element_count12
+
+    def get_element_count13(self):
+        return self._element_count13
+
+    def get_element_count23(self):
+        return self._element_count23
+
+    def set_edge_parameters12(self, px, pd1, pd2, pd3=None):
         """
         Set parameters along 1-2 edge of triangle.
         :param px: Coordinates x.
         :param pd1: Derivatives in direction from point1 towards point2.
         :param pd2: Derivatives in direction towards point3.
+        :param pd3: Optional derivatives in 3rd direction.
         """
         assert len(px) == self._node_count12
         for n12 in range(self._node_count12):
-            self._nx[0][n12] = [copy.copy(px[n12]), copy.copy(pd1[n12]), copy.copy(pd2[n12])]
+            d3 = copy.copy(pd3[n12]) if pd3 else None
+            self._nx[0][n12] = [copy.copy(px[n12]), copy.copy(pd1[n12]), copy.copy(pd2[n12]), d3]
 
-    def set_edge_parameters13(self, px, pd1, pd2):
+    def set_edge_parameters13(self, px, pd1, pd2, pd3=None):
         """
         Set parameters along 1-3 edge of triangle.
         :param px: Coordinates x.
         :param pd1: Derivatives in direction towards point2.
         :param pd2: Derivatives in direction from point1 towards point3.
+        :param pd3: Optional derivatives in 3rd direction.
         """
         assert len(px) == self._node_count13
         for n13 in range(self._node_count13):
+            d3 = copy.copy(pd3[n13]) if pd3 else None
             if n13 < self._element_count3:
-                parameters = [copy.copy(px[n13]), copy.copy(pd1[n13]), copy.copy(pd2[n13])]
+                parameters = [copy.copy(px[n13]), copy.copy(pd1[n13]), copy.copy(pd2[n13]), d3]
             else:
-                parameters = [copy.copy(px[n13]), [-d for d in pd2[n13]], copy.copy(pd1[n13])]
+                parameters = [copy.copy(px[n13]), [-d for d in pd2[n13]], copy.copy(pd1[n13]), d3]
             self._nx[n13][0] = parameters
 
-    def set_edge_parameters23(self, px, pd1, pd2):
+    def set_edge_parameters23(self, px, pd1, pd2, pd3=None):
         """
         Set parameters along 123 edge of triangle.
         :param px: Coordinates x.
         :param pd1: Derivatives in direction from point2 towards point3.
         :param pd2: Derivatives in direction away from point1.
+        :param pd3: Optional derivatives in 3rd direction.
         """
         assert len(px) == self._node_count23
         for n23 in range(self._node_count23):
+            d3 = copy.copy(pd3[n23]) if pd3 else None
             if n23 < self._element_count3:
-                parameters = [copy.copy(px[n23]), copy.copy(pd1[n23]), copy.copy(pd2[n23])]
+                parameters = [copy.copy(px[n23]), copy.copy(pd1[n23]), copy.copy(pd2[n23]), d3]
                 n13 = n23
                 n12 = self._element_count12
             else:
-                parameters = [copy.copy(px[n23]), [-d for d in pd1[n23]], [-d for d in pd2[n23]]]
+                parameters = [copy.copy(px[n23]), [-d for d in pd1[n23]], [-d for d in pd2[n23]], d3]
                 n13 = self._element_count13
                 n12 = (self._element_count12 if n23 == self._element_count3 else
                        self._element_count2 - (n23 - self._element_count3))
@@ -114,7 +138,7 @@ class QuadTriangleMesh:
         Get parameters along 1-2 direction of triangle.
         :param n13: Index from 0 at point1 toward point3, up to element_count13.
         :param count: Optional lower number to get, or None for all in row.
-        :return: px, pd1, pd2
+        :return: px, pd1, pd2, pd3
         """
         assert 0 <= n13 < self._node_count13
         if count == None:
@@ -124,6 +148,7 @@ class QuadTriangleMesh:
         px = []
         pd1 = []
         pd2 = []
+        pd3 = []
         nx_row = self._nx[n13]
         n12 = 0
         for n in range(count):
@@ -133,15 +158,16 @@ class QuadTriangleMesh:
             px.append(nx[0])
             pd1.append(nx[1])
             pd2.append(nx[2])
+            pd3.append(nx[3])
             n12 += 1
-        return px, pd1, pd2
+        return px, pd1, pd2, pd3
 
     def get_parameters31(self, n12, count=None):
         """
         Get parameters along 3-1 direction of triangle.
         :param n12: Index from 0 at point3 toward point2, up to element_count12.
         :param count: Optional lower number to get, or None for all in row.
-        :return: px, pd1, pd2
+        :return: px, pd1, pd2, pd3
         """
         assert 0 <= n12 < self._node_count12
         if count == None:
@@ -151,6 +177,7 @@ class QuadTriangleMesh:
         px = []
         pd1 = []
         pd2 = []
+        pd3 = []
         n13 = self._element_count13
         for n in range(count):
             nx_row = self._nx[n13]
@@ -160,17 +187,19 @@ class QuadTriangleMesh:
             px.append(nx[0])
             pd1.append(nx[1])
             pd2.append(nx[2])
+            pd3.append(nx[3])
             n13 -= 1
-        return px, pd1, pd2
+        return px, pd1, pd2, pd3
 
     def get_parameters_diagonal(self):
         """
-        Set parameters along diagonal from point23 to 3-way point
-        :return: px, pd1, pd2
+        Get parameters along diagonal from point23 to 3-way point
+        :return: px, pd1, pd2, pd3
         """
         px = []
         pd1 = []
         pd2 = []
+        pd3 = []
         for n in range(self._element_count1 + 1):
             n13 = self._element_count13 - n
             n12 = self._element_count12 - n
@@ -178,7 +207,8 @@ class QuadTriangleMesh:
             px.append(nx[0])
             pd1.append(nx[1])
             pd2.append(nx[2])
-        return px, pd1, pd2
+            pd3.append(nx[3])
+        return px, pd1, pd2, pd3
 
 
     def _get_corner(self, indexes):
@@ -205,7 +235,7 @@ class QuadTriangleMesh:
         """
         Insert parameters in a row across triangle into the coordinates array.
         :param parameters: List of lists of N node parameters e.g. [px, pd1, pd2]
-        :param parameter_indexes: Lists of parameter indexes where 0=x, 1=d1, 2=d2. Starts with first and
+        :param parameter_indexes: Lists of parameter indexes where 0=x, 1=d1, 2=d2, 3=d3. Starts with first and
         advances at a 3-way line, then cycles back to first. Can be negative to invert vector.
         e.g. [[0, 1, 2], [0, -2, 1]] for [x, d1, d2] then [x, -d2, d1] from 3-way line.
         :param start_indexes: Index of first point, a list of 2-integers within the range of self._nx.
@@ -225,7 +255,7 @@ class QuadTriangleMesh:
         for n in range(start_n, limit_n):
             if n > 0:
                 while True:
-                    indexes = [indexes[0] + index_increment[0],  indexes[1] + index_increment[1]]
+                    indexes = [indexes[0] + index_increment[0], indexes[1] + index_increment[1]]
                     # skip over blank coordinates around 3-way line
                     if self._nx[indexes[1]][indexes[0]]:
                         break
@@ -264,7 +294,7 @@ class QuadTriangleMesh:
         :param end_indexes: Indexes of last point.
         :param index_increments: List of increments in indexes. Starts with first and after at each corner, then
         cycles back to first.
-        :param derivative_indexes: List of signed derivative parameter index to along where 1=d1, 2=d2.
+        :param derivative_indexes: List of signed derivative parameter index to along where 1=d1, 2=d2, 3=d3.
         Starts with first and advances at each corner, then cycles back to first. Can be negative to invert vector.
         e.g. [1, -2] for d1 then -d2 from first corner.
         :param fix_start_direction: Set to True to keep the start direction but scale its magnitude.
@@ -337,11 +367,6 @@ class QuadTriangleMesh:
         weight12 = self._element_count3
         weight13 = self._element_count2
         weight23 = self._element_count1
-        # GRC functor needs to do this:
-        # if self._distance_weight:
-        weight12 /= magnitude(point12[0])
-        weight13 /= magnitude(point13[0])
-        weight23 /= magnitude(point23[0])
         overweighting = 1.5
         ax = self._sample_curve(
             point12[0], point12[2], None, point13[0], [-d for d in point13[2]], None, self._element_count23,
@@ -481,3 +506,16 @@ class QuadTriangleMesh:
             end_indexes[1] -= 1
             self._smooth_derivative_across(start_indexes, end_indexes, [[0, 1], [-1, 0]], [2, -2],
                 fix_start_direction=True, fix_end_direction=True)
+
+    def calculate_d3(self, evaluate_d3):
+        """
+        Calls user-supplied evaluate_d3 function to set all d3 derivatives.
+        Assumes all coordinates have x, d1 and d2.
+        :param evaluate_d3: Callable taking x, d1, d2 and returning d3.
+        """
+        for n13 in range(self._node_count13):
+            nx_row = self._nx[n13]
+            for n12 in range(self._node_count12):
+                nx = nx_row[n12]
+                if nx:
+                    nx[3] = evaluate_d3(nx[0], nx[1], nx[2])

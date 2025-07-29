@@ -526,14 +526,18 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
         start_d = [d * scaling for d in start_d]
         end_d = interpolateHermiteLagrangeDerivative(start_x, start_d, end_x, 1.0)
         end_d = moveDerivativeToEllipsoidSurface(a, b, c, end_x, end_d)
-    if start_weight and end_weight:
-        start_d = set_magnitude(start_d, (length * start_weight) / (start_weight + end_weight))
-        end_d = set_magnitude(end_d, (length * end_weight) / (start_weight + end_weight))
-    else:
-        start_distance = magnitude(start_x)
-        end_distance = magnitude(end_x)
-        start_d = set_magnitude(start_d, (length * end_distance) / (start_distance + end_distance))
-        end_d = set_magnitude(end_d, (length * end_distance) / (start_distance + end_distance))
+    use_start_weight = (start_weight if start_weight else 1.0) * magnitude(end_x)
+    use_end_weight = (end_weight if end_weight else 1.0) * magnitude(start_x)
+    start_d = set_magnitude(start_d, length * use_start_weight / (use_start_weight + use_end_weight))
+    end_d = set_magnitude(end_d, length * use_end_weight / (use_start_weight + use_end_weight))
+    # if start_weight and end_weight:
+    #     start_d = set_magnitude(start_d, (length * start_weight) / (start_weight + end_weight))
+    #     end_d = set_magnitude(end_d, (length * end_weight) / (start_weight + end_weight))
+    # else:
+    #     start_distance = magnitude(start_x)
+    #     end_distance = magnitude(end_x)
+    #     start_d = set_magnitude(start_d, (length * end_distance) / (start_distance + end_distance))
+    #     end_d = set_magnitude(end_d, (length * end_distance) / (start_distance + end_distance))
     scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d) * overweighting
     start_d = mult(start_d, scaling)
     end_d = mult(end_d, scaling)
