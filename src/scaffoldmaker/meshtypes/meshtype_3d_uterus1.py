@@ -5,7 +5,7 @@ numbers of elements around, along and through wall.
 from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, normalize, magnitude, \
     axis_angle_to_rotation_matrix
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
-from cmlibs.zinc.element import Element
+from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
@@ -14,12 +14,14 @@ from scaffoldmaker.annotation.uterus_terms import get_uterus_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
+from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
 from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives, smoothCubicHermiteDerivativesLine,\
-    interpolateCubicHermite, sampleCubicHermiteCurves
+    interpolateCubicHermite, sampleCubicHermiteCurves, computeCubicHermiteDerivativeScaling
 from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
     PatchTubeNetworkMeshSegment
 from scaffoldmaker.utils.zinc_utils import group_add_connected_elements, get_nodeset_path_ordered_field_parameters
+import copy
 import math
 
 
@@ -130,6 +132,662 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                 segment.addSideD2ElementsToMeshGroup(False, rightMeshGroup)
 
 
+class Septum:
+    """
+    Generates a solid septum hexahedral elements for dividing the body and cervix of the rat uterus into a double
+    channel structure.
+    """
+
+    def __init__(self, element_counts, nidsRim, paramRim, thickness, nextNodeIdentifier, nextElementIdentifier,
+                 annotationGroups, region):
+        """
+        :param element_counts: [elements around septum, elements along septum, elements through septum]
+        :param nidsRim: node identifiers of rim nodes to be used for making septum.
+        :param paramRim: parameters of rim nodes to be used for making septum.
+        :param thickness: thickness of the septum at its thinnest section.
+        :param nextNodeIdentifier: next identifier to use for making next node.
+        :param nextElementIdentifier: next identifier to use for making next element.
+        :param annotationGroups: annotation groups.
+        :param region: region for making septum.
+        """
+        assert all((count >= 2) and (count % 2 == 0) for count in [element_counts[0], element_counts[2]])
+        self._element_counts = element_counts
+        self._nidsRim = nidsRim
+        self._paramRim = paramRim
+        self._thickness = thickness
+        none_parameters = [None] * 4  # x, d1, d2, d3
+        self._nx = []  # shield mesh with holes over n3, n2, n1, d
+        self._nids = []
+        self._nextNodeIdentifier = nextNodeIdentifier
+        self._nextElementIdentifier = nextElementIdentifier
+        self._annotationGroups = annotationGroups
+        self._region = region
+
+        for n2 in range(self._element_counts[1] + 1):
+            nx_layer = []
+            nids_layer = []
+            for n3 in range(self._element_counts[2] + 1):
+                nx_row = []
+                nids_row = []
+                # s = ""
+                for n1 in range(self._element_counts[0] + 1):
+                    if (n2 == 0 and n3 == 1) or (n2 == 0 and n3 == self._element_counts[2] - 1) or \
+                            (n2 == 1 and n3 == 0) or (n2 == 1 and n3 == self._element_counts[2]):
+                        parameters = None
+                    else:
+                        parameters = copy.copy(none_parameters)
+                    nx_row.append(parameters)
+                    nids_row.append(None)
+                # print(n3, n2, nx_row)
+                nx_layer.append(nx_row)
+                nids_layer.append(nids_row)
+            self._nx.append(nx_layer)
+            self._nids.append(nids_layer)
+
+    def build(self):
+        """
+        Determine coordinates and derivatives over and within septum.
+        """
+        half_counts = [count // 2 for count in self._element_counts]
+        elementsCountAround = self._element_counts[0]
+        elementsCountAlong = self._element_counts[1]
+        elementsCountThrough = self._element_counts[2]
+
+        # Populate nx and nids with rimNids
+        for n1 in range(elementsCountAround + 1):
+            self._nids[0][half_counts[2]][n1] = self._nidsRim[0][n1]
+            self._nx[0][half_counts[2]][n1] = self._paramRim[0][n1]
+
+            self._nids[0][0][n1] = self._nidsRim[half_counts[2] - 1][n1]
+            self._nids[0][-1][elementsCountAround - n1] = self._nidsRim[half_counts[2] - 1][elementsCountAround + 1 + n1]
+
+            self._nx[0][0][n1] = self._paramRim[half_counts[2] - 1][n1]
+            self._nx[0][-1][elementsCountAround - n1] = self._paramRim[half_counts[2] - 1][elementsCountAround + 1 + n1]
+
+            for n3 in range(2, half_counts[2]):
+                self._nids[0][n3][n1] = self._nidsRim[half_counts[2] - n3][n1]
+                self._nids[0][-(n3 + 1)][elementsCountAround - n1] = \
+                    self._nidsRim[half_counts[2] - n3][elementsCountAround + 1 + n1]
+                self._nx[0][n3][n1] = self._paramRim[half_counts[2] - n3][n1]
+                self._nx[0][-(n3 + 1)][elementsCountAround - n1] = \
+                    self._paramRim[half_counts[2] - n3][elementsCountAround + 1 + n1]
+
+        xcessRowsCountTop = half_counts[2] - 2
+        for n2 in range(2, elementsCountAlong + 1):
+            for n1 in range(elementsCountAround + 1):
+                self._nids[n2][0][n1] = self._nidsRim[n2 + xcessRowsCountTop][n1]
+                self._nx[n2][0][n1] = self._paramRim[n2 + xcessRowsCountTop][n1]
+                self._nids[n2][-1][elementsCountAround - n1] = self._nidsRim[n2 + xcessRowsCountTop][elementsCountAround + 1 + n1]
+                self._nx[n2][-1][elementsCountAround - n1] = self._paramRim[n2 + xcessRowsCountTop][elementsCountAround + 1 + n1]
+
+        # Use middle point to sample front to back into number of elements through septum
+        for n2 in range(3, elementsCountAlong + 1):
+            n1 = half_counts[0]
+            xFront = self._nx[n2][0][n1][0]
+            xBack = self._nx[n2][-1][n1][0]
+            xDiffPerElement = mult(sub(xBack, xFront), 1.0 / elementsCountThrough)
+            d3 = xDiffPerElement
+            for n3 in range(1, elementsCountThrough):
+                self._nx[n2][n3][n1][0] = add(xFront, mult(xDiffPerElement, n3))
+                self._nx[n2][n3][n1][3] = [-c for c in d3]
+
+        # populate d2
+        for n3 in range(1, elementsCountThrough):
+            for n2 in range(3, elementsCountAlong):
+                xTop = self._nx[n2][n3][n1][0]
+                xBottom = self._nx[n2 + 1][n3][n1][0]
+                self._nx[n2][n3][n1][2] = sub(xBottom, xTop)
+            self._nx[n2 + 1][n3][n1][2] = sub(xBottom, xTop)
+
+        # Extrude out the middle to left and right by thickness
+        for n2 in range(3, elementsCountAlong + 1):
+            n1Mid = half_counts[0]
+            n3Mid = half_counts[2]
+            xMid = self._nx[n2][n3Mid][n1Mid][0]
+            d2Mid = self._nx[n2][n3Mid][n1Mid][2]
+            d3Mid = self._nx[n2][n3Mid][n1Mid][3]
+            d1Mid = cross(d2Mid, d3Mid)
+            dV = set_magnitude(d1Mid, self._thickness)
+            xMidLeft = add(xMid, dV)
+            xMidRight = sub(xMid, dV)
+            px, pd1 = sampleCubicHermiteCurves([xMidRight, xMid, xMidLeft], [dV, dV, dV], elementsCountAround,
+                                               arcLengthDerivatives=True)[0:2]
+
+            for n1 in range(elementsCountAround, -1, -1):
+                self._nx[n2][n3Mid][n1][0] = px[n1]
+                self._nx[n2][n3Mid][n1][1] = pd1[n1]
+
+        # populate d2
+        for n1 in range(elementsCountAround, -1, -1):
+            for n2 in range(3, elementsCountAlong):
+                xTop = self._nx[n2][n3Mid][n1][0]
+                xBottom = self._nx[n2 + 1][n3Mid][n1][0]
+                self._nx[n2][n3Mid][n1][2] = sub(xBottom, xTop)
+            self._nx[n2 + 1][n3Mid][n1][2] = sub(xBottom, xTop)
+
+        # Go from left to right and sample from front to back
+        for n2 in range(3, elementsCountAlong + 1):
+            for n1 in range(elementsCountAround + 1):
+                if n1 == half_counts[0]:
+                    continue
+                xFront = self._nx[n2][0][n1][0]
+                xMid = self._nx[n2][n3Mid][n1][0]
+                xBack = self._nx[n2][-1][n1][0]
+                px, pd3 = sampleCubicHermiteCurves(
+                    [xFront, xMid, xBack],
+                    [sub(xMid, xFront), add(sub(xMid, xFront), sub(xBack, xMid)), sub(xBack, xMid)],
+                    elementsCountThrough, arcLengthDerivatives=True)[0:2]
+                pd3 = smoothCubicHermiteDerivativesLine(px, pd3)
+
+                for n3 in range(1, elementsCountThrough):
+                    self._nx[n2][n3][n1][0] = px[n3]
+                    self._nx[n2][n3][n1][3] = [-c for c in pd3[n3]]
+
+        # populate d1 and d2
+        for n3 in range(1, elementsCountThrough):
+            # d1
+            for n2 in range(3, elementsCountAlong + 1):
+                x = []
+                d1 = []
+                for n1 in range(elementsCountAround):
+                    x1 = self._nx[n2][n3][n1][0]
+                    x2 = self._nx[n2][n3][n1 + 1][0]
+                    x.append(x1)
+                    d1.append(sub(x2, x1))
+                x.append(x2)
+                d1.append(sub(x2, x1))
+                d1 = smoothCubicHermiteDerivativesLine(x, d1)
+                for n1 in range(elementsCountAround + 1):
+                    self._nx[n2][n3][n1][1] = d1[n1]
+
+            # d2
+            for n1 in range(elementsCountAround + 1):
+                for n2 in range(3, elementsCountAlong):
+                    xTop = self._nx[n2][n3][n1][0]
+                    xBottom = self._nx[n2 + 1][n3][n1][0]
+                    self._nx[n2][n3][n1][2] = sub(xBottom, xTop)
+                self._nx[n2 + 1][n3][n1][2] = sub(xBottom, xTop)
+
+        # Quadrants under arc
+        # Sample mid-line from arc (top) to the start of regular septum elements (bottom) using scaling
+        # -d3 (top) to d2 (bottom)
+        for n1 in range(elementsCountAround + 1):
+            ax = self._nx[0][n3Mid][n1][0]
+            ad2 = [-c for c in self._nx[0][n3Mid][n1][3]]
+            bx = self._nx[3][n3Mid][n1][0]
+            bd2 = self._nx[3][n3Mid][n1][2]
+            scaling = computeCubicHermiteDerivativeScaling(ax, ad2, bx, bd2)
+            ad2 = mult(ad2, scaling)
+            bd2 = mult(bd2, scaling)
+            for n2 in range(1, 3):
+                xi = 1.0 / 3 * n2
+                self._nx[n2][n3Mid][n1][0] = interpolateCubicHermite(ax, ad2, bx, bd2, xi)
+
+            for n2 in range(1, 3):
+                xTop = self._nx[n2][n3Mid][n1][0]
+                xBottom = self._nx[n2 + 1][n3Mid][n1][0]
+                self._nx[n2][n3Mid][n1][2] = sub(xBottom, xTop)
+
+            # Sample from front to back for row above regular elements
+            xFront = self._nx[2][0][n1][0]
+            xMid = self._nx[2][n3Mid][n1][0]
+            xBack = self._nx[2][-1][n1][0]
+            px, pd3 = sampleCubicHermiteCurves(
+                [xFront, xMid, xBack],
+                [sub(xMid, xFront), add(sub(xMid, xFront), sub(xBack, xMid)), sub(xBack, xMid)],
+                elementsCountThrough)[0:2]
+            pd3 = smoothCubicHermiteDerivativesLine(px, pd3)
+
+            for n3 in range(1, elementsCountThrough):
+                self._nx[2][n3][n1][0] = px[n3]
+                self._nx[2][n3][n1][3] = [-c for c in pd3[n3]]
+
+            for n3 in range(1, elementsCountThrough):
+                xTop = self._nx[2][n3][n1][0]
+                xBottom = self._nx[3][n3][n1][0]
+                self._nx[2][n3][n1][2] = sub(xBottom, xTop)
+
+            # Sample from row above regular elements to the top arc if there are more than 4 elements through
+            for n3 in list(range(2, half_counts[2])) + list(range(half_counts[2] + 1, elementsCountThrough - 1)):
+                ax = self._nx[0][n3][n1][0]
+                ad2 = [-c for c in self._nx[0][n3][n1][3]]
+                bx = self._nx[2][n3][n1][0]
+                bd2 = self._nx[2][n3][n1][2]
+                scaling = computeCubicHermiteDerivativeScaling(ax, ad2, bx, bd2)
+                ad2 = mult(ad2, scaling)
+                bd2 = mult(bd2, scaling)
+                self._nx[1][n3][n1][0] = interpolateCubicHermite(ax, ad2, bx, bd2, 0.5)
+
+                xTop = self._nx[1][n3][n1][0]
+                xBottom = self._nx[2][n3][n1][0]
+                self._nx[1][n3][n1][2] = sub(xBottom, xTop)
+
+        # Populate d1 and d3 for mid n3 at row 1 and 2
+        for n2 in [1, 2]:
+            n3Start = 2 if n2 == 1 else 1
+            n3End = elementsCountThrough + (-1 if n2 == 1 else 0)
+            for n3 in range(n3Start, n3End):
+                x = []
+                d1 = []
+                for n1 in range(elementsCountAround):
+                    x1 = self._nx[n2][n3][n1][0]
+                    x2 = self._nx[n2][n3][n1 + 1][0]
+                    x.append(x1)
+                    d1.append(sub(x2, x1))
+                x.append(x2)
+                d1.append(sub(x2, x1))
+                d1 = smoothCubicHermiteDerivativesLine(x, d1)
+                for n1 in range(elementsCountAround + 1):
+                    self._nx[n2][n3][n1][1] = d1[n1]
+
+        # Calculate 6 way midpoint
+        for n1 in range(elementsCountAround + 1):
+            for n3 in range(2):
+                xSum = 0
+                ySum = 0
+                zSum = 0
+
+                # Guess d3 vector along the midPlane using magnitude of d2 for the node above
+                guessD3Vector = cross(normalize(self._nx[1][-3 if n3 else 2][n1][1]),
+                                normalize(self._nx[1][-3 if n3 else 2][n1][2]))
+
+                guessD3 = set_magnitude(guessD3Vector,
+                                        magnitude(self._nx[0][-3 if n3 else 2][n1][
+                                                      2 if n1 == elementsCountAround // 2 else 1]))
+
+                x6Way = [self._nx[0][-3 if n3 else 2][n1][0],
+                         self._nx[0][-1 if n3 else 0][n1][0],
+                         self._nx[2][-1 if n3 else 0][n1][0],
+                         self._nx[2][-2 if n3 else 1][n1][0],
+                         self._nx[2][-3 if n3 else 2][n1][0],
+                         self._nx[1][-3 if n3 else 2][n1][0]]
+
+                if n1 == 0:
+                    if n3 == 0:
+                        d6Way = [add([-c for c in self._nx[0][2][n1][1]], [-c for c in self._nx[0][2][n1][3]]),  # -d1 - d3
+                                 self._nx[0][0][n1][3],  # d3
+                                 add(self._nx[2][0][n1][2], self._nx[2][0][n1][3]),  # d2 + d3
+                                 self._nx[2][1][n1][2],  # d2
+                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3]),  # -d2 + d3
+                                 guessD3]
+                    else:
+                        d6Way = [add(self._nx[0][-3][n1][1], [-c for c in self._nx[0][-3][n1][3]]),  # d1 - d3
+                                 self._nx[0][-1][n1][3],  # d3
+                                 add(self._nx[2][-1][n1][1], self._nx[2][-1][n1][3]),  # d1 + d3
+                                 self._nx[2][-2][n1][2],  # d2
+                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]]),  # -d2 - d3
+                                     [-c for c in guessD3]]
+
+                elif n1 == elementsCountAround:
+                    if n3 == 0:
+                        d6Way = [add(self._nx[0][2][n1][1], [-c for c in self._nx[0][2][n1][3]]),  # d1 - d3
+                                 self._nx[0][0][n1][3],  # d3
+                                 add(self._nx[2][0][n1][1], self._nx[2][0][n1][3]),  # d1 + d3
+                                 self._nx[2][1][n1][2],  # d2
+                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3]),  # -d2 + d3
+                                 guessD3]
+
+                    else:
+                        d6Way = [add([-c for c in self._nx[0][-3][n1][1]], [-c for c in self._nx[0][-3][n1][3]]),
+                                 # -d1 - d3
+                                 self._nx[0][-1][n1][3],  # d3
+                                 add(self._nx[2][-1][n1][2], self._nx[2][-1][n1][3]),  # d2 + d3
+                                 self._nx[2][-2][n1][2],  # d2
+                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]]),
+                                 # -d2 - d3
+                                 [-c for c in guessD3]]
+
+                else:
+                    if n3 == 0:
+                        d6Way = [add(self._nx[0][2][n1][2], [-c for c in self._nx[0][2][n1][3]]),  # d2 - d3
+                                 self._nx[0][0][n1][3],  # d3
+                                 add(self._nx[2][0][n1][2], self._nx[2][0][n1][3]),  # d2 + d3
+                                 self._nx[2][1][n1][2],  # d2
+                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3]),  # -d2 + d3
+                                 guessD3]
+
+                    else:
+                        d6Way = [add(self._nx[0][-3][n1][2] if elementsCountThrough // 2 > 2 else
+                                     [-c for c in self._nx[0][-3][n1][2]],
+                                     [-c for c in self._nx[0][-3][n1][3]]),  # -d2 - d3
+                                 self._nx[0][-1][n1][3],  # d3
+                                 add(self._nx[2][-1][n1][2], self._nx[2][-1][n1][3]),  # d2 + d3
+                                 self._nx[2][-2][n1][2],  # d2
+                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]]),  # -d2 - d3
+                                     [-c for c in guessD3]]
+
+                pathNodes = [[0, 3], [4, 1], [5, 2]]
+                for i in range(3):
+                    nodeIdx = pathNodes[i]
+                    xMid = interpolateCubicHermite(x6Way[nodeIdx[0]], d6Way[nodeIdx[0]],
+                                                   x6Way[nodeIdx[1]], d6Way[nodeIdx[1]], 0.5)
+                    xSum += xMid[0]
+                    ySum += xMid[1]
+                    zSum += xMid[2]
+
+                # Calculate the averages
+                x_centroid = xSum / 3
+                y_centroid = ySum / 3
+                z_centroid = zSum / 3
+
+                # print(n1, n3, [x_centroid, y_centroid, z_centroid])
+                self._nx[1][-2 if n3 else 1][n1][0] = [x_centroid, y_centroid, z_centroid]
+
+                xTop = self._nx[1][-2 if n3 else 1][n1][0]
+                xBottom = self._nx[2][-2 if n3 else 1][n1][0]
+                self._nx[1][-2 if n3 else 1][n1][2] = sub(xBottom, xTop)
+
+        # populate derivatives at row 1
+        for n3 in range(1, elementsCountThrough):
+            x = []
+            d1 = []
+            for n1 in range(elementsCountAround):
+                x1 = self._nx[1][n3][n1][0]
+                x2 = self._nx[1][n3][n1 + 1][0]
+                x.append(x1)
+                d1.append(sub(x2, x1))
+            x.append(x2)
+            d1.append(sub(x2, x1))
+            d1 = smoothCubicHermiteDerivativesLine(x, d1)
+            for n1 in range(elementsCountAround + 1):
+                self._nx[1][n3][n1][1] = d1[n1]
+
+        for n1 in range(elementsCountAround + 1):
+            x = []
+            d3 = []
+            for n3 in range(1, elementsCountThrough - 1):
+                xFront= self._nx[1][n3][n1][0]
+                xBack = self._nx[1][n3 + 1][n1][0]
+                x.append(xFront)
+                d3.append(sub(xBack, xFront))
+            x.append(xBack)
+            d3.append(sub(xBack, xFront))
+            d3 = smoothCubicHermiteDerivativesLine(x, d3)
+            for n3 in range(1, elementsCountThrough):
+                self._nx[1][n3][n1][3] = [-c for c in d3[n3 - 1]]
+
+    def generateMesh(self, fieldmodule, coordinates):
+        """
+        After build() has been called, generate nodes and elements of septum.
+        Client is expected to run within ChangeManager(fieldmodule)
+        :param fieldmodule: Owning fieldmodule to create mesh in.
+        :param coordinates: Coordinate field to define.
+        """
+
+        fieldcache = fieldmodule.createFieldcache()
+
+        # create nodes
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        for value_label in [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]:
+            nodetemplate.setValueNumberOfVersions(coordinates, -1, value_label, 1)
+
+        node_identifier = self._nextNodeIdentifier
+        for n2 in range(self._element_counts[1] + 1):
+            for n3 in range(self._element_counts[2] + 1):
+                for n1 in range(self._element_counts[0] + 1):
+                    parameters = self._nx[n2][n3][n1]
+                    if not parameters or self._nids[n2][n3][n1]:
+                        continue
+                    x, d1, d2, d3 = parameters
+                    if not x:
+                        continue  # while in development
+                    node = nodes.createNode(node_identifier, nodetemplate)
+                    self._nids[n2][n3][n1] = node_identifier
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+                    if d1:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, d1)
+                    if d2:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, d2)
+                    if d3:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+                    node_identifier += 1
+
+        septumGroup = findOrCreateAnnotationGroupForTerm(self._annotationGroups, self._region, ("septum", ""))
+        groups = [septumGroup]
+
+        mesh = fieldmodule.findMeshByDimension(3)
+
+        elementtemplate_regular = mesh.createElementtemplate()
+        elementtemplate_regular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+        elementbasis = fieldmodule.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY)
+        eft_regular = mesh.createElementfieldtemplate(elementbasis)
+        elementtemplate_regular.defineField(coordinates, -1, eft_regular)
+
+        elementtemplate_special = mesh.createElementtemplate()
+        elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+
+        node_layout_manager = HermiteNodeLayoutManager()
+        nodeLayoutD1MinusD3D2 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[1.0, 0.0, 0.0]], [[0.0, 0.0, -1.0]], [[0.0, 1.0, 0.0]]])
+        nodeLayoutMinusD1D2MinusD3 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[-1.0, 0.0, 0.0]], [[0.0, 1.0, 0.0]], [[0.0, 0.0, -1.0]]])
+        nodeLayoutMinusD1MinusD3MinusD2 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[-1.0, 0.0, 0.0]], [[0.0, 0.0, -1.0]], [[0.0, -1.0, 0.0]]])
+        nodeLayoutD2D1MinusD3 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[0.0, 1.0, 0.0]], [[1.0, 0.0, 0.0]], [[0.0, 0.0, -1.0]]])
+        nodeLayoutD2MinusD1D3 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[0.0, 1.0, 0.0]], [[-1.0, 0.0, 0.0]], [[0.0, 0.0, 1.0]]])
+        nodeLayoutD2MinusD3MinusD1 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[0.0, 1.0, 0.0]], [[0.0, 0.0, -1.0]], [[-1.0, 0.0, 0.0]]])
+        nodeLayoutMinusD2D1D3 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[0.0, -1.0, 0.0]], [[1.0, 0.0, 0.0]], [[0.0, 0.0, 1.0]]])
+        nodeLayoutMinusD2MinusD1MinusD3 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[0.0, -1.0, 0.0]], [[-1.0, 0.0, 0.0]], [[0.0, 0.0, -1.0]]])
+        nodeLayoutMinusD2MinusD3D1 = \
+            node_layout_manager.getNodeLayoutRegularPermuted(
+                d3Defined=True, limitDirections=[[[0.0, -1.0, 0.0]], [[0.0, 0.0, -1.0]], [[1.0, 0.0, 0.0]]])
+
+        nodeLayout5Way = node_layout_manager.getNodeLayout5Way12(d3Defined=True)
+        nodeLayoutTriplePoint23Front = node_layout_manager.getNodeLayoutTriplePoint23Front()
+        nodeLayoutTriplePoint23Back = node_layout_manager.getNodeLayoutTriplePoint23Back()
+
+        elementIdentifier = self._nextElementIdentifier
+
+        # Top 4 elements
+        for e3 in range(2):
+            for e1 in range(self._element_counts[0]):
+                e1p = e1 + 1
+
+                n3p0 = -3 if e3 else 0
+                n3p1 = -3 if e3 else 1
+                n3pA = -1 if e3 else 2
+                n3pB = -2 if e3 else 2
+
+                nids = [self._nids[0][n3pA][e1], self._nids[0][n3pA][e1p],
+                        self._nids[1][n3pB][e1], self._nids[1][n3pB][e1p],
+                        self._nids[0][n3p0][e1], self._nids[0][n3p0][e1p],
+                        self._nids[1][n3p1][e1], self._nids[1][n3p1][e1p]]
+
+                nodeParameters = [self._nx[0][n3pA][e1], self._nx[0][n3pA][e1p],
+                                  self._nx[1][n3pB][e1], self._nx[1][n3pB][e1p],
+                                  self._nx[0][n3p0][e1], self._nx[0][n3p0][e1p],
+                                  self._nx[1][n3p1][e1], self._nx[1][n3p1][e1p]]
+
+                if e3 == 0 and e1 == 0:
+                    nodeLayouts = [nodeLayoutD2MinusD3MinusD1, nodeLayoutD1MinusD3D2, None, None,
+                                   nodeLayoutD2MinusD3MinusD1, nodeLayoutD1MinusD3D2,
+                                   nodeLayoutTriplePoint23Front, nodeLayoutTriplePoint23Front]
+
+                elif e3 == 0 and e1 < self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutD1MinusD3D2, nodeLayoutD1MinusD3D2, None, None,
+                                   nodeLayoutD1MinusD3D2, nodeLayoutD1MinusD3D2,
+                                   nodeLayoutTriplePoint23Front, nodeLayoutTriplePoint23Front]
+
+                elif e3 == 0 and e1 == self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutD1MinusD3D2, nodeLayoutMinusD2MinusD3D1, None, None,
+                                   nodeLayoutD1MinusD3D2, nodeLayoutMinusD2MinusD3D1,
+                                   nodeLayoutTriplePoint23Front, nodeLayoutTriplePoint23Front]
+
+                elif e3 == 1 and e1 == 0:
+                    nodeLayouts = [nodeLayoutD2MinusD3MinusD1, nodeLayoutMinusD1MinusD3MinusD2,
+                                   nodeLayoutTriplePoint23Back, nodeLayoutTriplePoint23Back,
+                                   nodeLayoutD2MinusD3MinusD1, nodeLayoutD1MinusD3D2, None, None]
+
+                elif e3 == 1 and e1 < self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutMinusD1MinusD3MinusD2, nodeLayoutMinusD1MinusD3MinusD2,
+                                   nodeLayoutTriplePoint23Back, nodeLayoutTriplePoint23Back,
+                                   nodeLayoutD1MinusD3D2, nodeLayoutD1MinusD3D2, None, None]
+
+                elif e3 == 1 and e1 == self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutMinusD1MinusD3MinusD2, nodeLayoutMinusD2MinusD3D1,
+                                   nodeLayoutTriplePoint23Back, nodeLayoutTriplePoint23Back,
+                                   nodeLayoutD1MinusD3D2, nodeLayoutMinusD2MinusD3D1, None, None]
+
+                eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                # print(elementIdentifier, nids)
+                elementtemplate = mesh.createElementtemplate()
+                elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                elementtemplate.defineField(coordinates, -1, eft)
+                element = mesh.createElement(elementIdentifier, elementtemplate)
+                element.setNodesByIdentifier(eft, nids)
+                if scalefactors:
+                    element.setScaleFactors(eft, scalefactors)
+                elementIdentifier += 1
+                for annotationGroup in groups:
+                    meshGroup = annotationGroup.getMeshGroup(mesh)
+                    meshGroup.addElement(element)
+
+        # Elements connecting rows 0, 1 and 2
+        for e3 in range(2):
+            for e1 in range(self._element_counts[0]):
+                e1p = e1 + 1
+
+                n3p0 = -1 if e3 else 0
+                n3p1 = -2 if e3 else 1
+
+                n2p0 = 0 if e3 else 2
+                n2p1 = 1 if e3 else 2
+                n2pA = 2 if e3 else 0
+                n2pB = 2 if e3 else 1
+
+                if e3:
+                    nids = [self._nids[n2p0][n3p0][e1], self._nids[n2p0][n3p0][e1p],
+                            self._nids[n2pA][n3p0][e1], self._nids[n2pA][n3p0][e1p],
+                            self._nids[n2p1][n3p1][e1], self._nids[n2p1][n3p1][e1p],
+                            self._nids[n2pB][n3p1][e1], self._nids[n2pB][n3p1][e1p]]
+
+                    nodeParameters = [self._nx[n2p0][n3p0][e1], self._nx[n2p0][n3p0][e1p],
+                                        self._nx[n2pA][n3p0][e1], self._nx[n2pA][n3p0][e1p],
+                                        self._nx[n2p1][n3p1][e1], self._nx[n2p1][n3p1][e1p],
+                                        self._nx[n2pB][n3p1][e1], self._nx[n2pB][n3p1][e1p]]
+
+                else:
+                    nids = [self._nids[n2pB][n3p1][e1], self._nids[n2pB][n3p1][e1p],
+                            self._nids[n2p1][n3p1][e1], self._nids[n2p1][n3p1][e1p],
+                            self._nids[n2pA][n3p0][e1], self._nids[n2pA][n3p0][e1p],
+                            self._nids[n2p0][n3p0][e1], self._nids[n2p0][n3p0][e1p]]
+
+                    nodeParameters = [self._nx[n2pB][n3p1][e1], self._nx[n2pB][n3p1][e1p],
+                                      self._nx[n2p1][n3p1][e1], self._nx[n2p1][n3p1][e1p],
+                                      self._nx[n2pA][n3p0][e1], self._nx[n2pA][n3p0][e1p],
+                                      self._nx[n2p0][n3p0][e1], self._nx[n2p0][n3p0][e1p]]
+
+                if e3 == 0 and e1 == 0:
+                    nodeLayouts = [nodeLayoutTriplePoint23Front, nodeLayoutTriplePoint23Front, None, None,
+                                   nodeLayoutD2MinusD1D3, None, None, None]
+
+                elif e3 == 0 and e1 < self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutTriplePoint23Front, nodeLayoutTriplePoint23Front, None, None,
+                                   None, None, None, None]
+
+                elif e3 == 0 and e1 == self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutTriplePoint23Front, nodeLayoutTriplePoint23Front, None, None,
+                                   None, nodeLayoutMinusD2D1D3, None, nodeLayoutMinusD2D1D3]
+
+                elif e3 == 1 and e1 == 0:
+                    nodeLayouts = [nodeLayoutD2D1MinusD3, nodeLayoutMinusD1D2MinusD3,
+                                   nodeLayoutD2D1MinusD3, nodeLayoutMinusD1D2MinusD3,
+                                   nodeLayoutTriplePoint23Back, nodeLayoutTriplePoint23Back, None, None]
+
+                elif e3 == 1 and e1 < self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutMinusD1D2MinusD3, nodeLayoutMinusD1D2MinusD3,
+                                   nodeLayoutMinusD1D2MinusD3, nodeLayoutMinusD1D2MinusD3,
+                                   nodeLayoutTriplePoint23Back, nodeLayoutTriplePoint23Back, None, None]
+
+                elif e3 == 1 and e1 == self._element_counts[0] - 1:
+                    nodeLayouts = [nodeLayoutMinusD1D2MinusD3, nodeLayoutMinusD2MinusD1MinusD3,
+                                   nodeLayoutMinusD1D2MinusD3, nodeLayoutMinusD1D2MinusD3,
+                                   nodeLayoutTriplePoint23Back, nodeLayoutTriplePoint23Back, None, None]
+
+                # print(elementIdentifier, nids)
+                eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                elementtemplate = mesh.createElementtemplate()
+                elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                elementtemplate.defineField(coordinates, -1, eft)
+                element = mesh.createElement(elementIdentifier, elementtemplate)
+                element.setNodesByIdentifier(eft, nids)
+                if scalefactors:
+                    element.setScaleFactors(eft, scalefactors)
+                elementIdentifier += 1
+                for annotationGroup in groups:
+                    meshGroup = annotationGroup.getMeshGroup(mesh)
+                    meshGroup.addElement(element)
+
+        for e2 in range(1, self._element_counts[1]):
+            e2p = e2 + 1
+            e3Start = 1 if e2 <= 1 else 0
+            e3End = self._element_counts[2] - 1 if e2 <= 1 else self._element_counts[2]
+            for e3 in range(e3Start, e3End):
+                lastToBackWall = (e3 == self._element_counts[2] - 1)
+                for e1 in range(self._element_counts[0]):
+                    e1p = e1 + 1
+                    has5Way = (e2 == 2 and e3 == 0 and (e1 == 0 or e1 == self._element_counts[0] - 1)) or \
+                              (e2 == 2 and e3 == self._element_counts[2] and
+                               (e1 == 0 or e1 == self._element_counts[0] - 1))
+                    hasTopCorners = (e2 == 1)
+                    elementtemplate = elementtemplate_regular
+                    eft = eft_regular
+                    nids = []
+                    scalefactors = []
+                    for n3 in [e3 + 1, e3]:
+                        nids += [self._nids[e2][n3][e1], self._nids[e2][n3][e1p],
+                                 self._nids[e2p][n3][e1], self._nids[e2p][n3][e1p]]
+
+                    if lastToBackWall or hasTopCorners or has5Way:
+                        nodeParameters = []
+                        nodeLayouts = []
+                        # nidsCheck = []
+                        # get node parameters for computing scale factors
+                        for n3 in (e3 + 1, e3):
+                            for n2 in (e2, e2 + 1):
+                                for n1 in (e1, e1 + 1):
+                                    nodeParameters.append(self._nx[n2][n3][n1])
+                                    # nidsCheck.append(self._nids[n2][n3][n1])
+                                    nodeLayouts.append(
+                                        nodeLayout5Way if ((n2 == 2 and n3 == 0 and
+                                                           (n1 == 0 or n1 == self._element_counts[0])) or
+                                                          (n2 == 2 and n3 == self._element_counts[2] and
+                                                             (n1 == 0 or n1 == self._element_counts[0]))) else
+                                        nodeLayoutMinusD1D2MinusD3 if (n3 == self._element_counts[2]) else
+                                        nodeLayoutTriplePoint23Front if (n2 == 1 and n3 == 1) else
+                                        nodeLayoutTriplePoint23Back if (n2 == 1 and n3 == self._element_counts[2] - 1) else
+                                        None)
+
+                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                        elementtemplate = mesh.createElementtemplate()
+                        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        elementtemplate.defineField(coordinates, -1, eft)
+
+                    element = mesh.createElement(elementIdentifier, elementtemplate)
+                    element.setNodesByIdentifier(eft, nids)
+                    if scalefactors:
+                        element.setScaleFactors(eft, scalefactors)
+                    elementIdentifier += 1
+                    for annotationGroup in groups:
+                        meshGroup = annotationGroup.getMeshGroup(mesh)
+                        meshGroup.addElement(element)
+
 class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     """
     Defines uterus network layout.
@@ -143,7 +801,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     def getParameterSetNames(cls):
         return ["Default",
                 "Human 1",
-                # "Human Pregnant 1",
+                "Human Pregnant 1",
                 "Mouse 1",
                 "Rat 1"]
 
@@ -161,7 +819,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "40-41-42")
             options["Oviduct diameter"] = 0.5
             options["Oviduct length"] = 4.0
-            options["Body length"] = 0.5
+            options["Body length"] = 0.65
             options["Fundus width between oviducts"] = 0.8
             options["Fundus depth between oviducts"] = 0.5
             options["Cervical length"] = 0.25
@@ -445,7 +1103,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
 
         if isRodent:
             rC = bodyLength
-            thetaLimit = math.radians(50.0)
+            thetaLimit = math.radians(55.0)
             for side in (left, right):
                 rTheta = rC * thetaLimit
                 straightLength = oviductLength - rTheta
@@ -554,7 +1212,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             nxPatch.append(x)
             nd1Patch.append(d1FundusPatch)
             xi = i / fundusPatchElementsCount
-            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.05 if isRodent else
+            width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.01 if isRodent else
                                                          halfCervicalWidthInternalOs)
             if isPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
@@ -577,7 +1235,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             else:
                 xi = i / fundusPatchElementsCount
                 width = xi * halfFundusWidth * innerProportionBody + \
-                        (1.0 - xi) * (halfFundusWidth * 0.05 * innerProportionBody if isRodent else
+                        (1.0 - xi) * (halfFundusWidth * 0.01 * innerProportionBody if isRodent else
                                       halfCervicalWidthInternalOs * innerProportionCervix)
 
                 id2 = [0.0, width, 0.0]
@@ -875,7 +1533,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         return [
             'Default',
             'Human 1',
-            # 'Human Pregnant 1',
+            'Human Pregnant 1',
             'Mouse 1',
             'Rat 1']
 
@@ -899,7 +1557,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Refine': False,
             'Refine number of elements along': 4,
             'Refine number of elements around': 4,
-            'Refine number of elements through wall': 1
+            'Refine number of elements through wall': 4
         }
         if 'Mouse' in parameterSetName or 'Rat' in parameterSetName:
             options['Number of elements around'] = 12
@@ -908,6 +1566,9 @@ class MeshType_3d_uterus1(Scaffold_base):
             options['Number of elements along body'] = 2
             options['Number of elements along cervix'] = 1
             options['Number of elements along vagina'] = 2
+
+        if 'Rat' in parameterSetName:
+            options['Use linear through wall'] = False  # True is not implemented for rat due to septum
 
         return options
 
@@ -990,6 +1651,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         parameterSetName = options['Base parameter set']
         isHuman = parameterSetName in ("Default", "Human 1")
         isPregnant = parameterSetName in ("Human Pregnant 1")
+        isRat = parameterSetName in ("Rat 1")
 
         layoutRegion = region.createRegion()
         networkLayout = options["Network layout"]
@@ -1075,7 +1737,28 @@ class MeshType_3d_uterus1(Scaffold_base):
         upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
         uterusGroup.getMeshGroup(mesh).addElementsConditional(upperCervixGroup.getGroup())
 
+        # add septum for rat
+        if isRat:
+            elementsCountAroundSeptum = \
+                (options['Number of elements around'] - options['Number of elements around oviduct']) // 2
+            elementsCountThroughSeptum = options['Number of elements around oviduct'] // 2
+            elementsCountAlongSeptum = options['Number of elements along body'] + \
+                                       options['Number of elements along cervix'] + 2
+            elementCountsSeptum = [elementsCountAroundSeptum, elementsCountAlongSeptum, elementsCountThroughSeptum]
+            elementsCountAround = options['Number of elements around']
+
+            septumRimNids, septumRimParams = \
+                getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum, elementsCountAround)
+
+            septumThickness = magnitude(septumRimParams[-1][-1][-1])
+
+            ratSeptum = Septum(elementCountsSeptum, septumRimNids, septumRimParams, septumThickness,
+                               nodeIdentifier, elementIdentifier, annotationGroups, region)
+            ratSeptum.build()
+            ratSeptum.generateMesh(fieldmodule, coordinates)
+
         return annotationGroups, None
+
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -1394,3 +2077,163 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, d12)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)
+
+def getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum, elementsCountAround):
+    """
+    Use annotation groups for fundus, body and cervix to identify nodes from uterus lumen to be used for building
+    the septum. The identified nodes are arranged in an array ([n2][n1]) from the fundus to cervix direction. At each n2
+    level, the identified nodes (n1) follows the direction from d2 to d3 of the network layout defined in the body
+    region. The top n2 row has 2 less nodes at the corners due to shield appearance.
+    :param annotationGroups: annotation groups need to already contain groups for fundus, body and cervix.
+    :param elementCountsSeptum: elements around septum, elements along septum and elements through septum.
+    :param elementsCountAround: elements count around uterus scaffold.
+    return nidsRim: nodeIdentifiers of rim nodes to be used for making septum.
+    return paramRim: parameters of rim nodes to be used for making septum.
+    """
+    elementsCountAroundSeptum = elementCountsSeptum[0]
+    elementsCountAlongSeptum = elementCountsSeptum[1]
+    elementsCountThroughSeptum = elementCountsSeptum[2]
+
+    fieldcache = fieldmodule.createFieldcache()
+    fieldmodule.defineAllFaces()
+    mesh2d = fieldmodule.findMeshByDimension(2)
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    coordinates = findOrCreateFieldCoordinates(fieldmodule)
+
+    is_exterior = fieldmodule.createFieldIsExterior()
+    is_exterior_face_xi3_0 = \
+        fieldmodule.createFieldAnd(is_exterior,
+                                   fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0))
+
+    fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
+    fundusGroup.addSubelements()
+    isFundus = fundusGroup.getGroup()
+    isFundusInner = fieldmodule.createFieldAnd(isFundus, is_exterior_face_xi3_0)
+    fundusInner = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("fundus inner", ""))
+    fundusInner.getMeshGroup(mesh2d).addElementsConditional(isFundusInner)
+    fundusInnerNodeset = fundusInner.getNodesetGroup(nodes)
+
+    nodeIter = fundusInnerNodeset.createNodeiterator()
+    node = nodeIter.next()
+    fieldcache.setNode(node)
+    fundusInnerNids = []
+    while node.isValid():
+        fundusInnerNids.append(node.getIdentifier())
+        node = nodeIter.next()
+    # print('fundusInner', fundusInnerNids)
+
+    # Re-arrange inner fundus nodes
+    count = 0
+    nidsAroundHorns = []
+    for n1 in range(2):
+        nids = []
+        for n3 in range(elementsCountThroughSeptum + 1):
+            nids.append(fundusInnerNids[count])
+            count += 1
+        nidsAroundHorns.append(nids)
+    nidsArc = fundusInnerNids[count:]
+
+    # reorder left horn as index follows direction of d2 on network layout
+    halfNodeCountAroundArc = len(nidsAroundHorns[0]) // 2
+    nidsAroundHorns[0] = nidsAroundHorns[0][halfNodeCountAroundArc::-1] + \
+                         nidsAroundHorns[0][:halfNodeCountAroundArc:-1]
+    # print('nidsAroundHorns', nidsAroundHorns)
+
+    # reorder arc nodes as they go from second front to second back, front, then last nodes now
+    frontArcNodes = nidsArc[-2 * (elementsCountAroundSeptum - 1): -(elementsCountAroundSeptum - 1)]
+    backArcNodes = nidsArc[-(elementsCountAroundSeptum - 1):]
+    middleArcNodes = nidsArc[:-2 * (elementsCountAroundSeptum - 1)]
+
+    nidsArc = []
+    nidsArc.append(frontArcNodes)
+    count = 0
+    for n3 in range(elementsCountThroughSeptum - 1):
+        nids = []
+        for n1 in range(elementsCountAroundSeptum - 1):
+            nids.append(middleArcNodes[count])
+            count += 1
+        nidsArc.append(nids)
+    nidsArc.append(backArcNodes)
+    # print('arc', nidsArc)
+
+    # arrange into rim format
+    nidsRim = []
+    halfElementsCountThroughSeptum = elementsCountThroughSeptum // 2
+    row = nidsArc[halfElementsCountThroughSeptum]
+    row.insert(0, nidsAroundHorns[1][halfElementsCountThroughSeptum])
+    row.append(nidsAroundHorns[0][halfElementsCountThroughSeptum])
+    nidsRim.append(row)
+
+    for n2 in range(elementsCountThroughSeptum // 2):
+        row = nidsArc[halfElementsCountThroughSeptum - 1 - n2] + \
+              nidsArc[halfElementsCountThroughSeptum + 1 + n2]
+        row.insert(elementsCountAroundSeptum - 1, nidsAroundHorns[0][halfElementsCountThroughSeptum - 1 - n2])
+        row.insert(elementsCountAroundSeptum, nidsAroundHorns[0][halfElementsCountThroughSeptum + 1 + n2])
+        row.insert(0, nidsAroundHorns[1][halfElementsCountThroughSeptum - 1 - n2])
+        row.append(nidsAroundHorns[1][halfElementsCountThroughSeptum + 1 + n2])
+        nidsRim.append(row)
+
+    bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
+    bodyGroup.addSubelements()
+    isBody = bodyGroup.getGroup()
+    isBodyInner = fieldmodule.createFieldAnd(isBody, is_exterior_face_xi3_0)
+
+    upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
+    upperCervixGroup.addSubelements()
+    isUpperCervix = upperCervixGroup.getGroup()
+    isUpperCervixInner = fieldmodule.createFieldAnd(isUpperCervix, is_exterior_face_xi3_0)
+
+    lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
+    lowerCervixGroup.addSubelements()
+    isLowerCervix = lowerCervixGroup.getGroup()
+    isLowerCervixInner = fieldmodule.createFieldAnd(isLowerCervix, is_exterior_face_xi3_0)
+
+    isCervixInner = fieldmodule.createFieldOr(isLowerCervixInner, isUpperCervixInner)
+
+    isBodyCervixInner = fieldmodule.createFieldOr(isCervixInner, isBodyInner)
+    bodyCervixInterior = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                            ("body cervix interior", ""))
+    bodyCervixInterior.getMeshGroup(mesh2d).addElementsConditional(isBodyCervixInner)
+    bodyCervixInnerNodeset = bodyCervixInterior.getNodesetGroup(nodes)
+
+    nodeIter = bodyCervixInnerNodeset.createNodeiterator()
+    node = nodeIter.next()
+    fieldcache.setNode(node)
+    bodyCervixInnerNids = []
+    while node.isValid():
+        bodyCervixInnerNids.append(node.getIdentifier())
+        node = nodeIter.next()
+
+    regularBodyCervixNids = bodyCervixInnerNids[elementsCountAround:]
+
+    count = 0
+    for n2 in range(elementsCountAlongSeptum - 2):
+        nidRow = []
+        for n1 in range(elementsCountAround):
+            if (elementsCountAround // 4 - elementsCountAroundSeptum // 2) <= n1 <= \
+                    (elementsCountAround // 4 + elementsCountAroundSeptum // 2) or \
+                    (3 * elementsCountAround // 4 - elementsCountAroundSeptum // 2) <= n1 <= \
+                    (3 * elementsCountAround // 4 + elementsCountAroundSeptum // 2):
+                nidRow.append(regularBodyCervixNids[count])
+            count += 1
+        nidsRim.append(nidRow)
+    # print('nidsRim', nidsRim)
+
+    paramRim = []
+    for n2 in range(len(nidsRim)):
+        paramRow = []
+        for n1 in range(len(nidsRim[n2])):
+            node = nodes.findNodeByIdentifier(nidsRim[n2][n1])
+            fieldcache.setNode(node)
+            x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+            d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)[1]
+            d2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)[1]
+            d3 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)[1]
+            param = [x, d1, d2, d3]
+            paramRow.append(param)
+        paramRim.append(paramRow)
+
+    annotationGroups.remove(fundusInner)
+    annotationGroups.remove(bodyCervixInterior)
+
+    return nidsRim, paramRim

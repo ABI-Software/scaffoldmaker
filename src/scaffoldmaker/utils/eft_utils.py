@@ -695,6 +695,10 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
         self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
             [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+        self._nodeLayoutTriplePoint23Front = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]])
+        self._nodeLayoutTriplePoint23Back = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
         self.nodeLayoutsBifurcation6WayTriplePoint = {}
 
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
@@ -750,6 +754,23 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         return self._nodeLayout8Way12_d3Defined if d3Defined else self._nodeLayout8Way12
+
+    def getNodeLayoutTriplePoint23Front(self):
+        """
+        Get node layout for triple-point junction in 2-3 plane, including d1, -d1, -d3, -d2, d2 + d3.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayoutTriplePoint23Front
+        return nodeLayout
+
+    def getNodeLayoutTriplePoint23Back(self):
+        """
+        Get node layout for triple point junction in 2-3 plane, including d1, -d1, -d3, -d2, d2 - d3.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayoutTriplePoint23Back
+
+        return nodeLayout
 
     def getNodeLayoutTriplePoint(self):
         """
