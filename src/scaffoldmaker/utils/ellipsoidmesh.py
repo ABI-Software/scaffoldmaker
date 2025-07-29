@@ -13,7 +13,7 @@ from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
     moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
 from scaffoldmaker.utils.interpolation import (
-    sampleHermiteCurve, smoothCubicHermiteDerivativesLine)
+    smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
 
 
