@@ -844,9 +844,9 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "44-45-46-47-48")
             options["Oviduct diameter"] = 0.35
             options["Oviduct length"] = 10.0
-            options["Body length"] = 30.0
-            options["Fundus width between oviducts"] = 28.0
-            options["Fundus depth between oviducts"] = 28.0
+            options["Body length"] = 14.0
+            options["Fundus width between oviducts"] = 12.0
+            options["Fundus depth between oviducts"] = 12.0
             options["Cervical length"] = 1.0
             options["Cervical width around internal os"] = 5.5
             options["Cervical depth around internal os"] = 3.8
@@ -855,7 +855,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Vagina length"] = 10.0
             options["Vagina width around vagina orifice"] = 1.25
             options["Vagina depth around vagina orifice"] = 1.25
-            options["Inner proportion body"] = 0.8
+            options["Inner proportion body"] = 0.95
             options["Inner proportion cervix"] = 0.15
             options["Inner proportion vagina"] = 0.8
             options["Angle of anteversion degrees"] = 70.0
@@ -940,8 +940,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         ]:
             if options[key] < 0.1:
                 options[key] = 0.1
-            elif options[key] > 0.9:
-                options[key] = 0.9
+            elif options[key] > 0.95:
+                options[key] = 0.95
 
         for key, angleRange in {
             "Angle of anteversion degrees": (-100.0, 100.0)
@@ -1153,6 +1153,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             elementsAlongHalfFundusWidth = math.ceil(halfFundusWidth / segment1LengthScale)
 
             for side in (left, right):
+                lastTubeIdx = 0
                 xStart = [0.0, segment1Length * (-1.0 if side == left else 1.0), 0.0]
                 d1Oviduct = [0.0, segment1LengthScale * (1.0 if side == left else -1.0), 0.0]
                 for i in range(oviductElementsCount + 1):
@@ -1162,6 +1163,10 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                         d3 = [0.0, 0.0, oviductRadius]
                         d12 = [0.0, 0.0, 0.0]
                         d13 = [0.0, 0.0, 0.0]
+                        id2 = mult(d2, innerProportionOviducts)
+                        id3 = mult(d3, innerProportionOviducts)
+                        id12 = mult(d12, innerProportionOviducts)
+                        id13 = mult(d13, innerProportionOviducts)
                     else:  # in ellipse zone
                         theta = math.acos(x[1] / halfFundusWidth)
                         if abs(halfFundusDepth * math.sin(theta)) < oviductRadius:
@@ -1169,7 +1174,14 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                             d3 = [0.0, 0.0, oviductRadius]
                             d12 = [0.0, 0.0, 0.0]
                             d13 = [0.0, 0.0, 0.0]
+                            id2 = mult(d2, innerProportionOviducts)
+                            id3 = mult(d3, innerProportionOviducts)
+                            id12 = mult(d12, innerProportionOviducts)
+                            id13 = mult(d13, innerProportionOviducts)
+                            lastTubeIdx = i
                         else:
+                            elementsInEllipse = oviductElementsCount + 1 - lastTubeIdx
+                            xiEllipse = (i - lastTubeIdx) / elementsInEllipse
                             d2 = [halfFundusDepth * math.sin(theta) * (-1.0 if side == left else 1.0), 0.0, 0.0]
                             d3 = [0.0, 0.0, halfFundusDepth * math.sin(theta)]
                             d12 = [halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth),
@@ -1177,11 +1189,14 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                             d13 = [0.0, 0.0,
                                    halfFundusDepth * math.cos(theta) * (0.5 * math.pi / elementsAlongHalfFundusWidth) *
                                    (-1.0 if side == left else 1.0)]
-
-                    id2 = mult(d2, innerProportionOviducts)
-                    id3 = mult(d3, innerProportionOviducts)
-                    id12 = mult(d12, innerProportionOviducts)
-                    id13 = mult(d13, innerProportionOviducts)
+                            innerProportionFundus = \
+                                interpolateCubicHermite([innerProportionOviducts, 0.0, 0.0],
+                                                        [innerProportionBody - innerProportionOviducts, 0.0, 0.0],
+                                                        [innerProportionBody, 0.0, 0.0], [0.0, 0.0, 0.0], xiEllipse)[0]
+                            id2 = mult(d2, innerProportionFundus if isPregnant else innerProportionOviducts)
+                            id3 = mult(d3, innerProportionFundus if isPregnant else innerProportionOviducts)
+                            id12 = mult(d12, innerProportionFundus if isPregnant else innerProportionOviducts)
+                            id13 = mult(d13, innerProportionFundus if isPregnant else innerProportionOviducts)
 
                     if i < oviductElementsCount:
                         node = nodes.findNodeByIdentifier(nodeIdentifier)
@@ -1715,10 +1730,10 @@ class MeshType_3d_uterus1(Scaffold_base):
                           "junction of left uterosacral ligament with uterus": {"x": [7.0, -2.75, 0.0]},
                           "junction of right uterosacral ligament with uterus": {"x": [7.0, 2.75, 0.0]}}
         elif isPregnant:
-            allMarkers = {"junction of left round ligament with uterus": {"x": [-2.81269, -16.7248, 0.0]},
-                          "junction of right round ligament with uterus": {"x": [-2.81269, 16.7248, 0.0]},
-                          "junction of left uterosacral ligament with uterus": {"x": [30, -2.75, 0.0]},
-                          "junction of right uterosacral ligament with uterus": {"x": [30, 2.75, 0]}}
+            allMarkers = {"junction of left round ligament with uterus": {"x": [-0.651622, -6.5419, 0]},
+                          "junction of right round ligament with uterus": {"x": [-0.651622, 6.5419, 0]},
+                          "junction of left uterosacral ligament with uterus": {"x": [14, -2.75, 0.0]},
+                          "junction of right uterosacral ligament with uterus": {"x": [14, 2.75, 0]}}
 
         for key in allMarkers:
             x = allMarkers[key]["x"]
