@@ -13,7 +13,7 @@ from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
     moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
 from scaffoldmaker.utils.interpolation import (
-    smoothCubicHermiteDerivativesLine)
+    sampleHermiteCurve, smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
 
 
@@ -94,12 +94,16 @@ class EllipsoidMesh:
         elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
         opp_element_counts = [half_counts[i] - self._transition_element_count for i in range(3)]
 
+        origin = [0.0, 0.0, 0.0]
         axis1 = [self._a, 0.0, 0.0]
         axis2 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis2_x_rotation_radians)
         axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis3_x_rotation_radians)
         axis_d1 = div(axis1, half_counts[0])
         axis_d2 = div(axis2, half_counts[1])
         axis_d3 = div(axis3, half_counts[2])
+        axis_md1 = [-d for d in axis_d1]
+        axis_md2 = [-d for d in axis_d2]
+        axis_md3 = [-d for d in axis_d3]
 
         sample_curve_on_ellipsoid = (
             lambda start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
@@ -111,9 +115,15 @@ class EllipsoidMesh:
         move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
         d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
         # surface normal:
-        # evaluate_ellipsoid_surface_d3 = lambda tx, td1, td2: set_magnitude(
+        # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2, td3: set_magnitude(
         #     [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], d3_mag)
-        evaluate_ellipsoid_surface_d3 = lambda tx, td1, td2: set_magnitude(tx, d3_mag)
+        evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, d3_mag)
+        evaluate_surface_d3_axis_d1 = lambda tx, td1, td2: axis_d1
+        evaluate_surface_d3_axis_d3 = lambda tx, td1, td2: axis_d3
+        evaluate_surface_d3_axis_md2 = lambda tx, td1, td2: axis_md2
+
+        axis2_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, axis2[1:]), d3_mag)
+        axis3_mdt = set_magnitude([0.0] + [-d for d in getEllipseTangentAtPoint(self._b, self._c, axis3[1:])], d3_mag)
 
         octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count)
 
@@ -121,13 +131,13 @@ class EllipsoidMesh:
         abx, abd1, abd2 = sampleCurveOnEllipsoid(
             self._a, self._b, self._c,
             axis1, axis_d2, axis_d3,
-            axis2, [-1.0, 0.0, 0.0], [0.0] + getEllipseTangentAtPoint(self._b, self._c, axis2[1:]),
+            axis2, axis_md1, axis2_dt,
             elements_count_q12)
         # get outside curve from axis 1 to axis 3
         acx, acd2, acd1 = sampleCurveOnEllipsoid(
             self._a, self._b, self._c,
-            abx[0], abd2[0], abd1[0], axis3, [-1.0, 0.0, 0.0],
-            [0.0] + [-d for d in getEllipseTangentAtPoint(self._b, self._c, axis3[1:])],
+            abx[0], abd2[0], abd1[0],
+            axis3, axis_md1, axis3_mdt,
             elements_count_q13)
         # get outside curve from axis 2 to axis 3
         bcx, bcd2, bcd1 = sampleCurveOnEllipsoid(
@@ -135,23 +145,83 @@ class EllipsoidMesh:
             abx[-1], abd2[-1], abd1[-1],
             acx[-1], [-d for d in acd1[-1]], acd2[-1],
             elements_count_q23)
-        # fix first/last derivatives so correct regardless of order set in QuadTriangleMesh
+        # fix first/last derivatives
         abd2[0] = acd2[0]
         abd2[-1] = bcd2[0]
         acd1[-1] = [-d for d in bcd2[-1]]
 
-        # make outer surface of octant 1
-        outer_surface1 = QuadTriangleMesh(
+        # make outer surface triangle of octant 1
+        triangle_abc = QuadTriangleMesh(
             opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
             sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface)
-        outer_surface1.set_edge_parameters12(abx, abd1, abd2)
-        outer_surface1.set_edge_parameters13(acx, acd1, acd2)
-        outer_surface1.set_edge_parameters23(bcx, bcd1, bcd2)
-        outer_surface1.build()
+        triangle_abc.set_edge_parameters12(abx, abd1, abd2)
+        triangle_abc.set_edge_parameters13(acx, acd1, acd2)
+        triangle_abc.set_edge_parameters23(bcx, bcd1, bcd2)
+        triangle_abc.build()
         if not self._surface_only:
-            d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
-            outer_surface1.calculate_d3(evaluate_ellipsoid_surface_d3)
-        octant1.set_outer_surface(outer_surface1)
+            triangle_abc.assign_d3(evaluate_surface_d3_ellipsoid)
+        octant1.set_triangle_abc(triangle_abc)
+
+        if not self._surface_only:
+            # extract exact derivatives
+            abd2 = triangle_abc.get_edge_parameters12()[2]
+            acd1 = triangle_abc.get_edge_parameters13()[1]
+            bcd1 = triangle_abc.get_edge_parameters23()[1]
+
+            # build interior lines from origin from axis1, axis2, axis3
+            aox, aod2, aod1 = sampleHermiteCurve(
+                axis1, axis_md1, abd1[0], origin, axis_md1, axis_d2, elements_count=half_counts[0])
+            box, bod2, bod1 = sampleHermiteCurve(
+                axis2, axis_md2, abd1[-1], origin, axis_md2, axis_md1, elements_count=half_counts[1])
+            cox, cod2, cod1 = sampleHermiteCurve(
+                axis3, axis_md3, [-d for d in acd1[-1]], origin, axis_md3, axis_md2, elements_count=half_counts[2])
+
+            # make inner surface triangle 1-2-origin
+            triangle_abo = QuadTriangleMesh(
+                opp_element_counts[0], opp_element_counts[1], self._transition_element_count, sampleHermiteCurve)
+            abd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in abx]
+            triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
+            aod3 = [abd2[0]] + [axis_d3] * (len(aox) - 1)
+            triangle_abo.set_edge_parameters13(aox, aod1, aod2, aod3)
+            bod3 = [abd2[-1]] + [axis_d3] * (len(box) - 1)
+            triangle_abo.set_edge_parameters23(box, bod1, bod2, bod3)
+            triangle_abo.build()
+            triangle_abo.assign_d3(evaluate_surface_d3_axis_d3)
+            octant1.set_triangle_abo(triangle_abo)
+            # extract exact derivatives
+            aod1 = triangle_abo.get_edge_parameters13()[1]
+            bod1 = triangle_abo.get_edge_parameters23()[1]
+
+            # make inner surface triangle 1-3-origin
+            triangle_aco = QuadTriangleMesh(
+                opp_element_counts[0], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve)
+            acd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in acx]
+            acmd1 = [[-d for d in d1] for d1 in acd1]
+            triangle_aco.set_edge_parameters12(acx, acd2, acd3, acmd1)
+            aomd1 = [[-d for d in d1] for d1 in aod1]
+            triangle_aco.set_edge_parameters13(aox, aod3, aod2, aomd1)
+            cod3 = [acd2[-1]] + [axis_md1] * (len(cox) - 1)
+            triangle_aco.set_edge_parameters23(cox, cod3, cod2, cod1)
+            triangle_aco.build()
+            triangle_aco.assign_d3(evaluate_surface_d3_axis_md2)
+            octant1.set_triangle_aco(triangle_aco)
+            # extract exact derivatives
+            cod3 = triangle_aco.get_edge_parameters23()[1]
+
+            # make inner surface 2-3-origin
+            triangle_bco = QuadTriangleMesh(
+                opp_element_counts[1], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve)
+            bcd3 = [bod2[0]] + [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in bcx[1:-1]] +[cod2[-1]]
+            bcmd1 = [[-d for d in d1] for d1 in bcd1]
+            triangle_bco.set_edge_parameters12(bcx, bcd2, bcd3, bcmd1)
+            bomd1 = [[-d for d in d1] for d1 in bod1]
+            triangle_bco.set_edge_parameters13(box, bod3, bod2, bomd1)
+            # cod3 = [acd2[-1]] + [axis_md1] * (len(cox) - 1)
+            comd3 = [[-d for d in d3] for d3 in cod3]
+            triangle_bco.set_edge_parameters23(cox, cod1, cod2, comd3)
+            triangle_bco.build()
+            triangle_bco.assign_d3(evaluate_surface_d3_axis_d1)
+            octant1.set_triangle_bco(triangle_bco)
 
         # copy octant1 into ellipsoid
         octant_parameters = octant1.get_parameters()
@@ -204,9 +274,8 @@ class EllipsoidMesh:
         outer_surface2.set_edge_parameters23(acx, acd1, acd2)
         outer_surface2.build()
         if not self._surface_only:
-            d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
-            outer_surface2.calculate_d3(evaluate_ellipsoid_surface_d3)
-        octant2.set_outer_surface(outer_surface2)
+            outer_surface2.assign_d3(evaluate_surface_d3_ellipsoid)
+        octant2.set_triangle_abc(outer_surface2)
 
         # copy octant2 into ellipsoid, blending existing derivatives
         octant_parameters = octant2.get_parameters()
@@ -663,9 +732,9 @@ class EllipsoidOctantMesh:
         """
         return self._nx
 
-    def set_outer_surface(self, trimesh: QuadTriangleMesh):
+    def set_triangle_abc(self, trimesh: QuadTriangleMesh):
         """
-        Set parameters of the outer surface along 1-2 edge of triangle.
+        Set parameters on the outer abc surface triangle of octant.
         :param trimesh: Coordinates to set on outer surface.
         """
         assert trimesh.get_element_count12() == self._element_count12
@@ -685,23 +754,75 @@ class EllipsoidOctantMesh:
         px, pd1, pd2, pd3 = trimesh.get_parameters_diagonal()
         self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 2, 3]], start_indexes, [[1, 0, 0]])
 
-    def _get_corner(self, indexes):
+    def set_triangle_abo(self, trimesh: QuadTriangleMesh):
         """
-        Get integer indicating which corner if any the indexes are on.
-        :param indexes: Index across 1, 2, 3 directions.
-        :return: 0 if not a corner, 1 if 2-3 corner, 2 if 1-3 corner, 3 if 1-2 corner, 4 if 1-2-3 corner.
+        Set parameters on triangle 1-2-origin, an inner surface of octant.
+        :param trimesh: Triangle coordinate data with x, d1, d2, optional d3.
         """
-        # get transition index outward or negative in the regular core box.
-        trans = [self._transition_element_count + indexes[i] - self._element_counts[i] for i in range(3)]
-        if (trans[0] >= 0) and (trans[0] == trans[1] == trans[2]):
-            return 4
-        if (trans[2] < 0) and (trans[0] >= 0) and (trans[0] == trans[1]):
-            return 3
-        if (trans[1] < 0) and (trans[2] >= 0) and (trans[0] == trans[2]):
-            return 2
-        if (trans[0] < 0) and (trans[1] >= 0) and (trans[1] == trans[2]):
-            return 1
-        return 0
+        assert trimesh.get_element_count12() == self._element_count12
+        assert trimesh.get_element_count13() == self._element_counts[0]
+        assert trimesh.get_element_count23() == self._element_counts[1]
+        start_indexes = [self._element_counts[0], 0, 0]
+        for n0 in range(self._transition_element_count):
+            px, pd1, pd2, pd3 = trimesh.get_parameters12(n0)
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, -3, 2]], start_indexes, [[0, 1, 0], [-1, 0, 0]])
+            start_indexes[0] -= 1
+        start_indexes = [0, 0, 0]
+        for n2 in range(self._opp_counts[1] + 1):
+            px, pd1, pd2, pd3 = (trimesh.get_parameters31(n2, self._opp_counts[0] + 1) if (n2 < self._opp_counts[1])
+                                 else trimesh.get_parameters_diagonal())
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 2, 3]], start_indexes, [[1, 0, 0]])
+            start_indexes[1] += 1
+
+    def set_triangle_aco(self, trimesh: QuadTriangleMesh):
+        """
+        Set parameters on triangle 1-3-origin, an inner surface of octant.
+        :param trimesh: Triangle coordinate data with x, d1, d2, optional d3.
+        """
+        assert trimesh.get_element_count12() == self._element_count13
+        assert trimesh.get_element_count13() == self._element_counts[0]
+        assert trimesh.get_element_count23() == self._element_counts[2]
+        start_indexes = [self._element_counts[0], 0, 0]
+        for n0 in range(self._transition_element_count):
+            px, pd1, pd2, pd3 = trimesh.get_parameters12(n0)
+            self._set_coordinates_across(
+                [px, pd1, pd2, pd3], [[0, 2, -3, -1], [0, -1, -3, -2]], start_indexes, [[0, 0, 1], [-1, 0, 0]])
+            start_indexes[0] -= 1
+        start_indexes = [0, 0, 0]
+        for n3 in range(self._opp_counts[2] + 1):
+            px, pd1, pd2, pd3 = (trimesh.get_parameters31(n3, self._opp_counts[0] + 1) if (n3 < self._opp_counts[2])
+                                 else trimesh.get_parameters_diagonal())
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 3, -2]], start_indexes, [[1, 0, 0]])
+            start_indexes[2] += 1
+
+    def set_triangle_bco(self, trimesh: QuadTriangleMesh):
+        """
+        Set parameters on triangle 2-3-origin, an inner surface of octant.
+        :param trimesh: Triangle coordinate data with x, d1, d2, optional d3.
+        """
+        assert trimesh.get_element_count12() == self._element_count23
+        assert trimesh.get_element_count13() == self._element_counts[1]
+        assert trimesh.get_element_count23() == self._element_counts[2]
+        start_indexes = [0, self._element_counts[1], 0]
+        for n0 in range(self._transition_element_count):
+            px, pd1, pd2, pd3 = trimesh.get_parameters12(n0)
+            self._set_coordinates_across(
+                [px, pd1, pd2, pd3], [[0, 2, -3, -1], [0, -2, -3, 1]], start_indexes, [[0, 0, 1], [0, -1, 0]])
+            start_indexes[1] -= 1
+        start_indexes = [0, 0, 0]
+        for n3 in range(self._opp_counts[2] + 1):
+            px, pd1, pd2, pd3 = (trimesh.get_parameters31(n3, self._opp_counts[1] + 1) if (n3 < self._opp_counts[2])
+                                 else trimesh.get_parameters_diagonal())
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 3, 2]], start_indexes, [[0, 1, 0]])
+            start_indexes[2] += 1
+
+    def _get_transitions(self, indexes):
+        """
+        For each index direction, get False if in core or True if in transition zone.
+        :param indexes: Location indexes in 1, 2, 3 directions.
+        :return: Transition 1, 2, 3 directions.
+        """
+        return [(self._transition_element_count + indexes[i] - self._element_counts[i]) > 0 for i in range(3)]
 
     def _set_coordinates_across(self, parameters, parameter_indexes, start_indexes, index_increments,
                                 skip_start=False, skip_end=False, blend=False):
@@ -709,11 +830,11 @@ class EllipsoidOctantMesh:
         Insert parameters across the coordinates array.
         :param parameters: List of lists of N node parameters e.g. [px, pd1, pd2, pd3]
         :param parameter_indexes: Lists of parameter indexes where x=0, d1=1, d2=2, d3=3. Starts with first and
-        advances at each corner, then cycles back to first. Can be negative to invert vector.
+        advances at transitions change, then stays on the last. Can be negative to invert vector.
         e.g. [[0, 1, 2], [0, -2, 1]] for [x, d1, d2] then [x, -d2, d1] from first corner.
         :param start_indexes: Indexes into nx array for start point.
-        :param index_increments: List of increments in indexes. Starts with first and uses next from each corner, then
-        cycles back to first.
+        :param index_increments: List of increments in indexes. Starts with first and uses next at each transition
+        change, then stays on the last.
         :param skip_start: Set to True to skip the first value.
         :param skip_end: Set to True to skip the last value.
         :param blend: Set to True to blend parameters with any old parameters at locations.
@@ -726,6 +847,7 @@ class EllipsoidOctantMesh:
         start_n = 1 if skip_start else 0
         last_n = len(parameters[0]) - 1
         limit_n = len(parameters[0]) - (1 if skip_end else 0)
+        last_trans = self._get_transitions(indexes)
         for n in range(start_n, limit_n):
             if n > 0:
                 while True:
@@ -733,28 +855,27 @@ class EllipsoidOctantMesh:
                     # skip over blank transition coordinates
                     if self._nx[indexes[2]][indexes[1]][indexes[0]]:
                         break
-            corner = self._get_corner(indexes)
-            next_indexes = [indexes[c] + index_increment[c] for c in range(3)]
-            if corner and (corner != self._get_corner(next_indexes)):
-                parameter_number += 1
-                if parameter_number == len(parameter_indexes):
-                    parameter_number = 0
+            trans = self._get_transitions(indexes)
+            if last_trans and (trans != last_trans):
+                if parameter_number < (len(parameter_indexes) - 1):
+                    parameter_number += 1
                 parameter_index = parameter_indexes[parameter_number]
-                increment_number += 1
-                if increment_number == len(index_increments):
-                    increment_number = 0
+                if increment_number < (len(index_increments) - 1):
+                    increment_number += 1
                 index_increment = index_increments[increment_number]
             nx = self._nx[indexes[2]][indexes[1]][indexes[0]]
             for parameter, spix in zip(parameters, parameter_index):
+                if not parameter[n]:
+                    continue
                 new_parameter = [-d for d in parameter[n]] if (spix < 0) else copy.copy(parameter[n])
                 pix = abs(spix)
                 if blend and nx[pix]:
                     if pix == 0:
                         x = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
-                        nx[pix] = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
+                        new_parameter = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
                     else:
                         # expect derivatives to be the same direction and blend magnitude with harmonic mean
                         mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(new_parameter)))
-                        nx[pix] = set_magnitude(nx[pix], mean_mag)
-                else:
-                    nx[pix] = new_parameter
+                        new_parameter = set_magnitude(nx[pix], mean_mag)
+                nx[pix] = new_parameter
+            last_trans = trans

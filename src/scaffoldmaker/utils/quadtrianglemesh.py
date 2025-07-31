@@ -94,6 +94,23 @@ class QuadTriangleMesh:
             d3 = copy.copy(pd3[n12]) if pd3 else None
             self._nx[0][n12] = [copy.copy(px[n12]), copy.copy(pd1[n12]), copy.copy(pd2[n12]), d3]
 
+    def get_edge_parameters12(self):
+        """
+        Get parameters along 1-2 edge of triangle, as would be passed into set_edge_parameters12().
+        :return: px, pd1, pd2, pd3
+        """
+        px = []
+        pd1 = []
+        pd2 = []
+        pd3 = []
+        for n12 in range(self._node_count12):
+            x, d1, d2, d3 = self._nx[0][n12]
+            px.append(x)
+            pd1.append(d1)
+            pd2.append(d2)
+            pd3.append(d3)
+        return copy.deepcopy((px, pd1, pd2, pd3))
+
     def set_edge_parameters13(self, px, pd1, pd2, pd3=None):
         """
         Set parameters along 1-3 edge of triangle.
@@ -111,12 +128,31 @@ class QuadTriangleMesh:
                 parameters = [copy.copy(px[n13]), [-d for d in pd2[n13]], copy.copy(pd1[n13]), d3]
             self._nx[n13][0] = parameters
 
+    def get_edge_parameters13(self):
+        """
+        Get parameters along 1-3 edge of triangle, as would be passed into set_edge_parameters13().
+        :return: px, pd1, pd2, pd3
+        """
+        px = []
+        pd1 = []
+        pd2 = []
+        pd3 = []
+        for n13 in range(self._node_count13):
+            x, d1, d2, d3 = self._nx[n13][0]
+            if n13 >= self._element_count3:
+                d1, d2 = d2, [-d for d in d1]
+            px.append(x)
+            pd1.append(d1)
+            pd2.append(d2)
+            pd3.append(d3)
+        return copy.deepcopy((px, pd1, pd2, pd3))
+
     def set_edge_parameters23(self, px, pd1, pd2, pd3=None):
         """
         Set parameters along 123 edge of triangle.
         :param px: Coordinates x.
-        :param pd1: Derivatives in direction from point2 towards point3.
-        :param pd2: Derivatives in direction away from point1.
+        :param pd1: Derivatives in direction away from point1.
+        :param pd2: Derivatives in direction from point2 towards point3.
         :param pd3: Optional derivatives in 3rd direction.
         """
         assert len(px) == self._node_count23
@@ -133,6 +169,32 @@ class QuadTriangleMesh:
                        self._element_count2 - (n23 - self._element_count3))
             self._nx[n13][n12] = parameters
 
+    def get_edge_parameters23(self):
+        """
+        Get parameters along 2-3 edge of triangle, as would be passed into set_edge_parameters23().
+        :return: px, pd1, pd2, pd3
+        """
+        px = []
+        pd1 = []
+        pd2 = []
+        pd3 = []
+        for n23 in range(self._node_count23):
+            if n23 < self._element_count3:
+                n13 = n23
+                n12 = self._element_count12
+            else:
+                n13 = self._element_count13
+                n12 = (self._element_count12 if n23 == self._element_count3 else
+                       self._element_count2 - (n23 - self._element_count3))
+            x, d1, d2, d3 = self._nx[n13][n12]
+            if n23 >= self._element_count3:
+                d1, d2 = [-d for d in d1], [-d for d in d2]
+            px.append(x)
+            pd1.append(d1)
+            pd2.append(d2)
+            pd3.append(d3)
+        return copy.deepcopy((px, pd1, pd2, pd3))
+
     def get_parameters12(self, n13, count=None):
         """
         Get parameters along 1-2 direction of triangle.
@@ -141,17 +203,15 @@ class QuadTriangleMesh:
         :return: px, pd1, pd2, pd3
         """
         assert 0 <= n13 < self._node_count13
-        if count == None:
-            count = self._node_count12
-        else:
-            assert 1 <= count <= self._node_count12
+        n_limit = count if count else self._node_count12
+        assert 1 <= n_limit <= self._node_count12
         px = []
         pd1 = []
         pd2 = []
         pd3 = []
         nx_row = self._nx[n13]
         n12 = 0
-        for n in range(count):
+        for n in range(n_limit):
             while not nx_row[n12]:
                 n12 += 1
             nx = nx_row[n12]
@@ -170,16 +230,14 @@ class QuadTriangleMesh:
         :return: px, pd1, pd2, pd3
         """
         assert 0 <= n12 < self._node_count12
-        if count == None:
-            count = self._node_count13
-        else:
-            assert 1 <= count <= self._node_count13
+        n_limit = count if count else self._node_count13
+        assert 1 <= n_limit <= self._node_count13
         px = []
         pd1 = []
         pd2 = []
         pd3 = []
         n13 = self._element_count13
-        for n in range(count):
+        for n in range(n_limit):
             nx_row = self._nx[n13]
             while not nx_row[n12]:
                 n13 -= 1
@@ -209,7 +267,6 @@ class QuadTriangleMesh:
             pd2.append(nx[2])
             pd3.append(nx[3])
         return px, pd1, pd2, pd3
-
 
     def _get_corner(self, indexes):
         """
@@ -367,7 +424,7 @@ class QuadTriangleMesh:
         weight12 = self._element_count3
         weight13 = self._element_count2
         weight23 = self._element_count1
-        overweighting = 1.5
+        overweighting = 1.5  # GRC revise
         ax = self._sample_curve(
             point12[0], point12[2], None, point13[0], [-d for d in point13[2]], None, self._element_count23,
             start_weight=weight12, end_weight=weight13, overweighting=overweighting)[0][self._element_count3]
@@ -507,15 +564,15 @@ class QuadTriangleMesh:
             self._smooth_derivative_across(start_indexes, end_indexes, [[0, 1], [-1, 0]], [2, -2],
                 fix_start_direction=True, fix_end_direction=True)
 
-    def calculate_d3(self, evaluate_d3):
+    def assign_d3(self, evaluate_d3):
         """
-        Calls user-supplied evaluate_d3 function to set all d3 derivatives.
-        Assumes all coordinates have x, d1 and d2.
-        :param evaluate_d3: Callable taking x, d1, d2 and returning d3.
+        Assigns value of d3 for all coordinates with a location, from value given by user-supplied function.
+        Does not assign d3 if it is already set at a point.
+        :param evaluate_d3: Callable taking current values of x, d1, d2 and returning d3.
         """
         for n13 in range(self._node_count13):
             nx_row = self._nx[n13]
             for n12 in range(self._node_count12):
                 nx = nx_row[n12]
-                if nx:
+                if nx and nx[0] and not nx[3]:
                     nx[3] = evaluate_d3(nx[0], nx[1], nx[2])

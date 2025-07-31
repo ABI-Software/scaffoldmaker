@@ -501,7 +501,8 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
     :param c: z-axis length.
     :param start_x: start coordinate on surface of ellipsoid.
     :param start_d1: start direction on surface of ellipsoid.
-    :param start_d2: optional start side direction on surface of ellipsoid. If supplied, end_d2 must also be supplied.
+    :param start_d2: optional start side direction on surface of ellipsoid. Must be supplied if end_d2 is
+    supplied.
     :param end_x: end coordinate on surface of ellipsoid.
     :param end_d1: end direction on surface of ellipsoid, or None to estimate from start_d1.
     Must be supplied with end_transition.
@@ -528,16 +529,8 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
         end_d = moveDerivativeToEllipsoidSurface(a, b, c, end_x, end_d)
     use_start_weight = (start_weight if start_weight else 1.0) * magnitude(end_x)
     use_end_weight = (end_weight if end_weight else 1.0) * magnitude(start_x)
-    start_d = set_magnitude(start_d, length * use_start_weight / (use_start_weight + use_end_weight))
-    end_d = set_magnitude(end_d, length * use_end_weight / (use_start_weight + use_end_weight))
-    # if start_weight and end_weight:
-    #     start_d = set_magnitude(start_d, (length * start_weight) / (start_weight + end_weight))
-    #     end_d = set_magnitude(end_d, (length * end_weight) / (start_weight + end_weight))
-    # else:
-    #     start_distance = magnitude(start_x)
-    #     end_distance = magnitude(end_x)
-    #     start_d = set_magnitude(start_d, (length * end_distance) / (start_distance + end_distance))
-    #     end_d = set_magnitude(end_d, (length * end_distance) / (start_distance + end_distance))
+    start_d = set_magnitude(start_d, 2.0 * length * use_start_weight / (use_start_weight + use_end_weight))
+    end_d = set_magnitude(end_d, 2.0 * length * use_end_weight / (use_start_weight + use_end_weight))
     scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d) * overweighting
     start_d = mult(start_d, scaling)
     end_d = mult(end_d, scaling)
@@ -561,8 +554,8 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
     if start_d2:
         if not end_d2:
             end_d2 = moveDerivativeToEllipsoidSurface(a, b, c, px[-1], start_d2)
-            normal = normalize(cross(end_d2, pd1[-1]))
-            end_d2 = cross(pd1[-1], normal)
+            normal = normalize(cross(pd1[-1], end_d2))
+            end_d2 = cross(normal, pd1[-1])
         pd2 = [start_d2]
         if end_transition:
             # adjust xi scale to get propor proportion when magnitude of end_d1 differs from regular derivatives

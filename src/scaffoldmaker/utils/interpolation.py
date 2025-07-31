@@ -1785,3 +1785,74 @@ def track_curve_side_direction(cx, cd1, start_direction, start_location, end_loc
         direction = normalize(cross(d1, d2))
 
     return normalize(d1), normalize(d2), direction
+
+
+def sampleHermiteCurve(start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
+                       start_weight=None, end_weight=None, overweighting=1.0, end_transition=False):
+    """
+    Samples a hermite curve from initial points and directions. Also interpolates side derivatives.
+    :param start_x: start coordinate.
+    :param start_d1: start direction.
+    :param start_d2: optional start side direction. Must be supplied if end_d2 is supplied.
+    :param end_x: end coordinate.
+    :param end_d1: end direction, or None to estimate from start_d1.
+    Must be supplied with end_transition.
+    :param end_d2: optional end side direction, or None to use normal to end direction closest to start_d2.
+    :param elements_count: Number of elements to sample.
+    :param start_weight, end_weight: Optional relative weights for start/end d1.
+    :param overweighting: Multiplier of arc length to use with initial curve to exaggerate end derivatives.
+    :param end_transition: If supplied with end_d1, modify size of last element to fit end_d1.
+    :return: x[], d1[], d2[]
+    """
+    assert (not end_transition) or end_d1
+    end_d1_mag = magnitude(end_d1) if end_d1 else None
+    length = distance(start_x, end_x)
+    # initial cubic interpolation, weighting derivatives by distance to other end
+    start_d = start_d1
+    end_d = end_d1
+    if not end_d:
+        start_d = normalize(start_d)
+        scaling = computeHermiteLagrangeDerivativeScaling(start_x, start_d, end_x)
+        start_d = [d * scaling for d in start_d]
+        end_d = interpolateHermiteLagrangeDerivative(start_x, start_d, end_x, 1.0)
+    use_start_weight = start_weight if start_weight else 1.0
+    use_end_weight = end_weight if end_weight else 1.0
+    start_d = set_magnitude(start_d, 2.0 * length * use_start_weight / (use_start_weight + use_end_weight))
+    end_d = set_magnitude(end_d, 2.0 * length * use_end_weight / (use_start_weight + use_end_weight))
+    scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d) * overweighting
+    start_d = mult(start_d, scaling)
+    end_d = mult(end_d, scaling)
+    px, pd1 = sampleCubicHermiteCurvesSmooth([start_x, end_x], [start_d, end_d], elements_count)[0:2]
+    iter_count = 2
+    for iter in range(iter_count):
+        if end_transition:
+            if elements_count == 1:
+                # sampleCubicHermiteCurves doesn't work properly with 1 element...
+                arc_length = getCubicHermiteArcLength(px[0], pd1[0], px[1], pd1[1])
+                pd1[0] = set_magnitude(pd1[0], 2.0 * arc_length - end_d1_mag)
+                pd1[1] = set_magnitude(pd1[1], end_d1_mag)
+            else:
+                px, pd1 = sampleCubicHermiteCurves(
+                    px, pd1, elements_count, addLengthEnd=0.5 * end_d1_mag, lengthFractionEnd=0.5)[0:2]
+        else:
+            px, pd1 = sampleCubicHermiteCurves(px, pd1, elements_count)[0:2]
+    if start_d2:
+        if not end_d2:
+            normal = normalize(cross(pd1[-1], start_d2))
+            end_d2 = cross(normal, pd1[-1])
+        pd2 = [start_d2]
+        if end_transition:
+            # adjust xi scale to get propor proportion when magnitude of end_d1 differs from regular derivatives
+            reg_d1_mag = magnitude(pd1[-2])
+            end_d1_mag = magnitude(end_d1)
+            xi_scale = reg_d1_mag / ((elements_count - 0.5) * reg_d1_mag + 0.5 * end_d1_mag)
+        else:
+            xi_scale = 1.0 / elements_count
+        for n in range(1, elements_count):
+            xi = n * xi_scale
+            rxi = 1.0 - xi
+            d2 = [start_d2[c] * rxi + end_d2[c] * xi for c in range(3)]
+            pd2.append(d2)
+        pd2.append(end_d2)
+        return px, pd1, pd2
+    return px, pd1
