@@ -104,6 +104,13 @@ class EllipsoidMesh:
         axis_md1 = [-d for d in axis_d1]
         axis_md2 = [-d for d in axis_d2]
         axis_md3 = [-d for d in axis_d3]
+        # magnitude of most derivatives indicating only direction so magnitude not known
+        dir_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
+        axis2_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, axis2[1:]), magnitude(axis_d3))
+        axis3_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, axis3[1:]), magnitude(axis_d2))
+        axis3_mdt = [-d for d in axis3_dt]
+        axis2_mag = magnitude(axis2)
+        axis3_mag = magnitude(axis3)
 
         sample_curve_on_ellipsoid = (
             lambda start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
@@ -113,17 +120,11 @@ class EllipsoidMesh:
                 start_weight, end_weight, overweighting, end_transition))
         move_x_to_ellipsoid_surface = lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
         move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
-        d3_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
         # surface normal:
         # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2, td3: set_magnitude(
-        #     [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], d3_mag)
-        evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, d3_mag)
+        #     [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
+        evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
         evaluate_surface_d3_axis_d1 = lambda tx, td1, td2: axis_d1
-        evaluate_surface_d3_axis_d3 = lambda tx, td1, td2: axis_d3
-        evaluate_surface_d3_axis_md2 = lambda tx, td1, td2: axis_md2
-
-        axis2_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, axis2[1:]), d3_mag)
-        axis3_mdt = set_magnitude([0.0] + [-d for d in getEllipseTangentAtPoint(self._b, self._c, axis3[1:])], d3_mag)
 
         octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count)
 
@@ -168,11 +169,12 @@ class EllipsoidMesh:
             acd1 = triangle_abc.get_edge_parameters13()[1]
             bcd1 = triangle_abc.get_edge_parameters23()[1]
 
-            # build interior lines from origin from axis1, axis2, axis3
+            # build interior lines from axis1, axis2, axis3 to origin
             aox, aod2, aod1 = sampleHermiteCurve(
                 axis1, axis_md1, abd1[0], origin, axis_md1, axis_d2, elements_count=half_counts[0])
-            box, bod2, bod1 = sampleHermiteCurve(
-                axis2, axis_md2, abd1[-1], origin, axis_md2, axis_md1, elements_count=half_counts[1])
+            box, bod2, bod3 = sampleHermiteCurve(
+                axis2, axis_md2, bcd2[0], origin, axis_md2, axis_d3, elements_count=half_counts[1])
+            bod1 = [abd1[-1]] + [axis_md1] * (len(box) - 1)
             cox, cod2, cod1 = sampleHermiteCurve(
                 axis3, axis_md3, [-d for d in acd1[-1]], origin, axis_md3, axis_md2, elements_count=half_counts[2])
 
@@ -183,10 +185,12 @@ class EllipsoidMesh:
             triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
             aod3 = [abd2[0]] + [axis_d3] * (len(aox) - 1)
             triangle_abo.set_edge_parameters13(aox, aod1, aod2, aod3)
-            bod3 = [abd2[-1]] + [axis_d3] * (len(box) - 1)
             triangle_abo.set_edge_parameters23(box, bod1, bod2, bod3)
             triangle_abo.build()
-            triangle_abo.assign_d3(evaluate_surface_d3_axis_d3)
+            def evaluate_surface_d3_triangle_abo(tx, td1, td2):
+                xi = magnitude(tx[1:]) / axis2_mag
+                return add(mult(axis_d3, 1.0 - xi), mult(axis2_dt, xi))
+            triangle_abo.assign_d3(evaluate_surface_d3_triangle_abo)
             octant1.set_triangle_abo(triangle_abo)
             # extract exact derivatives
             aod1 = triangle_abo.get_edge_parameters13()[1]
@@ -203,7 +207,10 @@ class EllipsoidMesh:
             cod3 = [acd2[-1]] + [axis_md1] * (len(cox) - 1)
             triangle_aco.set_edge_parameters23(cox, cod3, cod2, cod1)
             triangle_aco.build()
-            triangle_aco.assign_d3(evaluate_surface_d3_axis_md2)
+            def evaluate_surface_d3_triangle_aco(tx, td1, td2):
+                xi = magnitude(tx[1:]) / axis3_mag
+                return add(mult(axis_md2, 1.0 - xi), mult(axis3_dt, xi))
+            triangle_aco.assign_d3(evaluate_surface_d3_triangle_aco)
             octant1.set_triangle_aco(triangle_aco)
             # extract exact derivatives
             cod3 = triangle_aco.get_edge_parameters23()[1]
@@ -216,7 +223,6 @@ class EllipsoidMesh:
             triangle_bco.set_edge_parameters12(bcx, bcd2, bcd3, bcmd1)
             bomd1 = [[-d for d in d1] for d1 in bod1]
             triangle_bco.set_edge_parameters13(box, bod3, bod2, bomd1)
-            # cod3 = [acd2[-1]] + [axis_md1] * (len(cox) - 1)
             comd3 = [[-d for d in d3] for d3 in cod3]
             triangle_bco.set_edge_parameters23(cox, cod1, cod2, comd3)
             triangle_bco.build()
@@ -813,7 +819,7 @@ class EllipsoidOctantMesh:
         for n3 in range(self._opp_counts[2] + 1):
             px, pd1, pd2, pd3 = (trimesh.get_parameters31(n3, self._opp_counts[1] + 1) if (n3 < self._opp_counts[2])
                                  else trimesh.get_parameters_diagonal())
-            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 1, 3, 2]], start_indexes, [[0, 1, 0]])
+            self._set_coordinates_across([px, pd1, pd2, pd3], [[0, 2, 3, 1]], start_indexes, [[0, 1, 0]])
             start_indexes[2] += 1
 
     def _get_transitions(self, indexes):
