@@ -16,7 +16,8 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
 from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives, smoothCubicHermiteDerivativesLine,\
-    interpolateCubicHermite, sampleCubicHermiteCurves, computeCubicHermiteDerivativeScaling
+    interpolateCubicHermite, sampleCubicHermiteCurves, computeCubicHermiteDerivativeScaling, \
+    interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
     PatchTubeNetworkMeshSegment
@@ -380,20 +381,12 @@ class Septum:
                 for n1 in range(elementsCountAround + 1):
                     self._nx[n2][n3][n1][1] = d1[n1]
 
-        # Calculate 6 way midpoint
+        # Calculate 6 way midpoint - could be replaced with GRC's QuadTriangleMesh later
         for n1 in range(elementsCountAround + 1):
             for n3 in range(2):
                 xSum = 0
                 ySum = 0
                 zSum = 0
-
-                # Guess d3 vector along the midPlane using magnitude of d2 for the node above
-                guessD3Vector = cross(normalize(self._nx[1][-3 if n3 else 2][n1][1]),
-                                normalize(self._nx[1][-3 if n3 else 2][n1][2]))
-
-                guessD3 = set_magnitude(guessD3Vector,
-                                        magnitude(self._nx[0][-3 if n3 else 2][n1][
-                                                      2 if n1 == elementsCountAround // 2 else 1]))
 
                 x6Way = [self._nx[0][-3 if n3 else 2][n1][0],
                          self._nx[0][-1 if n3 else 0][n1][0],
@@ -408,15 +401,13 @@ class Septum:
                                  self._nx[0][0][n1][3],  # d3
                                  add(self._nx[2][0][n1][2], self._nx[2][0][n1][3]),  # d2 + d3
                                  self._nx[2][1][n1][2],  # d2
-                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3]),  # -d2 + d3
-                                 guessD3]
+                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3])]  # -d2 + d3
                     else:
                         d6Way = [add(self._nx[0][-3][n1][1], [-c for c in self._nx[0][-3][n1][3]]),  # d1 - d3
                                  self._nx[0][-1][n1][3],  # d3
                                  add(self._nx[2][-1][n1][1], self._nx[2][-1][n1][3]),  # d1 + d3
                                  self._nx[2][-2][n1][2],  # d2
-                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]]),  # -d2 - d3
-                                     [-c for c in guessD3]]
+                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
 
                 elif n1 == elementsCountAround:
                     if n3 == 0:
@@ -424,8 +415,7 @@ class Septum:
                                  self._nx[0][0][n1][3],  # d3
                                  add(self._nx[2][0][n1][1], self._nx[2][0][n1][3]),  # d1 + d3
                                  self._nx[2][1][n1][2],  # d2
-                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3]),  # -d2 + d3
-                                 guessD3]
+                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3])]  # -d2 + d3
 
                     else:
                         d6Way = [add([-c for c in self._nx[0][-3][n1][1]], [-c for c in self._nx[0][-3][n1][3]]),
@@ -433,9 +423,7 @@ class Septum:
                                  self._nx[0][-1][n1][3],  # d3
                                  add(self._nx[2][-1][n1][2], self._nx[2][-1][n1][3]),  # d2 + d3
                                  self._nx[2][-2][n1][2],  # d2
-                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]]),
-                                 # -d2 - d3
-                                 [-c for c in guessD3]]
+                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
 
                 else:
                     if n3 == 0:
@@ -443,8 +431,7 @@ class Septum:
                                  self._nx[0][0][n1][3],  # d3
                                  add(self._nx[2][0][n1][2], self._nx[2][0][n1][3]),  # d2 + d3
                                  self._nx[2][1][n1][2],  # d2
-                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3]),  # -d2 + d3
-                                 guessD3]
+                                 add([-c for c in self._nx[2][2][n1][2]], self._nx[2][2][n1][3])]  # -d2 + d3
 
                     else:
                         d6Way = [add(self._nx[0][-3][n1][2] if elementsCountThrough // 2 > 2 else
@@ -453,14 +440,17 @@ class Septum:
                                  self._nx[0][-1][n1][3],  # d3
                                  add(self._nx[2][-1][n1][2], self._nx[2][-1][n1][3]),  # d2 + d3
                                  self._nx[2][-2][n1][2],  # d2
-                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]]),  # -d2 - d3
-                                     [-c for c in guessD3]]
+                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
+
+                cd = interpolateLagrangeHermiteDerivative(x6Way[5], x6Way[2], d6Way[2], 0.0)
+                d6Way.append(cd)
 
                 pathNodes = [[0, 3], [4, 1], [5, 2]]
                 for i in range(3):
                     nodeIdx = pathNodes[i]
                     xMid = interpolateCubicHermite(x6Way[nodeIdx[0]], d6Way[nodeIdx[0]],
                                                    x6Way[nodeIdx[1]], d6Way[nodeIdx[1]], 0.5)
+
                     xSum += xMid[0]
                     ySum += xMid[1]
                     zSum += xMid[2]
@@ -471,11 +461,27 @@ class Septum:
                 z_centroid = zSum / 3
 
                 # print(n1, n3, [x_centroid, y_centroid, z_centroid])
-                self._nx[1][-2 if n3 else 1][n1][0] = [x_centroid, y_centroid, z_centroid]
+                x_3Way = [x_centroid, y_centroid, z_centroid]
+                self._nx[1][-2 if n3 else 1][n1][0] = x_3Way
 
-                xTop = self._nx[1][-2 if n3 else 1][n1][0]
-                xBottom = self._nx[2][-2 if n3 else 1][n1][0]
-                self._nx[1][-2 if n3 else 1][n1][2] = sub(xBottom, xTop)
+                # sample with hermite-lagrange interpolation from sides to 3-way point to get derivatives
+                ad = interpolateLagrangeHermiteDerivative(x_3Way, x6Way[3], d6Way[3], 0.0)
+                bd = interpolateLagrangeHermiteDerivative(x_3Way, x6Way[1], d6Way[1], 0.0)
+                cd = interpolateLagrangeHermiteDerivative(x_3Way, x6Way[5], d6Way[5], 0.0)
+
+                # use the minimum magnitude in all 3 directions
+                d_factor = 0.6  # GRC revisit - try an exact triangle
+                d_mag = d_factor * min(magnitude(ad), magnitude(bd), magnitude(cd))
+                d2_3way = set_magnitude(bd, -d_mag)
+                d3_3way = set_magnitude(cd, d_mag if n3 else -d_mag)
+
+                self._nx[1][-2 if n3 else 1][n1][2] = d2_3way
+                self._nx[1][-2 if n3 else 1][n1][3] = d3_3way
+
+                if n3:
+                    self._nx[1][-3][n1][3] = sub(self._nx[1][-3][n1][0], self._nx[1][-2][n1][0])
+                else:
+                    self._nx[1][2][n1][3] = sub(self._nx[1][1][n1][0], self._nx[1][2][n1][0])
 
         # populate derivatives at row 1
         for n3 in range(1, elementsCountThrough):
@@ -495,15 +501,11 @@ class Septum:
         for n1 in range(elementsCountAround + 1):
             x = []
             d3 = []
-            for n3 in range(1, elementsCountThrough - 1):
-                xFront= self._nx[1][n3][n1][0]
-                xBack = self._nx[1][n3 + 1][n1][0]
-                x.append(xFront)
-                d3.append(sub(xBack, xFront))
-            x.append(xBack)
-            d3.append(sub(xBack, xFront))
-            d3 = smoothCubicHermiteDerivativesLine(x, d3)
             for n3 in range(1, elementsCountThrough):
+                x.append(self._nx[1][n3][n1][0])
+                d3.append(self._nx[1][n3][n1][3])
+            d3 = smoothCubicHermiteDerivativesLine(x, d3, fixStartDerivative=True, fixEndDerivative=True)
+            for n3 in range(2, elementsCountThrough - 1):
                 self._nx[1][n3][n1][3] = [-c for c in d3[n3 - 1]]
 
     def generateMesh(self, fieldmodule, coordinates):
