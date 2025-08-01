@@ -554,8 +554,11 @@ def findOrCreateAnnotationGroupForTerm(annotationGroups: list, region, term, isM
     name = term[0]
     annotationGroup = findAnnotationGroupByName(annotationGroups, name)
     if annotationGroup:
-        assert annotationGroup._id == term[1], "Annotation group '" + name + "' id '" + term[1]\
-                                               + "' does not match existing id '" + annotationGroup._id + "'"
+        if annotationGroup.getId() == "":
+            annotationGroup.setId(term[1])
+        elif term[1] != "":
+            assert annotationGroup.getId() == term[1], "Annotation group '" + name + "' id '" + term[1] + \
+                                                       "' does not match existing id '" + annotationGroup.getId() + "'"
     else:
         annotationGroup = AnnotationGroup(region, term, isMarker=isMarker)
         annotationGroups.append(annotationGroup)
