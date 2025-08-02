@@ -1,9 +1,11 @@
 """
 Utilities for building 3-D triangle-topology meshes out of quad elements
 """
+from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, mult, normalize, set_magnitude
+from scaffoldmaker.utils.interpolation import (
+    get_n_way_point, getCubicHermiteCurvesLength, smoothCubicHermiteDerivativesLine)
 import copy
-from cmlibs.maths.vectorops import add, magnitude, set_magnitude
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine
+import math
 
 
 class QuadTriangleMesh:
@@ -25,7 +27,7 @@ class QuadTriangleMesh:
     """
 
     def __init__(self, element_count1, element_count2, element_count3, sample_curve,
-                 move_x_to_surface=None, move_d_to_surface=None):
+                 move_x_to_surface=None, move_d_to_surface=None, n_way_d_factor=0.6):
         """
         :param element_count1: Number of elements from opposite points to side points by point1.
         :param element_count2: Number of elements from opposite points to side points by point2.
@@ -33,6 +35,9 @@ class QuadTriangleMesh:
         :param sample_curve: Callable sampling a curve between 2 edge points.
         :param move_x_to_surface: Optional callable taking (x) and moving it to a surface.
         :param move_d_to_surface: Optional callable taking (x, d) and adjusting d to be tangential to a surface.
+        :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
+        of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
         self._element_count1 = element_count1
         self._element_count2 = element_count2
@@ -40,6 +45,7 @@ class QuadTriangleMesh:
         self._sample_curve = sample_curve
         self._move_x_to_surface = move_x_to_surface
         self._move_d_to_surface = move_d_to_surface
+        self._3_way_d_factor = n_way_d_factor
         self._element_count12 = element_count1 + element_count2
         self._element_count13 = element_count1 + element_count3
         self._element_count23 = element_count2 + element_count3
@@ -421,50 +427,25 @@ class QuadTriangleMesh:
         point12 = self._nx[0][self._element_count2]
         point13 = self._nx[self._element_count3][0]
         point23 = self._nx[self._element_count13][self._element_count12]
-        weight12 = self._element_count3
-        weight13 = self._element_count2
-        weight23 = self._element_count1
-        overweighting = 1.5  # GRC revise
-        ax = self._sample_curve(
-            point12[0], point12[2], None, point13[0], [-d for d in point13[2]], None, self._element_count23,
-            start_weight=weight12, end_weight=weight13, overweighting=overweighting)[0][self._element_count3]
-        bx = self._sample_curve(
-            point12[0], point12[2], None, point23[0], [-d for d in point23[1]], None, self._element_count13,
-            start_weight=weight12, end_weight=weight23, overweighting=overweighting)[0][self._element_count3]
-        cx = self._sample_curve(
-            point13[0], point13[2], None, point23[0], [-d for d in point23[1]], None, self._element_count12,
-            start_weight=weight13, end_weight=weight23, overweighting=overweighting)[0][self._element_count2]
-        x_3way = [(ax[c] + bx[c] + cx[c]) / 3.0 for c in range(3)]
-        if self._move_x_to_surface:
-            x_3way = self._move_x_to_surface(x_3way)
 
-        # sample with hermite-lagrange interpolation from sides to 3-way point to get derivatives
-        ax, ad1 = self._sample_curve(point23[0], point23[1], None, x_3way, None, None, self._element_count1)
-        ad2 = point23[2]
-        bx, bd2 = self._sample_curve(point13[0], point13[2], None, x_3way, None, None, self._element_count2)
-        bd1 = point13[1]
-        cx, cd2 = self._sample_curve(point12[0], point12[2], None, x_3way, None, None, self._element_count3)
-        cd1 = point12[1]
-        # use the minimum magnitude in all 3 directions
-        d_factor = 0.6  # GRC revisit - try an exact triangle
-        d_mag = d_factor * min(magnitude(ad1[-1]), magnitude(bd2[-1]), magnitude(cd2[-1]))
-        d1_3way = set_magnitude(ad1[-1], d_mag)
-        d2_3way = set_magnitude(bd2[-1], d_mag)
+        x_3way, d_3way = get_n_way_point(
+            [point23[0], point13[0], point12[0]],
+            [point23[1], point13[2], point12[2]],
+            [self._element_count1, self._element_count2, self._element_count3],
+            self._sample_curve, self._move_x_to_surface,
+            n_way_d_factor=self._3_way_d_factor)
 
         # smooth sample from sides to 3-way points using end derivatives
-        reg_count1 = self._element_count1 - 1
-        reg_count2 = self._element_count2 - 1
-        reg_count3 = self._element_count3 - 1
-        min_weight = 2  # GRC revisit - is 1 better?
+        min_weight = 1  # GRC revisit, remove?
         ax, ad1, ad2 = self._sample_curve(
-            ax[0], ad1[0], ad2, x_3way, d1_3way, None, self._element_count1,
-            start_weight=reg_count1 + min_weight, end_weight=min_weight, end_transition=True)
+            point23[0], point23[1], point23[2], x_3way, d_3way[0], None, self._element_count1,
+            start_weight=self._element_count1 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
         bx, bd2, bd1 = self._sample_curve(
-            bx[0], bd2[0], bd1, x_3way, d2_3way, None, self._element_count2,
-            start_weight=reg_count2 + min_weight, end_weight=min_weight, end_transition=True)
+            point13[0], point13[2], point13[1], x_3way, d_3way[1], None, self._element_count2,
+            start_weight=self._element_count2 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
         cx, cd2, cd1 = self._sample_curve(
-            cx[0], cd2[0], cd1, x_3way, [-d for d in add(d1_3way, d2_3way)], None, self._element_count3,
-            start_weight=reg_count3 + min_weight, end_weight=min_weight, end_transition=True)
+            point12[0], point12[2], point12[1], x_3way, d_3way[2], None, self._element_count3,
+            start_weight=self._element_count3 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
         ad2[-1] = bd2[-1]
         bd1[-1] = ad1[-1]
         self._set_coordinates_across([ax, ad1, ad2], [[0, 1, 2]], [self._element_count12, self._element_count13],
@@ -474,7 +455,7 @@ class QuadTriangleMesh:
 
         # average point coordinates across 2 directions between edges and 3-way lines.
         # 1-2 curves
-        min_weight = 2  # GRC revisit
+        min_weight = 1  # GRC revisit, remove?
         start_indexes = [0, 0]
         corner_indexes = [self._element_count2, 0]
         end_indexes = [self._element_count12, 0]
@@ -487,12 +468,12 @@ class QuadTriangleMesh:
             end = self._nx[end_indexes[1]][end_indexes[0]]
             px, _ = self._sample_curve(
                 start[0], start[1], None, corner[0], corner[1], None, self._element_count2,
-                start_weight=reg_count2 + min_weight, end_weight=min_weight)
+                start_weight=self._element_count2 + min_weight, end_weight=1.0 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], start_indexes, [[1, 0]], skip_start=True, skip_end=True)
             px, _ = self._sample_curve(
                 corner[0], corner[1], None, end[0], end[1], None, self._element_count1,
-                start_weight=min_weight, end_weight=reg_count1 + min_weight)
+                start_weight=1.0 + min_weight, end_weight=self._element_count1 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], corner_indexes, [[1, 0]], skip_start=True, skip_end=True)
         # 1-3 curves
@@ -508,12 +489,12 @@ class QuadTriangleMesh:
             end = self._nx[end_indexes[1]][end_indexes[0]]
             px, _ = self._sample_curve(
                 start[0], start[2], None, corner[0], [-d for d in corner[1]], None, self._element_count3,
-                start_weight=reg_count3 + min_weight, end_weight=min_weight)
+                start_weight=self._element_count3 + min_weight, end_weight=1.0 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], start_indexes, [[0, 1]], skip_start=True, skip_end=True, blend=True)
             px, _ = self._sample_curve(
                 corner[0], [-d for d in corner[1]], None, end[0], [-d for d in end[1]], None, self._element_count1,
-                    start_weight=min_weight, end_weight=reg_count1 + min_weight)
+                    start_weight=1.0 + min_weight, end_weight=self._element_count1 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], corner_indexes, [[0, 1]], skip_start=True, skip_end=True, blend=True)
         # 2-3 curves
@@ -530,12 +511,12 @@ class QuadTriangleMesh:
             end = self._nx[end_indexes[1]][end_indexes[0]]
             px, _ = self._sample_curve(
                 start[0], start[2], None, corner[0], [-d for d in corner[2]], None, self._element_count3,
-                start_weight=reg_count3 + min_weight, end_weight=min_weight)
+                start_weight=self._element_count3 + min_weight, end_weight=1.0 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], start_indexes, [[0, 1]], skip_start=True, skip_end=True, blend=True)
             px, _ = self._sample_curve(
                 corner[0], [-d for d in corner[2]], None, end[0], [-d for d in end[2]], None, self._element_count2,
-                start_weight=min_weight, end_weight=reg_count2 + min_weight)
+                start_weight=1.0 + min_weight, end_weight=self._element_count2 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], corner_indexes, [[-1, 0]], skip_start=True, skip_end=True, blend=True)
 

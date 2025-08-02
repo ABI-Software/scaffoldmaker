@@ -23,7 +23,7 @@ class EllipsoidMesh:
     """
 
     def __init__(self, a, b, c, element_counts, transition_element_count,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False):
+                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, n_way_d_factor=0.6):
         """
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
@@ -33,6 +33,9 @@ class EllipsoidMesh:
         :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
         :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
         :param surface_only: Set to True to only make nodes and 2-D elements on the surface.
+        :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
+        of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
@@ -44,6 +47,7 @@ class EllipsoidMesh:
         self._axis2_x_rotation_radians = axis2_x_rotation_radians
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
+        self._n_way_d_factor = n_way_d_factor
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
@@ -121,9 +125,9 @@ class EllipsoidMesh:
         move_x_to_ellipsoid_surface = lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
         move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
         # surface normal:
-        # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2, td3: set_magnitude(
-        #     [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
-        evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
+        evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(
+            [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
+        # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
         evaluate_surface_d3_axis_d1 = lambda tx, td1, td2: axis_d1
 
         octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count)
@@ -154,7 +158,7 @@ class EllipsoidMesh:
         # make outer surface triangle of octant 1
         triangle_abc = QuadTriangleMesh(
             opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
-            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface)
+            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface, self._n_way_d_factor)
         triangle_abc.set_edge_parameters12(abx, abd1, abd2)
         triangle_abc.set_edge_parameters13(acx, acd1, acd2)
         triangle_abc.set_edge_parameters23(bcx, bcd1, bcd2)
@@ -180,7 +184,8 @@ class EllipsoidMesh:
 
             # make inner surface triangle 1-2-origin
             triangle_abo = QuadTriangleMesh(
-                opp_element_counts[0], opp_element_counts[1], self._transition_element_count, sampleHermiteCurve)
+                opp_element_counts[0], opp_element_counts[1], self._transition_element_count, sampleHermiteCurve,
+                n_way_d_factor=self._n_way_d_factor)
             abd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in abx]
             triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
             aod3 = [abd2[0]] + [axis_d3] * (len(aox) - 1)
@@ -198,7 +203,8 @@ class EllipsoidMesh:
 
             # make inner surface triangle 1-3-origin
             triangle_aco = QuadTriangleMesh(
-                opp_element_counts[0], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve)
+                opp_element_counts[0], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve,
+                n_way_d_factor=self._n_way_d_factor)
             acd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in acx]
             acmd1 = [[-d for d in d1] for d1 in acd1]
             triangle_aco.set_edge_parameters12(acx, acd2, acd3, acmd1)
@@ -217,7 +223,8 @@ class EllipsoidMesh:
 
             # make inner surface 2-3-origin
             triangle_bco = QuadTriangleMesh(
-                opp_element_counts[1], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve)
+                opp_element_counts[1], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve,
+                n_way_d_factor=self._n_way_d_factor)
             bcd3 = [bod2[0]] + [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in bcx[1:-1]] +[cod2[-1]]
             bcmd1 = [[-d for d in d1] for d1 in bcd1]
             triangle_bco.set_edge_parameters12(bcx, bcd2, bcd3, bcmd1)
@@ -239,6 +246,9 @@ class EllipsoidMesh:
                 nx_row = nx_layer[half_counts[1] + n2]
                 for n1 in range(half_counts[0] + 1):
                     nx_row[half_counts[0] + n1] = copy.deepcopy(octant_nx_row[n1])
+
+        if not self._surface_only:
+            return
 
         # transfer parameters on bottom plane of octant1 to octant2 for blending
         n3 = half_counts[2]
@@ -274,7 +284,8 @@ class EllipsoidMesh:
         # make outer surface of octant 2
         outer_surface2 = QuadTriangleMesh(
             opp_element_counts[1], opp_element_counts[0], opp_element_counts[2],
-            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface)
+            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface,
+            n_way_d_factor=self._n_way_d_factor)
         outer_surface2.set_edge_parameters12(mbax, mbad1, mbad2)
         outer_surface2.set_edge_parameters13(mbcx, mbcd1, mbcd2)
         outer_surface2.set_edge_parameters23(acx, acd1, acd2)

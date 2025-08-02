@@ -30,6 +30,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Axis length z": 2.0,
             "Axis 2 x-rotation degrees": 0.0,
             "Axis 3 x-rotation degrees": 90.0,
+            "Advanced n-way derivative factor": 0.6,
             "Refine": False,
             "Refine number of elements": 4,
         }
@@ -48,6 +49,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Axis length z",
             "Axis 2 x-rotation degrees",
             "Axis 3 x-rotation degrees",
+            "Advanced n-way derivative factor",
             "Refine",
             "Refine number of elements"
         ]
@@ -83,6 +85,11 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             if options[key] <= 0.0:
                 options[key] = 1.0
 
+        if options["Advanced n-way derivative factor"] < 0.1:
+            options["Advanced n-way derivative factor"] = 0.1
+        elif options["Advanced n-way derivative factor"] > 1.0:
+            options["Advanced n-way derivative factor"] = 1.0
+
         for key in [
             "Refine number of elements"
         ]:
@@ -108,12 +115,13 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         axis2_x_rotation_radians = math.radians(options["Axis 2 x-rotation degrees"])
         axis3_x_rotation_radians = math.radians(options["Axis 3 x-rotation degrees"])
         surface_only = options["2D surface only"]
+        n_way_d_factor = options["Advanced n-way derivative factor"]
 
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
         ellipsoid = EllipsoidMesh(a, b, c, element_counts, transition_element_count,
-                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
+                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only, n_way_d_factor)
         ellipsoid.build()
         ellipsoid.generate_mesh(fieldmodule, coordinates)
 

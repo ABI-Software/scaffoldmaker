@@ -1856,3 +1856,82 @@ def sampleHermiteCurve(start_x, start_d1, start_d2, end_x, end_d1, end_d2, eleme
         pd2.append(end_d2)
         return px, pd1, pd2
     return px, pd1
+
+def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface, n_way_d_factor):
+    """
+    Get 3-way (surface) or 4-way (volume) location and derivatives.
+    :param sx: List of N side coordinates.
+    :param sd: List of N side inward derivatives.
+    :param element_counts: List of N number of elements from side N to n-way point.
+    :param sample_curve: Curve sampling function with signature of sampleHermiteCurve.
+    :param move_x_to_surface: Optional function take argument x and returning nearest coordinate on surface.
+    :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+    of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
+    of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
+    :return: x_nway, d_nway[N]
+    """
+    n_count = len(sx)
+    assert n_count == 3 or n_count == 4
+    permutations = [[0, 1], [1, 2], [2, 0]] if n_count == 3 else [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3]]
+    sum_weight = 0.0
+    sum_weighted_x = [0.0, 0.0, 0.0]
+    for n1, n2 in permutations:
+        px, pd = sample_curve(
+            sx[n1], sd[n1], None, sx[n2], [-d for d in sd[n2]], None, element_counts[n1] + element_counts[n2],
+            start_weight=element_counts[n1], end_weight=element_counts[n2])
+        x = px[element_counts[n1]]
+        length1 = getCubicHermiteCurvesLength(px[:element_counts[n1] + 1], pd[:element_counts[n1] + 1])
+        length2 = getCubicHermiteCurvesLength(px[element_counts[n1]:], pd[element_counts[n1]:])
+        weight = 1.0 / length1 + 1.0 / length2
+        sum_weight += weight
+        sum_weighted_x = add(sum_weighted_x, mult(x, weight))
+    x_nway = div(sum_weighted_x, sum_weight)
+    if move_x_to_surface:
+        x_nway = move_x_to_surface(x_nway)
+
+    # sample with hermite-lagrange interpolation from sides to 3-way point to get end directions
+    directions = []
+    for n in range(n_count):
+        px, pd = sample_curve(sx[n], sd[n], None, x_nway, None, None, element_counts[n])
+        directions.append(normalize(pd[-1]))
+    if n_count == 3:
+        # make directions 120 degrees apart, around the normal
+        normal = [0.0, 0.0, 0.0]
+        for n1, n2 in permutations:
+            np = (n + 1) % n_count
+            # this gives the most weight to pairs 90 degrees apart and no weight to collinear pairs
+            normal = add(normal, cross(directions[n1], directions[n2]))
+        normal = normalize(normal)
+        axis2 = normalize(cross(normal, directions[0]))
+        axis1 = cross(axis2, normal)
+        # get angles around normal, starting at axis1
+        ideal_angle = 0.0
+        ideal_angle_increment = math.pi / 1.5
+        delta_angle = 0.0
+        for i in range(1, 3):
+            actual_angle = math.atan2(dot(directions[i], axis2), dot(directions[i], axis1))
+            if actual_angle < 0.0:
+                actual_angle += 2.0 * math.pi
+            ideal_angle += ideal_angle_increment
+            delta_angle += (actual_angle - ideal_angle)
+        delta_angle /= 3.0
+        new_directions = []
+        angle = delta_angle
+        for i in range(3):
+            new_directions.append(add(mult(axis1, math.cos(angle)), mult(axis2, math.sin(angle))))
+            angle += ideal_angle_increment
+    else:
+        print("4-way point direction optimisation not yet implemented")
+        new_directions = directions
+
+    # smooth sample from sides to n-way point with new directions and weights to get derivative magnitudes
+    d_mags = []
+    min_weight = 1.0 # GRC review, remove?
+    for n in range(n_count):
+        px, pd = sample_curve(
+            sx[n], sd[n], None, x_nway, new_directions[n], None, element_counts[n],
+            start_weight=element_counts[0] + min_weight, end_weight=1.0 + min_weight)
+        d_mags.append(magnitude(pd[-1]))
+    d_mag = n_way_d_factor * min(d_mags)
+    d_nway = [set_magnitude(direction, d_mag) for direction in new_directions]
+    return x_nway, d_nway

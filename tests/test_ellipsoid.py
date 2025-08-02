@@ -20,19 +20,20 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         parameterSetNames = Scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default"])
         options = Scaffold.getDefaultOptions("Default")
-        self.assertEqual(12, len(options))
-        self.assertEqual(4, options.get("Number of elements across axis 1"))
-        self.assertEqual(6, options.get("Number of elements across axis 2"))
-        self.assertEqual(8, options.get("Number of elements across axis 3"))
-        self.assertFalse(options.get("2D surface only"))
-        self.assertEqual(1, options.get("Number of transition elements"))
-        self.assertEqual(1.0, options.get("Axis length x"))
-        self.assertEqual(1.5, options.get("Axis length y"))
-        self.assertEqual(2.0, options.get("Axis length z"))
-        self.assertEqual(0.0, options.get("Axis 2 x-rotation degrees"))
-        self.assertEqual(90.0, options.get("Axis 3 x-rotation degrees"))
-        self.assertFalse(options.get("Refine"))
-        self.assertEqual(4, options.get("Refine number of elements"))
+        self.assertEqual(13, len(options))
+        self.assertEqual(4, options["Number of elements across axis 1"])
+        self.assertEqual(6, options["Number of elements across axis 2"])
+        self.assertEqual(8, options["Number of elements across axis 3"])
+        self.assertFalse(options["2D surface only"])
+        self.assertEqual(1, options["Number of transition elements"])
+        self.assertEqual(1.0, options["Axis length x"])
+        self.assertEqual(1.5, options["Axis length y"])
+        self.assertEqual(2.0, options["Axis length z"])
+        self.assertEqual(0.0, options["Axis 2 x-rotation degrees"])
+        self.assertEqual(90.0, options["Axis 3 x-rotation degrees"])
+        self.assertEqual(0.6, options["Advanced n-way derivative factor"])
+        self.assertFalse(options["Refine"])
+        self.assertEqual(4, options["Refine number of elements"])
         # set test options
         options["2D surface only"] = True
 
@@ -56,7 +57,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        TOL = 2.0E-6
+        TOL = 1.0E-6
         assertAlmostEqualList(self, minimums, [-1.0, -1.5, -2.0], TOL)
         assertAlmostEqualList(self, maximums, [1.0, 1.5, 2.0], TOL)
         # test symmetry of 3-way points
@@ -81,7 +82,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 27.86734866609556, delta=1.0E-5)
+        self.assertAlmostEqual(surfaceArea, 27.868974400348645, delta=TOL)
 
 if __name__ == "__main__":
     unittest.main()
