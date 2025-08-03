@@ -1,12 +1,14 @@
 """
 Interpolation functions shared by mesh generators.
 """
-
-from cmlibs.maths.vectorops import add, cross, distance, div, dot, magnitude, mult, normalize, sub, set_magnitude
+from cmlibs.maths.vectorops import (
+    add, axis_angle_to_rotation_matrix, cross, distance, div, dot, euler_to_rotation_matrix, matrix_inv, magnitude,
+    matrix_vector_mult, mult, normalize, sub, set_magnitude)
+from scipy.optimize import minimize
 import copy
-import math
 from collections.abc import Sequence
 from enum import Enum
+import math
 
 
 gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )
@@ -1857,7 +1859,7 @@ def sampleHermiteCurve(start_x, start_d1, start_d2, end_x, end_d1, end_d2, eleme
         return px, pd1, pd2
     return px, pd1
 
-def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface, n_way_d_factor):
+def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None, n_way_d_factor=0.6):
     """
     Get 3-way (surface) or 4-way (volume) location and derivatives.
     :param sx: List of N side coordinates.
@@ -1894,6 +1896,7 @@ def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface, n_w
     for n in range(n_count):
         px, pd = sample_curve(sx[n], sd[n], None, x_nway, None, None, element_counts[n])
         directions.append(normalize(pd[-1]))
+    angle_120 = math.pi / 1.5
     if n_count == 3:
         # make directions 120 degrees apart, around the normal
         normal = [0.0, 0.0, 0.0]
@@ -1906,23 +1909,49 @@ def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface, n_w
         axis1 = cross(axis2, normal)
         # get angles around normal, starting at axis1
         ideal_angle = 0.0
-        ideal_angle_increment = math.pi / 1.5
         delta_angle = 0.0
         for i in range(1, 3):
             actual_angle = math.atan2(dot(directions[i], axis2), dot(directions[i], axis1))
             if actual_angle < 0.0:
                 actual_angle += 2.0 * math.pi
-            ideal_angle += ideal_angle_increment
+            ideal_angle += angle_120
             delta_angle += (actual_angle - ideal_angle)
         delta_angle /= 3.0
         new_directions = []
         angle = delta_angle
         for i in range(3):
             new_directions.append(add(mult(axis1, math.cos(angle)), mult(axis2, math.sin(angle))))
-            angle += ideal_angle_increment
+            angle += angle_120
     else:
-        print("4-way point direction optimisation not yet implemented")
-        new_directions = directions
+        cos_tetra_angle = -1.0 / 3.0
+        tetra_angle = math.acos(cos_tetra_angle)
+        sin_tetra_angle = math.sin(tetra_angle)
+        axis1 = directions[3]
+        axis3 = normalize(cross(axis1, directions[0]))
+        axis2 = cross(axis3, axis1)
+        reverse_1__3 = mult(axis1, cos_tetra_angle)
+        ideal_directions = [add(reverse_1__3, mult(axis2, sin_tetra_angle))]
+        cos_120 = math.cos(angle_120)
+        sin_120 = math.sin(angle_120)
+        rotation_matrix = axis_angle_to_rotation_matrix(axis1, -angle_120)
+        for i in range(1, 3):
+            ideal_directions.append(matrix_vector_mult(rotation_matrix, ideal_directions[-1]))
+        ideal_directions.append(axis1)
+        def rotation_objective(euler_angles, *args):
+            directions, ideal_directions = args
+            rotation_matrix = euler_to_rotation_matrix(euler_angles)
+            return sum(1.0 - dot(matrix_vector_mult(rotation_matrix, ideal_directions[i]), directions[i])
+                       for i in range(3))
+        res = minimize(rotation_objective, [0.0] * 3, args=(directions, ideal_directions),
+                       # method='Nelder-Mead', tol=1.0E-9)  # options={'xatol': 1.0E-7, 'disp': True})
+                       method = 'Powell', tol=1.0E-10)  # options={'xtol': 1.0E-10, 'disp': True})
+        if res.success:
+            euler_angles = res.x
+            rotation_matrix = euler_to_rotation_matrix(euler_angles)
+            new_directions = [matrix_vector_mult(rotation_matrix, direction) for direction in ideal_directions]
+        else:
+            print("get_n_way_point Stitcher.  Could not optimise 4-way directions")
+            new_directions = ideal_directions
 
     # smooth sample from sides to n-way point with new directions and weights to get derivative magnitudes
     d_mags = []

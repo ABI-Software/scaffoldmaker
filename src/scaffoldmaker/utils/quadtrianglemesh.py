@@ -423,7 +423,7 @@ class QuadTriangleMesh:
         """
         Determine interior coordinates from edge coordinates.
         """
-        # determine 3-way point location from mean of overweighted curves in line with it
+        # determine 3-way point location from mean curves between side points linking to it
         point12 = self._nx[0][self._element_count2]
         point13 = self._nx[self._element_count3][0]
         point23 = self._nx[self._element_count13][self._element_count12]

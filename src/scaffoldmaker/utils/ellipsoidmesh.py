@@ -13,7 +13,7 @@ from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
     moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
 from scaffoldmaker.utils.interpolation import (
-    sampleHermiteCurve, smoothCubicHermiteDerivativesLine)
+    get_n_way_point, sampleHermiteCurve, smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
 
 
@@ -130,7 +130,8 @@ class EllipsoidMesh:
         # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
         evaluate_surface_d3_axis_d1 = lambda tx, td1, td2: axis_d1
 
-        octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count)
+        octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count,
+                                      n_way_d_factor=self._n_way_d_factor)
 
         # get outside curve from axis 1 to axis 2
         abx, abd1, abd2 = sampleCurveOnEllipsoid(
@@ -236,6 +237,8 @@ class EllipsoidMesh:
             triangle_bco.assign_d3(evaluate_surface_d3_axis_d1)
             octant1.set_triangle_bco(triangle_bco)
 
+            octant1.build()
+
         # copy octant1 into ellipsoid
         octant_parameters = octant1.get_parameters()
         for n3 in range(half_counts[2] + 1):
@@ -268,7 +271,8 @@ class EllipsoidMesh:
                 self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
 
         octant2 = EllipsoidOctantMesh(
-            self._b, self._a, self._c, [half_counts[1], half_counts[0], half_counts[2]], self._transition_element_count)
+            self._b, self._a, self._c, [half_counts[1], half_counts[0], half_counts[2]], self._transition_element_count,
+            n_way_d_factor=self._n_way_d_factor)
 
         # get outside curve from axis -2 to axis 1, mirrored from ab curve
         mbax = [[x[0], -x[1], -x[2]] for x in reversed(abx)]
@@ -690,7 +694,7 @@ class EllipsoidOctantMesh:
     then the interior can be built.
     """
 
-    def __init__(self, a, b, c, element_counts, transition_element_count):
+    def __init__(self, a, b, c, element_counts, transition_element_count, n_way_d_factor=0.6):
         """
         A 2-D or 3-D Octant of an ellipsoid.
         Coordinates nx are indexed in 1, 2, 3 directions from origin at index 0, 0, 0
@@ -700,6 +704,9 @@ class EllipsoidOctantMesh:
         :param c: Axis length (radius) in z direction.
         :param element_counts: Number of elements across octant only in 1, 2, 3 axes.
         :param transition_element_count: Number of transition elements around outside >= 1.
+        :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
+        of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
         assert all((count >= 2) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) - 1)
@@ -708,6 +715,7 @@ class EllipsoidOctantMesh:
         self._c = c
         self._element_counts = element_counts
         self._transition_element_count = transition_element_count
+        self._n_way_d_factor = n_way_d_factor
         self._element_count12 = element_counts[0] + element_counts[1] - 2 * transition_element_count
         self._element_count13 = element_counts[0] + element_counts[2] - 2 * transition_element_count
         self._element_count23 = element_counts[1] + element_counts[2] - 2 * transition_element_count
@@ -896,3 +904,41 @@ class EllipsoidOctantMesh:
                         new_parameter = set_magnitude(nx[pix], mean_mag)
                 nx[pix] = new_parameter
             last_trans = trans
+
+    def build(self):
+        """
+        Determine interior coordinates from edge coordinates.
+        """
+        # determine 4-way point location from mean curves between side points linking to it
+        point12 = self._nx[0][self._opp_counts[1]][self._opp_counts[0]]
+        point13 = self._nx[self._opp_counts[2]][0][self._opp_counts[0]]
+        point23 = self._nx[self._opp_counts[2]][self._opp_counts[1]][0]
+        point123 = self._nx[self._element_counts[2]][self._element_counts[1]][self._element_counts[0]]
+
+        x_4way, d_4way = get_n_way_point(
+            [point23[0], point13[0], point12[0], point123[0]],
+            [point23[1], point13[2], point12[3], [-d for d in point123[3]]],
+            [self._opp_counts[0], self._opp_counts[1], self._opp_counts[2], self._transition_element_count],
+            sampleHermiteCurve, n_way_d_factor=self._n_way_d_factor)
+
+        # smooth sample from sides to 3-way points using end derivatives
+        min_weight = 1  # GRC revisit, remove?
+        ax, ad1 = sampleHermiteCurve(
+            point23[0], point23[1], None, x_4way, d_4way[0], None, self._opp_counts[0],
+            start_weight=self._opp_counts[0] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+        bx, bd2 = sampleHermiteCurve(
+            point13[0], point13[2], None, x_4way, d_4way[1], None, self._opp_counts[1],
+            start_weight=self._opp_counts[1] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+        cx, cd3 = sampleHermiteCurve(
+            point12[0], point12[3], None, x_4way, d_4way[2], None, self._opp_counts[2],
+            start_weight=self._opp_counts[2] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+        tx, td3 = sampleHermiteCurve(
+            point123[0], [-d for d in point123[3]], None, x_4way, d_4way[3], None, self._transition_element_count,
+            start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+
+        self._set_coordinates_across([ax, ad1], [[0, 1]], [0, self._opp_counts[1], self._opp_counts[2]], [[1, 0, 0]])
+        self._set_coordinates_across([bx, bd2], [[0, 2]], [self._opp_counts[0], 0, self._opp_counts[2]], [[0, 1, 0]])
+        self._set_coordinates_across([cx, cd3], [[0, 3]], [self._opp_counts[0], self._opp_counts[1], 0], [[0, 0, 1]])
+        self._set_coordinates_across([tx, td3], [[0, -3]],
+                                     [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
+                                     [[-1, -1, -1]], skip_end=True)
