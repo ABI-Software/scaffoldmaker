@@ -213,13 +213,13 @@ class Septum:
                 self._nx[0][-(n3 + 1)][elementsCountAround - n1] = \
                     self._paramRim[half_counts[2] - n3][elementsCountAround + 1 + n1]
 
-        xcessRowsCountTop = half_counts[2] - 2
+        extraRowsCountTop = half_counts[2] - 2
         for n2 in range(2, elementsCountAlong + 1):
             for n1 in range(elementsCountAround + 1):
-                self._nids[n2][0][n1] = self._nidsRim[n2 + xcessRowsCountTop][n1]
-                self._nx[n2][0][n1] = self._paramRim[n2 + xcessRowsCountTop][n1]
-                self._nids[n2][-1][elementsCountAround - n1] = self._nidsRim[n2 + xcessRowsCountTop][elementsCountAround + 1 + n1]
-                self._nx[n2][-1][elementsCountAround - n1] = self._paramRim[n2 + xcessRowsCountTop][elementsCountAround + 1 + n1]
+                self._nids[n2][0][n1] = self._nidsRim[n2 + extraRowsCountTop][n1]
+                self._nx[n2][0][n1] = self._paramRim[n2 + extraRowsCountTop][n1]
+                self._nids[n2][-1][elementsCountAround - n1] = self._nidsRim[n2 + extraRowsCountTop][elementsCountAround + 1 + n1]
+                self._nx[n2][-1][elementsCountAround - n1] = self._paramRim[n2 + extraRowsCountTop][elementsCountAround + 1 + n1]
 
         # Use middle point to sample front to back into number of elements through septum
         for n2 in range(3, elementsCountAlong + 1):
@@ -274,6 +274,7 @@ class Septum:
                 xFront = self._nx[n2][0][n1][0]
                 xMid = self._nx[n2][n3Mid][n1][0]
                 xBack = self._nx[n2][-1][n1][0]
+
                 px, pd3 = sampleCubicHermiteCurves(
                     [xFront, xMid, xBack],
                     [sub(xMid, xFront), add(sub(xMid, xFront), sub(xBack, xMid)), sub(xBack, xMid)],
