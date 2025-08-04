@@ -1397,16 +1397,13 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         for i in range(fundusPostBodyJunctionElementsCount + 1):
             x = [fundusScalePostBodyJunction * i, 0.0, 0.0]
             d1 = [fundusScalePostBodyJunction, 0.0, 0.0]
-
+            xi = i / fundusPostBodyJunctionElementsCount
+            width = xi * halfCervicalWidthInternalOs + (1.0 - xi) * halfFundusWidth
+            thetaC = math.acos(x[0] / cEllipse)
+            depth = halfFundusDepth * math.sin(thetaC)
             if isPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
                 width = halfFundusWidth * math.sin(thetaA)
-                thetaC = math.acos(x[0] / cEllipse)
-                depth = halfFundusDepth * math.sin(thetaC)
-            else:
-                xi = i / fundusPostBodyJunctionElementsCount
-                width = xi * halfCervicalWidthInternalOs + (1.0 - xi) * halfFundusWidth
-                depth = xi * halfCervicalDepthInternalOs + (1.0 - xi) * halfFundusDepth
             d2 = [0.0, width, 0.0]
             d3 = [0.0, 0.0, depth]
             nxBody.append(x)
@@ -1654,20 +1651,19 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Base parameter set': useParameterSetName,
             'Network layout': ScaffoldPackage(MeshType_1d_uterus_network_layout1,
                                               defaultParameterSetName=useParameterSetName),
-            'Number of elements around': 24,
+            'Number of elements around': 20,
             'Number of elements around oviduct': 8,
             'Number of elements through wall': 1,
             'Number of elements along oviduct': 6,
-            'Number of elements along body': 4,
-            'Number of elements along cervix': 2,
-            'Number of elements along vagina': 6,
-            'Target element density along longest segment': 5.5,
+            'Number of elements along body': 5,
+            'Number of elements along cervix': 1,
+            'Number of elements along vagina': 4,
             'Use linear through wall': True,
             'Show trim surfaces': False,
             'Refine': False,
             'Refine number of elements along': 4,
             'Refine number of elements around': 4,
-            'Refine number of elements through wall': 4
+            'Refine number of elements through wall': 1
         }
         if 'Mouse' in parameterSetName or 'Rat' in parameterSetName:
             options['Number of elements around'] = 12
@@ -1679,6 +1675,7 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         if 'Rat' in parameterSetName:
             options['Use linear through wall'] = False  # True is not implemented for rat due to septum
+            options['Refine number of elements through wall'] = 4
 
         return options
 
