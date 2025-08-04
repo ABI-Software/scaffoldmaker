@@ -1364,13 +1364,16 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         for i in range(fundusPostBodyJunctionElementsCount + 1):
             x = [fundusScalePostBodyJunction * i, 0.0, 0.0]
             d1 = [fundusScalePostBodyJunction, 0.0, 0.0]
-            xi = i / fundusPostBodyJunctionElementsCount
-            width = xi * halfCervicalWidthInternalOs + (1.0 - xi) * halfFundusWidth
+
             if isPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
                 width = halfFundusWidth * math.sin(thetaA)
-            thetaC = math.acos(x[0] / cEllipse)
-            depth = halfFundusDepth * math.sin(thetaC)
+                thetaC = math.acos(x[0] / cEllipse)
+                depth = halfFundusDepth * math.sin(thetaC)
+            else:
+                xi = i / fundusPostBodyJunctionElementsCount
+                width = xi * halfCervicalWidthInternalOs + (1.0 - xi) * halfFundusWidth
+                depth = xi * halfCervicalDepthInternalOs + (1.0 - xi) * halfFundusDepth
             d2 = [0.0, width, 0.0]
             d3 = [0.0, 0.0, depth]
             nxBody.append(x)
@@ -1396,11 +1399,12 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             d3 = nd3Body[i]
             d12 = nd12Body[i]
             d13 = nd13Body[i]
-            id3 = mult(d3, innerProportionBody)
-            id13 = mult(d13, innerProportionBody)
+
             if isPregnant:
                 id2 = mult(d2, innerProportionBody)
                 id12 = mult(d12, innerProportionBody)
+                id3 = mult(d3, innerProportionBody)
+                id13 = mult(d13, innerProportionBody)
             else:
                 xi = i / fundusPostBodyJunctionElementsCount
                 width = xi * halfCervicalWidthInternalOs * innerProportionCervix + \
@@ -1410,7 +1414,13 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                         (halfCervicalWidthInternalOs * innerProportionCervix -
                          halfFundusWidth * innerProportionBody) / fundusPatchElementsCount,
                         0.0]
-
+                depth = xi * halfCervicalDepthInternalOs * innerProportionCervix + \
+                        (1.0 - xi) * halfFundusDepth * innerProportionBody
+                id3 = [0.0, 0.0, depth]
+                id13 = [0.0,
+                        0.0,
+                        (halfCervicalDepthInternalOs * innerProportionCervix -
+                         halfFundusDepth * innerProportionBody) / fundusPatchElementsCount]
             if i:
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
