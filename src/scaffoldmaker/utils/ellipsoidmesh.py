@@ -943,10 +943,6 @@ class EllipsoidOctantMesh:
         self._set_coordinates_across([tx, td3], [[0, -3]],
                                      [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
                                      [[-1, -1, -1]], skip_end=True)
-        d1_4way = ad1[-1]
-        d2_4way = bd2[-1]
-        d3_4way = cd3[-1]
-        dt_4way = td3[-1]
 
         # sample up to 3-way lines connecting to 4-way point
         for n3 in range(1, self._opp_counts[2]):
@@ -971,15 +967,16 @@ class EllipsoidOctantMesh:
                 start_weight=self._opp_counts[1] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
             bd1[-1] = d_3way[0]
             bd2[-1] = d_3way[1]
-            tx, td3 = sampleHermiteCurve(
-                point123[0], [-d for d in point123[3]], None, x_3way, d_3way[2], None, self._transition_element_count,
-                start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight,
-                end_transition=True)
+            tx, td3, td1 = sampleHermiteCurve(
+                point123[0], [-d for d in point123[3]], point123[1], x_3way, d_3way[2], None,
+                self._transition_element_count, start_weight=self._transition_element_count + min_weight,
+                end_weight=1.0 + min_weight, end_transition=True)
 
             self._set_coordinates_across([ax, ad1, ad2], [[0, 1, 2]], [0, self._opp_counts[1], n3], [[1, 0, 0]])
             self._set_coordinates_across([bx, bd1, bd2], [[0, 1, 2]], [self._opp_counts[0], 0, n3], [[0, 1, 0]])
-            self._set_coordinates_across([tx, td3], [[0, -3]], [self._element_counts[0], self._element_counts[1], n3],
-                                         [[-1, -1, 0]], skip_end=True)
+            self._set_coordinates_across(
+                [tx, td1, td3], [[0, 1, -3]], [self._element_counts[0], self._element_counts[1], n3], [[-1, -1, 0]],
+                skip_end=True)
 
         for n2 in range(1, self._opp_counts[1]):
             point12 = self._nx[0][n2][self._opp_counts[0]]
@@ -1003,17 +1000,17 @@ class EllipsoidOctantMesh:
                 start_weight=self._opp_counts[2] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
             bd1[-1] = d_3way[0]
             bd3[-1] = d_3way[1]
-            tx, td3 = sampleHermiteCurve(
-                point123[0], [-d for d in point123[3]], None, x_3way, d_3way[2], None, self._transition_element_count,
-                start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight,
-                end_transition=True)
+            tx, td3, td1 = sampleHermiteCurve(
+                point123[0], [-d for d in point123[3]], point123[1], x_3way, d_3way[2], None,
+                self._transition_element_count, start_weight=self._transition_element_count + min_weight,
+                end_weight=1.0 + min_weight, end_transition=True)
 
             self._set_coordinates_across(
                 [ax, ad1, ad3], [[0, 1, 3]], [0, n2, self._opp_counts[2]], [[1, 0, 0]], blend=True)
             self._set_coordinates_across(
                 [bx, bd1, bd3], [[0, 1, 3]], [self._opp_counts[0], n2, 0], [[0, 0, 1]], blend=True)
             self._set_coordinates_across(
-                [tx, td3], [[0, -3]], [self._element_counts[0], n2, self._element_counts[2]], [[-1, 0, -1]],
+                [tx, td1, td3], [[0, 1, -3]], [self._element_counts[0], n2, self._element_counts[2]], [[-1, 0, -1]],
                 skip_end=True, blend=True)
 
         for n1 in range(1, self._opp_counts[0]):
@@ -1038,15 +1035,53 @@ class EllipsoidOctantMesh:
                 start_weight=self._opp_counts[2] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
             bd2[-1] = d_3way[0]
             bd3[-1] = d_3way[1]
-            tx, td3 = sampleHermiteCurve(
-                point123[0], [-d for d in point123[3]], None, x_3way, d_3way[2], None, self._transition_element_count,
-                start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight,
-                end_transition=True)
+            tx, td3, td2 = sampleHermiteCurve(
+                point123[0], [-d for d in point123[3]], point123[2], x_3way, d_3way[2], None,
+                self._transition_element_count, start_weight=self._transition_element_count + min_weight,
+                end_weight=1.0 + min_weight, end_transition=True)
 
             self._set_coordinates_across(
                 [ax, ad2, ad3], [[0, 2, 3]], [n1, 0, self._opp_counts[2]], [[0, 1, 0]], blend=True)
             self._set_coordinates_across(
                 [bx, bd2, bd3], [[0, 2, 3]], [n1, self._opp_counts[1], 0], [[0, 0, 1]], blend=True)
             self._set_coordinates_across(
-                [tx, td3], [[0, -3]], [n1, self._element_counts[1], self._element_counts[2]],
+                [tx, td2, td3], [[0, 2, -3]], [n1, self._element_counts[1], self._element_counts[2]],
                 [[0, -1, -1]], skip_end=True, blend=True)
+
+        for nt in range(1, self._transition_element_count):
+            point12 = self._nx[0][self._element_counts[1] - nt][self._element_counts[0] - nt]
+            point13 = self._nx[self._element_counts[2] - nt][0][self._element_counts[0] - nt]
+            point23 = self._nx[self._element_counts[2] - nt][self._element_counts[1] - nt][0]
+            point_3way = \
+                self._nx[self._element_counts[2] - nt][self._element_counts[1] - nt][self._element_counts[0] - nt]
+
+            x_3way, d_3way = get_nway_point(
+                [point23[0], point13[0], point12[0]],
+                [point23[1], point13[2], point12[2]],
+                [self._opp_counts[0], self._opp_counts[1], self._opp_counts[2]],
+                sampleHermiteCurve, prescribed_x_nway=point_3way[0], nway_d_factor=self._nway_d_factor)
+
+            ax, ad1, ad2 = sampleHermiteCurve(
+                point23[0], point23[1], point23[2], x_3way, d_3way[0], None, self._opp_counts[0],
+                start_weight=self._opp_counts[0] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            ad1[-1] = d_3way[0]
+            ad2[-1] = d_3way[1]
+            bx, bd2, bd1 = sampleHermiteCurve(
+                point13[0], point13[2], point13[1], x_3way, d_3way[1], None, self._opp_counts[1],
+                start_weight=self._opp_counts[1] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            bd1[-1] = d_3way[0]
+            bd2[-1] = d_3way[1]
+            cx, cd2, cd1 = sampleHermiteCurve(
+                point12[0], point12[2], point12[1], x_3way, d_3way[2], None, self._opp_counts[2],
+                start_weight=self._opp_counts[2] + min_weight, end_weight=1.0 + min_weight,
+                end_transition=True)
+
+            self._set_coordinates_across(
+                [ax, ad1, ad2], [[0, 1, 2]], [0, self._element_counts[1] - nt, self._element_counts[2] - nt],
+                [[1, 0, 0]], blend=True)
+            self._set_coordinates_across(
+                [bx, bd1, bd2], [[0, 1, 2]], [self._element_counts[0] - nt, 0, self._element_counts[2] - nt],
+                [[0, 1, 0]], blend=True)
+            self._set_coordinates_across(
+                [cx, cd1, cd2], [[0, 1, 2]], [self._element_counts[0] - nt, self._element_counts[1] - nt, 0],
+                [[0, 0, 1]], skip_end=True, blend=True)
