@@ -41,8 +41,8 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
         self._rightOviductGroup = self.getOrCreateAnnotationGroup(get_uterus_term("right oviduct"))
         self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
         self._bodyGroup = self.getOrCreateAnnotationGroup(get_uterus_term("body of uterus"))
-        self._upperCervixGroup = self.getOrCreateAnnotationGroup(("upper cervix", ""))
-        self._lowerCervixGroup = self.getOrCreateAnnotationGroup(("lower cervix", ""))
+        # self._upperCervixGroup = self.getOrCreateAnnotationGroup(("upper cervix", ""))
+        # self._lowerCervixGroup = self.getOrCreateAnnotationGroup(("lower cervix", ""))
         # force these annotation group names in base class
         self._leftGroup = self.getOrCreateAnnotationGroup(("left uterus", ""))
         self._rightGroup = self.getOrCreateAnnotationGroup(("right uterus", ""))
@@ -61,12 +61,11 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
     def getBodyMeshGroup(self):
         return self._bodyGroup.getMeshGroup(self._mesh)
 
-    def getUpperCervixMeshGroup(self):
-        return self._upperCervixGroup.getMeshGroup(self._mesh)
-
-    def getLowerCervixMeshGroup(self):
-        return self._lowerCervixGroup.getMeshGroup(self._mesh)
-
+    # def getUpperCervixMeshGroup(self):
+    #     return self._upperCervixGroup.getMeshGroup(self._mesh)
+    #
+    # def getLowerCervixMeshGroup(self):
+    #     return self._lowerCervixGroup.getMeshGroup(self._mesh)
 
 class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
     """
@@ -101,8 +100,8 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
         rightOviductMeshGroup = generateData.getRightOviductMeshGroup()
         fundusMeshGroup = generateData.getFundusMeshGroup()
         bodyMeshGroup = generateData.getBodyMeshGroup()
-        upperCervixMeshGroup = generateData.getUpperCervixMeshGroup()
-        lowerCervixMeshGroup = generateData.getLowerCervixMeshGroup()
+        # upperCervixMeshGroup = generateData.getUpperCervixMeshGroup()
+        # lowerCervixMeshGroup = generateData.getLowerCervixMeshGroup()
         leftMeshGroup = generateData.getLeftMeshGroup()
         rightMeshGroup = generateData.getRightMeshGroup()
         dorsalMeshGroup = generateData.getDorsalMeshGroup()
@@ -140,20 +139,20 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                     segment.addAllElementsToMeshGroup(fundusMeshGroup)
                 if "body" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(bodyMeshGroup)
-                if "cervix" in annotationTerm[0]:
-                    elementsCountRim = segment.getElementsCountRim()
-                    elementsCountAlong = segment.getSampledElementsCountAlong()
-                    elementsCountAround = segment.getElementsCountAround()
-                    for e1 in range(elementsCountAround):
-                        for e2 in range(elementsCountAlong):
-                            for e3 in range(elementsCountRim):
-                                elementIdentifier = segment.getRimElementId(e1, e2, e3)
-                                if elementIdentifier is not None:
-                                    element = mesh.findElementByIdentifier(elementIdentifier)
-                                    if e2 >= int(elementsCountAlong * 0.5):
-                                        lowerCervixMeshGroup.addElement(element)
-                                    else:
-                                        upperCervixMeshGroup.addElement(element)
+                # if "cervix" in annotationTerm[0]:
+                #     elementsCountRim = segment.getElementsCountRim()
+                #     elementsCountAlong = segment.getSampledElementsCountAlong()
+                #     elementsCountAround = segment.getElementsCountAround()
+                #     for e1 in range(elementsCountAround):
+                #         for e2 in range(elementsCountAlong):
+                #             for e3 in range(elementsCountRim):
+                #                 elementIdentifier = segment.getRimElementId(e1, e2, e3)
+                #                 if elementIdentifier is not None:
+                #                     element = mesh.findElementByIdentifier(elementIdentifier)
+                #                     # if e2 >= int(elementsCountAlong * 0.5):
+                #                     #     lowerCervixMeshGroup.addElement(element)
+                #                     # else:
+                #                     #     upperCervixMeshGroup.addElement(element)
                 if "left" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(leftMeshGroup)
                     break
@@ -1842,8 +1841,10 @@ class MeshType_3d_uterus1(Scaffold_base):
             annotationGroups, region, get_uterus_term("myometrium"))
         myometriumGroup.getMeshGroup(mesh).addElementsConditional(uterusGroup.getGroup())
 
-        upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
-        uterusGroup.getMeshGroup(mesh).addElementsConditional(upperCervixGroup.getGroup())
+        # upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
+        # uterusGroup.getMeshGroup(mesh).addElementsConditional(upperCervixGroup.getGroup())
+        cervixGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterine cervix"))
+        uterusGroup.getMeshGroup(mesh).addElementsConditional(cervixGroup.getGroup())
 
         if isRodent:
             leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
@@ -1962,8 +1963,8 @@ class MeshType_3d_uterus1(Scaffold_base):
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
         cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
-        upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
-        lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
+        # upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
+        # lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
         vaginaGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("vagina"))
 
         is_exterior = fm.createFieldIsExterior()
@@ -1993,13 +1994,13 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_cervix_outer = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_1)
         is_cervix_inner = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_0)
 
-        is_upperCervix = upperCervixGroup.getGroup()
-        is_upperCervix_outer = fm.createFieldAnd(is_upperCervix, is_exterior_face_xi3_1)
-        is_upperCervix_inner = fm.createFieldAnd(is_upperCervix, is_exterior_face_xi3_0)
-
-        is_lowerCervix = lowerCervixGroup.getGroup()
-        is_lowerCervix_outer = fm.createFieldAnd(is_lowerCervix, is_exterior_face_xi3_1)
-        is_lowerCervix_inner = fm.createFieldAnd(is_lowerCervix, is_exterior_face_xi3_0)
+        # is_upperCervix = upperCervixGroup.getGroup()
+        # is_upperCervix_outer = fm.createFieldAnd(is_upperCervix, is_exterior_face_xi3_1)
+        # is_upperCervix_inner = fm.createFieldAnd(is_upperCervix, is_exterior_face_xi3_0)
+        #
+        # is_lowerCervix = lowerCervixGroup.getGroup()
+        # is_lowerCervix_outer = fm.createFieldAnd(is_lowerCervix, is_exterior_face_xi3_1)
+        # is_lowerCervix_inner = fm.createFieldAnd(is_lowerCervix, is_exterior_face_xi3_0)
 
         is_vagina = vaginaGroup.getGroup()
         is_vagina_outer = fm.createFieldAnd(is_vagina, is_exterior_face_xi3_1)
@@ -2011,18 +2012,21 @@ class MeshType_3d_uterus1(Scaffold_base):
         serosaOfUterus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                             get_uterus_term("serosa of uterus"))
         serosaOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
+        serosaOfUterus.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         uterineCavity = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                            get_uterus_term("uterine cavity"))
         uterineCavity.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_leftOviduct)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_rightOviduct)
-        uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_upperCervix)
+        # uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_upperCervix)
+        uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_cervix)
 
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                           get_uterus_term("serosa of body of uterus"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_outer)
-        serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_upperCervix_outer)
+        # serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_upperCervix_outer)
+        serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfFundus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                          get_uterus_term("lumen of fundus of uterus"))
@@ -2039,7 +2043,8 @@ class MeshType_3d_uterus1(Scaffold_base):
         serosaOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                             get_uterus_term("serosa of vagina"))
         serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_outer)
-        serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_lowerCervix_outer)
+        # serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_lowerCervix_outer)
+        serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                            get_uterus_term("vaginal canal"))
@@ -2265,13 +2270,15 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                                  get_uterus_term("lumen of left uterine horn"))
             lumenOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_inner)
 
-        cervixGroup.getMeshGroup(mesh3d).removeElementsConditional(is_cervix)
+        lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                           get_uterus_term("lumen of uterine cervix"))
+        lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
+
+        # cervixGroup.getMeshGroup(mesh3d).removeElementsConditional(is_cervix)
         annotationGroups.remove(cervixGroup)
 
-        lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("uterine cervix"))
-        lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_upperCervix_inner)
-        lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_lowerCervix_inner)
+        # lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_upperCervix_inner)
+        # lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_lowerCervix_inner)
         if isRat:
             septumCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("septum cervix", ""))
             isSeptumCervix = septumCervixGroup.getGroup()
@@ -2281,8 +2288,8 @@ class MeshType_3d_uterus1(Scaffold_base):
             annotationGroups.remove(septumBodyGroup)
             annotationGroups.remove(lumenOfFundus)
 
-        annotationGroups.remove(upperCervixGroup)
-        annotationGroups.remove(lowerCervixGroup)
+        # annotationGroups.remove(upperCervixGroup)
+        # annotationGroups.remove(lowerCervixGroup)
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """
@@ -2427,17 +2434,22 @@ def getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum
     isBody = bodyGroup.getGroup()
     isBodyInner = fieldmodule.createFieldAnd(isBody, is_exterior_face_xi3_0)
 
-    upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
-    upperCervixGroup.addSubelements()
-    isUpperCervix = upperCervixGroup.getGroup()
-    isUpperCervixInner = fieldmodule.createFieldAnd(isUpperCervix, is_exterior_face_xi3_0)
+    cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
+    cervixGroup.addSubelements()
+    isCervix = cervixGroup.getGroup()
+    isCervixInner = fieldmodule.createFieldAnd(isCervix, is_exterior_face_xi3_0)
 
-    lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
-    lowerCervixGroup.addSubelements()
-    isLowerCervix = lowerCervixGroup.getGroup()
-    isLowerCervixInner = fieldmodule.createFieldAnd(isLowerCervix, is_exterior_face_xi3_0)
+    # upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
+    # upperCervixGroup.addSubelements()
+    # isUpperCervix = upperCervixGroup.getGroup()
+    # isUpperCervixInner = fieldmodule.createFieldAnd(isUpperCervix, is_exterior_face_xi3_0)
+    #
+    # lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
+    # lowerCervixGroup.addSubelements()
+    # isLowerCervix = lowerCervixGroup.getGroup()
+    # isLowerCervixInner = fieldmodule.createFieldAnd(isLowerCervix, is_exterior_face_xi3_0)
 
-    isCervixInner = fieldmodule.createFieldOr(isLowerCervixInner, isUpperCervixInner)
+    # isCervixInner = fieldmodule.createFieldOr(isLowerCervixInner, isUpperCervixInner)
 
     isBodyCervixInner = fieldmodule.createFieldOr(isCervixInner, isBodyInner)
     bodyCervixInterior = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
