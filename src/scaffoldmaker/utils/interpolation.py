@@ -1789,6 +1789,43 @@ def track_curve_side_direction(cx, cd1, start_direction, start_location, end_loc
     return normalize(d1), normalize(d2), direction
 
 
+def linearlyInterpolateVectors(u, v, xi, magnitudeScalingMode=DerivativeScalingMode.ARITHMETIC_MEAN):
+    """
+    Linearly interpolate two vectors less than 180 degrees apart to get an in-between vector
+    rotated from direction of u to direction of v proportionatly to xi, with magnitude linearly interpolated by xi.
+    :param u: First vector.
+    :param v: Second vector from 0 to less than 180 degrees away from u.
+    :param xi: Proportion from u to v.
+    :param magnitudeScalingMode: A value from enum DerivativeScalingMode specifying
+    expression used to get interpolated vector magnitude from magnitudes of u and v.
+    :return: Interpolated vector.
+    """
+    mag_u = magnitude(u)
+    mag_v = magnitude(v)
+    if magnitudeScalingMode==DerivativeScalingMode.HARMONIC_MEAN:
+        if (mag_u == 0.0) or (mag_v == 0):
+            mag = 0
+        else:
+            mag = 1.0 / (((1.0 - xi) / mag_u) + (xi / mag_v))
+    else:  # magnitudeScalingMode==erivativeScalingMode.ARITHMETIC_MEAN:
+        mag = (1.0 - xi) * mag_u + xi * mag_v
+    dirn_u = div(u, mag_u)
+    dirn_v = div(v, mag_v)
+    cos_theta = dot(dirn_u, dirn_v)
+    if cos_theta > 0.999999:
+        dirn = dirn_u
+    else:
+        theta = math.acos(cos_theta)
+        phi = xi * theta
+        cos_phi = math.cos(phi)
+        sin_phi = math.sin(phi)
+        axis1 = dirn_u
+        axis3 = normalize(cross(dirn_u, dirn_v))
+        axis2 = cross(axis3, dirn_u)
+        dirn = add(mult(axis1, cos_phi), mult(axis2, sin_phi))
+    return set_magnitude(dirn, mag)
+
+
 def sampleHermiteCurve(start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
                        start_weight=None, end_weight=None, overweighting=1.0, end_transition=False):
     """
@@ -1852,14 +1889,14 @@ def sampleHermiteCurve(start_x, start_d1, start_d2, end_x, end_d1, end_d2, eleme
             xi_scale = 1.0 / elements_count
         for n in range(1, elements_count):
             xi = n * xi_scale
-            rxi = 1.0 - xi
-            d2 = [start_d2[c] * rxi + end_d2[c] * xi for c in range(3)]
+            d2 = linearlyInterpolateVectors(start_d2, end_d2, xi)
             pd2.append(d2)
         pd2.append(end_d2)
         return px, pd1, pd2
     return px, pd1
 
-def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None, n_way_d_factor=0.6):
+def get_nway_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None,
+                    prescribed_x_nway=None, nway_d_factor=0.6):
     """
     Get 3-way (surface) or 4-way (volume) location and derivatives.
     :param sx: List of N side coordinates.
@@ -1867,7 +1904,8 @@ def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None
     :param element_counts: List of N number of elements from side N to n-way point.
     :param sample_curve: Curve sampling function with signature of sampleHermiteCurve.
     :param move_x_to_surface: Optional function take argument x and returning nearest coordinate on surface.
-    :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+    :param prescribed_x_nway: Optional known 3-way point coordinates to determine derivatives to.
+    :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
     of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
     of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
     :return: x_nway, d_nway[N]
@@ -1875,21 +1913,24 @@ def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None
     n_count = len(sx)
     assert n_count == 3 or n_count == 4
     permutations = [[0, 1], [1, 2], [2, 0]] if n_count == 3 else [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3]]
-    sum_weight = 0.0
-    sum_weighted_x = [0.0, 0.0, 0.0]
-    for n1, n2 in permutations:
-        px, pd = sample_curve(
-            sx[n1], sd[n1], None, sx[n2], [-d for d in sd[n2]], None, element_counts[n1] + element_counts[n2],
-            start_weight=element_counts[n1], end_weight=element_counts[n2])
-        x = px[element_counts[n1]]
-        length1 = getCubicHermiteCurvesLength(px[:element_counts[n1] + 1], pd[:element_counts[n1] + 1])
-        length2 = getCubicHermiteCurvesLength(px[element_counts[n1]:], pd[element_counts[n1]:])
-        weight = 1.0 / length1 + 1.0 / length2
-        sum_weight += weight
-        sum_weighted_x = add(sum_weighted_x, mult(x, weight))
-    x_nway = div(sum_weighted_x, sum_weight)
-    if move_x_to_surface:
-        x_nway = move_x_to_surface(x_nway)
+    if prescribed_x_nway:
+        x_nway = prescribed_x_nway
+    else:
+        sum_weight = 0.0
+        sum_weighted_x = [0.0, 0.0, 0.0]
+        for n1, n2 in permutations:
+            px, pd = sample_curve(
+                sx[n1], sd[n1], None, sx[n2], [-d for d in sd[n2]], None, element_counts[n1] + element_counts[n2],
+                start_weight=element_counts[n1], end_weight=element_counts[n2])
+            x = px[element_counts[n1]]
+            length1 = getCubicHermiteCurvesLength(px[:element_counts[n1] + 1], pd[:element_counts[n1] + 1])
+            length2 = getCubicHermiteCurvesLength(px[element_counts[n1]:], pd[element_counts[n1]:])
+            weight = 1.0 / length1 + 1.0 / length2
+            sum_weight += weight
+            sum_weighted_x = add(sum_weighted_x, mult(x, weight))
+        x_nway = div(sum_weighted_x, sum_weight)
+        if move_x_to_surface:
+            x_nway = move_x_to_surface(x_nway)
 
     # sample with hermite-lagrange interpolation from sides to 3-way point to get end directions
     directions = []
@@ -1950,7 +1991,7 @@ def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None
             rotation_matrix = euler_to_rotation_matrix(euler_angles)
             new_directions = [matrix_vector_mult(rotation_matrix, direction) for direction in ideal_directions]
         else:
-            print("get_n_way_point Stitcher.  Could not optimise 4-way directions")
+            print("get_nway_point.  Could not optimise 4-way directions")
             new_directions = ideal_directions
 
     # smooth sample from sides to n-way point with new directions and weights to get derivative magnitudes
@@ -1961,6 +2002,6 @@ def get_n_way_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None
             sx[n], sd[n], None, x_nway, new_directions[n], None, element_counts[n],
             start_weight=element_counts[0] + min_weight, end_weight=1.0 + min_weight)
         d_mags.append(magnitude(pd[-1]))
-    d_mag = n_way_d_factor * min(d_mags)
+    d_mag = nway_d_factor * min(d_mags)
     d_nway = [set_magnitude(direction, d_mag) for direction in new_directions]
     return x_nway, d_nway

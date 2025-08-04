@@ -3,7 +3,8 @@ Utilities for building 3-D triangle-topology meshes out of quad elements
 """
 from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, mult, normalize, set_magnitude
 from scaffoldmaker.utils.interpolation import (
-    get_n_way_point, getCubicHermiteCurvesLength, smoothCubicHermiteDerivativesLine)
+    DerivativeScalingMode, get_nway_point, getCubicHermiteCurvesLength, linearlyInterpolateVectors,
+    smoothCubicHermiteDerivativesLine)
 import copy
 import math
 
@@ -27,7 +28,7 @@ class QuadTriangleMesh:
     """
 
     def __init__(self, element_count1, element_count2, element_count3, sample_curve,
-                 move_x_to_surface=None, move_d_to_surface=None, n_way_d_factor=0.6):
+                 move_x_to_surface=None, move_d_to_surface=None, nway_d_factor=0.6):
         """
         :param element_count1: Number of elements from opposite points to side points by point1.
         :param element_count2: Number of elements from opposite points to side points by point2.
@@ -35,7 +36,7 @@ class QuadTriangleMesh:
         :param sample_curve: Callable sampling a curve between 2 edge points.
         :param move_x_to_surface: Optional callable taking (x) and moving it to a surface.
         :param move_d_to_surface: Optional callable taking (x, d) and adjusting d to be tangential to a surface.
-        :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
         of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
         of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
@@ -45,7 +46,7 @@ class QuadTriangleMesh:
         self._sample_curve = sample_curve
         self._move_x_to_surface = move_x_to_surface
         self._move_d_to_surface = move_d_to_surface
-        self._3_way_d_factor = n_way_d_factor
+        self._3_way_d_factor = nway_d_factor
         self._element_count12 = element_count1 + element_count2
         self._element_count13 = element_count1 + element_count3
         self._element_count23 = element_count2 + element_count3
@@ -339,15 +340,15 @@ class QuadTriangleMesh:
                 pix = abs(spix)
                 if blend and nx[pix]:
                     if pix == 0:
-                        x = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
+                        # for fairness, move to surface before blending
                         if self._move_x_to_surface:
-                            nx[pix] = self._move_x_to_surface(x)
+                            new_parameter = self._move_x_to_surface(new_parameter)
+                        new_parameter = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
                     else:
-                        # expect derivatives to be the same direction and blend magnitude with harmonic mean
-                        mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(new_parameter)))
-                        nx[pix] = set_magnitude(nx[pix], mean_mag)
-                else:
-                    nx[pix] = new_parameter
+                        # harmonic mean to cope with significant element size differences on boundary
+                        new_parameter = linearlyInterpolateVectors(
+                            nx[pix], new_parameter, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                nx[pix] = new_parameter
 
     def _smooth_derivative_across(self, start_indexes, end_indexes, index_increments, derivative_indexes,
                                   fix_start_direction=True, fix_end_direction=True):
@@ -428,12 +429,12 @@ class QuadTriangleMesh:
         point13 = self._nx[self._element_count3][0]
         point23 = self._nx[self._element_count13][self._element_count12]
 
-        x_3way, d_3way = get_n_way_point(
+        x_3way, d_3way = get_nway_point(
             [point23[0], point13[0], point12[0]],
             [point23[1], point13[2], point12[2]],
             [self._element_count1, self._element_count2, self._element_count3],
             self._sample_curve, self._move_x_to_surface,
-            n_way_d_factor=self._3_way_d_factor)
+            nway_d_factor=self._3_way_d_factor)
 
         # smooth sample from sides to 3-way points using end derivatives
         min_weight = 1  # GRC revisit, remove?

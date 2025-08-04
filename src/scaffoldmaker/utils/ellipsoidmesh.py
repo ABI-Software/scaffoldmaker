@@ -13,7 +13,8 @@ from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
     moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
 from scaffoldmaker.utils.interpolation import (
-    get_n_way_point, sampleHermiteCurve, smoothCubicHermiteDerivativesLine)
+    DerivativeScalingMode, get_nway_point, linearlyInterpolateVectors, sampleHermiteCurve,
+    smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
 
 
@@ -23,7 +24,7 @@ class EllipsoidMesh:
     """
 
     def __init__(self, a, b, c, element_counts, transition_element_count,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, n_way_d_factor=0.6):
+                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, nway_d_factor=0.6):
         """
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
@@ -33,7 +34,7 @@ class EllipsoidMesh:
         :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
         :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
         :param surface_only: Set to True to only make nodes and 2-D elements on the surface.
-        :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
         of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
         of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
@@ -47,7 +48,7 @@ class EllipsoidMesh:
         self._axis2_x_rotation_radians = axis2_x_rotation_radians
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
-        self._n_way_d_factor = n_way_d_factor
+        self._nway_d_factor = nway_d_factor
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
@@ -128,10 +129,9 @@ class EllipsoidMesh:
         evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(
             [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
         # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
-        evaluate_surface_d3_axis_d1 = lambda tx, td1, td2: axis_d1
 
         octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count,
-                                      n_way_d_factor=self._n_way_d_factor)
+                                      nway_d_factor=self._nway_d_factor)
 
         # get outside curve from axis 1 to axis 2
         abx, abd1, abd2 = sampleCurveOnEllipsoid(
@@ -159,7 +159,7 @@ class EllipsoidMesh:
         # make outer surface triangle of octant 1
         triangle_abc = QuadTriangleMesh(
             opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
-            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface, self._n_way_d_factor)
+            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface, self._nway_d_factor)
         triangle_abc.set_edge_parameters12(abx, abd1, abd2)
         triangle_abc.set_edge_parameters13(acx, acd1, acd2)
         triangle_abc.set_edge_parameters23(bcx, bcd1, bcd2)
@@ -186,17 +186,15 @@ class EllipsoidMesh:
             # make inner surface triangle 1-2-origin
             triangle_abo = QuadTriangleMesh(
                 opp_element_counts[0], opp_element_counts[1], self._transition_element_count, sampleHermiteCurve,
-                n_way_d_factor=self._n_way_d_factor)
+                nway_d_factor=self._nway_d_factor)
             abd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in abx]
             triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
             aod3 = [abd2[0]] + [axis_d3] * (len(aox) - 1)
             triangle_abo.set_edge_parameters13(aox, aod1, aod2, aod3)
             triangle_abo.set_edge_parameters23(box, bod1, bod2, bod3)
             triangle_abo.build()
-            def evaluate_surface_d3_triangle_abo(tx, td1, td2):
-                xi = magnitude(tx[1:]) / axis2_mag
-                return add(mult(axis_d3, 1.0 - xi), mult(axis2_dt, xi))
-            triangle_abo.assign_d3(evaluate_surface_d3_triangle_abo)
+            triangle_abo.assign_d3(lambda tx, td1, td2:
+                linearlyInterpolateVectors(axis_d3, axis2_dt, magnitude(tx[1:]) / axis2_mag))
             octant1.set_triangle_abo(triangle_abo)
             # extract exact derivatives
             aod1 = triangle_abo.get_edge_parameters13()[1]
@@ -205,7 +203,7 @@ class EllipsoidMesh:
             # make inner surface triangle 1-3-origin
             triangle_aco = QuadTriangleMesh(
                 opp_element_counts[0], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve,
-                n_way_d_factor=self._n_way_d_factor)
+                nway_d_factor=self._nway_d_factor)
             acd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in acx]
             acmd1 = [[-d for d in d1] for d1 in acd1]
             triangle_aco.set_edge_parameters12(acx, acd2, acd3, acmd1)
@@ -214,10 +212,8 @@ class EllipsoidMesh:
             cod3 = [acd2[-1]] + [axis_md1] * (len(cox) - 1)
             triangle_aco.set_edge_parameters23(cox, cod3, cod2, cod1)
             triangle_aco.build()
-            def evaluate_surface_d3_triangle_aco(tx, td1, td2):
-                xi = magnitude(tx[1:]) / axis3_mag
-                return add(mult(axis_md2, 1.0 - xi), mult(axis3_dt, xi))
-            triangle_aco.assign_d3(evaluate_surface_d3_triangle_aco)
+            triangle_aco.assign_d3(lambda tx, td1, td2:
+                linearlyInterpolateVectors(axis_md2, axis3_dt, magnitude(tx[1:]) / axis3_mag))
             octant1.set_triangle_aco(triangle_aco)
             # extract exact derivatives
             cod3 = triangle_aco.get_edge_parameters23()[1]
@@ -225,8 +221,9 @@ class EllipsoidMesh:
             # make inner surface 2-3-origin
             triangle_bco = QuadTriangleMesh(
                 opp_element_counts[1], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve,
-                n_way_d_factor=self._n_way_d_factor)
-            bcd3 = [bod2[0]] + [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in bcx[1:-1]] +[cod2[-1]]
+                nway_d_factor=self._nway_d_factor)
+            bcd3 = [bod2[0]] + [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in bcx[1:-1]] \
+                   + [cod2[-1]]
             bcmd1 = [[-d for d in d1] for d1 in bcd1]
             triangle_bco.set_edge_parameters12(bcx, bcd2, bcd3, bcmd1)
             bomd1 = [[-d for d in d1] for d1 in bod1]
@@ -234,7 +231,7 @@ class EllipsoidMesh:
             comd3 = [[-d for d in d3] for d3 in cod3]
             triangle_bco.set_edge_parameters23(cox, cod1, cod2, comd3)
             triangle_bco.build()
-            triangle_bco.assign_d3(evaluate_surface_d3_axis_d1)
+            triangle_bco.assign_d3(lambda tx, td1, td2: axis_d1)
             octant1.set_triangle_bco(triangle_bco)
 
             octant1.build()
@@ -272,7 +269,7 @@ class EllipsoidMesh:
 
         octant2 = EllipsoidOctantMesh(
             self._b, self._a, self._c, [half_counts[1], half_counts[0], half_counts[2]], self._transition_element_count,
-            n_way_d_factor=self._n_way_d_factor)
+            nway_d_factor=self._nway_d_factor)
 
         # get outside curve from axis -2 to axis 1, mirrored from ab curve
         mbax = [[x[0], -x[1], -x[2]] for x in reversed(abx)]
@@ -284,12 +281,15 @@ class EllipsoidMesh:
             mbax[0], mbad2[0], mbad1[0],
             acx[-1], acd1[-1], [-d for d in acd2[-1]],
             elements_count_q23)
+        # fix first/last derivatives
+        mbad2[0] = mbcd2[0]
+        acd1[-1] = mbcd2[-1]
 
         # make outer surface of octant 2
         outer_surface2 = QuadTriangleMesh(
             opp_element_counts[1], opp_element_counts[0], opp_element_counts[2],
             sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface,
-            n_way_d_factor=self._n_way_d_factor)
+            nway_d_factor=self._nway_d_factor)
         outer_surface2.set_edge_parameters12(mbax, mbad1, mbad2)
         outer_surface2.set_edge_parameters13(mbcx, mbcd1, mbcd2)
         outer_surface2.set_edge_parameters23(acx, acd1, acd2)
@@ -317,9 +317,8 @@ class EllipsoidMesh:
                                 d = octant_nx[2] if (pix == 1) else [-d for d in octant_nx[1]] if octant_nx[1] else None
                             if d:
                                 if nx[pix]:
-                                    # expect derivatives to be the same direction and blend magnitude with harmonic mean
-                                    mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(d)))
-                                    nx[pix] = set_magnitude(nx[pix], mean_mag)
+                                    nx[pix] = linearlyInterpolateVectors(
+                                        nx[pix], d, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
                                 else:
                                     nx[pix] = copy.copy(d)
 
@@ -417,14 +416,14 @@ class EllipsoidMesh:
                 if nx[pix] and ((blend_start and (n == 0)) or (blend_middle and (0 < n < last_n)) or
                         (blend_end and (n == last_n))):
                     if pix == 0:
-                        x = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
-                        nx[pix] = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
+                        # for fairness, move to surface before blending
+                        new_parameter = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, new_parameter)
+                        new_parameter = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
                     else:
-                        # expect derivatives to be the same direction and blend magnitude with harmonic mean
-                        mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(new_parameter)))
-                        nx[pix] = set_magnitude(nx[pix], mean_mag)
-                else:
-                    nx[pix] = new_parameter
+                        # harmonic mean to cope with significant element size differences on boundary
+                        new_parameter = linearlyInterpolateVectors(
+                            nx[pix], new_parameter, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                nx[pix] = new_parameter
 
     def _smooth_derivatives_around_rim(self, start_indexes, end_indexes, index_increments,
                                        derivative_indexes, end_derivative_index,
@@ -694,7 +693,7 @@ class EllipsoidOctantMesh:
     then the interior can be built.
     """
 
-    def __init__(self, a, b, c, element_counts, transition_element_count, n_way_d_factor=0.6):
+    def __init__(self, a, b, c, element_counts, transition_element_count, nway_d_factor=0.6):
         """
         A 2-D or 3-D Octant of an ellipsoid.
         Coordinates nx are indexed in 1, 2, 3 directions from origin at index 0, 0, 0
@@ -704,7 +703,7 @@ class EllipsoidOctantMesh:
         :param c: Axis length (radius) in z direction.
         :param element_counts: Number of elements across octant only in 1, 2, 3 axes.
         :param transition_element_count: Number of transition elements around outside >= 1.
-        :param n_way_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
         of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
         of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
@@ -715,7 +714,7 @@ class EllipsoidOctantMesh:
         self._c = c
         self._element_counts = element_counts
         self._transition_element_count = transition_element_count
-        self._n_way_d_factor = n_way_d_factor
+        self._nway_d_factor = nway_d_factor
         self._element_count12 = element_counts[0] + element_counts[1] - 2 * transition_element_count
         self._element_count13 = element_counts[0] + element_counts[2] - 2 * transition_element_count
         self._element_count23 = element_counts[1] + element_counts[2] - 2 * transition_element_count
@@ -896,12 +895,14 @@ class EllipsoidOctantMesh:
                 pix = abs(spix)
                 if blend and nx[pix]:
                     if pix == 0:
-                        x = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
-                        new_parameter = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
+                        # for fairness, move to surface before blending
+                        if any(indexes[i] == self._element_counts[i] for i in range(3)):
+                            new_parameter = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, new_parameter)
+                        new_parameter = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
                     else:
-                        # expect derivatives to be the same direction and blend magnitude with harmonic mean
-                        mean_mag = 2.0 / ((1.0 / magnitude(nx[pix])) + (1.0 / magnitude(new_parameter)))
-                        new_parameter = set_magnitude(nx[pix], mean_mag)
+                        # harmonic mean to cope with significant element size differences on boundary
+                        new_parameter = linearlyInterpolateVectors(
+                            nx[pix], new_parameter, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
                 nx[pix] = new_parameter
             last_trans = trans
 
@@ -915,11 +916,11 @@ class EllipsoidOctantMesh:
         point23 = self._nx[self._opp_counts[2]][self._opp_counts[1]][0]
         point123 = self._nx[self._element_counts[2]][self._element_counts[1]][self._element_counts[0]]
 
-        x_4way, d_4way = get_n_way_point(
+        x_4way, d_4way = get_nway_point(
             [point23[0], point13[0], point12[0], point123[0]],
             [point23[1], point13[2], point12[3], [-d for d in point123[3]]],
             [self._opp_counts[0], self._opp_counts[1], self._opp_counts[2], self._transition_element_count],
-            sampleHermiteCurve, n_way_d_factor=self._n_way_d_factor)
+            sampleHermiteCurve, nway_d_factor=self._nway_d_factor)
 
         # smooth sample from sides to 3-way points using end derivatives
         min_weight = 1  # GRC revisit, remove?
@@ -942,3 +943,110 @@ class EllipsoidOctantMesh:
         self._set_coordinates_across([tx, td3], [[0, -3]],
                                      [self._element_counts[0], self._element_counts[1], self._element_counts[2]],
                                      [[-1, -1, -1]], skip_end=True)
+        d1_4way = ad1[-1]
+        d2_4way = bd2[-1]
+        d3_4way = cd3[-1]
+        dt_4way = td3[-1]
+
+        # sample up to 3-way lines connecting to 4-way point
+        for n3 in range(1, self._opp_counts[2]):
+            point13 = self._nx[n3][0][self._opp_counts[0]]
+            point23 = self._nx[n3][self._opp_counts[1]][0]
+            point123 = self._nx[n3][self._element_counts[1]][self._element_counts[0]]
+            point_3way = self._nx[n3][self._opp_counts[1]][self._opp_counts[0]]
+
+            x_3way, d_3way = get_nway_point(
+                [point23[0], point13[0], point123[0]],
+                [point23[1], point13[2], [-d for d in point123[3]]],
+                [self._opp_counts[0], self._opp_counts[1], self._transition_element_count],
+                sampleHermiteCurve, prescribed_x_nway=point_3way[0], nway_d_factor=self._nway_d_factor)
+
+            ax, ad1, ad2 = sampleHermiteCurve(
+                point23[0], point23[1], point23[2], x_3way, d_3way[0], None, self._opp_counts[0],
+                start_weight=self._opp_counts[0] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            ad1[-1] = d_3way[0]
+            ad2[-1] = d_3way[1]
+            bx, bd2, bd1 = sampleHermiteCurve(
+                point13[0], point13[2], point13[1], x_3way, d_3way[1], None, self._opp_counts[1],
+                start_weight=self._opp_counts[1] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            bd1[-1] = d_3way[0]
+            bd2[-1] = d_3way[1]
+            tx, td3 = sampleHermiteCurve(
+                point123[0], [-d for d in point123[3]], None, x_3way, d_3way[2], None, self._transition_element_count,
+                start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight,
+                end_transition=True)
+
+            self._set_coordinates_across([ax, ad1, ad2], [[0, 1, 2]], [0, self._opp_counts[1], n3], [[1, 0, 0]])
+            self._set_coordinates_across([bx, bd1, bd2], [[0, 1, 2]], [self._opp_counts[0], 0, n3], [[0, 1, 0]])
+            self._set_coordinates_across([tx, td3], [[0, -3]], [self._element_counts[0], self._element_counts[1], n3],
+                                         [[-1, -1, 0]], skip_end=True)
+
+        for n2 in range(1, self._opp_counts[1]):
+            point12 = self._nx[0][n2][self._opp_counts[0]]
+            point23 = self._nx[self._opp_counts[2]][n2][0]
+            point123 = self._nx[self._element_counts[2]][n2][self._element_counts[0]]
+            point_3way = self._nx[self._opp_counts[2]][n2][self._opp_counts[0]]
+
+            x_3way, d_3way = get_nway_point(
+                [point23[0], point12[0], point123[0]],
+                [point23[1], point12[3], [-d for d in point123[3]]],
+                [self._opp_counts[0], self._opp_counts[2], self._transition_element_count],
+                sampleHermiteCurve, prescribed_x_nway=point_3way[0], nway_d_factor=self._nway_d_factor)
+
+            ax, ad1, ad3 = sampleHermiteCurve(
+                point23[0], point23[1], point23[3], x_3way, d_3way[0], None, self._opp_counts[0],
+                start_weight=self._opp_counts[0] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            ad1[-1] = d_3way[0]
+            ad3[-1] = d_3way[1]
+            bx, bd3, bd1 = sampleHermiteCurve(
+                point12[0], point12[3], point12[1], x_3way, d_3way[1], None, self._opp_counts[2],
+                start_weight=self._opp_counts[2] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            bd1[-1] = d_3way[0]
+            bd3[-1] = d_3way[1]
+            tx, td3 = sampleHermiteCurve(
+                point123[0], [-d for d in point123[3]], None, x_3way, d_3way[2], None, self._transition_element_count,
+                start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight,
+                end_transition=True)
+
+            self._set_coordinates_across(
+                [ax, ad1, ad3], [[0, 1, 3]], [0, n2, self._opp_counts[2]], [[1, 0, 0]], blend=True)
+            self._set_coordinates_across(
+                [bx, bd1, bd3], [[0, 1, 3]], [self._opp_counts[0], n2, 0], [[0, 0, 1]], blend=True)
+            self._set_coordinates_across(
+                [tx, td3], [[0, -3]], [self._element_counts[0], n2, self._element_counts[2]], [[-1, 0, -1]],
+                skip_end=True, blend=True)
+
+        for n1 in range(1, self._opp_counts[0]):
+            point12 = self._nx[0][self._opp_counts[1]][n1]
+            point13 = self._nx[self._opp_counts[2]][0][n1]
+            point123 = self._nx[self._element_counts[2]][self._element_counts[1]][n1]
+            point_3way = self._nx[self._opp_counts[2]][self._opp_counts[1]][n1]
+
+            x_3way, d_3way = get_nway_point(
+                [point13[0], point12[0], point123[0]],
+                [point13[2], point12[3], [-d for d in point123[3]]],
+                [self._opp_counts[0], self._opp_counts[2], self._transition_element_count],
+                sampleHermiteCurve, prescribed_x_nway=point_3way[0], nway_d_factor=self._nway_d_factor)
+
+            ax, ad2, ad3 = sampleHermiteCurve(
+                point13[0], point13[2], point13[3], x_3way, d_3way[0], None, self._opp_counts[1],
+                start_weight=self._opp_counts[1] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            ad2[-1] = d_3way[0]
+            ad3[-1] = d_3way[1]
+            bx, bd3, bd2 = sampleHermiteCurve(
+                point12[0], point12[3], point12[2], x_3way, d_3way[1], None, self._opp_counts[2],
+                start_weight=self._opp_counts[2] + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            bd2[-1] = d_3way[0]
+            bd3[-1] = d_3way[1]
+            tx, td3 = sampleHermiteCurve(
+                point123[0], [-d for d in point123[3]], None, x_3way, d_3way[2], None, self._transition_element_count,
+                start_weight=self._transition_element_count + min_weight, end_weight=1.0 + min_weight,
+                end_transition=True)
+
+            self._set_coordinates_across(
+                [ax, ad2, ad3], [[0, 2, 3]], [n1, 0, self._opp_counts[2]], [[0, 1, 0]], blend=True)
+            self._set_coordinates_across(
+                [bx, bd2, bd3], [[0, 2, 3]], [n1, self._opp_counts[1], 0], [[0, 0, 1]], blend=True)
+            self._set_coordinates_across(
+                [tx, td3], [[0, -3]], [n1, self._element_counts[1], self._element_counts[2]],
+                [[0, -1, -1]], skip_end=True, blend=True)

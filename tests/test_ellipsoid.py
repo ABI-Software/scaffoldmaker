@@ -82,7 +82,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 27.868974400348645, delta=TOL)
+        self.assertAlmostEqual(surfaceArea, 27.86848567909992, delta=TOL)
 
 if __name__ == "__main__":
     unittest.main()

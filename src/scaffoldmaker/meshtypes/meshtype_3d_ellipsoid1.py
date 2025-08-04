@@ -115,13 +115,13 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         axis2_x_rotation_radians = math.radians(options["Axis 2 x-rotation degrees"])
         axis3_x_rotation_radians = math.radians(options["Axis 3 x-rotation degrees"])
         surface_only = options["2D surface only"]
-        n_way_d_factor = options["Advanced n-way derivative factor"]
+        nway_d_factor = options["Advanced n-way derivative factor"]
 
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
         ellipsoid = EllipsoidMesh(a, b, c, element_counts, transition_element_count,
-                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only, n_way_d_factor)
+                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only, nway_d_factor)
         ellipsoid.build()
         ellipsoid.generate_mesh(fieldmodule, coordinates)
 

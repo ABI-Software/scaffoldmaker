@@ -10,7 +10,8 @@ import math
 from cmlibs.maths.vectorops import add, distance, magnitude, mult, normalize, cross, set_magnitude, rejection
 from scaffoldmaker.utils.interpolation import (
     computeCubicHermiteDerivativeScaling, computeHermiteLagrangeDerivativeScaling, getCubicHermiteArcLength,
-    interpolateHermiteLagrangeDerivative, sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth)
+    interpolateHermiteLagrangeDerivative, linearlyInterpolateVectors, sampleCubicHermiteCurves,
+    sampleCubicHermiteCurvesSmooth)
 from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 
 
@@ -566,8 +567,7 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
             xi_scale = 1.0 / elements_count
         for n in range(1, elements_count):
             xi = n * xi_scale
-            rxi = 1.0 - xi
-            d2 = [start_d2[c] * rxi + end_d2[c] * xi for c in range(3)]
+            d2 = linearlyInterpolateVectors(start_d2, end_d2, xi)
             pd2.append(moveDerivativeToEllipsoidSurface(a, b, c, px[n], d2))
         pd2.append(end_d2)
         return px, pd1, pd2
