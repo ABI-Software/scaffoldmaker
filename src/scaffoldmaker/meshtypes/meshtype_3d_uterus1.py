@@ -37,6 +37,8 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
         super(UterusTubeNetworkMeshGenerateData, self).__init__(
             region, meshDimension, coordinateFieldName, startNodeIdentifier, startElementIdentifier,
             isLinearThroughShell, isShowTrimSurfaces)
+        self._leftOviductGroup = self.getOrCreateAnnotationGroup(get_uterus_term("left oviduct"))
+        self._rightOviductGroup = self.getOrCreateAnnotationGroup(get_uterus_term("right oviduct"))
         self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
         self._bodyGroup = self.getOrCreateAnnotationGroup(get_uterus_term("body of uterus"))
         self._upperCervixGroup = self.getOrCreateAnnotationGroup(("upper cervix", ""))
@@ -46,6 +48,12 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
         self._rightGroup = self.getOrCreateAnnotationGroup(("right uterus", ""))
         self._dorsalGroup = self.getOrCreateAnnotationGroup(("dorsal uterus", ""))
         self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral uterus", ""))
+
+    def getLeftOviductMeshGroup(self):
+        return self._leftOviductGroup.getMeshGroup(self._mesh)
+
+    def getRightOviductMeshGroup(self):
+        return self._rightOviductGroup.getMeshGroup(self._mesh)
 
     def getFundusMeshGroup(self):
         return self._fundusGroup.getMeshGroup(self._mesh)
@@ -89,6 +97,8 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
         super(UterusTubeNetworkMeshBuilder, self).generateMesh(generateData)
         # build temporary left/right dorsal/ventral groups
         mesh = generateData.getMesh()
+        leftOviductMeshGroup = generateData.getLeftOviductMeshGroup()
+        rightOviductMeshGroup = generateData.getRightOviductMeshGroup()
         fundusMeshGroup = generateData.getFundusMeshGroup()
         bodyMeshGroup = generateData.getBodyMeshGroup()
         upperCervixMeshGroup = generateData.getUpperCervixMeshGroup()
@@ -103,6 +113,29 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
             segment.addSideD3ElementsToMeshGroup(True, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, dorsalMeshGroup)
             for annotationTerm in annotationTerms:
+                if "oviduct" in annotationTerm[0]:
+                    elementsCountRim = segment.getElementsCountRim()
+                    e2 = segment.getSampledElementsCountAlong() - 1
+                    elementsCountAround = segment.getElementsCountAround()
+                    for e1 in range(elementsCountAround):
+                        for e3 in range(elementsCountRim):
+                            elementIdentifier = segment.getRimElementId(e1, e2, e3)
+                            if elementIdentifier is not None:
+                                element = mesh.findElementByIdentifier(elementIdentifier)
+                                if "left" in annotationTerm[0]:
+                                    if e1 < elementsCountAround // 4 or e1 > 3 * elementsCountAround // 4 - 1:
+                                        fundusMeshGroup.addElement(element)
+                                    else:
+                                        bodyMeshGroup.addElement(element)
+                                else:  # right
+                                    if elementsCountAround // 4 <= e1 < 3 * elementsCountAround // 4:
+                                        fundusMeshGroup.addElement(element)
+                                    else:
+                                        bodyMeshGroup.addElement(element)
+                                oviductMeshGroup = leftOviductMeshGroup if "left" in annotationTerm[0] else \
+                                    rightOviductMeshGroup
+                                oviductMeshGroup.removeElement(element)
+
                 if "fundus" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(fundusMeshGroup)
                 if "body" in annotationTerm[0]:
@@ -1728,6 +1761,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         parameterSetName = options['Base parameter set']
         isHuman = parameterSetName in ("Default", "Human 1")
         isPregnant = parameterSetName in ("Human Pregnant 1")
+        isRodent = parameterSetName in ("Mouse 1", "Rat 1")
         isRat = parameterSetName in ("Rat 1")
 
         layoutRegion = region.createRegion()
@@ -1813,6 +1847,12 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
         uterusGroup.getMeshGroup(mesh).addElementsConditional(upperCervixGroup.getGroup())
+
+        if isRodent:
+            leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
+            rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right oviduct"))
+            annotationGroups.remove(leftOviductGroup)
+            annotationGroups.remove(rightOviductGroup)
 
         # add septum for rat
         if isRat:
