@@ -1761,8 +1761,6 @@ class MeshType_3d_uterus1(Scaffold_base):
                 options[key] = 4
             elif (options[key] % 4) > 0:
                 options[key] += options[key] % 4
-        if options["Number of elements through wall"] < 1:
-            options["Number of elements through wall"] = 1
 
         dependentChanges = False
         return dependentChanges
@@ -2407,7 +2405,6 @@ def getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum
 
     nodeIter = fundusInnerNodeset.createNodeiterator()
     node = nodeIter.next()
-    fieldcache.setNode(node)
     fundusInnerNids = []
     while node.isValid():
         fundusInnerNids.append(node.getIdentifier())
@@ -2495,7 +2492,6 @@ def getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum
 
     nodeIter = bodyCervixInnerNodeset.createNodeiterator()
     node = nodeIter.next()
-    fieldcache.setNode(node)
     bodyCervixInnerNids = []
     while node.isValid():
         bodyCervixInnerNids.append(node.getIdentifier())
