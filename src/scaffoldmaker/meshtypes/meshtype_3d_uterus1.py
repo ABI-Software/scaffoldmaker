@@ -280,7 +280,7 @@ class Septum:
             d2Mid = self._nx[n2][n3Mid][n1Mid][2]
             d3Mid = self._nx[n2][n3Mid][n1Mid][3]
             d1Mid = cross(d2Mid, d3Mid)
-            dV = set_magnitude(d1Mid, self._thickness)
+            dV = set_magnitude(d1Mid, self._thickness * 0.5)
             xMidLeft = add(xMid, dV)
             xMidRight = sub(xMid, dV)
             px, pd1 = sampleCubicHermiteCurves([xMidRight, xMid, xMidLeft], [dV, dV, dV], elementsCountAround,
@@ -1165,6 +1165,25 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         cervicalScale = cervicalLength / cervixElementsCount
         vaginalScale = vaginaLength / vaginaElementsCount
 
+        # Note: For rodents, the wall thickness is calculated from the uterine horn wall thickness and set to be
+        # consistent from uterine horn to vagina. User-defined inner proportions of body, cervix and vagina for rat
+        # and mouse will have no effect at all.
+        if isRodent:
+            wallThickness = oviductRadius - oviductRadius * innerProportionOviducts
+            innerProportionBodyD2 = (halfFundusWidth - wallThickness) / halfFundusWidth
+            innerProportionBodyD3 = (halfFundusDepth - wallThickness) / halfFundusDepth
+            innerProportionCervixD2 = (halfCervicalWidthExternalOs - wallThickness) / halfCervicalWidthExternalOs
+            innerProportionCervixD3 = (halfCervicalDepthExternalOs - wallThickness) / halfCervicalDepthExternalOs
+            innerProportionVaginaD2 = (halfVaginaOrificeWidth - wallThickness) / halfVaginaOrificeWidth
+            innerProportionVaginaD3 = (halfVaginaOrificeDepth - wallThickness) / halfVaginaOrificeDepth
+        else:
+            innerProportionBodyD2 = innerProportionBody
+            innerProportionBodyD3 = innerProportionBody
+            innerProportionCervixD2 = innerProportionCervix
+            innerProportionCervixD3 = innerProportionCervix
+            innerProportionVaginaD2 = innerProportionVagina
+            innerProportionVaginaD3 = innerProportionVagina
+
         zero = [0.0, 0.0, 0.0]
         xBodyJunction = [0.0, 0.0, 0.0]
 
@@ -1275,8 +1294,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                                    (-1.0 if side == left else 1.0)]
                             innerProportionFundus = \
                                 interpolateCubicHermite([innerProportionOviducts, 0.0, 0.0],
-                                                        [innerProportionBody - innerProportionOviducts, 0.0, 0.0],
-                                                        [innerProportionBody, 0.0, 0.0], [0.0, 0.0, 0.0], xiEllipse)[0]
+                                                        [innerProportionBodyD2 - innerProportionOviducts, 0.0, 0.0],
+                                                        [innerProportionBodyD2, 0.0, 0.0], [0.0, 0.0, 0.0], xiEllipse)[0]
                             id2 = mult(d2, innerProportionFundus if isPregnant else innerProportionOviducts)
                             id3 = mult(d3, innerProportionFundus if isPregnant else innerProportionOviducts)
                             id12 = mult(d12, innerProportionFundus if isPregnant else innerProportionOviducts)
@@ -1326,21 +1345,21 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         for i in range(fundusPatchElementsCount):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            id3 = mult(nd3Patch[i], innerProportionBody)
-            id13 = mult(nd13Patch[i], innerProportionBody)
+            id3 = mult(nd3Patch[i], innerProportionBodyD3)
+            id13 = mult(nd13Patch[i], innerProportionBodyD3)
             if isPregnant:
-                id2 = mult(nd2Patch[i], innerProportionBody)
-                id12 = mult(nd12Patch[i], innerProportionBody)
+                id2 = mult(nd2Patch[i], innerProportionBodyD2)
+                id12 = mult(nd12Patch[i], innerProportionBodyD2)
             else:
                 xi = i / fundusPatchElementsCount
-                width = xi * halfFundusWidth * innerProportionBody + \
-                        (1.0 - xi) * (halfFundusWidth * 0.01 * innerProportionBody if isRodent else
-                                      halfCervicalWidthInternalOs * innerProportionCervix)
+                width = xi * halfFundusWidth * innerProportionBodyD2 + \
+                        (1.0 - xi) * (halfFundusWidth * 0.01 * innerProportionBodyD2 if isRodent else
+                                      halfCervicalWidthInternalOs * innerProportionCervixD2)
 
                 id2 = [0.0, width, 0.0]
                 id12 = [0.0,
-                        (halfFundusWidth * innerProportionBody -
-                         halfCervicalWidthInternalOs * innerProportionCervix) / fundusPatchElementsCount,
+                        (halfFundusWidth * innerProportionBodyD2 -
+                         halfCervicalWidthInternalOs * innerProportionCervixD2) / fundusPatchElementsCount,
                         0.0]
             setNodeFieldParameters(coordinates, fieldcache, nxPatch[i], nd1Patch[i], nd2Patch[i], nd3Patch[i],
                                    nd12Patch[i], nd13Patch[i])
@@ -1367,16 +1386,16 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, d1, id2, id3, id12, id13)
 
         version = 3
-        id3 = mult(nd3Patch[-1], innerProportionBody)
-        id13 = mult(nd13Patch[-1], innerProportionBody)
+        id3 = mult(nd3Patch[-1], innerProportionBodyD3)
+        id13 = mult(nd13Patch[-1], innerProportionBodyD3)
         if isPregnant:
-            id2 = mult(nd2Patch[-1], innerProportionBody)
-            id12 = mult(nd12Patch[-1], innerProportionBody)
+            id2 = mult(nd2Patch[-1], innerProportionBodyD2)
+            id12 = mult(nd12Patch[-1], innerProportionBodyD2)
         else:
-            id2 = [0.0, halfFundusWidth * innerProportionBody, 0.0]
+            id2 = [0.0, halfFundusWidth * innerProportionBodyD2, 0.0]
             id12 = [0.0,
-                    (halfCervicalWidthInternalOs * innerProportionCervix -
-                     halfFundusWidth * innerProportionBody) / fundusPatchElementsCount,
+                    (halfCervicalWidthInternalOs * innerProportionCervixD2 -
+                     halfFundusWidth * innerProportionBodyD2) / fundusPatchElementsCount,
                     0.0]
         setNodeFieldVersionDerivatives(coordinates, fieldcache, version, nd1Patch[-1], nd2Patch[-1], nd3Patch[-1],
                                        nd12Patch[-1], nd13Patch[-1])
@@ -1430,26 +1449,26 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             d13 = nd13Body[i]
 
             if isPregnant:
-                id2 = mult(d2, innerProportionBody)
-                id12 = mult(d12, innerProportionBody)
-                id3 = mult(d3, innerProportionBody)
-                id13 = mult(d13, innerProportionBody)
+                id2 = mult(d2, innerProportionBodyD2)
+                id12 = mult(d12, innerProportionBodyD2)
+                id3 = mult(d3, innerProportionBodyD3)
+                id13 = mult(d13, innerProportionBodyD3)
             else:
                 xi = i / fundusPostBodyJunctionElementsCount
-                width = xi * halfCervicalWidthInternalOs * innerProportionCervix + \
-                        (1.0 - xi) * halfFundusWidth * innerProportionBody
+                width = xi * halfCervicalWidthInternalOs * innerProportionCervixD2 + \
+                        (1.0 - xi) * halfFundusWidth * innerProportionBodyD2
                 id2 = [0.0, width, 0.0]
                 id12 = [0.0,
-                        (halfCervicalWidthInternalOs * innerProportionCervix -
-                         halfFundusWidth * innerProportionBody) / fundusPatchElementsCount,
+                        (halfCervicalWidthInternalOs * innerProportionCervixD2 -
+                         halfFundusWidth * innerProportionBodyD2) / fundusPatchElementsCount,
                         0.0]
-                depth = xi * halfCervicalDepthInternalOs * innerProportionCervix + \
-                        (1.0 - xi) * halfFundusDepth * innerProportionBody
+                depth = xi * halfCervicalDepthInternalOs * innerProportionCervixD3 + \
+                        (1.0 - xi) * halfFundusDepth * innerProportionBodyD3
                 id3 = [0.0, 0.0, depth]
                 id13 = [0.0,
                         0.0,
-                        (halfCervicalDepthInternalOs * innerProportionCervix -
-                         halfFundusDepth * innerProportionBody) / fundusPatchElementsCount]
+                        (halfCervicalDepthInternalOs * innerProportionCervixD3 -
+                         halfFundusDepth * innerProportionBodyD3) / fundusPatchElementsCount]
             if i:
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
@@ -1579,10 +1598,10 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 d12 = nd12Cervix[i]
                 d13 = nd13Cervix[i]
 
-            id2 = mult(d2, innerProportionCervix)
-            id3 = mult(d3, innerProportionCervix)
-            id12 = mult(d12, innerProportionCervix)
-            id13 = mult(d13, innerProportionCervix)
+            id2 = mult(d2, innerProportionCervixD2)
+            id3 = mult(d3, innerProportionCervixD3)
+            id12 = mult(d12, innerProportionCervixD2)
+            id13 = mult(d13, innerProportionCervixD3)
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
@@ -1597,13 +1616,15 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             d12 = nd12Vagina[i]
             d13 = nd13Vagina[i]
             if i == 0:
-                innerProportion = innerProportionCervix
+                innerProportionD2 = innerProportionCervixD2
+                innerProportionD3 = innerProportionCervixD3
             else:
-                innerProportion = innerProportionVagina
-            id2 = mult(d2, innerProportion)
-            id3 = mult(d3, innerProportion)
-            id12 = mult(d12, innerProportion)
-            id13 = mult(d13, innerProportion)
+                innerProportionD2 = innerProportionVaginaD2
+                innerProportionD3 = innerProportionVaginaD3
+            id2 = mult(d2, innerProportionD2)
+            id3 = mult(d3, innerProportionD3)
+            id12 = mult(d12, innerProportionD2)
+            id13 = mult(d13, innerProportionD3)
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
@@ -1854,6 +1875,23 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         # add septum for rat
         if isRat:
+            # find wall thickness
+            leftUterineHornGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left uterine horn"))
+            leftUterineHornNodeset = leftUterineHornGroup.getGroup().getNodesetGroup(nodes)
+            nodeIter = leftUterineHornNodeset.createNodeiterator()
+            node = nodeIter.next()
+            fieldcache = fieldmodule.createFieldcache()
+            if node.isValid():
+                firstHornNodeId = node.getIdentifier()
+                fieldcache.setNode(node)
+                xFirstNode = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+            matchingInnerNid = firstHornNodeId + options['Number of elements around oviduct'] * \
+                               options['Number of elements through wall']
+            node = nodes.findNodeByIdentifier(matchingInnerNid)
+            fieldcache.setNode(node)
+            xMatchingInnerNode = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
+            septumThickness = magnitude(sub(xFirstNode, xMatchingInnerNode))
+
             firstSeptumElementIdentifier = elementIdentifier
             elementsCountAroundSeptum = \
                 (options['Number of elements around'] - options['Number of elements around oviduct']) // 2
@@ -1865,8 +1903,6 @@ class MeshType_3d_uterus1(Scaffold_base):
 
             septumRimNids, septumRimParams = \
                 getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum, elementsCountAround)
-
-            septumThickness = magnitude(septumRimParams[-1][-1][-1])
 
             ratSeptum = Septum(elementCountsSeptum, septumRimNids, septumRimParams, septumThickness,
                                nodeIdentifier, elementIdentifier, annotationGroups, region)
@@ -1951,7 +1987,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         fm = region.getFieldmodule()
         mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
-        mesh3d = fm.findMeshByDimension(3)
+        # mesh3d = fm.findMeshByDimension(3)
 
         uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
         if isHuman:
