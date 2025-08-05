@@ -1675,7 +1675,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Rat 1']
 
     @classmethod
-    def getDefaultOptions(cls, parameterSetName='Default'):
+    def getDefaultOptions(cls, parameterSetName ='Default'):
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options = {
             'Base parameter set': useParameterSetName,
@@ -1772,7 +1772,13 @@ class MeshType_3d_uterus1(Scaffold_base):
             elif (options[key] % 4) > 0:
                 options[key] += options[key] % 4
 
+        parameterSetName = options["Base parameter set"]
         dependentChanges = False
+        isRat = "Rat" in parameterSetName
+        if isRat and options["Use linear through wall"]:
+            options["Use linear through wall"] = False
+            dependentChanges = True
+
         return dependentChanges
 
     @classmethod
@@ -1847,21 +1853,18 @@ class MeshType_3d_uterus1(Scaffold_base):
         # add human specific annotations
         allMarkers = {}
         if isHuman:
-            allMarkers = {"junction of left round ligament with uterus": {"x": [-0.495368, -4.54665, 0.0]},
-                          "junction of right round ligament with uterus": {"x": [-0.495368, 4.54665, 0.0]},
-                          "junction of left uterosacral ligament with uterus": {"x": [7.0, -2.75, 0.0]},
-                          "junction of right uterosacral ligament with uterus": {"x": [7.0, 2.75, 0.0]}}
-        elif isPregnant:
-            allMarkers = {"junction of left round ligament with uterus": {"x": [-0.651622, -6.5419, 0]},
-                          "junction of right round ligament with uterus": {"x": [-0.651622, 6.5419, 0]},
-                          "junction of left uterosacral ligament with uterus": {"x": [14, -2.75, 0.0]},
-                          "junction of right uterosacral ligament with uterus": {"x": [14, 2.75, 0]}}
+            allMarkers = \
+                {"junction of left round ligament with uterus": {"elementID": 33, "xi": [0.0, 1.0, 1.0]},
+                 "junction of right round ligament with uterus": {"elementID": 136, "xi": [1.0, 1.0, 1.0]},
+                 "junction of left uterosacral ligament with uterus": {"elementID": 210, "xi": [1.0, 1.0, 1.0]},
+                 "junction of right uterosacral ligament with uterus": {"elementID": 201, "xi": [0.0, 1.0, 1.0]}}
 
         for key in allMarkers:
-            x = allMarkers[key]["x"]
+            markerElement = mesh.findElementByIdentifier(allMarkers[key]["elementID"])
+            markerXi = allMarkers[key]["xi"]
             group = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                         get_uterus_term(key), isMarker=True)
-            markerNode = group.createMarkerNode(nodeIdentifier, coordinates, x)
+            markerNode = group.createMarkerNode(nodeIdentifier, element=markerElement, xi=markerXi)
             nodeIdentifier = markerNode.getIdentifier() + 1
             for group in annotationGroups:
                 group.getNodesetGroup(nodes).addNode(markerNode)
