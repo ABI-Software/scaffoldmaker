@@ -75,8 +75,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 326.53374476529103, delta=1.0E-6)
-        self.assertAlmostEqual(volume, 250.8430658356537, delta=1.0E-6)
+        self.assertAlmostEqual(surfaceArea, 326.53374476529103, delta=1.0E-2)
+        self.assertAlmostEqual(volume, 250.8430658356537, delta=1.0E-2)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:

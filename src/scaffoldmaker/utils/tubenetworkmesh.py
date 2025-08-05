@@ -1822,8 +1822,8 @@ class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
     def sample(self, fixedElementsCountAlong, targetElementLength):
         """
         Samples coordinates along (dorsal/ventral) and around (left/right) patch. Geometry of the patch is derived from
-        a combined track surface of the tube segments that are coming in tangentially. The trim surfaces from the outlet
-        segment is used to define the boundary of the patch.
+        a combined track surface of the tube segments that are coming in tangentially. The trim surface from the inlet
+        segment that is entering normally to the first two segments is used to define the boundary of the patch.
         """
         outer = 0
         inner = 1

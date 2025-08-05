@@ -15,7 +15,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_netw
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
-from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives, smoothCubicHermiteDerivativesLine,\
+from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives, smoothCubicHermiteDerivativesLine, \
     interpolateCubicHermite, sampleCubicHermiteCurves, computeCubicHermiteDerivativeScaling, \
     interpolateLagrangeHermiteDerivative
 from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
@@ -66,6 +66,7 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
     #
     # def getLowerCervixMeshGroup(self):
     #     return self._lowerCervixGroup.getMeshGroup(self._mesh)
+
 
 class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
     """
@@ -223,7 +224,8 @@ class Septum:
             self._nx[0][half_counts[2]][n1] = self._paramRim[0][n1]
 
             self._nids[0][0][n1] = self._nidsRim[half_counts[2] - 1][n1]
-            self._nids[0][-1][elementsCountAround - n1] = self._nidsRim[half_counts[2] - 1][elementsCountAround + 1 + n1]
+            self._nids[0][-1][elementsCountAround - n1] = \
+                self._nidsRim[half_counts[2] - 1][elementsCountAround + 1 + n1]
 
             self._nx[0][0][n1] = self._paramRim[half_counts[2] - 1][n1]
             self._nx[0][-1][elementsCountAround - n1] = self._paramRim[half_counts[2] - 1][elementsCountAround + 1 + n1]
@@ -241,8 +243,10 @@ class Septum:
             for n1 in range(elementsCountAround + 1):
                 self._nids[n2][0][n1] = self._nidsRim[n2 + extraRowsCountTop][n1]
                 self._nx[n2][0][n1] = self._paramRim[n2 + extraRowsCountTop][n1]
-                self._nids[n2][-1][elementsCountAround - n1] = self._nidsRim[n2 + extraRowsCountTop][elementsCountAround + 1 + n1]
-                self._nx[n2][-1][elementsCountAround - n1] = self._paramRim[n2 + extraRowsCountTop][elementsCountAround + 1 + n1]
+                self._nids[n2][-1][elementsCountAround - n1] = \
+                    self._nidsRim[n2 + extraRowsCountTop][elementsCountAround + 1 + n1]
+                self._nx[n2][-1][elementsCountAround - n1] = \
+                    self._paramRim[n2 + extraRowsCountTop][elementsCountAround + 1 + n1]
 
         # Use middle point to sample front to back into number of elements through septum
         for n2 in range(3, elementsCountAlong + 1):
@@ -421,7 +425,8 @@ class Septum:
 
                 if n1 == 0:
                     if n3 == 0:
-                        d6Way = [add([-c for c in self._nx[0][2][n1][1]], [-c for c in self._nx[0][2][n1][3]]),  # -d1 - d3
+                        d6Way = [add([-c for c in self._nx[0][2][n1][1]], [-c for c in self._nx[0][2][n1][3]]),
+                                 # -d1 - d3
                                  self._nx[0][0][n1][3],  # d3
                                  add(self._nx[2][0][n1][2], self._nx[2][0][n1][3]),  # d2 + d3
                                  self._nx[2][1][n1][2],  # d2
@@ -431,7 +436,8 @@ class Septum:
                                  self._nx[0][-1][n1][3],  # d3
                                  add(self._nx[2][-1][n1][1], self._nx[2][-1][n1][3]),  # d1 + d3
                                  self._nx[2][-2][n1][2],  # d2
-                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
+                                 add([-c for c in self._nx[2][-3][n1][2]],
+                                     [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
 
                 elif n1 == elementsCountAround:
                     if n3 == 0:
@@ -447,7 +453,8 @@ class Septum:
                                  self._nx[0][-1][n1][3],  # d3
                                  add(self._nx[2][-1][n1][2], self._nx[2][-1][n1][3]),  # d2 + d3
                                  self._nx[2][-2][n1][2],  # d2
-                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
+                                 add([-c for c in self._nx[2][-3][n1][2]],
+                                     [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
 
                 else:
                     if n3 == 0:
@@ -464,7 +471,8 @@ class Septum:
                                  self._nx[0][-1][n1][3],  # d3
                                  add(self._nx[2][-1][n1][2], self._nx[2][-1][n1][3]),  # d2 + d3
                                  self._nx[2][-2][n1][2],  # d2
-                                 add([-c for c in self._nx[2][-3][n1][2]], [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
+                                 add([-c for c in self._nx[2][-3][n1][2]],
+                                     [-c for c in self._nx[2][-3][n1][3]])]  # -d2 - d3
 
                 cd = interpolateLagrangeHermiteDerivative(x6Way[5], x6Way[2], d6Way[2], 0.0)
                 d6Way.append(cd)
@@ -729,9 +737,9 @@ class Septum:
                             self._nids[n2pB][n3p1][e1], self._nids[n2pB][n3p1][e1p]]
 
                     nodeParameters = [self._nx[n2p0][n3p0][e1], self._nx[n2p0][n3p0][e1p],
-                                        self._nx[n2pA][n3p0][e1], self._nx[n2pA][n3p0][e1p],
-                                        self._nx[n2p1][n3p1][e1], self._nx[n2p1][n3p1][e1p],
-                                        self._nx[n2pB][n3p1][e1], self._nx[n2pB][n3p1][e1p]]
+                                      self._nx[n2pA][n3p0][e1], self._nx[n2pA][n3p0][e1p],
+                                      self._nx[n2p1][n3p1][e1], self._nx[n2p1][n3p1][e1p],
+                                      self._nx[n2pB][n3p1][e1], self._nx[n2pB][n3p1][e1p]]
 
                 else:
                     nids = [self._nids[n2pB][n3p1][e1], self._nids[n2pB][n3p1][e1p],
@@ -829,12 +837,13 @@ class Septum:
                                     # nidsCheck.append(self._nids[n2][n3][n1])
                                     nodeLayouts.append(
                                         nodeLayout5Way if ((n2 == 2 and n3 == 0 and
-                                                           (n1 == 0 or n1 == self._element_counts[0])) or
-                                                          (n2 == 2 and n3 == self._element_counts[2] and
-                                                             (n1 == 0 or n1 == self._element_counts[0]))) else
+                                                            (n1 == 0 or n1 == self._element_counts[0])) or
+                                                           (n2 == 2 and n3 == self._element_counts[2] and
+                                                            (n1 == 0 or n1 == self._element_counts[0]))) else
                                         nodeLayoutMinusD1D2MinusD3 if (n3 == self._element_counts[2]) else
                                         nodeLayoutTriplePoint23Front if (n2 == 1 and n3 == 1) else
-                                        nodeLayoutTriplePoint23Back if (n2 == 1 and n3 == self._element_counts[2] - 1) else
+                                        nodeLayoutTriplePoint23Back if (
+                                                    n2 == 1 and n3 == self._element_counts[2] - 1) else
                                         None)
 
                         eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
@@ -922,7 +931,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         elif isHumanPregnant:
             options["Structure"] = (
                 "1-2-3-4-5-6-7-8-9-31.1,"
-                "10-11-12-13-14-15-16-17-18-31.2,"                
+                "10-11-12-13-14-15-16-17-18-31.2,"
                 "#-19-20-21-22-23-24-25-26-27-28-29-30-31.3,"
                 "31.4-32-33-34-35-36-37-38-39-40-41-42-43,"
                 "43-44,"
@@ -1300,7 +1309,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                             innerProportionFundus = \
                                 interpolateCubicHermite([innerProportionOviducts, 0.0, 0.0],
                                                         [innerProportionBodyD2 - innerProportionOviducts, 0.0, 0.0],
-                                                        [innerProportionBodyD2, 0.0, 0.0], [0.0, 0.0, 0.0], xiEllipse)[0]
+                                                        [innerProportionBodyD2, 0.0, 0.0], [0.0, 0.0, 0.0], xiEllipse)[
+                                    0]
                             id2 = mult(d2, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
                             id3 = mult(d3, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
                             id12 = mult(d12, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
@@ -1670,7 +1680,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Rat 1']
 
     @classmethod
-    def getDefaultOptions(cls, parameterSetName ='Default'):
+    def getDefaultOptions(cls, parameterSetName='Default'):
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options = {
             'Base parameter set': useParameterSetName,
@@ -1762,16 +1772,30 @@ class MeshType_3d_uterus1(Scaffold_base):
         for key in [
             'Number of elements around',
             'Number of elements around oviduct']:
-            if options[key] < 4:
-                options[key] = 4
+            if options[key] < 8:
+                options[key] = 8
             elif (options[key] % 4) > 0:
                 options[key] += options[key] % 4
 
         parameterSetName = options["Base parameter set"]
         dependentChanges = False
         isRat = "Rat" in parameterSetName
+
         if isRat and options["Use linear through wall"]:
             options["Use linear through wall"] = False
+            dependentChanges = True
+
+        # Only 8 around oviduct works for rat at the moment
+        if isRat and options["Number of elements around oviduct"] > 8:
+            options["Number of elements around oviduct"] = 8
+            dependentChanges = True
+
+        if options["Number of elements around oviduct"] >= options["Number of elements around"]:
+            if isRat:
+                options["Number of elements around oviduct"] = 8
+                options["Number of elements around"] = 12
+            else:
+                options["Number of elements around oviduct"] = options["Number of elements around"] - 4
             dependentChanges = True
 
         return dependentChanges
@@ -1858,7 +1882,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             markerElement = mesh.findElementByIdentifier(allMarkers[key]["elementID"])
             markerXi = allMarkers[key]["xi"]
             group = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                        get_uterus_term(key), isMarker=True)
+                                                       get_uterus_term(key), isMarker=True)
             markerNode = group.createMarkerNode(nodeIdentifier, element=markerElement, xi=markerXi)
             nodeIdentifier = markerNode.getIdentifier() + 1
             for group in annotationGroups:
@@ -1959,7 +1983,6 @@ class MeshType_3d_uterus1(Scaffold_base):
                 annotationGroups.remove(septumGroups[i])
 
         return annotationGroups, None
-
 
     @classmethod
     def refineMesh(cls, meshrefinement, options):
@@ -2074,11 +2097,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfFundus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                         get_uterus_term("lumen of fundus of uterus"))
+                                                           get_uterus_term("lumen of fundus of uterus"))
         lumenOfFundus.getMeshGroup(mesh2d).addElementsConditional(is_fundus_inner)
 
         serosaOfFundus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                          get_uterus_term("serosa of fundus of uterus"))
+                                                            get_uterus_term("serosa of fundus of uterus"))
         serosaOfFundus.getMeshGroup(mesh2d).addElementsConditional(is_fundus_outer)
 
         lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -2096,7 +2119,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         lumenOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
 
         lumenOfUterusVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_uterus_term("lumen of uterus, cervix and vagina"))
+                                                                 get_uterus_term("lumen of uterus, cervix and vagina"))
         lumenOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
         lumenOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
         lumenOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_inner)
@@ -2202,7 +2225,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             is_leftOviduct_inner = fm.createFieldAnd(is_leftOviduct, is_exterior_face_xi3_0)
 
             serosaOfLeftOviduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                   get_uterus_term("serosa of left oviduct"))
+                                                                     get_uterus_term("serosa of left oviduct"))
             serosaOfLeftOviduct.getMeshGroup(mesh2d).addElementsConditional(is_leftOviduct_outer)
 
             rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right oviduct"))
@@ -2211,25 +2234,25 @@ class MeshType_3d_uterus1(Scaffold_base):
             is_rightOviduct_inner = fm.createFieldAnd(is_rightOviduct, is_exterior_face_xi3_0)
 
             serosaOfRightOviduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                         get_uterus_term("serosa of right oviduct"))
+                                                                      get_uterus_term("serosa of right oviduct"))
             serosaOfRightOviduct.getMeshGroup(mesh2d).addElementsConditional(is_rightOviduct_outer)
 
             lumenOfLeftOviduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                  get_uterus_term("lumen of left oviduct"))
+                                                                    get_uterus_term("lumen of left oviduct"))
             lumenOfLeftOviduct.getMeshGroup(mesh2d).addElementsConditional(is_leftOviduct_inner)
 
             lumenOfRightOviduct = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                        get_uterus_term("lumen of right oviduct"))
+                                                                     get_uterus_term("lumen of right oviduct"))
             lumenOfRightOviduct.getMeshGroup(mesh2d).addElementsConditional(is_rightOviduct_inner)
 
             is_pubocervical = fm.createFieldAnd(is_body_outer, is_cervix_outer)
             pubocervical = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_uterus_term("pubocervical ligament"))
+                                                              get_uterus_term("pubocervical ligament"))
             pubocervical.getMeshGroup(mesh1d).addElementsConditional(is_pubocervical)
 
             is_internal_os = fm.createFieldAnd(is_body_inner, is_cervix_inner)
             internalOs = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                                get_uterus_term("internal cervical os"))
+                                                            get_uterus_term("internal cervical os"))
             internalOs.getMeshGroup(mesh1d).addElementsConditional(is_internal_os)
 
             is_external_os = fm.createFieldAnd(is_vagina_inner, is_cervix_inner)
@@ -2239,7 +2262,7 @@ class MeshType_3d_uterus1(Scaffold_base):
 
             is_vagina_orifice = fm.createFieldAnd(is_vagina_xi2_01, is_exterior_face_xi3_0)
             vaginaOrifice = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            get_uterus_term("vagina orifice"))
+                                                               get_uterus_term("vagina orifice"))
             vaginaOrifice.getMeshGroup(mesh1d).addElementsConditional(is_vagina_orifice)
 
             # ligaments
@@ -2336,6 +2359,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         # annotationGroups.remove(upperCervixGroup)
         # annotationGroups.remove(lowerCervixGroup)
 
+
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """
     Assign node field parameters x, d1, d2, d3 of field.
@@ -2358,6 +2382,7 @@ def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, d13)
 
+
 def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=None, d13=None):
     """
     Assign node field parameters d1, d2, d3 of field.
@@ -2378,6 +2403,7 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, d12)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)
+
 
 def getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum, elementsCountAround):
     """
