@@ -101,7 +101,7 @@ class NetworkSegment:
     Describes a segment of a network between junctions as a sequence of nodes with node derivative versions.
     """
 
-    def __init__(self, networkNodes: list, nodeVersions: list):
+    def __init__(self, networkNodes: list, nodeVersions: list, isCap: list):
         """
         :param networkNodes: List of NetworkNodes from start to end. Must be at least 2.
         :param nodeVersions: List of node versions to use for derivatives at network nodes.
@@ -109,6 +109,7 @@ class NetworkSegment:
         assert isinstance(networkNodes, list) and (len(networkNodes) > 1) and (len(nodeVersions) == len(networkNodes))
         self._networkNodes = networkNodes
         self._nodeVersions = nodeVersions
+        self._isCap = isCap
         self._elementIdentifiers = [None] * (len(networkNodes) - 1)
         for networkNode in networkNodes[1:-1]:
             networkNode.setInteriorSegment(self)
@@ -159,6 +160,12 @@ class NetworkSegment:
         """
         return False  # not implemented, assume not cyclic
 
+    def isCap(self):
+        """
+        :return: True if the segment requires a cap mesh, False if not.
+        """
+        return self._isCap
+
     def split(self, splitNetworkNode):
         """
         Split segment to finish at splitNetworkNode, returning remainder as a new NetworkSegment.
@@ -207,6 +214,20 @@ class NetworkMesh:
         self._networkSegments = []
         sequenceStrings = structureString.split(",")
         for sequenceString in sequenceStrings:
+            # check if the node requires a cap at the end
+            if not sequenceString[0].isnumeric() or not sequenceString[-1].isnumeric():
+                try:
+                    isStartCap = True if sequenceString[0] == "(" else False
+                    isEndCap = True if sequenceString[-1] == ")" else False
+                    sequenceString = sequenceString[1:] if isStartCap else sequenceString
+                    sequenceString = sequenceString[:-1] if isEndCap else sequenceString
+                except ValueError:
+                    print("Network mesh: Skipping invalid cap sequence", sequenceString, file=sys.stderr)
+                    continue
+            else:
+                isStartCap = isEndCap = False
+            isCap = [isStartCap, isEndCap]
+
             nodeIdentifiers = []
             nodeVersions = []
             nodeVersionStrings = sequenceString.split("-")
@@ -240,7 +261,7 @@ class NetworkMesh:
                 sequenceNodes.append(networkNode)
                 sequenceVersions.append(nodeVersion)
                 if (len(sequenceNodes) > 1) and (existingNetworkNode or (nodeIdentifier == nodeIdentifiers[-1])):
-                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions)
+                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isCap)
                     self._networkSegments.append(networkSegment)
                     sequenceNodes = sequenceNodes[-1:]
                     sequenceVersions = sequenceVersions[-1:]
