@@ -356,9 +356,9 @@ class QuadTriangleMesh:
         Smooth derivatives across triangle.
         :param start_indexes: Indexes of first point.
         :param end_indexes: Indexes of last point.
-        :param index_increments: List of increments in indexes. Starts with first and after at each corner, then
+        :param index_increments: List of increments in indexes. Starts with first and advances at each corner, then
         cycles back to first.
-        :param derivative_indexes: List of signed derivative parameter index to along where 1=d1, 2=d2, 3=d3.
+        :param derivative_indexes: List of signed derivative parameter index to set along where 1=d1, 2=d2, 3=d3.
         Starts with first and advances at each corner, then cycles back to first. Can be negative to invert vector.
         e.g. [1, -2] for d1 then -d2 from first corner.
         :param fix_start_direction: Set to True to keep the start direction but scale its magnitude.
@@ -412,7 +412,7 @@ class QuadTriangleMesh:
         if self._move_d_to_surface:
             for n in range(1, len(sd) - 1):
                 sd[n] = self._move_d_to_surface(px[n], sd[n])
-        sd = smoothCubicHermiteDerivativesLine(px, sd, fixAllDirections=True)
+            sd = smoothCubicHermiteDerivativesLine(px, sd, fixAllDirections=True)
         for n in range(len(sd)):
             indexes = indexes_list[n]
             spix = derivative_index_list[n]
