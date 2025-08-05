@@ -893,7 +893,13 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {}
         options["Base parameter set"] = parameterSetName
-        if parameterSetName in ("Mouse 1", "Rat 1"):
+        isHuman = "Human" in parameterSetName
+        isPregnant = "Pregnant" in parameterSetName
+        isHumanPregnant = isHuman and isPregnant
+        isMouse = "Mouse" in parameterSetName
+        isRat = "Rat" in parameterSetName
+        isRodent = isMouse or isRat
+        if isRodent:
             options["Structure"] = (
                 "1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16-36.1,"
                 "17-18-19-20-21-22-23-24-25-26-27-28-29-30-31-32-36.2,"
@@ -918,7 +924,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Inner proportion cervix"] = 0.75
             options["Inner proportion vagina"] = 0.75
             options["Angle of anteversion degrees"] = 0.0
-        elif parameterSetName == "Human Pregnant 1":
+        elif isHumanPregnant:
             options["Structure"] = (
                 "1-2-3-4-5-6-7-8-9-31.1,"
                 "10-11-12-13-14-15-16-17-18-31.2,"                
@@ -1065,8 +1071,12 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         innerProportionCervix = options["Inner proportion cervix"]
         innerProportionVagina = options["Inner proportion vagina"]
 
-        isPregnant = parameterSetName in 'Human Pregnant 1'
-        isRodent = parameterSetName in ("Mouse 1", "Rat 1")
+        isHuman = "Human" in parameterSetName
+        isPregnant = "Pregnant" in parameterSetName
+        isHumanPregnant = isHuman and isPregnant
+        isMouse = "Mouse" in parameterSetName
+        isRat = "Rat" in parameterSetName
+        isRodent = isMouse or isRat
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -1101,7 +1111,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             fundusPostBodyJunctionElementsCount = 3
             cervixElementsCount = 1
             vaginaElementsCount = 2
-        elif isPregnant:
+        elif isHumanPregnant:
             oviductElementsCount = 9
             fundusPatchElementsCount = 12
             fundusPostBodyJunctionElementsCount = 12
@@ -1187,7 +1197,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         zero = [0.0, 0.0, 0.0]
         xBodyJunction = [0.0, 0.0, 0.0]
 
-        if isPregnant:
+        if isHumanPregnant:
             aThetaCervicalEnd = math.asin(halfCervicalWidthInternalOs / halfFundusWidth)
             aEllipse = bodyLength / math.cos(aThetaCervicalEnd)
         cThetaCervicalEnd = math.asin(halfCervicalDepthInternalOs / halfFundusDepth)
@@ -1296,10 +1306,10 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                                 interpolateCubicHermite([innerProportionOviducts, 0.0, 0.0],
                                                         [innerProportionBodyD2 - innerProportionOviducts, 0.0, 0.0],
                                                         [innerProportionBodyD2, 0.0, 0.0], [0.0, 0.0, 0.0], xiEllipse)[0]
-                            id2 = mult(d2, innerProportionFundus if isPregnant else innerProportionOviducts)
-                            id3 = mult(d3, innerProportionFundus if isPregnant else innerProportionOviducts)
-                            id12 = mult(d12, innerProportionFundus if isPregnant else innerProportionOviducts)
-                            id13 = mult(d13, innerProportionFundus if isPregnant else innerProportionOviducts)
+                            id2 = mult(d2, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
+                            id3 = mult(d3, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
+                            id12 = mult(d12, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
+                            id13 = mult(d13, innerProportionFundus if isHumanPregnant else innerProportionOviducts)
 
                     if i < oviductElementsCount:
                         node = nodes.findNodeByIdentifier(nodeIdentifier)
@@ -1332,7 +1342,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             xi = i / fundusPatchElementsCount
             width = xi * halfFundusWidth + (1.0 - xi) * (halfFundusWidth * 0.01 if isRodent else
                                                          halfCervicalWidthInternalOs)
-            if isPregnant:
+            if isHumanPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
                 width = halfFundusWidth * math.sin(thetaA)
             thetaC = math.acos(x[0] / cEllipse)
@@ -1347,7 +1357,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             fieldcache.setNode(node)
             id3 = mult(nd3Patch[i], innerProportionBodyD3)
             id13 = mult(nd13Patch[i], innerProportionBodyD3)
-            if isPregnant:
+            if isHumanPregnant:
                 id2 = mult(nd2Patch[i], innerProportionBodyD2)
                 id12 = mult(nd12Patch[i], innerProportionBodyD2)
             else:
@@ -1388,7 +1398,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         version = 3
         id3 = mult(nd3Patch[-1], innerProportionBodyD3)
         id13 = mult(nd13Patch[-1], innerProportionBodyD3)
-        if isPregnant:
+        if isHumanPregnant:
             id2 = mult(nd2Patch[-1], innerProportionBodyD2)
             id12 = mult(nd12Patch[-1], innerProportionBodyD2)
         else:
@@ -1419,7 +1429,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             width = xi * halfCervicalWidthInternalOs + (1.0 - xi) * halfFundusWidth
             thetaC = math.acos(x[0] / cEllipse)
             depth = halfFundusDepth * math.sin(thetaC)
-            if isPregnant:
+            if isHumanPregnant:
                 thetaA = math.acos(x[0] / aEllipse)
                 width = halfFundusWidth * math.sin(thetaA)
             d2 = [0.0, width, 0.0]
@@ -1448,7 +1458,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             d12 = nd12Body[i]
             d13 = nd13Body[i]
 
-            if isPregnant:
+            if isHumanPregnant:
                 id2 = mult(d2, innerProportionBodyD2)
                 id12 = mult(d12, innerProportionBodyD2)
                 id3 = mult(d3, innerProportionBodyD3)
@@ -1774,10 +1784,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         :return: None
         """
         parameterSetName = options['Base parameter set']
-        isHuman = parameterSetName in ("Default", "Human 1")
-        isPregnant = parameterSetName in ("Human Pregnant 1")
-        isRodent = parameterSetName in ("Mouse 1", "Rat 1")
-        isRat = parameterSetName in ("Rat 1")
+        isHuman = "Human" in parameterSetName
+        isPregnant = "Pregnant" in parameterSetName
+        isRat = "Rat" in parameterSetName
+        isMouse = "Mouse" in parameterSetName
+        isRodent = isRat or isMouse
 
         layoutRegion = region.createRegion()
         networkLayout = options["Network layout"]
@@ -1977,9 +1988,10 @@ class MeshType_3d_uterus1(Scaffold_base):
         New face annotation groups are appended to this list.
         """
         parameterSetName = options['Base parameter set']
-        isHuman = parameterSetName in ("Default", "Human 1", "Human Pregnant 1")
-        isRodent = parameterSetName in ("Mouse 1", "Rat 1")
-        isRat = parameterSetName in ("Rat 1")
+        isHuman = "Human" in parameterSetName
+        isMouse = "Mouse" in parameterSetName
+        isRat = "Rat" in parameterSetName
+        isRodent = isMouse or isRat
 
         # Create 2d surface mesh groups
         fm = region.getFieldmodule()
