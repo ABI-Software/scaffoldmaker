@@ -171,17 +171,12 @@ class Septum:
     channel structure.
     """
 
-    def __init__(self, element_counts, nidsRim, paramRim, thickness, nextNodeIdentifier, nextElementIdentifier,
-                 annotationGroups, region):
+    def __init__(self, element_counts, nidsRim, paramRim, thickness):
         """
         :param element_counts: [elements around septum, elements along septum, elements through septum]
         :param nidsRim: node identifiers of rim nodes to be used for making septum.
         :param paramRim: parameters of rim nodes to be used for making septum.
         :param thickness: thickness of the septum at its thinnest section.
-        :param nextNodeIdentifier: next identifier to use for making next node.
-        :param nextElementIdentifier: next identifier to use for making next element.
-        :param annotationGroups: annotation groups.
-        :param region: region for making septum.
         """
         assert all((count >= 2) and (count % 2 == 0) for count in [element_counts[0], element_counts[2]])
         self._element_counts = element_counts
@@ -191,10 +186,6 @@ class Septum:
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
-        self._nextNodeIdentifier = nextNodeIdentifier
-        self._nextElementIdentifier = nextElementIdentifier
-        self._annotationGroups = annotationGroups
-        self._region = region
 
         for n2 in range(self._element_counts[1] + 1):
             nx_layer = []
@@ -541,12 +532,18 @@ class Septum:
             for n3 in range(2, elementsCountThrough - 1):
                 self._nx[1][n3][n1][3] = [-c for c in d3[n3 - 1]]
 
-    def generateMesh(self, fieldmodule, coordinates):
+    def generateMesh(self, fieldmodule, coordinates, nextNodeIdentifier, nextElementIdentifier,
+                     annotationGroups, region):
         """
         After build() has been called, generate nodes and elements of septum.
         Client is expected to run within ChangeManager(fieldmodule)
         :param fieldmodule: Owning fieldmodule to create mesh in.
         :param coordinates: Coordinate field to define.
+        :param nextNodeIdentifier: next identifier to use for making next node.
+        :param nextElementIdentifier: next identifier to use for making next element.
+        :param annotationGroups: annotation groups.
+        :param region: region for making septum.
+        :return nextNodeIdentifer and nextElementIdentifier.
         """
 
         fieldcache = fieldmodule.createFieldcache()
@@ -558,7 +555,7 @@ class Septum:
         for value_label in [Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]:
             nodetemplate.setValueNumberOfVersions(coordinates, -1, value_label, 1)
 
-        node_identifier = self._nextNodeIdentifier
+        node_identifier = nextNodeIdentifier
         for n2 in range(self._element_counts[1] + 1):
             for n3 in range(self._element_counts[2] + 1):
                 for n1 in range(self._element_counts[0] + 1):
@@ -580,13 +577,13 @@ class Septum:
                         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                     node_identifier += 1
 
-        self._nextNodeIdentifier = node_identifier
+        nextNodeIdentifier = node_identifier
 
-        septumGroup = findOrCreateAnnotationGroupForTerm(self._annotationGroups, self._region, ("septum", ""))
-        leftGroup = findOrCreateAnnotationGroupForTerm(self._annotationGroups, self._region, ("left", ""))
-        rightGroup = findOrCreateAnnotationGroupForTerm(self._annotationGroups, self._region, ("right", ""))
-        dorsalGroup = findOrCreateAnnotationGroupForTerm(self._annotationGroups, self._region, ("dorsal", ""))
-        ventralGroup = findOrCreateAnnotationGroupForTerm(self._annotationGroups, self._region, ("ventral", ""))
+        septumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("septum", ""))
+        leftGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("left", ""))
+        rightGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("right", ""))
+        dorsalGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("dorsal", ""))
+        ventralGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("ventral", ""))
 
         groups = [septumGroup]
 
@@ -634,7 +631,7 @@ class Septum:
         nodeLayoutTriplePoint23Front = node_layout_manager.getNodeLayoutTriplePoint23Front()
         nodeLayoutTriplePoint23Back = node_layout_manager.getNodeLayoutTriplePoint23Back()
 
-        elementIdentifier = self._nextElementIdentifier
+        elementIdentifier = nextElementIdentifier
 
         # Top 4 elements
         for e3 in range(2):
@@ -866,10 +863,8 @@ class Septum:
                         ventralMeshGroup = ventralGroup.getMeshGroup(mesh)
                         ventralMeshGroup.addElement(element)
 
-        self._nextElementIdentifier = elementIdentifier
-
-    def getElementIdentifier(self):
-        return self._nextElementIdentifier - 1
+        nextElementIdentifier = elementIdentifier
+        return nextNodeIdentifier, nextElementIdentifier
 
 
 class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
@@ -1916,13 +1911,14 @@ class MeshType_3d_uterus1(Scaffold_base):
             septumRimNids, septumRimParams = \
                 getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum, elementsCountAround)
 
-            ratSeptum = Septum(elementCountsSeptum, septumRimNids, septumRimParams, septumThickness,
-                               nodeIdentifier, elementIdentifier, annotationGroups, region)
+            ratSeptum = Septum(elementCountsSeptum, septumRimNids, septumRimParams, septumThickness)
             ratSeptum.build()
-            ratSeptum.generateMesh(fieldmodule, coordinates)
+            nextNodeIdentifier, nextElementIdentifier = \
+                ratSeptum.generateMesh(fieldmodule, coordinates, nodeIdentifier, elementIdentifier, annotationGroups,
+                                       region)
 
             # Make annotation groups for rat
-            lastSeptumElementIdentifier = ratSeptum.getElementIdentifier()
+            lastSeptumElementIdentifier = nextElementIdentifier - 1
             elementsCountSeptumCervix = elementsCountThroughSeptum * elementsCountAroundSeptum * \
                                         options['Number of elements along cervix']
             eidsSeptumBody = list(range(firstSeptumElementIdentifier,
