@@ -94,15 +94,161 @@ class EllipsoidMesh:
         Determine coordinates and derivatives over and within ellipsoid.
         """
         half_counts = [count // 2 for count in self._element_counts]
+        opp_counts = [half_counts[i] - self._transition_element_count for i in range(3)]
+
+        octant1 = self._build_ellipsoid_octant(half_counts, self._axis2_x_rotation_radians, self._axis3_x_rotation_radians)
+
+        # copy octant1 into ellipsoid
+        octant_parameters = octant1.get_parameters()
+        for n3 in range(half_counts[2] + 1):
+            octant_nx_layer = octant_parameters[n3]
+            nx_layer = self._nx[half_counts[2] + n3]
+            for n2 in range(half_counts[1] + 1):
+                octant_nx_row = octant_nx_layer[n2]
+                nx_row = nx_layer[half_counts[1] + n2]
+                for n1 in range(half_counts[0] + 1):
+                    nx_row[half_counts[0] + n1] = copy.deepcopy(octant_nx_row[n1])
+
+        octant2 = self._build_ellipsoid_octant([half_counts[0], half_counts[2], half_counts[1]],
+                                               self._axis3_x_rotation_radians - math.pi, self._axis2_x_rotation_radians)
+
+        # transfer parameters on bottom plane of octant1 to target location of octant2 for blending
+        n3 = half_counts[2]
+        for i2 in range(1, half_counts[1] + 1):
+            n2 = half_counts[1] + i2
+            for i1 in range(half_counts[0] + 1):
+                n1 = half_counts[0] + i1
+                box = (i1 <= opp_counts[0]) and (i2 <= opp_counts[1])
+                parameters = self._nx[n3][n2][n1]
+                if not parameters or not parameters[0]:
+                    continue
+                x, d1, d2, d3 = parameters
+                x = [x[0], -x[1], -x[2]]
+                d1 = [d1[0], -d1[1], -d1[2]] if box else [-d1[0], d1[1], d1[2]]
+                d2 = [-d2[0], d2[1], d2[2]]
+                d3 = ([-d3[0], d3[1], d3[2]] if box else [d3[0], -d3[1], -d3[2]]) if d3 else None
+                self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
+
+        # copy and mirror in y and z octant2 into ellipsoid, blending existing derivatives
+        octant_parameters = octant2.get_parameters()
+        for o3 in range(half_counts[1] + 1):
+            octant_nx_layer = octant_parameters[o3]
+            for o2 in range(half_counts[2] + 1):
+                octant_nx_row = octant_nx_layer[o2]
+                nx_row = self._nx[half_counts[2] + o2][half_counts[1] - o3]
+                box_row = (o2 <= opp_counts[2]) and (o3 <= opp_counts[1])
+                top_transition = (o2 > opp_counts[2]) # and (o3 <= opp_counts[1])
+                for o1 in range(half_counts[0] + 1):
+                    octant_nx = octant_nx_row[o1]
+                    if octant_nx and octant_nx[0]:
+                        box = box_row and (o1 <= opp_counts[0])
+                        x, d1, d2, d3 = octant_nx
+                        x = [x[0], -x[1], -x[2]]
+                        if top_transition:
+                            if o3 > opp_counts[1]:
+                                d1 = [d1[0], -d1[1], -d1[2]]
+                                d2 = [d2[0], -d2[1], -d2[2]]
+                                # fix 3-way point case on transition 'corner':
+                                if (o3 >= opp_counts[1]) and (o1 >= opp_counts[0]):
+                                    d2 = add(d1, d2)
+                            else:
+                                d1 = [-d1[0], d1[1], d1[2]]
+                                d2 = [-d2[0], d2[1], d2[2]]
+                            d3 = [d3[0], -d3[1], -d3[2]] if d3 else None
+                        elif box:
+                            d1 = [d1[0], -d1[1], -d1[2]]
+                            d2, d3 = [-d3[0], d3[1], d3[2]], [d2[0], -d2[1], -d2[2]]
+                        else:
+                            if o3 > opp_counts[1]:
+                                d1 = [d1[0], -d1[1], -d1[2]]
+                                d2 = [d2[0], -d2[1], -d2[2]]
+                            else:
+                                d1, d2 = [-d2[0], d2[1], d2[2]], [d1[0], -d1[1], -d1[2]]
+                            d3 = [d3[0], -d3[1], -d3[2]] if d3 else None
+                        new_nx = [x, d1, d2, d3]
+                        nx = nx_row[half_counts[0] + o1]
+                        # expect coordinates to be at the same location on boundaries
+                        nx[0] = copy.copy(x)
+                        for pix in range(1, 4):
+                            d = new_nx[pix]
+                            if nx[pix] and d:
+                                # blend derivatives with harmonic mean magnitude; should already be in same direction
+                                d = linearlyInterpolateVectors(
+                                    nx[pix], d, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                            nx[pix] = copy.copy(d)
+
+        # transfer blended d2 derivatives on bottom plane of octant2 back to octant1
+        n3 = half_counts[2]
+        for i2 in range(1, half_counts[1] + 1):
+            n2 = half_counts[1] + i2
+            for i1 in range(half_counts[0] + 1):
+                n1 = half_counts[0] + i1
+                box = (i1 <= opp_counts[0]) and (i2 <= opp_counts[1])
+                parameters = self._nx[n3][self._element_counts[1] - n2][n1]
+                if not parameters or not parameters[0]:
+                    continue
+                x, d1, d2, d3 = parameters
+                x = [x[0], -x[1], -x[2]]
+                d1 = [d1[0], -d1[1], -d1[2]] if box else [-d1[0], d1[1], d1[2]]
+                d2 = [-d2[0], d2[1], d2[2]]
+                d3 = ([-d3[0], d3[1], d3[2]] if box else [d3[0], -d3[1], -d3[2]]) if d3 else None
+                self._nx[n3][n2][n1] = [x, d1, d2, d3]
+
+        # mirror octants over x = 0
+        for n3 in range(half_counts[2], self._element_counts[2] + 1):
+            for n2 in range(0, self._element_counts[1] + 1):
+                for n1 in range(half_counts[0] + 1, self._element_counts[0] + 1):
+                    parameters = self._nx[n3][n2][n1]
+                    if not parameters or not parameters[0]:
+                        continue
+                    x, d1, d2, d3 = parameters
+                    x = [-x[0], x[1], x[2]]
+                    d1 = [d1[0], -d1[1], -d1[2]] if d1 else None
+                    d2 = [-d2[0], d2[1], d2[2]] if d2 else None
+                    d3 = [-d3[0], d3[1], d3[2]] if d3 else None
+                    self._nx[n3][n2][self._element_counts[0] - n1] = [x, d1, d2, d3]
+
+        # flip top half about both y = 0 and z = 0
+        for n3 in range(half_counts[2] + 1, self._element_counts[2] + 1):
+            for n2 in range(0, self._element_counts[1] + 1):
+                top_nx_row = self._nx[n3][n2]
+                box2 = (self._transition_element_count <= n2 <=
+                        (self._element_counts[1] - self._transition_element_count))
+                box_row = (n3 <= (half_counts[2] + opp_counts[2])) and box2
+                bottom_nx_row = self._nx[self._element_counts[2] - n3][self._element_counts[1] - n2]
+                bottom_transition = box2 and (n3 >= (half_counts[2] + opp_counts[2]))
+                for n1 in range(self._element_counts[0] + 1):
+                    parameters = top_nx_row[n1]
+                    if parameters and parameters[0]:
+                        box = box_row and (self._transition_element_count <= n1 <=
+                                           (self._element_counts[0] - self._transition_element_count))
+                        x, d1, d2, d3 = parameters
+                        x = [x[0], -x[1], -x[2]]
+                        d2 = [-d2[0], d2[1], d2[2]] if d2 else None
+                        if box and not bottom_transition:
+                            d1 = [d1[0], -d1[1], -d1[2]]
+                            d3 = [-d3[0], d3[1], d3[2]]
+                        else:
+                            d1 = [-d1[0], d1[1], d1[2]] if d1 else None
+                            d3 = [d3[0], -d3[1], -d3[2]] if d3 else None
+                        bottom_nx_row[n1] = [x, d1, d2, d3]
+
+    def _build_ellipsoid_octant(self, half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians):
+        """
+        Get coordinates of top, right, front octant with supplied angles.
+        :param half_counts: Numbers of elements across octant 1, 2 and 3 directions.
+        :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
+        :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
+        """
         elements_count_q12 = half_counts[0] + half_counts[1] - 2 * self._transition_element_count
         elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._transition_element_count
         elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._transition_element_count
-        opp_element_counts = [half_counts[i] - self._transition_element_count for i in range(3)]
+        opp_counts = [half_counts[i] - self._transition_element_count for i in range(3)]
 
         origin = [0.0, 0.0, 0.0]
         axis1 = [self._a, 0.0, 0.0]
-        axis2 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis2_x_rotation_radians)
-        axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, self._axis3_x_rotation_radians)
+        axis2 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis2_x_rotation_radians)
+        axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians)
         axis_d1 = div(axis1, half_counts[0])
         axis_d2 = div(axis2, half_counts[1])
         axis_d3 = div(axis3, half_counts[2])
@@ -130,7 +276,7 @@ class EllipsoidMesh:
             [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
         # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
 
-        octant1 = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count,
+        octant = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._transition_element_count,
                                       nway_d_factor=self._nway_d_factor)
 
         # get outside curve from axis 1 to axis 2
@@ -158,7 +304,7 @@ class EllipsoidMesh:
 
         # make outer surface triangle of octant 1
         triangle_abc = QuadTriangleMesh(
-            opp_element_counts[0], opp_element_counts[1], opp_element_counts[2],
+            opp_counts[0], opp_counts[1], opp_counts[2],
             sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface, self._nway_d_factor)
         triangle_abc.set_edge_parameters12(abx, abd1, abd2)
         triangle_abc.set_edge_parameters13(acx, acd1, acd2)
@@ -166,7 +312,7 @@ class EllipsoidMesh:
         triangle_abc.build()
         if not self._surface_only:
             triangle_abc.assign_d3(evaluate_surface_d3_ellipsoid)
-        octant1.set_triangle_abc(triangle_abc)
+        octant.set_triangle_abc(triangle_abc)
 
         if not self._surface_only:
             # extract exact derivatives
@@ -185,7 +331,7 @@ class EllipsoidMesh:
 
             # make inner surface triangle 1-2-origin
             triangle_abo = QuadTriangleMesh(
-                opp_element_counts[0], opp_element_counts[1], self._transition_element_count, sampleHermiteCurve,
+                opp_counts[0], opp_counts[1], self._transition_element_count, sampleHermiteCurve,
                 nway_d_factor=self._nway_d_factor)
             abd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in abx]
             triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
@@ -195,14 +341,14 @@ class EllipsoidMesh:
             triangle_abo.build()
             triangle_abo.assign_d3(lambda tx, td1, td2:
                 linearlyInterpolateVectors(axis_d3, axis2_dt, magnitude(tx[1:]) / axis2_mag))
-            octant1.set_triangle_abo(triangle_abo)
+            octant.set_triangle_abo(triangle_abo)
             # extract exact derivatives
             aod1 = triangle_abo.get_edge_parameters13()[1]
             bod1 = triangle_abo.get_edge_parameters23()[1]
 
             # make inner surface triangle 1-3-origin
             triangle_aco = QuadTriangleMesh(
-                opp_element_counts[0], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve,
+                opp_counts[0], opp_counts[2], self._transition_element_count, sampleHermiteCurve,
                 nway_d_factor=self._nway_d_factor)
             acd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in acx]
             acmd1 = [[-d for d in d1] for d1 in acd1]
@@ -214,13 +360,13 @@ class EllipsoidMesh:
             triangle_aco.build()
             triangle_aco.assign_d3(lambda tx, td1, td2:
                 linearlyInterpolateVectors(axis_md2, axis3_dt, magnitude(tx[1:]) / axis3_mag))
-            octant1.set_triangle_aco(triangle_aco)
+            octant.set_triangle_aco(triangle_aco)
             # extract exact derivatives
             cod3 = triangle_aco.get_edge_parameters23()[1]
 
             # make inner surface 2-3-origin
             triangle_bco = QuadTriangleMesh(
-                opp_element_counts[1], opp_element_counts[2], self._transition_element_count, sampleHermiteCurve,
+                opp_counts[1], opp_counts[2], self._transition_element_count, sampleHermiteCurve,
                 nway_d_factor=self._nway_d_factor)
             bcd3 = [bod2[0]] + [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in bcx[1:-1]] \
                    + [cod2[-1]]
@@ -232,133 +378,11 @@ class EllipsoidMesh:
             triangle_bco.set_edge_parameters23(cox, cod1, cod2, comd3)
             triangle_bco.build()
             triangle_bco.assign_d3(lambda tx, td1, td2: axis_d1)
-            octant1.set_triangle_bco(triangle_bco)
+            octant.set_triangle_bco(triangle_bco)
 
-            octant1.build()
+            octant.build_interior()
 
-        # copy octant1 into ellipsoid
-        octant_parameters = octant1.get_parameters()
-        for n3 in range(half_counts[2] + 1):
-            octant_nx_layer = octant_parameters[n3]
-            nx_layer = self._nx[half_counts[2] + n3]
-            for n2 in range(half_counts[1] + 1):
-                octant_nx_row = octant_nx_layer[n2]
-                nx_row = nx_layer[half_counts[1] + n2]
-                for n1 in range(half_counts[0] + 1):
-                    nx_row[half_counts[0] + n1] = copy.deepcopy(octant_nx_row[n1])
-
-        if not self._surface_only:
-            return
-
-        # transfer parameters on bottom plane of octant1 to octant2 for blending
-        n3 = half_counts[2]
-        for n2 in range(half_counts[1] + 1, self._element_counts[1] + 1):
-            for n1 in range(half_counts[0], self._element_counts[0] + 1):
-                parameters = self._nx[n3][n2][n1]
-                if not parameters or not parameters[2]:
-                    continue
-                x = parameters[0]
-                d1 = parameters[1]
-                d2 = parameters[2]
-                d3 = parameters[3]
-                x = [x[0], -x[1], -x[2]]
-                d1 = [-d1[0], d1[1], d1[2]]
-                d2 = [-d2[0], d2[1], d2[2]]
-                d3 = [d3[0], -d3[1], -d3[2]] if d3 else None  # GRC fix
-                self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
-
-        octant2 = EllipsoidOctantMesh(
-            self._b, self._a, self._c, [half_counts[1], half_counts[0], half_counts[2]], self._transition_element_count,
-            nway_d_factor=self._nway_d_factor)
-
-        # get outside curve from axis -2 to axis 1, mirrored from ab curve
-        mbax = [[x[0], -x[1], -x[2]] for x in reversed(abx)]
-        mbad1 = [[-d1[0], d1[1], d1[2]] for d1 in reversed(abd1)]
-        mbad2 = [[-d2[0], d2[1], d2[2]] for d2 in reversed(abd2)]
-        # get outside curve from axis -2 to axis 3
-        mbcx, mbcd2, mbcd1 = sampleCurveOnEllipsoid(
-            self._a, self._b, self._c,
-            mbax[0], mbad2[0], mbad1[0],
-            acx[-1], acd1[-1], [-d for d in acd2[-1]],
-            elements_count_q23)
-        # fix first/last derivatives
-        mbad2[0] = mbcd2[0]
-        acd1[-1] = mbcd2[-1]
-
-        # make outer surface of octant 2
-        outer_surface2 = QuadTriangleMesh(
-            opp_element_counts[1], opp_element_counts[0], opp_element_counts[2],
-            sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface,
-            nway_d_factor=self._nway_d_factor)
-        outer_surface2.set_edge_parameters12(mbax, mbad1, mbad2)
-        outer_surface2.set_edge_parameters13(mbcx, mbcd1, mbcd2)
-        outer_surface2.set_edge_parameters23(acx, acd1, acd2)
-        outer_surface2.build()
-        if not self._surface_only:
-            outer_surface2.assign_d3(evaluate_surface_d3_ellipsoid)
-        octant2.set_triangle_abc(outer_surface2)
-
-        # copy octant2 into ellipsoid, blending existing derivatives
-        octant_parameters = octant2.get_parameters()
-        for n3 in range(half_counts[2] + 1):
-            octant_nx_layer = octant_parameters[n3]
-            nx_layer = self._nx[half_counts[2] + n3]
-            for n2 in range(half_counts[0] + 1):
-                octant_nx_row = octant_nx_layer[n2]
-                for n1 in range(half_counts[1] + 1):
-                    octant_nx = octant_nx_row[n1]
-                    if octant_nx:
-                        nx = nx_layer[half_counts[1] - n1][half_counts[0] + n2]
-                        nx[0] = copy.copy(octant_nx[0])
-                        for pix in range(1, 4):
-                            if (n3 < half_counts[2]) or (pix == 3):
-                                d = octant_nx[pix]
-                            else:
-                                d = octant_nx[2] if (pix == 1) else [-d for d in octant_nx[1]] if octant_nx[1] else None
-                            if d:
-                                if nx[pix]:
-                                    nx[pix] = linearlyInterpolateVectors(
-                                        nx[pix], d, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-                                else:
-                                    nx[pix] = copy.copy(d)
-
-        # transfer blended d2 derivatives on bottom plane of octant2 back to octant1
-        n3 = half_counts[2]
-        for n2 in range(half_counts[1] + 1, self._element_counts[1] + 1):
-            for n1 in range(half_counts[0], self._element_counts[0] + 1):
-                parameters = self._nx[n3][self._element_counts[1] - n2][n1]
-                if not parameters or not parameters[2]:
-                    continue
-                d2 = parameters[2]
-                self._nx[n3][n2][n1][2] = [-d2[0], d2[1], d2[2]]
-
-        # mirror octants over x = 0
-        for n3 in range(half_counts[2], self._element_counts[2] + 1):
-            for n2 in range(0, self._element_counts[1] + 1):
-                for n1 in range(half_counts[0] + 1, self._element_counts[0] + 1):
-                    parameters = self._nx[n3][n2][n1]
-                    if not parameters or not parameters[0]:
-                        continue
-                    x, d1, d2, d3 = parameters
-                    x = [-x[0], x[1], x[2]]
-                    d1 = [d1[0], -d1[1], -d1[2]] if d1 else None
-                    d2 = [-d2[0], d2[1], d2[2]] if d2 else None
-                    d3 = [-d3[0], d3[1], d3[2]] if d3 else None
-                    self._nx[n3][n2][self._element_counts[0] - n1] = [x, d1, d2, d3]
-
-        # flip top half about both y = 0 and z = 0
-        for n3 in range(half_counts[2], self._element_counts[2] + 1):
-            for n2 in range(0, self._element_counts[1] + 1):
-                for n1 in range(self._element_counts[0] + 1):
-                    parameters = self._nx[n3][n2][n1]
-                    if not parameters or not parameters[0]:
-                        continue
-                    x, d1, d2, d3 = parameters
-                    x = [x[0], -x[1], -x[2]]
-                    d1 = [-d1[0], d1[1], d1[2]] if d1 else None
-                    d2 = [-d2[0], d2[1], d2[2]] if d2 else None
-                    d3 = [d3[0], d3[1], -d3[2]] if d3 else None
-                    self._nx[self._element_counts[2] - n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
+        return octant
 
     def _next_increment_out_of_bounds(self, indexes, index_increment):
         for c in range(3):
@@ -682,6 +706,7 @@ class EllipsoidMesh:
                 last_nids_row = nids_row
         return node_identifier, element_identifier
 
+
 class EllipsoidOctantMesh:
     """
     Generates one octant of an ellipsoid, 2-D surface or full 3-D volume.
@@ -974,9 +999,9 @@ class EllipsoidOctantMesh:
             pix = abs(spix)
             self._nx[indexes[2]][indexes[1]][indexes[0]][pix] = new_derivative
 
-    def build(self):
+    def build_interior(self):
         """
-        Determine interior coordinates from edge coordinates.
+        Determine interior coordinates from surface coordinates.
         """
         # determine 4-way point location from mean curves between side points linking to it
         point12 = self._nx[0][self._opp_counts[1]][self._opp_counts[0]]
