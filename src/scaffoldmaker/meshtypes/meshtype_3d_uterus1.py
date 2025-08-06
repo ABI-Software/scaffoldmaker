@@ -41,8 +41,7 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
         self._rightOviductGroup = self.getOrCreateAnnotationGroup(get_uterus_term("right oviduct"))
         self._fundusGroup = self.getOrCreateAnnotationGroup(get_uterus_term("fundus of uterus"))
         self._bodyGroup = self.getOrCreateAnnotationGroup(get_uterus_term("body of uterus"))
-        # self._upperCervixGroup = self.getOrCreateAnnotationGroup(("upper cervix", ""))
-        # self._lowerCervixGroup = self.getOrCreateAnnotationGroup(("lower cervix", ""))
+        self._bodyNotCervixGroup = self.getOrCreateAnnotationGroup(("body not cervix", ""))
         # force these annotation group names in base class
         self._leftGroup = self.getOrCreateAnnotationGroup(("left uterus", ""))
         self._rightGroup = self.getOrCreateAnnotationGroup(("right uterus", ""))
@@ -61,11 +60,8 @@ class UterusTubeNetworkMeshGenerateData(TubeNetworkMeshGenerateData):
     def getBodyMeshGroup(self):
         return self._bodyGroup.getMeshGroup(self._mesh)
 
-    # def getUpperCervixMeshGroup(self):
-    #     return self._upperCervixGroup.getMeshGroup(self._mesh)
-    #
-    # def getLowerCervixMeshGroup(self):
-    #     return self._lowerCervixGroup.getMeshGroup(self._mesh)
+    def getBodyNotCervixMeshGroup(self):
+        return self._bodyNotCervixGroup.getMeshGroup(self._mesh)
 
 
 class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
@@ -73,7 +69,6 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
     Adds left, right, dorsal, ventral, fundus, body annotations.
     Future: derive from BodyTubeNetworkMeshBuilder to get left/right/dorsal/ventral.
     """
-
     def createSegment(self, networkSegment):
         if networkSegment.isPatch():
             pathParametersList = [get_nodeset_path_ordered_field_parameters(
@@ -101,8 +96,7 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
         rightOviductMeshGroup = generateData.getRightOviductMeshGroup()
         fundusMeshGroup = generateData.getFundusMeshGroup()
         bodyMeshGroup = generateData.getBodyMeshGroup()
-        # upperCervixMeshGroup = generateData.getUpperCervixMeshGroup()
-        # lowerCervixMeshGroup = generateData.getLowerCervixMeshGroup()
+        bodyNotCervixMeshGroup = generateData.getBodyNotCervixMeshGroup()
         leftMeshGroup = generateData.getLeftMeshGroup()
         rightMeshGroup = generateData.getRightMeshGroup()
         dorsalMeshGroup = generateData.getDorsalMeshGroup()
@@ -127,11 +121,13 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                                         fundusMeshGroup.addElement(element)
                                     else:
                                         bodyMeshGroup.addElement(element)
+                                        bodyNotCervixMeshGroup.addElement(element)
                                 else:  # right
                                     if elementsCountAround // 4 <= e1 < 3 * elementsCountAround // 4:
                                         fundusMeshGroup.addElement(element)
                                     else:
                                         bodyMeshGroup.addElement(element)
+                                        bodyNotCervixMeshGroup.addElement(element)
                                 oviductMeshGroup = leftOviductMeshGroup if "left" in annotationTerm[0] else \
                                     rightOviductMeshGroup
                                 oviductMeshGroup.removeElement(element)
@@ -140,20 +136,9 @@ class UterusTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                     segment.addAllElementsToMeshGroup(fundusMeshGroup)
                 if "body" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(bodyMeshGroup)
-                # if "cervix" in annotationTerm[0]:
-                #     elementsCountRim = segment.getElementsCountRim()
-                #     elementsCountAlong = segment.getSampledElementsCountAlong()
-                #     elementsCountAround = segment.getElementsCountAround()
-                #     for e1 in range(elementsCountAround):
-                #         for e2 in range(elementsCountAlong):
-                #             for e3 in range(elementsCountRim):
-                #                 elementIdentifier = segment.getRimElementId(e1, e2, e3)
-                #                 if elementIdentifier is not None:
-                #                     element = mesh.findElementByIdentifier(elementIdentifier)
-                #                     # if e2 >= int(elementsCountAlong * 0.5):
-                #                     #     lowerCervixMeshGroup.addElement(element)
-                #                     # else:
-                #                     #     upperCervixMeshGroup.addElement(element)
+                    segment.addAllElementsToMeshGroup(bodyNotCervixMeshGroup)
+                if "cervix" in annotationTerm[0]:
+                    segment.addAllElementsToMeshGroup(bodyMeshGroup)
                 if "left" in annotationTerm[0]:
                     segment.addAllElementsToMeshGroup(leftMeshGroup)
                     break
@@ -911,11 +896,11 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "36.4-37-38-39,"
                 "39-40,"
                 "40-41-42")
-            options["Oviduct diameter"] = 0.5
-            options["Oviduct length"] = 4.0
+            options["Oviduct/uterine horn diameter"] = 0.5
+            options["Oviduct/uterine horn length"] = 4.0
             options["Body length"] = 0.65
-            options["Fundus width between oviducts"] = 0.8
-            options["Fundus depth between oviducts"] = 0.5
+            options["Fundus width between oviducts/uterine horns"] = 0.8
+            options["Fundus depth between oviducts/uterine horns"] = 0.5
             options["Cervical length"] = 0.25
             options["Cervical width around internal os"] = 0.8
             options["Cervical depth around internal os"] = 0.5
@@ -936,11 +921,11 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "31.4-32-33-34-35-36-37-38-39-40-41-42-43,"
                 "43-44,"
                 "44-45-46-47-48")
-            options["Oviduct diameter"] = 0.35
-            options["Oviduct length"] = 10.0
+            options["Oviduct/uterine horn diameter"] = 0.35
+            options["Oviduct/uterine horn length"] = 10.0
             options["Body length"] = 14.0
-            options["Fundus width between oviducts"] = 12.0
-            options["Fundus depth between oviducts"] = 12.0
+            options["Fundus width between oviducts/uterine horns"] = 12.0
+            options["Fundus depth between oviducts/uterine horns"] = 12.0
             options["Cervical length"] = 1.0
             options["Cervical width around internal os"] = 5.5
             options["Cervical depth around internal os"] = 3.8
@@ -961,11 +946,11 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 "23.4-24-25-26-27-28-29,"
                 "29-30-31,"
                 "31-32-33-34-35-36-37-38")
-            options["Oviduct diameter"] = 0.35
-            options["Oviduct length"] = 10.0
+            options["Oviduct/uterine horn diameter"] = 0.35
+            options["Oviduct/uterine horn length"] = 10.0
             options["Body length"] = 7.0
-            options["Fundus width between oviducts"] = 8.0
-            options["Fundus depth between oviducts"] = 6.0
+            options["Fundus width between oviducts/uterine horns"] = 8.0
+            options["Fundus depth between oviducts/uterine horns"] = 6.0
             options["Cervical length"] = 1.0
             options["Cervical width around internal os"] = 5.5
             options["Cervical depth around internal os"] = 3.8
@@ -979,18 +964,18 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             options["Inner proportion vagina"] = 0.8
             options["Angle of anteversion degrees"] = 70.0
         options["Define inner coordinates"] = True
-        options["Inner proportion oviducts"] = 0.5
+        options["Inner proportion oviduct/uterine horn"] = 0.5
 
         return options
 
     @classmethod
     def getOrderedOptionNames(cls):
         return [
-            "Oviduct diameter",
-            "Oviduct length",
+            "Oviduct/uterine horn diameter",
+            "Oviduct/uterine horn length",
             "Body length",
-            "Fundus width between oviducts",
-            "Fundus depth between oviducts",
+            "Fundus width between oviducts/uterine horns",
+            "Fundus depth between oviducts/uterine horns",
             "Cervical length",
             "Cervical width around internal os",
             "Cervical depth around internal os",
@@ -999,7 +984,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             "Vagina length",
             "Vagina width around vagina orifice",
             "Vagina depth around vagina orifice",
-            "Inner proportion oviducts",
+            "Inner proportion oviduct/uterine horn",
             "Inner proportion body",
             "Inner proportion cervix",
             "Inner proportion vagina",
@@ -1010,11 +995,11 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
     def checkOptions(cls, options):
         dependentChanges = False
         for key in [
-            "Oviduct diameter",
-            "Oviduct length",
+            "Oviduct/uterine horn diameter",
+            "Oviduct/uterine horn length",
             "Body length",
-            "Fundus width between oviducts",
-            "Fundus depth between oviducts",
+            "Fundus width between oviducts/uterine horns",
+            "Fundus depth between oviducts/uterine horns",
             "Cervical length",
             "Cervical width around internal os",
             "Cervical depth around internal os",
@@ -1027,7 +1012,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             if options[key] < 0.1:
                 options[key] = 0.1
         for key in [
-            "Inner proportion oviducts",
+            "Inner proportion oviduct/uterine horn",
             "Inner proportion body",
             "Inner proportion cervix",
             "Inner proportion vagina",
@@ -1056,11 +1041,11 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         """
         parameterSetName = options['Base parameter set']
         structure = options["Structure"]
-        oviductLength = options["Oviduct length"]
-        oviductRadius = 0.5 * options["Oviduct diameter"]
+        oviductLength = options["Oviduct/uterine horn length"]
+        oviductRadius = 0.5 * options["Oviduct/uterine horn diameter"]
         bodyLength = options["Body length"]
-        halfFundusWidth = 0.5 * options["Fundus width between oviducts"]
-        halfFundusDepth = 0.5 * options["Fundus depth between oviducts"]
+        halfFundusWidth = 0.5 * options["Fundus width between oviducts/uterine horns"]
+        halfFundusDepth = 0.5 * options["Fundus depth between oviducts/uterine horns"]
         cervicalLength = options["Cervical length"]
         halfCervicalWidthInternalOs = 0.5 * options["Cervical width around internal os"]
         halfCervicalDepthInternalOs = 0.5 * options["Cervical depth around internal os"]
@@ -1070,7 +1055,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         halfVaginaOrificeWidth = 0.5 * options["Vagina width around vagina orifice"]
         halfVaginaOrificeDepth = 0.5 * options["Vagina depth around vagina orifice"]
         anteversionAngleRad = math.radians(options["Angle of anteversion degrees"])
-        innerProportionOviducts = options["Inner proportion oviducts"]
+        innerProportionOviducts = options["Inner proportion oviduct/uterine horn"]
         innerProportionBody = options["Inner proportion body"]
         innerProportionCervix = options["Inner proportion cervix"]
         innerProportionVagina = options["Inner proportion vagina"]
@@ -1687,9 +1672,9 @@ class MeshType_3d_uterus1(Scaffold_base):
             'Network layout': ScaffoldPackage(MeshType_1d_uterus_network_layout1,
                                               defaultParameterSetName=useParameterSetName),
             'Number of elements around': 20,
-            'Number of elements around oviduct': 8,
+            'Number of elements around oviduct/uterine horn': 8,
             'Number of elements through wall': 1,
-            'Number of elements along oviduct': 6,
+            'Number of elements along oviduct/uterine horn': 6,
             'Number of elements along body': 5,
             'Number of elements along cervix': 1,
             'Number of elements along vagina': 4,
@@ -1702,8 +1687,8 @@ class MeshType_3d_uterus1(Scaffold_base):
         }
         if 'Mouse' in parameterSetName or 'Rat' in parameterSetName:
             options['Number of elements around'] = 12
-            options['Number of elements around oviduct'] = 8
-            options['Number of elements along oviduct'] = 12
+            options['Number of elements around oviduct/uterine horn'] = 8
+            options['Number of elements along oviduct/uterine horn'] = 12
             options['Number of elements along body'] = 2
             options['Number of elements along cervix'] = 1
             options['Number of elements along vagina'] = 2
@@ -1719,9 +1704,9 @@ class MeshType_3d_uterus1(Scaffold_base):
         optionNames = [
             'Network layout',
             'Number of elements around',
-            'Number of elements around oviduct',
+            'Number of elements around oviduct/uterine horn',
             'Number of elements through wall',
-            'Number of elements along oviduct',
+            'Number of elements along oviduct/uterine horn',
             'Number of elements along body',
             'Number of elements along cervix',
             'Number of elements along vagina',
@@ -1771,7 +1756,7 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         for key in [
             'Number of elements around',
-            'Number of elements around oviduct']:
+            'Number of elements around oviduct/uterine horn']:
             if options[key] < 8:
                 options[key] = 8
             elif (options[key] % 4) > 0:
@@ -1786,16 +1771,16 @@ class MeshType_3d_uterus1(Scaffold_base):
             dependentChanges = True
 
         # Only 8 around oviduct works for rat at the moment
-        if isRat and options["Number of elements around oviduct"] > 8:
+        if isRat and options["Number of elements around oviduct/uterine horn"] > 8:
             options["Number of elements around oviduct"] = 8
             dependentChanges = True
 
-        if options["Number of elements around oviduct"] >= options["Number of elements around"]:
+        if options["Number of elements around oviduct/uterine horn"] >= options["Number of elements around"]:
             if isRat:
-                options["Number of elements around oviduct"] = 8
+                options["Number of elements around oviduct/uterine horn"] = 8
                 options["Number of elements around"] = 12
             else:
-                options["Number of elements around oviduct"] = options["Number of elements around"] - 4
+                options["Number of elements around oviduct/uterine horn"] = options["Number of elements around"] - 4
             dependentChanges = True
 
         return dependentChanges
@@ -1810,7 +1795,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         """
         parameterSetName = options['Base parameter set']
         isHuman = "Human" in parameterSetName
-        isPregnant = "Pregnant" in parameterSetName
         isRat = "Rat" in parameterSetName
         isMouse = "Mouse" in parameterSetName
         isRodent = isRat or isMouse
@@ -1828,7 +1812,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             elementsCountAround = 0
             name = layoutAnnotationGroup.getName()
             if "oviduct" in name or "uterine horn" in name:
-                elementsCountAlong = options['Number of elements along oviduct']
+                elementsCountAlong = options['Number of elements along oviduct/uterine horn']
             elif "body" in name or "fundus" in name:
                 elementsCountAlong = options['Number of elements along body']
             elif "cervix" in name:
@@ -1838,7 +1822,7 @@ class MeshType_3d_uterus1(Scaffold_base):
             annotationElementsCountsAlong.append(elementsCountAlong)
 
             if "oviduct" in name or "uterine horn" in name or "left fundus" in name or "right fundus" in name:
-                elementsCountAround = options['Number of elements around oviduct']
+                elementsCountAround = options['Number of elements around oviduct/uterine horn']
             elif "body" in name or "fundus" in name:
                 elementsCountAround = options['Number of elements around']
             annotationElementsCountsAround.append(elementsCountAround)
@@ -1893,8 +1877,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             annotationGroups, region, get_uterus_term("myometrium"))
         myometriumGroup.getMeshGroup(mesh).addElementsConditional(uterusGroup.getGroup())
 
-        # upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
-        # uterusGroup.getMeshGroup(mesh).addElementsConditional(upperCervixGroup.getGroup())
         cervixGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterine cervix"))
         uterusGroup.getMeshGroup(mesh).addElementsConditional(cervixGroup.getGroup())
 
@@ -1916,7 +1898,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                 firstHornNodeId = node.getIdentifier()
                 fieldcache.setNode(node)
                 xFirstNode = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
-            matchingInnerNid = firstHornNodeId + options['Number of elements around oviduct'] * \
+            matchingInnerNid = firstHornNodeId + options['Number of elements around oviduct/uterine horn'] * \
                                options['Number of elements through wall']
             node = nodes.findNodeByIdentifier(matchingInnerNid)
             fieldcache.setNode(node)
@@ -1925,8 +1907,8 @@ class MeshType_3d_uterus1(Scaffold_base):
 
             firstSeptumElementIdentifier = elementIdentifier
             elementsCountAroundSeptum = \
-                (options['Number of elements around'] - options['Number of elements around oviduct']) // 2
-            elementsCountThroughSeptum = options['Number of elements around oviduct'] // 2
+                (options['Number of elements around'] - options['Number of elements around oviduct/uterine horn']) // 2
+            elementsCountThroughSeptum = options['Number of elements around oviduct/uterine horn'] // 2
             elementsCountAlongSeptum = options['Number of elements along body'] + \
                                        options['Number of elements along cervix'] + 2
             elementCountsSeptum = [elementsCountAroundSeptum, elementsCountAlongSeptum, elementsCountThroughSeptum]
@@ -2019,7 +2001,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         fm = region.getFieldmodule()
         mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
-        # mesh3d = fm.findMeshByDimension(3)
 
         uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
         if isHuman:
@@ -2031,8 +2012,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         bodyGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("body of uterus"))
         fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
         cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
-        # upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
-        # lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
         vaginaGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("vagina"))
 
         is_exterior = fm.createFieldIsExterior()
@@ -2046,6 +2025,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_uterus = uterusGroup.getGroup()
         is_uterus_outer = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_1)
         is_uterus_inner = fm.createFieldAnd(is_uterus, is_exterior_face_xi3_0)
+
+        bodyNotCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("body not cervix", ""))
+        isBodyNotCervix = bodyNotCervixGroup.getGroup()
+        is_bodyNotCervix_outer = fm.createFieldAnd(isBodyNotCervix, is_exterior_face_xi3_1)
+        is_bodyNotCervix_inner = fm.createFieldAnd(isBodyNotCervix, is_exterior_face_xi3_0)
 
         is_leftOviduct = leftOviductGroup.getGroup()
         is_rightOviduct = rightOviductGroup.getGroup()
@@ -2061,14 +2045,6 @@ class MeshType_3d_uterus1(Scaffold_base):
         is_cervix = cervixGroup.getGroup()
         is_cervix_outer = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_1)
         is_cervix_inner = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_0)
-
-        # is_upperCervix = upperCervixGroup.getGroup()
-        # is_upperCervix_outer = fm.createFieldAnd(is_upperCervix, is_exterior_face_xi3_1)
-        # is_upperCervix_inner = fm.createFieldAnd(is_upperCervix, is_exterior_face_xi3_0)
-        #
-        # is_lowerCervix = lowerCervixGroup.getGroup()
-        # is_lowerCervix_outer = fm.createFieldAnd(is_lowerCervix, is_exterior_face_xi3_1)
-        # is_lowerCervix_inner = fm.createFieldAnd(is_lowerCervix, is_exterior_face_xi3_0)
 
         is_vagina = vaginaGroup.getGroup()
         is_vagina_outer = fm.createFieldAnd(is_vagina, is_exterior_face_xi3_1)
@@ -2087,13 +2063,11 @@ class MeshType_3d_uterus1(Scaffold_base):
         uterineCavity.getMeshGroup(mesh2d).addElementsConditional(is_uterus_inner)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_leftOviduct)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_rightOviduct)
-        # uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_upperCervix)
         uterineCavity.getMeshGroup(mesh2d).removeElementsConditional(is_cervix)
 
         serosaOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                           get_uterus_term("serosa of body of uterus"))
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_outer)
-        # serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_upperCervix_outer)
         serosaOfBody.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfFundus = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -2106,12 +2080,11 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         lumenOfBody = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                          get_uterus_term("lumen of body of uterus"))
-        lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_body_inner)
+        lumenOfBody.getMeshGroup(mesh2d).addElementsConditional(is_bodyNotCervix_inner)
 
         serosaOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                             get_uterus_term("serosa of vagina"))
         serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_outer)
-        # serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_lowerCervix_outer)
         serosaOfVagina.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
 
         lumenOfVagina = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
@@ -2134,18 +2107,11 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         serosaOfUterusVagina = \
             findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("serosa of uterus, cervix and vagina"))
+                                               get_uterus_term("serosa of uterus and vagina"))
         serosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
         serosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
         serosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(is_vagina_outer)
         is_serosaOfUterusVagina = serosaOfUterusVagina.getGroup()
-
-        serosaOfUterusCervix = \
-            findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("serosa of uterus and cervix"))
-        serosaOfUterusCervix.getMeshGroup(mesh2d).addElementsConditional(is_uterus_outer)
-        serosaOfUterusCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_outer)
-        is_serosaOfUterusCervix = serosaOfUterusCervix.getGroup()
 
         if isRat:
             is_exterior_face_xi1 = fm.createFieldOr(is_exterior_face_xi1_0, is_exterior_face_xi1_1)
@@ -2197,26 +2163,14 @@ class MeshType_3d_uterus1(Scaffold_base):
         isLeftSerosaOfUterusVagina = fm.createFieldAnd(isLeft, is_serosaOfUterusVagina)
         leftSerosaOfUterusVagina = \
             findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("left serosa of uterus, cervix and vagina"))
+                                               get_uterus_term("left serosa of uterus and vagina"))
         leftSerosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(isLeftSerosaOfUterusVagina)
-
-        isLeftSerosaOfUterusCervix = fm.createFieldAnd(isLeft, is_serosaOfUterusCervix)
-        leftSerosaOfUterusCervix = \
-            findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("left serosa of uterus and cervix"))
-        leftSerosaOfUterusCervix.getMeshGroup(mesh2d).addElementsConditional(isLeftSerosaOfUterusCervix)
 
         isRightSerosaOfUterusVagina = fm.createFieldAnd(isRight, is_serosaOfUterusVagina)
         rightSerosaOfUterusVagina = \
             findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("right serosa of uterus, cervix and vagina"))
+                                               get_uterus_term("right serosa of uterus and vagina"))
         rightSerosaOfUterusVagina.getMeshGroup(mesh2d).addElementsConditional(isRightSerosaOfUterusVagina)
-
-        isRightSerosaOfUterusCervix = fm.createFieldAnd(isRight, is_serosaOfUterusCervix)
-        rightSerosaOfUterusCervix = \
-            findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                               get_uterus_term("right serosa of uterus and cervix"))
-        rightSerosaOfUterusCervix.getMeshGroup(mesh2d).addElementsConditional(isRightSerosaOfUterusCervix)
 
         if isHuman:
             leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
@@ -2245,12 +2199,12 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                                      get_uterus_term("lumen of right oviduct"))
             lumenOfRightOviduct.getMeshGroup(mesh2d).addElementsConditional(is_rightOviduct_inner)
 
-            is_pubocervical = fm.createFieldAnd(is_body_outer, is_cervix_outer)
+            is_pubocervical = fm.createFieldAnd(is_bodyNotCervix_outer, is_cervix_outer)
             pubocervical = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                               get_uterus_term("pubocervical ligament"))
             pubocervical.getMeshGroup(mesh1d).addElementsConditional(is_pubocervical)
 
-            is_internal_os = fm.createFieldAnd(is_body_inner, is_cervix_inner)
+            is_internal_os = fm.createFieldAnd(is_bodyNotCervix_inner, is_cervix_inner)
             internalOs = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                             get_uterus_term("internal cervical os"))
             internalOs.getMeshGroup(mesh1d).addElementsConditional(is_internal_os)
@@ -2341,12 +2295,14 @@ class MeshType_3d_uterus1(Scaffold_base):
         lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
                                                            get_uterus_term("lumen of uterine cervix"))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
+        isCervix = lumenOfCervix.getGroup()
 
-        # cervixGroup.getMeshGroup(mesh3d).removeElementsConditional(is_cervix)
-        annotationGroups.remove(cervixGroup)
+        mesh3d = fm.findMeshByDimension(3)
+        cervixGroup.getMeshGroup(mesh3d).removeAllElements()
+        cervixGroup.getMeshGroup(mesh2d).addElementsConditional(isCervix)
+        annotationGroups.remove(bodyNotCervixGroup)
+        # annotationGroups.remove(lumenOfCervixGroup)
 
-        # lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_upperCervix_inner)
-        # lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_lowerCervix_inner)
         if isRat:
             septumCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("septum cervix", ""))
             isSeptumCervix = septumCervixGroup.getGroup()
@@ -2355,9 +2311,6 @@ class MeshType_3d_uterus1(Scaffold_base):
             annotationGroups.remove(septumCervixGroup)
             annotationGroups.remove(septumBodyGroup)
             annotationGroups.remove(lumenOfFundus)
-
-        # annotationGroups.remove(upperCervixGroup)
-        # annotationGroups.remove(lowerCervixGroup)
 
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
@@ -2509,21 +2462,8 @@ def getSeptumRimNodes(region, fieldmodule, annotationGroups, elementCountsSeptum
     isCervix = cervixGroup.getGroup()
     isCervixInner = fieldmodule.createFieldAnd(isCervix, is_exterior_face_xi3_0)
 
-    # upperCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("upper cervix", ""))
-    # upperCervixGroup.addSubelements()
-    # isUpperCervix = upperCervixGroup.getGroup()
-    # isUpperCervixInner = fieldmodule.createFieldAnd(isUpperCervix, is_exterior_face_xi3_0)
-    #
-    # lowerCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("lower cervix", ""))
-    # lowerCervixGroup.addSubelements()
-    # isLowerCervix = lowerCervixGroup.getGroup()
-    # isLowerCervixInner = fieldmodule.createFieldAnd(isLowerCervix, is_exterior_face_xi3_0)
-
-    # isCervixInner = fieldmodule.createFieldOr(isLowerCervixInner, isUpperCervixInner)
-
     isBodyCervixInner = fieldmodule.createFieldOr(isCervixInner, isBodyInner)
-    bodyCervixInterior = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                            ("body cervix interior", ""))
+    bodyCervixInterior = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("body cervix interior", ""))
     bodyCervixInterior.getMeshGroup(mesh2d).addElementsConditional(isBodyCervixInner)
     bodyCervixInnerNodeset = bodyCervixInterior.getNodesetGroup(nodes)
 
