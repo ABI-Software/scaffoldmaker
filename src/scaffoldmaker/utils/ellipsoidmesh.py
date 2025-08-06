@@ -536,6 +536,127 @@ class EllipsoidMesh:
             # else:
             #     # not putting back values if summed parameters
 
+            # build map from node identifier to special node layouts
+            nid_to_node_layout = {}
+            # nodes on boundary of bottom transition of box are fully permuted
+            nids_layer = self._nids[self._trans_count]
+            for n2 in range(self._element_counts[1] + 1):
+                for n1 in range(self._element_counts[0] + 1):
+                    nid = nids_layer[n2][n1]
+                    if nid:
+                        nid_to_node_layout[nid] = node_layout_permuted
+            #
+
+
+    def _get_nid_to_node_layout_map_3d(self, node_layout_manager):
+        """
+        Get map from node identifier to special node layout.
+        :param node_layout_manager: Manager of node layouts for getting standard layouts from.
+        :return: map from node identifier to special node layout. No entry made if default=None layout.
+        """
+        node_layout_permuted = node_layout_manager.getNodeLayoutRegularPermuted(d3Defined=True)
+        node_layout_3way12 = node_layout_manager.getNodeLayout3WayPoints12()
+        node_layout_3way13 = node_layout_manager.getNodeLayout3WayPoints13()
+        node_layout_3way23 = node_layout_manager.getNodeLayout3WayPoints23()
+        node_layout_4way = node_layout_manager.getNodeLayout4WayPoints()
+        nid_to_node_layout = {}
+        upper_trans_counts = [self._element_counts[i] - self._trans_count for i in range(3)]
+        # bottom and top transition side face nodes are fully permuted
+        for nt in range(1, self._trans_count + 1):
+            # bottom transition
+            for n3 in (self._trans_count - nt, upper_trans_counts[2] + nt):
+                for n2 in range(self._trans_count + 1, upper_trans_counts[1]):
+                    for n1 in (self._trans_count - nt, upper_trans_counts[0] + nt):
+                        nid = self._nids[n3][n2][n1]
+                        nid_to_node_layout[nid] = node_layout_permuted
+                for n1 in range(self._trans_count + 1, upper_trans_counts[0]):
+                    for n2 in (self._trans_count - nt, upper_trans_counts[1] + nt):
+                        nid = self._nids[n3][n2][n1]
+                        nid_to_node_layout[nid] = node_layout_permuted
+        for n2 in range(self._element_counts[1] + 1):
+            for n1 in range(self._element_counts[0] + 1):
+                # nodes on boundary between bottom transition and box are 4-way on corners, 3-way on edges,
+                # fully permuted in between
+                nid = self._nids[self._trans_count][n2][n1]
+                if nid:
+                    node_layout = node_layout_permuted
+                    if n2 == self._trans_count:
+                        node_layout = node_layout_3way23[0]
+                        if n1 == self._trans_count:
+                            node_layout = node_layout_4way[0]
+                        elif n1 == upper_trans_counts[0]:
+                            node_layout = node_layout_4way[1]
+                    elif n2 == upper_trans_counts[1]:
+                        node_layout = node_layout_3way23[1]
+                        if n1 == self._trans_count:
+                            node_layout = node_layout_4way[2]
+                        elif n1 == upper_trans_counts[0]:
+                            node_layout = node_layout_4way[3]
+                    elif n1 == self._trans_count:
+                        node_layout = node_layout_3way13[0]
+                    elif n1 == upper_trans_counts[0]:
+                        node_layout = node_layout_3way13[1]
+                    nid_to_node_layout[nid] = node_layout
+                # nodes on boundary between top transition and box are 4-way on corners, 3-way on edges, None in between
+                nid = self._nids[upper_trans_counts[2]][n2][n1]
+                if nid:
+                    node_layout = None
+                    if n2 == self._trans_count:
+                        node_layout = node_layout_3way23[2]
+                        if n1 == self._trans_count:
+                            node_layout = node_layout_4way[4]
+                        elif n1 == upper_trans_counts[0]:
+                            node_layout = node_layout_4way[5]
+                    elif n2 == upper_trans_counts[1]:
+                        node_layout = node_layout_3way23[3]
+                        if n1 == self._trans_count:
+                            node_layout = node_layout_4way[6]
+                        elif n1 == upper_trans_counts[0]:
+                            node_layout = node_layout_4way[7]
+                    elif n1 == self._trans_count:
+                        node_layout = node_layout_3way13[2]
+                    elif n1 == upper_trans_counts[0]:
+                        node_layout = node_layout_3way13[3]
+                    if node_layout:
+                        nid_to_node_layout[nid] = node_layout
+        # 3-way points on box edges up middle, fully permuted on faces
+        for n3 in range(self._trans_count + 1, upper_trans_counts[2]):
+            for n2 in range(self._trans_count + 1, upper_trans_counts[1]):
+                for n1 in (self._trans_count, upper_trans_counts[0]):
+                    nid = self._nids[n3][n2][n1]
+                    nid_to_node_layout[nid] = node_layout_permuted
+            for n1 in range(self._trans_count + 1, upper_trans_counts[0]):
+                for n2 in (self._trans_count, upper_trans_counts[1]):
+                    nid = self._nids[n3][n2][n1]
+                    nid_to_node_layout[nid] = node_layout_permuted
+            nid = self._nids[n3][self._trans_count][self._trans_count]
+            nid_to_node_layout[nid] = node_layout_3way12[0]
+            nid = self._nids[n3][self._trans_count][upper_trans_counts[0]]
+            nid_to_node_layout[nid] = node_layout_3way12[1]
+            nid = self._nids[n3][upper_trans_counts[1]][self._trans_count]
+            nid_to_node_layout[nid] = node_layout_3way12[2]
+            nid = self._nids[n3][upper_trans_counts[1]][upper_trans_counts[0]]
+            nid_to_node_layout[nid] = node_layout_3way12[3]
+        # 3-way points on 8 corner transitions out from 4-way points
+        for nt in range(self._trans_count):
+            nid = self._nids[nt][nt][nt]
+            nid_to_node_layout[nid] = node_layout_3way12[1]
+            nid = self._nids[nt][nt][self._element_counts[0] - nt]
+            nid_to_node_layout[nid] = node_layout_3way12[0]
+            nid = self._nids[nt][self._element_counts[1] - nt][nt]
+            nid_to_node_layout[nid] = node_layout_3way12[3]
+            nid = self._nids[nt][self._element_counts[1] - nt][self._element_counts[0] - nt]
+            nid_to_node_layout[nid] = node_layout_3way12[2]
+            nid = self._nids[self._element_counts[2] - nt][nt][nt]
+            nid_to_node_layout[nid] = node_layout_3way12[0]
+            nid = self._nids[self._element_counts[2] - nt][nt][self._element_counts[0] - nt]
+            nid_to_node_layout[nid] = node_layout_3way12[1]
+            nid = self._nids[self._element_counts[2] - nt][self._element_counts[1] - nt][nt]
+            nid_to_node_layout[nid] = node_layout_3way12[2]
+            nid = self._nids[self._element_counts[2] - nt][self._element_counts[1] - nt][self._element_counts[0] - nt]
+            nid_to_node_layout[nid] = node_layout_3way12[3]
+        return nid_to_node_layout
+
     def generate_mesh(self, fieldmodule, coordinates, start_node_identifier=1, start_element_identifier=1):
         """
         After build() has been called, generate nodes and elements of ellipsoid.
@@ -582,6 +703,7 @@ class EllipsoidMesh:
                         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                     node_identifier += 1
 
+        half_counts = [count // 2 for count in self._element_counts]
         node_layout_manager = HermiteNodeLayoutManager()
         element_identifier = start_element_identifier
 
@@ -595,7 +717,7 @@ class EllipsoidMesh:
             elementtemplate_regular.defineField(coordinates, -1, eft_regular)
             elementtemplate_special = mesh2d.createElementtemplate()
             elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
-            half_counts = [count // 2 for count in self._element_counts]
+            # get actual indexes used on rim in 1, 2, 3 directions
             rim_indexes = [[0] + [self._trans_count + 1 + j
                                   for j in range(self._element_counts[i] - 2 * self._trans_count - 1)] +
                            [self._element_counts[i]] for i in range(3)]
@@ -704,6 +826,245 @@ class EllipsoidMesh:
                         # print("Element", element_identifier, "nids", nids)
                         element_identifier += 1
                 last_nids_row = nids_row
+        else:  # 3-D mesh
+            mesh3d = fieldmodule.findMeshByDimension(3)
+            elementtemplate_regular = mesh3d.createElementtemplate()
+            elementtemplate_regular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            tricubic_hermite_serendipity_basis = (
+                fieldmodule.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY))
+            eft_regular = mesh3d.createElementfieldtemplate(tricubic_hermite_serendipity_basis)
+            elementtemplate_regular.defineField(coordinates, -1, eft_regular)
+            elementtemplate_special = mesh3d.createElementtemplate()
+            elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+            box_counts = [half_counts[i] - self._trans_count for i in range(3)]
+            dbox_counts = [2 * box_counts[i] for i in range(3)]
+            nid_to_node_layout = self._get_nid_to_node_layout_map_3d(node_layout_manager)
+            # bottom transition
+            last_nids_layer = None
+            last_nx_layer = None
+            for nt in range(self._trans_count + 1):
+                n3 = nt
+                nids_layer = []
+                nx_layer = []
+                last_nids_row = None
+                last_nx_row = None
+                for i2 in range(dbox_counts[1] + 1):
+                    n2 = (nt if (i2 == 0)
+                          else (self._element_counts[1] - nt) if (i2 == dbox_counts[1])
+                          else (self._trans_count + i2))
+                    nids_row = []
+                    nx_row = []
+                    for i1 in range(dbox_counts[0] + 1):
+                        n1 = (nt if (i1 == 0)
+                              else (self._element_counts[0] - nt) if (i1 == dbox_counts[0])
+                              else (self._trans_count + i1))
+                        nids_row.append(self._nids[n3][n2][n1])
+                        nx_row.append(self._nx[n3][n2][n1])
+                        if (nt > 0) and (i2 > 0) and (i1 > 0):
+                            nids = [last_nids_row[i1], last_nids_row[i1 - 1],
+                                    nids_row[i1], nids_row[i1 - 1],
+                                    last_nids_layer[i2 - 1][i1], last_nids_layer[i2 - 1][i1 - 1],
+                                    last_nids_layer[i2][i1], last_nids_layer[i2][i1 - 1]]
+                            if None in nids:
+                                continue
+                            elementtemplate = elementtemplate_regular
+                            eft = eft_regular
+                            scalefactors = None
+                            node_layouts = [nid_to_node_layout.get(nid) for nid in nids]
+                            if any(node_layout is not None for node_layout in node_layouts):
+                                node_parameters = [last_nx_row[i1], last_nx_row[i1 - 1],
+                                                   nx_row[i1], nx_row[i1 - 1],
+                                                   last_nx_layer[i2 - 1][i1], last_nx_layer[i2 - 1][i1 - 1],
+                                                   last_nx_layer[i2][i1], last_nx_layer[i2][i1 - 1]]
+                                eft, scalefactors = \
+                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                elementtemplate_special.defineField(coordinates, -1, eft)
+                                elementtemplate = elementtemplate_special
+                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element.setNodesByIdentifier(eft, nids)
+                            # print("Element", element_identifier, "nids", nids)
+                            if scalefactors:
+                                element.setScaleFactors(eft, scalefactors)
+                            element_identifier += 1
+                    nids_layer.append(nids_row)
+                    nx_layer.append(nx_row)
+                    last_nids_row = nids_row
+                    last_nx_row = nx_row
+                last_nids_layer = nids_layer
+                last_nx_layer = nx_layer
+            # middle
+            upper_trans_counts = [self._element_counts[i] - self._trans_count for i in range(3)]
+            last_nids_layer = None
+            last_nx_layer = None
+            last_rim_nids_layer = None
+            last_rim_nx_layer = None
+            for i3 in range(dbox_counts[2] + 1):
+                n3 = self._trans_count + i3
+                nids_layer = []
+                nx_layer = []
+                last_nids_row = None
+                last_nx_row = None
+                for i2 in range(dbox_counts[1] + 1):
+                    n2 = self._trans_count + i2
+                    nids_row = []
+                    nx_row = []
+                    for i1 in range(dbox_counts[0] + 1):
+                        n1 = self._trans_count + i1
+                        nids_row.append(self._nids[n3][n2][n1])
+                        nx_row.append(self._nx[n3][n2][n1])
+                        if (i3 > 0) and (i2 > 0) and (i1 > 0):
+                            nids = [last_nids_layer[i2 - 1][i1 - 1], last_nids_layer[i2 - 1][i1],
+                                    last_nids_layer[i2][i1 - 1], last_nids_layer[i2][i1],
+                                    last_nids_row[i1 - 1], last_nids_row[i1],
+                                    nids_row[i1 - 1], nids_row[i1]]
+                            if None in nids:
+                                continue
+                            elementtemplate = elementtemplate_regular
+                            eft = eft_regular
+                            scalefactors = None
+                            node_layouts = [nid_to_node_layout.get(nid) for nid in nids]
+                            if any(node_layout is not None for node_layout in node_layouts):
+                                node_parameters = [last_nx_layer[i2 - 1][i1 - 1], last_nx_layer[i2 - 1][i1],
+                                                   last_nx_layer[i2][i1 - 1], last_nx_layer[i2][i1],
+                                                   last_nx_row[i1 - 1], last_nx_row[i1],
+                                                   nx_row[i1 - 1], nx_row[i1]]
+                                eft, scalefactors = \
+                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                elementtemplate_special.defineField(coordinates, -1, eft)
+                                elementtemplate = elementtemplate_special
+                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element.setNodesByIdentifier(eft, nids)
+                            # print("Element", element_identifier, "nids", nids)
+                            if scalefactors:
+                                element.setScaleFactors(eft, scalefactors)
+                            element_identifier += 1
+                    nids_layer.append(nids_row)
+                    nx_layer.append(nx_row)
+                    last_nids_row = nids_row
+                    last_nx_row = nx_row
+                last_nids_layer = nids_layer
+                last_nx_layer = nx_layer
+
+                rim_nids_layer = []
+                rim_nx_layer = []
+                last_rim_nids_row = None
+                last_rim_nx_row = None
+                for nt in range(self._trans_count + 1):
+                    n3 = ((self._trans_count - nt) if (i3 == 0) else (
+                        (upper_trans_counts[2] + nt) if (i3 == dbox_counts[2]) else (self._trans_count + i3)))
+                    rim_nids_row = []
+                    rim_nx_row = []
+                    n2 = self._trans_count - nt
+                    for i1 in range(dbox_counts[0]):
+                        n1 = ((self._trans_count - nt) if (i1 == 0) else (
+                            (upper_trans_counts[0] + nt) if (i1 == dbox_counts[0]) else (self._trans_count + i1)))
+                        rim_nids_row.append(self._nids[n3][n2][n1])
+                        rim_nx_row.append(self._nx[n3][n2][n1])
+                    n1 = upper_trans_counts[0] + nt
+                    for i2 in range(dbox_counts[1]):
+                        n2 = ((self._trans_count - nt) if (i2 == 0) else (
+                            (upper_trans_counts[1] + nt) if (i2 == dbox_counts[1]) else (self._trans_count + i2)))
+                        rim_nids_row.append(self._nids[n3][n2][n1])
+                        rim_nx_row.append(self._nx[n3][n2][n1])
+                    n2 = upper_trans_counts[1] + nt
+                    for i1 in range(dbox_counts[0]):
+                        n1 = ((upper_trans_counts[0] + nt) if (i1 == 0) else (
+                            (self._trans_count - nt) if (i1 == dbox_counts[0]) else (upper_trans_counts[0] - i1)))
+                        rim_nids_row.append(self._nids[n3][n2][n1])
+                        rim_nx_row.append(self._nx[n3][n2][n1])
+                    n1 = self._trans_count - nt
+                    for i2 in range(dbox_counts[1]):
+                        n2 = ((upper_trans_counts[1] + nt) if (i2 == 0) else (
+                             (self._trans_count - nt) if (i2 == dbox_counts[1]) else (upper_trans_counts[1] - i2)))
+                        rim_nids_row.append(self._nids[n3][n2][n1])
+                        rim_nx_row.append(self._nx[n3][n2][n1])
+                    if (i3 > 0) and (nt > 0):
+                        for nc in range(len(rim_nids_row)):
+                            nids = [last_rim_nids_layer[nt - 1][nc - 1], last_rim_nids_layer[nt - 1][nc],
+                                    last_rim_nids_row[nc - 1], last_rim_nids_row[nc],
+                                    last_rim_nids_layer[nt][nc - 1], last_rim_nids_layer[nt][nc],
+                                    rim_nids_row[nc - 1], rim_nids_row[nc]]
+                            if None in nids:
+                                continue
+                            elementtemplate = elementtemplate_regular
+                            eft = eft_regular
+                            scalefactors = None
+                            node_layouts = [nid_to_node_layout.get(nid) for nid in nids]
+                            if any(node_layout is not None for node_layout in node_layouts):
+                                node_parameters = [last_rim_nx_layer[nt - 1][nc - 1], last_rim_nx_layer[nt - 1][nc],
+                                                   last_rim_nx_row[nc - 1], last_rim_nx_row[nc],
+                                                   last_rim_nx_layer[nt][nc - 1], last_rim_nx_layer[nt][nc],
+                                                   rim_nx_row[nc - 1], rim_nx_row[nc]]
+                                eft, scalefactors = \
+                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                elementtemplate_special.defineField(coordinates, -1, eft)
+                                elementtemplate = elementtemplate_special
+                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element.setNodesByIdentifier(eft, nids)
+                            # print("Element", element_identifier, "nids", nids)
+                            if scalefactors:
+                                element.setScaleFactors(eft, scalefactors)
+                            element_identifier += 1
+                    rim_nids_layer.append(rim_nids_row)
+                    rim_nx_layer.append(rim_nx_row)
+                    last_rim_nids_row = rim_nids_row
+                    last_rim_nx_row = rim_nx_row
+                last_rim_nids_layer = rim_nids_layer
+                last_rim_nx_layer = rim_nx_layer
+            # top transition
+            last_nids_layer = None
+            last_nx_layer = None
+            for nt in range(self._trans_count, -1, -1):
+                n3 = self._element_counts[2] - nt
+                nids_layer = []
+                nx_layer = []
+                last_nids_row = None
+                last_nx_row = None
+                for i2 in range(dbox_counts[1] + 1):
+                    n2 = (nt if (i2 == 0)
+                          else (self._element_counts[1] - nt) if (i2 == dbox_counts[1])
+                          else (self._trans_count + i2))
+                    nids_row = []
+                    nx_row = []
+                    for i1 in range(dbox_counts[0] + 1):
+                        n1 = (nt if (i1 == 0)
+                              else (self._element_counts[0] - nt) if (i1 == dbox_counts[0])
+                              else (self._trans_count + i1))
+                        nids_row.append(self._nids[n3][n2][n1])
+                        nx_row.append(self._nx[n3][n2][n1])
+                        if (nt < self._trans_count) and (i2 > 0) and (i1 > 0):
+                            nids = [last_nids_layer[i2 - 1][i1 - 1], last_nids_layer[i2 - 1][i1],
+                                    last_nids_layer[i2][i1 - 1], last_nids_layer[i2][i1],
+                                    last_nids_row[i1 - 1], last_nids_row[i1],
+                                    nids_row[i1 - 1], nids_row[i1]]
+                            if None in nids:
+                                continue
+                            elementtemplate = elementtemplate_regular
+                            eft = eft_regular
+                            scalefactors = None
+                            node_layouts = [nid_to_node_layout.get(nid) for nid in nids]
+                            if any(node_layout is not None for node_layout in node_layouts):
+                                node_parameters = [last_nx_layer[i2 - 1][i1 - 1], last_nx_layer[i2 - 1][i1],
+                                                   last_nx_layer[i2][i1 - 1], last_nx_layer[i2][i1],
+                                                   last_nx_row[i1 - 1], last_nx_row[i1],
+                                                   nx_row[i1 - 1], nx_row[i1]]
+                                eft, scalefactors = \
+                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                elementtemplate_special.defineField(coordinates, -1, eft)
+                                elementtemplate = elementtemplate_special
+                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element.setNodesByIdentifier(eft, nids)
+                            # print("Element", element_identifier, "nids", nids)
+                            if scalefactors:
+                                element.setScaleFactors(eft, scalefactors)
+                            element_identifier += 1
+                    nids_layer.append(nids_row)
+                    nx_layer.append(nx_row)
+                    last_nids_row = nids_row
+                    last_nx_row = nx_row
+                last_nids_layer = nids_layer
+                last_nx_layer = nx_layer
+
         return node_identifier, element_identifier
 
 

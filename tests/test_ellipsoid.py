@@ -84,5 +84,90 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(surfaceArea, 27.86848567909992, delta=TOL)
 
+    def test_ellipsoid_3D(self):
+        """
+        Test creation of 3-D ellipsoid surface.
+        """
+        Scaffold = MeshType_3d_ellipsoid1
+        parameterSetNames = Scaffold.getParameterSetNames()
+        self.assertEqual(parameterSetNames, ["Default"])
+        options = Scaffold.getDefaultOptions("Default")
+        self.assertEqual(13, len(options))
+        self.assertEqual(4, options["Number of elements across axis 1"])
+        self.assertEqual(6, options["Number of elements across axis 2"])
+        self.assertEqual(8, options["Number of elements across axis 3"])
+        self.assertFalse(options["2D surface only"])
+        self.assertEqual(1, options["Number of transition elements"])
+        self.assertEqual(1.0, options["Axis length x"])
+        self.assertEqual(1.5, options["Axis length y"])
+        self.assertEqual(2.0, options["Axis length z"])
+        self.assertEqual(0.0, options["Axis 2 x-rotation degrees"])
+        self.assertEqual(90.0, options["Axis 3 x-rotation degrees"])
+        self.assertEqual(0.6, options["Advanced n-way derivative factor"])
+        self.assertFalse(options["Refine"])
+        self.assertEqual(4, options["Refine number of elements"])
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        annotationGroups = Scaffold.generateMesh(region, options)[0]
+        self.assertEqual(0, len(annotationGroups))
+
+        fieldmodule = region.getFieldmodule()
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(136, mesh3d.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(452, mesh2d.getSize())
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        self.assertEqual(510, mesh1d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(195, nodes.getSize())
+
+        # check coordinates range, sphere volume
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        TOL = 1.0E-6
+        assertAlmostEqualList(self, minimums, [-1.0, -1.5, -2.0], TOL)
+        assertAlmostEqualList(self, maximums, [1.0, 1.5, 2.0], TOL)
+        # test symmetry of 4-way points
+        fieldcache = fieldmodule.createFieldcache()
+        node_3way1 = nodes.findNodeByIdentifier(180)
+        fieldcache.setNode(node_3way1)
+        result, x_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d1_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, d2_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        result, d3_3way1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        node_3way2 = nodes.findNodeByIdentifier(168)
+        fieldcache.setNode(node_3way2)
+        result, x_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        result, d1_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        result, d2_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, 3)
+        result, d3_3way2 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, 3)
+        assertAlmostEqualList(self, x_3way2, [x_3way1[0], -x_3way1[1], x_3way1[2]], TOL)
+        assertAlmostEqualList(self, d1_3way2, [d1_3way1[0], -d1_3way1[1], d1_3way1[2]], TOL)
+        assertAlmostEqualList(self, d2_3way2, [-d2_3way1[0], d2_3way1[1], -d2_3way1[2]], TOL)
+        assertAlmostEqualList(self, d3_3way2, [d3_3way1[0], -d3_3way1[1], d3_3way1[2]], TOL)
+
+        with (ChangeManager(fieldmodule)):
+            is_exterior = fieldmodule.createFieldIsExterior()
+            surface_group = fieldmodule.createFieldGroup()
+            surface_mesh_group = surface_group.createMeshGroup(mesh2d)
+            surface_mesh_group.addElementsConditional(is_exterior)
+            self.assertEqual(88, surface_mesh_group.getSize())
+            one = fieldmodule.createFieldConstant(1.0)
+            surface_area_field = fieldmodule.createFieldMeshIntegral(one, coordinates, surface_mesh_group)
+            surface_area_field.setNumbersOfPoints(4)
+            volume_field = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volume_field.setNumbersOfPoints(3)
+        result, surface_area = surface_area_field.evaluateReal(fieldcache, 1)
+        self.assertEqual(result, RESULT_OK)
+        result, volume = volume_field.evaluateReal(fieldcache, 1)
+        self.assertEqual(result, RESULT_OK)
+        self.assertAlmostEqual(surface_area, 27.86848567909992, delta=TOL)
+        # note exact ellipsoide volume is 4.0 / 3.0 * math.pi * a * b * c = 12.566370614359173
+        self.assertAlmostEqual(volume, 12.557389634764395, delta=TOL)
+
+
 if __name__ == "__main__":
     unittest.main()
