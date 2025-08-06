@@ -21,18 +21,18 @@ class QuadTriangleMesh:
     Derivatives at point 1 are d1 from 1-2, d2 from 1-3.
     Derivatives at point 2 are d1 from 1-2, d2 from 2-3.
     Derivatives at point 3 are d1 from 3-1, d2 from 3-2.
-    Side point12 is elements_count2 from point1, elements_count1 from point2.
-    Side point13 is elements_count3 from point1, elements_count1 from point3.
-    Side point23 is elements_count3 from point2, elements_count2 from point3.
+    Side point12 is box_count2 from point1, box_count1 from point2.
+    Side point13 is box_count3 from point1, box_count1 from point3.
+    Side point23 is box_count3 from point2, box_count2 from point3.
     Parameters on 12, 13 rows to 3-way point use derivatives as for point3.
     """
 
-    def __init__(self, element_count1, element_count2, element_count3, sample_curve,
+    def __init__(self, box_count1, box_count2, box_count3, sample_curve,
                  move_x_to_surface=None, move_d_to_surface=None, nway_d_factor=0.6):
         """
-        :param element_count1: Number of elements from opposite points to side points by point1.
-        :param element_count2: Number of elements from opposite points to side points by point2.
-        :param element_count3: Number of elements from opposite points to side points by point3.
+        :param box_count1: Number of elements from opposite points to side points by point1.
+        :param box_count2: Number of elements from opposite points to side points by point2.
+        :param box_count3: Number of elements from opposite points to side points by point3.
         :param sample_curve: Callable sampling a curve between 2 edge points.
         :param move_x_to_surface: Optional callable taking (x) and moving it to a surface.
         :param move_d_to_surface: Optional callable taking (x, d) and adjusting d to be tangential to a surface.
@@ -40,16 +40,16 @@ class QuadTriangleMesh:
         of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
         of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
-        self._element_count1 = element_count1
-        self._element_count2 = element_count2
-        self._element_count3 = element_count3
+        self._box_count1 = box_count1
+        self._box_count2 = box_count2
+        self._box_count3 = box_count3
         self._sample_curve = sample_curve
         self._move_x_to_surface = move_x_to_surface
         self._move_d_to_surface = move_d_to_surface
         self._3_way_d_factor = nway_d_factor
-        self._element_count12 = element_count1 + element_count2
-        self._element_count13 = element_count1 + element_count3
-        self._element_count23 = element_count2 + element_count3
+        self._element_count12 = box_count1 + box_count2
+        self._element_count13 = box_count1 + box_count3
+        self._element_count23 = box_count2 + box_count3
         self._node_count12 = self._element_count12 + 1
         self._node_count13 = self._element_count13 + 1
         self._node_count23 = self._element_count23 + 1
@@ -59,8 +59,8 @@ class QuadTriangleMesh:
             nx_row = []
             # s = ""
             for n12 in range(self._node_count12):
-                if ((n12 < element_count2) or (n13 < element_count3) or
-                        ((n12 - element_count2) == (n13 - element_count3))):
+                if ((n12 < box_count2) or (n13 < box_count3) or
+                        ((n12 - box_count2) == (n13 - box_count3))):
                     parameters = copy.copy(none_parameters)
                     # s += "[]"
                 else:
@@ -69,15 +69,6 @@ class QuadTriangleMesh:
                 nx_row.append(parameters)
             # print(s)
             self._nx.append(nx_row)
-
-    def get_element_count1(self):
-        return self._element_count1
-
-    def get_element_count2(self):
-        return self._element_count2
-
-    def get_element_count3(self):
-        return self._element_count3
 
     def get_element_count12(self):
         return self._element_count12
@@ -129,7 +120,7 @@ class QuadTriangleMesh:
         assert len(px) == self._node_count13
         for n13 in range(self._node_count13):
             d3 = copy.copy(pd3[n13]) if pd3 else None
-            if n13 < self._element_count3:
+            if n13 < self._box_count3:
                 parameters = [copy.copy(px[n13]), copy.copy(pd1[n13]), copy.copy(pd2[n13]), d3]
             else:
                 parameters = [copy.copy(px[n13]), [-d for d in pd2[n13]], copy.copy(pd1[n13]), d3]
@@ -146,7 +137,7 @@ class QuadTriangleMesh:
         pd3 = []
         for n13 in range(self._node_count13):
             x, d1, d2, d3 = self._nx[n13][0]
-            if n13 >= self._element_count3:
+            if n13 >= self._box_count3:
                 d1, d2 = d2, [-d for d in d1]
             px.append(x)
             pd1.append(d1)
@@ -165,15 +156,15 @@ class QuadTriangleMesh:
         assert len(px) == self._node_count23
         for n23 in range(self._node_count23):
             d3 = copy.copy(pd3[n23]) if pd3 else None
-            if n23 < self._element_count3:
+            if n23 < self._box_count3:
                 parameters = [copy.copy(px[n23]), copy.copy(pd1[n23]), copy.copy(pd2[n23]), d3]
                 n13 = n23
                 n12 = self._element_count12
             else:
                 parameters = [copy.copy(px[n23]), [-d for d in pd1[n23]], [-d for d in pd2[n23]], d3]
                 n13 = self._element_count13
-                n12 = (self._element_count12 if n23 == self._element_count3 else
-                       self._element_count2 - (n23 - self._element_count3))
+                n12 = (self._element_count12 if n23 == self._box_count3 else
+                       self._box_count2 - (n23 - self._box_count3))
             self._nx[n13][n12] = parameters
 
     def get_edge_parameters23(self):
@@ -186,15 +177,15 @@ class QuadTriangleMesh:
         pd2 = []
         pd3 = []
         for n23 in range(self._node_count23):
-            if n23 < self._element_count3:
+            if n23 < self._box_count3:
                 n13 = n23
                 n12 = self._element_count12
             else:
                 n13 = self._element_count13
-                n12 = (self._element_count12 if n23 == self._element_count3 else
-                       self._element_count2 - (n23 - self._element_count3))
+                n12 = (self._element_count12 if n23 == self._box_count3 else
+                       self._box_count2 - (n23 - self._box_count3))
             x, d1, d2, d3 = self._nx[n13][n12]
-            if n23 >= self._element_count3:
+            if n23 >= self._box_count3:
                 d1, d2 = [-d for d in d1], [-d for d in d2]
             px.append(x)
             pd1.append(d1)
@@ -265,7 +256,7 @@ class QuadTriangleMesh:
         pd1 = []
         pd2 = []
         pd3 = []
-        for n in range(self._element_count1 + 1):
+        for n in range(self._box_count1 + 1):
             n13 = self._element_count13 - n
             n12 = self._element_count12 - n
             nx = self._nx[n13][n12]
@@ -282,15 +273,15 @@ class QuadTriangleMesh:
         :return: 0 if not a corner, 1 if 2-3 corner, 2 if 1-3 corner, 3 if 1-2 corner, 4 if 1-2-3 corner.
         """
         n12, n13 = indexes
-        if n12 < self._element_count2:
-            if n13 == self._element_count3:
+        if n12 < self._box_count2:
+            if n13 == self._box_count3:
                 return 2
-        elif n12 == self._element_count2:
-            if n13 < self._element_count3:
+        elif n12 == self._box_count2:
+            if n13 < self._box_count3:
                 return 3
-            elif n13 == self._element_count3:
+            elif n13 == self._box_count3:
                 return 4
-        elif (n12 - self._element_count2) == (n13 - self._element_count3):
+        elif (n12 - self._box_count2) == (n13 - self._box_count3):
             return 1
         return 0
 
@@ -425,42 +416,42 @@ class QuadTriangleMesh:
         Determine interior coordinates from edge coordinates.
         """
         # determine 3-way point location from mean curves between side points linking to it
-        point12 = self._nx[0][self._element_count2]
-        point13 = self._nx[self._element_count3][0]
+        point12 = self._nx[0][self._box_count2]
+        point13 = self._nx[self._box_count3][0]
         point23 = self._nx[self._element_count13][self._element_count12]
 
         x_3way, d_3way = get_nway_point(
             [point23[0], point13[0], point12[0]],
             [point23[1], point13[2], point12[2]],
-            [self._element_count1, self._element_count2, self._element_count3],
+            [self._box_count1, self._box_count2, self._box_count3],
             self._sample_curve, self._move_x_to_surface,
             nway_d_factor=self._3_way_d_factor)
 
         # smooth sample from sides to 3-way points using end derivatives
         min_weight = 1  # GRC revisit, remove?
         ax, ad1, ad2 = self._sample_curve(
-            point23[0], point23[1], point23[2], x_3way, d_3way[0], None, self._element_count1,
-            start_weight=self._element_count1 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            point23[0], point23[1], point23[2], x_3way, d_3way[0], None, self._box_count1,
+            start_weight=self._box_count1 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
         bx, bd2, bd1 = self._sample_curve(
-            point13[0], point13[2], point13[1], x_3way, d_3way[1], None, self._element_count2,
-            start_weight=self._element_count2 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            point13[0], point13[2], point13[1], x_3way, d_3way[1], None, self._box_count2,
+            start_weight=self._box_count2 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
         cx, cd2, cd1 = self._sample_curve(
-            point12[0], point12[2], point12[1], x_3way, d_3way[2], None, self._element_count3,
-            start_weight=self._element_count3 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
+            point12[0], point12[2], point12[1], x_3way, d_3way[2], None, self._box_count3,
+            start_weight=self._box_count3 + min_weight, end_weight=1.0 + min_weight, end_transition=True)
         ad2[-1] = bd2[-1]
         bd1[-1] = ad1[-1]
         self._set_coordinates_across([ax, ad1, ad2], [[0, 1, 2]], [self._element_count12, self._element_count13],
                                      [[-1, -1]])
-        self._set_coordinates_across([bx, bd1, bd2], [[0, 1, 2]], [0, self._element_count3], [[1, 0]])
-        self._set_coordinates_across([cx, cd1, cd2], [[0, 1, 2]], [self._element_count2, 0], [[0, 1]], skip_end=True)
+        self._set_coordinates_across([bx, bd1, bd2], [[0, 1, 2]], [0, self._box_count3], [[1, 0]])
+        self._set_coordinates_across([cx, cd1, cd2], [[0, 1, 2]], [self._box_count2, 0], [[0, 1]], skip_end=True)
 
         # average point coordinates across 2 directions between edges and 3-way lines.
         # 1-2 curves
         min_weight = 1  # GRC revisit, remove?
         start_indexes = [0, 0]
-        corner_indexes = [self._element_count2, 0]
+        corner_indexes = [self._box_count2, 0]
         end_indexes = [self._element_count12, 0]
-        for i in range(1, self._element_count3):
+        for i in range(1, self._box_count3):
             start_indexes[1] += 1
             corner_indexes[1] += 1
             end_indexes[1] += 1
@@ -468,20 +459,20 @@ class QuadTriangleMesh:
             corner = self._nx[corner_indexes[1]][corner_indexes[0]]
             end = self._nx[end_indexes[1]][end_indexes[0]]
             px, _ = self._sample_curve(
-                start[0], start[1], None, corner[0], corner[1], None, self._element_count2,
-                start_weight=self._element_count2 + min_weight, end_weight=1.0 + min_weight)
+                start[0], start[1], None, corner[0], corner[1], None, self._box_count2,
+                start_weight=self._box_count2 + min_weight, end_weight=1.0 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], start_indexes, [[1, 0]], skip_start=True, skip_end=True)
             px, _ = self._sample_curve(
-                corner[0], corner[1], None, end[0], end[1], None, self._element_count1,
-                start_weight=1.0 + min_weight, end_weight=self._element_count1 + min_weight)
+                corner[0], corner[1], None, end[0], end[1], None, self._box_count1,
+                start_weight=1.0 + min_weight, end_weight=self._box_count1 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], corner_indexes, [[1, 0]], skip_start=True, skip_end=True)
         # 1-3 curves
         start_indexes = [0, 0]
-        corner_indexes = [0, self._element_count3]
+        corner_indexes = [0, self._box_count3]
         end_indexes = [0, self._element_count13]
-        for i in range(1, self._element_count2):
+        for i in range(1, self._box_count2):
             start_indexes[0] += 1
             corner_indexes[0] += 1
             end_indexes[0] += 1
@@ -489,20 +480,20 @@ class QuadTriangleMesh:
             corner = self._nx[corner_indexes[1]][corner_indexes[0]]
             end = self._nx[end_indexes[1]][end_indexes[0]]
             px, _ = self._sample_curve(
-                start[0], start[2], None, corner[0], [-d for d in corner[1]], None, self._element_count3,
-                start_weight=self._element_count3 + min_weight, end_weight=1.0 + min_weight)
+                start[0], start[2], None, corner[0], [-d for d in corner[1]], None, self._box_count3,
+                start_weight=self._box_count3 + min_weight, end_weight=1.0 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], start_indexes, [[0, 1]], skip_start=True, skip_end=True, blend=True)
             px, _ = self._sample_curve(
-                corner[0], [-d for d in corner[1]], None, end[0], [-d for d in end[1]], None, self._element_count1,
-                    start_weight=1.0 + min_weight, end_weight=self._element_count1 + min_weight)
+                corner[0], [-d for d in corner[1]], None, end[0], [-d for d in end[1]], None, self._box_count1,
+                    start_weight=1.0 + min_weight, end_weight=self._box_count1 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], corner_indexes, [[0, 1]], skip_start=True, skip_end=True, blend=True)
         # 2-3 curves
         start_indexes = [self._element_count12, 0]
         corner_indexes = [self._element_count12, self._element_count13]
         end_indexes = [0, self._element_count13]
-        for i in range(1, self._element_count1):
+        for i in range(1, self._box_count1):
             start_indexes[0] -= 1
             corner_indexes[0] -= 1
             corner_indexes[1] -= 1
@@ -511,20 +502,20 @@ class QuadTriangleMesh:
             corner = self._nx[corner_indexes[1]][corner_indexes[0]]
             end = self._nx[end_indexes[1]][end_indexes[0]]
             px, _ = self._sample_curve(
-                start[0], start[2], None, corner[0], [-d for d in corner[2]], None, self._element_count3,
-                start_weight=self._element_count3 + min_weight, end_weight=1.0 + min_weight)
+                start[0], start[2], None, corner[0], [-d for d in corner[2]], None, self._box_count3,
+                start_weight=self._box_count3 + min_weight, end_weight=1.0 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], start_indexes, [[0, 1]], skip_start=True, skip_end=True, blend=True)
             px, _ = self._sample_curve(
-                corner[0], [-d for d in corner[2]], None, end[0], [-d for d in end[2]], None, self._element_count2,
-                start_weight=1.0 + min_weight, end_weight=self._element_count2 + min_weight)
+                corner[0], [-d for d in corner[2]], None, end[0], [-d for d in end[2]], None, self._box_count2,
+                start_weight=1.0 + min_weight, end_weight=self._box_count2 + min_weight)
             self._set_coordinates_across(
                 [px], [[0]], corner_indexes, [[-1, 0]], skip_start=True, skip_end=True, blend=True)
 
         # smooth 1-2 curves
         start_indexes = [0, 0]
         end_indexes = [self._element_count12, 0]
-        for i in range(1, self._element_count3):
+        for i in range(1, self._box_count3):
             start_indexes[1] += 1
             end_indexes[1] += 1
             self._smooth_derivative_across(start_indexes, end_indexes, [[1, 0]], [1],
@@ -532,7 +523,7 @@ class QuadTriangleMesh:
         # smooth 1-3 curves
         start_indexes = [0, 0]
         end_indexes = [0, self._element_count13]
-        for i in range(1, self._element_count2):
+        for i in range(1, self._box_count2):
             start_indexes[0] += 1
             end_indexes[0] += 1
             self._smooth_derivative_across(start_indexes, end_indexes, [[0, 1]], [2, -1],
@@ -540,7 +531,7 @@ class QuadTriangleMesh:
         # smooth 2-3 curves
         start_indexes = [self._element_count12, 0]
         end_indexes = [0, self._element_count13]
-        for i in range(1, self._element_count1):
+        for i in range(1, self._box_count1):
             start_indexes[0] -= 1
             end_indexes[1] -= 1
             self._smooth_derivative_across(start_indexes, end_indexes, [[0, 1], [-1, 0]], [2, -2],
