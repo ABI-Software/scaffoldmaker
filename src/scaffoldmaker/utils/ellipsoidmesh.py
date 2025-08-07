@@ -24,8 +24,7 @@ class EllipsoidMesh:
     """
 
     def __init__(self, a, b, c, element_counts, transition_element_count,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, nway_d_factor=0.6,
-                 box_group=None, transition_group=None, octant_group_lists=None):
+                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, nway_d_factor=0.6):
         """
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
@@ -38,12 +37,6 @@ class EllipsoidMesh:
         :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
         of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
         of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
-        :param box_group: Optional group field to add elements from box region to, if not surface_only.
-        :param transition_group: Optional group field to add elements from transition region to, if not surface_only.
-        :param octant_group_lists: Optional list of 8 lists of group fields to put elements into. For example, the
-        elements of octant 0 (negative 3 axis, negative 2 axis, negative 1 axis) will be put in the mesh groups of
-        the appropriate dimension of the groups in octant_groups_lists[0]. Order of octants for N (negative) or
-        P (positive) 321 axes: NNN, NNP, NPN, NPP, PNN, PNP, PPN, PPP.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
@@ -56,10 +49,9 @@ class EllipsoidMesh:
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
         self._nway_d_factor = nway_d_factor
-        self._box_group = box_group
-        self._transition_group = transition_group
-        assert (octant_group_lists is None) or (len(octant_group_lists) == 8)
-        self._octant_group_lists = octant_group_lists
+        self._box_group = None
+        self._transition_group = None
+        self._octant_group_lists = None
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
@@ -99,6 +91,26 @@ class EllipsoidMesh:
                 # print(s)
             self._nx.append(nx_layer)
             self._nids.append(nids_layer)
+
+    def set_box_transition_groups(self, box_group, transition_group):
+        """
+        Set zinc groups to fill with elements in box and transition regions, if not surface_only.
+        :param box_group: Group field to add elements from box region to.
+        :param transition_group: Group field to add elements from transition region to.
+        """
+        self._box_group = box_group
+        self._transition_group = transition_group
+
+    def set_octant_group_list(self, octant_group_lists):
+        """
+        Set lists of zinc groups to add elements in each of the 8 octants to.
+        :param octant_group_lists: List of 8 lists of group fields to put elements into. For example, the
+        elements of octant 0 (negative 3 axis, negative 2 axis, negative 1 axis) will be put in the mesh group of
+        the appropriate dimension for each group in octant_groups_lists[0]. Order of octants for N (negative) or
+        P (positive) 321 axes: NNN, NNP, NPN, NPP, PNN, PNP, PPN, PPP.
+        """
+        assert (octant_group_lists is None) or (len(octant_group_lists) == 8)
+        self._octant_group_lists = octant_group_lists
 
     def build(self):
         """
