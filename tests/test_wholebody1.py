@@ -8,6 +8,7 @@ from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
+from scaffoldmaker.annotation.body_terms import get_body_term, body_terms
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
@@ -85,10 +86,11 @@ class WholeBodyScaffoldTestCase(unittest.TestCase):
 
         # check some annotationGroups:
         expectedSizes2d = {
-            "skin epidermis": 88
+            "skin epidermis outer surface": 88
             }
         for name in expectedSizes2d:
-            group = getAnnotationGroupForTerm(annotationGroups, (name, "UBERON:0001003"))
+            term = get_body_term(name)
+            group = getAnnotationGroupForTerm(annotationGroups, term)
             size = group.getMeshGroup(mesh2d).getSize()
             self.assertEqual(expectedSizes2d[name], size, name)
 

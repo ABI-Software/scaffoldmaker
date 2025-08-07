@@ -8,7 +8,7 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.colon_terms import get_colon_term
+from scaffoldmaker.annotation.colon_terms import get_colon_term, colon_terms
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
@@ -20,6 +20,15 @@ from testutils import assertAlmostEqualList
 
 
 class ColonScaffoldTestCase(unittest.TestCase):
+
+    def test_colon_annotations(self):
+        """
+        Test that all colon terms are UBERON or ILX. Empty terms are also accepted. 
+        """
+        for term in colon_terms:
+            upper_id = term[1].upper()
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid heart term" + str(term))
+
 
     def test_colon1(self):
         """
