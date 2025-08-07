@@ -5,7 +5,7 @@ import math
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh
+from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh, EllipsoidSurfaceD3Mode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 
@@ -32,6 +32,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Axis 2 x-rotation degrees": 0.0,
             "Axis 3 x-rotation degrees": 90.0,
             "Advanced n-way derivative factor": 0.6,
+            "Advanced surface D3 mode": EllipsoidSurfaceD3Mode.SURFACE_NORMAL.value,
             "Refine": False,
             "Refine number of elements": 4,
         }
@@ -51,6 +52,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             "Axis 2 x-rotation degrees",
             "Axis 3 x-rotation degrees",
             "Advanced n-way derivative factor",
+            "Advanced surface D3 mode",
             "Refine",
             "Refine number of elements"
         ]
@@ -91,6 +93,11 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         elif options["Advanced n-way derivative factor"] > 1.0:
             options["Advanced n-way derivative factor"] = 1.0
 
+        try:
+            mode = EllipsoidSurfaceD3Mode(options["Advanced surface D3 mode"])
+        except ValueError:
+            options["Advanced surface D3 mode"] = EllipsoidSurfaceD3Mode.SURFACE_NORMAL.value
+
         for key in [
             "Refine number of elements"
         ]:
@@ -116,13 +123,14 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         axis2_x_rotation_radians = math.radians(options["Axis 2 x-rotation degrees"])
         axis3_x_rotation_radians = math.radians(options["Axis 3 x-rotation degrees"])
         surface_only = options["2D surface only"]
-        nway_d_factor = options["Advanced n-way derivative factor"]
+        nway_derivative_factor = options["Advanced n-way derivative factor"]
+        surface_d3_mode = EllipsoidSurfaceD3Mode(options["Advanced surface D3 mode"])
 
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
         ellipsoid = EllipsoidMesh(a, b, c, element_counts, transition_element_count,
-                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only, nway_d_factor)
+                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
 
         left_group = AnnotationGroup(region, ("left", ""))
         right_group = AnnotationGroup(region, ("right", ""))
@@ -145,6 +153,9 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             transition_group = AnnotationGroup(region, ("transition", ""))
             annotation_groups += [box_group, transition_group]
             ellipsoid.set_box_transition_groups(box_group.getGroup(), transition_group.getGroup())
+
+        ellipsoid.set_nway_derivative_factor(nway_derivative_factor)
+        ellipsoid.set_surface_d3_mode(surface_d3_mode)
 
         ellipsoid.build()
         ellipsoid.generate_mesh(fieldmodule, coordinates)

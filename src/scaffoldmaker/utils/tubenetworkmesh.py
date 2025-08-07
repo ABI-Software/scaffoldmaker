@@ -13,7 +13,7 @@ from scaffoldmaker.utils.interpolation import (
     interpolateHermiteLagrangeDerivative, interpolateLagrangeHermiteDerivative,
     interpolateSampleCubicHermite, sampleCubicHermiteCurves,
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine, smoothCubicHermiteDerivativesLoop,
-    smoothCurveSideCrossDerivatives)
+    smoothCurveSideCrossDerivatives, getNearestLocationBetweenCurves)
 from scaffoldmaker.utils.networkmesh import NetworkMesh, NetworkMeshBuilder, NetworkMeshGenerateData, \
     NetworkMeshJunction, NetworkMeshSegment, pathValueLabels
 from scaffoldmaker.utils.tracksurface import TrackSurface
@@ -60,11 +60,21 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
         d3Defined = (meshDimension == 3) and not isLinearThroughShell
         self._nodeLayoutManager = HermiteNodeLayoutManager()
+        self._nodeLayout5Way = self._nodeLayoutManager.getNodeLayout5Way12(d3Defined)
         self._nodeLayout6Way = self._nodeLayoutManager.getNodeLayout6Way12(d3Defined)
         self._nodeLayout8Way = self._nodeLayoutManager.getNodeLayout8Way12(d3Defined)
         self._nodeLayoutFlipD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
             else [None, [[0.0, 1.0], [0.0, -1.0]]])
+        self._nodeLayoutFlipD1D2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
+            d3Defined, limitDirections=[[[-1.0, 0.0, 0.0]], [[0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
+            else [[[-1.0, 0.0]], [[0.0, -1.0]]])
+        self._nodeLayoutSwapMinusD1D2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
+            d3Defined, limitDirections=[[[0.0, 1.0, 0.0]], [[-1.0, 0.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
+            else [[[0.0, 1.0]], [[-1.0, 0.0]]])
+        self._nodeLayoutSwapD1MinusD2 = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
+            d3Defined, limitDirections=[[[0.0, -1.0, 0.0]], [[1.0, 0.0, 0.0]], [[0.0, 0.0, 1.0]]] if d3Defined
+            else [[[0.0, -1.0]], [[1.0, 0.0]]])
         self._nodeLayoutTrifurcation = None
         self._nodeLayoutTransition = self._nodeLayoutManager.getNodeLayoutRegularPermuted(
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
@@ -88,6 +98,9 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         """
         return self._mesh.createElementfieldtemplate(self._elementbasis)
 
+    def getNodeLayout5Way(self):
+        return self._nodeLayout5Way
+
     def getNodeLayout6Way(self):
         return self._nodeLayout6Way
 
@@ -96,6 +109,15 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
 
     def getNodeLayoutFlipD2(self):
         return self._nodeLayoutFlipD2
+
+    def getNodeLayoutFlipD1D2(self):
+        return self._nodeLayoutFlipD1D2
+
+    def getNodeLayoutSwapMinusD1D2(self):
+        return self._nodeLayoutSwapMinusD1D2
+
+    def getNodeLayoutSwapD1MinusD2(self):
+        return self._nodeLayoutSwapD1MinusD2
 
     def getNodeLayoutTrifurcation(self, location):
         """
@@ -250,6 +272,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._elementsCountCoreBoxMinor = elementsCountCoreBoxMinor
         self._elementsCountTransition = elementsCountTransition
         self._coreBoundaryScalingMode = coreBoundaryScalingMode
+        self._networkSegment = networkSegment
 
         assert elementsCountThroughShell > 0
         self._elementsCountThroughShell = elementsCountThroughShell
@@ -280,6 +303,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         # lookup table that translates box boundary node ids in a circular format to box node ids in
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
         self._boxElementIds = None  # [along][major][minor]
+
+    def getNetworkSegment(self):
+        return self._networkSegment
 
     def getCoreBoundaryScalingMode(self):
         return self._coreBoundaryScalingMode
@@ -503,6 +529,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         for r, value in zip((rx, rd1, rd2, rd3), (x, d1, d2, d3)):
                             r[n2][n3].append(value)
             self._rimCoordinates = rx, rd1, rd2, rd3
+
         self._rimNodeIds = [None] * (elementsCountAlong + 1)
         self._rimElementIds = [None] * elementsCountAlong
         self._boxElementIds = [None] * elementsCountAlong
@@ -1363,12 +1390,11 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param e1Start: Start element index around. Can be negative which supports wrapping.
         :param e1Limit: Limit element index around.
         :param e3Start: Start element index rim.
-        :param e3Limit: Limi element index rim.
+        :param e3Limit: Limit element index rim.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
         elementsCountAlong = self.getSampledElementsCountAlong()
-        elementsCountAround = self.getElementsCountAround()
         mesh = meshGroup.getMasterMesh()
         for e2 in range(elementsCountAlong):
             rimSlice = self._rimElementIds[e2]
@@ -1376,7 +1402,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
                     partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
                             elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
-                    # print(partElementIdentifiersList)
                     if None in elementIdentifiersList:
                         break
                     for elementIdentifier in partElementIdentifiersList:
@@ -1452,6 +1477,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :return: Node IDs arrays through rim and around, or None if not set.
         """
         return self._rimNodeIds[n2]
+
+    def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
+        return None
 
     def generateMesh(self, generateData: TubeNetworkMeshGenerateData, n2Only=None):
         """
@@ -1652,7 +1680,6 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 for e1 in range(self._elementsCountAround):
                     elementtemplate = elementtemplateStd
                     eft = eftStd
-
                     n1p = (e1 + 1) % self._elementsCountAround
                     nids = []
                     for n3 in [e3, e3 + 1] if (self._dimension == 3) else [0]:
@@ -1683,6 +1710,929 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     ringElementIds.append(elementIdentifier)
                 self._rimElementIds[e2].append(ringElementIds)
 
+    def generateJunctionRimElements(self, junction, generateData):
+        """
+        Generates rim elements for junction part of the segment after segment nodes and elements have been made.
+        """
+        mesh = generateData.getMesh()
+        meshDimension = generateData.getMeshDimension()
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(
+            Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
+        d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
+        coordinates = generateData.getCoordinates()
+
+        elementsCountRim = self.getElementsCountRim()
+        elementsCountAround = self.getElementsCountAround()
+        elementsCountTransition = self.getElementsCountTransition()
+
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        s = junction._segments.index(self)
+        e2 = (elementsCountAlong - 1) if junction._segmentsIn[s] else 0
+        n2 = (elementsCountAlong - 1) if junction._segmentsIn[s] else 1
+
+        # Create elements
+        if junction._isCore:
+            boxBoundaryNodeIds, boxBoundaryNodeToBoxId = junction._createBoxBoundaryNodeIdsList(s)
+            # create box elements
+            junction._generateBoxElements(s, n2, mesh, elementtemplate, coordinates, self, generateData)
+            # create core transition elements
+            junction._generateTransitionElements(s, n2, mesh, elementtemplate, coordinates, self, generateData,
+                elementsCountAround, boxBoundaryNodeIds, boxBoundaryNodeToBoxId)
+
+        # create regular rim elements
+        elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
+        annotationMeshGroups = generateData.getAnnotationMeshGroups(self.getAnnotationTerms())
+        eftList = [None] * elementsCountAround
+        scalefactorsList = [None] * elementsCountAround
+
+        for e3 in range(elementsCountRimRegular):
+            rim_e3 = e3 + 1 if junction._isCore else e3
+            for e1 in range(elementsCountAround):
+                n1p = (e1 + 1) % elementsCountAround
+                nids = []
+                nodeParameters = []
+                nodeLayouts = []
+                elementIdentifier = generateData.nextElementIdentifier()
+                lastTransition = junction._isCore and (elementsCountTransition == (rim_e3 + 1))
+                needParameters = (e3 == 0) or lastTransition
+                for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
+                    for n1 in [e1, n1p]:
+                        nids.append(self.getRimNodeId(n1, n2, n3))
+                        if needParameters:
+                            rimCoordinates = self.getRimCoordinates(n1, n2, n3)
+                            nodeParameters.append(rimCoordinates if d3Defined else (
+                                rimCoordinates[0], rimCoordinates[1], rimCoordinates[2], None))
+                            nodeLayouts.append(None)
+                    for n1 in [e1, n1p]:
+                        rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                        nids.append(junction._rimNodeIds[n3][rimIndex])
+                        if needParameters:
+                            nodeParameters.append(
+                                (junction._rimCoordinates[0][n3][rimIndex],
+                                 junction._rimCoordinates[1][n3][rimIndex],
+                                 junction._rimCoordinates[2][n3][rimIndex],
+                                 junction._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
+                            nodeLayouts.append(junction.getRimIndexNodeLayout(generateData, rimIndex))
+                    if not junction._segmentsIn[s]:
+                        for a in [nids, nodeParameters, nodeLayouts] if (needParameters) else [nids]:
+                            a[-4], a[-2] = a[-2], a[-4]
+                            a[-3], a[-1] = a[-1], a[-3]
+
+                # exploit efts being same through the rim
+                eft = eftList[e1]
+                scalefactors = scalefactorsList[e1]
+                if not eft:
+                    eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                    eftList[e1] = eft
+                    scalefactorsList[e1] = scalefactors
+                if lastTransition:
+                    # need to generate eft again otherwise modifying object in eftList, mucking up outer layers
+                    eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                    eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                        eft, scalefactors, nodeParameters, nids, self.getCoreBoundaryScalingMode())
+
+                elementtemplate.defineField(coordinates, -1, eft)
+                element = mesh.createElement(elementIdentifier, elementtemplate)
+                element.setNodesByIdentifier(eft, nids)
+                if scalefactors:
+                    element.setScaleFactors(eft, scalefactors)
+                self.setRimElementId(e1, e2, rim_e3, elementIdentifier)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
+
+
+class PatchTubeNetworkMeshSegment(TubeNetworkMeshSegment):
+    """
+    New class derived from TubeNetworkMeshSegment, used for making a patch to cover a segment opening. Only work for
+    inlet segment with a junction on the other end. Note that outlet segment and core cases are not implemented yet.
+    """
+
+    def __init__(self, networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
+                 isCore=False, elementsCountCoreBoxMinor: int=2, elementsCountTransition: int=1,
+                 coreBoundaryScalingMode: int=1):
+        super(PatchTubeNetworkMeshSegment, self).__init__(
+            networkSegment, pathParametersList, elementsCountAround, elementsCountThroughShell,
+            isCore, elementsCountCoreBoxMinor, elementsCountTransition, coreBoundaryScalingMode)
+
+        self._patchCoordinates = None
+        self._patchRimNodeIds = None
+        self._patchElementIds = None
+
+    def sample(self, fixedElementsCountAlong, targetElementLength):
+        """
+        Samples coordinates along (dorsal/ventral) and around (left/right) patch. Geometry of the patch is derived from
+        a combined track surface of the tube segments that are coming in tangentially. The trim surface from the inlet
+        segment that is entering normally to the first two segments is used to define the boundary of the patch.
+        """
+        outer = 0
+        inner = 1
+
+        junction = self._junctions[1]
+        connectedSegments = junction.getSegments()
+
+        # ML: hard code for uterus layout
+        segment1 = connectedSegments[0]  # left tube
+        segment2 = connectedSegments[1]  # right tube
+        segment3 = connectedSegments[2]  # patch tube
+        elementsCountAroundSegmentOut = segment3.getElementsCountAround()
+
+        sampleElementCount = 20
+
+        # make a combined track surface from the surfaces of segments 1 and 2
+        sxAlongPatchAllLayers = []
+        sd1AlongPatchAllLayers = []
+        sd2AlongPatchAllLayers = []
+
+        for layer in (outer, inner):
+            xCombinedTrackSurface = []
+            d1CombinedTrackSurface = []
+            d2CombinedTrackSurface = []
+            trimSurfaces1 = junction.getTrimSurfaces(segment1)[layer]
+            trimSurfaces2 = junction.getTrimSurfaces(segment2)[layer]
+            trimSurfaces3 = junction.getTrimSurfaces(segment3)[layer]
+
+            xAlongCombinedTrackSurfaceMid = []
+            d1AlongCombinedTrackSurfaceMid = []
+
+            for s in (1, 0):
+                segment = connectedSegments[s]
+                elementsCountAroundSegmentIn = segment.getElementsCountAround()
+                halfElementsCountAroundSegmentIn = elementsCountAroundSegmentIn // 2
+                rawTrackSurface = segment.getRawTrackSurface(layer)
+                xRawTrackSurface = rawTrackSurface._nx
+                d1RawTrackSurface = rawTrackSurface._nd1
+                d2RawTrackSurface = rawTrackSurface._nd2
+
+                elementsCountAlongSegmentIn = int(len(xRawTrackSurface) / elementsCountAroundSegmentIn - 1)
+                # Extract coordinates from top half of the inlet tubes
+                if s:  # ML: we know that segment 2 is in desired direction
+                    for i in range(elementsCountAlongSegmentIn + 1):
+                        baseCount = i * elementsCountAroundSegmentIn
+                        xCombinedTrackSurface += \
+                            xRawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                             baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+                        d1CombinedTrackSurface += \
+                            d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+                        d2CombinedTrackSurface += \
+                            d2RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+                        if i == elementsCountAlongSegmentIn:
+                            xAlongCombinedTrackSurfaceMid += \
+                                xRawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                                 baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+                            d1AlongCombinedTrackSurfaceMid += \
+                                d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 - 1:
+                                                 baseCount + 3 * elementsCountAroundSegmentIn // 4 + 2]
+
+                else:  # ML: we know that segment 1 is in opposite direction
+                    xAlongAround = []
+                    d1AlongAround = []
+                    d2AlongAround = []
+                    for i in range(elementsCountAlongSegmentIn + 1):
+                        baseCount = i * elementsCountAroundSegmentIn
+                        xAround = []
+                        d1Around = []
+                        d2Around = []
+
+                        if i == 0:
+                            xAround += xRawTrackSurface[elementsCountAroundSegmentIn // 4 + 1::-1]
+                            d1Around += d1RawTrackSurface[elementsCountAroundSegmentIn // 4 + 1::-1]
+                            d2Around += d2RawTrackSurface[elementsCountAroundSegmentIn // 4 + 1::-1]
+                        else:
+                            xAround += \
+                                xRawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 + 1: baseCount - 1: -1]
+                            d1Around += \
+                                d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 + 1: baseCount - 1: -1]
+                            d2Around += \
+                                d2RawTrackSurface[baseCount + elementsCountAroundSegmentIn // 4 + 1: baseCount - 1: -1]
+
+                        xAround += \
+                            xRawTrackSurface[baseCount + elementsCountAroundSegmentIn - 1:
+                                             baseCount + 3 * elementsCountAroundSegmentIn // 4 - 2: -1]
+                        d1Around += \
+                            d1RawTrackSurface[baseCount + elementsCountAroundSegmentIn - 1:
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 - 2: -1]
+                        d2Around += \
+                            d2RawTrackSurface[baseCount + elementsCountAroundSegmentIn - 1:
+                                              baseCount + 3 * elementsCountAroundSegmentIn // 4 - 2: -1]
+
+                        xAlongAround.append(xAround)
+                        d1Around = [mult(c, -1) for c in d1Around]
+                        d2Around = [mult(c, -1) for c in d2Around]
+                        d1AlongAround.append(d1Around)
+                        d2AlongAround.append(d2Around)
+
+                    for i in range(len(xAlongAround) - 2, -1, -1):
+                        xCombinedTrackSurface += xAlongAround[i]
+                        d1CombinedTrackSurface += d1AlongAround[i]
+                        d2CombinedTrackSurface += d2AlongAround[i]
+
+            combinedTrackSurface = TrackSurface(halfElementsCountAroundSegmentIn + 2,
+                                                elementsCountAlongSegmentIn * 2,
+                                                xCombinedTrackSurface, d1CombinedTrackSurface, d2CombinedTrackSurface,
+                                                loop1=False)
+
+            # find intersection between trim surfaces and combined track surface
+            # Trim surface 3
+            xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3, cProportions, loop = \
+                trimSurfaces3.findIntersectionCurve(combinedTrackSurface, curveElementsCount=sampleElementCount)
+
+            # Use curve between track+trim 3 and middle of combined track to find starting and ending pt of mid-plane of
+            # combined track surface
+            startLocationFirstHalf = (0, 0.0)
+            nLocation, oLocation = getNearestLocationBetweenCurves(
+                xAlongCombinedTrackSurfaceMid, d1AlongCombinedTrackSurfaceMid,
+                xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3, nLoop=False,
+                oLoop=True, startLocation=startLocationFirstHalf)[0:2]
+
+            xA = evaluateCoordinatesOnCurve(xAlongCombinedTrackSurfaceMid, d1AlongCombinedTrackSurfaceMid,
+                                            nLocation, False, derivative=False)
+
+            startLocationSecondHalf = (len(xAlongCombinedTrackSurfaceMid) // 2 + 1, 0.0)
+            nLocation, oLocation = getNearestLocationBetweenCurves(
+                xAlongCombinedTrackSurfaceMid, d1AlongCombinedTrackSurfaceMid,
+                xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3, nLoop=False,
+                oLoop=True, startLocation=startLocationSecondHalf)[0:2]
+
+            xB = evaluateCoordinatesOnCurve(xAlongCombinedTrackSurfaceMid, d1AlongCombinedTrackSurfaceMid,
+                                            nLocation, False, derivative=False)
+
+            # Sample points along mid-plane of combined track surface
+            positionA = combinedTrackSurface.findNearestPosition(xA)
+            proportionA = combinedTrackSurface.getProportion(positionA)
+
+            positionB = combinedTrackSurface.findNearestPosition(xB)
+            proportionB = combinedTrackSurface.getProportion(positionB)
+
+            startProportion = proportionA if proportionA[0] < proportionB[0] else proportionB
+            endProportion = proportionB if proportionA[0] < proportionB[0] else proportionA
+
+            sxMidPlane, sd1MidPlane, sd2MidPlane, sd3MidPlane, sProportionsMidPlane = \
+                combinedTrackSurface.createHermiteCurvePoints(startProportion[0], startProportion[1],
+                                                              endProportion[0], endProportion[1],
+                                                              halfElementsCountAroundSegmentIn)
+
+            sxAlongTubeBothSides = []
+            sxAlongPatchInLayer = []
+            sd1AlongPatchInLayer = []
+            sd2AlongPatchInLayer = []
+
+            for s in (1, 0):
+                # Inlet trim surface
+                inletTrimSurfaces = trimSurfaces2 if s else trimSurfaces1
+                startPosition = inletTrimSurfaces.createPositionProportion(0.0, 0.0)
+                xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1, cProportions, loop = \
+                    inletTrimSurfaces.findIntersectionCurve(combinedTrackSurface, startPosition,
+                                                            curveElementsCount=sampleElementCount)
+
+                # Search for intersection pt on first half of curve1
+                startLocationFirstHalf = (0, 0.0)
+                location1, otherLocation = \
+                    getNearestLocationBetweenCurves(xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1,
+                                                    xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3,
+                                                    nLoop=False, oLoop=True, startLocation=startLocationFirstHalf)[0:2]
+
+                xCurve1, dCurve1 = evaluateCoordinatesOnCurve(xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1,
+                                                              location1, False, derivative=True)
+
+                # Search for intersection pt on second half of curve1
+                startLocationSecondHalf = (len(xCurveBetweenTrackAndTrim1)-2, 0.0)
+                location2, otherLocation = \
+                    getNearestLocationBetweenCurves(xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1,
+                                                    xCurveBetweenTrackAndTrim3, d1CurveBetweenTrackAndTrim3,
+                                                    nLoop=False, oLoop=True,
+                                                    startLocation=startLocationSecondHalf)[0:2]
+                xCurve2, dCurve2 = evaluateCoordinatesOnCurve(xCurveBetweenTrackAndTrim1, d1CurveBetweenTrackAndTrim1,
+                                                              location2, False, derivative=True)
+
+                nx = []
+                nd1 = []
+                nx.append(xCurve1)
+                nd1.append(dCurve1)
+                for i in range(location1[0] + 1, location2[0] + 1):
+                    nx.append(xCurveBetweenTrackAndTrim1[i])
+                    nd1.append(d1CurveBetweenTrackAndTrim1[i])
+                nx.append(xCurve2)
+                nd1.append(dCurve2)
+
+                sxAlongTubeSide = sampleCubicHermiteCurves(nx, nd1, halfElementsCountAroundSegmentIn)[0]
+
+                # check order
+                positionA = combinedTrackSurface.findNearestPosition(sxAlongTubeSide[0])
+                proportionA = combinedTrackSurface.getProportion(positionA)
+                positionB = combinedTrackSurface.findNearestPosition(sxAlongTubeSide[-1])
+                proportionB = combinedTrackSurface.getProportion(positionB)
+                if proportionA[0] > proportionB[0]:
+                    sxAlongTubeSide.reverse()
+                sxAlongTubeBothSides.append(sxAlongTubeSide)
+
+            # Sample across the patch from segment 1 to segment 2 but forcing paths to go through sampled points
+            # around mid-plane
+            nodesAround = (elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 2 + 1
+            xEnd = []
+            dEnd = []
+            for i in range(len(sxAlongTubeSide)):
+                sxAlongPatch = []
+                sd1AlongPatch = []
+                sd2AlongPatch = []
+                sd3AlongPatch = []
+                for j in range(2):
+                    if j == 0:
+                        startPosition = combinedTrackSurface.findNearestPosition(sxAlongTubeBothSides[0][i])
+                        startProportion = combinedTrackSurface.getProportion(startPosition)
+                        startDerivative = None
+                        endProportion = sProportionsMidPlane[i]
+                        endDerivativeMag = \
+                            magnitude(sub(sxMidPlane[i], sxAlongTubeBothSides[0][i]))/ \
+                            ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4)
+                        endDerivative = set_magnitude(sd2MidPlane[i], endDerivativeMag)
+
+                        xEnd.append(sxMidPlane[i])
+                        dEnd.append(endDerivative)
+
+                    else:
+                        startProportion = sProportionsMidPlane[i]
+                        startDerivativeMag = \
+                            magnitude(sub(sxAlongTubeBothSides[1][i], sxMidPlane[i])) / \
+                            ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4)
+                        startDerivative = set_magnitude(sd2MidPlane[i], startDerivativeMag)
+                        endPosition = combinedTrackSurface.findNearestPosition(sxAlongTubeBothSides[1][i])
+                        endProportion = combinedTrackSurface.getProportion(endPosition)
+                        endDerivative = None
+
+                    sxAlongPatchSide, sd1AlongPatchSide, sd2AlongPatchSide, sd3AlongPatchSide = \
+                        combinedTrackSurface.createHermiteCurvePoints(
+                            startProportion[0], startProportion[1], endProportion[0], endProportion[1],
+                            ((elementsCountAroundSegmentOut - 2 * halfElementsCountAroundSegmentIn) // 4),
+                            derivativeStart=startDerivative, derivativeEnd=endDerivative)[0:4]
+
+                    sxAlongPatch += sxAlongPatchSide if j else sxAlongPatchSide[0:-1]
+                    sd1AlongPatch += sd1AlongPatchSide if j else sd1AlongPatchSide[0:-1]
+                    sd2AlongPatch += sd2AlongPatchSide if j else sd2AlongPatchSide[0:-1]
+                    sd3AlongPatch += sd3AlongPatchSide if j else sd3AlongPatchSide[0:-1]
+
+                sxAlongPatchInLayer.append(sxAlongPatch)
+                sd1AlongPatchInLayer.append(sd1AlongPatch)
+                sd2AlongPatchInLayer.append(sd2AlongPatch)
+
+            # Smooth d2 and arrange directions
+            for n1 in range(nodesAround):
+                xAround = []
+                d2Around = []
+                for n2 in range(halfElementsCountAroundSegmentIn + 1):
+                    xAround.append(sxAlongPatchInLayer[n2][n1])
+                    d2Around.append(sd2AlongPatchInLayer[n2][n1])
+                d2Around = smoothCubicHermiteDerivativesLine(xAround, d2Around)
+                for n2 in range(halfElementsCountAroundSegmentIn + 1):
+                    if n2 < halfElementsCountAroundSegmentIn // 2 + 1:
+                        sd2AlongPatchInLayer[n2][n1] = [-c for c in d2Around[n2]]
+                    else:
+                        sd2AlongPatchInLayer[n2][n1] = d2Around[n2]
+                        sd1AlongPatchInLayer[n2][n1] = [-c for c in sd1AlongPatchInLayer[n2][n1]]
+
+            sxAlongOrdered = []
+            sd1AlongOrdered = []
+            sd2AlongOrdered = []
+            for n2 in range(halfElementsCountAroundSegmentIn + 1):
+                sxAlong = sxAlongPatchInLayer[n2]
+                sd1Along = sd1AlongPatchInLayer[n2]
+                sd2Along = sd2AlongPatchInLayer[n2]
+                if n2 > halfElementsCountAroundSegmentIn // 2:
+                    sxAlong.reverse()
+                    sd1Along.reverse()
+                    sd2Along.reverse()
+                sxAlongOrdered.append(sxAlong)
+                sd1AlongOrdered.append(sd1Along)
+                sd2AlongOrdered.append(sd2Along)
+
+            sxAlongPatchAllLayers.append(sxAlongOrdered)
+            sd1AlongPatchAllLayers.append(sd1AlongOrdered)
+            sd2AlongPatchAllLayers.append(sd2AlongOrdered)
+
+        rx, rd1, rd2, rd3 = [], [], [], []
+        shellFactor = 1.0 / self._elementsCountThroughShell
+        for n2 in range(len(sxAlongPatchAllLayers[0])):
+            for r in (rx, rd1, rd2, rd3):
+                r.append([])
+            otx, otd1, otd2 = sxAlongPatchAllLayers[0][n2], sd1AlongPatchAllLayers[0][n2], sd2AlongPatchAllLayers[0][n2]
+            itx, itd1, itd2 = sxAlongPatchAllLayers[1][n2], sd1AlongPatchAllLayers[1][n2], sd2AlongPatchAllLayers[1][n2]
+            wd3 = [mult(sub(otx[n1], itx[n1]), shellFactor) for n1 in range(len(otx))]
+            for n3 in range(self._elementsCountThroughShell + 1):
+                oFactor = n3 / self._elementsCountThroughShell
+                iFactor = 1.0 - oFactor
+                for r in (rx, rd1, rd2, rd3):
+                    r[n2].append([])
+                for n1 in range(len(otx)):
+                    if n3 == 0:
+                        x, d1, d2 = itx[n1], itd1[n1], itd2[n1]
+                    elif n3 == self._elementsCountThroughShell:
+                        x, d1, d2 = otx[n1], otd1[n1], otd2[n1]
+                    else:
+                        x = add(mult(itx[n1], iFactor), mult(otx[n1], oFactor))
+                        d1 = add(mult(itd1[n1], iFactor), mult(otd1[n1], oFactor))
+                        d2 = add(mult(itd2[n1], iFactor), mult(otd2[n1], oFactor))
+                    d3 = wd3[n1]
+                    for r, value in zip((rx, rd1, rd2, rd3), (x, d1, d2, d3)):
+                        r[n2][n3].append(value)
+            allCoordinates = rx, rd1, rd2, rd3
+
+        # Extract patch coordinates
+        r = copy.deepcopy(allCoordinates)
+        for i in range(4):
+            r[i].pop(0)
+            r[i].pop()
+            for n2 in range(len(r[i])):
+                for n3 in range(self._elementsCountThroughShell + 1):
+                    r[i][n2][n3].pop(0)
+                    r[i][n2][n3].pop()
+        self._patchCoordinates = r[0], r[1], r[2], r[3]
+
+        self._patchNodeIds = [None] * (halfElementsCountAroundSegmentIn - 1)
+        self._patchElementIds = [None] * (halfElementsCountAroundSegmentIn - 2)
+
+        # Create rim coordinates that are structured same way as the segment tube indices [n2][n3][n1], calculating
+        # annular indexing of two layers (n2), from inlet to outlet direction with the inner layer corner points being
+        # represented 3 times. n3 goes from inner to outer wall. n1 starts from the d2 direction defined by the network
+        # layout
+        patch = 0
+        rim = 1
+        self._rimCoordinates = []
+        for i in range(4):
+            countN2 = len(allCoordinates[i])
+            halfCountN2 = len(allCoordinates[i]) // 2
+            sParamRing = []
+            # "rings" from outermost boundary of patch and rim
+            for ring in (patch, rim):
+                startIdx = 1 if ring == patch else 0
+                endIdx = -2 if ring == patch else -1
+                sParamLayer = []
+                for n3 in range(self._elementsCountThroughShell + 1):
+                    sParamRingAround = []
+                    sParam = allCoordinates[i]
+                    for n2 in range(halfCountN2, 0, -1):
+                        if i == 0 or i == 3:
+                            sParamRingAround.append(sParam[n2][n3][startIdx])
+                        elif i == 1:  # d1
+                            sParamRingAround.append(allCoordinates[2][n2][n3][startIdx])  # becomes d2
+                        elif i == 2:  # d2
+                            sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][startIdx]])  # becomes -d1
+                    # triple points at bottom right
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[startIdx][n3][startIdx])
+                    elif i == 1:
+                        sParamRingAround.append(add(allCoordinates[1][startIdx][n3][startIdx],
+                                                    allCoordinates[2][startIdx][n3][startIdx]))  # d1 + d2
+                    elif i == 2:
+                        sParamRingAround.append(add([-c for c in allCoordinates[1][startIdx][n3][startIdx]],
+                                                    allCoordinates[2][startIdx][n3][startIdx]))  # -d1 + d2
+                    # straight bottom
+                    sParamRingAround += sParam[startIdx][n3][1: -1]
+                    # triple pts on bottom left
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[startIdx][n3][endIdx])
+                    elif i == 1:  # d1
+                        sParamRingAround.append(add(allCoordinates[1][startIdx][n3][endIdx],
+                                                    [-c for c in allCoordinates[2][startIdx][n3][endIdx]]))  # becomes d1 - d2
+                    elif i == 2:  # d2
+                        sParamRingAround.append(add(allCoordinates[1][startIdx][n3][endIdx],
+                                                    allCoordinates[2][startIdx][n3][endIdx]))  # becomes d1 + d2
+
+                    # Up on left side
+                    for n2 in range(1, halfCountN2 + 1):
+                        if i == 0 or i == 3:
+                            sParamRingAround.append(sParam[n2][n3][endIdx])
+                        elif i == 1:  # d1
+                            sParamRingAround.append([-c for c in allCoordinates[2][n2][n3][endIdx]])  # becomes -d2
+                        elif i == 2:  # d2
+                            sParamRingAround.append(allCoordinates[1][n2][n3][endIdx])  # becomes d1
+                    for n2 in range(halfCountN2 + 1, countN2 - 1):
+                        if i == 0 or i == 3:
+                            sParamRingAround.append(sParam[n2][n3][startIdx])
+                        elif i == 1:  # d1
+                            sParamRingAround.append(allCoordinates[2][n2][n3][startIdx])  # becomes d2
+                        elif i == 2:  # d2
+                            sParamRingAround.append([-c for c in allCoordinates[1][n2][n3][startIdx]])  # becomes -d1
+                    # triple pts on top left
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[endIdx][n3][startIdx])
+                    elif i == 1:
+                        sParamRingAround.append(add(allCoordinates[1][endIdx][n3][startIdx],
+                                                    allCoordinates[2][endIdx][n3][startIdx]))  # d1 + d2
+                    elif i == 2:
+                        sParamRingAround.append(add([-c for c in allCoordinates[1][endIdx][n3][startIdx]],
+                                                    allCoordinates[2][endIdx][n3][startIdx]))  # -d1 + d2
+
+                    # straight across top
+                    sParamRingAround += sParam[endIdx][n3][1: -1]
+
+                    # Triple points top right
+                    if i == 0 or i == 3:
+                        sParamRingAround.append(sParam[endIdx][n3][endIdx])
+                    elif i == 1:
+                        sParamRingAround.append(add(allCoordinates[1][endIdx][n3][endIdx],
+                                                    [-c for c in allCoordinates[2][endIdx][n3][endIdx]]))  # d1 - d2
+                    elif i == 2:
+                        sParamRingAround.append(add(allCoordinates[1][endIdx][n3][endIdx],
+                                                    allCoordinates[2][endIdx][n3][endIdx]))  # d1 + d2
+                    # down right top half
+                    for n2 in range(countN2 - 2, halfCountN2, -1):
+                        if i == 0 or i == 3:
+                            sParamRingAround.append(sParam[n2][n3][endIdx])
+                        elif i == 1:  # d1
+                            sParamRingAround.append([-c for c in allCoordinates[2][n2][n3][endIdx]])  # becomes -d2
+                        elif i == 2:  # d2
+                            sParamRingAround.append(allCoordinates[1][n2][n3][endIdx])  # becomes d1
+                    sParamLayer.append(sParamRingAround)
+                sParamRing.append(sParamLayer)
+            self._rimCoordinates.append(sParamRing)
+
+    def getSampledTubeCoordinatesRing(self, pathIndex, nodeIndexAlong):
+        """
+        Get a ring of rim coordinates at the supplied node index.
+        :param pathIndex: 0 for outer/primary, 1 or -1 for inner/secondary.
+        :param nodeIndexAlong: Node index from 0 to self._elementsCountAlong, or negative to count from end.
+        :return: sx[nAround]
+        """
+        pathIndexPatch = 0 if pathIndex else 1
+        return self._rimCoordinates[0][nodeIndexAlong][pathIndexPatch]
+
+    def generateMesh(self, generateData: TubeNetworkMeshGenerateData, n2Only=None):
+        """
+        :param n2Only: Ignored. Always makes whole patch.
+        """
+        # create nodes
+        coordinates = generateData.getCoordinates()
+        fieldcache = generateData.getFieldcache()
+        nodes = generateData.getNodes()
+        isLinearThroughShell = generateData.isLinearThroughShell()
+        nodetemplate = generateData.getNodetemplate()
+
+        elementsCountThroughWall = len(self._patchCoordinates[0][0]) - 1
+        elementsCountAlong = len(self._patchCoordinates[0]) - 1
+        elementsCountAround = len(self._patchCoordinates[0][0][0]) - 1
+        for n2 in range(elementsCountAlong + 1):
+            self._patchNodeIds[n2] = [] if self._patchNodeIds[n2] is None else self._patchNodeIds[n2]
+            for n3 in range(elementsCountThroughWall + 1):
+                # patch coordinates
+                rx = self._patchCoordinates[0][n2][n3]
+                rd1 = self._patchCoordinates[1][n2][n3]
+                rd2 = self._patchCoordinates[2][n2][n3]
+                rd3 = None if isLinearThroughShell else self._patchCoordinates[3][n2][n3]
+
+                nodeIds = []
+                for n1 in range(elementsCountAround + 1):
+                    nodeIdentifier = generateData.nextNodeIdentifier()
+                    node = nodes.createNode(nodeIdentifier, nodetemplate)
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, rx[n1])
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, rd1[n1])
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, rd2[n1])
+                    if rd3:
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[n1])
+                    nodeIds.append(nodeIdentifier)
+                self._patchNodeIds[n2].append(nodeIds)
+
+        self._rimNodeIds = []
+        nodesAlongPatch = elementsCountAlong + 1
+        sNodeId = self._patchNodeIds
+        nodesAround = []
+        for n3 in range(self._elementsCountThroughShell + 1):
+            nodeIdPatch = []
+            for n2 in range(nodesAlongPatch // 2, 0, -1):
+                nodeIdPatch.append(sNodeId[n2][n3][0])
+            nodeIdPatch += [sNodeId[0][n3][0], sNodeId[0][n3][0]]
+            nodeIdPatch += sNodeId[0][n3]
+            nodeIdPatch += [sNodeId[0][n3][-1], sNodeId[0][n3][-1]]
+            for n2 in range(nodesAlongPatch // 2):
+                nodeIdPatch.append(sNodeId[n2 + 1][n3][-1])
+            for n2 in range(nodesAlongPatch // 2, nodesAlongPatch - 2):
+                nodeIdPatch.append(sNodeId[n2 + 1][n3][0])
+
+            nodeIdPatch += [sNodeId[-1][n3][0], sNodeId[-1][n3][0]]
+            nodeIdPatch += sNodeId[-1][n3]
+            nodeIdPatch += [sNodeId[-1][n3][-1], sNodeId[-1][n3][-1]]
+            for n2 in range(nodesAlongPatch - 2, nodesAlongPatch // 2, -1):
+                nodeIdPatch.append(sNodeId[n2][n3][-1])
+            nodesAround.append(nodeIdPatch)
+        self._rimNodeIds.append(nodesAround)
+        self._rimNodeIds.append([])
+
+        # create elements
+        annotationMeshGroups = generateData.getAnnotationMeshGroups(self._annotationTerms)
+        mesh = generateData.getMesh()
+        elementtemplateStd, eftStd = generateData.getStandardElementtemplate()
+        nodeLayoutFlipD1D2 = generateData.getNodeLayoutFlipD1D2()
+
+        for e2 in range(elementsCountAlong):
+            self._patchElementIds[e2] = [] if self._patchElementIds[e2] is None else self._patchElementIds[e2]
+            for e3 in range(elementsCountThroughWall):
+                patchElementIds = []
+                for e1 in range(elementsCountAround):
+                    elementtemplate = elementtemplateStd
+                    eft = eftStd
+                    nids = []
+                    if e2 < elementsCountAlong // 2:
+                        for n3 in [e3, e3 + 1] if (self._dimension == 3) else [0]:
+                            nids += [self._patchNodeIds[e2 + 1][n3][e1],
+                                     self._patchNodeIds[e2 + 1][n3][e1 + 1],
+                                     self._patchNodeIds[e2][n3][-(e1 + 1) if e2 == elementsCountAlong // 2 else e1],
+                                     self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == elementsCountAlong // 2 else e1 + 1]]
+
+                        elementIdentifier = generateData.nextElementIdentifier()
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                        element.setNodesByIdentifier(eft, nids)
+                    else:
+                        for n3 in [e3, e3 + 1]:
+                            nids += [self._patchNodeIds[e2][n3][-(e1 + 1) if e2 == elementsCountAlong // 2 else e1],
+                                     self._patchNodeIds[e2][n3][-(e1 + 2) if e2 == elementsCountAlong // 2 else e1 + 1],
+                                     self._patchNodeIds[e2 + 1][n3][e1],
+                                     self._patchNodeIds[e2 + 1][n3][e1 + 1]]
+                        nodeParameters = []
+                        nodeLayouts = []
+                        for n3 in (e3, e3 + 1):
+                            for n2 in (e2, e2 + 1):
+                                for n1 in (e1, e1 + 1):
+                                    nodeParameters.append(self.getPatchCoordinates(n1, n2, n3, isLinearThroughShell))
+                                    nodeLayouts.append(nodeLayoutFlipD1D2 if n2 == elementsCountAlong // 2 else
+                                                       None)
+                        elementIdentifier = generateData.nextElementIdentifier()
+                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                        elementtemplate = mesh.createElementtemplate()
+                        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_CUBE)
+                        elementtemplate.defineField(coordinates, -1, eft)
+                        element = mesh.createElement(elementIdentifier, elementtemplate)
+                        element.setNodesByIdentifier(eft, nids)
+                        if scalefactors:
+                            element.setScaleFactors(eft, scalefactors)
+                    for annotationMeshGroup in annotationMeshGroups:
+                        annotationMeshGroup.addElement(element)
+                    patchElementIds.append(elementIdentifier)
+                self._patchElementIds[e2].append(patchElementIds)
+
+        self._rimElementIds = [None] * (len(self._patchElementIds) // 2 + 2)
+        elementsAlongPatch = elementsCountAlong
+        sElementId = self._patchElementIds
+
+        elementsAlongPatchRim = len(self._patchElementIds) // 2  # Number of rings in patch
+        elementsAroundPatch = len(self._patchElementIds[0][0])
+
+        if elementsAroundPatch:
+            for i in range(elementsAlongPatchRim):
+                for e3 in range(self._elementsCountThroughShell):
+                    if sElementId:
+                        elementIdPatch = []
+                        e2StartIdx = elementsAlongPatch // 2 - i - 1
+                        e2EndIdx = elementsAlongPatch // 2 + i
+                        e1StartIdx = elementsAlongPatchRim - (i + 1)
+                        e1EndIdx = elementsAroundPatch - e1StartIdx - 1
+
+                        if e1EndIdx > e1StartIdx:
+                            for e2 in range(elementsAlongPatch // 2 - 1, e2StartIdx, -1):
+                                elementIdPatch.append(sElementId[e2][e3][e1StartIdx])
+                            elementIdPatch += [sElementId[e2StartIdx][e3][e1StartIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+
+                            elementIdPatch += sElementId[e2StartIdx][e3][e1StartIdx + 1:e1EndIdx]
+                            elementIdPatch += [sElementId[e2StartIdx][e3][e1EndIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+
+                            for e2 in range(e2StartIdx + 1, e2StartIdx + (e2EndIdx - e2StartIdx) // 2 + 1):
+                                elementIdPatch.append(sElementId[e2][e3][e1EndIdx])
+                            for e2 in range(e2StartIdx + (e2EndIdx - e2StartIdx) // 2 + 1, e2EndIdx):
+                                elementIdPatch.append(sElementId[e2][e3][e1StartIdx])
+
+                            elementIdPatch += [sElementId[e2EndIdx][e3][e1StartIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+                            elementIdPatch += sElementId[e2EndIdx][e3][e1StartIdx + 1:e1EndIdx]
+                            elementIdPatch += [sElementId[e2EndIdx][e3][e1EndIdx]] * (4 + (elementsAlongPatchRim - 1 - i) * 2)
+                            for e2 in range(e2EndIdx - 1, e2StartIdx + (e2EndIdx - e2StartIdx) // 2, -1):
+                                elementIdPatch.append(sElementId[e2][e3][e1EndIdx])
+                            self._rimElementIds[i] = [elementIdPatch]
+
+    def getPatchCoordinates(self, n1, n2, n3, isLinearThroughShell):
+        """
+        Get patch parameters at a point.
+        :param n1: Node index around.
+        :param n2: Node index along patch.
+        :param n3: Node index from inner to outer shell.
+        :param isLinearThroughShell: True for linear through shell so no d3 is returned.
+        :return: x, d1, d2, d3
+        """
+        return (self._patchCoordinates[0][n2][n3][n1],
+                self._patchCoordinates[1][n2][n3][n1],
+                self._patchCoordinates[2][n2][n3][n1],
+                None if isLinearThroughShell else self._patchCoordinates[3][n2][n3][n1])
+
+    def getRimIndexNodeLayoutSpecial(self, generateData, rimIndex):
+        """
+        Return special 5 way node layout at 3-segment rim nodes to keep roundedness around the rim.
+        """
+        return generateData.getNodeLayout5Way()
+
+    def generateJunctionRimElements(self, junction, generateData):
+        """
+        Generates rim elements for junction part of the segment after segment nodes and elements have been made.
+        Overwrites base class due to differences in derivative directions for nodes on patch and the need to handle
+        two elements at each corner with collapsed nodes. The two elements at each corner is replaced by a regular
+        element using all 8 corners, resulting in four less elements compared to tube segment case.
+        """
+        elementsAlongPatchSegment = len(self._patchCoordinates[0]) - 1
+        elementsAroundPatchSegment = len(self._patchCoordinates[0][0][0]) - 1
+
+        mesh = generateData.getMesh()
+        meshDimension = generateData.getMeshDimension()
+        elementtemplate = mesh.createElementtemplate()
+        elementtemplate.setElementShapeType(
+            Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
+        isLinearThroughShell = generateData.isLinearThroughShell()
+        d3Defined = (meshDimension == 3) and not isLinearThroughShell
+        coordinates = generateData.getCoordinates()
+        nodes = generateData.getNodes()
+        fieldcache = generateData.getFieldcache()
+
+        nodeLayoutFlipD1D2 = generateData.getNodeLayoutFlipD1D2()
+        nodeLayoutSwapMinusD1D2 = generateData.getNodeLayoutSwapMinusD1D2()
+        nodeLayoutSwapD1MinusD2 = generateData.getNodeLayoutSwapD1MinusD2()
+
+        elementsCountRim = self.getElementsCountRim()
+        elementsCountAround = self.getElementsCountAround()
+        elementsCountRimRegular = elementsCountRim - 1 if junction._isCore else elementsCountRim
+        elementsCountTransition = self.getElementsCountTransition()
+
+        annotationMeshGroups = generateData.getAnnotationMeshGroups(self.getAnnotationTerms())
+        eftList = [None] * elementsCountAround
+        scalefactorsList = [None] * elementsCountAround
+
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        s = junction._segments.index(self)
+        e2 = (elementsCountAlong - 1) if junction._segmentsIn[s] else 0
+        n2 = (elementsCountAlong - 1) if junction._segmentsIn[s] else 1
+
+        # smooth directions of midpoints
+        for n3 in range(elementsCountRimRegular + 1):
+            for i in range(2):
+                nids = []
+                sx = []
+                sd1 = []
+                for n1 in range(elementsAlongPatchSegment // 2 + 1 if i == 0 else
+                                elementsCountAround // 2 + elementsAlongPatchSegment // 2 + 1,
+                                elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 4 if i == 0 else
+                                elementsCountAround - elementsAlongPatchSegment // 2):
+                    rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                    nids.append(junction._rimNodeIds[n3][rimIndex])
+                    sx.append(junction._rimCoordinates[0][n3][rimIndex])
+                    if (i == 0 and n1 < elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 2) or \
+                            (i and n1 > elementsCountAround - elementsAlongPatchSegment // 2 - 1):
+                        sd1.append(junction._rimCoordinates[1][n3][rimIndex])
+                    else:
+                         sd1.append([-1.0 * c for c in junction._rimCoordinates[2][n3][rimIndex]])
+                sd1Smoothed = smoothCubicHermiteDerivativesLine(sx, sd1, fixStartDerivative=True, fixEndDerivative=True)
+                for n1 in range(1, len(nids) - 1):
+                    node = nodes.findNodeByIdentifier(nids[n1])
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, sd1Smoothed[n1])
+
+        # Recalculate d3 if not linear through shell
+        if not isLinearThroughShell:
+            shellFactor = 1.0 / self._elementsCountThroughShell
+            for n1 in range(elementsCountAround):
+                rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                ox = junction._rimCoordinates[0][-1][rimIndex]
+                ix = junction._rimCoordinates[0][0][rimIndex]
+                d3 = mult(sub(ox, ix), shellFactor)
+                for n3 in range(elementsCountRimRegular + 1):
+                    nid = junction._rimNodeIds[n3][rimIndex]
+                    node = nodes.findNodeByIdentifier(nid)
+                    fieldcache.setNode(node)
+                    coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
+
+        for e3 in range(elementsCountRimRegular):
+            rim_e3 = e3 + 1 if junction._isCore else e3
+            for e1 in range(elementsCountAround):
+                n1p = (e1 + 1) % elementsCountAround
+                isFirstCorner = (e1 == elementsAlongPatchSegment // 2 or \
+                                 e1 == elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment or \
+                                 e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
+                                 e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 2)
+                isSecondCorner = (e1 == elementsAlongPatchSegment // 2 + 1 or \
+                                  e1 == elementsAlongPatchSegment // 2 + elementsAroundPatchSegment + 3 or \
+                                  e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 + 1 or \
+                                  e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 1)
+                # Skip the second corner element
+                if isSecondCorner:
+                    continue
+
+                nids = []
+                nodeParameters = []
+                nodeLayouts = []
+                elementIdentifier = generateData.nextElementIdentifier()
+                lastTransition = junction._isCore and (elementsCountTransition == (rim_e3 + 1))
+                needParameters = (e3 == 0) or lastTransition
+                for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
+                    for n1 in [e1, n1p]:  # patch side
+                        rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                        if isFirstCorner and n1 == n1p:
+                            rimIndex = junction._segmentNodeToRimIndex[s][n1 + 1]
+                            nids.append(junction._rimNodeIds[n3][rimIndex])
+                        else:
+                            nids.append(self.getRimNodeId(n1, n2, n3))
+                        if needParameters:
+                            if isFirstCorner and n1 == n1p:
+                                nodeParameters.append(
+                                    (junction._rimCoordinates[0][n3][rimIndex],
+                                     junction._rimCoordinates[1][n3][rimIndex],
+                                     junction._rimCoordinates[2][n3][rimIndex],
+                                     junction._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
+                            else:
+                                rimCoordinates = self.getRimCoordinates(n1, n2, n3)
+                                nodeParameters.append(rimCoordinates if d3Defined else (
+                                    rimCoordinates[0], rimCoordinates[1], rimCoordinates[2], None))
+                            segmentNodesCount = len(junction._rimIndexToSegmentNodeList[rimIndex])
+                            if segmentNodesCount == 2:
+                                if e1 < elementsAlongPatchSegment // 2 + 2 or \
+                                    elementsCountAround // 2 < e1 < elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
+                                        e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
+                                        (e1 == elementsCountAround // 2 and n1 == n1p) or \
+                                        (e1 == elementsCountAround - 1 and n1 == 0):
+                                    nodeLayouts.append(nodeLayoutSwapMinusD1D2)
+                                elif elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment < e1 \
+                                        < elementsCountAround // 2 + elementsAlongPatchSegment // 2 or \
+                                        e1 > elementsCountAround - elementsAlongPatchSegment // 2 - 1 or \
+                                        e1 == elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment and n1 == n1p or \
+                                        e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 2 and n1 == n1p:
+                                    nodeLayouts.append(nodeLayoutSwapD1MinusD2)
+                                else:
+                                    nodeLayouts.append(None)
+
+                    for n1 in [e1, n1p]:  # outside patch
+                        rimIndex = junction._segmentNodeToRimIndex[s][n1]
+                        nids.append(junction._rimNodeIds[n3][rimIndex])
+                        if needParameters:
+                            nodeParameters.append(
+                                (junction._rimCoordinates[0][n3][rimIndex],
+                                 junction._rimCoordinates[1][n3][rimIndex],
+                                 junction._rimCoordinates[2][n3][rimIndex],
+                                 junction._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
+                            if e1 == elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment and n1 == n1p:
+                                nodeLayouts.append(nodeLayoutSwapD1MinusD2)
+                            elif e1 == elementsCountAround // 2 + elementsAlongPatchSegment // 2:
+                                nodeLayouts.append(nodeLayoutFlipD1D2 if n1 == e1 else nodeLayoutSwapMinusD1D2)
+                            elif e1 == elementsCountAround - elementsAlongPatchSegment // 2 - 2 and n1 == n1p:
+                                nodeLayouts.append(nodeLayoutSwapD1MinusD2)
+                            elif e1 < elementsAlongPatchSegment // 2 + 2 or \
+                                    elementsAlongPatchSegment // 2 + 2 + elementsAroundPatchSegment < e1 < \
+                                    (elementsCountAround + elementsAlongPatchSegment) // 2 + 2 or \
+                                    e1 > elementsCountAround - elementsAlongPatchSegment // 2 - 1:
+                                nodeLayouts.append(junction.getRimIndexNodeLayout(generateData, rimIndex))
+                            else:
+                                nodeLayouts.append(None)
+
+                # exploit efts being same through the rim
+                eft = eftList[e1]
+                scalefactors = scalefactorsList[e1]
+                if not eft:
+                    eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                    eftList[e1] = eft
+                    scalefactorsList[e1] = scalefactors
+                if lastTransition:
+                    # need to generate eft again otherwise modifying object in eftList, mucking up outer layers
+                    eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
+                    eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
+                        eft, scalefactors, nodeParameters, nids, self.getCoreBoundaryScalingMode())
+
+                elementtemplate.defineField(coordinates, -1, eft)
+                element = mesh.createElement(elementIdentifier, elementtemplate)
+                element.setNodesByIdentifier(eft, nids)
+                # print(e1, 'Element', elementIdentifier, nids)
+                if scalefactors:
+                    element.setScaleFactors(eft, scalefactors)
+                self.setRimElementId(e1, e2, rim_e3, elementIdentifier)
+                for annotationMeshGroup in annotationMeshGroups:
+                    annotationMeshGroup.addElement(element)
+
+    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Add ranges of rim elements to mesh group.
+        :param e1Start: Start element index around. Can be negative which supports wrapping.
+        :param e1Limit: Limit element index around.
+        :param e3Start: Start element index rim.
+        :param e3Limit: Limit element index rim.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = len(self._rimElementIds) - 1
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            rimSlice = self._rimElementIds[e2]
+            if rimSlice:
+                for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
+                    partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
+                            elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
+                    for elementIdentifier in partElementIdentifiersList:
+                        if elementIdentifier is None:
+                            continue
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.addElement(element)
+
 
 class TubeNetworkMeshJunction(NetworkMeshJunction):
     """
@@ -1710,7 +2660,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
         # parameters used for solid core
         self._isCore = self._segments[0].getIsCore()
-        self._boxCoordinates = None # [nAlong][nAcrossMajor][nAcrossMinor]
+        self._boxCoordinates = None  # [nAlong][nAcrossMajor][nAcrossMinor]
         self._boxNodeIds = None
         # sequence of segment indexes for bifurcation or trifurcation, proceding in increasing angle around a plane.
         # See: self._determineJunctionSequence()
@@ -1897,7 +2847,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     nd1 = []
                     nd2 = []
                     nd12 = []
-                    trimWidthFactors = (0.25, 1.75) if self._useOuterTrimSurfaces else (0.75, 1.25)
+                    trimWidthFactors = (0.25, 1.75)  # if self._useOuterTrimSurfaces else (0.75, 1.25)
                     d2scale = trimWidthFactors[1] - trimWidthFactors[0]
                     for factor in trimWidthFactors:
                         for n1 in range(trimPointsCountAround):
@@ -1938,6 +2888,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         hd2 = []
         hn = []  # normal hd1 x hd2
         hd3 = [] if d3Defined else None
+
         for s in range(segmentsCount):
             params = segmentsParameterLists[s]
             hd2m = [params[2][i] if segmentsIn[s] else [-d for d in params[2][i]] for i in range(2)]
@@ -1947,6 +2898,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             hn.append(normalize(cross(hd1[-1], hd2[-1])))
             if d3Defined:
                 hd3.append(mult(add(params[3][0], params[3][1]), 0.5))
+
         # get lists of mid-point parameters for all segment permutations
         mx = []
         md1 = []
@@ -2009,6 +2961,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 md2[0] = [-d for d in md2[0]]
             return mx[0], md1[0], md2[0], md3[0] if d3Defined else None
         mCount = len(mx)
+        # get mean x, d3 and surface normal (d1 x d2) at the centre across all segment permutations
         cx = [sum(x[c] for x in mx) / mCount for c in range(3)]
         cd3 = [sum(d3[c] for d3 in md3) / mCount for c in range(3)] if d3Defined else None
         ns12 = [0.0, 0.0, 0.0]
@@ -2033,6 +2986,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             angle = math.atan2(dot(rd[s], axis2), dot(rd[s], axis1))
             angles.append((2.0 * math.pi + angle) if (angle < 0.0) else angle)
         angle = 0.0
+        # get sequence of segments anticlockwise around ns12 starting at segment 0
         sequence = [0]
         for s in range(1, segmentsCount):
             nextAngle = math.pi * 4.0
@@ -2544,6 +3498,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                     for j in range(i + 1, sCount):
                         s2, n2 = segmentNodeList[j]
                         nodeIndex2 = (n2 + indexes[s2]) % aroundCounts[s2]
+                        # print(nodeIndex2, aroundCounts[s2])
                         x2 = rings[s2][nodeIndex2]
                         sum += magnitude([x2[0] - x1[0], x2[1] - x1[1], x2[2] - x1[2]])
             if (minSum is None) or (sum < minSum):
@@ -2643,7 +3598,9 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                 segmentNodeList = self._rimIndexToSegmentNodeList[rimIndex]
                 # segments have been ordered from lowest to highest s index
                 segmentsParameterLists = []
+                # print('segmentNodeList =', segmentNodeList)
                 for s, n1 in segmentNodeList:
+                    # print('s =', s, 'n1 =', n1)
                     if self._isCore and n3 < (elementsCountTransition - 1):
                         segmentsParameterLists.append(
                             self._segments[s].getTransitionCoordinatesListAlong(
@@ -2848,7 +3805,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                                 self._segmentsIn, self._sequence, maxMajorSegment, top)
                         else:
                             nodeLayout = nodeLayout6Way
-                    elif self._segmentsCount == 4 and self._segmentsIn[s]: # Trifurcation case
+                    elif self._segmentsCount == 4 and self._segmentsIn[s]:  # Trifurcation case
                         location = \
                             1 if (e1 < elementsCountAround // 4) or (e1 >= 3 * elementsCountAround // 4) else 2
                         nodeLayout = (nodeLayout6Way if self._sequence == [0, 1, 3, 2] else
@@ -2905,6 +3862,22 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             for annotationMeshGroup in annotationMeshGroups:
                 annotationMeshGroup.addElement(element)
 
+    def getRimIndexNodeLayout(self, generateData, rimIndex):
+        """
+        Get specific node layout for rim index based on segment nodes count.
+        """
+        segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
+        if segmentNodesCount == 2:
+            return generateData.getNodeLayoutFlipD2()
+        if segmentNodesCount == 4:
+            return generateData.getNodeLayout8Way()
+        # 3-segments
+        for segment in self._segments:
+            nodeLayout = segment.getRimIndexNodeLayoutSpecial(generateData, rimIndex)
+            if nodeLayout:
+                return nodeLayout
+        return generateData.getNodeLayout6Way()
+
     def generateMesh(self, generateData: TubeNetworkMeshGenerateData):
         if generateData.isShowTrimSurfaces():
             dimension = generateData.getMeshDimension()
@@ -2931,9 +3904,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
             return
 
         rimIndexesCount = len(self._rimIndexToSegmentNodeList)
-        elementsCountTransition = self._segments[0].getElementsCountTransition()
         nodesCountRim = self._segments[0].getNodesCountRim()
-        elementsCountRim = self._segments[0].getElementsCountRim()
         if self._rimCoordinates:
             self._rimNodeIds = [[None] * rimIndexesCount for _ in range(nodesCountRim)]
 
@@ -2948,25 +3919,15 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
         fieldcache = generateData.getFieldcache()
         nodes = generateData.getNodes()
         nodetemplate = generateData.getNodetemplate()
-        mesh = generateData.getMesh()
         meshDimension = generateData.getMeshDimension()
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(
-            Element.SHAPE_TYPE_CUBE if (meshDimension == 3) else Element.SHAPE_TYPE_SQUARE)
         d3Defined = (meshDimension == 3) and not generateData.isLinearThroughShell()
-
-        nodeLayout6Way = generateData.getNodeLayout6Way()
-        nodeLayout8Way = generateData.getNodeLayout8Way()
-        nodeLayoutFlipD2 = generateData.getNodeLayoutFlipD2()
 
         # nodes and elements are generated in order of segments
         for s in range(self._segmentsCount):
             segment = self._segments[s]
             elementsCountAlong = segment.getSampledElementsCountAlong()
-            e2 = (elementsCountAlong - 1) if self._segmentsIn[s] else 0
             n2 = (elementsCountAlong - 1) if self._segmentsIn[s] else 1
             segment.generateMesh(generateData, n2Only=n2)
-
             elementsCountAround = segment.getElementsCountAround()
 
             # Create nodes
@@ -2998,8 +3959,6 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
 
                         self._boxNodeIds[s][n3][n1] = nodeIdentifier
 
-                boxBoundaryNodeIds, boxBoundaryNodeToBoxId = self._createBoxBoundaryNodeIdsList(s)
-
             # create rim nodes (including core transition nodes)
             for n3 in range(nodesCountRim):
                 rx = self._rimCoordinates[0][n3]
@@ -3022,75 +3981,7 @@ class TubeNetworkMeshJunction(NetworkMeshJunction):
                         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, rd3[rimIndex])
                     layerNodeIds[rimIndex] = nodeIdentifier
 
-            # Create elements
-            if self._isCore:
-                # create box elements
-                self._generateBoxElements(s, n2, mesh, elementtemplate, coordinates, segment, generateData)
-                # create core transition elements
-                self._generateTransitionElements(s, n2, mesh, elementtemplate, coordinates, segment, generateData,
-                    elementsCountAround, boxBoundaryNodeIds, boxBoundaryNodeToBoxId)
-
-            # create regular rim elements
-            elementsCountRimRegular = elementsCountRim - 1 if self._isCore else elementsCountRim
-            annotationMeshGroups = generateData.getAnnotationMeshGroups(segment.getAnnotationTerms())
-            eftList = [None] * elementsCountAround
-            scalefactorsList = [None] * elementsCountAround
-            for e3 in range(elementsCountRimRegular):
-                rim_e3 = e3 + 1 if self._isCore else e3
-                for e1 in range(elementsCountAround):
-                    n1p = (e1 + 1) % elementsCountAround
-                    nids = []
-                    nodeParameters = []
-                    nodeLayouts = []
-                    elementIdentifier = generateData.nextElementIdentifier()
-                    lastTransition = self._isCore and (elementsCountTransition == (rim_e3 + 1))
-                    needParameters = (e3 == 0) or lastTransition
-                    for n3 in [e3, e3 + 1] if (meshDimension == 3) else [e3]:
-                        for n1 in [e1, n1p]:
-                            nids.append(self._segments[s].getRimNodeId(n1, n2, n3))
-                            if needParameters:
-                                rimCoordinates = self._segments[s].getRimCoordinates(n1, n2, n3)
-                                nodeParameters.append(rimCoordinates if d3Defined else (
-                                    rimCoordinates[0], rimCoordinates[1], rimCoordinates[2], None))
-                                nodeLayouts.append(None)
-                        for n1 in [e1, n1p]:
-                            rimIndex = self._segmentNodeToRimIndex[s][n1]
-                            nids.append(self._rimNodeIds[n3][rimIndex])
-                            if needParameters:
-                                nodeParameters.append(
-                                    (self._rimCoordinates[0][n3][rimIndex],
-                                     self._rimCoordinates[1][n3][rimIndex],
-                                     self._rimCoordinates[2][n3][rimIndex],
-                                     self._rimCoordinates[3][n3][rimIndex] if d3Defined else None))
-                                segmentNodesCount = len(self._rimIndexToSegmentNodeList[rimIndex])
-                                nodeLayouts.append(nodeLayoutFlipD2 if (segmentNodesCount == 2) else
-                                                   nodeLayout6Way if (segmentNodesCount == 3) else
-                                                   nodeLayout8Way)
-                        if not self._segmentsIn[s]:
-                            for a in [nids, nodeParameters, nodeLayouts] if (needParameters) else [nids]:
-                                a[-4], a[-2] = a[-2], a[-4]
-                                a[-3], a[-1] = a[-1], a[-3]
-                    # exploit efts being same through the rim
-                    eft = eftList[e1]
-                    scalefactors = scalefactorsList[e1]
-                    if not eft:
-                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                        eftList[e1] = eft
-                        scalefactorsList[e1] = scalefactors
-                    if lastTransition:
-                        # need to generate eft again otherwise modifying object in eftList, mucking up outer layers
-                        eft, scalefactors = determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts)
-                        eft, scalefactors = generateData.resolveEftCoreBoundaryScaling(
-                            eft, scalefactors, nodeParameters, nids, segment.getCoreBoundaryScalingMode())
-
-                    elementtemplate.defineField(coordinates, -1, eft)
-                    element = mesh.createElement(elementIdentifier, elementtemplate)
-                    element.setNodesByIdentifier(eft, nids)
-                    if scalefactors:
-                        element.setScaleFactors(eft, scalefactors)
-                    segment.setRimElementId(e1, e2, rim_e3, elementIdentifier)
-                    for annotationMeshGroup in annotationMeshGroups:
-                        annotationMeshGroup.addElement(element)
+            segment.generateJunctionRimElements(self, generateData)
 
 
 class TubeNetworkMeshBuilder(NetworkMeshBuilder):

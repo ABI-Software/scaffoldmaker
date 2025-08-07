@@ -19,7 +19,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         parameter_set_names = scaffold_class.getParameterSetNames()
         self.assertEqual(parameter_set_names, ["Default"])
         options = scaffold_class.getDefaultOptions("Default")
-        self.assertEqual(13, len(options))
+        self.assertEqual(14, len(options))
         self.assertEqual(4, options["Number of elements across axis 1"])
         self.assertEqual(6, options["Number of elements across axis 2"])
         self.assertEqual(8, options["Number of elements across axis 3"])
@@ -31,6 +31,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         self.assertEqual(0.0, options["Axis 2 x-rotation degrees"])
         self.assertEqual(90.0, options["Axis 3 x-rotation degrees"])
         self.assertEqual(0.6, options["Advanced n-way derivative factor"])
+        self.assertEqual(1, options["Advanced surface D3 mode"])
         self.assertFalse(options["Refine"])
         self.assertEqual(4, options["Refine number of elements"])
         # set test options
@@ -94,7 +95,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         parameter_set_names = scaffold_class.getParameterSetNames()
         self.assertEqual(parameter_set_names, ["Default"])
         options = scaffold_class.getDefaultOptions("Default")
-        self.assertEqual(13, len(options))
+        self.assertEqual(14, len(options))
         self.assertEqual(4, options["Number of elements across axis 1"])
         self.assertEqual(6, options["Number of elements across axis 2"])
         self.assertEqual(8, options["Number of elements across axis 3"])
@@ -106,6 +107,7 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         self.assertEqual(0.0, options["Axis 2 x-rotation degrees"])
         self.assertEqual(90.0, options["Axis 3 x-rotation degrees"])
         self.assertEqual(0.6, options["Advanced n-way derivative factor"])
+        self.assertEqual(1, options["Advanced surface D3 mode"])
         self.assertFalse(options["Refine"])
         self.assertEqual(4, options["Refine number of elements"])
 

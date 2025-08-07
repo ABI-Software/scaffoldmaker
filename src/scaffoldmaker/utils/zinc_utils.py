@@ -9,7 +9,7 @@ from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.element import Element, Elementbasis, MeshGroup
-from cmlibs.zinc.field import Field, FieldGroup
+from cmlibs.zinc.field import Field, FieldGroup, FieldFindMeshLocation
 from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, NodesetGroup
 from cmlibs.zinc.result import RESULT_OK
@@ -1031,3 +1031,45 @@ def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_na
     fitter.fitField(fit_field_name)
     fitter.cleanup()
     del fitter
+
+def find_first_node_conditional(nodeset, conditional_field):
+    """
+    Returns the first node in the conditional field.
+    :param nodeset: set of nodes.
+    :param conditional_field: Field containing nodes that satisfy conditions passed to the function.
+    """
+    fieldmodule = nodeset.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        group = fieldmodule.createFieldGroup()
+        nodeset_group = group.createNodesetGroup(nodeset)
+        nodeset_group.addNodesConditional(conditional_field)
+        junction_node = nodeset_group.createNodeiterator().next()
+
+        del nodeset_group
+        del group
+
+    return junction_node
+
+def get_node_mesh_location(node, node_coordinates, mesh, mesh_coordinates, search_mesh=None):
+    """
+    Returns the element and xi value of the node in the host mesh.
+    :param node: node to find mesh location.
+    :param node_coordinates: field coordinates
+    :param mesh: mesh where node sits in.
+    :param mesh_coordinates: coordinates of mesh. Could be geometric or material coordinates
+    :param search_mesh: mesh for conducting search for node location within the mesh. Can be used to reduce search
+    time if a partial mesh containing the node is supplied.
+    """
+    fieldmodule = mesh.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        find_mesh_location = fieldmodule.createFieldFindMeshLocation(node_coordinates, mesh_coordinates, mesh)
+        if search_mesh:
+            find_mesh_location.setSearchMesh(search_mesh)
+        find_mesh_location.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
+        fieldcache = fieldmodule.createFieldcache()
+        fieldcache.setNode(node)
+        element, xi = find_mesh_location.evaluateMeshLocation(fieldcache, mesh.getDimension())
+        del fieldcache
+        del find_mesh_location
+
+    return element, xi
