@@ -1773,7 +1773,7 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         # Only 8 around oviduct works for rat at the moment
         if isRat and options["Number of elements around oviduct/uterine horn"] > 8:
-            options["Number of elements around oviduct"] = 8
+            options["Number of elements around oviduct/uterine horn"] = 8
             dependentChanges = True
 
         if options["Number of elements around oviduct/uterine horn"] >= options["Number of elements around"]:
