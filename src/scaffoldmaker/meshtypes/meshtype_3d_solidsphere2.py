@@ -5,7 +5,7 @@ Generates a solid sphere (spheroid/ellipsoid in general) using a ShieldMesh of a
 
 from __future__ import division
 
-from cmlibs.maths.vectorops import identity_matrix, matrix_vector_mult, matrix_mult, mult
+from cmlibs.maths.vectorops import identity_matrix,mult
 from cmlibs.utils.zinc.field import findOrCreateFieldCoordinates
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -40,6 +40,7 @@ with variable numbers of elements across axes and shell directions.
             'Crop number of elements in direction 3': [0, 0],
             'Box derivatives': [1, 2, 3],
             'Use cross derivatives': False,
+            "Use serendipity": False,
             'Refine': False,
             'Refine number of elements': 1,
         }
@@ -61,6 +62,7 @@ with variable numbers of elements across axes and shell directions.
             'Crop number of elements in direction 2',
             'Crop number of elements in direction 3',
             'Box derivatives',
+            "Use serendipity",
             'Refine',
             'Refine number of elements'
         ]
@@ -143,6 +145,7 @@ with variable numbers of elements across axes and shell directions.
         shellProportion = options['Shell element thickness proportion']
         radius = [options['Radius1'], options['Radius2'], options['Radius3']]
         useCrossDerivatives = options['Use cross derivatives']
+        useSerendipity = options["Use serendipity"]
 
         cropElements = [
             options['Crop number of elements in direction 1'],
@@ -180,7 +183,8 @@ with variable numbers of elements across axes and shell directions.
         sphere1 = SphereMesh(fm, coordinates, centre, axes, elementsCountAcross,
                              elementsCountAcrossShell, elementsCountAcrossTransition, shellProportion,
                              sphereShape=sphere_shape, rangeOfRequiredElements=rangeOfRequiredElements,
-                             boxDerivatives=sphereBoxDerivatives, useCrossDerivatives=False,  meshGroups=meshGroups)
+                             boxDerivatives=sphereBoxDerivatives, useCrossDerivatives=False,
+                             useSerendipity=useSerendipity, meshGroups=meshGroups)
 
         return annotationGroups, None
 
