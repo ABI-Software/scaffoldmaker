@@ -687,6 +687,38 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 1.0, 0.0],
              [-1.0, 0.0, 0.0], [-1.0, -1.0, 0.0], [0.0, -1.0, 0.0], [1.0, -1.0, 0.0],
              [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayoutTriplePoint2DQ1 = HermiteNodeLayout(
+            [[-1.0, 0.0], [0.0, -1.0], [1.0, 1.0]])
+        self._nodeLayoutTriplePoint2DQ2 = HermiteNodeLayout(
+            [[0.0, -1.0], [1.0, 0.0], [-1.0, 1.0]])
+        self._nodeLayoutTriplePoint2DQ3 = HermiteNodeLayout(
+            [[1.0, 0.0], [0.0, 1.0], [-1.0, -1.0]])
+        self._nodeLayoutTriplePoint2DQ4 = HermiteNodeLayout(
+            [[0.0, 1.0], [-1.0, 0.0], [1.0, -1.0]])
+        self._nodeLayout3WayPoints12 = [
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [-1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])]
+        self._nodeLayout3WayPoints13 = [
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 0.0]])]
+        self._nodeLayout3WayPoints23 = [
+            HermiteNodeLayout([[0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 1.0], [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+            HermiteNodeLayout([[0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 1.0], [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+            HermiteNodeLayout([[0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 1.0], [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+            HermiteNodeLayout([[0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 1.0], [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])]
+        self._nodeLayout4WayPoints = [
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])]
         self._nodeLayoutTriplePointTopLeft = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
         self._nodeLayoutTriplePointTopRight = HermiteNodeLayout(
@@ -772,11 +804,48 @@ class HermiteNodeLayoutManager:
 
         return nodeLayout
 
+    def getNodeLayoutTriplePoint2D(self):
+        """
+        Get node layout for triple-point corners of 2D quadrants.
+        :return: List of 4 HermiteNodeLayout.
+        """
+        nodeLayouts = [self._nodeLayoutTriplePoint2DQ1, self._nodeLayoutTriplePoint2DQ2,
+                       self._nodeLayoutTriplePoint2DQ3, self._nodeLayoutTriplePoint2DQ4]
+        return nodeLayouts
+
+    def getNodeLayout3WayPoints12(self):
+        """
+        Get 3-way node layouts for quadrants 12 = NN, NP, PN, PP.
+        :return: List of 4 HermiteNodeLayout.
+        """
+        return self._nodeLayout3WayPoints12
+
+    def getNodeLayout3WayPoints13(self):
+        """
+        Get 3-way node layouts for quadrants 13 = NN, NP, PN, PP.
+        :return: List of 4 HermiteNodeLayout.
+        """
+        return self._nodeLayout3WayPoints13
+
+    def getNodeLayout3WayPoints23(self):
+        """
+        Get 3-way node layouts for quadrants 23 = NN, NP, PN, PP.
+        :return: List of 4 HermiteNodeLayout.
+        """
+        return self._nodeLayout3WayPoints23
+
+    def getNodeLayout4WayPoints(self):
+        """
+        Get node layouts from a regular core for octants 123: NNN, NNP, NPN, NPP, PNN, PNP, PPN, PPP.
+        :return: List of 8 HermiteNodeLayout.
+        """
+        return self._nodeLayout4WayPoints
+
     def getNodeLayoutTriplePoint(self):
         """
         Get node layout for triple-point corners of core box elements. There are four corners (Top Left, Top Right,
         Bottom Left, and Bottom Right) each with its specific node layout.
-        :return: HermiteNodeLayout.
+        :return: List of 4 HermiteNodeLayout.
         """
         nodeLayouts = [self._nodeLayoutTriplePointTopLeft, self._nodeLayoutTriplePointTopRight,
                        self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]
