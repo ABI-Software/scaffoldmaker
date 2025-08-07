@@ -1,8 +1,6 @@
 """
 Utilities for building solid ellipsoid meshes from hexahedral elements.
 """
-import copy
-import math
 from cmlibs.maths.vectorops import add, cross, div, magnitude, mult, set_magnitude, sub
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
@@ -16,6 +14,14 @@ from scaffoldmaker.utils.interpolation import (
     DerivativeScalingMode, get_nway_point, linearlyInterpolateVectors, sampleHermiteCurve,
     smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
+import copy
+from enum import Enum
+import math
+
+
+class EllipsoidSurfaceD3Mode(Enum):
+    SURFACE_NORMAL = 1  # surface D3 are exact surface normals to ellipsoid
+    OBLIQUE_DIRECTION = 2  # surface D3 are in direction of surface point on ellipsoid, gives flat oblique planes
 
 
 class EllipsoidMesh:
@@ -24,7 +30,7 @@ class EllipsoidMesh:
     """
 
     def __init__(self, a, b, c, element_counts, transition_element_count,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, nway_d_factor=0.6):
+                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False):
         """
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
@@ -34,9 +40,6 @@ class EllipsoidMesh:
         :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
         :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
         :param surface_only: Set to True to only make nodes and 2-D elements on the surface.
-        :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
-        of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
-        of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
@@ -48,7 +51,8 @@ class EllipsoidMesh:
         self._axis2_x_rotation_radians = axis2_x_rotation_radians
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
-        self._nway_d_factor = nway_d_factor
+        self._nway_d_factor = 0.6
+        self._surface_d3_mode = EllipsoidSurfaceD3Mode.SURFACE_NORMAL
         self._box_group = None
         self._transition_group = None
         self._octant_group_lists = None
@@ -111,6 +115,22 @@ class EllipsoidMesh:
         """
         assert (octant_group_lists is None) or (len(octant_group_lists) == 8)
         self._octant_group_lists = octant_group_lists
+
+    def set_nway_derivative_factor(self, nway_derivative_factor):
+        """
+        Set factor controlling the shape of 3-way and 4-way points in ellipsoid mesh.
+        :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+        of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
+        of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
+        """
+        self._nway_d_factor = nway_derivative_factor
+
+    def set_surface_d3_mode(self, surface_d3_mode: EllipsoidSurfaceD3Mode):
+        """
+        Set mode controlling how surface d3 values are calculated.
+        :param surface_d3_mode: Value from EllipsoidSurfaceD3Mode.
+        """
+        self._surface_d3_mode = surface_d3_mode
 
     def build(self):
         """
@@ -294,10 +314,11 @@ class EllipsoidMesh:
                 start_weight, end_weight, overweighting, end_transition))
         move_x_to_ellipsoid_surface = lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
         move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
-        # surface normal:
-        evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(
-            [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
-        # evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
+        if self._surface_d3_mode == EllipsoidSurfaceD3Mode.SURFACE_NORMAL:
+            evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(
+                [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
+        else:
+            evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
 
         octant = EllipsoidOctantMesh(self._a, self._b, self._c, half_counts, self._trans_count,
                                       nway_d_factor=self._nway_d_factor)
@@ -558,17 +579,6 @@ class EllipsoidMesh:
                 parameters[pix] = new_derivative
             # else:
             #     # not putting back values if summed parameters
-
-            # build map from node identifier to special node layouts
-            nid_to_node_layout = {}
-            # nodes on boundary of bottom transition of box are fully permuted
-            nids_layer = self._nids[self._trans_count]
-            for n2 in range(self._element_counts[1] + 1):
-                for n1 in range(self._element_counts[0] + 1):
-                    nid = nids_layer[n2][n1]
-                    if nid:
-                        nid_to_node_layout[nid] = node_layout_permuted
-            #
 
 
     def _get_nid_to_node_layout_map_3d(self, node_layout_manager):
