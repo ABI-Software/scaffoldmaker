@@ -101,7 +101,7 @@ class EllipsoidMesh:
         self._box_group = box_group
         self._transition_group = transition_group
 
-    def set_octant_group_list(self, octant_group_lists):
+    def set_octant_group_lists(self, octant_group_lists):
         """
         Set lists of zinc groups to add elements in each of the 8 octants to.
         :param octant_group_lists: List of 8 lists of group fields to put elements into. For example, the

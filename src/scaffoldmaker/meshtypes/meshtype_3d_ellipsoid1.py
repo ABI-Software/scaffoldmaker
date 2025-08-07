@@ -138,7 +138,7 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
             octant_group_list.append((front_group if (octant & 2) else back_group).getGroup())
             octant_group_list.append((top_group if (octant & 4) else bottom_group).getGroup())
             octant_group_lists.append(octant_group_list)
-        ellipsoid.set_octant_group_list(octant_group_lists)
+        ellipsoid.set_octant_group_lists(octant_group_lists)
 
         if not surface_only:
             box_group = AnnotationGroup(region, ("box", ""))
