@@ -1,4 +1,3 @@
-from cmlibs.maths.vectorops import magnitude
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.context import Context
@@ -16,10 +15,10 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         """
         Test creation of 2-D ellipsoid surface.
         """
-        Scaffold = MeshType_3d_ellipsoid1
-        parameterSetNames = Scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default"])
-        options = Scaffold.getDefaultOptions("Default")
+        scaffold_class = MeshType_3d_ellipsoid1
+        parameter_set_names = scaffold_class.getParameterSetNames()
+        self.assertEqual(parameter_set_names, ["Default"])
+        options = scaffold_class.getDefaultOptions("Default")
         self.assertEqual(13, len(options))
         self.assertEqual(4, options["Number of elements across axis 1"])
         self.assertEqual(6, options["Number of elements across axis 2"])
@@ -40,8 +39,8 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = Scaffold.generateMesh(region, options)[0]
-        self.assertEqual(0, len(annotationGroups))
+        annotation_groups = scaffold_class.generateMesh(region, options)[0]
+        self.assertEqual(6, len(annotation_groups))
 
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -78,20 +77,23 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
-            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh2d)
-            surfaceAreaField.setNumbersOfPoints(4)
-        result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            surface_area_field = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh2d)
+            surface_area_field.setNumbersOfPoints(4)
+        result, surface_area = surface_area_field.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 27.86848567909992, delta=TOL)
+        self.assertAlmostEqual(surface_area, 27.86848567909992, delta=TOL)
+
+        for annotation_group in annotation_groups:
+            self.assertEqual(44, annotation_group.getMeshGroup(mesh2d).getSize())
 
     def test_ellipsoid_3D(self):
         """
         Test creation of 3-D ellipsoid surface.
         """
-        Scaffold = MeshType_3d_ellipsoid1
-        parameterSetNames = Scaffold.getParameterSetNames()
-        self.assertEqual(parameterSetNames, ["Default"])
-        options = Scaffold.getDefaultOptions("Default")
+        scaffold_class = MeshType_3d_ellipsoid1
+        parameter_set_names = scaffold_class.getParameterSetNames()
+        self.assertEqual(parameter_set_names, ["Default"])
+        options = scaffold_class.getDefaultOptions("Default")
         self.assertEqual(13, len(options))
         self.assertEqual(4, options["Number of elements across axis 1"])
         self.assertEqual(6, options["Number of elements across axis 2"])
@@ -110,8 +112,8 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = Scaffold.generateMesh(region, options)[0]
-        self.assertEqual(0, len(annotationGroups))
+        annotation_groups = scaffold_class.generateMesh(region, options)[0]
+        self.assertEqual(8, len(annotation_groups))
 
         fieldmodule = region.getFieldmodule()
         mesh3d = fieldmodule.findMeshByDimension(3)
@@ -165,8 +167,18 @@ class EllipsoidScaffoldTestCase(unittest.TestCase):
         result, volume = volume_field.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
         self.assertAlmostEqual(surface_area, 27.86848567909992, delta=TOL)
-        # note exact ellipsoide volume is 4.0 / 3.0 * math.pi * a * b * c = 12.566370614359173
+        # note exact ellipsoid volume is 4.0 / 3.0 * math.pi * a * b * c = 12.566370614359173
         self.assertAlmostEqual(volume, 12.557389634764395, delta=TOL)
+
+        for annotation_group in annotation_groups:
+            name = annotation_group.getName()
+            if name == "box":
+                self.assertEqual(48, annotation_group.getMeshGroup(mesh3d).getSize())
+            elif name == "transition":
+                self.assertEqual(88, annotation_group.getMeshGroup(mesh3d).getSize())
+            else:
+                self.assertTrue(name in ["left", "right", "back", "front", "bottom", "top"])
+                self.assertEqual(68, annotation_group.getMeshGroup(mesh3d).getSize())
 
 
 if __name__ == "__main__":

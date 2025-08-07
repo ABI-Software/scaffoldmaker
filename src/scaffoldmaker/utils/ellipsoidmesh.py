@@ -24,7 +24,8 @@ class EllipsoidMesh:
     """
 
     def __init__(self, a, b, c, element_counts, transition_element_count,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, nway_d_factor=0.6):
+                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False, nway_d_factor=0.6,
+                 box_group=None, transition_group=None, octant_group_lists=None):
         """
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
@@ -37,6 +38,12 @@ class EllipsoidMesh:
         :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
         of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
         of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
+        :param box_group: Optional group field to add elements from box region to, if not surface_only.
+        :param transition_group: Optional group field to add elements from transition region to, if not surface_only.
+        :param octant_group_lists: Optional list of 8 lists of group fields to put elements into. For example, the
+        elements of octant 0 (negative 3 axis, negative 2 axis, negative 1 axis) will be put in the mesh groups of
+        the appropriate dimension of the groups in octant_groups_lists[0]. Order of octants for N (negative) or
+        P (positive) 321 axes: NNN, NNP, NPN, NPP, PNN, PNP, PPN, PPP.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
         assert 1 <= transition_element_count <= (min(element_counts) // 2 - 1)
@@ -49,6 +56,10 @@ class EllipsoidMesh:
         self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
         self._nway_d_factor = nway_d_factor
+        self._box_group = box_group
+        self._transition_group = transition_group
+        assert (octant_group_lists is None) or (len(octant_group_lists) == 8)
+        self._octant_group_lists = octant_group_lists
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
@@ -703,19 +714,38 @@ class EllipsoidMesh:
                         coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS3, 1, d3)
                     node_identifier += 1
 
+        # create elements
+
+        mesh_dimension = 2 if self._surface_only else 3
+        mesh = fieldmodule.findMeshByDimension(mesh_dimension)
+        element_identifier = start_element_identifier
         half_counts = [count // 2 for count in self._element_counts]
         node_layout_manager = HermiteNodeLayoutManager()
-        element_identifier = start_element_identifier
+        octant_mesh_group_lists = None
+        if self._octant_group_lists:
+            octant_mesh_group_lists = []
+            for octant_group_list in self._octant_group_lists:
+                octant_mesh_group_list = []
+                for octant_group in octant_group_list:
+                    octant_mesh_group_list.append(octant_group.getOrCreateMeshGroup(mesh))
+                octant_mesh_group_lists.append(octant_mesh_group_list)
+        box_mesh_group = None
+        transition_mesh_group = None
+        if not self._surface_only:
+            if self._box_group:
+                box_mesh_group = self._box_group.getOrCreateMeshGroup(mesh)
+            if self._transition_group:
+                transition_mesh_group = self._transition_group.getOrCreateMeshGroup(mesh)
 
         if self._surface_only:
-            mesh2d = fieldmodule.findMeshByDimension(2)
-            elementtemplate_regular = mesh2d.createElementtemplate()
+            # 2-D mesh
+            elementtemplate_regular = mesh.createElementtemplate()
             elementtemplate_regular.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
             bicubic_hermite_serendipity_basis = (
                 fieldmodule.createElementbasis(2, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY))
-            eft_regular = mesh2d.createElementfieldtemplate(bicubic_hermite_serendipity_basis)
+            eft_regular = mesh.createElementfieldtemplate(bicubic_hermite_serendipity_basis)
             elementtemplate_regular.defineField(coordinates, -1, eft_regular)
-            elementtemplate_special = mesh2d.createElementtemplate()
+            elementtemplate_special = mesh.createElementtemplate()
             elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_SQUARE)
             # get actual indexes used on rim in 1, 2, 3 directions
             rim_indexes = [[0] + [self._trans_count + 1 + j
@@ -724,17 +754,24 @@ class EllipsoidMesh:
             # bottom rectangle
             bottom_nids = self._nids[0]
             last_nids_row = None
+            octant_n3 = 0
             for i2, n2 in enumerate(rim_indexes[1]):
+                octant_n2 = 2 if (n2 > half_counts[1]) else 0
                 nids_row = []
                 for i1, n1 in enumerate(reversed(rim_indexes[0])):
+                    octant_n1 = 1 if (n1 >= half_counts[0]) else 0
                     nids_row.append(bottom_nids[n2][n1])
                     if (i2 > 0) and (i1 > 0):
                         nids = [last_nids_row[i1 - 1], last_nids_row[i1], nids_row[i1 - 1], nids_row[i1]]
                         if None in nids:
                             continue
-                        element = mesh2d.createElement(element_identifier, elementtemplate_regular)
+                        element = mesh.createElement(element_identifier, elementtemplate_regular)
                         element.setNodesByIdentifier(eft_regular, nids)
                         # print("Element", element_identifier, "nids", nids)
+                        if octant_mesh_group_lists:
+                            octant = octant_n3 + octant_n2 + octant_n1
+                            for mesh_group in octant_mesh_group_lists[octant]:
+                                mesh_group.addElement(element)
                         element_identifier += 1
                 last_nids_row = nids_row
             # around sides
@@ -749,12 +786,13 @@ class EllipsoidMesh:
             last_parameters_row = None
             last_corners_row = None
             for n3 in rim_indexes[2]:
+                octant_n3 = 4 if (n3 > half_counts[2]) else 0
                 indexes = [self._element_counts[0], half_counts[1], n3]
                 nids_row = []
                 parameters_row = []
                 corners_row = []
-                for n in range(elements_count_around12):
-                    if n > 0:
+                for nc in range(elements_count_around12):
+                    if nc > 0:
                         while True:
                             indexes = [indexes[c] + index_increment[c] for c in range(3)]
                             # skip over blank transition coordinates
@@ -772,40 +810,47 @@ class EllipsoidMesh:
                         corners_row.append(False)
                 if n3 > 0:
                     quarter_elements_count_around12 = elements_count_around12 // 4
-                    for n in range(elements_count_around12):
-                        nids = [last_nids_row[n], last_nids_row[(n + 1) % elements_count_around12],
-                                nids_row[n], nids_row[(n + 1) % elements_count_around12]]
+                    octant_nc = []
+                    for nc in range(elements_count_around12):
+                        ncp = (nc + 1) % elements_count_around12
+                        nids = [last_nids_row[nc], last_nids_row[ncp],
+                                nids_row[nc], nids_row[ncp]]
                         if None in nids:
                             continue
-                        q = n // quarter_elements_count_around12
+                        q = nc // quarter_elements_count_around12
+                        octant_nc.append(3 if (q == 0) else (2 if (q == 1) else (0 if (q == 2) else 1)))
                         elementtemplate = elementtemplate_regular
                         eft = eft_regular
                         scalefactors = None
                         if n3 in (rim_indexes[2][1], self._element_counts[2]):
                             node_parameters = [
-                                last_parameters_row[n], last_parameters_row[(n + 1) % elements_count_around12],
-                                parameters_row[n], parameters_row[(n + 1) % elements_count_around12]]
+                                last_parameters_row[nc], last_parameters_row[ncp],
+                                parameters_row[nc], parameters_row[ncp]]
                             if n3 == rim_indexes[2][1]:
                                 node_layouts = [node_layout_permuted, node_layout_permuted, None, None]
-                                if last_corners_row[n]:
+                                if last_corners_row[nc]:
                                     node_layouts[0] = node_layout_triple_points[(5 - q) % 4]
-                                elif last_corners_row[(n + 1) % elements_count_around12]:
+                                elif last_corners_row[ncp]:
                                     node_layouts[1] = node_layout_triple_points[(5 - q) % 4]
                             else:
                                 node_layouts = [None, None, node_layout_permuted, node_layout_permuted]
-                                if corners_row[n]:
+                                if corners_row[nc]:
                                     node_layouts[2] = node_layout_triple_points[q]
-                                elif corners_row[(n + 1) % elements_count_around12]:
+                                elif corners_row[ncp]:
                                     node_layouts[3] = node_layout_triple_points[q]
                             eft, scalefactors = \
-                                determineCubicHermiteSerendipityEft(mesh2d, node_parameters, node_layouts)
+                                determineCubicHermiteSerendipityEft(mesh, node_parameters, node_layouts)
                             elementtemplate_special.defineField(coordinates, -1, eft)
                             elementtemplate = elementtemplate_special
-                        element = mesh2d.createElement(element_identifier, elementtemplate)
+                        element = mesh.createElement(element_identifier, elementtemplate)
                         element.setNodesByIdentifier(eft, nids)
                         if scalefactors:
                             element.setScaleFactors(eft, scalefactors)
                         # print("Element", element_identifier, "nids", nids)
+                        if octant_mesh_group_lists:
+                            octant = octant_n3 + octant_nc[nc]
+                            for mesh_group in octant_mesh_group_lists[octant]:
+                                mesh_group.addElement(element)
                         element_identifier += 1
                 last_nids_row = nids_row
                 last_parameters_row = parameters_row
@@ -813,28 +858,35 @@ class EllipsoidMesh:
             # top rectangle
             top_nids = self._nids[self._element_counts[2]]
             last_nids_row = None
+            octant_n3 = 4
             for i2, n2 in enumerate(rim_indexes[1]):
+                octant_n2 = 2 if (n2 > half_counts[1]) else 0
                 nids_row = []
                 for i1, n1 in enumerate(rim_indexes[0]):
+                    octant_n1 = 1 if (n1 > half_counts[0]) else 0
                     nids_row.append(top_nids[n2][n1])
                     if (i2 > 0) and (i1 > 0):
                         nids = [last_nids_row[i1 - 1], last_nids_row[i1], nids_row[i1 - 1], nids_row[i1]]
                         if None in nids:
                             continue
-                        element = mesh2d.createElement(element_identifier, elementtemplate_regular)
+                        element = mesh.createElement(element_identifier, elementtemplate_regular)
                         element.setNodesByIdentifier(eft_regular, nids)
                         # print("Element", element_identifier, "nids", nids)
+                        if octant_mesh_group_lists:
+                            octant = octant_n3 + octant_n2 + octant_n1
+                            for mesh_group in octant_mesh_group_lists[octant]:
+                                mesh_group.addElement(element)
                         element_identifier += 1
                 last_nids_row = nids_row
-        else:  # 3-D mesh
-            mesh3d = fieldmodule.findMeshByDimension(3)
-            elementtemplate_regular = mesh3d.createElementtemplate()
+        else:
+            # 3-D mesh
+            elementtemplate_regular = mesh.createElementtemplate()
             elementtemplate_regular.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             tricubic_hermite_serendipity_basis = (
                 fieldmodule.createElementbasis(3, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE_SERENDIPITY))
-            eft_regular = mesh3d.createElementfieldtemplate(tricubic_hermite_serendipity_basis)
+            eft_regular = mesh.createElementfieldtemplate(tricubic_hermite_serendipity_basis)
             elementtemplate_regular.defineField(coordinates, -1, eft_regular)
-            elementtemplate_special = mesh3d.createElementtemplate()
+            elementtemplate_special = mesh.createElementtemplate()
             elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             box_counts = [half_counts[i] - self._trans_count for i in range(3)]
             dbox_counts = [2 * box_counts[i] for i in range(3)]
@@ -844,6 +896,7 @@ class EllipsoidMesh:
             last_nx_layer = None
             for nt in range(self._trans_count + 1):
                 n3 = nt
+                octant_n3 = 0
                 nids_layer = []
                 nx_layer = []
                 last_nids_row = None
@@ -852,12 +905,14 @@ class EllipsoidMesh:
                     n2 = (nt if (i2 == 0)
                           else (self._element_counts[1] - nt) if (i2 == dbox_counts[1])
                           else (self._trans_count + i2))
+                    octant_n2 = 2 if (n2 > half_counts[1]) else 0
                     nids_row = []
                     nx_row = []
                     for i1 in range(dbox_counts[0] + 1):
                         n1 = (nt if (i1 == 0)
                               else (self._element_counts[0] - nt) if (i1 == dbox_counts[0])
                               else (self._trans_count + i1))
+                        octant_n1 = 1 if (n1 > half_counts[0]) else 0
                         nids_row.append(self._nids[n3][n2][n1])
                         nx_row.append(self._nx[n3][n2][n1])
                         if (nt > 0) and (i2 > 0) and (i1 > 0):
@@ -877,14 +932,20 @@ class EllipsoidMesh:
                                                    last_nx_layer[i2 - 1][i1], last_nx_layer[i2 - 1][i1 - 1],
                                                    last_nx_layer[i2][i1], last_nx_layer[i2][i1 - 1]]
                                 eft, scalefactors = \
-                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                    determineCubicHermiteSerendipityEft(mesh, node_parameters, node_layouts)
                                 elementtemplate_special.defineField(coordinates, -1, eft)
                                 elementtemplate = elementtemplate_special
-                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element = mesh.createElement(element_identifier, elementtemplate)
                             element.setNodesByIdentifier(eft, nids)
                             # print("Element", element_identifier, "nids", nids)
                             if scalefactors:
                                 element.setScaleFactors(eft, scalefactors)
+                            if octant_mesh_group_lists:
+                                octant = octant_n3 + octant_n2 + octant_n1
+                                for mesh_group in octant_mesh_group_lists[octant]:
+                                    mesh_group.addElement(element)
+                            if transition_mesh_group:
+                                transition_mesh_group.addElement(element)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)
@@ -900,16 +961,19 @@ class EllipsoidMesh:
             last_rim_nx_layer = None
             for i3 in range(dbox_counts[2] + 1):
                 n3 = self._trans_count + i3
+                octant_n3 = 4 if (n3 > half_counts[2]) else 0
                 nids_layer = []
                 nx_layer = []
                 last_nids_row = None
                 last_nx_row = None
                 for i2 in range(dbox_counts[1] + 1):
                     n2 = self._trans_count + i2
+                    octant_n2 = 2 if (n2 > half_counts[1]) else 0
                     nids_row = []
                     nx_row = []
                     for i1 in range(dbox_counts[0] + 1):
                         n1 = self._trans_count + i1
+                        octant_n1 = 1 if (n1 > half_counts[0]) else 0
                         nids_row.append(self._nids[n3][n2][n1])
                         nx_row.append(self._nx[n3][n2][n1])
                         if (i3 > 0) and (i2 > 0) and (i1 > 0):
@@ -929,14 +993,20 @@ class EllipsoidMesh:
                                                    last_nx_row[i1 - 1], last_nx_row[i1],
                                                    nx_row[i1 - 1], nx_row[i1]]
                                 eft, scalefactors = \
-                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                    determineCubicHermiteSerendipityEft(mesh, node_parameters, node_layouts)
                                 elementtemplate_special.defineField(coordinates, -1, eft)
                                 elementtemplate = elementtemplate_special
-                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element = mesh.createElement(element_identifier, elementtemplate)
                             element.setNodesByIdentifier(eft, nids)
                             # print("Element", element_identifier, "nids", nids)
                             if scalefactors:
                                 element.setScaleFactors(eft, scalefactors)
+                            if octant_mesh_group_lists:
+                                octant = octant_n3 + octant_n2 + octant_n1
+                                for mesh_group in octant_mesh_group_lists[octant]:
+                                    mesh_group.addElement(element)
+                            if box_mesh_group:
+                                box_mesh_group.addElement(element)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)
@@ -954,36 +1024,43 @@ class EllipsoidMesh:
                         (upper_trans_counts[2] + nt) if (i3 == dbox_counts[2]) else (self._trans_count + i3)))
                     rim_nids_row = []
                     rim_nx_row = []
+                    octant_nc = []
                     n2 = self._trans_count - nt
                     for i1 in range(dbox_counts[0]):
                         n1 = ((self._trans_count - nt) if (i1 == 0) else (
                             (upper_trans_counts[0] + nt) if (i1 == dbox_counts[0]) else (self._trans_count + i1)))
                         rim_nids_row.append(self._nids[n3][n2][n1])
                         rim_nx_row.append(self._nx[n3][n2][n1])
+                        octant_nc.append(1 if n1 >= half_counts[0] else 0)
                     n1 = upper_trans_counts[0] + nt
                     for i2 in range(dbox_counts[1]):
                         n2 = ((self._trans_count - nt) if (i2 == 0) else (
                             (upper_trans_counts[1] + nt) if (i2 == dbox_counts[1]) else (self._trans_count + i2)))
                         rim_nids_row.append(self._nids[n3][n2][n1])
                         rim_nx_row.append(self._nx[n3][n2][n1])
+                        octant_nc.append(3 if n2 >= half_counts[1] else 1)
                     n2 = upper_trans_counts[1] + nt
                     for i1 in range(dbox_counts[0]):
                         n1 = ((upper_trans_counts[0] + nt) if (i1 == 0) else (
                             (self._trans_count - nt) if (i1 == dbox_counts[0]) else (upper_trans_counts[0] - i1)))
                         rim_nids_row.append(self._nids[n3][n2][n1])
                         rim_nx_row.append(self._nx[n3][n2][n1])
+                        octant_nc.append(3 if n1 > half_counts[0] else 2)
                     n1 = self._trans_count - nt
                     for i2 in range(dbox_counts[1]):
                         n2 = ((upper_trans_counts[1] + nt) if (i2 == 0) else (
                              (self._trans_count - nt) if (i2 == dbox_counts[1]) else (upper_trans_counts[1] - i2)))
                         rim_nids_row.append(self._nids[n3][n2][n1])
                         rim_nx_row.append(self._nx[n3][n2][n1])
+                        octant_nc.append(2 if n2 > half_counts[1] else 0)
                     if (i3 > 0) and (nt > 0):
-                        for nc in range(len(rim_nids_row)):
-                            nids = [last_rim_nids_layer[nt - 1][nc - 1], last_rim_nids_layer[nt - 1][nc],
-                                    last_rim_nids_row[nc - 1], last_rim_nids_row[nc],
-                                    last_rim_nids_layer[nt][nc - 1], last_rim_nids_layer[nt][nc],
-                                    rim_nids_row[nc - 1], rim_nids_row[nc]]
+                        rim_count = len(rim_nids_row)
+                        for nc in range(rim_count):
+                            ncp = (nc + 1) % rim_count
+                            nids = [last_rim_nids_layer[nt - 1][nc], last_rim_nids_layer[nt - 1][ncp],
+                                    last_rim_nids_row[nc], last_rim_nids_row[ncp],
+                                    last_rim_nids_layer[nt][nc], last_rim_nids_layer[nt][ncp],
+                                    rim_nids_row[nc], rim_nids_row[ncp]]
                             if None in nids:
                                 continue
                             elementtemplate = elementtemplate_regular
@@ -991,19 +1068,25 @@ class EllipsoidMesh:
                             scalefactors = None
                             node_layouts = [nid_to_node_layout.get(nid) for nid in nids]
                             if any(node_layout is not None for node_layout in node_layouts):
-                                node_parameters = [last_rim_nx_layer[nt - 1][nc - 1], last_rim_nx_layer[nt - 1][nc],
-                                                   last_rim_nx_row[nc - 1], last_rim_nx_row[nc],
-                                                   last_rim_nx_layer[nt][nc - 1], last_rim_nx_layer[nt][nc],
-                                                   rim_nx_row[nc - 1], rim_nx_row[nc]]
+                                node_parameters = [last_rim_nx_layer[nt - 1][nc], last_rim_nx_layer[nt - 1][ncp],
+                                                   last_rim_nx_row[nc], last_rim_nx_row[ncp],
+                                                   last_rim_nx_layer[nt][nc], last_rim_nx_layer[nt][ncp],
+                                                   rim_nx_row[nc], rim_nx_row[ncp]]
                                 eft, scalefactors = \
-                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                    determineCubicHermiteSerendipityEft(mesh, node_parameters, node_layouts)
                                 elementtemplate_special.defineField(coordinates, -1, eft)
                                 elementtemplate = elementtemplate_special
-                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element = mesh.createElement(element_identifier, elementtemplate)
                             element.setNodesByIdentifier(eft, nids)
                             # print("Element", element_identifier, "nids", nids)
                             if scalefactors:
                                 element.setScaleFactors(eft, scalefactors)
+                            if octant_mesh_group_lists:
+                                octant = octant_n3 + octant_nc[nc]
+                                for mesh_group in octant_mesh_group_lists[octant]:
+                                    mesh_group.addElement(element)
+                            if transition_mesh_group:
+                                transition_mesh_group.addElement(element)
                             element_identifier += 1
                     rim_nids_layer.append(rim_nids_row)
                     rim_nx_layer.append(rim_nx_row)
@@ -1016,6 +1099,7 @@ class EllipsoidMesh:
             last_nx_layer = None
             for nt in range(self._trans_count, -1, -1):
                 n3 = self._element_counts[2] - nt
+                octant_n3 = 4
                 nids_layer = []
                 nx_layer = []
                 last_nids_row = None
@@ -1024,12 +1108,14 @@ class EllipsoidMesh:
                     n2 = (nt if (i2 == 0)
                           else (self._element_counts[1] - nt) if (i2 == dbox_counts[1])
                           else (self._trans_count + i2))
+                    octant_n2 = 2 if (n2 > half_counts[1]) else 0
                     nids_row = []
                     nx_row = []
                     for i1 in range(dbox_counts[0] + 1):
                         n1 = (nt if (i1 == 0)
                               else (self._element_counts[0] - nt) if (i1 == dbox_counts[0])
                               else (self._trans_count + i1))
+                        octant_n1 = 1 if (n1 > half_counts[0]) else 0
                         nids_row.append(self._nids[n3][n2][n1])
                         nx_row.append(self._nx[n3][n2][n1])
                         if (nt < self._trans_count) and (i2 > 0) and (i1 > 0):
@@ -1049,14 +1135,20 @@ class EllipsoidMesh:
                                                    last_nx_row[i1 - 1], last_nx_row[i1],
                                                    nx_row[i1 - 1], nx_row[i1]]
                                 eft, scalefactors = \
-                                    determineCubicHermiteSerendipityEft(mesh3d, node_parameters, node_layouts)
+                                    determineCubicHermiteSerendipityEft(mesh, node_parameters, node_layouts)
                                 elementtemplate_special.defineField(coordinates, -1, eft)
                                 elementtemplate = elementtemplate_special
-                            element = mesh3d.createElement(element_identifier, elementtemplate)
+                            element = mesh.createElement(element_identifier, elementtemplate)
                             element.setNodesByIdentifier(eft, nids)
                             # print("Element", element_identifier, "nids", nids)
                             if scalefactors:
                                 element.setScaleFactors(eft, scalefactors)
+                            if octant_mesh_group_lists:
+                                octant = octant_n3 + octant_n2 + octant_n1
+                                for mesh_group in octant_mesh_group_lists[octant]:
+                                    mesh_group.addElement(element)
+                            if transition_mesh_group:
+                                transition_mesh_group.addElement(element)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)

@@ -3,6 +3,7 @@ Generates a solid ellipsoid of hexahedral elements.
 """
 import math
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
@@ -120,12 +121,38 @@ class MeshType_3d_ellipsoid1(Scaffold_base):
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
 
+        left_group = AnnotationGroup(region, ("left", ""))
+        right_group = AnnotationGroup(region, ("right", ""))
+        back_group = AnnotationGroup(region, ("back", ""))
+        front_group = AnnotationGroup(region, ("front", ""))
+        bottom_group = AnnotationGroup(region, ("bottom", ""))
+        top_group = AnnotationGroup(region, ("top", ""))
+
+        annotation_groups = [left_group, right_group, back_group, front_group, bottom_group, top_group]
+        octant_group_lists = []
+        for octant in range(8):
+            octant_group_list = []
+            octant_group_list.append((right_group if (octant & 1) else left_group).getGroup())
+            octant_group_list.append((front_group if (octant & 2) else back_group).getGroup())
+            octant_group_list.append((top_group if (octant & 4) else bottom_group).getGroup())
+            octant_group_lists.append(octant_group_list)
+        if surface_only:
+            box_group = None
+            transition_group = None
+        else:
+            box_group = AnnotationGroup(region, ("box", ""))
+            transition_group = AnnotationGroup(region, ("transition", ""))
+            annotation_groups += [box_group, transition_group]
+
         ellipsoid = EllipsoidMesh(a, b, c, element_counts, transition_element_count,
-                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only, nway_d_factor)
+                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only, nway_d_factor,
+                                  box_group=box_group.getGroup() if box_group else None,
+                                  transition_group=transition_group.getGroup() if transition_group else None,
+                                  octant_group_lists=octant_group_lists)
         ellipsoid.build()
         ellipsoid.generate_mesh(fieldmodule, coordinates)
 
-        return [], None
+        return annotation_groups, None
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):
