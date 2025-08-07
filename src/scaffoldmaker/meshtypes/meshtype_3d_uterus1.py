@@ -21,7 +21,8 @@ from scaffoldmaker.utils.interpolation import smoothCurveSideCrossDerivatives, s
 from scaffoldmaker.utils.networkmesh import NetworkMesh, pathValueLabels
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
     PatchTubeNetworkMeshSegment
-from scaffoldmaker.utils.zinc_utils import group_add_connected_elements, get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.zinc_utils import group_add_connected_elements, get_nodeset_path_ordered_field_parameters, \
+    find_first_node_conditional, get_node_mesh_location
 import copy
 import math
 
@@ -1854,30 +1855,93 @@ class MeshType_3d_uterus1(Scaffold_base):
         mesh = fieldmodule.findMeshByDimension(3)
 
         # add human specific annotations
-        allMarkers = {}
         if isHuman:
             allMarkers = \
-                {"junction of left round ligament with uterus": {"elementID": 33, "xi": [0.0, 1.0, 1.0]},
-                 "junction of right round ligament with uterus": {"elementID": 136, "xi": [1.0, 1.0, 1.0]},
-                 "junction of left uterosacral ligament with uterus": {"elementID": 210, "xi": [1.0, 1.0, 1.0]},
-                 "junction of right uterosacral ligament with uterus": {"elementID": 201, "xi": [0.0, 1.0, 1.0]}}
+                ["junction of left round ligament with uterus",
+                 "junction of right round ligament with uterus",
+                 "junction of left uterosacral ligament with uterus",
+                 "junction of right uterosacral ligament with uterus"]
 
-        for key in allMarkers:
-            markerElement = mesh.findElementByIdentifier(allMarkers[key]["elementID"])
-            markerXi = allMarkers[key]["xi"]
-            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                       get_uterus_term(key), isMarker=True)
-            markerNode = group.createMarkerNode(nodeIdentifier, element=markerElement, xi=markerXi)
-            nodeIdentifier = markerNode.getIdentifier() + 1
-            for group in annotationGroups:
-                group.getNodesetGroup(nodes).addNode(markerNode)
+            leftUterusGroup = getAnnotationGroupForTerm(annotationGroups, ("left uterus", ""))
+            rightUterusGroup = getAnnotationGroupForTerm(annotationGroups, ("right uterus", ""))
+            dorsalUterusGroup = getAnnotationGroupForTerm(annotationGroups, ("dorsal uterus", ""))
+            ventralUterusGroup = getAnnotationGroupForTerm(annotationGroups, ("ventral uterus", ""))
+            fundusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("fundus of uterus"))
+            leftOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("left oviduct"))
+            rightOviductGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("right oviduct"))
+            bodyNotCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("body not cervix", ""))
+            cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
 
-        uterusGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterus"))
-        myometriumGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_uterus_term("myometrium"))
+            fieldmodule.defineAllFaces()
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            groupsFindMarkers = [dorsalUterusGroup, ventralUterusGroup,
+                                 fundusGroup, leftOviductGroup, rightOviductGroup,
+                                 bodyNotCervixGroup, cervixGroup]
+            for group in groupsFindMarkers:
+                group.addSubelements()
+
+            is_left = leftUterusGroup.getGroup()
+            is_right = rightUterusGroup.getGroup()
+            is_dorsal = dorsalUterusGroup.getGroup()
+            is_ventral = ventralUterusGroup.getGroup()
+            is_frontal_plane = fieldmodule.createFieldAnd(is_dorsal, is_ventral)
+
+            is_exterior = fieldmodule.createFieldIsExterior()
+            is_exterior_face_xi3_1 = \
+                fieldmodule.createFieldAnd(is_exterior, fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_1))
+            is_fundus = fundusGroup.getGroup()
+            is_fundus_serosa = fieldmodule.createFieldAnd(is_fundus, is_exterior_face_xi3_1)
+            fundusSerosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("fundus serosa", ""))
+            fundusSerosa.getMeshGroup(mesh2d).addElementsConditional(is_fundus_serosa)
+            fundus_serosa_meshgroup = fundusSerosa.getMeshGroup(mesh2d)
+
+            is_cervix = cervixGroup.getGroup()
+            is_cervix_serosa = fieldmodule.createFieldAnd(is_cervix, is_exterior_face_xi3_1)
+            cervixSerosa = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("cervix serosa", ""))
+            cervixSerosa.getMeshGroup(mesh2d).addElementsConditional(is_cervix_serosa)
+            cervix_serosa_meshgroup = cervixSerosa.getMeshGroup(mesh2d)
+
+            is_round_ligament_left = \
+                fieldmodule.createFieldAnd(is_frontal_plane,
+                                           fieldmodule.createFieldAnd(fundusSerosa.getGroup(),
+                                                                      leftOviductGroup.getGroup()))
+            is_round_ligament_right = \
+                fieldmodule.createFieldAnd(is_frontal_plane,
+                                           fieldmodule.createFieldAnd(fundusSerosa.getGroup(),
+                                                                      rightOviductGroup.getGroup()))
+            is_left_frontal = fieldmodule.createFieldAnd(is_left, is_frontal_plane)
+            is_uterosacral_ligament_left = \
+                fieldmodule.createFieldAnd(is_left_frontal,
+                                           fieldmodule.createFieldAnd(bodyNotCervixGroup.getGroup(),
+                                                                      cervixSerosa.getGroup()))
+            is_right_frontal = fieldmodule.createFieldAnd(is_right, is_frontal_plane)
+            is_uterosacral_ligament_right = \
+                fieldmodule.createFieldAnd(is_right_frontal,
+                                           fieldmodule.createFieldAnd(bodyNotCervixGroup.getGroup(),
+                                                                      cervixSerosa.getGroup()))
+
+            conditional_fields = [is_round_ligament_left, is_round_ligament_right,
+                                  is_uterosacral_ligament_left, is_uterosacral_ligament_right]
+            for i in range(len(conditional_fields)):
+                junction_node = find_first_node_conditional(nodes, conditional_fields[i])
+                element_junction, xi_junction = \
+                    get_node_mesh_location(junction_node, coordinates, mesh, coordinates,
+                                           search_mesh=fundus_serosa_meshgroup if i < 2 else cervix_serosa_meshgroup)
+                group = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                           get_uterus_term(allMarkers[i]), isMarker=True)
+                markerNode = group.createMarkerNode(nodeIdentifier, element=element_junction, xi=xi_junction)
+                nodeIdentifier = markerNode.getIdentifier() + 1
+                for group in annotationGroups:
+                    group.getNodesetGroup(nodes).addNode(markerNode)
+
+            annotationGroups.remove(fundusSerosa)
+            annotationGroups.remove(cervixSerosa)
+
+        uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
+        myometriumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("myometrium"))
         myometriumGroup.getMeshGroup(mesh).addElementsConditional(uterusGroup.getGroup())
 
-        cervixGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("uterine cervix"))
+        cervixGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterine cervix"))
         uterusGroup.getMeshGroup(mesh).addElementsConditional(cervixGroup.getGroup())
 
         if isRodent:
@@ -2040,7 +2104,6 @@ class MeshType_3d_uterus1(Scaffold_base):
 
         is_body = bodyGroup.getGroup()
         is_body_outer = fm.createFieldAnd(is_body, is_exterior_face_xi3_1)
-        is_body_inner = fm.createFieldAnd(is_body, is_exterior_face_xi3_0)
 
         is_cervix = cervixGroup.getGroup()
         is_cervix_outer = fm.createFieldAnd(is_cervix, is_exterior_face_xi3_1)
@@ -2292,8 +2355,7 @@ class MeshType_3d_uterus1(Scaffold_base):
                                                                  get_uterus_term("lumen of left uterine horn"))
             lumenOfLeftHorn.getMeshGroup(mesh2d).addElementsConditional(is_leftHorn_inner)
 
-        lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
-                                                           get_uterus_term("lumen of uterine cervix"))
+        lumenOfCervix = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("lumen of uterine cervix", ""))
         lumenOfCervix.getMeshGroup(mesh2d).addElementsConditional(is_cervix_inner)
         isCervix = lumenOfCervix.getGroup()
 
@@ -2301,7 +2363,7 @@ class MeshType_3d_uterus1(Scaffold_base):
         cervixGroup.getMeshGroup(mesh3d).removeAllElements()
         cervixGroup.getMeshGroup(mesh2d).addElementsConditional(isCervix)
         annotationGroups.remove(bodyNotCervixGroup)
-        # annotationGroups.remove(lumenOfCervixGroup)
+        annotationGroups.remove(lumenOfCervix)
 
         if isRat:
             septumCervixGroup = getAnnotationGroupForTerm(annotationGroups, ("septum cervix", ""))

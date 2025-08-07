@@ -26,7 +26,6 @@ uterus_terms = [
     ("lumen of left oviduct", ""),
     ("lumen of right uterine horn", ""),
     ("lumen of right oviduct", ""),
-    ("lumen of uterine cervix", ""),
     ("lumen of uterus, cervix and vagina", ""),
     ("lumen of uterus and cervix", ""),
     ("myometrium", "UBERON:0001296", "ILX:0735601", "FMA:17743"),

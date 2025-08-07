@@ -82,7 +82,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
         for annotationGroup in annotationGroups:
             annotationGroup.addSubelements()
         scaffold.defineFaceAnnotations(region, options, annotationGroups)
-        self.assertEqual(46, len(annotationGroups))
+        self.assertEqual(45, len(annotationGroups))
 
         # check some annotation groups
         expectedSizes3d = {
@@ -112,7 +112,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
             if "cervix" in annotationGroup.getName():
                 continue
             annotationGroups.remove(annotationGroup)
-        self.assertEqual(23, len(annotationGroups))
+        self.assertEqual(22, len(annotationGroups))
         # also remove all faces and lines as not needed for refinement
         mesh2d.destroyAllElements()
         mesh1d.destroyAllElements()
@@ -127,7 +127,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
         annotationGroups = meshrefinement.getAnnotationGroups()
 
         refineFieldmodule.defineAllFaces()
-        self.assertEqual(23, len(annotationGroups))
+        self.assertEqual(22, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(2560, mesh3d.getSize())
