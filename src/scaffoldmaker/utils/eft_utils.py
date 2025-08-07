@@ -665,6 +665,11 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]])
         self._nodeLayoutRegularPermuted_d3Defined = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [0.0, 0.0, 1.0]])
+        self._nodeLayout5Way12 = HermiteNodeLayout(
+            [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]])
+        self._nodeLayout5Way12_d3Defined = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0],
+             [0.0, 0.0, 1.0]])
         self._nodeLayout6Way12 = HermiteNodeLayout(
             [[1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [-1.0, 0.0], [-1.0, -1.0], [0.0, -1.0]])
         self._nodeLayout6Way12_d3Defined = HermiteNodeLayout(
@@ -722,6 +727,10 @@ class HermiteNodeLayoutManager:
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
         self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
             [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+        self._nodeLayoutTriplePoint23Front = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]])
+        self._nodeLayoutTriplePoint23Back = HermiteNodeLayout(
+            [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
         self.nodeLayoutsBifurcation6WayTriplePoint = {}
 
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
@@ -736,6 +745,21 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         nodeLayout = self._nodeLayoutRegularPermuted_d3Defined if d3Defined else self._nodeLayoutRegularPermuted
+        if limitDirections:
+            nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
+        return nodeLayout
+
+    def getNodeLayout5Way12(self, d3Defined, limitDirections=None):
+        """
+        Get node layout for 5-way junction in 1-2 plane, including d1, -d1, d2, -d2, d1 + d2.
+        :param d3Defined: Set to True to use tricubic variant with d3 defined, otherwise bicubic is used.
+        :param limitDirections: Optional list over element directions of lists of allowable weights for that
+        direction, or None to not filter. Default None for whole list does not filter any directions.
+        For example, with d3, [None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], [[0.0, 0.0, 1.0]]] places no
+        limits on the first derivative, but derivative 2 must be [0, +/-1, 0] and d3 must be [0, 0, 1].
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayout5Way12_d3Defined if d3Defined else self._nodeLayout5Way12
         if limitDirections:
             nodeLayout = HermiteNodeLayout(None, nodeLayout, limitDirections)
         return nodeLayout
@@ -762,6 +786,23 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         return self._nodeLayout8Way12_d3Defined if d3Defined else self._nodeLayout8Way12
+
+    def getNodeLayoutTriplePoint23Front(self):
+        """
+        Get node layout for triple-point junction in 2-3 plane, including d1, -d1, -d3, -d2, d2 + d3.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayoutTriplePoint23Front
+        return nodeLayout
+
+    def getNodeLayoutTriplePoint23Back(self):
+        """
+        Get node layout for triple point junction in 2-3 plane, including d1, -d1, -d3, -d2, d2 - d3.
+        :return: HermiteNodeLayout.
+        """
+        nodeLayout = self._nodeLayoutTriplePoint23Back
+
+        return nodeLayout
 
     def getNodeLayoutTriplePoint2D(self):
         """

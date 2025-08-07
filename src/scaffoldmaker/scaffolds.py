@@ -59,8 +59,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_trigeminalnerve1 import (
 from scaffoldmaker.meshtypes.meshtype_3d_tube1 import MeshType_3d_tube1
 from scaffoldmaker.meshtypes.meshtype_3d_tubenetwork1 import MeshType_3d_tubenetwork1
 from scaffoldmaker.meshtypes.meshtype_3d_tubeseptum1 import MeshType_3d_tubeseptum1
-from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
-from scaffoldmaker.meshtypes.meshtype_3d_uterus2 import MeshType_3d_uterus2
+from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import (MeshType_3d_uterus1, MeshType_1d_uterus_network_layout1)
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody1 import MeshType_3d_wholebody1
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import (
     MeshType_3d_wholebody2, MeshType_1d_human_body_network_layout1)
@@ -72,6 +71,7 @@ class Scaffolds(object):
     def __init__(self):
         self._allScaffoldTypes = [
             MeshType_1d_bifurcationtree1,
+            MeshType_1d_uterus_network_layout1,
             MeshType_1d_network_layout1,
             MeshType_1d_path1,
             MeshType_2d_plate1,
@@ -125,14 +125,14 @@ class Scaffolds(object):
             MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
-            MeshType_3d_uterus2,
             MeshType_3d_wholebody1,
             MeshType_3d_wholebody2
             ]
         self._allPrivateScaffoldTypes = [
             MeshType_1d_human_body_network_layout1,
             MeshType_1d_human_spinal_nerve_network_layout1,
-            MeshType_1d_human_trigeminal_nerve_network_layout1
+            MeshType_1d_human_trigeminal_nerve_network_layout1,
+            MeshType_1d_uterus_network_layout1
             ]
 
     def findScaffoldTypeByName(self, name):
