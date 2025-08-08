@@ -47,7 +47,7 @@ class MeshType_3d_lung3(Scaffold_base):
         useParameterSetName = "Human 1 Coarse" if (parameterSetName == "Default") else parameterSetName
         options["Left lung"] = True
         options["Right lung"] = True
-        options["Open fissures"] = False
+        # options["Open fissures"] = False
         options["Number of left lung lobes"] = 2
         options["Ellipsoid breadth"] = 0.8
         options["Ellipsoid height"] = 1.0
@@ -98,7 +98,7 @@ class MeshType_3d_lung3(Scaffold_base):
         return [
             "Left lung",
             "Right lung",
-            "Open fissures",
+            # "Open fissures",
             "Number of left lung lobes",
             "Number of elements lateral",
             "Number of elements normal",
@@ -194,7 +194,8 @@ class MeshType_3d_lung3(Scaffold_base):
         """
         isLeftLung = options["Left lung"]
         isRightLung = options["Right lung"]
-        isOpenFissure = options["Open fissures"]
+        # isOpenFissure = options["Open fissures"]
+        isOpenFissure = False
         hasAccessoryLobe = False
         numberOfLeftLung = options["Number of left lung lobes"]
 
@@ -490,7 +491,8 @@ class MeshType_3d_lung3(Scaffold_base):
         numberOfLeftLung = options['Number of left lung lobes']
         # hasAccessoryLobe = options['Accessory lobe']
         hasAccessoryLobe = False
-        openFissures = options['Open fissures']
+        # openFissures = options['Open fissures']
+        openFissures = False
 
         # create fissure groups
         fm = region.getFieldmodule()
