@@ -56,6 +56,7 @@ class EllipsoidMesh:
         self._box_group = None
         self._transition_group = None
         self._octant_group_lists = None
+        self._elementIdentifiers = []
         none_parameters = [None] * 4  # x, d1, d2, d3
         self._nx = []  # shield mesh with holes over n3, n2, n1, d
         self._nids = []
@@ -777,6 +778,7 @@ class EllipsoidMesh:
             bottom_nids = self._nids[0]
             last_nids_row = None
             octant_n3 = 0
+            self._elementIdentifiers.append([])
             for i2, n2 in enumerate(rim_indexes[1]):
                 octant_n2 = 2 if (n2 > half_counts[1]) else 0
                 nids_row = []
@@ -794,6 +796,7 @@ class EllipsoidMesh:
                             octant = octant_n3 + octant_n2 + octant_n1
                             for mesh_group in octant_mesh_group_lists[octant]:
                                 mesh_group.addElement(element)
+                        self._elementIdentifiers[-1].append(element_identifier)
                         element_identifier += 1
                 last_nids_row = nids_row
             # around sides
@@ -807,6 +810,7 @@ class EllipsoidMesh:
             last_nids_row = None
             last_parameters_row = None
             last_corners_row = None
+            self._elementIdentifiers.append([])
             for n3 in rim_indexes[2]:
                 octant_n3 = 4 if (n3 > half_counts[2]) else 0
                 indexes = [self._element_counts[0], half_counts[1], n3]
@@ -873,6 +877,7 @@ class EllipsoidMesh:
                             octant = octant_n3 + octant_nc[nc]
                             for mesh_group in octant_mesh_group_lists[octant]:
                                 mesh_group.addElement(element)
+                        self._elementIdentifiers[-1].append(element_identifier)
                         element_identifier += 1
                 last_nids_row = nids_row
                 last_parameters_row = parameters_row
@@ -881,6 +886,7 @@ class EllipsoidMesh:
             top_nids = self._nids[self._element_counts[2]]
             last_nids_row = None
             octant_n3 = 4
+            self._elementIdentifiers.append([])
             for i2, n2 in enumerate(rim_indexes[1]):
                 octant_n2 = 2 if (n2 > half_counts[1]) else 0
                 nids_row = []
@@ -898,6 +904,7 @@ class EllipsoidMesh:
                             octant = octant_n3 + octant_n2 + octant_n1
                             for mesh_group in octant_mesh_group_lists[octant]:
                                 mesh_group.addElement(element)
+                        self._elementIdentifiers[-1].append(element_identifier)
                         element_identifier += 1
                 last_nids_row = nids_row
         else:
@@ -916,6 +923,7 @@ class EllipsoidMesh:
             # bottom transition
             last_nids_layer = None
             last_nx_layer = None
+            self._elementIdentifiers.append([])
             for nt in range(self._trans_count + 1):
                 n3 = nt
                 octant_n3 = 0
@@ -968,6 +976,7 @@ class EllipsoidMesh:
                                     mesh_group.addElement(element)
                             if transition_mesh_group:
                                 transition_mesh_group.addElement(element)
+                            self._elementIdentifiers[-1].append(element_identifier)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)
@@ -981,11 +990,13 @@ class EllipsoidMesh:
             last_nx_layer = None
             last_rim_nids_layer = None
             last_rim_nx_layer = None
+            self._elementIdentifiers.append([])
             for i3 in range(dbox_counts[2] + 1):
                 n3 = self._trans_count + i3
                 octant_n3 = 4 if (n3 > half_counts[2]) else 0
                 nids_layer = []
                 nx_layer = []
+                elementIdentifiers = []
                 last_nids_row = None
                 last_nx_row = None
                 for i2 in range(dbox_counts[1] + 1):
@@ -1029,6 +1040,7 @@ class EllipsoidMesh:
                                     mesh_group.addElement(element)
                             if box_mesh_group:
                                 box_mesh_group.addElement(element)
+                            elementIdentifiers.append(element_identifier)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)
@@ -1036,6 +1048,11 @@ class EllipsoidMesh:
                     last_nx_row = nx_row
                 last_nids_layer = nids_layer
                 last_nx_layer = nx_layer
+
+                if not elementIdentifiers:
+                    pass
+                else:
+                    self._elementIdentifiers[-1].append(elementIdentifiers)
 
                 rim_nids_layer = []
                 rim_nx_layer = []
@@ -1047,6 +1064,7 @@ class EllipsoidMesh:
                     rim_nids_row = []
                     rim_nx_row = []
                     octant_nc = []
+                    elementIdentifiers = []
                     n2 = self._trans_count - nt
                     for i1 in range(dbox_counts[0]):
                         n1 = ((self._trans_count - nt) if (i1 == 0) else (
@@ -1109,6 +1127,7 @@ class EllipsoidMesh:
                                     mesh_group.addElement(element)
                             if transition_mesh_group:
                                 transition_mesh_group.addElement(element)
+                            elementIdentifiers.append(element_identifier)
                             element_identifier += 1
                     rim_nids_layer.append(rim_nids_row)
                     rim_nx_layer.append(rim_nx_row)
@@ -1116,9 +1135,15 @@ class EllipsoidMesh:
                     last_rim_nx_row = rim_nx_row
                 last_rim_nids_layer = rim_nids_layer
                 last_rim_nx_layer = rim_nx_layer
+                if not elementIdentifiers:
+                    pass
+                else:
+                    self._elementIdentifiers[-1].append(elementIdentifiers)
+
             # top transition
             last_nids_layer = None
             last_nx_layer = None
+            self._elementIdentifiers.append([])
             for nt in range(self._trans_count, -1, -1):
                 n3 = self._element_counts[2] - nt
                 octant_n3 = 4
@@ -1171,6 +1196,7 @@ class EllipsoidMesh:
                                     mesh_group.addElement(element)
                             if transition_mesh_group:
                                 transition_mesh_group.addElement(element)
+                            self._elementIdentifiers[-1].append(element_identifier)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)
@@ -1181,6 +1207,33 @@ class EllipsoidMesh:
 
         return node_identifier, element_identifier
 
+    def annotateElements(self, annotationTerms=None, meshGroups=None):
+        """
+
+        """
+        if meshGroups is None:
+            meshGroups = []
+        if annotationTerms is None:
+            annotationTerms = []
+
+        topElementIdentifiers = self._elementIdentifiers[2]
+        middleElementIdentifiers = [item for sublist in self._elementIdentifiers[1] for item in sublist]
+        bottomElementIdentifiers = self._elementIdentifiers[0]
+        elementIdentifiers = topElementIdentifiers + middleElementIdentifiers + bottomElementIdentifiers
+
+        for idx, term in enumerate(annotationTerms):
+            mesh = meshGroups[idx].getMasterMesh()
+            for elementIdentifier in elementIdentifiers:
+                add = False
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                if term == "lung":
+                    add = True
+                elif "left" in term:
+                    add = True
+                elif "right" in term:
+                    add = True
+                if add:
+                    meshGroups[idx].addElement(element)
 
 class EllipsoidOctantMesh:
     """
