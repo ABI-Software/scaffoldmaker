@@ -369,8 +369,8 @@ class MeshType_3d_lung3(Scaffold_base):
                                   axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
 
             annotationGroups = [lungGroup, leftLungGroup, rightLungGroup,
-                                leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup,
-                                rightLateralLungGroup, rightMedialLungGroup, rightBaseLungGroup,
+                                leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup, leftPosteriorLungGroup,
+                                rightLateralLungGroup, rightMedialLungGroup, rightBaseLungGroup, rightPosteriorLungGroup,
                                 lowerLeftLungGroup, upperLeftLungGroup,
                                 lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup]
 
@@ -542,6 +542,17 @@ class MeshType_3d_lung3(Scaffold_base):
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
             boxTransition_group[term] = group
             boxTransition_exterior[term] = group2d_exterior
+
+        base_posterior_group = {}
+        base_posterior_group_exterior = {}
+        base_posterior_group_terms = ["base left lung", "base right lung",
+                                      "posterior left lung", "posterior right lung"]
+        for term in base_posterior_group_terms:
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+            base_posterior_group[term] = group
+            base_posterior_group_exterior[term] = group2d_exterior
 
         # Exterior surfaces of lungs
         surfaceTerms = [
@@ -921,14 +932,27 @@ class MeshType_3d_lung3(Scaffold_base):
                 edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Medial edge of the base
-        # if "base" in term:
-        #     halfValue = options["Ellipsoid height"] * 0.5
-        #     coordinates = find_or_create_field_coordinates(fm)
-        #     isLeft = True if "left" in term else False
-        #     is_base = setBaseGroupThreshold(fm, coordinates, halfValue, isLeft=isLeft)
-        #     group2d_base = fm.createFieldAnd(group2d, is_base)
-        #     group2d_exterior = fm.createFieldAnd(group2d_base, is_exterior)
+        for lung in ["left lung", "right lung"]:
+            base_term = f"base {lung}"
+            posterior_term = f"posterior {lung}"
+            medial_term = f"medial {lung}"
 
+            is_base = base_posterior_group_exterior[base_term]
+            is_posterior = base_posterior_group_exterior[posterior_term]
+            is_medial = side_exterior[medial_term]
+            is_horizontal_edge = fm.createFieldAnd(fm.createFieldAnd(is_base, is_posterior), is_medial)
+
+            halfValue = options["Ellipsoid height"] * -0.5
+            coordinates = find_or_create_field_coordinates(fm)
+            rotationAngleDeg = 90 - options["Left oblique slope degrees"] if "left" in lung else 90 - options["Right oblique slope degrees"]
+            rotationAngle = math.radians(rotationAngleDeg)
+            is_threshold = setBaseGroupThreshold(fm, coordinates, halfValue, rotationAngle)
+
+            is_edge = fm.createFieldAnd(is_horizontal_edge, is_threshold)
+
+            edgeTerm = f"medial edge of base of lower lobe of {lung}"
+            edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTerm, "None"])
+            edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Remove unnecessary annotations
         for key, value in arbLobe_group.items():
@@ -938,6 +962,9 @@ class MeshType_3d_lung3(Scaffold_base):
             annotationGroups.remove(group)
 
         for key, group in boxTransition_group.items():
+            annotationGroups.remove(group)
+
+        for key, group in base_posterior_group.items():
             annotationGroups.remove(group)
 
 
@@ -1126,21 +1153,14 @@ def taperLungEdge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfValue
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-# def setBaseGroupThreshold(fm, coordinates, halfValue, isLeft=True):
-#     """
-#
-#     """
-#     zero = fm.createFieldConstant(0)
-#     y_component = fm.createFieldComponent(coordinates, [2])
-#     z_component = fm.createFieldComponent(coordinates, [3])
-#     is_above_y_threshold = fm.createFieldGreaterThan(y_component, zero)
-#
-#     if isLeft:
-#         y_threshold = 0.5 * halfValue
-#     else:
-#         y_threshold = 0.5 * halfValue
-#
-#     y_threshold_field = fm.createFieldConstant(y_threshold)
-#     is_above_threshold = fm.createFieldGreaterThan(y_component, y_threshold_field)
-#
-#     return is_above_threshold
+def setBaseGroupThreshold(fm, coordinates, halfValue, rotateAngle):
+    """
+
+    """
+    y_component = fm.createFieldComponent(coordinates, [2])
+    y_threshold = 0.45 * halfValue * math.cos(rotateAngle)
+
+    y_threshold_field = fm.createFieldConstant(y_threshold)
+    is_above_threshold = fm.createFieldLessThan(y_component, y_threshold_field)
+
+    return is_above_threshold
