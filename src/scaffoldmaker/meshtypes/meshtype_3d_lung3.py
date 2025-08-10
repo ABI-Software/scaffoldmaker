@@ -1,7 +1,6 @@
 """
 Generates a lung scaffold by deforming a hemisphere.
 """
-from cmlibs.maths.vectorops import mult, sub
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
@@ -11,10 +10,8 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCrea
     getAnnotationGroupForTerm
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, DerivativeScalingMode
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh
-from scaffoldmaker.utils.spheremesh import SphereMesh, SphereShape
 from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters, disconnectFieldMeshGroupBoundaryNodes
 
 import math
@@ -330,10 +327,6 @@ class MeshType_3d_lung3(Scaffold_base):
         #     accessoryDorsalRightGroup = findOrCreateAnnotationGroupForTerm(
         #         annotationGroups, region, get_lung_term("right dorsal base of right lung accessory lobe"))
 
-        # Nodeset group
-        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
-        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
-
         # # Marker points/groups # Currently not used
         # leftApexGroup = findOrCreateAnnotationGroupForTerm(
         #     annotationGroups, region, get_lung_term("apex of left lung"))
@@ -350,6 +343,9 @@ class MeshType_3d_lung3(Scaffold_base):
         # rightMedialGroup = findOrCreateAnnotationGroupForTerm(
         #     annotationGroups, region, get_lung_term("medial base of right lung"))
 
+        # Nodeset group
+        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
+        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
 
         elementCounts = [elementsCountLateral, elementsCountOblique, elementsCountNormal]
         halfDepth = ellipsoid_depth * 0.5
@@ -360,13 +356,13 @@ class MeshType_3d_lung3(Scaffold_base):
         leftLung, rightLung = 0, 1
         lungs = [lung for show, lung in [(isLeftLung, leftLung), (isRightLung, rightLung)] if show]
         startNodeIdentifier, startElementIdentifier = 1, 1
-        for i in lungs:
-            oblique_slope_radians = left_oblique_slope_radians if i == leftLung else right_oblique_slope_radians
+        for lung in lungs:
+            oblique_slope_radians = left_oblique_slope_radians if lung == leftLung else right_oblique_slope_radians
             axis2_x_rotation_radians = -oblique_slope_radians
             axis3_x_rotation_radians = math.radians(90) - oblique_slope_radians
 
-            lung = EllipsoidMesh(halfDepth, halfBreadth, halfHeight, elementCounts, elementsCountTransition,
-                                  axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
+            ellipsoid = EllipsoidMesh(halfDepth, halfBreadth, halfHeight, elementCounts, elementsCountTransition,
+                                      axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
 
             annotationGroups = [lungGroup, leftLungGroup, rightLungGroup,
                                 leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup, leftPosteriorLungGroup,
@@ -374,7 +370,7 @@ class MeshType_3d_lung3(Scaffold_base):
                                 lowerLeftLungGroup, upperLeftLungGroup,
                                 lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup]
 
-            if i == leftLung:
+            if lung == leftLung:
                 if numberOfLeftLung == 2:
                     octant_group_lists = []
                     for octant in range(8):
@@ -404,20 +400,20 @@ class MeshType_3d_lung3(Scaffold_base):
                 meshGroups = [lungMeshGroup, rightLungMeshGroup]
                 annotationTerms = ["lung", "right lung"]
 
-            lung.set_octant_group_lists(octant_group_lists)
+            ellipsoid.set_octant_group_lists(octant_group_lists)
             annotationGroups += [boxGroup, transitionGroup]
-            lung.set_box_transition_groups(boxGroup.getGroup(), transitionGroup.getGroup())
+            ellipsoid.set_box_transition_groups(boxGroup.getGroup(), transitionGroup.getGroup())
 
-            lung.build()
-            nodeIdentifier, elementIdentifier = lung.generate_mesh(fieldmodule, coordinates, startNodeIdentifier, startElementIdentifier)
-            lung.annotateElements(annotationTerms, meshGroups)
+            ellipsoid.build()
+            nodeIdentifier, elementIdentifier = ellipsoid.generate_mesh(fieldmodule, coordinates, startNodeIdentifier, startElementIdentifier)
+            ellipsoid.annotateElements(annotationTerms, meshGroups)
 
             startNodeIdentifier, startElementIdentifier = nodeIdentifier, elementIdentifier
 
-        for i in lungs:
-            isLeft = True if i == leftLung else False
+        for lung in lungs:
+            isLeft = True if lung == leftLung else False
             lungNodeset = leftLungNodesetGroup if isLeft else rightLungNodesetGroup
-            spacing = -lungSpacing if i == leftLung else lungSpacing
+            spacing = -lungSpacing if lung == leftLung else lungSpacing
             zOffset = -0.5 * ellipsoid_height
             lungMedialCurvature = -leftLungMedialCurvature if isLeft else leftLungMedialCurvature
             rotateLungAngleY = rotateLeftLungY if isLeft else -rotateLeftLungY
@@ -435,7 +431,8 @@ class MeshType_3d_lung3(Scaffold_base):
             dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, halfBreadth)
             if lungMedialCurvature != 0:
                 bendLungMeshAroundZAxis(lungMedialCurvature, fieldmodule, coordinates, lungNodeset,
-                                        stationaryPointXY=[0.0, 0.0], bias=lungMedialCurvatureBias,
+                                        stationaryPointXY=[0.0, 0.0],
+                                        bias=lungMedialCurvatureBias,
                                         dorsalVentralXi=dorsalVentralXi)
 
             if rotateLungAngleY != 0.0:
@@ -606,8 +603,12 @@ class MeshType_3d_lung3(Scaffold_base):
 
         # Base surface of lungs (incl. lobes)
         baseGroup = []
-        baseTerms = ['left lung surface', 'lower lobe of right lung surface', 'middle lobe of right lung surface',
-                     'right lung surface']
+        baseTerms = [
+            'left lung surface',
+            'lower lobe of right lung surface',
+            'middle lobe of right lung surface',
+            'right lung surface'
+        ]
 
         # Base of left lung
         if numberOfLeftLung > 1:
@@ -858,8 +859,15 @@ class MeshType_3d_lung3(Scaffold_base):
             "upper lobe"
         ]
 
+        # Define mappings
+        edge_lobe_map = {
+            "anterior edge": ["middle"],
+            "antero-posterior edge": ["upper"],
+            "posterior edge": ["lower"]
+        }
+        surface_edge_terms = ["lateral edge", "medial edge", "base edge"]
+
         for lung in ["left lung", "right lung"]:
-            # Create surface groups once per lung
             surfaces = {}
             for surface_type in ["lateral", "medial", "base"]:
                 term = f"{surface_type} of {lung} surface" if surface_type == "base" else f"{surface_type} surface of {lung}"
@@ -867,87 +875,74 @@ class MeshType_3d_lung3(Scaffold_base):
                 surfaces[surface_type] = group.getGroup()
 
             for edgeTerm in edgeTerms:
-                if "lateral" in edgeTerm or "medial" in edgeTerm or "base" in edgeTerm:
-                    # Handle fissure edges
-                    surface_type = "lateral" if "lateral" in edgeTerm else ("medial" if "medial" in edgeTerm else "base")
+                if edgeTerm in surface_edge_terms:
+                    surface_type = edgeTerm.split()[0]  # Extract "lateral", "medial", or "base"
 
                     for fissure in fissureTerms:
-                        # Skip horizontal fissure for left lung
                         if "horizontal" in fissure and ("left" in lung or "base" in edgeTerm):
                             continue
 
                         fissureTerm = f"{fissure} of {lung}"
-                        fissureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(fissureTerm))
+                        fissureGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                          get_lung_term(fissureTerm))
                         is_fissureGroup = fissureGroup.getGroup()
                         is_fissureGroup_exterior = fm.createFieldAnd(is_fissureGroup, is_exterior)
                         is_surfaceFissureGroup = fm.createFieldAnd(is_fissureGroup_exterior, surfaces[surface_type])
 
-                        edgeTermFull = f"{edgeTerm} of oblique fissure " if "base" in edgeTerm else f"{edgeTerm} of {fissureTerm}"
+                        edgeTermFull = f"{edgeTerm} of oblique fissure" if "base" in edgeTerm else f"{edgeTerm} of {fissureTerm}"
                         edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, "None"])
                         edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_surfaceFissureGroup)
 
-                else:
-                    # Handle lobe edges - mapping edge terms to valid lobe combinations
-                    edge_lobe_map = {
-                        "anterior edge": ["middle"],
-                        "antero-posterior edge": ["upper"],
-                        "posterior edge": ["lower"]
-                    }
+                elif edgeTerm in edge_lobe_map:
+                    for lobe in lobeTerms:
+                        if (("middle" in lobe and "left" in lung) or
+                                not any(valid_lobe in lobe for valid_lobe in edge_lobe_map[edgeTerm])):
+                            continue
 
-                    if edgeTerm in edge_lobe_map:
-                        for lobe in lobeTerms:
-                            # Skip middle lobe for left lung and check if this edge applies to this lobe
-                            if ("middle" in lobe and "left" in lung) or not any(
-                                    valid_lobe in lobe for valid_lobe in edge_lobe_map[edgeTerm]):
-                                continue
+                        lobeTerm = f"{lobe} of {lung}"
+                        lobeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,
+                                                                       get_lung_term(lobeTerm))
+                        is_lobeGroup = lobeGroup.getGroup()
+                        is_lobeGroup_exterior = fm.createFieldAnd(is_lobeGroup, is_exterior)
 
-                            lobeTerm = f"{lobe} of {lung}"
-                            lobeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(lobeTerm))
-                            is_lobeGroup = lobeGroup.getGroup()
-                            is_lobeGroup_exterior = fm.createFieldAnd(is_lobeGroup, is_exterior)
+                        is_edge = fm.createFieldAnd(is_lobeGroup_exterior,
+                                                    fm.createFieldAnd(surfaces["medial"], surfaces["lateral"]))
 
-                            # All lobe edges use the intersection of medial and lateral surfaces
-                            is_edge = fm.createFieldAnd(is_lobeGroup_exterior, fm.createFieldAnd(surfaces["medial"], surfaces["lateral"]))
+                        edgeTermFull = f"{edgeTerm} of {lobe} of {lung}"
+                        edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, "None"])
+                        edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
-                            edgeTermFull = f"{edgeTerm} of {lobe} of {lung}"
-                            edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,[edgeTermFull, "None"])
-                            edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
-
+            # Process lateral edges of the base (separate from main edge loop)
             for lobe in lobeTerms:
                 if ("middle" in lobe and "left" in lung) or ("upper" in lobe and "right" in lung):
                     continue
 
-                # Lateral edge of the base
                 lobeTerm = f"base of {lobe} of {lung} surface"
                 lobeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_lung_term(lobeTerm))
                 is_lobeGroup = lobeGroup.getGroup()
                 is_lobeGroup_exterior = fm.createFieldAnd(is_lobeGroup, is_exterior)
 
-                edgeTerm = "lateral edge"
-                sideTerm = f"lateral {lung}" if "lateral" in edgeTerm else f"medial {lung}"
+                sideTerm = f"lateral {lung}"
                 is_edge = fm.createFieldAnd(is_lobeGroup_exterior, side_exterior[sideTerm])
 
-                edgeTermFull = f"{edgeTerm} of {lobeTerm.replace(' surface', '')}"
+                edgeTermFull = f"lateral edge of {lobeTerm.replace(' surface', '')}"
                 edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, "None"])
                 edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Medial edge of the base
+        halfBreadth = options["Ellipsoid breadth"] * -0.5
+        coordinates = find_or_create_field_coordinates(fm)
+
         for lung in ["left lung", "right lung"]:
-            base_term = f"base {lung}"
-            posterior_term = f"posterior {lung}"
-            medial_term = f"medial {lung}"
+            is_base = base_posterior_group_exterior[f"base {lung}"]
+            is_posterior = base_posterior_group_exterior[f"posterior {lung}"]
+            is_medial = side_exterior[f"medial {lung}"]
 
-            is_base = base_posterior_group_exterior[base_term]
-            is_posterior = base_posterior_group_exterior[posterior_term]
-            is_medial = side_exterior[medial_term]
+            slope_key = "Left oblique slope degrees" if "left" in lung else "Right oblique slope degrees"
+            rotationAngle = math.radians(90 - options[slope_key])
+
             is_horizontal_edge = fm.createFieldAnd(fm.createFieldAnd(is_base, is_posterior), is_medial)
-
-            halfValue = options["Ellipsoid height"] * -0.5
-            coordinates = find_or_create_field_coordinates(fm)
-            rotationAngleDeg = 90 - options["Left oblique slope degrees"] if "left" in lung else 90 - options["Right oblique slope degrees"]
-            rotationAngle = math.radians(rotationAngleDeg)
-            is_threshold = setBaseGroupThreshold(fm, coordinates, halfValue, rotationAngle)
-
+            is_threshold = setBaseGroupThreshold(fm, coordinates, halfBreadth, rotationAngle)
             is_edge = fm.createFieldAnd(is_horizontal_edge, is_threshold)
 
             edgeTerm = f"medial edge of base of lower lobe of {lung}"
@@ -1148,12 +1143,20 @@ def taperLungEdge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfValue
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
-def setBaseGroupThreshold(fm, coordinates, halfValue, rotateAngle):
-    """
 
+def setBaseGroupThreshold(fm, coordinates, halfBreadth, rotateAngle):
+    """
+    Creates a field to identify lung base elements based on y-coordinate threshold.
+    Elements with y-coordinates below 45% of the rotated half-breadth are considered part of the lung base region for
+    annotation purposes.
+    :param fm: Field module used for creating and managing fields.
+    :param coordinates: The coordinate field.
+    :param halfBreadth: Half breadth of lung.
+    :param rotateAngle: The angle of rotation of horizontal line in radians (90 - oblique fissure angle).
+    :return is_above_threshold: True for elements below the y-threshold (base region).
     """
     y_component = fm.createFieldComponent(coordinates, [2])
-    y_threshold = 0.45 * halfValue * math.cos(rotateAngle)
+    y_threshold = 0.45 * halfBreadth * math.cos(rotateAngle)
 
     y_threshold_field = fm.createFieldConstant(y_threshold)
     is_above_threshold = fm.createFieldLessThan(y_component, y_threshold_field)

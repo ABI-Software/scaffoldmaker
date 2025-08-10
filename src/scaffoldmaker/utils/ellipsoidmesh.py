@@ -1209,7 +1209,9 @@ class EllipsoidMesh:
 
     def annotateElements(self, annotationTerms=None, meshGroups=None):
         """
-
+        Special annotation method for the lung scaffold.
+        :param annotationTerms: List of annotation terms (name, ontId).
+        :param meshGroups: Zinc mesh groups to add elements to.
         """
         if meshGroups is None:
             meshGroups = []
