@@ -955,17 +955,12 @@ class MeshType_3d_lung3(Scaffold_base):
             edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Remove unnecessary annotations
-        for key, value in arbLobe_group.items():
-            annotationGroups.remove(value)
-
-        for key, group in side_group.items():
-            annotationGroups.remove(group)
-
-        for key, group in boxTransition_group.items():
+        for group in [*side_group.values(), *boxTransition_group.values()]:
             annotationGroups.remove(group)
 
         for key, group in base_posterior_group.items():
-            annotationGroups.remove(group)
+            if "posterior" in key:
+                annotationGroups.remove(group)
 
 
 def mirrorLeftLungToRight(fieldmodule, coordinates, lungNodesetGroup):
