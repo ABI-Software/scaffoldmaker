@@ -44,9 +44,9 @@ class MeshType_3d_lung3(Scaffold_base):
         options["Left lung"] = True
         options["Right lung"] = True
         options["Number of left lung lobes"] = 2
-        options["Ellipsoid breadth"] = 0.8
         options["Ellipsoid height"] = 1.0
-        options["Ellipsoid depth"] = 0.5
+        options["Ellipsoid dorsal-ventral size"] = 0.8
+        options["Ellipsoid medial-lateral size"] = 0.5
         options["Left-right lung spacing"] = 0.6
         options["Refine"] = False
         options["Refine number of elements"] = 4
@@ -98,9 +98,9 @@ class MeshType_3d_lung3(Scaffold_base):
             "Number of elements normal",
             "Number of elements oblique",
             "Number of transition elements",
-            "Ellipsoid breadth",
             "Ellipsoid height",
-            "Ellipsoid depth",
+            "Ellipsoid dorsal-ventral size",
+            "Ellipsoid medial-lateral size",
             "Left-right lung spacing",
             "Base lateral edge sharpness factor",
             "Ventral edge sharpness factor",
@@ -144,9 +144,9 @@ class MeshType_3d_lung3(Scaffold_base):
             dependentChanges = True
 
         for dimension in [
-            "Ellipsoid breadth",
             "Ellipsoid height",
-            "Ellipsoid depth"
+            "Ellipsoid dorsal-ventral size",
+            "Ellipsoid medial-lateral size"
         ]:
             if options[dimension] <= 0.0:
                 options[dimension] = 1.0
@@ -197,9 +197,9 @@ class MeshType_3d_lung3(Scaffold_base):
         lungSpacing = options["Left-right lung spacing"] * 0.5
         baseSharpFactor = options["Base lateral edge sharpness factor"]
         edgeSharpFactor = options["Ventral edge sharpness factor"]
-        ellipsoid_breadth = options["Ellipsoid breadth"]
         ellipsoid_height = options["Ellipsoid height"]
-        ellipsoid_depth = options["Ellipsoid depth"]
+        ellipsoid_breadth = options["Ellipsoid dorsal-ventral size"]
+        ellipsoid_depth = options["Ellipsoid medial-lateral size"]
         left_oblique_slope_radians = math.radians(options["Left oblique slope degrees"])
         right_oblique_slope_radians = math.radians(options["Right oblique slope degrees"])
         leftLungMedialCurvature = options["Medial curvature"]
@@ -718,7 +718,7 @@ class MeshType_3d_lung3(Scaffold_base):
                 edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Medial edge of the base
-        halfBreadth = options["Ellipsoid breadth"] * -0.5
+        halfBreadth = options["Ellipsoid dorsal-ventral size"] * -0.5
         coordinates = find_or_create_field_coordinates(fm)
 
         for lung in ["left lung", "right lung"]:
