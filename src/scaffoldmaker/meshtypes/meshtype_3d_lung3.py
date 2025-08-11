@@ -15,6 +15,8 @@ from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh
 
 import math
 
+from scaffoldmaker.utils.zinc_utils import get_nodeset_field_parameters
+
 
 class MeshType_3d_lung3(Scaffold_base):
     """
@@ -388,7 +390,7 @@ class MeshType_3d_lung3(Scaffold_base):
             if rotateLungAngleZ != 0.0:
                 rotateLungMeshAboutAxis(rotateLungAngleZ, fieldmodule, coordinates, lungNodeset, axis=3)
 
-            translateLungLocation(fieldmodule, coordinates, lungNodeset, spacing, zOffset)
+            translateNodes(fieldmodule, coordinates, lungNodeset, spacing, zOffset)
 
         return annotationGroups, None
 
@@ -746,29 +748,34 @@ class MeshType_3d_lung3(Scaffold_base):
                 annotationGroups.remove(group)
 
 
-def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, zOffset):
+def translateNodes(fieldmodule, coordinates, lungNodeset, spaceFromCentre, zOffset):
     """
-    Translates the lung mesh along the x- and z-axes to adjust its position within the anatomical space.
-    :param fm: Field module used for creating and managing fields.
-    :param coordinates: The coordinate field representing the initial position of the lung, with a circular profile in the y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing the nodes of the lung to be transformed.
+    Resample shell nodes around the ellipsoid in the yz plane so that the shell nodes are aligned linearly.
+    :param fieldmodule: Field module being worked with.
+    :param coordinates: The coordinate field, initially circular in the y-z plane.
+    :param lungNodeset: Zinc NodesetGroup containing nodes to transform.
     :param spaceFromCentre: The distance to translate the lung along the x-axis, allowing lateral positioning relative
     to the centerline (i.e. x = 0) of the body.
     :param zOffset: The amount to translate the lung along the z-axis, so that the base lateral edge is at z = 0.
-    :return: None
     """
-    x = fm.createFieldComponent(coordinates, 1)
-    y = fm.createFieldComponent(coordinates, 2)
-    z = fm.createFieldComponent(coordinates, 3)
-    spaceFromCentre = fm.createFieldConstant(spaceFromCentre)
+    fieldcache = fieldmodule.createFieldcache()
 
-    new_x = x + spaceFromCentre
-    new_z = z - fm.createFieldConstant(zOffset)
-    new_coordinates = fm.createFieldConcatenate([new_x, y, new_z])
+    setValueLabels = [Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2, Node.VALUE_LABEL_D_DS3]
 
-    fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
+    nodeParameters = get_nodeset_field_parameters(lungNodeset, coordinates, setValueLabels)[1]
+    sNodeIdentifier = nodeParameters[0][0]
+    nodeParametersDict = dict(nodeParameters)
+
+    for ni in range(len(nodeParameters)):
+        nodeIdentifier = ni + sNodeIdentifier
+        old_x, old_z = nodeParametersDict[nodeIdentifier][0][0][0], nodeParametersDict[nodeIdentifier][0][0][2]
+        y = nodeParametersDict[nodeIdentifier][0][0][1]
+        new_x = old_x + spaceFromCentre
+        new_z = old_z - zOffset
+
+        node = lungNodeset.findNodeByIdentifier(nodeIdentifier)
+        fieldcache.setNode(node)
+        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, [new_x, y, new_z])
 
 
 def rotateLungMeshAboutAxis(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
