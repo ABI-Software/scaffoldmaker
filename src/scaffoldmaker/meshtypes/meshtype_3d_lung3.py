@@ -375,20 +375,24 @@ class MeshType_3d_lung3(Scaffold_base):
                     octant_group_lists = []
                     for octant in range(8):
                         octant_group_list = []
+                        octant_group_list.append(lungGroup.getGroup())
+                        octant_group_list.append(leftLungGroup.getGroup())
                         octant_group_list.append((leftMedialLungGroup if (octant & 1) else leftLateralLungGroup).getGroup())
                         octant_group_list.append((leftBaseLungGroup if (octant & 2) else leftPosteriorLungGroup).getGroup())
                         octant_group_list.append((upperLeftLungGroup if (octant & 4) else lowerLeftLungGroup).getGroup())
                         octant_group_lists.append(octant_group_list)
-
-                    meshGroups = [lungMeshGroup, leftLungMeshGroup]
-                    annotationTerms = ["lung", "left lung"]
                 else:
-                    meshGroups = [lungMeshGroup, leftLungMeshGroup]
-                    annotationTerms = ["lung", "left lung"]
+                    octant_group_lists = []
+                    for octant in range(8):
+                        octant_group_list = []
+                        octant_group_list.append(lungGroup.getGroup())
+                        octant_group_list.append(leftLungGroup.getGroup())
             else:
                 octant_group_lists = []
                 for octant in range(8):
                     octant_group_list = []
+                    octant_group_list.append(lungGroup.getGroup())
+                    octant_group_list.append(rightLungGroup.getGroup())
                     octant_group_list.append((rightMedialLungGroup if (octant & 1) else rightLateralLungGroup).getGroup())
                     octant_group_list.append((rightBaseLungGroup if (octant & 2) else rightPosteriorLungGroup).getGroup())
                     if octant & 4:
@@ -397,16 +401,12 @@ class MeshType_3d_lung3(Scaffold_base):
                         octant_group_list.append(lowerRightLungGroup.getGroup())
                     octant_group_lists.append(octant_group_list)
 
-                meshGroups = [lungMeshGroup, rightLungMeshGroup]
-                annotationTerms = ["lung", "right lung"]
-
             ellipsoid.set_octant_group_lists(octant_group_lists)
             annotationGroups += [boxGroup, transitionGroup]
             ellipsoid.set_box_transition_groups(boxGroup.getGroup(), transitionGroup.getGroup())
 
             ellipsoid.build()
             nodeIdentifier, elementIdentifier = ellipsoid.generate_mesh(fieldmodule, coordinates, startNodeIdentifier, startElementIdentifier)
-            ellipsoid.annotateElements(annotationTerms, meshGroups)
 
             startNodeIdentifier, startElementIdentifier = nodeIdentifier, elementIdentifier
 
