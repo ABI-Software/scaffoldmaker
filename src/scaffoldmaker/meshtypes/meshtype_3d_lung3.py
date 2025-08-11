@@ -262,8 +262,6 @@ class MeshType_3d_lung3(Scaffold_base):
         rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
         annotationGroups.append(rightMedialLungGroup)
 
-        leftAnteriorLungGroup = AnnotationGroup(region, ("anterior left lung", "None"))
-        rightAnteriorLungGroup = AnnotationGroup(region, ("anterior right lung", "None"))
         leftPosteriorLungGroup = AnnotationGroup(region, ("posterior left lung", "None"))
         rightPosteriorLungGroup = AnnotationGroup(region, ("posterior right lung", "None"))
 
@@ -367,26 +365,21 @@ class MeshType_3d_lung3(Scaffold_base):
             annotationGroups = [lungGroup, leftLungGroup, rightLungGroup,
                                 leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup, leftPosteriorLungGroup,
                                 rightLateralLungGroup, rightMedialLungGroup, rightBaseLungGroup, rightPosteriorLungGroup,
-                                lowerLeftLungGroup, upperLeftLungGroup,
                                 lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup]
+            if numberOfLeftLung > 1:
+                annotationGroups += [lowerLeftLungGroup, upperLeftLungGroup]
 
             if lung == leftLung:
-                if numberOfLeftLung == 2:
-                    octant_group_lists = []
-                    for octant in range(8):
-                        octant_group_list = []
-                        octant_group_list.append(lungGroup.getGroup())
-                        octant_group_list.append(leftLungGroup.getGroup())
-                        octant_group_list.append((leftMedialLungGroup if (octant & 1) else leftLateralLungGroup).getGroup())
-                        octant_group_list.append((leftBaseLungGroup if (octant & 2) else leftPosteriorLungGroup).getGroup())
+                octant_group_lists = []
+                for octant in range(8):
+                    octant_group_list = []
+                    octant_group_list.append(lungGroup.getGroup())
+                    octant_group_list.append(leftLungGroup.getGroup())
+                    octant_group_list.append((leftMedialLungGroup if (octant & 1) else leftLateralLungGroup).getGroup())
+                    octant_group_list.append((leftBaseLungGroup if (octant & 2) else leftPosteriorLungGroup).getGroup())
+                    if numberOfLeftLung > 1:
                         octant_group_list.append((upperLeftLungGroup if (octant & 4) else lowerLeftLungGroup).getGroup())
-                        octant_group_lists.append(octant_group_list)
-                else:
-                    octant_group_lists = []
-                    for octant in range(8):
-                        octant_group_list = []
-                        octant_group_list.append(lungGroup.getGroup())
-                        octant_group_list.append(leftLungGroup.getGroup())
+                    octant_group_lists.append(octant_group_list)
             else:
                 octant_group_lists = []
                 for octant in range(8):
