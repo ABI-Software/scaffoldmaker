@@ -302,7 +302,7 @@ class MeshType_3d_lung3(Scaffold_base):
         leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
         rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
 
-        elementCounts = [elementsCountLateral, elementsCountOblique, elementsCountNormal]
+        elementCounts = [elementsCountLateral, elementsCountNormal, elementsCountOblique]
         halfDepth = ellipsoid_depth * 0.5
         halfBreadth = ellipsoid_breadth * 0.5
         halfHeight = ellipsoid_height * 0.5
