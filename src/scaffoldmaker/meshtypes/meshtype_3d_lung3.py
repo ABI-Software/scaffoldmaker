@@ -343,7 +343,7 @@ class MeshType_3d_lung3(Scaffold_base):
                     octant_group_list = []
                     octant_group_list.append(lungGroup.getGroup())
                     octant_group_list.append(rightLungGroup.getGroup())
-                    octant_group_list.append((rightMedialLungGroup if (octant & 1) else rightLateralLungGroup).getGroup())
+                    octant_group_list.append((rightLateralLungGroup if (octant & 1) else rightMedialLungGroup).getGroup())
                     octant_group_list.append((rightBaseLungGroup if (octant & 2) else rightPosteriorLungGroup).getGroup())
                     if octant & 4:
                         octant_group_list.append((middleRightLungGroup if (octant & 2) else upperRightLungGroup).getGroup())
@@ -368,9 +368,6 @@ class MeshType_3d_lung3(Scaffold_base):
             lungMedialCurvature = -leftLungMedialCurvature if isLeft else leftLungMedialCurvature
             rotateLungAngleY = rotateLeftLungY if isLeft else -rotateLeftLungY
             rotateLungAngleZ = rotateLeftLungZ if isLeft else -rotateLeftLungZ
-
-            if not isLeft:
-                mirrorLeftLungToRight(fieldmodule, coordinates, lungNodeset)
 
             if edgeSharpFactor != 0.0:
                 taperLungEdge(edgeSharpFactor, fieldmodule, coordinates, lungNodeset, halfBreadth)
@@ -747,29 +744,6 @@ class MeshType_3d_lung3(Scaffold_base):
         for key, group in base_posterior_group.items():
             if "posterior" in key:
                 annotationGroups.remove(group)
-
-
-def mirrorLeftLungToRight(fieldmodule, coordinates, lungNodesetGroup):
-    """
-    The initial right lung is identical to the left lung. This function flips the right lung to be the mirror image
-    of the left lung.
-    :param fieldmodule: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :return: None.
-    """
-    x = fieldmodule.createFieldComponent(coordinates, 1)
-    y = fieldmodule.createFieldComponent(coordinates, 2)
-    z = fieldmodule.createFieldComponent(coordinates, 3)
-
-    minus_one = fieldmodule.createFieldConstant(-1.0)
-    mirrored_x = x * minus_one
-
-    new_coordinates = fieldmodule.createFieldConcatenate([mirrored_x, y, z])
-
-    fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
 
 
 def translateLungLocation(fm, coordinates, lungNodesetGroup, spaceFromCentre, zOffset):
