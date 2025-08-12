@@ -45,7 +45,7 @@ class MeshType_3d_lung3(Scaffold_base):
         useParameterSetName = "Human 1 Coarse" if (parameterSetName == "Default") else parameterSetName
         options["Left lung"] = True
         options["Right lung"] = True
-        options["Number of left lung lobes"] = 2
+        # options["Number of left lung lobes"] = 2
         options["Ellipsoid height"] = 1.0
         options["Ellipsoid dorsal-ventral size"] = 0.8
         options["Ellipsoid medial-lateral size"] = 0.5
@@ -95,7 +95,7 @@ class MeshType_3d_lung3(Scaffold_base):
         return [
             "Left lung",
             "Right lung",
-            "Number of left lung lobes",
+            # "Number of left lung lobes",
             "Number of elements lateral",
             "Number of elements normal",
             "Number of elements oblique",
@@ -119,10 +119,10 @@ class MeshType_3d_lung3(Scaffold_base):
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if options["Number of left lung lobes"] > 2:
-            options["Number of left lung lobes"] = 2
-        elif options["Number of left lung lobes"] < 1:
-            options["Number of left lung lobes"] = 0
+        # if options["Number of left lung lobes"] > 2:
+        #     options["Number of left lung lobes"] = 2
+        # elif options["Number of left lung lobes"] < 1:
+        #     options["Number of left lung lobes"] = 0
 
         max_transition_count = None
         for key in [
@@ -190,7 +190,8 @@ class MeshType_3d_lung3(Scaffold_base):
         """
         isLeftLung = options["Left lung"]
         isRightLung = options["Right lung"]
-        numberOfLeftLung = options["Number of left lung lobes"]
+        # numberOfLeftLung = options["Number of left lung lobes"]
+        numberOfLeftLung = 2 # This option is hidden until rodent lung scaffold is added.
 
         elementsCountLateral = options["Number of elements lateral"]
         elementsCountNormal = options["Number of elements normal"]
@@ -416,7 +417,8 @@ class MeshType_3d_lung3(Scaffold_base):
         :param annotationGroups: List of annotation groups for top-level elements.
         New face annotation groups are appended to this list.
         """
-        numberOfLeftLung = options['Number of left lung lobes']
+        # numberOfLeftLung = options['Number of left lung lobes']
+        numberOfLeftLung = 2
 
         fm = region.getFieldmodule()
         mesh1d = fm.findMeshByDimension(1)
