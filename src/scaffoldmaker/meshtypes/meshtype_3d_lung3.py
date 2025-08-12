@@ -221,77 +221,70 @@ class MeshType_3d_lung3(Scaffold_base):
         # annotation groups & nodeset groups
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
-        annotationGroups = [lungGroup]
 
         leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
         leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(leftLungGroup)
         annotationTerms.append("left lung")
         meshGroups.append(leftLungMeshGroup)
 
         rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
         rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(rightLungGroup)
         annotationTerms.append("right lung")
         meshGroups.append(rightLungMeshGroup)
 
         leftLateralLungGroup = AnnotationGroup(region, ["lateral left lung", ""])
         leftLateralLungGroupMeshGroup = leftLateralLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(leftLateralLungGroup)
 
         rightLateralLungGroup = AnnotationGroup(region, ["lateral right lung", ""])
         rightLateralLungGroupMeshGroup = rightLateralLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(rightLateralLungGroup)
 
         leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", ""])
         leftMedialLungGroupMeshGroup = leftMedialLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(leftMedialLungGroup)
 
         rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", ""])
         rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(rightMedialLungGroup)
 
         leftPosteriorLungGroup = AnnotationGroup(region, ("posterior left lung", ""))
         rightPosteriorLungGroup = AnnotationGroup(region, ("posterior right lung", ""))
 
         lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
         lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(lowerRightLungGroup)
         annotationTerms.append("lower lobe of right lung")
         meshGroups.append(lowerRightLungMeshGroup)
 
         upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
         upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(upperRightLungGroup)
         annotationTerms.append("upper lobe of right lung")
         meshGroups.append(upperRightLungMeshGroup)
 
         middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
         middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(middleRightLungGroup)
         annotationTerms.append("middle lobe of right lung")
         meshGroups.append(middleRightLungMeshGroup)
 
         leftBaseLungGroup = AnnotationGroup(region, ["base left lung", ""])
         leftBaseLungGroupMeshGroup = leftBaseLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(leftBaseLungGroup)
 
         rightBaseLungGroup = AnnotationGroup(region, ["base right lung", ""])
         rightBaseLungGroupMeshGroup = rightBaseLungGroup.getMeshGroup(mesh)
-        annotationGroups.append(rightBaseLungGroup)
+
+        annotationGroups = [lungGroup, leftLungGroup, rightLungGroup,
+                            leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup, leftPosteriorLungGroup,
+                            rightLateralLungGroup, rightMedialLungGroup, rightBaseLungGroup, rightPosteriorLungGroup,
+                            lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup]
 
         if numberOfLeftLung == 2:
             lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
             lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(lowerLeftLungGroup)
             annotationTerms.append("lower lobe of left lung")
             meshGroups.append(lowerLeftLungMeshGroup)
 
             upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
             upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
-            annotationGroups.append(upperLeftLungGroup)
             annotationTerms.append("upper lobe of left lung")
             meshGroups.append(upperLeftLungMeshGroup)
+
+            annotationGroups += [lowerLeftLungGroup, upperLeftLungGroup]
 
         # Nodeset group
         leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
@@ -305,7 +298,7 @@ class MeshType_3d_lung3(Scaffold_base):
 
         leftLung, rightLung = 0, 1
         lungs = [lung for show, lung in [(isLeftLung, leftLung), (isRightLung, rightLung)] if show]
-        startNodeIdentifier, startElementIdentifier = 1, 1
+        nodeIdentifier, elementIdentifier = 1, 1
         for lung in lungs:
             oblique_slope_radians = left_oblique_slope_radians if lung == leftLung else right_oblique_slope_radians
             axis2_x_rotation_radians = -oblique_slope_radians
@@ -313,13 +306,6 @@ class MeshType_3d_lung3(Scaffold_base):
 
             ellipsoid = EllipsoidMesh(halfDepth, halfBreadth, halfHeight, elementCounts, elementsCountTransition,
                                       axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only)
-
-            annotationGroups = [lungGroup, leftLungGroup, rightLungGroup,
-                                leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup, leftPosteriorLungGroup,
-                                rightLateralLungGroup, rightMedialLungGroup, rightBaseLungGroup, rightPosteriorLungGroup,
-                                lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup]
-            if numberOfLeftLung > 1:
-                annotationGroups += [lowerLeftLungGroup, upperLeftLungGroup]
 
             if lung == leftLung:
                 octant_group_lists = []
@@ -349,9 +335,7 @@ class MeshType_3d_lung3(Scaffold_base):
             ellipsoid.set_octant_group_lists(octant_group_lists)
 
             ellipsoid.build()
-            nodeIdentifier, elementIdentifier = ellipsoid.generate_mesh(fieldmodule, coordinates, startNodeIdentifier, startElementIdentifier)
-
-            startNodeIdentifier, startElementIdentifier = nodeIdentifier, elementIdentifier
+            nodeIdentifier, elementIdentifier = ellipsoid.generate_mesh(fieldmodule, coordinates, nodeIdentifier, elementIdentifier)
 
         for lung in lungs:
             isLeft = True if lung == leftLung else False
