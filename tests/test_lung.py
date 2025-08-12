@@ -906,8 +906,8 @@ class LungScaffoldTestCase(unittest.TestCase):
         # material_coordinates = fieldmodule.findFieldByName("lung coordinates").castFiniteElement()
         # self.assertTrue(material_coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.5193331776548858, -0.39797018819161917, 0.035835394723902014], tol)
-        assertAlmostEqualList(self, maximums, [0.5193331776548858, 0.3280354940434965, 0.9617023416663923], tol)
+        assertAlmostEqualList(self, minimums, [-0.5150077744090888, -0.39797018819161917, 0.035835394723902014], tol)
+        assertAlmostEqualList(self, maximums, [0.5150077744090888, 0.3290391566888997, 0.9617023416663923], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -923,10 +923,10 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 4.85903217433176, delta=tol)
+        self.assertAlmostEqual(surfaceArea, 4.887248605193398, delta=tol)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.29704700501250636, delta=tol)
+        self.assertAlmostEqual(volume, 0.301840881252553, delta=tol)
 
         # check some annotationGroups:
         expectedSizes3d = {

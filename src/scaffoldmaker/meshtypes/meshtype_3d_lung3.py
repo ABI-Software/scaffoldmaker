@@ -70,7 +70,7 @@ class MeshType_3d_lung3(Scaffold_base):
             options["Number of transition elements"] = 1
 
         if "Human" in useParameterSetName:
-            options["Base lateral edge sharpness factor"] = 0.5
+            options["Base lateral edge sharpness factor"] = 0.8
             options["Ventral edge sharpness factor"] = 0.8
             options["Left oblique slope degrees"] = 60.0
             options["Right oblique slope degrees"] = 60.0
@@ -830,54 +830,34 @@ def taperLungEdge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfValue
     If isBase is True, it sharpens the base (along the z-axis), but only for nodes below a certain height.
     :param sharpeningFactor: A value between 0 and 1, where 1 represents the maximum sharpness.
     :param fm: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param coordinates: The coordinate field. The anterior edge is towards the +y-axis, and the base is towards the
+    -z-axis.
     :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
     :param halfValue: Half value of lung breadth/height depending on isBase.
     :param isBase: False if transforming the anterior edge, True if transforming the base of the lung.
     """
-    # Transformation matrix = [ -k1y + 1, | [x,
-    #                                 1, |  y,
-    #                                 1] |  z]
+    x = fm.createFieldComponent(coordinates, 1)
+    y = fm.createFieldComponent(coordinates, 2)
+    z = fm.createFieldComponent(coordinates, 3)
+
+    coord_value = z if isBase else y
+    start_value = 0.5 * halfValue if isBase else -0.5 * halfValue
+    end_value = -1.1 * halfValue if isBase else 1.1 * halfValue
+
+    start_value_field = fm.createFieldConstant(start_value)
+    end_value_field = fm.createFieldConstant(end_value)
+
+    xi = (coord_value - start_value_field) / fm.createFieldConstant(end_value - start_value)
+    xi__2 = xi * xi
+    one = fm.createFieldConstant(1.0)
+    x_scale = one - fm.createFieldConstant(sharpeningFactor) * xi__2
     if isBase:
-        # Taper the lower portion of the lung near base (z = 0)
-        threshold = 0.3 * halfValue
-        offset_vector = [0.0, 0.0, -threshold]
-        scale_vector = [0.0, 0.0, sharpeningFactor / (halfValue * 1.75)]
-        constant_vector = [1.0, 1.0, 1.0]
-        component_indices = [3, 2, 2]
+        new_x = fm.createFieldIf(fm.createFieldLessThan(coord_value, start_value_field), x * x_scale, x)
     else:
-        # Taper the anterior edge of the lung along y-axis
-        threshold = halfValue
-        offset_vector = [0.0, 0.4 * threshold, 0.0]
-        scale_vector = [0.0, -sharpeningFactor / (halfValue * 1.75), 0.0]
-        constant_vector = [0.0, 1.0, 1.0]
-        component_indices = [2, 3, 3]
+        new_x = fm.createFieldIf(fm.createFieldGreaterThan(coord_value, start_value_field), x * x_scale, x)
+    new_coordinates = fm.createFieldConcatenate([new_x, y, z])
 
-    offset = fm.createFieldConstant(offset_vector)
-    origin = fm.createFieldAdd(coordinates, offset)
-
-    scale = fm.createFieldConstant(scale_vector)
-    scaleFunction = fm.createFieldMultiply(origin, scale)
-
-    constant = fm.createFieldConstant(constant_vector)
-    constantFunction = fm.createFieldAdd(scaleFunction, constant)
-
-    transformation_matrix = fm.createFieldComponent(constantFunction, component_indices)
-    taper_coordinates = fm.createFieldMultiply(origin, transformation_matrix)
-    translated_coordinates = fm.createFieldSubtract(taper_coordinates, offset)
-
-    if isBase:
-        z_component = fm.createFieldComponent(coordinates, [3])
-        threshold_field = fm.createFieldConstant(threshold)
-        is_below_threshold = fm.createFieldLessThan(z_component, threshold_field)
-        result = fm.createFieldIf(is_below_threshold, translated_coordinates, coordinates)
-    else:
-        y_component = fm.createFieldComponent(coordinates, [2])
-        threshold_field = fm.createFieldConstant(threshold)
-        is_below_threshold = fm.createFieldLessThan(y_component, threshold_field)
-        result = fm.createFieldIf(is_below_threshold, translated_coordinates, coordinates)
-
-    fieldassignment = coordinates.createFieldassignment(result)
+    fieldassignment = coordinates.createFieldassignment(new_coordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
     fieldassignment.assign()
 
