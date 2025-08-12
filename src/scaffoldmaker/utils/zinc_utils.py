@@ -1,17 +1,26 @@
 """
 Utility functions for easing use of Zinc API.
 """
-from cmlibs.maths.vectorops import rejection, set_magnitude, magnitude, cross, normalize
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
+from cmlibs.maths.vectorops import add, cross, div, magnitude, mult, normalize, rejection, set_magnitude, sub
+from cmlibs.utils.zinc.field import (
+    find_or_create_field_coordinates, find_or_create_field_finite_element, find_or_create_field_group,
+    find_or_create_field_stored_mesh_location, find_or_create_field_stored_string)
 from cmlibs.utils.zinc.finiteelement import get_maximum_element_identifier, get_maximum_node_identifier
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.element import Element, Elementbasis, MeshGroup
-from cmlibs.zinc.field import Field, FieldGroup
+from cmlibs.zinc.field import Field, FieldGroup, FieldFindMeshLocation
 from cmlibs.zinc.fieldmodule import Fieldmodule
 from cmlibs.zinc.node import Node, NodesetGroup
 from cmlibs.zinc.result import RESULT_OK
+from fieldfitter.fitter import Fitter as FieldFitter
+from scaffoldfitter.fitter import Fitter as GeometryFitter
+from scaffoldfitter.fitterstepconfig import FitterStepConfig
+from scaffoldfitter.fitterstepfit import FitterStepFit
 from scaffoldmaker.utils import interpolation as interp
+import copy
+import math
+
 
 def interpolateNodesCubicHermite(cache, coordinates, xi, normal_scale,
         node1, derivative1, scale1, cross_derivative1, cross_scale1,
@@ -619,19 +628,19 @@ def clearRegion(region):
             field = fieldIter.next()
 
 
-def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, startElementIdentifier=None,
-                      coordinate_field_name="coordinates", group_name=None):
+def generate_curve_mesh(region, nx, nd1, loop=False, start_node_identifier=None, start_element_identifier=None,
+                        coordinate_field_name="coordinates", group_name=None):
     """
     Generate a set of 1-D elements with Hermite basis
     :param region: Zinc Region.
     :param nx: Coordinates along curve.
     :param nd1: Derivatives along curve.
     :param loop: True if curve loops back to first point, False if not.
-    :param startNodeIdentifier: Optional first node identifier to use.
-    :param startElementIdentifier: Optional first 1D element identifier to use.
+    :param start_node_identifier: Optional first node identifier to use.
+    :param start_element_identifier: Optional first 1D element identifier to use.
     :param coordinate_field_name: Optional name of coordinate field to define, if omitted use "coordinates".
     :param group_name: Optional name of group to put new nodes and elements in.
-    :return: next node identifier, next 2D element identifier
+    :return: next node identifier, next 1D element identifier
     """
     fieldmodule = region.getFieldmodule()
     with ChangeManager(fieldmodule):
@@ -639,7 +648,7 @@ def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, sta
         group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
 
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        nodeIdentifier = startNodeIdentifier if startNodeIdentifier is not None else \
+        node_identifier = start_node_identifier if start_node_identifier is not None else \
             max(get_maximum_node_identifier(nodes), 0) + 1
 
         nodetemplate = nodes.createNodetemplate()
@@ -647,7 +656,7 @@ def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, sta
         nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
 
         mesh = fieldmodule.findMeshByDimension(1)
-        elementIdentifier = startElementIdentifier if startElementIdentifier is not None else \
+        element_identifier = start_element_identifier if start_element_identifier is not None else \
             max(get_maximum_element_identifier(mesh), 0) + 1
         elementtemplate = mesh.createElementtemplate()
         elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
@@ -661,26 +670,111 @@ def generateCurveMesh(region, nx, nd1, loop=False, startNodeIdentifier=None, sta
         nCount = len(nx)
         nodeset_group = group.getOrCreateNodesetGroup(nodes) if group else None
         for n in range(nCount):
-            node = nodes.createNode(nodeIdentifier, nodetemplate)
-            nids.append(nodeIdentifier)
+            node = nodes.createNode(node_identifier, nodetemplate)
+            nids.append(node_identifier)
             fieldcache.setNode(node)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n])
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n])
             if nodeset_group:
                 nodeset_group.addNode(node)
-            nodeIdentifier += 1
+            node_identifier += 1
         eCount = nCount if loop else nCount - 1
         if loop:
             nids.append(nids[0])
         mesh_group = group.getOrCreateMeshGroup(mesh) if group else None
         for e in range(eCount):
-            element = mesh.createElement(elementIdentifier, elementtemplate)
+            element = mesh.createElement(element_identifier, elementtemplate)
             element.setNodesByIdentifier(eft, nids[e:e + 2])
             if mesh_group:
                 mesh_group.addElement(element)
-            elementIdentifier += 1
+            element_identifier += 1
 
-    return nodeIdentifier, elementIdentifier
+    return node_identifier, element_identifier
+
+
+def generate_datapoints(region, px, start_data_identifier=None, coordinate_field_name="coordinates",
+                        field_names_and_values=[], group_name=None):
+    """
+    Generate a set of datapoints in the region.
+    :param region: Zinc Region.
+    :param px: Coordinates of data points.
+    :param start_data_identifier: Optional first datapoint identifier to use.
+    :param coordinate_field_name: Optional name of coordinate field to define, if omitted use "coordinates".
+    :param field_names_and_values: Optional lists of (field_name, list of values) for additional fields to
+    define on the datapoints. Values may be scalar or vector (list of lists) real, or string.
+    Must be same number of values as number of points.
+    :param group_name: Optional name of group to put new datapoints in.
+    :return: next datapoint identifier
+    """
+    fieldmodule = region.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        coordinates = find_or_create_field_coordinates(fieldmodule, name=coordinate_field_name)
+        group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
+
+        datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        data_identifier = start_data_identifier if (start_data_identifier is not None) else \
+            max(get_maximum_node_identifier(datapoints), 0) + 1
+        data_group = group.getOrCreateNodesetGroup(datapoints) if group else datapoints
+
+        nodetemplate = datapoints.createNodetemplate()
+        nodetemplate.defineField(coordinates)
+        fields_values = []  # (field, is_string, values)
+        for field_name, field_values in field_names_and_values:
+            is_string = isinstance(field_values[0], str)
+            if is_string:
+                field = find_or_create_field_stored_string(fieldmodule, field_name, managed=True)
+            else:
+                components_count = len(field_values[0]) if isinstance(field_values[0], list) else 1
+                field = find_or_create_field_finite_element(fieldmodule, field_name, components_count, managed=True)
+            nodetemplate.defineField(field)
+            fields_values.append((field, is_string, field_values))
+
+        fieldcache = fieldmodule.createFieldcache()
+        for n, x in enumerate(px):
+            node = data_group.createNode(data_identifier, nodetemplate)
+            fieldcache.setNode(node)
+            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
+            for field, is_string, values in fields_values:
+                if is_string:
+                    field.assignString(fieldcache, values[n])
+                else:
+                    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, values[n])
+            data_identifier += 1
+
+    return data_identifier
+
+
+def generate_mesh_marker_points(mesh, marker_data, start_node_identifier=None):
+    """
+    Create marker points in the "marker" group with supplied names and mesh locations.
+    :param mesh: Zinc region to create marker points in.
+    :param marker_data: list of marker (name, (element_identifier, xi)). Xi must have same size as mesh dimension.
+    :return: Next node identifier
+    """
+    fieldmodule = mesh.getFieldmodule()
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    node_identifier = start_node_identifier if start_node_identifier is not None else \
+        max(get_maximum_node_identifier(nodes), 0) + 1
+    with ChangeManager(fieldmodule):
+        marker_group = find_or_create_field_group(fieldmodule, "marker")
+        marker_nodeset_group = marker_group.getOrCreateNodesetGroup(nodes)
+        marker_location = find_or_create_field_stored_mesh_location(
+            fieldmodule, mesh, name="marker_location", managed=True)
+        marker_name = find_or_create_field_stored_string(fieldmodule, name="marker_name", managed=True)
+        nodetemplate = nodes.createNodetemplate()
+        nodetemplate.defineField(marker_name)
+        nodetemplate.defineField(marker_location)
+        fieldcache = fieldmodule.createFieldcache()
+        for name, location in marker_data:
+            node = marker_nodeset_group.createNode(node_identifier, nodetemplate)
+            fieldcache.setNode(node)
+            marker_name.assignString(fieldcache, name)
+            element = mesh.findElementByIdentifier(location[0])
+            xi = location[1]
+            if element.isValid():
+                marker_location.assignMeshLocation(fieldcache, element, xi)
+            node_identifier += 1
+    return node_identifier
 
 
 def mesh_get_element_nodes_map(mesh):
@@ -720,6 +814,7 @@ def mesh_get_element_nodes_map(mesh):
         del group
     return elementid_to_nodeids
 
+
 def group_add_connected_elements(group: FieldGroup, other_mesh_group: MeshGroup):
     """
     Add to group the elements from other_mesh_group which use a node from the group's
@@ -755,6 +850,7 @@ def group_add_connected_elements(group: FieldGroup, other_mesh_group: MeshGroup)
                     break
         group.setSubelementHandlingMode(old_subelement_mode)
 
+
 def blendDerivativeBetweenDifferentSizeElements(coordinates, cache, nodes, prevNodeID, transitionNodeID, nextNodeID):
     """
     Blends derivatives for nodes between two elements of different lengths. Calculates an end derivative using
@@ -787,3 +883,193 @@ def blendDerivativeBetweenDifferentSizeElements(coordinates, cache, nodes, prevN
     d2MeanMag = 2.0 / ((1.0 / magnitude(d2_in)) + (1.0 / magnitude(d2_out)))
     d2Mean = set_magnitude(d2Transition, d2MeanMag)
     coordinates.setNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS2, 1, d2Mean)
+
+
+def find_or_create_field_zero_fibres(fieldmodule, name="zero fibres", managed=True):
+    """
+    Find or create a constant field representing 3 zero fibre angles.
+    :param fieldmodule: Owning field module to find or create field in.
+    :param name: Name of zero fibres field.
+    :param managed: Whether
+    :return: Zinc Field.
+    """
+    zero_fibres = fieldmodule.findFieldByName(name)
+    if zero_fibres.isValid():
+        return zero_fibres
+    with ChangeManager(fieldmodule):
+        zero_fibres = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
+        zero_fibres.setName(name)
+        zero_fibres.setManaged(managed)
+    return zero_fibres
+
+
+def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=None):
+    """
+    Fit 1-D multi-element hermite curve to list of data point coordinates.
+    Uses scaffoldfitter/Zinc to perform fit.
+    :param bx: Initial/before curve coordinates, close to data.
+    :param bd1: Initial/before curve derivatives, close to data.
+    :param px: List of data points [x, y, z] or [x, y] if 2-D to fit to.
+    :param outlier_length: Absolute outlier length for data if positive, or relative outlier length if negative e.g.
+    -0.1 removes data points with projections lengths within 10% of largest projection length. Not used in the first
+    fit iteration. Ignored if zero.
+    :param region: Optional Zinc Region to perform fit in, so available for re-use after call.
+    Region is expected to be empty.
+    :param group_name: Optional name of group to put fit elements and data in, or None to use default "curve".
+    :return: cx, cd1 (lists of hermite coordinates and derivatives)
+    """
+    points_count = len(px)
+    elements_count = len(bx) - 1
+    components_count = len(bx[0])
+    curve_length = interp.getCubicHermiteCurvesLength(bx, bd1)
+    curve_group_name = group_name if group_name else "curve"
+
+    if region:
+        fit_region = region
+    else:
+        # perform the fit in a Zinc Region in a private Context
+        context = Context("fit_hermite_curve")
+        fit_region = context.getDefaultRegion()
+    fieldmodule = fit_region.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        coordinates = find_or_create_field_coordinates(fieldmodule)
+        generate_curve_mesh(fit_region, bx, bd1, group_name=curve_group_name)
+        generate_datapoints(fit_region, px, group_name=curve_group_name)
+        # need a zero fibre field to apply strain/curvature penalties on 1-D model
+        zero_fibres = find_or_create_field_zero_fibres(fieldmodule)
+
+    fitter = GeometryFitter(region=fit_region)
+    # fitter.setDiagnosticLevel(1)
+    fitter.setModelCoordinatesField(coordinates)
+    fitter.setFibreField(zero_fibres)
+    fitter.defineCommonMeshFields()
+    fitter.setDataCoordinatesField(coordinates)
+    fitter.defineDataProjectionFields()
+    # aim for no more than 25 points per element:
+    points_per_element = 25
+    data_proportion = min(1.0, points_per_element * elements_count / points_count)
+    if data_proportion < 1.0:
+        fitter.getInitialFitterStepConfig().setGroupDataProportion(None, data_proportion)
+    fitter.initializeFit()
+
+    # calibrated by scaling the model: a power of 3 relationship
+    curvature_penalty = ((points_count * data_proportion) / (points_per_element * elements_count) *
+                         1.0E-6 * (curve_length ** 3))
+    fit1 = FitterStepFit()
+    fitter.addFitterStep(fit1)
+    fit1.setGroupCurvaturePenalty(None, [curvature_penalty])
+    fit1.run()
+    del fit1
+
+    if outlier_length != 0.0:
+        config2 = FitterStepConfig()
+        fitter.addFitterStep(config2)
+        config2.setGroupOutlierLength(None, outlier_length)
+        config2.run()
+        del config2
+
+        fit3 = FitterStepFit()
+        fitter.addFitterStep(fit3)
+        fit3.run()
+        del fit3
+
+    fitter.cleanup()
+    del fitter
+
+    # extract fitted curve parameters from nodes
+    cx = []
+    cd1 = []
+    fieldcache = fieldmodule.createFieldcache()
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    nodeiterator = nodes.createNodeiterator()
+    node = nodeiterator.next()
+    while node.isValid():
+        fieldcache.setNode(node)
+        result, x = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, components_count)
+        result, d1 = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, components_count)
+        cx.append(x)
+        cd1.append(d1)
+        node = nodeiterator.next()
+
+    return cx, cd1
+
+
+def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_name, fit_field_name,
+                         gradient1_penalty, gradient2_penalty, group_name=None):
+    """
+    Define and fit field over mesh in region. Components of field are defined identically to first
+    component of the coordinate field.
+    :param region: Region containing geometric model to define and fit field to, and data points containing
+    field values
+    :param coordinate_field_name: Name of coordinate field on the model. The first component of this field is used
+    as a template for defining all components of the fit field over the model.
+    :param data_coordinate_field_name: Name of coordinate field on the data, used to find nearest mesh location on
+    model.
+    :param fit_field_name: Name of field to fit; must be defined over data points.
+    :param gradient1_penalty: Penalty factor for first gradient of field w.r.t. coordinates.
+    :param gradient2_penalty: Penalty factor for second gradient of field w.r.t. coordinates.
+    :param group_name: Optional name of group to limit fitting over.
+    """
+    fitter = FieldFitter(region=region)
+    # fitter.setDiagnosticLevel(1)
+    fieldmodule = region.getFieldmodule()
+    coordinates = fieldmodule.findFieldByName(coordinate_field_name).castFiniteElement()
+    fitter.setModelCoordinatesField(coordinates)
+    data_coordinates = fieldmodule.findFieldByName(data_coordinate_field_name).castFiniteElement()
+    fitter.setDataCoordinatesField(data_coordinates)
+    if group_name:
+        model_fit_group = fieldmodule.findFieldByName(group_name).castGroup()
+        assert model_fit_group.isValid()
+        fitter.setModelFitGroup(model_fit_group)
+    fitter.updateFitFields()
+    if fieldmodule.findMeshByDimension(coordinates.getNumberOfComponents()).getSize() == 0:
+        # need a zero fibre field to apply strain/curvature penalties on 1-D model
+        fitter.setFibreField(find_or_create_field_zero_fibres(fieldmodule))
+    fitter.setGradient1Penalty([gradient1_penalty])
+    fitter.setGradient2Penalty([gradient2_penalty])
+    fitter.setFitField(fit_field_name, True)
+    fitter.fitField(fit_field_name)
+    fitter.cleanup()
+    del fitter
+
+def find_first_node_conditional(nodeset, conditional_field):
+    """
+    Returns the first node in the conditional field.
+    :param nodeset: set of nodes.
+    :param conditional_field: Field containing nodes that satisfy conditions passed to the function.
+    """
+    fieldmodule = nodeset.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        group = fieldmodule.createFieldGroup()
+        nodeset_group = group.createNodesetGroup(nodeset)
+        nodeset_group.addNodesConditional(conditional_field)
+        junction_node = nodeset_group.createNodeiterator().next()
+
+        del nodeset_group
+        del group
+
+    return junction_node
+
+def get_node_mesh_location(node, node_coordinates, mesh, mesh_coordinates, search_mesh=None):
+    """
+    Returns the element and xi value of the node in the host mesh.
+    :param node: node to find mesh location.
+    :param node_coordinates: field coordinates
+    :param mesh: mesh where node sits in.
+    :param mesh_coordinates: coordinates of mesh. Could be geometric or material coordinates
+    :param search_mesh: mesh for conducting search for node location within the mesh. Can be used to reduce search
+    time if a partial mesh containing the node is supplied.
+    """
+    fieldmodule = mesh.getFieldmodule()
+    with ChangeManager(fieldmodule):
+        find_mesh_location = fieldmodule.createFieldFindMeshLocation(node_coordinates, mesh_coordinates, mesh)
+        if search_mesh:
+            find_mesh_location.setSearchMesh(search_mesh)
+        find_mesh_location.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
+        fieldcache = fieldmodule.createFieldcache()
+        fieldcache.setNode(node)
+        element, xi = find_mesh_location.evaluateMeshLocation(fieldcache, mesh.getDimension())
+        del fieldcache
+        del find_mesh_location
+
+    return element, xi
