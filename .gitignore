@@ -104,4 +104,4 @@ ENV/
 .idea/
 
 # Vscode settings
-.vscode/settings.json
+.vscode/
