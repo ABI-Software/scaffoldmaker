@@ -867,7 +867,7 @@ class LungScaffoldTestCase(unittest.TestCase):
                          ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine",
                           "Ellipsoid Coarse", "Ellipsoid Medium", "Ellipsoid Fine"])
         options = scaffold.getDefaultOptions("Human 1 Coarse")
-        self.assertEqual(21, len(options))
+        self.assertEqual(20, len(options))
         self.assertFalse(scaffold.checkOptions(options))
         context = Context("Test")
         region = context.getDefaultRegion()
@@ -989,7 +989,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             "antero-posterior edge of upper lobe of right lung": 4
         }
         for name in expectedSizes1d:
-            group = getAnnotationGroupForTerm(annotationGroups, [name, "None"])
+            group = getAnnotationGroupForTerm(annotationGroups, [name, ""])
             size = group.getMeshGroup(mesh1d).getSize()
             self.assertEqual(expectedSizes1d[name], size, name)
 

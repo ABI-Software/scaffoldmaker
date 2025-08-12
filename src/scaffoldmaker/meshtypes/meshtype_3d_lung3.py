@@ -218,11 +218,11 @@ class MeshType_3d_lung3(Scaffold_base):
         meshGroups = []
         annotationTerms = []
 
-        boxGroup = AnnotationGroup(region, ("box group", "None"))
+        boxGroup = AnnotationGroup(region, ("box group", ""))
         boxMeshGroup = boxGroup.getMeshGroup(mesh)
         boxNodesetGroup = boxGroup.getNodesetGroup(nodes)
 
-        transitionGroup = AnnotationGroup(region, ("transition group", "None"))
+        transitionGroup = AnnotationGroup(region, ("transition group", ""))
         transitionMeshGroup = transitionGroup.getMeshGroup(mesh)
         transitionNodesetGroup = transitionGroup.getNodesetGroup(nodes)
 
@@ -243,24 +243,24 @@ class MeshType_3d_lung3(Scaffold_base):
         annotationTerms.append("right lung")
         meshGroups.append(rightLungMeshGroup)
 
-        leftLateralLungGroup = AnnotationGroup(region, ["lateral left lung", "None"])
+        leftLateralLungGroup = AnnotationGroup(region, ["lateral left lung", ""])
         leftLateralLungGroupMeshGroup = leftLateralLungGroup.getMeshGroup(mesh)
         annotationGroups.append(leftLateralLungGroup)
 
-        rightLateralLungGroup = AnnotationGroup(region, ["lateral right lung", "None"])
+        rightLateralLungGroup = AnnotationGroup(region, ["lateral right lung", ""])
         rightLateralLungGroupMeshGroup = rightLateralLungGroup.getMeshGroup(mesh)
         annotationGroups.append(rightLateralLungGroup)
 
-        leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", "None"])
+        leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", ""])
         leftMedialLungGroupMeshGroup = leftMedialLungGroup.getMeshGroup(mesh)
         annotationGroups.append(leftMedialLungGroup)
 
-        rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", "None"])
+        rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", ""])
         rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
         annotationGroups.append(rightMedialLungGroup)
 
-        leftPosteriorLungGroup = AnnotationGroup(region, ("posterior left lung", "None"))
-        rightPosteriorLungGroup = AnnotationGroup(region, ("posterior right lung", "None"))
+        leftPosteriorLungGroup = AnnotationGroup(region, ("posterior left lung", ""))
+        rightPosteriorLungGroup = AnnotationGroup(region, ("posterior right lung", ""))
 
         lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
         lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
@@ -280,11 +280,11 @@ class MeshType_3d_lung3(Scaffold_base):
         annotationTerms.append("middle lobe of right lung")
         meshGroups.append(middleRightLungMeshGroup)
 
-        leftBaseLungGroup = AnnotationGroup(region, ["base left lung", "None"])
+        leftBaseLungGroup = AnnotationGroup(region, ["base left lung", ""])
         leftBaseLungGroupMeshGroup = leftBaseLungGroup.getMeshGroup(mesh)
         annotationGroups.append(leftBaseLungGroup)
 
-        rightBaseLungGroup = AnnotationGroup(region, ["base right lung", "None"])
+        rightBaseLungGroup = AnnotationGroup(region, ["base right lung", ""])
         rightBaseLungGroupMeshGroup = rightBaseLungGroup.getMeshGroup(mesh)
         annotationGroups.append(rightBaseLungGroup)
 
@@ -446,7 +446,7 @@ class MeshType_3d_lung3(Scaffold_base):
                         "medial left lung", "medial right lung",
                         "base left lung", "base right lung"]
         for term in arbSideTerms:
-            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, ""])
             group2d = group.getGroup()
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
             side_group[term] = group
@@ -456,7 +456,7 @@ class MeshType_3d_lung3(Scaffold_base):
         boxTransition_exterior = {}
         arbBoxTransitionTerms = ["box group", "transition group"]
         for term in arbBoxTransitionTerms:
-            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, ""])
             group2d = group.getGroup()
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
             boxTransition_group[term] = group
@@ -467,7 +467,7 @@ class MeshType_3d_lung3(Scaffold_base):
         base_posterior_group_terms = ["base left lung", "base right lung",
                                       "posterior left lung", "posterior right lung"]
         for term in base_posterior_group_terms:
-            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, "None"])
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, ""])
             group2d = group.getGroup()
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
             base_posterior_group[term] = group
@@ -682,7 +682,7 @@ class MeshType_3d_lung3(Scaffold_base):
                         is_surfaceFissureGroup = fm.createFieldAnd(is_fissureGroup_exterior, surfaces[surface_type])
 
                         edgeTermFull = f"{edgeTerm} of oblique fissure" if "base" in edgeTerm else f"{edgeTerm} of {fissureTerm}"
-                        edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, "None"])
+                        edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, ""])
                         edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_surfaceFissureGroup)
 
                 elif edgeTerm in edge_lobe_map:
@@ -701,7 +701,7 @@ class MeshType_3d_lung3(Scaffold_base):
                                                     fm.createFieldAnd(surfaces["medial"], surfaces["lateral"]))
 
                         edgeTermFull = f"{edgeTerm} of {lobe} of {lung}"
-                        edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, "None"])
+                        edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, ""])
                         edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
             # Process lateral edges of the base (separate from main edge loop)
@@ -718,7 +718,7 @@ class MeshType_3d_lung3(Scaffold_base):
                 is_edge = fm.createFieldAnd(is_lobeGroup_exterior, side_exterior[sideTerm])
 
                 edgeTermFull = f"lateral edge of {lobeTerm.replace(' surface', '')}"
-                edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, "None"])
+                edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTermFull, ""])
                 edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Medial edge of the base
@@ -738,7 +738,7 @@ class MeshType_3d_lung3(Scaffold_base):
             is_edge = fm.createFieldAnd(is_horizontal_edge, is_threshold)
 
             edgeTerm = f"medial edge of base of lower lobe of {lung}"
-            edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTerm, "None"])
+            edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [edgeTerm, ""])
             edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Remove unnecessary annotations
