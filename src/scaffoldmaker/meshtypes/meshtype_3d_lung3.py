@@ -218,14 +218,6 @@ class MeshType_3d_lung3(Scaffold_base):
         meshGroups = []
         annotationTerms = []
 
-        boxGroup = AnnotationGroup(region, ("box group", ""))
-        boxMeshGroup = boxGroup.getMeshGroup(mesh)
-        boxNodesetGroup = boxGroup.getNodesetGroup(nodes)
-
-        transitionGroup = AnnotationGroup(region, ("transition group", ""))
-        transitionMeshGroup = transitionGroup.getMeshGroup(mesh)
-        transitionNodesetGroup = transitionGroup.getNodesetGroup(nodes)
-
         # annotation groups & nodeset groups
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
         lungMeshGroup = lungGroup.getMeshGroup(mesh)
@@ -355,8 +347,6 @@ class MeshType_3d_lung3(Scaffold_base):
                     octant_group_lists.append(octant_group_list)
 
             ellipsoid.set_octant_group_lists(octant_group_lists)
-            annotationGroups += [boxGroup, transitionGroup]
-            ellipsoid.set_box_transition_groups(boxGroup.getGroup(), transitionGroup.getGroup())
 
             ellipsoid.build()
             nodeIdentifier, elementIdentifier = ellipsoid.generate_mesh(fieldmodule, coordinates, startNodeIdentifier, startElementIdentifier)
@@ -451,16 +441,6 @@ class MeshType_3d_lung3(Scaffold_base):
             group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
             side_group[term] = group
             side_exterior[term] = group2d_exterior
-
-        boxTransition_group = {}
-        boxTransition_exterior = {}
-        arbBoxTransitionTerms = ["box group", "transition group"]
-        for term in arbBoxTransitionTerms:
-            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, [term, ""])
-            group2d = group.getGroup()
-            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
-            boxTransition_group[term] = group
-            boxTransition_exterior[term] = group2d_exterior
 
         base_posterior_group = {}
         base_posterior_group_exterior = {}
@@ -742,7 +722,7 @@ class MeshType_3d_lung3(Scaffold_base):
             edgeGroup.getMeshGroup(mesh1d).addElementsConditional(is_edge)
 
         # Remove unnecessary annotations
-        for group in [*side_group.values(), *boxTransition_group.values()]:
+        for group in [*side_group.values()]:
             annotationGroups.remove(group)
 
         for key, group in base_posterior_group.items():

@@ -1013,7 +1013,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         # refine 2x2x2 and check result
         # need to use original annotation groups to get temporaries
         annotationGroups = originalAnnotationGroups
-        self.assertEqual(18, len(annotationGroups))  # including temporary groups
+        self.assertEqual(16, len(annotationGroups))  # including temporary groups
 
         refineRegion = region.createRegion()
         refineFieldmodule = refineRegion.getFieldmodule()
