@@ -18,11 +18,16 @@ class HeartScaffoldTestCase(unittest.TestCase):
 
     def test_heart_annotations(self):
         """
-        Test that all heart terms are UBERON or ILX.
+        Test that all heart terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
         """
         for term in heart_terms:
             upper_id = term[1].upper()
             self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid heart term" + str(term))
+            if len(term) > 2:
+                uberon_index = next((i for i, v in enumerate(term) if 'UBERON' in v), -1)
+                ilx_index = next((i for i, v in enumerate(term) if 'ILX' in v), -1)
+                fma_index = next((i for i, v in enumerate(term) if 'FMA' in v), 10)
+                self.assertTrue(fma_index > uberon_index and fma_index > ilx_index, 'FMA term should be written after UBERON and ILX terms on heart term ' + str(term))
 
 
     def test_heart1(self):
