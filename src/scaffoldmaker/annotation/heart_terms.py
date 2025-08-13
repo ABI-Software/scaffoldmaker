@@ -40,7 +40,7 @@ heart_terms = [
     ("inferior vena cava", "UBERON:0001072", "FMA:10951", "posterior vena cava"),
     ("inferior vena cava inlet", "ILX:0738358"),
     ("interatrial septum", "UBERON:0002085", "FMA:7108"),
-    ("left atrium myocardium", "UBERON:0003380", "ILX:0726314", "FMA:7285", "cardiac muscle of left atrium")  #Interlex refers to this term by the alternative name 
+    ("left atrium myocardium", "UBERON:0003380", "ILX:0726314", "FMA:7285", "cardiac muscle of left atrium"),  # Interlex refers to this term by the alternative name
     ("left auricle", "UBERON:0006630", "FMA:7219"),
     ("left cardiac atrium", "UBERON:0002079"),  # the whole left atrium
     ("left inferior pulmonary vein", "ILX:0744169", "FMA:49913"),
@@ -48,7 +48,7 @@ heart_terms = [
     ("left superior pulmonary vein", "ILX:0745914", "FMA:49916"),
     ("middle pulmonary vein", "ILX:0739222"),  # in mouse, rat, rabbit
     ("pulmonary vein", "UBERON:0002016", "FMA:66643"),
-    ("right atrium myocardium", "UBERON:0003379", "ILX:0726346", "FMA:7282", "cardiac muscle of right atrium"),  #Interlex refers to this term by the alternative name 
+    ("right atrium myocardium", "UBERON:0003379", "ILX:0726346", "FMA:7282", "cardiac muscle of right atrium"),  # Interlex refers to this term by the alternative name
     ("right auricle", "UBERON:0006631", "FMA:7218"),
     ("right cardiac atrium", "UBERON:0002078"),  # the whole right atrium
     ("right inferior pulmonary vein", "ILX:0742603", "FMA:49911"),
@@ -73,7 +73,7 @@ heart_terms = [
     # ("posterior cusp of aortic valve", "FMA:7253"),
     # ("right cusp of aortic valve", "FMA:7252"),
     # ("left cusp of aortic valve", "FMA:7251"),
-    ("root of pulmonary trunk", "ILX:0738366", "FMA:8612"),  #FMA term points to the entirety of the pulmonary trunk, keeping for future reference 
+    ("root of pulmonary trunk", "ILX:0738366", "FMA:8612"),  # FMA term points to the entirety of the pulmonary trunk, keeping for future reference 
     ("pulmonary valve leaflet", "UBERON:0011745", "ILX:0728408"),
     # ("right cusp of pulmonary valve", "FMA:7250"),
     # ("anterior cusp of pulmonary valve", "FMA:7249"),
