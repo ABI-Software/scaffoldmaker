@@ -20,7 +20,7 @@ class BladderScaffoldTestCase(unittest.TestCase):
 
     def test_bladder_annotations(self):
         """
-        Test that all bladder terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the bladder terms. 
         """
         for term in bladder_terms:
             upper_id = term[1].upper()

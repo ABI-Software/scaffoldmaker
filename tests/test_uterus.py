@@ -19,7 +19,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
 
     def test_uterus_annotations(self):
         """
-        Test that all uterus terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the uterus terms. 
         """
         for term in uterus_terms:
             upper_id = term[1].upper()

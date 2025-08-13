@@ -21,7 +21,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
 
     def test_smallintestine_annotations(self):
         """
-        Test that all small intestine terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the small intestine terms. 
         """
         for term in smallintestine_terms:
             upper_id = term[1].upper()

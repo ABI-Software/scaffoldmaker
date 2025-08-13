@@ -18,7 +18,7 @@ class MuscleScaffoldTestCase(unittest.TestCase):
 
     def test_muscle_annotations(self):
         """
-        Test that all muscle terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the muscle terms. 
         """
         for term in muscle_terms:
             upper_id = term[1].upper()

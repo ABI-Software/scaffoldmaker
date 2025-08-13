@@ -19,7 +19,7 @@ class CecumScaffoldTestCase(unittest.TestCase):
 
     def test_cecum_annotations(self):
         """
-        Test that all cecum terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the cecum terms. 
         """
         for term in cecum_terms:
             upper_id = term[1].upper()

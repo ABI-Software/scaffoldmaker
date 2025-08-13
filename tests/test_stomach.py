@@ -22,7 +22,7 @@ class StomachScaffoldTestCase(unittest.TestCase):
 
     def test_stomach_annotations(self):
         """
-        Test that all stomach terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the stomach terms. 
         """
         for term in stomach_terms:
             upper_id = term[1].upper()

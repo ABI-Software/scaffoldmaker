@@ -23,7 +23,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
 
     def test_colon_annotations(self):
         """
-        Test that all colon terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the colon terms. 
         """
         for term in colon_terms:
             upper_id = term[1].upper()

@@ -17,7 +17,7 @@ class spinal_nerveScaffoldTestCase(unittest.TestCase):
 
     def test_spinal_nerve_annotations(self):
         """
-        Test that all spinal nerve terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the spinal nerve terms. 
         """
         for term in spinal_nerve_terms:
             upper_id = term[1].upper()

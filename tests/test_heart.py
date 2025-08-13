@@ -18,7 +18,7 @@ class HeartScaffoldTestCase(unittest.TestCase):
 
     def test_heart_annotations(self):
         """
-        Test that all heart terms are UBERON or ILX. Empty terms are also accepted. FMA terms can be included, but should be listed after UBERON and ILX terms. 
+        Test nomenclature of the heart terms. 
         """
         for term in heart_terms:
             upper_id = term[1].upper()
