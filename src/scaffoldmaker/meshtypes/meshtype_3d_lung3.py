@@ -2,9 +2,7 @@
 Generates a lung scaffold by deforming a hemisphere.
 """
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
-from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
-from cmlibs.zinc.node import Node
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
     getAnnotationGroupForTerm
@@ -213,59 +211,27 @@ class MeshType_3d_lung3(Scaffold_base):
         coordinates = find_or_create_field_coordinates(fieldmodule)
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
-        mesh = fieldmodule.findMeshByDimension(3)
-        meshGroups = []
-        annotationTerms = []
-
         # annotation groups & nodeset groups
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
-        lungMeshGroup = lungGroup.getMeshGroup(mesh)
 
         leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-        leftLungMeshGroup = leftLungGroup.getMeshGroup(mesh)
-        annotationTerms.append("left lung")
-        meshGroups.append(leftLungMeshGroup)
-
         rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
-        rightLungMeshGroup = rightLungGroup.getMeshGroup(mesh)
-        annotationTerms.append("right lung")
-        meshGroups.append(rightLungMeshGroup)
 
         leftLateralLungGroup = AnnotationGroup(region, ["lateral left lung", ""])
-        leftLateralLungGroupMeshGroup = leftLateralLungGroup.getMeshGroup(mesh)
-
         rightLateralLungGroup = AnnotationGroup(region, ["lateral right lung", ""])
-        rightLateralLungGroupMeshGroup = rightLateralLungGroup.getMeshGroup(mesh)
 
         leftMedialLungGroup = AnnotationGroup(region, ["medial left lung", ""])
-        leftMedialLungGroupMeshGroup = leftMedialLungGroup.getMeshGroup(mesh)
-
         rightMedialLungGroup = AnnotationGroup(region, ["medial right lung", ""])
-        rightMedialLungGroupMeshGroup = rightMedialLungGroup.getMeshGroup(mesh)
 
         leftPosteriorLungGroup = AnnotationGroup(region, ("posterior left lung", ""))
         rightPosteriorLungGroup = AnnotationGroup(region, ("posterior right lung", ""))
 
         lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
-        lowerRightLungMeshGroup = lowerRightLungGroup.getMeshGroup(mesh)
-        annotationTerms.append("lower lobe of right lung")
-        meshGroups.append(lowerRightLungMeshGroup)
-
         upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
-        upperRightLungMeshGroup = upperRightLungGroup.getMeshGroup(mesh)
-        annotationTerms.append("upper lobe of right lung")
-        meshGroups.append(upperRightLungMeshGroup)
-
         middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
-        middleRightLungMeshGroup = middleRightLungGroup.getMeshGroup(mesh)
-        annotationTerms.append("middle lobe of right lung")
-        meshGroups.append(middleRightLungMeshGroup)
 
         leftBaseLungGroup = AnnotationGroup(region, ["base left lung", ""])
-        leftBaseLungGroupMeshGroup = leftBaseLungGroup.getMeshGroup(mesh)
-
         rightBaseLungGroup = AnnotationGroup(region, ["base right lung", ""])
-        rightBaseLungGroupMeshGroup = rightBaseLungGroup.getMeshGroup(mesh)
 
         annotationGroups = [lungGroup, leftLungGroup, rightLungGroup,
                             leftLateralLungGroup, leftMedialLungGroup, leftBaseLungGroup, leftPosteriorLungGroup,
@@ -274,14 +240,7 @@ class MeshType_3d_lung3(Scaffold_base):
 
         if numberOfLeftLung == 2:
             lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
-            lowerLeftLungMeshGroup = lowerLeftLungGroup.getMeshGroup(mesh)
-            annotationTerms.append("lower lobe of left lung")
-            meshGroups.append(lowerLeftLungMeshGroup)
-
             upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
-            upperLeftLungMeshGroup = upperLeftLungGroup.getMeshGroup(mesh)
-            annotationTerms.append("upper lobe of left lung")
-            meshGroups.append(upperLeftLungMeshGroup)
 
             annotationGroups += [lowerLeftLungGroup, upperLeftLungGroup]
 
