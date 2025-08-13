@@ -21,7 +21,7 @@ class ScaffoldPackage:
     Class packaging a scaffold type, options and modifications.
     """
 
-    def __init__(self, scaffoldType, dct={}, defaultParameterSetName='Default'):
+    def __init__(self, scaffoldType, dct=None, defaultParameterSetName='Default'):
         """
         :param scaffoldType: A scaffold type derived from Scaffold_base.
         :param dct: Dictionary containing other scaffold settings. Key names and meanings:
@@ -29,7 +29,8 @@ class ScaffoldPackage:
             meshEdits: A Zinc model file as a string e.g. containing edited node parameters, or None.
         :param defaultParameterSetName: Parameter set name from scaffoldType to get defaults from.
         """
-        #print('ScaffoldPackage.__init__',dct)
+        if dct is None:
+            dct = {}
         assert issubclass(scaffoldType, Scaffold_base), 'ScaffoldPackage:  Invalid scaffold type'
         self._scaffoldType = scaffoldType
         # merge with defaults to ensure new options for scaffold type are present
@@ -39,7 +40,7 @@ class ScaffoldPackage:
             # remove obsolete options? If so, deepcopy first?
             self._scaffoldSettings.update(scaffoldSettings)
         # note rotation is stored in degrees
-        rotation =  dct.get('rotation')
+        rotation = dct.get('rotation')
         self._rotation = copy.deepcopy(rotation) if rotation else [ 0.0, 0.0, 0.0 ]
         scale = dct.get('scale')
         self._scale = copy.deepcopy(scale) if scale else [ 1.0, 1.0, 1.0 ]
