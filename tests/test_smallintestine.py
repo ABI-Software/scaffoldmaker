@@ -25,7 +25,7 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         """
         for term in smallintestine_terms:
             upper_id = term[1].upper()
-            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid heart term" + str(term))
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid small intestine term" + str(term))
 
 
     def test_smallintestine1(self):

@@ -22,7 +22,7 @@ class BrainstemScaffoldTestCase(unittest.TestCase):
         """
         for term in brainstem_terms:
             upper_id = term[1].upper()
-            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid heart term" + str(term))
+            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid brainstem term" + str(term))
 
 if __name__ == "__main__":
     unittest.main()
