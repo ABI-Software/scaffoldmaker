@@ -233,12 +233,13 @@ class VagusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(options.get('Number of elements along the trunk'), 50)
         self.assertEqual(options.get('Trunk proportion'), 1.0)
         self.assertEqual(options.get('Trunk fit number of iterations'), 5)
-        self.assertEqual(options.get('Default trunk diameter mm'), 3.0)
+        self.assertEqual(options.get('Default trunk diameter'), 3.0)
         self.assertEqual(options.get('Branch diameter trunk proportion'), 0.5)
         # change options to make test fast and consistent, with minor effect on result:
         options['Number of elements along the trunk pre-fit'] = 10
         options['Number of elements along the trunk'] = 25
         options['Trunk fit number of iterations'] = 2
+        options['Default trunk diameter'] = 300.0
 
         # test with original ordered, and reordered vagus data file
         for i in range(2):
@@ -253,8 +254,20 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 reorder_vagus_test_data1(self, data_region)
 
             # check annotation groups
-            annotation_groups = scaffold.generateMesh(region, options)[0]
+            annotation_groups, nerve_metadata = scaffold.generateMesh(region, options)
             self.assertEqual(len(annotation_groups), 20)
+            metadataDict = nerve_metadata.getMetadata()["vagus nerve"]
+            TOL = 1.0E-6
+            expectedMetadataDict = {
+                'trunk centroid fit error rms': 1.6796999717877277,
+                'trunk centroid fit error max': 6.004413110311745,
+                'trunk radius fit error rms': 0.20126533544206293,
+                'trunk radius fit error max': 1.0496575899143181,
+                'trunk twist angle fit error degrees rms': 3.9094139417227405,
+                'trunk twist angle fit error degrees max': 9.786303215289262}
+            self.assertEqual(len(metadataDict), len(expectedMetadataDict))
+            for key, value in metadataDict.items():
+                self.assertAlmostEqual(value, expectedMetadataDict[key], delta=TOL)
 
             # (term_id, parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3,
             #  expected_surface_area, expected_volume)

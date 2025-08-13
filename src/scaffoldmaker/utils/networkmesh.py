@@ -8,6 +8,7 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.maths.vectorops import cross, magnitude, mult, normalize, rejection, sub
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.utils.constructionobject import ConstructionObject
 from scaffoldmaker.utils.interpolation import (
     gaussWt4, gaussXi4, getCubicHermiteCurvesLength, interpolateCubicHermiteDerivative)
 from scaffoldmaker.utils.tracksurface import TrackSurface
@@ -181,7 +182,7 @@ class NetworkSegment:
         return nextSegment
 
 
-class NetworkMesh:
+class NetworkMesh(ConstructionObject):
     """
     Defines a 1-D network with lateral axes, and utility functions for fleshing into higher dimensional meshes.
     """

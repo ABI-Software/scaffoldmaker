@@ -1009,6 +1009,7 @@ def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_na
     :param gradient1_penalty: Penalty factor for first gradient of field w.r.t. coordinates.
     :param gradient2_penalty: Penalty factor for second gradient of field w.r.t. coordinates.
     :param group_name: Optional name of group to limit fitting over.
+    :return: rms_error, max_error
     """
     fitter = FieldFitter(region=region)
     # fitter.setDiagnosticLevel(1)
@@ -1029,8 +1030,10 @@ def define_and_fit_field(region, coordinate_field_name, data_coordinate_field_na
     fitter.setGradient2Penalty([gradient2_penalty])
     fitter.setFitField(fit_field_name, True)
     fitter.fitField(fit_field_name)
+    rms_error, max_error = fitter.getFieldDataRMSAndMaximumErrors(fit_field_name)
     fitter.cleanup()
     del fitter
+    return rms_error, max_error
 
 def find_first_node_conditional(nodeset, conditional_field):
     """

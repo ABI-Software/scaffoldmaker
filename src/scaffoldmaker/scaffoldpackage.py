@@ -434,3 +434,9 @@ class ScaffoldPackage:
         :return: True if annotationGroup is user-created and editable.
         """
         return annotationGroup in self._userAnnotationGroups
+
+    def getMetadata(self):
+        metadataDict = {"mesh edits": bool(self._meshEdits)}
+        if self._constructionObject:
+            metadataDict.update(self._constructionObject.getMetadata())
+        return metadataDict
