@@ -1073,3 +1073,22 @@ def get_node_mesh_location(node, node_coordinates, mesh, mesh_coordinates, searc
         del find_mesh_location
 
     return element, xi
+
+def translate_nodeset_coordinates(nodeset, coordinates, translation):
+    """
+    Translate nodes by applying a translation vector to their coordinates.
+    :param nodeset: Set of nodes.
+    :param coordinates: Coordinates field.
+    :param translation:
+    """
+    fieldmodule = nodeset.getFieldmodule()
+    fieldcache = fieldmodule.createFieldcache()
+    components_count = coordinates.getNumberOfComponents()
+    with ChangeManager(fieldmodule):
+        nodeiterator = nodeset.createNodeiterator()
+        node = nodeiterator.next()
+        while node.isValid():
+            fieldcache.setNode(node)
+            result, x = coordinates.evaluateReal(fieldcache, components_count)
+            result = coordinates.assignReal(fieldcache, add(x, translation))
+            node = nodeiterator.next()

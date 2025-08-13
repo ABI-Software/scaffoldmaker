@@ -986,6 +986,7 @@ class EllipsoidMesh:
                 octant_n3 = 4 if (n3 > half_counts[2]) else 0
                 nids_layer = []
                 nx_layer = []
+                elementIdentifiers = []
                 last_nids_row = None
                 last_nx_row = None
                 for i2 in range(dbox_counts[1] + 1):
@@ -1029,6 +1030,7 @@ class EllipsoidMesh:
                                     mesh_group.addElement(element)
                             if box_mesh_group:
                                 box_mesh_group.addElement(element)
+                            elementIdentifiers.append(element_identifier)
                             element_identifier += 1
                     nids_layer.append(nids_row)
                     nx_layer.append(nx_row)
@@ -1047,6 +1049,7 @@ class EllipsoidMesh:
                     rim_nids_row = []
                     rim_nx_row = []
                     octant_nc = []
+                    elementIdentifiers = []
                     n2 = self._trans_count - nt
                     for i1 in range(dbox_counts[0]):
                         n1 = ((self._trans_count - nt) if (i1 == 0) else (
@@ -1109,6 +1112,7 @@ class EllipsoidMesh:
                                     mesh_group.addElement(element)
                             if transition_mesh_group:
                                 transition_mesh_group.addElement(element)
+                            elementIdentifiers.append(element_identifier)
                             element_identifier += 1
                     rim_nids_layer.append(rim_nids_row)
                     rim_nx_layer.append(rim_nx_row)
@@ -1116,6 +1120,7 @@ class EllipsoidMesh:
                     last_rim_nx_row = rim_nx_row
                 last_rim_nids_layer = rim_nids_layer
                 last_rim_nx_layer = rim_nx_layer
+
             # top transition
             last_nids_layer = None
             last_nx_layer = None
@@ -1180,7 +1185,6 @@ class EllipsoidMesh:
                 last_nx_layer = nx_layer
 
         return node_identifier, element_identifier
-
 
 class EllipsoidOctantMesh:
     """
