@@ -11,15 +11,14 @@ def assertAlmostEqualList(testcase, actualList, expectedList, delta):
 def get_first_index_containing_substring_any_case(string_list, substring, default_index=-1):  
     """  
     Returns the index of the first item in a list of strings that contains the given substring.  
-    This is case insensitive: the strings are converted to upper case before comparing.  
+    This search is case sensitive.   
     :param string_list: The list of strings to search.  
     :param substring: The substring to match.  
     :param default_index: Index to return if substring is not found.  
     :return: The index of the first item containing the substring, or default_index if not found.  
     """  
-    upper_substring = substring.upper()  
     for index, s in enumerate(string_list):  
-        if upper_substring in s.upper():  
+        if substring in s:  
             return index  
     return default_index  
 
@@ -27,12 +26,12 @@ def check_annotation_term_ids(term_ids: list):
     """  
     Check that annotation terms have "UBERON", "ILX" or "" (empty string) in the primary term id, and  
     that any supplied term ids are in the order UBERON < ILX < FMA.  
-    String comparisons are case insensitive.  
+    String comparisons are case senstitive.  
     :param term_ids: List of string annotation names or term identifiers.  
     :return: True if annotation term ids are valid and in the required order, otherwise False.  
     """  
-    upper_id = term_ids[1].upper()  
-    if ("UBERON" not in upper_id) and ("ILX" not in upper_id) and (upper_id != ""): 
+    first_id = term_ids[1]  
+    if ("UBERON" not in first_id) and ("ILX" not in first_id) and (first_id != ""): 
         return False  
     term_ids_count = len(term_ids)  
     uberon_index = get_first_index_containing_substring_any_case(term_ids, "UBERON", -1)  
