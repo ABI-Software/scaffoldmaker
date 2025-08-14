@@ -16,7 +16,7 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
     exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class ColonScaffoldTestCase(unittest.TestCase):
@@ -26,14 +26,7 @@ class ColonScaffoldTestCase(unittest.TestCase):
         Test nomenclature of the colon terms. 
         """
         for term in colon_terms:
-            upper_id = term[1].upper()
-            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid colon term" + str(term))
-            if len(term) > 2:
-                uberon_index = next((i for i, v in enumerate(term) if 'UBERON' in v), -1)
-                ilx_index = next((i for i, v in enumerate(term) if 'ILX' in v), -1)
-                fma_index = next((i for i, v in enumerate(term) if 'FMA' in v), 10)
-                self.assertTrue(fma_index > uberon_index and fma_index > ilx_index, 'FMA term should be written after UBERON and ILX terms on colon term ' + str(term))
-
+            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for colon annotation term ids " + str(term)) 
 
     def test_colon1(self):
         """

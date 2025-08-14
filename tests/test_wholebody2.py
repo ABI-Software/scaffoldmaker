@@ -13,7 +13,7 @@ from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, 
 from scaffoldmaker.annotation.body_terms import get_body_term, body_terms
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class WholeBody2ScaffoldTestCase(unittest.TestCase):
@@ -23,13 +23,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         Test nomenclature of the body terms. 
         """
         for term in body_terms:
-            upper_id = term[1].upper()
-            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid body term" + str(term))
-            if len(term) > 2:
-                uberon_index = next((i for i, v in enumerate(term) if 'UBERON' in v), -1)
-                ilx_index = next((i for i, v in enumerate(term) if 'ILX' in v), -1)
-                fma_index = next((i for i, v in enumerate(term) if 'FMA' in v), 10)
-                self.assertTrue(fma_index > uberon_index and fma_index > ilx_index, 'FMA term should be written after UBERON and ILX terms on body term ' + str(term))
+            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for body annotation term ids " + str(term)) 
 
 
     def test_wholebody2_core(self):

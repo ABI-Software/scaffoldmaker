@@ -12,7 +12,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_uterus1 import MeshType_3d_uterus1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class UterusScaffoldTestCase(unittest.TestCase):
@@ -22,13 +22,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
         Test nomenclature of the uterus terms. 
         """
         for term in uterus_terms:
-            upper_id = term[1].upper()
-            self.assertTrue(("UBERON" in upper_id) or ("ILX" in upper_id) or (upper_id == ""), "Invalid uterus term" + str(term))
-            if len(term) > 2:
-                uberon_index = next((i for i, v in enumerate(term) if 'UBERON' in v), -1)
-                ilx_index = next((i for i, v in enumerate(term) if 'ILX' in v), -1)
-                fma_index = next((i for i, v in enumerate(term) if 'FMA' in v), 10)
-                self.assertTrue(fma_index > uberon_index and fma_index > ilx_index, 'FMA term should be written after UBERON and ILX terms on uterus term ' + str(term))
+            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for uterus annotation term ids " + str(term)) 
 
 
     def test_uterus1(self):
