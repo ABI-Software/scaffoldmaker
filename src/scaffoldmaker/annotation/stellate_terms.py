@@ -4,7 +4,7 @@ Common resource for stellate annotation terms.
 
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 stellate_terms = [
-    ( "cervicothoracic ganglion", "UBERON:2441", "FMA:6469", "ILX:733799")
+    ( "cervicothoracic ganglion", "UBERON:2441", "ILX:733799", "FMA:6469")
     ]
 
 def get_stellate_term(name : str):

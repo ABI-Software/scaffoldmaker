@@ -7,15 +7,22 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.cecum_terms import get_cecum_term
+from scaffoldmaker.annotation.cecum_terms import get_cecum_term, cecum_terms
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
 from scaffoldmaker.meshtypes.meshtype_3d_cecum1 import MeshType_3d_cecum1
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class CecumScaffoldTestCase(unittest.TestCase):
+
+    def test_cecum_annotations(self):
+        """
+        Test nomenclature of the cecum terms. 
+        """
+        for term_ids in cecum_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for cecum annotation term ids " + str(term_ids)) 
 
     def test_cecum1(self):
         """

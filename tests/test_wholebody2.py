@@ -10,13 +10,21 @@ from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm, findAnnotationGroupByName
-from scaffoldmaker.annotation.body_terms import get_body_term
+from scaffoldmaker.annotation.body_terms import get_body_term, body_terms
 from scaffoldmaker.meshtypes.meshtype_3d_wholebody2 import MeshType_3d_wholebody2
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class WholeBody2ScaffoldTestCase(unittest.TestCase):
+
+    def test_body_annotations(self):
+        """
+        Test nomenclature of the body terms. 
+        """
+        for term_ids in body_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for body annotation term ids " + str(term_ids)) 
+
 
     def test_wholebody2_core(self):
         """
@@ -114,14 +122,14 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "abdominal cavity boundary": (64, 27.428203203724674),
+            "abdominal cavity boundary surface": (64, 27.428203203724674),
             "diaphragm": (20, 3.0778936559347208),
-            "left arm skin epidermis": (68, 22.433540462588258),
-            "left leg skin epidermis": (68, 55.24949927903832),
-            "right arm skin epidermis": (68, 22.433540462588258),
-            "right leg skin epidermis": (68, 55.24949927903832),
-            "skin epidermis": (388, 228.9017722286146),
-            "thoracic cavity boundary": (64, 20.2627556651649)
+            "left upper limb skin epidermis outer surface": (68, 22.433540462588258),
+            "left lower limb skin epidermis outer surface": (68, 55.24949927903832),
+            "right upper limb skin epidermis outer surface": (68, 22.433540462588258),
+            "right lower limb skin epidermis outer surface": (68, 55.24949927903832),
+            "skin epidermis outer surface": (388, 228.9017722286146),
+            "thoracic cavity boundary surface": (64, 20.2627556651649)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -218,7 +226,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
 
         # check some annotationGroups:
         expectedSizes2d = {
-            "skin epidermis": (320, 228.11749988635236)
+            "skin epidermis outer surface": (320, 228.11749988635236)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)

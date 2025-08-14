@@ -10,15 +10,23 @@ from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.esophagus_terms import get_esophagus_term
 from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
-from scaffoldmaker.annotation.stomach_terms import get_stomach_term
+from scaffoldmaker.annotation.stomach_terms import get_stomach_term, stomach_terms
 from scaffoldmaker.meshtypes.meshtype_3d_stomach1 import MeshType_3d_stomach1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class StomachScaffoldTestCase(unittest.TestCase):
+
+    def test_stomach_annotations(self):
+        """
+        Test nomenclature of the stomach terms. 
+        """
+        for term_ids in stomach_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for stomach annotation term ids " + str(term_ids)) 
+
 
     def test_stomach1(self):
         """

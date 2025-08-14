@@ -5,7 +5,7 @@ Common resource for heart annotation terms.
 # convention: preferred name, preferred id, followed by any other ids and alternative names
 heart_terms = [
     # heart - volume terms
-    ("heart", "UBERON:0000948", "FMA:7088"),  # group of the entire heart
+    ("heart", "UBERON:0000948", "FMA:7088"),  # group of the entire heart.  
     ("epicardial fat", "UBERON:0015129"),  # not used
     ("epicardium", "UBERON:0002348", "FMA:9461"),  # volumetric layer outside myocardium to pericardial cavity
     # heart - surface terms
@@ -19,9 +19,9 @@ heart_terms = [
     ("heart left ventricle", "UBERON:0002084"),  # the whole left ventricle
     ("heart right ventricle", "UBERON:0002080"),  # the whole right ventricle
     ("interventricular septum", "UBERON:0002094", "FMA:7133"),
-    ("left fibrous ring", "FMA:77124"),
+    ("left fibrous ring", "ILX:0738361"),
     ("left ventricle myocardium", "UBERON:0006566", "FMA:9558"),
-    ("right fibrous ring", "FMA:77125"),
+    ("right fibrous ring", "ILX:0738364"),
     ("right ventricle myocardium", "UBERON:0006567", "FMA:9535"),
     # ventricles - surface terms
     ("luminal surface of left ventricle", "ILX:0793537"),
@@ -34,26 +34,26 @@ heart_terms = [
     ("endocardium of left auricle", "UBERON:0011006", "FMA:13236"),
     ("right atrium endocardium", "UBERON:0009129", "FMA:7281"),
     ("endocardium of right auricle", "UBERON:0011007", "FMA:13235"),
-    ("epicardium of left auricle", "FMA:13233"),
-    ("epicardium of right auricle", "FMA:13232"),
+    ("epicardium of left auricle", "ILX:0776864", "FMA:13233"),
+    ("epicardium of right auricle", "ILX:0775891", "FMA:13232"),
     ("fossa ovalis", "UBERON:0003369", "FMA:9246"),
     ("inferior vena cava", "UBERON:0001072", "FMA:10951", "posterior vena cava"),
     ("inferior vena cava inlet", "ILX:0738358"),
     ("interatrial septum", "UBERON:0002085", "FMA:7108"),
-    ("left atrium myocardium", "FMA:7285"),
+    ("left atrium myocardium", "UBERON:0003380", "ILX:0726314", "FMA:7285", "cardiac muscle of left atrium"),  # Interlex refers to this term by the alternative name
     ("left auricle", "UBERON:0006630", "FMA:7219"),
     ("left cardiac atrium", "UBERON:0002079"),  # the whole left atrium
-    ("left inferior pulmonary vein", "FMA:49913"),
+    ("left inferior pulmonary vein", "ILX:0744169", "FMA:49913"),
     ("left pulmonary vein", "UBERON:0009030"),
-    ("left superior pulmonary vein", "FMA:49916"),
+    ("left superior pulmonary vein", "ILX:0745914", "FMA:49916"),
     ("middle pulmonary vein", "ILX:0739222"),  # in mouse, rat, rabbit
     ("pulmonary vein", "UBERON:0002016", "FMA:66643"),
-    ("right atrium myocardium", "FMA:7282"),
+    ("right atrium myocardium", "UBERON:0003379", "ILX:0726346", "FMA:7282", "cardiac muscle of right atrium"),  # Interlex refers to this term by the alternative name
     ("right auricle", "UBERON:0006631", "FMA:7218"),
     ("right cardiac atrium", "UBERON:0002078"),  # the whole right atrium
-    ("right inferior pulmonary vein", "FMA:49911"),
+    ("right inferior pulmonary vein", "ILX:0742603", "FMA:49911"),
     ("right pulmonary vein", "UBERON:0009032"),
-    ("right superior pulmonary vein", "FMA:49914"),
+    ("right superior pulmonary vein", "ILX:0745243", "FMA:49914"),
     ("superior vena cava", "UBERON:0001585", "FMA:4720", "anterior vena cava"),
     ("superior vena cava inlet", "ILX:0738367"),
     # atria - surface terms
@@ -68,14 +68,16 @@ heart_terms = [
     ("outer surface of myocardium of right atrium", "ILX:0793532"),
 
     # arterial valves and great vessels - volume terms
-    ("root of aorta", "FMA:3740"),
-    ("posterior cusp of aortic valve", "FMA:7253"),
-    ("right cusp of aortic valve", "FMA:7252"),
-    ("left cusp of aortic valve", "FMA:7251"),
-    ("root of pulmonary trunk", "FMA:8612"),
-    ("right cusp of pulmonary valve", "FMA:7250"),
-    ("anterior cusp of pulmonary valve", "FMA:7249"),
-    ("left cusp of pulmonary valve", "FMA:7247"),
+    ("root of aorta", "ILX:0738286", "FMA:3740"),
+    ("aortic valve leaflet", "UBERON:0011742", "ILX:0725997"),
+    # ("posterior cusp of aortic valve", "FMA:7253"),
+    # ("right cusp of aortic valve", "FMA:7252"),
+    # ("left cusp of aortic valve", "FMA:7251"),
+    ("root of pulmonary trunk", "ILX:0738366", "FMA:8612"),  # FMA term points to the entirety of the pulmonary trunk, keeping for future reference 
+    ("pulmonary valve leaflet", "UBERON:0011745", "ILX:0728408"),
+    # ("right cusp of pulmonary valve", "FMA:7250"),
+    # ("anterior cusp of pulmonary valve", "FMA:7249"),
+    # ("left cusp of pulmonary valve", "FMA:7247"),
     # arterial valves and great vessels - surface terms
     ("luminal surface of aorta", "ILX:0793544"),
     ("luminal surface of pulmonary trunk", "ILX:0793546"),

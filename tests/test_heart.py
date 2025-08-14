@@ -7,14 +7,22 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.heart_terms import get_heart_term
+from scaffoldmaker.annotation.heart_terms import get_heart_term, heart_terms
 from scaffoldmaker.meshtypes.meshtype_3d_heart1 import MeshType_3d_heart1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class HeartScaffoldTestCase(unittest.TestCase):
+
+    def test_heart_annotations(self):
+        """
+        Test nomenclature of the heart terms. 
+        """
+        for term_ids in heart_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for heart annotation term ids " + str(term_ids)) 
+
 
     def test_heart1(self):
         """

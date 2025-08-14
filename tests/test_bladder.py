@@ -8,15 +8,23 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.bladder_terms import get_bladder_term
+from scaffoldmaker.annotation.bladder_terms import get_bladder_term, bladder_terms
 from scaffoldmaker.meshtypes.meshtype_3d_bladder1 import MeshType_3d_bladder1
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class BladderScaffoldTestCase(unittest.TestCase):
+
+    def test_bladder_annotations(self):
+        """
+        Test nomenclature of the bladder terms. 
+        """
+        for term_ids in bladder_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for bladder annotation term ids " + str(term_ids)) 
+            
 
     def test_bladder1(self):
         """

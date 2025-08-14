@@ -8,17 +8,24 @@ from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
-from scaffoldmaker.annotation.lung_terms import get_lung_term
+from scaffoldmaker.annotation.lung_terms import get_lung_term, lung_terms
 from scaffoldmaker.meshtypes.meshtype_3d_lung1 import MeshType_3d_lung1
 from scaffoldmaker.meshtypes.meshtype_3d_lung2 import MeshType_3d_lung2
 from scaffoldmaker.meshtypes.meshtype_3d_lung3 import MeshType_3d_lung3
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class LungScaffoldTestCase(unittest.TestCase):
 
+    def test_lung_annotations(self):
+        """
+        Test nomenclature of the lung terms. 
+        """
+        for term_ids in lung_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for lung annotation term ids " + str(term_ids)) 
+            
     def test_lung1(self):
         """
         Test creation of heart scaffold.
