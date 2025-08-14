@@ -22,8 +22,8 @@ class BladderScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the bladder terms. 
         """
-        for term in bladder_terms:
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for bladder annotation term ids " + str(term)) 
+        for term_ids in bladder_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for bladder annotation term ids " + str(term_ids)) 
             
 
     def test_bladder1(self):

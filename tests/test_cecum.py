@@ -21,8 +21,8 @@ class CecumScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the cecum terms. 
         """
-        for term in cecum_terms:
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for cecum annotation term ids " + str(term)) 
+        for term_ids in cecum_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for cecum annotation term ids " + str(term_ids)) 
 
     def test_cecum1(self):
         """

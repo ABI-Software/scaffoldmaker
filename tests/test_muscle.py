@@ -20,8 +20,8 @@ class MuscleScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the muscle terms. 
         """
-        for term in muscle_terms:
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for muscle annotation term ids " + str(term)) 
+        for term_ids in muscle_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for muscle annotation term ids " + str(term_ids)) 
 
 if __name__ == "__main__":
     unittest.main()

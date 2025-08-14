@@ -20,8 +20,8 @@ class TrigeminalNerveScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the trigeminal nerve terms. 
         """
-        for term in trigeminal_nerve_terms:
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for trigeminal nerve annotation term ids " + str(term)) 
+        for term_ids in trigeminal_nerve_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for trigeminal nerve annotation term ids " + str(term_ids)) 
 
 if __name__ == "__main__":
     unittest.main()

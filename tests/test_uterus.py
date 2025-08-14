@@ -21,8 +21,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the uterus terms. 
         """
-        for term in uterus_terms:
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for uterus annotation term ids " + str(term)) 
+        for term_ids in uterus_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for uterus annotation term ids " + str(term_ids)) 
 
 
     def test_uterus1(self):

@@ -67,8 +67,8 @@ class VagusScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the vagus terms. 
         """
-        for term in (vagus_branch_terms + vagus_marker_terms):
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for vagus annotation term ids " + str(term)) 
+        for term_ids in (vagus_branch_terms + vagus_marker_terms):
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for vagus annotation term ids " + str(term_ids)) 
 
     def test_input_vagus_data(self):
         """

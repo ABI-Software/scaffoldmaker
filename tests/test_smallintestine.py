@@ -23,8 +23,8 @@ class SmallIntestineScaffoldTestCase(unittest.TestCase):
         """
         Test nomenclature of the small intestine terms. 
         """
-        for term in smallintestine_terms:
-            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for small intestine annotation term ids " + str(term)) 
+        for term_ids in smallintestine_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for small intestine annotation term ids " + str(term_ids)) 
 
 
     def test_smallintestine1(self):
