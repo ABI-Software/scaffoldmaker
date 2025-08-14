@@ -14,7 +14,7 @@ from scaffoldmaker.meshtypes.meshtype_3d_nerve1 import MeshType_3d_nerve1, get_l
 from scaffoldmaker.utils.interpolation import get_curve_from_points, getCubicHermiteCurvesLength
 from scaffoldmaker.utils.read_vagus_data import VagusInputData
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -65,14 +65,10 @@ class VagusScaffoldTestCase(unittest.TestCase):
 
     def test_vagus_terms(self):
         """
-        Test that all vagus terms are UBERON or ILX, and urls.
+        Test nomenclature of the vagus terms. 
         """
         for term in (vagus_branch_terms + vagus_marker_terms):
-            term_url = annotation_term_id_to_url(term)[1]
-            self.assertTrue((not term_url) or
-                            term_url.startswith("http://purl.obolibrary.org/obo/UBERON_") or
-                            term_url.startswith("http://uri.interlex.org/base/ilx_"), "Invalid vagus term" + str(term))
-
+            self.assertTrue(check_annotation_term_ids(term), "Invalid primary term id or order not UBERON < ILX < FMA for vagus annotation term ids " + str(term)) 
 
     def test_input_vagus_data(self):
         """
