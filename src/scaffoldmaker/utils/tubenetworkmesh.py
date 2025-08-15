@@ -1220,7 +1220,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         :param n2: Node index along segment, including negative indexes from end.
         :return: Node IDs arrays, or None if not set.
         """
-        return self._boxNodeIds[n2]
+        return None if self._boxNodeIds is None else self._boxNodeIds[n2]
 
     def getBoxBoundaryNodeIds(self, n1, n2):
         """
@@ -1408,6 +1408,50 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         element = mesh.findElementByIdentifier(elementIdentifier)
                         meshGroup.addElement(element)
 
+    def _removeBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Remove ranges of box elements to mesh group.
+        :param e1Start: Start element index in major / d2 direction.
+        :param e1Limit: Limit element index in major / d2 direction.
+        :param e3Start: Start element index in minor / d3 direction.
+        :param e3Limit: Limit element index in minor / d3 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        # print("Add box elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            boxSlice = self._boxElementIds[e2]
+            if boxSlice:
+                # print(boxSlice[e1Start:e1Limit])
+                for elementIdentifiersList in boxSlice[e1Start:e1Limit]:
+                    for elementIdentifier in elementIdentifiersList[e3Start:e3Limit]:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.removeElement(element)
+
+    def _removeRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+        """
+        Remove ranges of rim elements to mesh group.
+        :param e1Start: Start element index around. Can be negative which supports wrapping.
+        :param e1Limit: Limit element index around.
+        :param e3Start: Start element index rim.
+        :param e3Limit: Limi element index rim.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        mesh = meshGroup.getMasterMesh()
+        for e2 in range(elementsCountAlong):
+            rimSlice = self._rimElementIds[e2]
+            if rimSlice:
+                for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
+                    partElementIdentifiersList = elementIdentifiersList[e1Start:e1Limit] if (e1Start >= 0) else (
+                            elementIdentifiersList[e1Start:] + elementIdentifiersList[:e1Limit])
+                    if None in elementIdentifiersList:
+                        break
+                    for elementIdentifier in partElementIdentifiersList:
+                        element = mesh.findElementByIdentifier(elementIdentifier)
+                        meshGroup.removeElement(element)
+
     def addCoreElementsToMeshGroup(self, meshGroup):
         """
         Ensure all core elements in core box or rim arrays are in mesh group.
@@ -1437,6 +1481,17 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         """
         self.addCoreElementsToMeshGroup(meshGroup)
         self.addShellElementsToMeshGroup(meshGroup)
+
+    def removeAllElementsFromMeshGroup(self, meshGroup):
+        """
+
+        """
+        if not self._isCore:
+            return
+        self._removeBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor,
+                                           0, self._elementsCountCoreBoxMinor, meshGroup)
+        self._removeRimElementsToMeshGroup(0, self._elementsCountAround,
+                                           0, self._elementsCountTransition, meshGroup)
 
     def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
         """
@@ -1469,6 +1524,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         e1Start = (self._elementsCountAround // 2) if side else 0
         e1Limit = e1Start + (self._elementsCountAround // 2)
         self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
+    def getCoreStatus(self):
+        """
+
+        """
+        return self._isCore
 
     def getRimNodeIdsSlice(self, n2):
         """
@@ -1619,6 +1680,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 elementsCountAcrossMinor = self.getCoreBoxMinorNodesCount() - 1
                 elementsCountAcrossMajor = self.getCoreBoxMajorNodesCount() - 1
                 for e3 in range(elementsCountAcrossMajor):
+                    if self._boxNodeIds[e2] is None:
+                        continue
                     e3p = e3 + 1
                     elementIds = []
                     for e1 in range(elementsCountAcrossMinor):
@@ -1638,6 +1701,8 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 triplePointIndexesList = self.getTriplePointIndexes()
                 ringElementIds = []
                 for e1 in range(self._elementsCountAround):
+                    if self._boxBoundaryNodeIds[e2] is None:
+                        continue
                     nids, nodeParameters, nodeLayouts = [], [], []
                     n1p = (e1 + 1) % self._elementsCountAround
                     location = self.getTriplePointLocation(e1)
@@ -4043,6 +4108,18 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
             self._layoutInnerCoordinates = None
         self._useOuterTrimSurfaces = useOuterTrimSurfaces if self._layoutInnerCoordinates else False
 
+    def checkSegmentCore(self, networkSegment):
+        """
+        Checks whether a segment should have a core locally, depending on its annotation. Currently, the annotation
+        requires to include "core" in its name to indicate the segment has a core.
+        If a segment requires a core locally, it overrides the global value of self._isCore variable.
+        """
+        for layoutAnnotationGroup in self._layoutAnnotationGroups:
+            if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                if "core" in layoutAnnotationGroup.getTerm():
+                    self._isCore = True
+        return self._isCore
+
     def createSegment(self, networkSegment):
         pathParametersList = [get_nodeset_path_ordered_field_parameters(
             self._layoutNodes, self._layoutCoordinates, pathValueLabels,
@@ -4064,6 +4141,8 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                     elementsCountAround = self._annotationElementsCountsAround[i]
                     break
             i += 1
+
+        self.checkSegmentCore(networkSegment)
         if self._isCore:
             annotationElementsCountAcrossMinor = []
             i = 0
@@ -4143,6 +4222,43 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
             segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
 
+
+class RenalPelvisTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+    """
+    Specialization of TubeNetworkMeshBuilder adding annotations for the renal pelvis.
+    Requires network layout to follow these conventions:
+    - +y-axis is top, and -y-axis is bottom.
+    - +d3 direction is anterior, -d3 is posterior.
+    - naming of major calyxes: top, middle, bottom
+    - naming of minor calyxes: top, upper, middle, lower, bottom
+    """
+
+    def checkSegmentCore(self, networkSegment):
+        super(RenalPelvisTubeNetworkMeshBuilder, self).checkSegmentCore(networkSegment)
+        """
+        Checks whether a segment should have a core locally, depending on its annotation. 
+        For the renal pelvis scaffold, the annotation term "renal pyramid" indicates the segment has a core.
+        """
+        for layoutAnnotationGroup in self._layoutAnnotationGroups:
+            if networkSegment.hasLayoutElementsInMeshGroup(layoutAnnotationGroup.getMeshGroup(self._layoutMesh)):
+                if "renal pyramid" in layoutAnnotationGroup.getTerm():
+                    self._isCore = True
+                else:
+                    self._isCore = False
+        return self._isCore
+
+    def generateMesh(self, generateData):
+        super(RenalPelvisTubeNetworkMeshBuilder, self).generateMesh(generateData)
+        if self._isCore:
+            coreMeshGroup = generateData.getCoreMeshGroup()
+            shellMeshGroup = generateData.getShellMeshGroup()
+            for networkSegment in self._networkMesh.getNetworkSegments():
+                segment = self._segments[networkSegment]
+                annotationTerms = segment.getAnnotationTerms()
+                for annotationTerm in annotationTerms:
+                    if "calyx" in annotationTerm[0]:
+                        segment.addAllElementsToMeshGroup(shellMeshGroup)
+                        segment.removeAllElementsFromMeshGroup(coreMeshGroup)
 
 class TubeEllipseGenerator:
     """

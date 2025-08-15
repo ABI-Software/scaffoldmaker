@@ -112,6 +112,7 @@ class Scaffolds(object):
             MeshType_3d_nerve1,
             MeshType_3d_ostium1,
             MeshType_3d_ostium2,
+            MeshType_3d_renal_pelvis1,
             MeshType_3d_smallintestine1,
             MeshType_3d_solidcylinder1,
             MeshType_3d_solidsphere1,
@@ -127,6 +128,7 @@ class Scaffolds(object):
             MeshType_3d_tubenetwork1,
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
+            MeshType_3d_uterus2,
             MeshType_3d_wholebody1,
             MeshType_3d_wholebody2
             ]
@@ -134,7 +136,7 @@ class Scaffolds(object):
             MeshType_1d_human_body_network_layout1,
             MeshType_1d_human_spinal_nerve_network_layout1,
             MeshType_1d_human_trigeminal_nerve_network_layout1,
-            MeshType_1d_uterus_network_layout1
+            MeshType_1d_renal_pelvis_network_layout1
             ]
 
     def findScaffoldTypeByName(self, name):
