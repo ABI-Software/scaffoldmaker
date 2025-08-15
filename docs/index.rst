@@ -18,5 +18,5 @@ This documentation is intended to be a resource describing details about using i
    scaffolds/lung
    scaffolds/smallintestine
    scaffolds/stomach
-
-
+   scaffolds/uterus
+   scaffolds/vagus
