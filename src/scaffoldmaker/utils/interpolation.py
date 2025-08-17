@@ -1,12 +1,14 @@
 """
 Interpolation functions shared by mesh generators.
 """
-
-from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, sub, set_magnitude
+from cmlibs.maths.vectorops import (
+    add, axis_angle_to_rotation_matrix, cross, distance, div, dot, euler_to_rotation_matrix, matrix_inv, magnitude,
+    matrix_vector_mult, mult, normalize, sub, set_magnitude)
+from scipy.optimize import minimize
 import copy
-import math
 from collections.abc import Sequence
 from enum import Enum
+import math
 
 
 gaussXi3 = ( (-math.sqrt(0.6)+1.0)/2.0, 0.5, (+math.sqrt(0.6)+1.0)/2.0 )
@@ -129,13 +131,34 @@ def computeCubicHermiteDerivativeScaling(v1, d1, v2, d2):
     origMag = 0.5*(magnitude(d1) + magnitude(d2))
     scaling = 1.0
     for iters in range(100):
-        mag = origMag*scaling
-        arcLength = getCubicHermiteArcLength(v1, [ d*scaling for d in d1 ], v2, [ d*scaling for d in d2 ])
-        if math.fabs(arcLength - mag) < 0.000001*arcLength:
+        mag = origMag * scaling
+        arcLength = getCubicHermiteArcLength(v1, [d * scaling for d in d1], v2, [d * scaling for d in d2])
+        if math.fabs(arcLength - mag) < 1.0E-6 * arcLength:
             #print('compute scaling', v1, d1, v2, d2, '\n  --> scaling',scaling)
             return scaling
-        scaling *= arcLength/mag
+        scaling *= arcLength / mag
     print('computeCubicHermiteDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
+    return scaling
+
+def computeHermiteLagrangeDerivativeScaling(v1, d1, v2):
+    """
+    Compute scaling for d1 to equal arc length.
+    :param d1: Seems more reliable to pass a unit vector direction here.
+    :return: Scale factor to multiply d1.
+    """
+    origMag = magnitude(d1)
+    # start with scaling which makes this equal to distance from v1 to v2
+    scaling = distance(v1, v2) / origMag
+    scaling = 1.0
+    for iters in range(100):
+        mag = origMag * scaling
+        scaled_d1 = [d * scaling for d in d1]
+        d2 = interpolateHermiteLagrangeDerivative(v1, scaled_d1, v2, 1.0)
+        arcLength = getCubicHermiteArcLength(v1, scaled_d1, v2, d2)
+        if math.fabs(arcLength - mag) < 1.0E-6 * arcLength:
+            return scaling
+        scaling *= arcLength / mag
+    print('computeHermiteLagrangeDerivativeScaling:  Max iters reached:', iters, ' mag', mag, 'arc', arcLength)
     return scaling
 
 def computeCubicHermiteStartDerivative(v1, d1_in, v2, d2):
@@ -308,6 +331,7 @@ def getCubicHermiteCurvatureSimple(v1, d1, v2, d2, xi):
         dTangent = [0.0, 0.0, 0.0]
     return curvature, tangent, dTangent
 
+
 def interpolateHermiteLagrange(v1, d1, v2, xi):
     """
     Get value at xi for quadratic Hermite-Lagrange interpolation from v1, d1 to v2.
@@ -317,6 +341,7 @@ def interpolateHermiteLagrange(v1, d1, v2, xi):
     f2 = xi - xi*xi
     f3 = xi*xi
     return [ (v1[c]*f1 + d1[c]*f2 + v2[c]*f3) for c in range(len(v1)) ]
+
 
 def interpolateHermiteLagrangeDerivative(v1, d1, v2, xi):
     """
@@ -328,6 +353,7 @@ def interpolateHermiteLagrangeDerivative(v1, d1, v2, xi):
     df3 = 2.0*xi
     return [ (v1[c]*df1 + d1[c]*df2 + v2[c]*df3) for c in range(len(v1)) ]
 
+
 def interpolateLagrangeHermite(v1, v2, d2, xi):
     """
     Get value at xi for quadratic Lagrange-Hermite interpolation from v1 to v2, d2.
@@ -338,6 +364,7 @@ def interpolateLagrangeHermite(v1, v2, d2, xi):
     f3 = -xi + xi*xi
     return [ (v1[c]*f1 + v2[c]*f2 + d2[c]*f3) for c in range(len(v1)) ]
 
+
 def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     """
     Get derivative at xi for quadratic Lagrange-Hermite interpolation to from v1 to v2, d2.
@@ -347,6 +374,31 @@ def interpolateLagrangeHermiteDerivative(v1, v2, d2, xi):
     df2 = 2.0 - 2.0*xi
     df3 = -1.0 + 2.0*xi
     return [ (v1[c]*df1 + v2[c]*df2 + d2[c]*df3) for c in range(len(v1)) ]
+
+
+def computeLagrangeHermiteDerivative(v1, v2, d2_in):
+    """
+    Compute scaled d2 which makes it equal to arc length.
+    :param d2_in: Direction of d2; initial magnitude is ignored.
+    :return: Scaled d2
+    """
+    d2_mag = magnitude(sub(v2, v1))
+    if d2_mag == 0.0:
+        return set_magnitude(d2_in, 0.0)
+    TOL = 1.0E-6 * d2_mag if (d2_mag > 0.0) else 1.0
+    d2 = set_magnitude(d2_in, d2_mag)
+    for iters in range(100):
+        d1 = interpolateLagrangeHermiteDerivative(v1, v2, d2, 0.0)
+        arc_length = getCubicHermiteArcLength(v1, d1, v2, d2)
+        d2 = set_magnitude(d2_in, arc_length)
+        if math.fabs(arc_length - d2_mag) < TOL:
+            break
+        d2_mag = arc_length
+    else:
+        print('computeLagrangeHermiteDerivative:  Max iters reached:', iters, ' v', v1, 'c2', v2,
+              'd2_in', d2_in, 'arc length', arc_length)
+    return d2
+
 
 def getNearestPointIndex(nx, x):
     """
@@ -465,8 +517,8 @@ def sampleCubicHermiteCurves(nx, nd1, elementsCountOut,
     if elementsCountOut == 1:
         nodeDerivativeMagnitudes[0] = nodeDerivativeMagnitudes[1] = elementLengths[0]
     else:
-        nodeDerivativeMagnitudes[0] = elementLengths[ 0]*2.0 - nodeDerivativeMagnitudes[ 1]
-        nodeDerivativeMagnitudes[-1]   = elementLengths[-1]*2.0 - nodeDerivativeMagnitudes[-2]
+        nodeDerivativeMagnitudes[ 0] = 2.0 * elementLengths[ 0] - nodeDerivativeMagnitudes[ 1]
+        nodeDerivativeMagnitudes[-1] = 2.0 * elementLengths[-1] - nodeDerivativeMagnitudes[-2]
 
     px = []
     pd1 = []
@@ -1242,8 +1294,7 @@ def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
     :param location: Location (element index, xi) to get coordinates for.
     :param loop: True if curve loops back to first point, False if not.
     :param derivative: Set to True to calculate and return derivative w.r.t. element xi.
-    :return: If derivative is False: coordinates.
-    If derivatives is True: coordinates, derivative.
+    :return: If derivative is False: x; if derivative is True: x, d1.
     """
     e1 = location[0]
     e2 = 0 if (loop and (e1 == (len(nx) - 1))) else e1 + 1
@@ -1253,6 +1304,26 @@ def evaluateCoordinatesOnCurve(nx, nd1, location, loop=False, derivative=False):
         return x
     d = interpolateCubicHermiteDerivative(nx[e1], nd1[e1], nx[e2], nd1[e2], xi)
     return x, d
+
+
+def evaluateScalarOnCurve(sv, sd, location, loop=False, derivative=False):
+    """
+    Evaluate scalar interpolated along curve.
+    :param sv: List of scalar values at nodes along curve.
+    :param sd: List of scalar derivatives w.r.t. xi at nodes along curve.
+    :param location: Location (element index, xi) to get scalar value for.
+    :param loop: True if curve loops back to first point, False if not.
+    :param derivative: Set to True to calculate and return derivative w.r.t. element xi.
+    :return: If derivative is False: scalar s; if derivative is True: s, ds/dxi.
+    """
+    e1 = location[0]
+    e2 = 0 if (loop and (e1 == (len(sv) - 1))) else e1 + 1
+    xi = location[1]
+    s = interpolateCubicHermite([sv[e1]], [sd[e1]], [sv[e2]], [sd[e2]], xi)[0]
+    if not derivative:
+        return s
+    d = interpolateCubicHermiteDerivative([sv[e1]], [sd[e1]], [sv[e2]], [sd[e2]], xi)[0]
+    return s, d
 
 
 def isLocationOnCurveBoundary(location, elementsCount):
@@ -1582,3 +1653,355 @@ def getCurvaturesAlongCurve(cx, cd, radialVectors, loop=False):
                 kappa = 0.5 * (kappa + kappap)
         curvatures.append(kappa)
     return curvatures
+
+
+def get_curve_from_points(px, maximum_element_length=None, number_of_elements=None):
+    """
+    Get approximate 1-D Hermite curve of equal-sized elements by sampling a series of point coordinates.
+    :param px: List of point coordinates from one end of curve to the other. Each entry in list is a list of
+    coordinate components.
+    :param maximum_element_length: Target maximum length of elements or None to use a fixed number.
+    :param number_of_elements: Number of elements to fit, or None to use a target length.
+    :return: cx, cd1 (lists of hermite coordinates and derivatives)
+    """
+    points_count = len(px)
+    assert points_count > 1
+    assert maximum_element_length or number_of_elements
+    assert (((maximum_element_length is None) or (maximum_element_length > 0.0)) or
+            ((number_of_elements is None) or (number_of_elements > 0)))
+    # get lengths from distances between consecutive points
+    total_length = 0.0
+    lengths = []
+    for i in range(points_count - 1):
+        length = magnitude(sub(px[i + 1], px[i]))
+        lengths.append(length)
+        total_length += length
+    assert total_length > 0.0
+    elements_count = number_of_elements if number_of_elements else math.ceil(total_length / maximum_element_length)
+    if elements_count < 2:
+        elements_count = 2  # start with 2 so at least one internal sample to get a better initial shape
+    # get half range of lengths to average coordinates over
+    delta_length = total_length / (4.0 * elements_count)
+    nx = [copy.copy(px[0])]
+    components_count = len(px[0])
+    zero = [0.0] * components_count
+    nd1 = [zero]
+    i = 0
+    sum_length = 0.0
+    for n in range(1, elements_count):
+        middle_length = total_length * (n / elements_count)
+        start_length = middle_length - delta_length
+        end_length = middle_length + delta_length
+        while sum_length < start_length:
+            sum_length += lengths[i]
+            i += 1
+        if end_length < sum_length:
+            # simple interpolation within one linear segment
+            wt0 = (sum_length - middle_length) / lengths[i - 1]
+            wt1 = 1.0 - wt0
+            x = add(mult(px[i - 1], wt0), mult(px[i], wt1))
+        else:
+            # weighted sum over several linear segments including part start and part end lengths
+            part_length = sum_length - start_length
+            wt0 = part_length * 0.5 * part_length / lengths[i - 1]
+            wt1 = part_length - wt0
+            sum_x = add(mult(px[i - 1], wt0), mult(px[i], wt1))
+            while True:
+                sum_length += lengths[i]
+                i += 1
+                segment_length = lengths[i - 1]
+                if sum_length < end_length:
+                    wtx = mult(add(px[i - 1], px[i]), 0.5 * segment_length)
+                    sum_x = add(sum_x, wtx)
+                else:
+                    part_length = end_length - (sum_length - segment_length)
+                    wt1 = part_length * 0.5 * part_length / segment_length
+                    wt0 = part_length - wt1
+                    wtx = add(mult(px[i - 1], wt0), mult(px[i], wt1))
+                    sum_x = add(sum_x, wtx)
+                    break
+            x = div(sum_x, 2.0 * delta_length)
+        nx.append(x)
+        nd1.append(zero)
+    nx.append(copy.copy(px[-1]))
+    nd1.append(zero)
+    # smooth with harmonic mean, get the length and resample to the desired number of even-sized elements
+    nd1 = smoothCubicHermiteDerivativesLine(nx, nd1, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+    curve_length = getCubicHermiteCurvesLength(nx, nd1)
+    elements_count = number_of_elements if number_of_elements else math.ceil(curve_length / maximum_element_length)
+    cx, cd1 = sampleCubicHermiteCurvesSmooth(nx, nd1, elements_count)[0:2]
+    return cx, cd1
+
+
+def track_curve_side_direction(cx, cd1, start_direction, start_location, end_location, forward=True):
+    """
+    Track side direction from start to end location on curve assuming no twisting.
+    :param cx: Curve coordinate parameters.
+    :param cd1: Curve derivative parameters.
+    :param start_direction: Unit vector orthogonal to curve at start location.
+    :param start_location: Curve location (element index, xi) to track from.
+    :param end_location: Curve location (element index, xi) to track to.
+    :param forward: True to track forward (end >= start), False to track backward (end <= start).
+    :return: normalized dir1, dir2, dir3 (updated side direction) at end location.
+    """
+    assert (forward and (end_location >= start_location)) or ((not forward) and (end_location <= start_location))
+    xi_increment = 0.1
+    last_element_index = len(cx) - 2
+    location = start_location
+    direction = start_direction
+    tracking = True
+    while tracking:
+        element_index = location[0]
+        xi = location[1]
+        if forward:
+            xi += xi_increment
+            if xi >= 1.0:
+                if element_index < last_element_index:
+                    element_index += 1
+                    xi -= 1.0
+                else:
+                    xi = 1.0
+                    tracking = False
+            location = (element_index, xi)
+            if location > end_location:
+                location = end_location
+                tracking = False
+        else:  # reverse
+            xi -= xi_increment
+            if xi < 0.0:
+                if element_index > 0:
+                    element_index -= 1
+                    xi += 1.0
+                else:
+                    xi = 0.0
+                    tracking = False
+            location = (element_index, xi)
+            if location < end_location:
+                location = end_location
+                tracking = False
+        n1 = location[0]
+        n2 = location[0] + 1
+        xi = location[1]
+        d1 = interpolateCubicHermiteDerivative(cx[n1], cd1[n1], cx[n2], cd1[n2], xi)
+        d2 = cross(direction, d1)
+        direction = normalize(cross(d1, d2))
+
+    return normalize(d1), normalize(d2), direction
+
+
+def linearlyInterpolateVectors(u, v, xi, magnitudeScalingMode=DerivativeScalingMode.ARITHMETIC_MEAN):
+    """
+    Linearly interpolate two vectors less than 180 degrees apart to get an in-between vector
+    rotated from direction of u to direction of v proportionatly to xi, with magnitude linearly interpolated by xi.
+    :param u: First vector.
+    :param v: Second vector from 0 to less than 180 degrees away from u.
+    :param xi: Proportion from u to v.
+    :param magnitudeScalingMode: A value from enum DerivativeScalingMode specifying
+    expression used to get interpolated vector magnitude from magnitudes of u and v.
+    :return: Interpolated vector.
+    """
+    mag_u = magnitude(u)
+    mag_v = magnitude(v)
+    if magnitudeScalingMode==DerivativeScalingMode.HARMONIC_MEAN:
+        if (mag_u == 0.0) or (mag_v == 0):
+            mag = 0
+        else:
+            mag = 1.0 / (((1.0 - xi) / mag_u) + (xi / mag_v))
+    else:  # magnitudeScalingMode==erivativeScalingMode.ARITHMETIC_MEAN:
+        mag = (1.0 - xi) * mag_u + xi * mag_v
+    dirn_u = div(u, mag_u)
+    dirn_v = div(v, mag_v)
+    cos_theta = dot(dirn_u, dirn_v)
+    if cos_theta > 0.999999:
+        dirn = dirn_u
+    else:
+        theta = math.acos(cos_theta)
+        phi = xi * theta
+        cos_phi = math.cos(phi)
+        sin_phi = math.sin(phi)
+        axis1 = dirn_u
+        axis3 = normalize(cross(dirn_u, dirn_v))
+        axis2 = cross(axis3, dirn_u)
+        dirn = add(mult(axis1, cos_phi), mult(axis2, sin_phi))
+    return set_magnitude(dirn, mag)
+
+
+def sampleHermiteCurve(start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
+                       start_weight=None, end_weight=None, overweighting=1.0, end_transition=False):
+    """
+    Samples a hermite curve from initial points and directions. Also interpolates side derivatives.
+    :param start_x: start coordinate.
+    :param start_d1: start direction.
+    :param start_d2: optional start side direction. Must be supplied if end_d2 is supplied.
+    :param end_x: end coordinate.
+    :param end_d1: end direction, or None to estimate from start_d1.
+    Must be supplied with end_transition.
+    :param end_d2: optional end side direction, or None to use normal to end direction closest to start_d2.
+    :param elements_count: Number of elements to sample.
+    :param start_weight, end_weight: Optional relative weights for start/end d1.
+    :param overweighting: Multiplier of arc length to use with initial curve to exaggerate end derivatives.
+    :param end_transition: If supplied with end_d1, modify size of last element to fit end_d1.
+    :return: x[], d1[], d2[]
+    """
+    assert (not end_transition) or end_d1
+    end_d1_mag = magnitude(end_d1) if end_d1 else None
+    length = distance(start_x, end_x)
+    # initial cubic interpolation, weighting derivatives by distance to other end
+    start_d = start_d1
+    end_d = end_d1
+    if not end_d:
+        start_d = normalize(start_d)
+        scaling = computeHermiteLagrangeDerivativeScaling(start_x, start_d, end_x)
+        start_d = [d * scaling for d in start_d]
+        end_d = interpolateHermiteLagrangeDerivative(start_x, start_d, end_x, 1.0)
+    use_start_weight = start_weight if start_weight else 1.0
+    use_end_weight = end_weight if end_weight else 1.0
+    start_d = set_magnitude(start_d, 2.0 * length * use_start_weight / (use_start_weight + use_end_weight))
+    end_d = set_magnitude(end_d, 2.0 * length * use_end_weight / (use_start_weight + use_end_weight))
+    scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d) * overweighting
+    start_d = mult(start_d, scaling)
+    end_d = mult(end_d, scaling)
+    px, pd1 = sampleCubicHermiteCurvesSmooth([start_x, end_x], [start_d, end_d], elements_count)[0:2]
+    iter_count = 2
+    for iter in range(iter_count):
+        if end_transition:
+            if elements_count == 1:
+                # sampleCubicHermiteCurves doesn't work properly with 1 element...
+                arc_length = getCubicHermiteArcLength(px[0], pd1[0], px[1], pd1[1])
+                pd1[0] = set_magnitude(pd1[0], 2.0 * arc_length - end_d1_mag)
+                pd1[1] = set_magnitude(pd1[1], end_d1_mag)
+            else:
+                px, pd1 = sampleCubicHermiteCurves(
+                    px, pd1, elements_count, addLengthEnd=0.5 * end_d1_mag, lengthFractionEnd=0.5)[0:2]
+        else:
+            px, pd1 = sampleCubicHermiteCurves(px, pd1, elements_count)[0:2]
+    if start_d2:
+        if not end_d2:
+            normal = normalize(cross(pd1[-1], start_d2))
+            end_d2 = cross(normal, pd1[-1])
+        pd2 = [start_d2]
+        if end_transition:
+            # adjust xi scale to get propor proportion when magnitude of end_d1 differs from regular derivatives
+            reg_d1_mag = magnitude(pd1[-2])
+            end_d1_mag = magnitude(end_d1)
+            xi_scale = reg_d1_mag / ((elements_count - 0.5) * reg_d1_mag + 0.5 * end_d1_mag)
+        else:
+            xi_scale = 1.0 / elements_count
+        for n in range(1, elements_count):
+            xi = n * xi_scale
+            d2 = linearlyInterpolateVectors(start_d2, end_d2, xi)
+            pd2.append(d2)
+        pd2.append(end_d2)
+        return px, pd1, pd2
+    return px, pd1
+
+def get_nway_point(sx, sd, element_counts, sample_curve, move_x_to_surface=None,
+                    prescribed_x_nway=None, nway_d_factor=0.6):
+    """
+    Get 3-way (surface) or 4-way (volume) location and derivatives.
+    :param sx: List of N side coordinates.
+    :param sd: List of N side inward derivatives.
+    :param element_counts: List of N number of elements from side N to n-way point.
+    :param sample_curve: Curve sampling function with signature of sampleHermiteCurve.
+    :param move_x_to_surface: Optional function take argument x and returning nearest coordinate on surface.
+    :param prescribed_x_nway: Optional known 3-way point coordinates to determine derivatives to.
+    :param nway_d_factor: Value, normally from 0.5 to 1.0 giving n-way derivative magnitude as a proportion
+    of the minimum regular magnitude sampled to the n-way point. This reflects that distances from the mid-side
+    of a triangle to the centre are shorter, so the derivative in the middle must be smaller.
+    :return: x_nway, d_nway[N]
+    """
+    n_count = len(sx)
+    assert n_count == 3 or n_count == 4
+    permutations = [[0, 1], [1, 2], [2, 0]] if n_count == 3 else [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3]]
+    if prescribed_x_nway:
+        x_nway = prescribed_x_nway
+    else:
+        sum_weight = 0.0
+        sum_weighted_x = [0.0, 0.0, 0.0]
+        for n1, n2 in permutations:
+            px, pd = sample_curve(
+                sx[n1], sd[n1], None, sx[n2], [-d for d in sd[n2]], None, element_counts[n1] + element_counts[n2],
+                start_weight=element_counts[n1], end_weight=element_counts[n2])
+            x = px[element_counts[n1]]
+            length1 = getCubicHermiteCurvesLength(px[:element_counts[n1] + 1], pd[:element_counts[n1] + 1])
+            length2 = getCubicHermiteCurvesLength(px[element_counts[n1]:], pd[element_counts[n1]:])
+            weight = 1.0 / length1 + 1.0 / length2
+            sum_weight += weight
+            sum_weighted_x = add(sum_weighted_x, mult(x, weight))
+        x_nway = div(sum_weighted_x, sum_weight)
+        if move_x_to_surface:
+            x_nway = move_x_to_surface(x_nway)
+
+    # sample with hermite-lagrange interpolation from sides to 3-way point to get end directions
+    directions = []
+    for n in range(n_count):
+        px, pd = sample_curve(sx[n], sd[n], None, x_nway, None, None, element_counts[n])
+        directions.append(normalize(pd[-1]))
+    angle_120 = math.pi / 1.5
+    if n_count == 3:
+        # make directions 120 degrees apart, around the normal
+        normal = [0.0, 0.0, 0.0]
+        for n1, n2 in permutations:
+            np = (n + 1) % n_count
+            # this gives the most weight to pairs 90 degrees apart and no weight to collinear pairs
+            normal = add(normal, cross(directions[n1], directions[n2]))
+        normal = normalize(normal)
+        axis2 = normalize(cross(normal, directions[0]))
+        axis1 = cross(axis2, normal)
+        # get angles around normal, starting at axis1
+        ideal_angle = 0.0
+        delta_angle = 0.0
+        for i in range(1, 3):
+            actual_angle = math.atan2(dot(directions[i], axis2), dot(directions[i], axis1))
+            if actual_angle < 0.0:
+                actual_angle += 2.0 * math.pi
+            ideal_angle += angle_120
+            delta_angle += (actual_angle - ideal_angle)
+        delta_angle /= 3.0
+        new_directions = []
+        angle = delta_angle
+        for i in range(3):
+            new_directions.append(add(mult(axis1, math.cos(angle)), mult(axis2, math.sin(angle))))
+            angle += angle_120
+    else:
+        cos_tetra_angle = -1.0 / 3.0
+        tetra_angle = math.acos(cos_tetra_angle)
+        sin_tetra_angle = math.sin(tetra_angle)
+        axis1 = directions[3]
+        axis3 = normalize(cross(axis1, directions[0]))
+        axis2 = cross(axis3, axis1)
+        reverse_1__3 = mult(axis1, cos_tetra_angle)
+        ideal_directions = [add(reverse_1__3, mult(axis2, sin_tetra_angle))]
+        cos_120 = math.cos(angle_120)
+        sin_120 = math.sin(angle_120)
+        rotation_matrix = axis_angle_to_rotation_matrix(axis1, -angle_120)
+        for i in range(1, 3):
+            ideal_directions.append(matrix_vector_mult(rotation_matrix, ideal_directions[-1]))
+        ideal_directions.append(axis1)
+        def rotation_objective(euler_angles, *args):
+            directions, ideal_directions = args
+            rotation_matrix = euler_to_rotation_matrix(euler_angles)
+            return sum(1.0 - dot(matrix_vector_mult(rotation_matrix, ideal_directions[i]), directions[i])
+                       for i in range(3))
+        res = minimize(rotation_objective, [0.0] * 3, args=(directions, ideal_directions),
+                       # method='Nelder-Mead', tol=1.0E-9)  # options={'xatol': 1.0E-7, 'disp': True})
+                       method = 'Powell', tol=1.0E-10)  # options={'xtol': 1.0E-10, 'disp': True})
+        if res.success:
+            euler_angles = res.x
+            rotation_matrix = euler_to_rotation_matrix(euler_angles)
+            new_directions = [matrix_vector_mult(rotation_matrix, direction) for direction in ideal_directions]
+        else:
+            print("get_nway_point.  Could not optimise 4-way directions")
+            new_directions = ideal_directions
+
+    # smooth sample from sides to n-way point with new directions and weights to get derivative magnitudes
+    d_mags = []
+    min_weight = 1.0 # GRC review, remove?
+    for n in range(n_count):
+        px, pd = sample_curve(
+            sx[n], sd[n], None, x_nway, new_directions[n], None, element_counts[n],
+            start_weight=element_counts[0] + min_weight, end_weight=1.0 + min_weight)
+        d_mags.append(magnitude(pd[-1]))
+    d_mag = nway_d_factor * min(d_mags)
+    d_nway = [set_magnitude(direction, d_mag) for direction in new_directions]
+    return x_nway, d_nway

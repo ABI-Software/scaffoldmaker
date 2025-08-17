@@ -7,7 +7,11 @@ from __future__ import division
 import copy
 import math
 
-from cmlibs.maths.vectorops import magnitude, mult, normalize, cross, set_magnitude
+from cmlibs.maths.vectorops import add, distance, magnitude, mult, normalize, cross, set_magnitude, rejection
+from scaffoldmaker.utils.interpolation import (
+    computeCubicHermiteDerivativeScaling, computeHermiteLagrangeDerivativeScaling, getCubicHermiteArcLength,
+    interpolateHermiteLagrangeDerivative, linearlyInterpolateVectors, sampleCubicHermiteCurves,
+    sampleCubicHermiteCurvesSmooth)
 from scaffoldmaker.utils.tracksurface import calculate_surface_delta_xi
 
 
@@ -146,6 +150,45 @@ def getEllipseRadiansToX(ax, bx, dx, initialTheta):
     return theta
 
 
+def getEllipsePointAtTrueAngle(a, b, angle_radians):
+    """
+    Get coordinates of intersection point of ellipse centred at origin with line radiating from origin at an angle.
+    :param a: x/major axis length.
+    :param b: y/minor axis length.
+    :param angle_radians: Angle in radians starting at x axis, increasing towards y axis.
+    :return: [x, y]
+    """
+    # ellipse equation: x ** 2 / a ** 2 + y ** 2 / b ** 2 - 1 = 0
+    cos_angle = math.cos(angle_radians)
+    sin_angle = math.sin(angle_radians)
+    # normal to line direction:
+    ni = sin_angle
+    nj = -cos_angle
+    # line equation: ni * x + nj * y = 0
+    if math.fabs(nj) > math.fabs(ni):
+        # substitute y and solve for x
+        denominator = 1.0 / (a * a) + (ni * ni) / (nj * nj * b * b)
+        x = math.copysign(math.sqrt(1.0 / denominator), cos_angle)
+        y = (-ni / nj) * x
+    else:
+        # substitute y and solve for x
+        denominator = 1.0 / (b * b) + (nj * nj) / (ni * ni * a * a)
+        y = math.copysign(math.sqrt(1.0 / denominator), sin_angle)
+        x = (-nj / ni) * y
+    return [x, y]
+
+
+def getEllipseTangentAtPoint(a, b, x):
+    """
+    Get unit tangent direction on ellipse centred at origin at giving point on it.
+    :param a: x/major axis length.
+    :param b: y/minor axis length.
+    :param x: Coordinates on ellipse, list of 2 real values.
+    :return: [dx, dy] (in anticlockwise direction moving x to y axis and around) unit scale.
+    """
+    return normalize([-x[1] / (b * b), x[0] / (a * a)])
+
+
 def sampleEllipsePoints(centre: list, majorAxis: list, minorAxis: list, angle1Radians: float, angle2Radians: float,
                         elementCount: int):
     """
@@ -177,6 +220,7 @@ def sampleEllipsePoints(centre: list, majorAxis: list, minorAxis: list, angle1Ra
         pd1.append(d1)
         radians = updateEllipseAngleByArcLength(a, b, radians, elementArcLength, TOL, method="Newton")
     return px, pd1
+
 
 def createCirclePoints(cx, axis1, axis2, elementsCountAround, startRadians = 0.0):
     '''
@@ -405,6 +449,129 @@ def getEllipsoidPlaneA(a: float, b: float, c: float, midx, majorx):
     sqrt_det = math.sqrt(det)
     minorAxis = [sqrt_det / (2.0 * qa), 0.0, 0.0]
     return centre, majorAxis, minorAxis
+
+
+def moveCoordinatesToEllipsoidSurface(a, b, c, start_x):
+    """
+    Get the nearest point on ellipsoid surface to start_x.
+    :param a: x-axis length.
+    :param b: y-axis length.
+    :param c: z-axis length.
+    :param start_x: Coordinates of point near surface of ellipsoid.
+    :return: Coordinates on surface of ellipsoid.
+    """
+    aa = a * a
+    bb = b * b
+    cc = c * c
+    x = copy.copy(start_x)
+    for iter in range(100):
+        f = (x[0] * x[0]) / aa + (x[1] * x[1]) / bb + (x[2] * x[2]) / cc - 1.0
+        if math.fabs(f) < 1.0E-8:
+            # print("moveCoordinatesToEllipsoidSurface converged in", iter, "iterations. f =", f)
+            break
+        df = [2.0 * x[0] / aa, 2.0 * x[1] / bb, 2.0 * x[2] / cc]
+        mag_df = magnitude(df)
+        eta = f / (mag_df * mag_df)
+        x = [(x[c] - df[c] * eta) for c in range(3)]
+    else:
+        print("moveCoordinatesToEllipsoidSurface failed to converged in", iter, "iterations. f =", f)
+    return x
+
+
+def moveDerivativeToEllipsoidSurface(a, b, c, x, start_d):
+    """
+    Convert derivative at point on surface of ellipsoid to be tangential to it.
+    :param a: x-axis length.
+    :param b: y-axis length.
+    :param c: z-axis length.
+    :param x: Coordinates on surface of ellipsoid.
+    :param start_d: Derivative near tangential to ellipsoid surface at x.
+    :return: Derivative made tangential to surface with same magnitude.
+    """
+    n = [2.0 * x[0] / (a * a), 2.0 * x[1] / (b * b), 2.0 * x[2] / (c * c)]
+    return set_magnitude(rejection(start_d, n), magnitude(start_d))
+
+
+def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, end_d2, elements_count,
+                           start_weight=None, end_weight=None, overweighting=1.0, end_transition=False):
+    """
+    Samples an even-spaced Hermite curve from start point and direction to end point and direction.
+    Also interpolates side derivatives.
+    :param a: x-axis length.
+    :param b: y-axis length.
+    :param c: z-axis length.
+    :param start_x: start coordinate on surface of ellipsoid.
+    :param start_d1: start direction on surface of ellipsoid.
+    :param start_d2: optional start side direction on surface of ellipsoid. Must be supplied if end_d2 is
+    supplied.
+    :param end_x: end coordinate on surface of ellipsoid.
+    :param end_d1: end direction on surface of ellipsoid, or None to estimate from start_d1.
+    Must be supplied with end_transition.
+    :param end_d2: optional end side direction on surface of ellipsoid, or None to use surface tangent normal to end
+    direction on same side as start_d2.
+    :param elements_count: Number of elements to sample.
+    :param start_weight, end_weight: Optional relative weights for start/end d1. If not supplied, weighting is
+    by distance from the other end.
+    :param overweighting: Multiplier of arc length to use with initial curve to exaggerate end derivatives.
+    :param end_transition: If supplied with end_d1, modify size of last element to fit end_d1.
+    :return: x[], d1[], d2[]
+    """
+    assert (not end_transition) or end_d1
+    end_d1_mag = magnitude(end_d1) if end_d1 else None
+    length = distance(start_x, end_x)
+    # initial cubic interpolation, weighting derivatives by distance to other end
+    start_d = start_d1
+    end_d = end_d1
+    if not end_d:
+        start_d = normalize(start_d)
+        scaling = computeHermiteLagrangeDerivativeScaling(start_x, start_d, end_x)
+        start_d = [d * scaling for d in start_d]
+        end_d = interpolateHermiteLagrangeDerivative(start_x, start_d, end_x, 1.0)
+        end_d = moveDerivativeToEllipsoidSurface(a, b, c, end_x, end_d)
+    use_start_weight = (start_weight if start_weight else 1.0) * magnitude(end_x)
+    use_end_weight = (end_weight if end_weight else 1.0) * magnitude(start_x)
+    start_d = set_magnitude(start_d, 2.0 * length * use_start_weight / (use_start_weight + use_end_weight))
+    end_d = set_magnitude(end_d, 2.0 * length * use_end_weight / (use_start_weight + use_end_weight))
+    scaling = computeCubicHermiteDerivativeScaling(start_x, start_d, end_x, end_d) * overweighting
+    start_d = mult(start_d, scaling)
+    end_d = mult(end_d, scaling)
+    px, pd1 = sampleCubicHermiteCurvesSmooth([start_x, end_x], [start_d, end_d], elements_count)[0:2]
+    iter_count = 2
+    for iter in range(iter_count):
+        for n in range(1, elements_count):
+            px[n] = moveCoordinatesToEllipsoidSurface(a, b, c, px[n])
+            pd1[n] = moveDerivativeToEllipsoidSurface(a, b, c, px[n], pd1[n])
+        if end_transition:
+            if elements_count == 1:
+                # sampleCubicHermiteCurves doesn't work properly with 1 element...
+                arc_length = getCubicHermiteArcLength(px[0], pd1[0], px[1], pd1[1])
+                pd1[0] = set_magnitude(pd1[0], 2.0 * arc_length - end_d1_mag)
+                pd1[1] = set_magnitude(pd1[1], end_d1_mag)
+            else:
+                px, pd1 = sampleCubicHermiteCurves(
+                    px, pd1, elements_count, addLengthEnd=0.5 * end_d1_mag, lengthFractionEnd=0.5)[0:2]
+        else:
+            px, pd1 = sampleCubicHermiteCurves(px, pd1, elements_count)[0:2]
+    if start_d2:
+        if not end_d2:
+            end_d2 = moveDerivativeToEllipsoidSurface(a, b, c, px[-1], start_d2)
+            normal = normalize(cross(pd1[-1], end_d2))
+            end_d2 = cross(normal, pd1[-1])
+        pd2 = [start_d2]
+        if end_transition:
+            # adjust xi scale to get propor proportion when magnitude of end_d1 differs from regular derivatives
+            reg_d1_mag = magnitude(pd1[-2])
+            end_d1_mag = magnitude(end_d1)
+            xi_scale = reg_d1_mag / ((elements_count - 0.5) * reg_d1_mag + 0.5 * end_d1_mag)
+        else:
+            xi_scale = 1.0 / elements_count
+        for n in range(1, elements_count):
+            xi = n * xi_scale
+            d2 = linearlyInterpolateVectors(start_d2, end_d2, xi)
+            pd2.append(moveDerivativeToEllipsoidSurface(a, b, c, px[n], d2))
+        pd2.append(end_d2)
+        return px, pd1, pd2
+    return px, pd1
 
 
 def getCircleProjectionAxes(ax, ad1, ad2, ad3, length, angle1radians, angle2radians, angle3radians = None):

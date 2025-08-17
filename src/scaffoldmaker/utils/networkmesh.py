@@ -101,15 +101,17 @@ class NetworkSegment:
     Describes a segment of a network between junctions as a sequence of nodes with node derivative versions.
     """
 
-    def __init__(self, networkNodes: list, nodeVersions: list, isCap: list):
+    def __init__(self, networkNodes: list, nodeVersions: list, isCap: list, isPatch):
         """
         :param networkNodes: List of NetworkNodes from start to end. Must be at least 2.
         :param nodeVersions: List of node versions to use for derivatives at network nodes.
+        :param isPatch: True if segment at the other end of the junction requires a patch.
         """
         assert isinstance(networkNodes, list) and (len(networkNodes) > 1) and (len(nodeVersions) == len(networkNodes))
         self._networkNodes = networkNodes
         self._nodeVersions = nodeVersions
         self._isCap = isCap
+        self._isPatch = isPatch
         self._elementIdentifiers = [None] * (len(networkNodes) - 1)
         for networkNode in networkNodes[1:-1]:
             networkNode.setInteriorSegment(self)
@@ -165,6 +167,12 @@ class NetworkSegment:
         :return: True if the segment requires a cap mesh, False if not.
         """
         return self._isCap
+
+    def isPatch(self):
+        """
+        :return: True if the segment is a patch, False if not.
+        """
+        return self._isPatch
 
     def split(self, splitNetworkNode):
         """
@@ -228,6 +236,17 @@ class NetworkMesh:
                 isStartCap = isEndCap = False
             isCap = [isStartCap, isEndCap]
 
+            # check if segment is a patch
+            if not sequenceString[0].isnumeric():
+                try:
+                    isPatch = True if sequenceString[0] == "#" else False
+                    sequenceString = sequenceString[2:] if isPatch else sequenceString
+                except ValueError:
+                    print("Network mesh: Skipping invalid cap sequence", sequenceString, file=sys.stderr)
+                    continue
+            else:
+                isPatch = False
+
             nodeIdentifiers = []
             nodeVersions = []
             nodeVersionStrings = sequenceString.split("-")
@@ -262,6 +281,7 @@ class NetworkMesh:
                 sequenceVersions.append(nodeVersion)
                 if (len(sequenceNodes) > 1) and (existingNetworkNode or (nodeIdentifier == nodeIdentifiers[-1])):
                     networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isCap)
+                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isPatch)
                     self._networkSegments.append(networkSegment)
                     sequenceNodes = sequenceNodes[-1:]
                     sequenceVersions = sequenceVersions[-1:]
@@ -877,6 +897,8 @@ class NetworkMeshBuilder(ABC):
             if junctions[0] not in generatedJunctions:
                 junctions[0].generateMesh(generateData)
                 generatedJunctions.add(junctions[0])
+            if networkSegment.isPatch():
+                continue  # so as not to make patch mesh twice
             segment.generateMesh(generateData)
             if junctions[1] not in generatedJunctions:
                 junctions[1].generateMesh(generateData)
