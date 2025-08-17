@@ -280,8 +280,7 @@ class NetworkMesh:
                 sequenceNodes.append(networkNode)
                 sequenceVersions.append(nodeVersion)
                 if (len(sequenceNodes) > 1) and (existingNetworkNode or (nodeIdentifier == nodeIdentifiers[-1])):
-                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isCap)
-                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isPatch)
+                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isCap, isPatch)
                     self._networkSegments.append(networkSegment)
                     sequenceNodes = sequenceNodes[-1:]
                     sequenceVersions = sequenceVersions[-1:]

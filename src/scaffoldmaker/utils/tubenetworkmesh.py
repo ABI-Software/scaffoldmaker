@@ -4,6 +4,8 @@ Specialisation of Network Mesh for building 2-D and 3-D tube mesh networks.
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, set_magnitude, sub, rejection
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
+
+from scaffoldmaker.utils.capmesh import CapMesh
 from scaffoldmaker.utils.eft_utils import (
     addTricubicHermiteSerendipityEftParameterScaling, determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager)
 from scaffoldmaker.utils.interpolation import (
