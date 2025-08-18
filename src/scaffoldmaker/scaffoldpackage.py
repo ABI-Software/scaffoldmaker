@@ -436,7 +436,12 @@ class ScaffoldPackage:
         return annotationGroup in self._userAnnotationGroups
 
     def getMetadata(self):
-        metadataDict = {"mesh edits": bool(self._meshEdits)}
+        """
+        :return: Dict of scaffold-specific metadata, including all annotation id/name pairs.
+        """
+        metadataDict = {}
+        metadataDict["annotations"] = [{"id": annotationGroup.getId(), "name": annotationGroup.getName()}
+                                       for annotationGroup in self.getAnnotationGroups()]
         if self._constructionObject:
             metadataDict.update(self._constructionObject.getMetadata())
         return metadataDict
