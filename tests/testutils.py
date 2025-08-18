@@ -8,7 +8,7 @@ def assertAlmostEqualList(testcase, actualList, expectedList, delta):
         testcase.assertAlmostEqual(actual, expected, delta=delta,
                                    msg=str(actualList) + " != " + str(expectedList))
 
-def get_first_index_containing_substring_any_case(string_list, substring, default_index=-1):  
+def get_first_index_containing_substring(string_list, substring, default_index=-1):  
     """  
     Returns the index of the first item in a list of strings that contains the given substring.  
     This search is case sensitive.   
@@ -34,9 +34,9 @@ def check_annotation_term_ids(term_ids: list):
     if ("UBERON" not in first_id) and ("ILX" not in first_id) and (first_id != ""): 
         return False  
     term_ids_count = len(term_ids)  
-    uberon_index = get_first_index_containing_substring_any_case(term_ids, "UBERON", -1)  
-    ilx_index = get_first_index_containing_substring_any_case(term_ids, "ILX", term_ids_count)  
-    fma_index = get_first_index_containing_substring_any_case(term_ids, "FMA", 2 * term_ids_count)  
+    uberon_index = get_first_index_containing_substring(term_ids, "UBERON", -1)  
+    ilx_index = get_first_index_containing_substring(term_ids, "ILX", term_ids_count)  
+    fma_index = get_first_index_containing_substring(term_ids, "FMA", 2 * term_ids_count)  
     if (uberon_index >= 0) and ((ilx_index < uberon_index) or (fma_index < uberon_index)):  
         return False  
     if (ilx_index < term_ids_count) and (fma_index < ilx_index):  
