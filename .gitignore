@@ -102,3 +102,6 @@ ENV/
 
 # pycharm related projects
 .idea/
+
+# Vscode settings
+.vscode/

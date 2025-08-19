@@ -8,16 +8,24 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term
+from scaffoldmaker.annotation.smallintestine_terms import get_smallintestine_term, smallintestine_terms
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_smallintestine1 import MeshType_3d_smallintestine1
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
     exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class SmallIntestineScaffoldTestCase(unittest.TestCase):
+
+    def test_smallintestine_annotations(self):
+        """
+        Test nomenclature of the small intestine terms. 
+        """
+        for term_ids in smallintestine_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for small intestine annotation term ids " + str(term_ids)) 
+
 
     def test_smallintestine1(self):
         """

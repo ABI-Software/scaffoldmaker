@@ -124,16 +124,22 @@ class MeshType_3d_heartarterialroot1(Scaffold_base):
 
         if aorticNotPulmonary:
             arterialRootGroup = AnnotationGroup(region, get_heart_term("root of aorta"))
-            cuspGroups = [
-                AnnotationGroup(region, get_heart_term("posterior cusp of aortic valve")),
-                AnnotationGroup(region, get_heart_term("right cusp of aortic valve")),
-                AnnotationGroup(region, get_heart_term("left cusp of aortic valve")) ]
+            # following is disputed in ontologies
+            # cuspGroups = [
+            #     AnnotationGroup(region, get_heart_term("posterior cusp of aortic valve")),
+            #     AnnotationGroup(region, get_heart_term("right cusp of aortic valve")),
+            #     AnnotationGroup(region, get_heart_term("left cusp of aortic valve")) ]
+            cuspGroup = AnnotationGroup(region, get_heart_term("aortic valve leaflet")),
+            cuspGroups = [cuspGroup] * 3
         else:
             arterialRootGroup = AnnotationGroup(region, get_heart_term("root of pulmonary trunk"))
-            cuspGroups = [
-                AnnotationGroup(region, get_heart_term("right cusp of pulmonary valve")),
-                AnnotationGroup(region, get_heart_term("anterior cusp of pulmonary valve")),
-                AnnotationGroup(region, get_heart_term("left cusp of pulmonary valve")) ]
+            # following is disputed in ontologies
+            # cuspGroups = [
+            #     AnnotationGroup(region, get_heart_term("right cusp of pulmonary valve")),
+            #     AnnotationGroup(region, get_heart_term("anterior cusp of pulmonary valve")),
+            #     AnnotationGroup(region, get_heart_term("left cusp of pulmonary valve")) ]
+            cuspGroup = AnnotationGroup(region, get_heart_term("pulmonary valve leaflet")),
+            cuspGroups = [cuspGroup] * 3
 
         allGroups = [ arterialRootGroup ]  # groups that all elements in scaffold will go in
         annotationGroups = allGroups + cuspGroups

@@ -219,17 +219,17 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         bodyGroup = AnnotationGroup(region, get_body_term("body"))
         headGroup = AnnotationGroup(region, get_body_term("head"))
         neckGroup = AnnotationGroup(region, get_body_term("neck"))
-        armGroup = AnnotationGroup(region, get_body_term("arm"))
+        armGroup = AnnotationGroup(region, get_body_term("upper limb"))
         armToHandGroup = AnnotationGroup(region, ("arm to hand", ""))
-        leftArmGroup = AnnotationGroup(region, get_body_term("left arm"))
-        rightArmGroup = AnnotationGroup(region, get_body_term("right arm"))
+        leftArmGroup = AnnotationGroup(region, get_body_term("left upper limb"))
+        rightArmGroup = AnnotationGroup(region, get_body_term("right upper limb"))
         handGroup = AnnotationGroup(region, get_body_term("hand"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
-        legGroup = AnnotationGroup(region, get_body_term("leg"))
+        legGroup = AnnotationGroup(region, get_body_term("lower limb"))
         legToFootGroup = AnnotationGroup(region, ("leg to foot", ""))
-        leftLegGroup = AnnotationGroup(region, get_body_term("left leg"))
-        rightLegGroup = AnnotationGroup(region, get_body_term("right leg"))
+        leftLegGroup = AnnotationGroup(region, get_body_term("left lower limb"))
+        rightLegGroup = AnnotationGroup(region, get_body_term("right lower limb "))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
                             armGroup, armToHandGroup, leftArmGroup, rightArmGroup, handGroup,
@@ -908,29 +908,29 @@ class MeshType_3d_wholebody2(Scaffold_base):
         is_exterior = fieldmodule.createFieldIsExterior()
         is_face_xi3_0 = fieldmodule.createFieldIsOnFace(Element.FACE_TYPE_XI3_0)
 
-        skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
+        skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis outer surface"))
         is_skin = is_exterior if isCore else fieldmodule.createFieldAnd(
             is_exterior, fieldmodule.createFieldNot(is_face_xi3_0))
         skinGroup.getMeshGroup(mesh2d).addElementsConditional(is_skin)
 
-        leftArmGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left arm"))
+        leftArmGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left upper limb"))
         leftArmSkinGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("left arm skin epidermis"))
+            annotationGroups, region, get_body_term("left upper limb skin epidermis outer surface"))
         leftArmSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
             fieldmodule.createFieldAnd(leftArmGroup.getGroup(), is_exterior))
-        rightArmGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right arm"))
+        rightArmGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right upper limb"))
         rightArmSkinGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("right arm skin epidermis"))
+            annotationGroups, region, get_body_term("right upper limb skin epidermis outer surface"))
         rightArmSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
             fieldmodule.createFieldAnd(rightArmGroup.getGroup(), is_exterior))
-        leftLegGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left leg"))
+        leftLegGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("left lower limb"))
         leftLegSkinGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("left leg skin epidermis"))
+            annotationGroups, region, get_body_term("left lower limb skin epidermis outer surface"))
         leftLegSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
             fieldmodule.createFieldAnd(leftLegGroup.getGroup(), is_exterior))
-        rightLegGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right leg"))
+        rightLegGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("right lower limb "))
         rightLegSkinGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_body_term("right leg skin epidermis"))
+            annotationGroups, region, get_body_term("right lower limb skin epidermis outer surface"))
         rightLegSkinGroup.getMeshGroup(mesh2d).addElementsConditional(
             fieldmodule.createFieldAnd(rightLegGroup.getGroup(), is_exterior))
 
@@ -948,11 +948,11 @@ class MeshType_3d_wholebody2(Scaffold_base):
             neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck"))
             thoracicCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thoracic cavity"))
             abdominalCavityGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("abdominal cavity"))
-            armGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("arm"))
-            legGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("leg"))
+            armGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("upper limb"))
+            legGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("lower limb"))
 
             thoracicCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
-                annotationGroups, region, get_body_term("thoracic cavity boundary"))
+                annotationGroups, region, get_body_term("thoracic cavity boundary surface"))
             is_thoracic_cavity_boundary = fieldmodule.createFieldAnd(
                 thoracicCavityGroup.getGroup(),
                 fieldmodule.createFieldOr(
@@ -961,7 +961,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             thoracicCavityBoundaryGroup.getMeshGroup(mesh2d).addElementsConditional(is_thoracic_cavity_boundary)
 
             abdominalCavityBoundaryGroup = findOrCreateAnnotationGroupForTerm(
-                annotationGroups, region, get_body_term("abdominal cavity boundary"))
+                annotationGroups, region, get_body_term("abdominal cavity boundary surface"))
             is_abdominal_cavity_boundary = fieldmodule.createFieldAnd(
                 abdominalCavityGroup.getGroup(),
                 fieldmodule.createFieldOr(
