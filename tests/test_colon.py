@@ -8,7 +8,7 @@ from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.colon_terms import get_colon_term
+from scaffoldmaker.annotation.colon_terms import get_colon_term, colon_terms
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.meshtype_3d_colon1 import MeshType_3d_colon1
 from scaffoldmaker.meshtypes.meshtype_3d_colonsegment1 import MeshType_3d_colonsegment1
@@ -16,10 +16,17 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.zinc_utils import createFaceMeshGroupExteriorOnFace, \
     exnode_string_from_nodeset_field_parameters, get_nodeset_path_field_parameters
 
-from testutils import assertAlmostEqualList
+from testutils import assertAlmostEqualList, check_annotation_term_ids
 
 
 class ColonScaffoldTestCase(unittest.TestCase):
+
+    def test_colon_annotations(self):
+        """
+        Test nomenclature of the colon terms. 
+        """
+        for term_ids in colon_terms:
+            self.assertTrue(check_annotation_term_ids(term_ids), "Invalid primary term id or order not UBERON < ILX < FMA for colon annotation term ids " + str(term_ids)) 
 
     def test_colon1(self):
         """

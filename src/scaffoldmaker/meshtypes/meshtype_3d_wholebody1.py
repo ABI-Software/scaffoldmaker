@@ -883,7 +883,7 @@ Generates body coordinates using a solid cylinder of all cube elements,
         thoraxGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("thorax"))
         neckGroup = getAnnotationGroupForTerm(annotationGroups, get_body_term("neck core"))
 
-        skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis"))
+        skinGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("skin epidermis outer surface"))
         coreBoundaryGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("core boundary"))
         diaphragmGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("diaphragm"))
         spinalCordGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("spinal cord"))
