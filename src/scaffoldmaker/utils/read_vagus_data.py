@@ -134,7 +134,7 @@ class VagusInputData:
         self._segment_groups_info = {}
         for group in group_list:
             group_name = group.getName()
-            if 1 == group_name.count('.exf'):
+            if (group_name[-4:] == '.exf') and (1 == group_name.count('.exf')):
                 self._segment_groups_info[group_name] = (group.getNodesetGroup(nodes), [])
 
         if self._trunk_group_name:
