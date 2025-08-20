@@ -9,6 +9,7 @@ from cmlibs.utils.zinc.group import get_group_list
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldFindMeshLocation, FieldGroup
 from cmlibs.zinc.node import Node
+from cmlibs.zinc.result import RESULT_OK
 from scaffoldfitter.fitter import Fitter as GeometryFitter
 from scaffoldfitter.fitterstepfit import FitterStepFit
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
@@ -1303,9 +1304,36 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     mean_radius = sum(pr) / len(pr) if pr else default_trunk_radius
     max_orientation_projection_error = 8.0 * mean_radius
 
-    # remove all datapoints from previous fits.
+    # remove all datapoints from previous fits
     datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
     datapoints.destroyAllNodes()
+
+    segments_trunk_coordinates = vagus_data.get_segments_trunk_coordinates()
+    segments_metadata = {}
+    with ChangeManager(fieldmodule):
+        # make a real field which increases down the trunk proportional to vagus coordinates
+        trunk_distance = (fieldmodule.findFieldByName("cmiss_number") +
+                          fieldmodule.createFieldComponent(fieldmodule.findFieldByName("xi"), 1))
+        find_mesh_location = fieldmodule.createFieldFindMeshLocation(coordinates, coordinates, mesh1d)
+        find_mesh_location.setSearchMode(FieldFindMeshLocation.SEARCH_MODE_NEAREST)
+        host_trunk_distance = fieldmodule.createFieldEmbedded(trunk_distance, find_mesh_location)
+        datapoints_min_trunk_distance = fieldmodule.createFieldNodesetMinimum(host_trunk_distance, datapoints)
+        datapoints_max_trunk_distance = fieldmodule.createFieldNodesetMaximum(host_trunk_distance, datapoints)
+    fieldcache.clearLocation()
+    distance_to_material = trunk_proportion / trunk_elements_count
+    for segment_name, sx in segments_trunk_coordinates.items():
+        generate_datapoints(fit_region, sx, start_data_identifier=1)
+        min_result, segment_min_trunk_distance = datapoints_min_trunk_distance.evaluateReal(fieldcache, 1)
+        max_result, segment_max_trunk_distance = datapoints_max_trunk_distance.evaluateReal(fieldcache, 1)
+        if (min_result == RESULT_OK) and (max_result == RESULT_OK):
+            segments_metadata[segment_name] = {
+                "minimum vagus coordinate": segment_min_trunk_distance * distance_to_material,
+                "maximum vagus coordinate": segment_max_trunk_distance * distance_to_material
+            }
+        else:
+            logger.warning("Could not calculate material coordinates range for segment " + segment_name)
+        datapoints.destroyAllNodes()
+    nerve_metadata.set_name_value("segments", segments_metadata)
 
     # fit orientation
     debug_print = False
