@@ -660,9 +660,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._rimElementIds = [None] * elementsCountAlong
         self._boxElementIds = [None] * elementsCountAlong
 
-        # if self._isCore:
-        #     # sample coordinates for the solid core
-        self._sampleCoreCoordinates(elementsCountAlong)
+        # sample coordinates for the solid core
+        if self._dimension == 3:
+            self._sampleCoreCoordinates(elementsCountAlong)
 
         if self._isCap:
             # sample coordinates for the cap mesh at the ends of a tube segment
