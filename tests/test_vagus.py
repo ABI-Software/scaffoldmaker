@@ -223,12 +223,13 @@ class VagusScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ['Default', 'Human Left Vagus 1', 'Human Right Vagus 1'])
         options = scaffold.getDefaultOptions("Human Left Vagus 1")
-        self.assertEqual(len(options), 7)
+        self.assertEqual(len(options), 8)
         self.assertEqual(options.get('Base parameter set'), 'Human Left Vagus 1')
         self.assertEqual(options.get('Number of elements along the trunk pre-fit'), 20)
         self.assertEqual(options.get('Number of elements along the trunk'), 50)
         self.assertEqual(options.get('Trunk proportion'), 1.0)
         self.assertEqual(options.get('Trunk fit number of iterations'), 5)
+        self.assertEqual(options.get('Default anterior direction'), [0.0, 1.0, 0.0])
         self.assertEqual(options.get('Default trunk diameter'), 3.0)
         self.assertEqual(options.get('Branch diameter trunk proportion'), 0.5)
         # change options to make test fast and consistent, with minor effect on result:
@@ -420,7 +421,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 expected_volume = 32973643021.906002 if (coordinate_field is coordinates) else 33282940849.74868
                 self.assertAlmostEqual(expected_volume, volume, delta=STOL)
                 expected_elements_count = 33
-                group = fieldmodule.findFieldByName("vagus epineurium").castGroup()
+                group = fieldmodule.findFieldByName("epineurium").castGroup()
                 mesh_group2d = group.getMeshGroup(mesh2d)
                 self.assertEqual(expected_elements_count * 4, mesh_group2d.getSize())
                 surface_area_field = fieldmodule.createFieldMeshIntegral(one, coordinate_field, mesh_group2d)

@@ -233,8 +233,8 @@ vagus_branch_terms = [
 
     # vagus built-in annotations
     ("vagus centroid", ""),
-    ("vagus epineurium", ""),
-    ("vagus anterior line", "")
+    ("epineurium", "ILX:0103892"),
+    ("orientation anterior", "")  # line on the epineurium in anterior direction
 ]
 
 

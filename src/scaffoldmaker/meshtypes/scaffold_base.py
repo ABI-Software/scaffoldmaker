@@ -125,8 +125,8 @@ class Scaffold_base:
         Must have defined faces and added subelements for highest dimension groups.
         :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :param annotationGroups: List of annotation groups for top-level elements.
-        New face annotation groups are appended to this list.
+        :param annotationGroups: List of annotation groups for elements created in generateBaseMesh().
+        New face/line annotation groups are appended to this list.
         """
         pass
 

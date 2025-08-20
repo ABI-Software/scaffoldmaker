@@ -20,10 +20,10 @@ from scaffoldmaker.utils.constructionobject import ConstructionObject
 from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueLabel, remapEftNodeValueLabelWithNodes, \
     setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import (
-    evaluateScalarOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives, getCubicHermiteArcLength,
-    getCubicHermiteCurvesLength, getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points,
-    interpolateCubicHermiteDerivative, sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth,
-    smoothCurveSideCrossDerivatives, track_curve_side_direction)
+    evaluateCoordinatesOnCurve, evaluateScalarOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives,
+    getCubicHermiteArcLength, getCubicHermiteCurvesLength, getCubicHermiteTrimmedCurvesLengths,
+    getNearestLocationOnCurve, get_curve_from_points, interpolateCubicHermiteDerivative, sampleCubicHermiteCurves,
+    sampleCubicHermiteCurvesSmooth, smoothCurveSideCrossDerivatives, track_curve_side_direction)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.utils.zinc_utils import (
     define_and_fit_field, find_or_create_field_zero_fibres, fit_hermite_curve, generate_curve_mesh, generate_datapoints,\
@@ -58,6 +58,7 @@ class MeshType_3d_nerve1(Scaffold_base):
             'Number of elements along the trunk': 50,
             'Trunk proportion': 1.0,
             'Trunk fit number of iterations': 5,
+            'Default anterior direction': [0.0, 1.0, 0.0],
             'Default trunk diameter': 3.0,
             'Branch diameter trunk proportion': 0.5
         }
@@ -70,13 +71,14 @@ class MeshType_3d_nerve1(Scaffold_base):
             'Number of elements along the trunk',
             'Trunk proportion',
             'Trunk fit number of iterations',
+            'Default anterior direction',
             'Default trunk diameter',
             'Branch diameter trunk proportion'
         ]
 
     @classmethod
     def checkOptions(cls, options):
-        dependentChanges = False
+        dependent_changes = False
         for key in [
             'Number of elements along the trunk',
             'Number of elements along the trunk pre-fit'
@@ -98,7 +100,20 @@ class MeshType_3d_nerve1(Scaffold_base):
                 options[key] = 1.0
         if options['Trunk fit number of iterations'] < 0:
             options['Trunk fit number of iterations'] = 0
-        return dependentChanges
+        # enforce direction is 3-component non-zero vector
+        default_anterior_direction = options['Default anterior direction']
+        if len(default_anterior_direction) == 0:
+            default_anterior_direction = [0.0, 1.0, 0.0]
+        else:
+            count = len(default_anterior_direction)
+            if count < 3:
+                default_anterior_direction += [0.0] * (3 - count)
+            elif count > 3:
+                default_anterior_direction = default_anterior_direction[:3]
+            if magnitude(default_anterior_direction) == 0.0:
+                default_anterior_direction = [0.0, 1.0, 0.0]
+        options['Default anterior direction'] = default_anterior_direction
+        return dependent_changes
 
     @classmethod
     def generateBaseMesh(cls, region, options):
@@ -113,6 +128,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         trunk_elements_count = options['Number of elements along the trunk']
         trunk_proportion = options['Trunk proportion']
         trunk_fit_iterations = options['Trunk fit number of iterations']
+        default_anterior_direction = options['Default anterior direction']
         default_trunk_diameter = options['Default trunk diameter']
         branch_diameter_trunk_proportion = options['Branch diameter trunk proportion']
 
@@ -483,7 +499,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         region1d = region if only_1d_trunk else region.createRegion()
         tx, td1, td2, td12, td3, td13 = generate_trunk_1d(
             vagus_data, trunk_proportion, trunk_elements_count_prefit, trunk_elements_count,
-            trunk_fit_iterations, default_trunk_diameter, region1d, nerve_metadata)
+            trunk_fit_iterations, default_anterior_direction, default_trunk_diameter, region1d, nerve_metadata)
         trunk_length = getCubicHermiteCurvesLength(tx, td1)
         trunk_mean_element_length = trunk_length / trunk_elements_count
 
@@ -503,7 +519,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         annotation_groups.append(centroid_annotation_group)
         centroid_mesh_group = centroid_annotation_group.getMeshGroup(mesh1d)
 
-        epineurium_annotation_group = AnnotationGroup(region, get_vagus_term("vagus epineurium"))
+        epineurium_annotation_group = AnnotationGroup(region, get_vagus_term("epineurium"))
         annotation_groups.append(epineurium_annotation_group)
         epineurium_mesh_group = epineurium_annotation_group.getMeshGroup(mesh2d)
 
@@ -1016,32 +1032,38 @@ class MeshType_3d_nerve1(Scaffold_base):
     @classmethod
     def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
-        Override in classes with face annotation groups.
-        Add face annotation groups from the highest dimension mesh.
-        Must have defined faces and added subelements for highest dimension groups.
-
+        Add orientation anterior 1-D annotation group.
         :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
-        :param annotationGroups: List of annotation groups for top-level elements.
-        New face annotation groups are appended to this list.
+        :param annotationGroups: List of annotation groups for elements created in generateBaseMesh().
+        New face/line annotation groups are appended to this list.
         """
-
-        # Create 2d surface mesh groups
         fieldmodule = region.getFieldmodule()
         mesh2d = fieldmodule.findMeshByDimension(2)
         mesh1d = fieldmodule.findMeshByDimension(1)
 
         epineurium_annotation_group = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_vagus_term("vagus epineurium"))
+            annotationGroups, region, get_vagus_term("epineurium"))
         epineurium_mesh_group = epineurium_annotation_group.getMeshGroup(mesh2d)
         vagusAnteriorLineAnnotationGroup = findOrCreateAnnotationGroupForTerm(
-            annotationGroups, region, get_vagus_term("vagus anterior line"))
+            annotationGroups, region, get_vagus_term("orientation anterior"))
         vagusAnteriorLineMeshGroup = vagusAnteriorLineAnnotationGroup.getMeshGroup(mesh1d)
+        # only want orientation on the trunk
+        trunk_group = None
+        for trunk_group_name in ["left vagus nerve", "right vagus nerve"]:
+            trunk_group_field = fieldmodule.findFieldByName(trunk_group_name)
+            if trunk_group_field.isValid():
+                trunk_group = trunk_group_field.castGroup()
+                break
+        trunk_mesh_group = trunk_group.getMeshGroup(mesh2d) if trunk_group else None
 
         faceIterator = epineurium_mesh_group.createElementiterator()
         quadrant = 0
         face = faceIterator.next()
         while face.isValid():
+            # trunk elements are the first consecutive block
+            if trunk_mesh_group and not trunk_mesh_group.containsElement(face):
+                break
             if quadrant == 0:
                 line = face.getFaceElement(4)
                 vagusAnteriorLineMeshGroup.addElement(line)
@@ -1050,7 +1072,7 @@ class MeshType_3d_nerve1(Scaffold_base):
 
 
 def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit, trunk_elements_count,
-                      trunk_fit_iterations, default_trunk_diameter, region, nerve_metadata):
+                      trunk_fit_iterations, default_anterior_direction, default_trunk_diameter, region, nerve_metadata):
     """
     Build and fit a 1-D trunk curve to trunk data, calibrated to marker point positions.
     :param vagus_data: Vagus data extracted from input data region.
@@ -1058,6 +1080,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     :param trunk_elements_count_prefit: Number of elements in pre-fit mesh to trunk data.
     :param trunk_elements_count: Number of elements in final 1-D mesh.
     :param trunk_fit_iterations: Number of iterations in main trunk fit >= 1.
+    :param default_anterior_direction: Vector direction to use as anterior if no orientotion data is supplied.
+    Normalized in this function.
     :param default_trunk_diameter: Diameter in final units to use if no radius parameters.
     :param region: Region to put the fitted 1-D geometry including marker points in.
     :param nerve_metadata: Construction object to put fitting quality metadata into.
@@ -1288,6 +1312,21 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     orientation_dct = vagus_data.get_orientation_data()
     orientation_x = []
     orientation_twist_angles = []
+    if not orientation_dct:
+        # generate 'orientation anterior' points using the default_anterior_direction and default_trunk_radius
+        # :return Dict mapping 8 possible orientations (anterior, left, right, etc.) to list of x, y, z coordinates.
+        dira = normalize(default_anterior_direction)
+        anterior_x = []
+        for e in range(trunk_elements_count):
+            x, d1 = evaluateCoordinatesOnCurve(tx, td1, (e, 0.5), derivative=True)
+            dir1 = normalize(d1)
+            if abs(dot(dir1, dira)) > 0.9:
+                continue  # skip as trunk is too in-line with anterior direction
+            dir2 = cross(dira, dir1)
+            dir3 = normalize(cross(dir1, dir2))
+            anterior_x.append(add(x, mult(dir3, default_trunk_radius)))
+        if anterior_x:
+            orientation_dct = {'orientation anterior': anterior_x}
     if orientation_dct:
         # convert to list in order down the trunk
         length = getCubicHermiteCurvesLength(tx, td1)
@@ -1375,7 +1414,6 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                 for location, direction, twist_angle, name, in zip(
                         orientation_locations, orientation_directions, orientation_twist_angles, orientation_names):
                     print(location, direction, twist_angle, name)
-
     if orientation_twist_angles:
         data_identifier = 1
         twist_angle_field_name = "twist angle"
@@ -1422,11 +1460,18 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         first_direction = normalize(add(mult(dir3, math.cos(delta_twist_radians)),
                                         mult(dir2, -math.sin(delta_twist_radians))))
     else:
+        # this case is unlikely now due to creation of anterior points above
+        logger.warning("Nerve: Default anterior direction is in-line with top of nerve; expect poor results.")
         ad1 = ax = [0.0] * (trunk_elements_count + 1)
         first_location = (0, 0.0)
         first_twist_radians = 0.0
-        # default anterior direction
-        first_direction = [0.0, 1.0, 0.0]
+        dira = normalize(default_anterior_direction)
+        dir1 = normalize(td1[0])
+        if abs(dot(dir1, dira)) > 0.999:
+            first_direction = dira
+        else:
+            dir2 = cross(dira, dir1)
+            first_direction = normalize(cross(dir1, dir2))
 
     # compute side/anterior directions and their rates of change
     td2 = []

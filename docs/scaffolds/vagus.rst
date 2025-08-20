@@ -101,5 +101,5 @@ annotated with standard term names and identifiers from a controlled vocabulary.
 Each subject-specific vagus box scaffold has the following defined groups of 3-D elements:
 
 * ``vagus centroid`` - centroid of nerve/branch, useful for later fitting centroid data in another geometric configuration such as in-body/MRI tracings.
-* ``vagus epineurium`` - approximately round representation of surface of epineurium, useful for later fitting to precise contours of the epineurium boundary.
-* ``vagus anterior line`` - line on anterior edge of epineurium, useful for later fitting anterior orientation points in another geometric configuration.
+* ``epineurium`` - approximately round representation of surface of epineurium on nerve/branch, useful for later fitting to precise contours of the epineurium boundary.
+* ``orientation anterior`` - line on anterior edge of epineurium of the nerve trunk only, useful for later fitting 'orientation anterior' points in another geometric configuration.
