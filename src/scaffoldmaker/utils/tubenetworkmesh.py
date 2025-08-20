@@ -414,6 +414,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._networkPathParameters = pathParametersList
         self._isCap = networkSegment.isCap()
         if self._isCap:
+            if not self._isCore:
+                self._getNumberOfBoxElements()
+                self._elementsCountTransition = 1
             self._capMesh = CapMesh(self._elementsCountAround, self._elementsCountCoreBoxMajor,
                                     self._elementsCountCoreBoxMinor, self._elementsCountThroughShell,
                                     self._elementsCountTransition, self._networkPathParameters,
@@ -657,9 +660,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._rimElementIds = [None] * elementsCountAlong
         self._boxElementIds = [None] * elementsCountAlong
 
-        if self._isCore:
-            # sample coordinates for the solid core
-            self._sampleCoreCoordinates(elementsCountAlong)
+        # if self._isCore:
+        #     # sample coordinates for the solid core
+        self._sampleCoreCoordinates(elementsCountAlong)
 
         if self._isCap:
             # sample coordinates for the cap mesh at the ends of a tube segment
@@ -667,6 +670,19 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 self._capMesh.sampleCoordinates(self._boxCoordinates, self._transitionCoordinates, self._rimCoordinates))
             # if self._isCore:
             self._smoothD2DerivativesAtCapTubeJoint()
+
+    def _getNumberOfBoxElements(self):
+        """
+        Calculates the number of core box elements required to form a square-looking shield mesh.
+        Only used when the tube is without a core.
+        """
+        # assert
+        half = self._elementsCountAround // 4
+        if half % 2 == 0:
+            self._elementsCountCoreBoxMajor = self._elementsCountCoreBoxMinor = half
+        else:
+            self._elementsCountCoreBoxMinor = half - 1 if (half - 1) % 2 == 0 else half - 3
+            self._elementsCountCoreBoxMajor = half + 1 if (half + 1) % 2 == 0 else half + 3
 
     def _sampleCoreCoordinates(self, elementsCountAlong):
         """
@@ -1731,11 +1747,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             capMesh = self._capMesh
             # create cap nodes at the start section of a tube segment
             if self._isCap[0] and n2 == 0:
-                isStartCap = True
-                capMesh.generateNodes(generateData, isStartCap, self._isCore)
+                capMesh.generateNodes(generateData, isStartCap=True)
 
             # create core box nodes
-            if self._boxCoordinates:
+            if self._isCore:
                 self._boxNodeIds[n2] = [] if self._boxNodeIds[n2] is None else self._boxNodeIds[n2]
                 coreBoxMajorNodesCount = self.getCoreBoxMajorNodesCount()
                 coreBoxMinorNodesCount = self.getCoreBoxMinorNodesCount()
@@ -1787,8 +1802,7 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
             # create cap nodes at the end section of a tube segment
             if self._isCap[-1] and n2 == elementsCountAlong:
-                isStartCap = False
-                self._endCapNodeIds = capMesh.generateNodes(generateData, isStartCap, self._isCore)
+                self._endCapNodeIds = capMesh.generateNodes(generateData, isStartCap=False)
 
         # create a new list containing box node ids are located at the boundary
         if self._isCore:
@@ -1808,13 +1822,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             e2p = e2 + 1
             # create cap elements
             if self._isCap[0] and e2 == 0:
-                isStartCap = True
-                capMesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
-                                         annotationMeshGroups, isStartCap, self._isCore)
+                capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=True)
             elif self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
-                isStartCap = False
-                capMesh.generateElements(elementsCountRim, self._boxNodeIds, self._rimNodeIds,
-                                         annotationMeshGroups, isStartCap, self._isCore)
+                capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=False)
 
             if self._isCore:
                 # create box elements
@@ -4254,6 +4264,12 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 self._layoutNodes, self._layoutInnerCoordinates, pathValueLabels,
                 networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions()))
         elementsCountAround = self._defaultElementsCountAround
+        if any(networkSegment.isCap()) and not self._isCore:
+            if elementsCountAround < 8:
+                elementsCountAround = 8
+            elif elementsCountAround % 4:
+                elementsCountAround += 4 - self._defaultElementsCountAround % 4
+
         elementsCountCoreBoxMinor = self._defaultElementsCountCoreBoxMinor
 
         coreBoundaryScalingMode = self._defaultCoreBoundaryScalingMode

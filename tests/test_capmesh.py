@@ -51,7 +51,7 @@ class CapScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
 
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(8 * 4 + 8 * 3 * 2, mesh3d.getSize())
+        self.assertEqual(8 * 4 + (8 * 2 + 4) * 2, mesh3d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self.assertEqual((8 * 5 + 8 * 2 * 2 + 2) * 2, nodes.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
@@ -88,9 +88,9 @@ class CapScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.014526098773694766, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 0.8247195017487451, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 0.6421069263444478, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.014392962237699036, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 0.8148830981004552, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 0.6329726542126899, delta=X_TOL)
 
     def test_3d_cap_tube_network_default_core(self):
         """
@@ -194,7 +194,7 @@ class CapScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
 
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual((8 * 4 + 8 * 3) * 3 , mesh3d.getSize())
+        self.assertEqual((8 * 4 + 8 * 2 + 4) * 3 , mesh3d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         self.assertEqual((8 * 4 * 3 + 3 * 3 + 2) * 2 + (8 * 2 * 2 + 2) * 3, nodes.getSize())
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
@@ -203,8 +203,8 @@ class CapScaffoldTestCase(unittest.TestCase):
         X_TOL = 1.0E-6
 
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-0.1500000000000000, -0.6246941344953365, -0.1000000000000000], X_TOL)
-        assertAlmostEqualList(self, maximums, [2.1433222518126906, 0.6246941344953366, 0.1000000000000000], X_TOL)
+        assertAlmostEqualList(self, minimums, [-0.1500000000000000, -0.6172290095800493, -0.1000000000000000], X_TOL)
+        assertAlmostEqualList(self, maximums, [2.1395896893550477, 0.6172290095800493, 0.1000000000000000], X_TOL)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -231,9 +231,9 @@ class CapScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.039770715282355665, delta=X_TOL)
-            self.assertAlmostEqual(outerSurfaceArea, 2.2235629407464303, delta=X_TOL)
-            self.assertAlmostEqual(innerSurfaceArea, 1.7691117020959595, delta=X_TOL)
+            self.assertAlmostEqual(volume, 0.039564164189831115, delta=X_TOL)
+            self.assertAlmostEqual(outerSurfaceArea, 2.2086099452749344, delta=X_TOL)
+            self.assertAlmostEqual(innerSurfaceArea, 1.755307334843727, delta=X_TOL)
 
     def test_3d_tube_network_bifurcation_core(self):
         """
