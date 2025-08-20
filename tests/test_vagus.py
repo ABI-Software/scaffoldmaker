@@ -250,12 +250,42 @@ class VagusScaffoldTestCase(unittest.TestCase):
             if i == 1:
                 reorder_vagus_test_data1(self, data_region)
 
+            # create segment groups dividing the data approximately in thirds over the x-span of the trunk
+            data_fieldmodule = data_region.getFieldmodule()
+            data_nodes = data_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            data_coordinates = data_fieldmodule.findFieldByName("coordinates")
+            with ChangeManager(data_fieldmodule):
+                data_x = data_fieldmodule.createFieldComponent(data_coordinates, 1)
+                conditions = [
+                    data_fieldmodule.createFieldLessThan(data_x, data_fieldmodule.createFieldConstant(10000.0)),
+                    None,
+                    data_fieldmodule.createFieldGreaterThan(data_x, data_fieldmodule.createFieldConstant(20000.0))
+                    ]
+                conditions[1] = data_fieldmodule.createFieldNot(
+                    data_fieldmodule.createFieldOr(conditions[0], conditions[2]))
+                for s in range(3):
+                    segment_group = data_fieldmodule.createFieldGroup()
+                    segment_group.setName("segment" + str(s + 1) + ".exf")
+                    segment_group.setManaged(True)
+                    segment_nodeset_group = segment_group.createNodesetGroup(data_nodes)
+                    segment_nodeset_group.addNodesConditional(conditions[s])
+                del conditions
+                del data_x
+
             # check annotation groups
             annotation_groups, nerve_metadata = scaffold.generateMesh(region, options)
             self.assertEqual(len(annotation_groups), 20)
             metadataDict = nerve_metadata.getMetadata()["vagus nerve"]
             TOL = 1.0E-6
             expectedMetadataDict = {
+                'segments': {
+                    'segment1.exf': {'minimum vagus coordinate': 0.062179363163301214,
+                                     'maximum vagus coordinate': 0.244237232602641},
+                    'segment2.exf': {'minimum vagus coordinate': 0.24685186671128517,
+                                     'maximum vagus coordinate': 0.40960681735379395},
+                    'segment3.exf': {'minimum vagus coordinate': 0.41221671261995313,
+                                     'maximum vagus coordinate': 0.5754599929406741}
+                },
                 'trunk centroid fit error rms': 1.6796999717877277,
                 'trunk centroid fit error max': 6.004413110311745,
                 'trunk radius fit error rms': 0.20126533544206293,
@@ -264,7 +294,15 @@ class VagusScaffoldTestCase(unittest.TestCase):
                 'trunk twist angle fit error degrees max': 9.786303215289262}
             self.assertEqual(len(metadataDict), len(expectedMetadataDict))
             for key, value in metadataDict.items():
-                self.assertAlmostEqual(value, expectedMetadataDict[key], delta=TOL)
+                expected_value = expectedMetadataDict[key]
+                if key == 'segments':
+                    self.assertEqual(len(value), len(expected_value))
+                    for segment_name, vagus_coordinate_range in value.items():
+                        expected_vagus_coordinate_range = expected_value[segment_name]
+                        for range_key, range_value in vagus_coordinate_range.items():
+                            self.assertAlmostEqual(range_value, expected_vagus_coordinate_range[range_key], delta=TOL)
+                else:
+                    self.assertAlmostEqual(value, expected_value, delta=TOL)
 
             # (term_id, parent_group_name, expected_elements_count, expected_start_x, expected_start_d1, expected_start_d3,
             #  expected_surface_area, expected_volume)
