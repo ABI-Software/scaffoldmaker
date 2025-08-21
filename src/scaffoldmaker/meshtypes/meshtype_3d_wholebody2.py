@@ -37,14 +37,18 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options = {}
         options["Base parameter set"] = parameterSetName
         options["Structure"] = (
-            "1-2-3-4,"
-            "4-5-6.1," 
-            "6.2-14-15-16-17-18-19,19-20,"
-            "6.3-21-22-23-24-25-26,26-27,"
-            "6.1-7-8-9,"
-            "9-10-11-12-13.1,"
-            "13.2-28-29-30-31-32,32-33-34,"
-            "13.3-35-36-37-38-39,39-40-41")
+            "1-2-3-4,"  # Head
+            "4-5-6.1,"  # Neck
+            "6.2-14-15-16-17,"  # Left brachium
+            "17-18-19,"  # Left antebrachium
+            "19-20," # Left hand
+            "6.3-21-22-23-24,"  # Right brachium
+            "24-25-26,"  # Right antebrachium
+            "26-27," # Right hand 
+            "6.1-7-8-9,"  # Thorax
+            "9-10-11-12-13.1,"  # Abdomen
+            "13.2-28-29-30-31-32,32-33-34,"  # Left lower limb
+            "13.3-35-36-37-38-39,39-40-41")  # Left upper limb
         options["Define inner coordinates"] = True
         options["Head depth"] = 2.0
         options["Head length"] = 2.2
@@ -215,6 +219,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         fieldmodule = region.getFieldmodule()
         mesh = fieldmodule.findMeshByDimension(1)
 
+
         # set up element annotations
         bodyGroup = AnnotationGroup(region, get_body_term("body"))
         headGroup = AnnotationGroup(region, get_body_term("head"))
@@ -222,18 +227,26 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         armGroup = AnnotationGroup(region, get_body_term("upper limb"))
         armToHandGroup = AnnotationGroup(region, ("arm to hand", ""))
         leftArmGroup = AnnotationGroup(region, get_body_term("left upper limb"))
+        leftBrachiumGroup = AnnotationGroup(region, get_body_term("left brachium"))
+        leftAntebrachiumGroup = AnnotationGroup(region, get_body_term("left antebrachium"))
+        leftHandGroup = AnnotationGroup(region, get_body_term("left hand"))
         rightArmGroup = AnnotationGroup(region, get_body_term("right upper limb"))
+        rightBrachiumGroup = AnnotationGroup(region, get_body_term("right brachium"))
+        rightAntebrachiumGroup = AnnotationGroup(region, get_body_term("right antebrachium"))
+        rightHandGroup = AnnotationGroup(region, get_body_term("right hand"))
         handGroup = AnnotationGroup(region, get_body_term("hand"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
         legGroup = AnnotationGroup(region, get_body_term("lower limb"))
         legToFootGroup = AnnotationGroup(region, ("leg to foot", ""))
         leftLegGroup = AnnotationGroup(region, get_body_term("left lower limb"))
-        rightLegGroup = AnnotationGroup(region, get_body_term("right lower limb "))
+        rightLegGroup = AnnotationGroup(region, get_body_term("right lower limb"))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
                             armGroup, armToHandGroup, leftArmGroup, rightArmGroup, handGroup,
                             thoraxGroup, abdomenGroup,
+                            leftBrachiumGroup, leftAntebrachiumGroup, leftHandGroup, 
+                            rightBrachiumGroup, rightAntebrachiumGroup, rightHandGroup,
                             legGroup, legToFootGroup, leftLegGroup, rightLegGroup, footGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
@@ -253,20 +266,37 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elementIdentifier += 1
         left = 0
         right = 1
+        brachiumElementsCount = 4
+        antebrachiumElementsCount = 2
         armToHandElementsCount = 6
         handElementsCount = 1
         armMeshGroup = armGroup.getMeshGroup(mesh)
         armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
         handMeshGroup = handGroup.getMeshGroup(mesh)
+        
         for side in (left, right):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
-            meshGroups = [bodyMeshGroup, armMeshGroup, armToHandMeshGroup, sideArmGroup.getMeshGroup(mesh)]
-            for e in range(armToHandElementsCount):
+            sideBrachiumGroup = leftBrachiumGroup if (side == left) else rightBrachiumGroup
+            sideAntebrachiumGroup = leftAntebrachiumGroup if (side == left) else rightAntebrachiumGroup
+            sideHandGroup = leftHandGroup if (side == left) else rightHandGroup
+            # Setup brachium elements
+            meshGroups = [bodyMeshGroup, armMeshGroup, armToHandMeshGroup, 
+                          sideArmGroup.getMeshGroup(mesh), sideBrachiumGroup.getMeshGroup(mesh)]
+            for e in range(brachiumElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
-            meshGroups = [bodyMeshGroup, armMeshGroup, handMeshGroup, sideArmGroup.getMeshGroup(mesh)]
+            # Setup antebrachium elements
+            meshGroups = [bodyMeshGroup, armMeshGroup, armToHandMeshGroup,
+                           sideArmGroup.getMeshGroup(mesh), sideAntebrachiumGroup.getMeshGroup(mesh)]
+            for e in range(antebrachiumElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+                elementIdentifier += 1
+            # Setup hand elements
+            meshGroups = [bodyMeshGroup, armMeshGroup, handMeshGroup, sideHandGroup.getMeshGroup(mesh)]
             for e in range(handElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
@@ -274,12 +304,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 elementIdentifier += 1
         thoraxElementsCount = 3
         abdomenElementsCount = 4
+        # Setup thorax elements
         meshGroups = [bodyMeshGroup, thoraxGroup.getMeshGroup(mesh)]
         for e in range(thoraxElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
+        # Setup abdomen elements 
         meshGroups = [bodyMeshGroup, abdomenGroup.getMeshGroup(mesh)]
         for e in range(abdomenElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
@@ -411,7 +443,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             armSide = [-sinArmAngle, cosArmAngle, 0.0]
             armFront = cross(armDirn, armSide)
             d1 = mult(armDirn, armScale)
-            # set leg versions 2 (left) and 3 (right) on leg junction node, and intermediate shoulder node
+            # set arm versions 2 (left) and 3 (right) on arm junction node, and intermediate shoulder node
             sd1 = interpolateLagrangeHermiteDerivative(sx, x, d1, 0.0)
             nx, nd1 = sampleCubicHermiteCurvesSmooth([sx, x], [sd1, d1], 2, derivativeMagnitudeEnd=armScale)[0:2]
             arcLengths = [getCubicHermiteArcLength(nx[i], nd1[i], nx[i + 1], nd1[i + 1]) for i in range(2)]

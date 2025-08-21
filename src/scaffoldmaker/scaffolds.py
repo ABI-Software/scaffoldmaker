@@ -72,7 +72,7 @@ class Scaffolds(object):
     def __init__(self):
         self._allScaffoldTypes = [
             MeshType_1d_bifurcationtree1,
-            MeshType_1d_uterus_network_layout1,
+            MeshType_1d_human_body_network_layout1,
             MeshType_1d_network_layout1,
             MeshType_1d_path1,
             MeshType_2d_plate1,
@@ -128,7 +128,7 @@ class Scaffolds(object):
             MeshType_3d_tubeseptum1,
             MeshType_3d_uterus1,
             MeshType_3d_wholebody1,
-            MeshType_3d_wholebody2
+            MeshType_3d_wholebody2, 
             ]
         self._allPrivateScaffoldTypes = [
             MeshType_1d_human_body_network_layout1,
