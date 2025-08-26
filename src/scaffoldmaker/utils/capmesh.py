@@ -936,19 +936,19 @@ class CapMesh:
                 self._shellExtCoordinates[idx][2][sn3],
                 self._shellExtCoordinates[idx][3][sn3]]
 
-    def _getRimCoordinatesWithCore(self, m, n, n3):
+    def _getRimCoordinatesWithCore(self, m, n, n2):
         """
         Get coordinates and derivatives for cap rim. Only applies when core option is active.
         :param m: Index across major axis.
         :param n: Index across minor axis.
-        :param n3: Index along the tube.
+        :param n2: Index along the tube.
         :return: cap rim coordinates and derivatives for points at n3, m and n.
         """
         idx = 0 if self._isStartCap else -1
-        return [self._shellCoordinates[idx][0][n3][m][n],
-                self._shellCoordinates[idx][1][n3][m][n],
-                self._shellCoordinates[idx][2][n3][m][n],
-                self._shellCoordinates[idx][3][n3][m][n]]
+        return [self._shellCoordinates[idx][0][n2][m][n],
+                self._shellCoordinates[idx][1][n2][m][n],
+                self._shellCoordinates[idx][2][n2][m][n],
+                self._shellCoordinates[idx][3][n2][m][n]]
 
     def _getTubeBoxCoordinates(self, m, n):
         """
@@ -1198,6 +1198,7 @@ class CapMesh:
         elementsCountAround = self._elementsCountAround
         elementsCountCoreBoxMinor = self._elementsCountCoreBoxMinor
         elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
+        elementsCountTransition = self._elementsCountTransition
         elementsCountRim = self._getElementsCountRim()
 
         generateData = self._generateData
@@ -1207,6 +1208,7 @@ class CapMesh:
 
         nodeLayoutTransition = generateData.getNodeLayoutTransition()
         nodeLayoutCapTransition = generateData.getNodeLayoutCapTransition()
+        nodeLayoutCapTransitionSpecial = generateData.getNodeLayoutCapTransition(isSpecial=True)
 
         if isStartCap:
             capNodeIds = self._startCapNodeIds
@@ -1269,7 +1271,10 @@ class CapMesh:
                             nids += [capNodeIds[1][n3][n1]]
                             nodeParameter = self._getRimCoordinatesWithCore(n3, n1, 0)
                             nodeParameters.append(nodeParameter)
-                            nodeLayouts.append(nodeLayoutCapTransition)
+                            if elementsCountTransition > 1:
+                                nodeLayouts.append(nodeLayoutCapTransitionSpecial)
+                            else:
+                                nodeLayouts.append(nodeLayoutCapTransition)
                         for n3 in [e3, e3p]:
                             boxLocation, tpLocation = self._getBoxBoundaryLocation(n3, n1)
                             nid = capNodeIds[0][n3][n1]

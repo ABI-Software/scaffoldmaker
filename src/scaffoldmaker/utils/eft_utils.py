@@ -976,12 +976,19 @@ class HermiteNodeLayoutManager:
                     return self._nodeLayoutBifurcationCoreTransitionBottomGeneral
         return nodeLayouts[layoutIndex]
 
-    def getNodeLayoutCapTransition(self):
+    def getNodeLayoutCapTransition(self, isSpecial=False):
         """
         Get node layout for transition elements between the core box elements and the shell elements in the cap mesh.
+        :param isSpecial: True if cap transition is a special case where the number of transition elements > 1 for
+        box shield elements. False for all other cases.
         :return: HermiteNodeLayout.
         """
-        return self._nodeLayoutRegularPermuted_d3Defined
+        if isSpecial:
+            nodeLayoutCapTransition = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]])
+        else:
+            nodeLayoutCapTransition = self._nodeLayoutRegularPermuted_d3Defined
+        return nodeLayoutCapTransition
 
     def getNodeLayoutCapShellTriplePoint(self):
         """

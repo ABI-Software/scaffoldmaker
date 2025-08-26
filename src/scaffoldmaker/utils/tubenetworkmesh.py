@@ -82,10 +82,8 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
 
-        self._nodeLayoutCapTransition = self._nodeLayoutManager.getNodeLayoutCapTransition()
-
+        self._nodeLayoutCapTransition = None
         self._nodeLayoutCapShellTriplePoint = None
-
         self._nodeLayoutCapBoxShield = None
         self._nodeLayoutCapBoxShieldTriplePoint = None
 
@@ -182,10 +180,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         return self._nodeLayoutManager.getNodeLayoutBifurcation6WayTriplePoint(
             segmentsIn, sequence, maxMajorSegment, top)
 
-    def getNodeLayoutCapTransition(self):
+    def getNodeLayoutCapTransition(self, isSpecial=False):
         """
-        Node layout for generating cap shell transition elements, excluding at triple points.
+        Node layout for generating cap transition elements, excluding at triple points.
+        :param isSpecial:True if cap transition is a special case where the number of transition elements > 1 for
+        box shield elements. False for all other cases.
+        :return: Node layout.
         """
+        self._nodeLayoutCapTransition = self._nodeLayoutManager.getNodeLayoutCapTransition(isSpecial=isSpecial)
         return self._nodeLayoutCapTransition
 
     def getNodeLayoutCapShellTriplePoint(self, location):
@@ -4327,11 +4329,11 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 segmentCaps = segment.getIsCap()
                 segment.addCoreElementsToMeshGroup(coreMeshGroup)
                 segment.addShellElementsToMeshGroup(shellMeshGroup)
-                for isCap in segmentCaps:
-                    if isCap:
-                        capMesh = segment.getCapMesh()
-                        capMesh.addBoxElementsToMeshGroup(coreMeshGroup)
-                        capMesh.addShellElementsToMeshGroup(shellMeshGroup)
+                # for isCap in segmentCaps:
+                #     if isCap:
+                #         capMesh = segment.getCapMesh()
+                #         capMesh.addBoxElementsToMeshGroup(coreMeshGroup)
+                #         capMesh.addShellElementsToMeshGroup(shellMeshGroup)
 
 
 class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
