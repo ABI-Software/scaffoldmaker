@@ -4329,11 +4329,11 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 segmentCaps = segment.getIsCap()
                 segment.addCoreElementsToMeshGroup(coreMeshGroup)
                 segment.addShellElementsToMeshGroup(shellMeshGroup)
-                # for isCap in segmentCaps:
-                #     if isCap:
-                #         capMesh = segment.getCapMesh()
-                #         capMesh.addBoxElementsToMeshGroup(coreMeshGroup)
-                #         capMesh.addShellElementsToMeshGroup(shellMeshGroup)
+                for isCap in segmentCaps:
+                    if isCap:
+                        capMesh = segment.getCapMesh()
+                        capMesh.addBoxElementsToMeshGroup(coreMeshGroup)
+                        capMesh.addShellElementsToMeshGroup(shellMeshGroup)
 
 
 class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
