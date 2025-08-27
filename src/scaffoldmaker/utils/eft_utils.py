@@ -732,27 +732,21 @@ class HermiteNodeLayoutManager:
             HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]]),
             HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]]),
             HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])]
-        self._nodeLayoutTriplePointTopLeft = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
-        self._nodeLayoutTriplePointTopRight = HermiteNodeLayout(
-            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
-        self._nodeLayoutTriplePointBottomLeft = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
-        self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
-            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+        self._nodeLayoutTriplePoint = [
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])]
         self._nodeLayoutTriplePoint23Front = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]])
         self._nodeLayoutTriplePoint23Back = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
         self.nodeLayoutsBifurcation6WayTriplePoint = {}
-        self._nodeLayoutCapShellTriplePointTopLeft = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 1.0, 0.0]])
-        self._nodeLayoutCapShellTriplePointTopRight = HermiteNodeLayout(
-            [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0]])
-        self._nodeLayoutCapShellTriplePointBottomLeft = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [-1.0, -1.0, 0.0]])
-        self._nodeLayoutCapShellTriplePointBottomRight = HermiteNodeLayout(
-            [[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, -1.0, 0.0]])
+        self._nodeLayoutCapShellTriplePoint = [
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [-1.0, -1.0, 0.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, -1.0, 0.0]])]
         self._nodeLayoutCapBoxShield = None
         self._nodeLayoutCapBoxShieldTriplePoint = None
 
@@ -870,9 +864,7 @@ class HermiteNodeLayoutManager:
         Bottom Left, and Bottom Right) each with its specific node layout.
         :return: List of 4 HermiteNodeLayout.
         """
-        nodeLayouts = [self._nodeLayoutTriplePointTopLeft, self._nodeLayoutTriplePointTopRight,
-                       self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]
-        return nodeLayouts
+        return self._nodeLayoutTriplePoint
 
     def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
         """
@@ -996,9 +988,7 @@ class HermiteNodeLayoutManager:
         (Top Left, Top Right, Bottom Left, and Bottom Right) each with its specific node layout.
         :return: HermiteNodeLayout.
         """
-        nodeLayouts = [self._nodeLayoutCapShellTriplePointTopLeft, self._nodeLayoutCapShellTriplePointTopRight,
-                       self._nodeLayoutCapShellTriplePointBottomLeft, self._nodeLayoutCapShellTriplePointBottomRight]
-        return nodeLayouts
+        return self._nodeLayoutCapShellTriplePoint
 
     def getNodeLayoutCapBoxShield(self, isStartCap=True):
         """
@@ -1010,26 +1000,17 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         if isStartCap:
-            nodeLayoutCapBoxShieldTop = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [0.0, -1.0, 1.0]])
-            nodeLayoutCapBoxShieldBottom = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, -1.0]])
-            nodeLayoutCapBoxShieldLeft = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 0.0]])
-            nodeLayoutCapBoxShieldRight = HermiteNodeLayout(
-                [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, -1.0, 0.0]])
+            self._nodeLayoutCapBoxShield = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [0.0, -1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, -1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 0.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, -1.0, 0.0]])]
         else:
-            nodeLayoutCapBoxShieldTop = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]])
-            nodeLayoutCapBoxShieldBottom = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]])
-            nodeLayoutCapBoxShieldLeft = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 0.0]])
-            nodeLayoutCapBoxShieldRight = HermiteNodeLayout(
-                [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, 1.0, 0.0]])
-
-        self._nodeLayoutCapBoxShield = [nodeLayoutCapBoxShieldTop, nodeLayoutCapBoxShieldBottom,
-                                        nodeLayoutCapBoxShieldLeft, nodeLayoutCapBoxShieldRight]
+            self._nodeLayoutCapBoxShield = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 0.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, 1.0, 0.0]])]
 
         return self._nodeLayoutCapBoxShield
 
@@ -1042,27 +1023,17 @@ class HermiteNodeLayoutManager:
         :return: HermiteNodeLayout.
         """
         if isStartCap:
-            nodeLayoutCapBoxShieldTriplePointTopLeft = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]])
-            nodeLayoutCapBoxShieldTriplePointTopRight = HermiteNodeLayout(
-                [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]])
-            nodeLayoutCapBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]])
-            nodeLayoutCapBoxShieldTriplePointBottomRight = HermiteNodeLayout(
-                [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, -1.0, -1.0]])
+            self._nodeLayoutCapBoxShieldTriplePoint = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, -1.0, -1.0]])]
         else:
-            nodeLayoutCapBoxShieldTriplePointTopLeft = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]])
-            nodeLayoutCapBoxShieldTriplePointTopRight = HermiteNodeLayout(
-                [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])
-            nodeLayoutCapBoxShieldTriplePointBottomLeft = HermiteNodeLayout(
-                [[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 1.0, -1.0]])
-            nodeLayoutCapBoxShieldTriplePointBottomRight = HermiteNodeLayout(
-                [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])
-
-        self._nodeLayoutCapBoxShieldTriplePoint = \
-            [nodeLayoutCapBoxShieldTriplePointTopLeft, nodeLayoutCapBoxShieldTriplePointTopRight,
-             nodeLayoutCapBoxShieldTriplePointBottomLeft, nodeLayoutCapBoxShieldTriplePointBottomRight]
+            self._nodeLayoutCapBoxShieldTriplePoint = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 1.0, -1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])]
 
         return self._nodeLayoutCapBoxShieldTriplePoint
 

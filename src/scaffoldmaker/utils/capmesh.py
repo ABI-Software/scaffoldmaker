@@ -1258,7 +1258,7 @@ class CapMesh:
                     boxElementIds[e3].append(elementIdentifier)
             capElementIds.append(boxElementIds)
 
-            # box shield elements (elements joining the box and the shell elements)
+            # box shield elements (elements joining the box and the shield elements)
             boxshieldElementIds = []
             for e3 in range(elementsCountCoreBoxMajor):
                 boxshieldElementIds.append([])
@@ -1339,7 +1339,7 @@ class CapMesh:
         # rim
         capElementIds = []
         if self._isCore:
-            # box transition
+            # box shell (elements between the box core and the outer rim)
             ringElementIds = []
             boxExtBoundaryNodeIds, boxExtBoundaryNodestoBoxIds = self._createBoundaryNodeIdsList(boxExtNodeIds)
             for e1 in range(elementsCountAround):
