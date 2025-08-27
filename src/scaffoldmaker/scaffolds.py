@@ -111,6 +111,7 @@ class Scaffolds(object):
         MeshType_3d_nerve1,
         MeshType_3d_ostium1,
         MeshType_3d_ostium2,
+        MeshType_3d_renal_pelvis1,
         MeshType_3d_smallintestine1,
         MeshType_3d_solidcylinder1,
         MeshType_3d_solidsphere1,
