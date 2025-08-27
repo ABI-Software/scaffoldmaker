@@ -12,7 +12,7 @@ from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
-
+from scaffoldmaker.utils.constructionobject import ConstructionObject
 
 class MeshType_1d_bifurcationtree1(Scaffold_base):
     '''
@@ -152,7 +152,7 @@ class TreeNode:
         return self._x, self._d1[child._parent_d1_index], self._r[child._parent_r_index], child._x, child._d1[0], child._r[0]
 
 
-class BifurcationTree:
+class BifurcationTree(ConstructionObject):
     '''
     Class for generating tree of 1-D bifurcating curves and converting to Zinc model.
     '''

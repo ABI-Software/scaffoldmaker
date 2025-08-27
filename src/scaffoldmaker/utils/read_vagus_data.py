@@ -111,8 +111,8 @@ class VagusInputData:
         # extract orientation data
         for orientation_group_name in orientation_group_names:
             group = fm.findFieldByName(orientation_group_name).castGroup()
-            nodeset = group.getNodesetGroup(nodes)
-            _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
+            nodeset_group = group.getNodesetGroup(nodes)
+            _, values = get_nodeset_field_parameters(nodeset_group, coordinates, [Node.VALUE_LABEL_VALUE])
             orientation_points = [value[1][0][0] for value in values]
             self._orientation_data[orientation_group_name] = orientation_points[:]
 
@@ -127,30 +127,37 @@ class VagusInputData:
                 self._annotation_term_map[self._trunk_group_name] = get_vagus_term(self._trunk_group_name)[1]
                 self._side_label = 'right'
 
+        # build list of trunk centroid data associated with segment groups ending in .exf
+        # exported by segmentation stitcher, but not from connections which have .exf twice
+        # get map from segment group_name to (nodeset_group, [])
+        # where [] = coordinates list to be filled from trunk groups' coordinates
+        self._segment_groups_info = {}
+        for group in group_list:
+            group_name = group.getName()
+            if (group_name[-4:] == '.exf') and (1 == group_name.count('.exf')):
+                self._segment_groups_info[group_name] = (group.getNodesetGroup(nodes), [])
+
         if self._trunk_group_name:
             trunk_group_count = 0
+            trunk_nodes = []
+            trunk_coordinates = []
+            trunk_radius = []
             trunk_elements = []
             for found_trunk_group_name in found_trunk_group_names:
                 group = fm.findFieldByName(found_trunk_group_name).castGroup()
-                nodeset = group.getNodesetGroup(nodes)
-                meshgroup = group.getMeshGroup(mesh)
-                _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
-                if trunk_group_count == 0:
-                    trunk_nodes = [value[0] for value in values]
-                    trunk_coordinates = [value[1][0] for value in values]
-                    if radius.isValid():
-                        _, values = get_nodeset_field_parameters(nodeset, radius, [Node.VALUE_LABEL_VALUE])
-                        trunk_radius = [value[1][0][0] for value in values]
-                else:
-                    trunk_nodes.extend([value[0] for value in values])
-                    trunk_coordinates.extend([value[1][0] for value in values])
-                    if radius.isValid():
-                        _, values = get_nodeset_field_parameters(nodeset, radius, [Node.VALUE_LABEL_VALUE])
-                        trunk_radius.extend([value[1][0][0] for value in values])
+                nodeset_group = group.getNodesetGroup(nodes)
+                mesh_group = group.getMeshGroup(mesh)
+                coordinate_values = get_nodeset_field_parameters(nodeset_group, coordinates,
+                                                                 [Node.VALUE_LABEL_VALUE])[1]
+                trunk_nodes += [value[0] for value in coordinate_values]
+                trunk_coordinates += [value[1][0] for value in coordinate_values]
+                if radius.isValid():
+                    radius_values = get_nodeset_field_parameters(nodeset_group, radius, [Node.VALUE_LABEL_VALUE])[1]
+                    trunk_radius += [value[1][0][0] for value in radius_values]
 
                 # get trunk elements
-                if meshgroup.getSize() > 0:
-                    element_iterator = meshgroup.createElementiterator()
+                if mesh_group.getSize() > 0:
+                    element_iterator = mesh_group.createElementiterator()
                     element = element_iterator.next()
                     while element.isValid():
                         eft = element.getElementfieldtemplate(coordinates, -1)
@@ -160,6 +167,14 @@ class VagusInputData:
                         element = element_iterator.next()
 
                 trunk_group_count += 1
+
+            # fill segment groups with coordinates of trunk nodes contained in them
+            if self._segment_groups_info:
+                for n, node_identifier in enumerate(trunk_nodes):
+                    node = nodes.findNodeByIdentifier(node_identifier)
+                    for segment_nodeset_group, segment_points_list in self._segment_groups_info.values():
+                        if segment_nodeset_group.containsNode(node):
+                            segment_points_list.append(trunk_coordinates[n][0])
 
             # order trunk coordinates top to bottom in case trunk elements are available
             if len(trunk_elements) > 0:
@@ -240,12 +255,12 @@ class VagusInputData:
         branch_nodes_data = {}
         for branch_name in branch_group_names:
             group = fm.findFieldByName(branch_name).castGroup()
-            nodeset = group.getNodesetGroup(nodes)
-            if 'xml.ex' in branch_name or nodeset.getSize() < 2:
+            nodeset_group = group.getNodesetGroup(nodes)
+            if 'xml.ex' in branch_name or nodeset_group.getSize() < 2:
                 # xml.ex are temporary regions from segmentation stitcher that might have keywords in their names
                 # branch should have at least two nodes to be connected to parent
                 continue
-            _, values = get_nodeset_field_parameters(nodeset, coordinates, [Node.VALUE_LABEL_VALUE])
+            _, values = get_nodeset_field_parameters(nodeset_group, coordinates, [Node.VALUE_LABEL_VALUE])
             branch_nodes = [value[0] for value in values]
             branch_parameters = [value[1][0] for value in values]
             self._branch_coordinates_data[branch_name] = branch_parameters
@@ -253,7 +268,7 @@ class VagusInputData:
 
             # not used at the moment
             if radius.isValid():
-                _, values = get_nodeset_field_parameters(nodeset, radius, [Node.VALUE_LABEL_VALUE])
+                _, values = get_nodeset_field_parameters(nodeset_group, radius, [Node.VALUE_LABEL_VALUE])
                 branch_radius = [value[1][0][0] for value in values]
                 if not all(value == 0.0 for value in branch_radius):
                     self._branch_radius_data[branch_name] = branch_radius
@@ -384,6 +399,17 @@ class VagusInputData:
         """
         self._datafile_path = None
 
+    def get_segments_trunk_coordinates(self):
+        """
+        Get coordinates of trunk nodes in each segment corresponding to each .exf file read into the
+        segmentations stitcher, recognized by group names ending in '.exf', but not containing '.exf'
+        multiple times as for connection groups.
+        :return: dict segment_name -> list of coordinates
+        """
+        segments_trunk_coordinates = {}
+        for segment_name, rhs in self._segment_groups_info.items():
+            segments_trunk_coordinates[segment_name] = rhs[1]  # only the coordinates
+        return segments_trunk_coordinates
 
 def group_common_branches(branch_names):
     """
