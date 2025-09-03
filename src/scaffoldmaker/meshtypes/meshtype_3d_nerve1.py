@@ -5,7 +5,6 @@ from cmlibs.maths.vectorops import (
     add, cross, distance, dot, magnitude, matrix_mult, matrix_inv, mult, normalize, rejection, set_magnitude, sub)
 from cmlibs.utils.zinc.field import find_or_create_field_group, find_or_create_field_coordinates
 from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.utils.zinc.group import get_group_list
 from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
 from cmlibs.zinc.field import Field, FieldFindMeshLocation, FieldGroup
 from cmlibs.zinc.node import Node
@@ -22,9 +21,10 @@ from scaffoldmaker.utils.eft_utils import remapEftLocalNodes, remapEftNodeValueL
     setEftScaleFactorIds
 from scaffoldmaker.utils.interpolation import (
     evaluateCoordinatesOnCurve, evaluateScalarOnCurve, getCubicHermiteBasis, getCubicHermiteBasisDerivatives,
-    getCubicHermiteArcLength, getCubicHermiteCurvesLength, getCubicHermiteTrimmedCurvesLengths,
-    getNearestLocationOnCurve, get_curve_from_points, interpolateCubicHermiteDerivative, sampleCubicHermiteCurves,
-    sampleCubicHermiteCurvesSmooth, smoothCurveSideCrossDerivatives, track_curve_side_direction)
+    getCubicHermiteArcLength, getCubicHermiteCurvature, getCubicHermiteCurvesLength,
+    getCubicHermiteTrimmedCurvesLengths, getNearestLocationOnCurve, get_curve_from_points,
+    interpolateCubicHermiteDerivative, sampleCubicHermiteCurves, sampleCubicHermiteCurvesSmooth,
+    smoothCurveSideCrossDerivatives, track_curve_side_direction)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.utils.zinc_utils import (
     define_and_fit_field, find_or_create_field_zero_fibres, fit_hermite_curve, generate_curve_mesh, generate_datapoints,\
@@ -1149,6 +1149,10 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                                      (end_length - end_marker_extra_length) * material_length_per_length)
     # extend curves at each end, by moving end node if short extension, or adding node if large
     start_extra_length = start_curve_material_coordinate / material_length_per_length
+    if start_extra_length < 0.0:
+        logger.warning("Projected start material coordinate " + str(start_curve_material_coordinate) +
+                       " is < 0; using full range of data.")
+        start_extra_length = 0.0
     start_direction = normalize(dd1[0])
     mag_d1 = magnitude(dd1[0])
     start_dx = sub(dx[0], mult(start_direction, start_extra_length))
@@ -1159,6 +1163,10 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         dx.insert(0, start_dx)
         dd1.insert(0, mult(start_direction, 2.0 * start_extra_length - mag_d1))
     end_extra_length = (trunk_proportion - end_curve_material_coordinate) / material_length_per_length
+    if end_extra_length < 0.0:
+        logger.warning("Projected end material coordinate " + str(end_curve_material_coordinate) +
+                       " is > trunk proportion " + str(trunk_proportion) +  "; using full range of data.")
+        end_extra_length = 0.0
     end_direction = normalize(dd1[-1])
     mag_d1 = magnitude(dd1[-1])
     end_dx = add(dx[-1], mult(end_direction, end_extra_length))
@@ -1425,6 +1433,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         if not orientation_directions:
             logger.warning("Nerve: All orientation points ignored, using default orientation")
         else:
+            # twist angles are positive in right hand sense around direction down trunk
             twist_angle = 0.0
             orientation_twist_angles.append(twist_angle)  # top orientation point is at 0 radians
             direction = orientation_directions[0]
@@ -1533,10 +1542,26 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                              mult(dir2, -math.sin(delta_twist_radians))))
         left = normalize(cross(ante, dir1))
 
+        # calculate centroid curvature in d2, d3 directions
+        curvatures = []
+        for dirn in [left, ante]:
+            curvature = 0.0
+            count = 0
+            if node_index > 0:
+                curvature += getCubicHermiteCurvature(
+                    tx[node_index - 1], td1[node_index - 1], x, d1, dirn, 1.0)
+                count += 1
+            if n < trunk_elements_count:
+                curvature += getCubicHermiteCurvature(
+                    x, d1, tx[node_index + 1], td1[node_index + 1], dirn, 0.0)
+                count += 1
+            curvature /= count
+            curvatures.append(curvature)
+
         d2 = set_magnitude(left, rv)
-        d12 = add(mult(left, rd), mult(ante, rv * ad))
+        d12 = add(add(mult(left, rd), mult(ante, rv * ad)), mult(d1, -rv * curvatures[0]))
         d3 = set_magnitude(ante, rv)
-        d13 = add(mult(ante, rd), mult(left, -rv * ad))
+        d13 = add(add(mult(ante, rd), mult(left, -rv * ad)), mult(d1, -rv * curvatures[1]))
         ix = n if forward else 0
         node_indexes.insert(ix, node_index)
         td2.insert(ix, d2)
