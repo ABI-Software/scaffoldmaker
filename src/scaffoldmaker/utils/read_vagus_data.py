@@ -194,11 +194,22 @@ class VagusInputData:
                 for el in trunk_graph.keys():
                     if len(trunk_graph[el]) <= 1:
                         unconnected_nodes.append(el)
-                #print(trunk_graph)
+
+                # choose start, not necessarily first in unconnected nodes
+                furthest_distance = 0
+                for index_1, node_id_1 in enumerate(unconnected_nodes):
+                    for index_2 in range(index_1, len(unconnected_nodes)):
+                        node_id_2 = unconnected_nodes[index_2]
+                        dist = distance(nid_coords[node_id_1], nid_coords[node_id_2])
+                        if dist > furthest_distance:
+                            furthest_distance = dist
+                            furthest_index_1 = index_1
+                            furthest_index_2 = index_2
+
+                start_index = furthest_index_1 if furthest_index_1 < furthest_index_2 else furthest_index_2
+                start = unconnected_nodes[start_index]
 
                 trunk_path_ids = []
-                start = unconnected_nodes[0]
-                start_index = 0
                 # BFS from first to next unconnected, all connected in one long path
                 while len(unconnected_nodes) > 0:
                     unconnected_nodes.pop(start_index)
