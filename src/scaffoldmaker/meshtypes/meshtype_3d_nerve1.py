@@ -55,7 +55,7 @@ class MeshType_3d_nerve1(Scaffold_base):
         baseParameterSetName = 'Human Left Vagus 1' if (parameterSetName == 'Default') else parameterSetName
         options = {
             'Base parameter set': baseParameterSetName,
-            'Number of elements along the trunk pre-fit': 20,
+            'Number of elements along the trunk pre-fit': 30,
             'Number of elements along the trunk': 50,
             'Trunk proportion': 1.0,
             'Trunk fit number of iterations': 5,
@@ -1011,22 +1011,22 @@ class MeshType_3d_nerve1(Scaffold_base):
             side_label + ' level of superior border of the clavicle on the vagus nerve'
         cervical_thoracic_boundary_material_coordinate = vagus_level_terms[cervical_thoracic_boundary_marker_name]
 
-        cervical_trunk_mesh_group = cervical_trunk_group.getMeshGroup(mesh3d)
-        thoracic_trunk_mesh_group = thoracic_trunk_group.getMeshGroup(mesh3d)
-
         trunk_group = findAnnotationGroupByName(annotation_groups, trunk_group_name)
-        trunk_mesh_group = trunk_group.getMeshGroup(mesh3d)
-        el_iter = trunk_mesh_group.createElementiterator()
-        element = el_iter.next()
-        element_material_coordinate_span = 1.0 / trunk_elements_count
-        mid_element_material_coordinate = 0.5 * element_material_coordinate_span
-        while element.isValid():
-            if mid_element_material_coordinate < cervical_thoracic_boundary_material_coordinate:
-                cervical_trunk_mesh_group.addElement(element)
-            else:
-                thoracic_trunk_mesh_group.addElement(element)
-            mid_element_material_coordinate += element_material_coordinate_span
+        for dimension in range(3, 0, -1):
+            mesh = fieldmodule.findMeshByDimension(dimension)
+            trunk_mesh_group = trunk_group.getMeshGroup(mesh)
+            cervical_trunk_mesh_group = cervical_trunk_group.getMeshGroup(mesh)
+            thoracic_trunk_mesh_group = thoracic_trunk_group.getMeshGroup(mesh)
+            el_iter = trunk_mesh_group.createElementiterator()
             element = el_iter.next()
+            while element.isValid():
+                fieldcache.setMeshLocation(element, [0.5, 0.5, 0.5])
+                _, material_coordinate = vagus_coordinates.evaluateReal(fieldcache, 3)
+                if material_coordinate[2] < cervical_thoracic_boundary_material_coordinate:
+                    cervical_trunk_mesh_group.addElement(element)
+                else:
+                    thoracic_trunk_mesh_group.addElement(element)
+                element = el_iter.next()
 
         return annotation_groups, nerve_metadata
 
