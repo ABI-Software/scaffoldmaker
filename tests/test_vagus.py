@@ -230,7 +230,7 @@ class VagusScaffoldTestCase(unittest.TestCase):
         options = scaffold.getDefaultOptions("Human Left Vagus 1")
         self.assertEqual(len(options), 8)
         self.assertEqual(options.get('Base parameter set'), 'Human Left Vagus 1')
-        self.assertEqual(options.get('Number of elements along the trunk pre-fit'), 20)
+        self.assertEqual(options.get('Number of elements along the trunk pre-fit'), 30)
         self.assertEqual(options.get('Number of elements along the trunk'), 50)
         self.assertEqual(options.get('Trunk proportion'), 1.0)
         self.assertEqual(options.get('Trunk fit number of iterations'), 5)
