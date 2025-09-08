@@ -96,7 +96,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._rightGroup = None
         self._dorsalGroup = None
         self._ventralGroup = None
+        # annotations for the kidney scaffold:
         self._renalCapsuleGroup = None
+        self._lateralGroup = None
+        self._medialGroup = None
+        self._anteriorGroup = None
+        self._posteriorGroup = None
+        self._openingGroup = None
+
 
     def getStandardElementtemplate(self):
         return self._standardElementtemplate, self._standardEft
@@ -309,6 +316,31 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         if not self._renalCapsuleGroup:
             self._renalCapsuleGroup = self.getOrCreateAnnotationGroup(("renal capsule", ""))
         return self._renalCapsuleGroup.getMeshGroup(self._mesh)
+
+    def getAnteriorMeshGroup(self):
+        if not self._anteriorGroup:
+            self._anteriorGroup = self.getOrCreateAnnotationGroup(("anterior", ""))
+        return self._anteriorGroup.getMeshGroup(self._mesh)
+
+    def getPosteriorMeshGroup(self):
+        if not self._posteriorGroup:
+            self._posteriorGroup = self.getOrCreateAnnotationGroup(("posterior", ""))
+        return self._posteriorGroup.getMeshGroup(self._mesh)
+
+    def getLateralMeshGroup(self):
+        if not self._lateralGroup:
+            self._lateralGroup = self.getOrCreateAnnotationGroup(("lateral", ""))
+        return self._lateralGroup.getMeshGroup(self._mesh)
+
+    def getMedialMeshGroup(self):
+        if not self._medialGroup:
+            self._medialGroup = self.getOrCreateAnnotationGroup(("medial", ""))
+        return self._medialGroup.getMeshGroup(self._mesh)
+
+    def getOpeningMeshGroup(self):
+        if not self._openingGroup:
+            self._openingGroup = self.getOrCreateAnnotationGroup(("opening", ""))
+        return self._openingGroup.getMeshGroup(self._mesh)
 
     def getNewTrimAnnotationGroup(self):
         self._trimAnnotationGroupCount += 1
@@ -1562,19 +1594,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 [None] * self._elementsCountCoreBoxMinor for _ in range(self._elementsCountCoreBoxMajor)]
         self._boxElementIds[e2][e3][e1] = elementIdentifier
 
-    def _addBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+    def _addBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup, e2Start=None, e2Limit=None):
         """
         Add ranges of box elements to mesh group.
         :param e1Start: Start element index in major / d2 direction.
         :param e1Limit: Limit element index in major / d2 direction.
         :param e3Start: Start element index in minor / d3 direction.
         :param e3Limit: Limit element index in minor / d3 direction.
+        :param e2Start: Start element index in d1 direction. If None, use 0 as default.
+        :param e2Limit: Limit element index in d1 direction. If None, use elementsCountAlong as default.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         # print("Add box elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
         elementsCountAlong = self.getSampledElementsCountAlong()
         mesh = meshGroup.getMasterMesh()
-        for e2 in range(elementsCountAlong):
+        e2Start = 0 if e2Start is None else e2Start
+        e2Limit = elementsCountAlong if e2Limit is None else e2Limit
+        for e2 in range(e2Start, e2Limit):
             boxSlice = self._boxElementIds[e2]
             if boxSlice:
                 # print(boxSlice[e1Start:e1Limit])
@@ -1583,19 +1619,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         element = mesh.findElementByIdentifier(elementIdentifier)
                         meshGroup.addElement(element)
 
-    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup, e2Start=None, e2Limit=None):
         """
         Add ranges of rim elements to mesh group.
         :param e1Start: Start element index around. Can be negative which supports wrapping.
         :param e1Limit: Limit element index around.
         :param e3Start: Start element index rim.
         :param e3Limit: Limit element index rim.
+        :param e2Start: Start element index in d1 direction. If None, use 0 as default.
+        :param e2Limit: Limit element index in d1 direction. If None, use elementsCountAlong as default.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
         elementsCountAlong = self.getSampledElementsCountAlong()
         mesh = meshGroup.getMasterMesh()
-        for e2 in range(elementsCountAlong):
+        e2Start = 0 if e2Start is None else e2Start
+        e2Limit = elementsCountAlong if e2Limit is None else e2Limit
+        for e2 in range(e2Start, e2Limit):
             rimSlice = self._rimElementIds[e2]
             if rimSlice:
                 for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
@@ -1637,6 +1677,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self.addCoreElementsToMeshGroup(meshGroup)
         self.addShellElementsToMeshGroup(meshGroup)
 
+    def addSideD1ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d1 or -d1, often matching anterior and posterior.
+        :param side: False for +d1 direction, True for -d1 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        e2Start = 0 if side else elementsCountAlong // 2
+        e2Limit = elementsCountAlong // 2 if side else elementsCountAlong
+        if self._isCore:
+            self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor,
+                                            0, self._elementsCountCoreBoxMinor, meshGroup,
+                                            e2Start=e2Start, e2Limit=e2Limit)
+        self._addRimElementsToMeshGroup(0, self._elementsCountAround,
+                                        0, self.getElementsCountRim(), meshGroup,
+                                        e2Start=e2Start, e2Limit=e2Limit)
+
     def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
         """
         Add elements to the mesh group on side of +d2 or -d2, often matching left and right.
@@ -1668,6 +1725,19 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         e1Start = (self._elementsCountAround // 2) if side else 0
         e1Limit = e1Start + (self._elementsCountAround // 2)
         self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
+    def addShellOpeningElementsToMeshGroup(self, e1Start, e1Limit, meshGroup):
+        """
+        Add specific elements in the shell to mesh group.
+        :param e1Start: Start element index around.
+        :param e1Limit: Limit element index around.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountRim = self.getElementsCountRim()
+        elementsCountShell = self._elementsCountThroughShell
+        e3ShellStart = elementsCountRim - elementsCountShell
+
+        self._addRimElementsToMeshGroup(e1Start, e1Limit, e3ShellStart, elementsCountRim, meshGroup)
 
     def getRimNodeIdsSlice(self, n2):
         """
@@ -4332,8 +4402,8 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 for isCap in segmentCaps:
                     if isCap:
                         capMesh = segment.getCapMesh()
-                        capMesh.addBoxElementsToMeshGroup(coreMeshGroup)
-                        capMesh.addShellElementsToMeshGroup(shellMeshGroup)
+                        capMesh.addCapBoxElementsToMeshGroup(coreMeshGroup)
+                        capMesh.addCapShellElementsToMeshGroup(shellMeshGroup)
 
 
 class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
@@ -4372,13 +4442,60 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                 segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
                 segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
                 if capMesh:
-                    capMesh.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
-                    capMesh.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
+                    capMesh.addCapSideD2ElementsToMeshGroup(False, leftMeshGroup)
+                    capMesh.addCapSideD2ElementsToMeshGroup(True, rightMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
             if capMesh:
-                capMesh.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
-                capMesh.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+                capMesh.addCapSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+                capMesh.addCapSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+
+
+class KidneyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+    """
+    Specialization of TubeNetworkMeshBuilder adding annotations for anterior, posterior, lateral, medial, and hilum regions.
+    """
+
+    def generateMesh(self, generateData):
+        super(KidneyTubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build anterior, posterior, lateral, medial annotation groups
+        anteriorMeshGroup = generateData.getAnteriorMeshGroup()
+        posteriorMeshGroup = generateData.getPosteriorMeshGroup()
+        lateralMeshGroup = generateData.getLateralMeshGroup()
+        medialMeshGroup = generateData.getMedialMeshGroup()
+        dorsalMeshGroup = generateData.getDorsalMeshGroup()
+        ventralMeshGroup = generateData.getVentralMeshGroup()
+        openingMeshGroup = generateData.getOpeningMeshGroup()
+
+        elementsCountAround = self._defaultElementsCountAround
+        halfElementsCountAround = elementsCountAround // 2
+        increment = max(1, elementsCountAround // 8)
+
+        e1Start = halfElementsCountAround - increment
+        e1End = halfElementsCountAround + increment
+
+        for networkSegment in self._networkMesh.getNetworkSegments():
+            segment = self._segments[networkSegment]
+            segmentCaps = segment.getIsCap()
+            if True in segmentCaps:
+                capMesh = segment.getCapMesh()
+            else:
+                capMesh = None
+            # segment on main axis
+            segment.addSideD1ElementsToMeshGroup(True, anteriorMeshGroup)
+            segment.addSideD1ElementsToMeshGroup(False, posteriorMeshGroup)
+            segment.addSideD2ElementsToMeshGroup(False, lateralMeshGroup)
+            segment.addSideD2ElementsToMeshGroup(True, medialMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+            segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+            segment.addShellOpeningElementsToMeshGroup(e1Start, e1End, openingMeshGroup)
+            if capMesh:
+                capMesh.addCapSideD1ElementsToMeshGroup(True, anteriorMeshGroup)
+                capMesh.addCapSideD1ElementsToMeshGroup(False, posteriorMeshGroup)
+                capMesh.addCapSideD2ElementsToMeshGroup(False, lateralMeshGroup)
+                capMesh.addCapSideD2ElementsToMeshGroup(True, medialMeshGroup)
+                capMesh.addCapSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+                capMesh.addCapSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
 
 
 class TubeEllipseGenerator:

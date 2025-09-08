@@ -7,7 +7,8 @@ from cmlibs.maths.vectorops import mult, set_magnitude, cross
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.field import Field
 
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
+    getAnnotationGroupForTerm, findAnnotationGroupByName
 from scaffoldmaker.annotation.kidney_terms import get_kidney_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
@@ -15,7 +16,8 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, sampleCubicHermiteCurves, \
     smoothCurveSideCrossDerivatives
 from scaffoldmaker.utils.networkmesh import NetworkMesh
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
+    KidneyTubeNetworkMeshBuilder
 from cmlibs.zinc.node import Node
 
 
@@ -41,7 +43,7 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         options["Renal capsule length"] = 1.0
         options["Renal capsule diameter"] = 1.5
         options["Renal capsule bend angle degrees"] = 10
-        options["Inner proportion default"] = 0.8
+        options["Inner proportion default"] = 0.6
         return options
 
     @classmethod
@@ -102,12 +104,12 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         mesh = fieldmodule.findMeshByDimension(1)
 
         # set up element annotations
-        renalCapsuleGroup = AnnotationGroup(region, get_kidney_term("kidney capsule"))
-        annotationGroups = [renalCapsuleGroup]
+        kidneyGroup = AnnotationGroup(region, get_kidney_term("kidney"))
+        annotationGroups = [kidneyGroup]
 
-        renalCapsuleGroup = renalCapsuleGroup.getMeshGroup(mesh)
+        kidneyMeshGroup = kidneyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
-        meshGroups = [renalCapsuleGroup]
+        meshGroups = [kidneyMeshGroup]
         for e in range(capsuleElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
@@ -208,10 +210,10 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
         options["Renal capsule network layout"] = ScaffoldPackage(MeshType_1d_renal_capsule_network_layout1)
-        options["Elements count around"] = 12
+        options["Elements count around"] = 8
         options["Elements count through shell"] = 1
         options["Annotation elements counts around"] = [0]
-        options["Target element density along longest segment"] = 4.0
+        options["Target element density along longest segment"] = 2.0
         options["Number of elements across core box minor"] = 2
         options["Number of elements across core transition"] = 1
         options["Annotation numbers of elements across core box minor"] = [0]
@@ -339,7 +341,7 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
-        tubeNetworkMeshBuilder = TubeNetworkMeshBuilder(
+        tubeNetworkMeshBuilder = KidneyTubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
             defaultElementsCountAround=options["Elements count around"],
@@ -358,7 +360,82 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
 
+        # add kidney-specific annotation groups
+        fm = region.getFieldmodule()
+        mesh = generateData.getMesh()
+
+        coreGroup = getAnnotationGroupForTerm(annotationGroups, ("core", "")).getGroup()
+        shellGroup = getAnnotationGroupForTerm(annotationGroups, ("shell", "")).getGroup()
+        openingGroup = getAnnotationGroupForTerm(annotationGroups, ("opening", "")).getGroup()
+
+        hilumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("hilum of kidney"))
+        hilumGroup.getMeshGroup(mesh).addElementsConditional(openingGroup)
+
+        cortexGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("cortex of kidney"))
+        tempGroup = fm.createFieldSubtract(shellGroup, openingGroup)
+        cortexGroup.getMeshGroup(mesh).addElementsConditional(tempGroup)
+
+        medullaGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("renal medulla"))
+        medullaGroup.getMeshGroup(mesh).addElementsConditional(coreGroup)
+
+        for term in ["core", "shell", "opening"]:
+            annotationGroups.remove(findAnnotationGroupByName(annotationGroups, term))
+
         return annotationGroups, None
+
+
+    @classmethod
+    def defineFaceAnnotations(cls, region, options, annotationGroups):
+        """
+        Add face annotation groups from the highest dimension mesh.
+        Must have defined faces and added subelements for highest dimension groups.
+        :param region: Zinc region containing model.
+        :param options: Dict containing options. See getDefaultOptions().
+        :param annotationGroups: List of annotation groups for top-level elements.
+        New face annotation groups are appended to this list.
+        """
+        fm = region.getFieldmodule()
+        mesh1d = fm.findMeshByDimension(1)
+        mesh2d = fm.findMeshByDimension(2)
+
+        is_exterior = fm.createFieldIsExterior()
+        kidneyGroup = getAnnotationGroupForTerm(annotationGroups, get_kidney_term("kidney")).getGroup()
+
+        # surface groups
+        kidneyCapsuleGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("kidney capsule"))
+        kidneyCapsuleGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(kidneyGroup, is_exterior))
+
+        surfaceTypes = [
+            "anterior", "posterior",
+            "lateral", "medial",
+            "dorsal", "ventral"
+        ]
+
+        arb_group = {}
+        kidney_exterior = {}
+        for surfaceType in surfaceTypes:
+            group = getAnnotationGroupForTerm(annotationGroups, (surfaceType, ""))
+            group2d = group.getGroup()
+            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+
+            term = f"{surfaceType} surface of kidney"
+            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(term))
+            surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(group2d_exterior)
+
+            arb_group.update({surfaceType: group2d})
+            kidney_exterior.update({term: group2d_exterior})
+
+        # edge groups
+        dorsalVentralBorderGroup = fm.createFieldAnd(fm.createFieldAnd(arb_group["dorsal"], arb_group["ventral"]), is_exterior)
+
+        for surfaceType in ["lateral", "medial"]:
+            term = f"{surfaceType} edge of kidney"
+            edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(term))
+            edgeGroup.getMeshGroup(mesh1d).addElementsConditional(fm.createFieldAnd(arb_group[surfaceType], dorsalVentralBorderGroup))
+
+        # for term in ["lateral", "medial", "dorsal", "ventral"]:
+        #     annotationGroups.remove(findAnnotationGroupByName(annotationGroups, term))
+
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """
@@ -403,3 +480,25 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, d12)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)
+
+
+def setHilumGroupThreshold(fm, coordinates, halfLength):
+    """
+    Creates a field to identify lung base elements based on y-coordinate threshold.
+    Elements with y-coordinates below 45% of the rotated half-breadth are considered part of the lung base region for
+    annotation purposes.
+    :param fm: Field module used for creating and managing fields.
+    :param coordinates: The coordinate field.
+    :param halfLength: Half-length of tube.
+    :return is_within_threshold: True for elements between the positive and negative x-threshold.
+    """
+    x_component = fm.createFieldComponent(coordinates, [1])
+    x_threshold = 0.25 * halfLength
+    minus_one = fm.createFieldConstant(-1)
+
+    x_threshold_field = fm.createFieldConstant(x_threshold)
+    is_less_than_threshold = fm.createFieldLessThan(x_component, x_threshold_field)
+    is_greater_than_threshold = fm.createFieldGreaterThan(x_component, x_threshold_field * minus_one)
+    is_within_threshold = fm.createFieldAnd(is_less_than_threshold, is_greater_than_threshold)
+
+    return is_within_threshold

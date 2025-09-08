@@ -16,9 +16,9 @@ from scaffoldmaker.meshtypes.meshtype_3d_renal_capsule1 import MeshType_3d_renal
 from testutils import assertAlmostEqualList
 
 
-class RenalCapsulecaffoldTestCase(unittest.TestCase):
+class KidneyScaffoldTestCase(unittest.TestCase):
 
-    def test_renalcapsule(self):
+    def test_kidney(self):
         """
         Test creation of renal capsule scaffold.
         """
@@ -28,10 +28,10 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
         options = scaffold.getDefaultOptions("Human 1")
 
         self.assertEqual(9, len(options))
-        self.assertEqual(12, options["Elements count around"])
+        self.assertEqual(8, options["Elements count around"])
         self.assertEqual(1, options["Elements count through shell"])
         self.assertEqual([0], options["Annotation elements counts around"])
-        self.assertEqual(4.0, options["Target element density along longest segment"])
+        self.assertEqual(2.0, options["Target element density along longest segment"])
         self.assertEqual(2, options["Number of elements across core box minor"])
         self.assertEqual(1, options["Number of elements across core transition"])
         self.assertEqual([0], options["Annotation numbers of elements across core box minor"])
@@ -40,18 +40,18 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(3, len(annotationGroups))
+        self.assertEqual(19, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(288, mesh3d.getSize())
+        self.assertEqual(136, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(920, mesh2d.getSize())
+        self.assertEqual(436, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(994, mesh1d.getSize())
+        self.assertEqual(478, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(363, nodes.getSize())
+        self.assertEqual(179, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -60,8 +60,8 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [-1.583346623141804, -0.9520066012170885, -0.75], tol)
-        assertAlmostEqualList(self, maximums, [1.583349401938375, 0.7499999999986053, 0.75], tol)
+        assertAlmostEqualList(self, minimums, [-1.5508832466803322, -0.9195143646416805, -0.75], tol)
+        assertAlmostEqualList(self, maximums, [1.5508832466803322, 0.7499999999986053, 0.75], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -79,15 +79,15 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 4.8399524698282725, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 15.277545756184905, delta=tol)
+            self.assertAlmostEqual(volume, 4.815115457307255, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 15.219510760440258, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "core": (176, 2.8838746320298183),
-            "shell": (112, 1.9560431675458367),
-            "kidney capsule": (288, 4.839917799575645)
+            "renal medulla": (80, 1.4917652106228603),
+            "cortex of kidney": (52, 3.147755999580444),
+            "kidney": (136, 4.81517966709125)
             }
         for name in expectedSizes3d:
             term = get_kidney_term(name)
@@ -103,8 +103,9 @@ class RenalCapsulecaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "shell": (448, 37.84060276636123),
-            "kidney capsule": (920, 66.4453245855002)
+            "kidney capsule": (56, 15.219510760440258),
+            "anterior surface of kidney": (28, 7.609755380220144),
+            "posterior surface of kidney": (28, 7.609755380220144)
             }
         for name in expectedSizes2d:
             term = get_kidney_term(name)

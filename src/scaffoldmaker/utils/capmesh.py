@@ -1663,13 +1663,14 @@ class CapMesh:
         self._generateElements(annotationMeshGroups)
         self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups)
 
-    def addBoxElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None):
+    def addCapBoxElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None, mode=0):
         """
         Add ranges of box elements to mesh group.
         :param meshGroup: Zinc MeshGroup to add elements to.
         :param e1Range: Range between start and limit element indexes in major / d2 direction.
         :param e2Range: Range between start and limit element indexes around the tube.
         :param e3Range: Range between start and limit element indexes in minor / d3 direction.
+        :param mode:
         """
         elementsCountAround = self._elementsCountAround
         elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
@@ -1681,11 +1682,15 @@ class CapMesh:
         e2Range = range(elementsCountAround) if e2Range is None else e2Range
         e3Range = range(elementsCountCoreBoxMinor) if e3Range is None else e3Range
 
-        for i, isCap in enumerate(self._isCap):
+        nloop = 2 if mode == 0 else 1
+        for idx in range(nloop):
+            if mode > 0:
+                idx = 0 if mode == 1 else 1
+            isCap = self._isCap[idx]
             if not isCap:
                 continue
 
-            isStart = (i == 0)
+            isStart = (idx == 0)
             capElementIds = self._startCapElementIds if isStart else self._endCapElementIds
             extElementIds = self._startExtElementIds if isStart else self._endExtElementIds
 
@@ -1701,13 +1706,14 @@ class CapMesh:
             # Extension tube (t > 0, e2)
             addElementsFromIdentifiers(mesh, meshGroup, extElementIds[0], tRange=range(1, elementsCountTransition + 1), e2Range=e2Range)
 
-    def addShellElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None):
+    def addCapShellElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None, mode=0):
         """
         Add ranges of shell elements to mesh group.
         :param meshGroup: Zinc MeshGroup to add elements to.
         :param e1Range: Range between start and limit element indexes in major / d2 direction.
         :param e2Range: Range between start and limit element indexes around the tube.
         :param e3Range: Range between start and limit element indexes in minor / d3 direction.
+        :mode:
         """
         elementsCountAround = self._elementsCountAround
         elementsCountCoreBoxMajor = self._elementsCountCoreBoxMajor
@@ -1720,11 +1726,15 @@ class CapMesh:
         e2Range = range(elementsCountAround) if e2Range is None else e2Range
         e3Range = range(elementsCountCoreBoxMinor) if e3Range is None else e3Range
 
-        for i, isCap in enumerate(self._isCap):
+        nloop = 2 if mode == 0 else 1
+        for idx in range(nloop):
+            if mode > 0:
+                idx = 0 if mode == 1 else 1
+            isCap = self._isCap[idx]
             if not isCap:
                 continue
 
-            isStart = (i == 0)
+            isStart = (idx == 0)
             capElementIds = self._startCapElementIds if isStart else self._endCapElementIds
             extElementIds = self._startExtElementIds if isStart else self._endExtElementIds
 
@@ -1737,15 +1747,19 @@ class CapMesh:
             tExtShellRange = range(elementsCountThroughShell)
             addElementsFromIdentifiers(mesh, meshGroup, extElementIds[1], tRange=tExtShellRange, e2Range=e2Range)
 
-    def addAllElementsToMeshGroup(self, meshGroup):
+
+    def addCapSideD1ElementsToMeshGroup(self, side: bool, meshGroup):
         """
-        Add all elements in the segment to mesh group.
+        Add elements to the mesh group on side of +d1 or -d1, often matching anterior and posterior.
+        :param side: False for +d1 direction, True for -d1 direction.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
-        self.addBoxElementsToMeshGroup(meshGroup)
-        self.addShellElementsToMeshGroup(meshGroup)
+        mode = 1 if side else 2
+        if self._isCore:
+            self.addCapBoxElementsToMeshGroup(meshGroup, mode=mode)
+        self.addCapShellElementsToMeshGroup(meshGroup, mode=mode)
 
-    def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
+    def addCapSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
         """
         Add elements to the mesh group on side of +d2 or -d2, often matching left and right.
         Only works with even numbers around and phase starting at +d2.
@@ -1760,12 +1774,12 @@ class CapMesh:
             e1Start = (self._elementsCountCoreBoxMajor // 2) if side else 0
             e1Limit = self._elementsCountCoreBoxMajor if side else ((self._elementsCountCoreBoxMajor + 1) // 2)
             e1Range = range(e1Start, e1Limit)
-            self.addBoxElementsToMeshGroup(meshGroup, e1Range=e1Range, e2Range=e2Range)
+            self.addCapBoxElementsToMeshGroup(meshGroup, e1Range=e1Range, e2Range=e2Range)
         else:
             e1Range = None
-        self.addShellElementsToMeshGroup(meshGroup, e1Range=e1Range, e2Range=e2Range)
+        self.addCapShellElementsToMeshGroup(meshGroup, e1Range=e1Range, e2Range=e2Range)
 
-    def addSideD3ElementsToMeshGroup(self, side: bool, meshGroup):
+    def addCapSideD3ElementsToMeshGroup(self, side: bool, meshGroup):
         """
         Add elements to the mesh group on side of +d3 or -d3, often matching anterior/ventral and posterior/dorsal.
         Only works with even numbers around and phase starting at +d2.
@@ -1779,10 +1793,10 @@ class CapMesh:
             e3Start = 0 if side else (self._elementsCountCoreBoxMinor // 2)
             e3Limit = ((self._elementsCountCoreBoxMinor + 1) // 2) if side else self._elementsCountCoreBoxMinor
             e3Range = range(e3Start, e3Limit)
-            self.addBoxElementsToMeshGroup(meshGroup, e2Range=e2Range, e3Range=e3Range)
+            self.addCapBoxElementsToMeshGroup(meshGroup, e2Range=e2Range, e3Range=e3Range)
         else:
             e3Range = None
-        self.addShellElementsToMeshGroup(meshGroup, e2Range=e2Range, e3Range=e3Range)
+        self.addCapShellElementsToMeshGroup(meshGroup, e2Range=e2Range, e3Range=e3Range)
 
 
 def sampleCurvesOnSphere(x1, x2, origin, elementsOut):
