@@ -10,7 +10,7 @@ from cmlibs.zinc.result import RESULT_OK
 
 from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.kidney_terms import get_kidney_term
-from scaffoldmaker.meshtypes.meshtype_3d_renal_capsule1 import MeshType_3d_renal_capsule1
+from scaffoldmaker.meshtypes.meshtype_3d_kidney1 import MeshType_3d_kidney1
 
 
 from testutils import assertAlmostEqualList
@@ -22,7 +22,7 @@ class KidneyScaffoldTestCase(unittest.TestCase):
         """
         Test creation of renal capsule scaffold.
         """
-        scaffold = MeshType_3d_renal_capsule1
+        scaffold = MeshType_3d_kidney1
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1"])
         options = scaffold.getDefaultOptions("Human 1")

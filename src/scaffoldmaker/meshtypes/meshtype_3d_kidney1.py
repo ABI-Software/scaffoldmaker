@@ -1,5 +1,5 @@
 """
-Generates a 3D renal capsule using tube network mesh.
+Generates a 3D kidney using tube network mesh.
 """
 import math
 
@@ -21,14 +21,14 @@ from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetw
 from cmlibs.zinc.node import Node
 
 
-class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
+class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
     """
-    Defines renal capsule network layout.
+    Defines kidney network layout.
     """
 
     @classmethod
     def getName(cls):
-        return "1D Renal Capsule Network Layout 1"
+        return "1D Kidney Network Layout 1"
 
     @classmethod
     def getParameterSetNames(cls):
@@ -40,9 +40,9 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         options["Base parameter set"] = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Define inner coordinates"] = True
         options["Elements count along"] = 2
-        options["Renal capsule length"] = 1.0
-        options["Renal capsule diameter"] = 1.5
-        options["Renal capsule bend angle degrees"] = 10
+        options["Kidney length"] = 1.0
+        options["Kidney diameter"] = 1.5
+        options["Kidney bend angle degrees"] = 10
         options["Inner proportion default"] = 0.6
         return options
 
@@ -50,9 +50,9 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
     def getOrderedOptionNames(cls):
         return [
             "Elements count along",
-            "Renal capsule length",
-            "Renal capsule diameter",
-            "Renal capsule bend angle degrees",
+            "Kidney length",
+            "Kidney diameter",
+            "Kidney bend angle degrees",
             "Inner proportion default"
         ]
 
@@ -60,8 +60,8 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
     def checkOptions(cls, options):
         dependentChanges = False
         for key in [
-            "Renal capsule length",
-            "Renal capsule diameter"
+            "Kidney length",
+            "Kidney diameter"
         ]:
             if options[key] < 0.1:
                 options[key] = 0.1
@@ -69,10 +69,10 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         if options["Elements count along"] < 2:
             options["Elements count along"] = 2
 
-        if options["Renal capsule bend angle degrees"] < 0.0:
-            options["Renal capsule bend angle degrees"] = 0.0
-        elif options["Renal capsule bend angle degrees"] > 30.0:
-            options["Renal capsule bend angle degrees"] = 30.0
+        if options["Kidney bend angle degrees"] < 0.0:
+            options["Kidney bend angle degrees"] = 0.0
+        elif options["Kidney bend angle degrees"] > 30.0:
+            options["Kidney bend angle degrees"] = 30.0
 
         if options["Inner proportion default"] < 0.1:
             options["Inner proportion default"] = 0.1
@@ -91,10 +91,10 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         """
         # parameters
         structure = options["Structure"] = cls.getLayoutStructure(options)
-        capsuleElementsCount = options["Elements count along"]
-        capsuleLength = options["Renal capsule length"]
-        capsuleRadius = 0.5 * options["Renal capsule diameter"]
-        capsuleBendAngle = options["Renal capsule bend angle degrees"]
+        kidneyElementsCount = options["Elements count along"]
+        kidneyLength = options["Kidney length"]
+        kidneyRadius = 0.5 * options["Kidney diameter"]
+        kidneyBendAngle = options["Kidney bend angle degrees"]
         innerProportionDefault = options["Inner proportion default"]
 
         networkMesh = NetworkMesh(structure)
@@ -110,7 +110,7 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         kidneyMeshGroup = kidneyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
         meshGroups = [kidneyMeshGroup]
-        for e in range(capsuleElementsCount):
+        for e in range(kidneyElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
@@ -124,36 +124,36 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         innerCoordinates = find_or_create_field_coordinates(fieldmodule, "inner coordinates")
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
-        # renal capsule
+        # Kidney
         nodeIdentifier = 1
-        halfCapsuleLength = 0.5 * capsuleLength
-        capsuleScale = capsuleLength / capsuleElementsCount
-        bendAngleRadians = math.radians(capsuleBendAngle)
+        halfKidneyLength = 0.5 * kidneyLength
+        kidneyScale = kidneyLength / kidneyElementsCount
+        bendAngleRadians = math.radians(kidneyBendAngle)
         sinBendAngle = math.sin(bendAngleRadians)
         cosBendAngle = math.cos(bendAngleRadians)
         sinCurveAngle = math.sin(3 * bendAngleRadians)
         mx = [0.0, 0.0, 0.0]
-        d1 = [capsuleScale, 0.0, 0.0]
-        d3 = [0.0, 0.0, capsuleRadius]
+        d1 = [kidneyScale, 0.0, 0.0]
+        d3 = [0.0, 0.0, kidneyRadius]
         id3 = mult(d3, innerProportionDefault)
 
-        tx = halfCapsuleLength * -cosBendAngle
-        ty = halfCapsuleLength * -sinBendAngle
+        tx = halfKidneyLength * -cosBendAngle
+        ty = halfKidneyLength * -sinBendAngle
         sx = [tx, ty, 0.0]
         ex = [-tx, ty, 0.0]
-        sd1 = mult([1.0, sinCurveAngle, 0.0], capsuleScale)
+        sd1 = mult([1.0, sinCurveAngle, 0.0], kidneyScale)
         ed1 = [sd1[0], -sd1[1], sd1[2]]
-        nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], capsuleElementsCount)[0:2]
+        nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], kidneyElementsCount)[0:2]
         nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
 
         sd2_list = []
         sd3_list = []
         sNodeIdentifiers = []
-        for e in range(capsuleElementsCount + 1):
+        for e in range(kidneyElementsCount + 1):
             sNodeIdentifiers.append(nodeIdentifier)
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            sd2 = set_magnitude(cross(d3, nd1[e]), capsuleRadius)
+            sd2 = set_magnitude(cross(d3, nd1[e]), kidneyRadius)
             sid2 = mult(sd2, innerProportionDefault)
             sd2_list.append(sd2)
             sd3_list.append(d3)
@@ -163,7 +163,7 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
 
         sd12 = smoothCurveSideCrossDerivatives(nx, nd1, [sd2_list])[0]
         sd13 = smoothCurveSideCrossDerivatives(nx, nd1, [sd3_list])[0]
-        for e in range(capsuleElementsCount + 1):
+        for e in range(kidneyElementsCount + 1):
             node = nodes.findNodeByIdentifier(sNodeIdentifiers[e])
             fieldcache.setNode(node)
             coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12[e])
@@ -188,14 +188,14 @@ class MeshType_1d_renal_capsule_network_layout1(MeshType_1d_network_layout1):
         return f"({'-'.join(str(i) for i in range(1, nodesCountAlong + 1))})"
 
 
-class MeshType_3d_renal_capsule1(Scaffold_base):
+class MeshType_3d_kidney1(Scaffold_base):
     """
-    Generates a 3-D renal capsule.
+    Generates a 3-D Kidney.
     """
 
     @classmethod
     def getName(cls):
-        return "3D Renal Capsule 1"
+        return "3D Kidney 1"
 
     @classmethod
     def getParameterSetNames(cls):
@@ -209,7 +209,7 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
         options = {}
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
-        options["Renal capsule network layout"] = ScaffoldPackage(MeshType_1d_renal_capsule_network_layout1)
+        options["Kidney network layout"] = ScaffoldPackage(MeshType_1d_kidney_network_layout1)
         options["Elements count around"] = 8
         options["Elements count through shell"] = 1
         options["Annotation elements counts around"] = [0]
@@ -222,7 +222,7 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
     @classmethod
     def getOrderedOptionNames(cls):
         optionNames = [
-            "Renal capsule network layout",
+            "Kidney network layout",
             "Elements count around",
             "Elements count through shell",
             "Annotation elements counts around",
@@ -234,8 +234,8 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
 
     @classmethod
     def getOptionValidScaffoldTypes(cls, optionName):
-        if optionName == "Renal capsule network layout":
-            return [MeshType_1d_renal_capsule_network_layout1]
+        if optionName == "Kidney network layout":
+            return [MeshType_1d_kidney_network_layout1]
         return []
 
 
@@ -249,18 +249,18 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
             assert parameterSetName in cls.getOptionScaffoldTypeParameterSetNames(optionName, scaffoldType), \
                 "Invalid parameter set " + str(parameterSetName) + " for scaffold " + str(scaffoldType.getName()) + \
                 " in option " + str(optionName) + " of scaffold " + cls.getName()
-        if optionName == "Renal capsule network layout":
+        if optionName == "Kidney network layout":
             if not parameterSetName:
                 parameterSetName = "Default"
-            return ScaffoldPackage(MeshType_1d_renal_capsule_network_layout1, defaultParameterSetName=parameterSetName)
+            return ScaffoldPackage(MeshType_1d_kidney_network_layout1, defaultParameterSetName=parameterSetName)
         assert False, cls.__name__ + ".getOptionScaffoldPackage:  Option " + optionName + " is not a scaffold"
 
     @classmethod
     def checkOptions(cls, options):
         dependentChanges = False
-        if (options["Renal capsule network layout"].getScaffoldType() not in
-                cls.getOptionValidScaffoldTypes("Renal capsule network layout")):
-            options["Renal capsule network layout"] = ScaffoldPackage(MeshType_1d_renal_capsule_network_layout1)
+        if (options["Kidney network layout"].getScaffoldType() not in
+                cls.getOptionValidScaffoldTypes("Kidney network layout")):
+            options["Kidney network layout"] = ScaffoldPackage(MeshType_1d_kidney_network_layout1)
 
         if options["Elements count around"] < 8:
             options["Elements count around"] = 8
@@ -335,7 +335,7 @@ class MeshType_3d_renal_capsule1(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        networkLayout = options["Renal capsule network layout"]
+        networkLayout = options["Kidney network layout"]
         layoutRegion = region.createRegion()
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
