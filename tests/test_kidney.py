@@ -60,8 +60,8 @@ class KidneyScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [-1.5508832466803322, -0.9195143646416805, -0.75], tol)
-        assertAlmostEqualList(self, maximums, [1.5508832466803322, 0.7499999999986053, 0.75], tol)
+        assertAlmostEqualList(self, minimums, [-0.4815964169156838, -0.2983818034875962, -0.15], tol)
+        assertAlmostEqualList(self, maximums, [0.4815964169156838, 0.25, 0.15], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -79,15 +79,15 @@ class KidneyScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 4.815115457307255, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 15.219510760440258, delta=tol)
+            self.assertAlmostEqual(volume, 0.09936614241399494, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 1.2392639560968692, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "renal medulla": (80, 1.4917652106228603),
-            "cortex of kidney": (52, 3.147755999580444),
-            "kidney": (136, 4.81517966709125)
+            "renal medulla": (80, 0.030779129384780158),
+            "cortex of kidney": (52, 0.06381933765967172),
+            "kidney": (136, 0.0993682249715619)
             }
         for name in expectedSizes3d:
             term = get_kidney_term(name)
@@ -103,9 +103,9 @@ class KidneyScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "kidney capsule": (56, 15.219510760440258),
-            "anterior surface of kidney": (28, 7.609755380220144),
-            "posterior surface of kidney": (28, 7.609755380220144)
+            "kidney capsule": (56, 1.2392639560968692),
+            "anterior surface of kidney": (28, 0.6196319780484342),
+            "posterior surface of kidney": (28, 0.6196319780484342)
             }
         for name in expectedSizes2d:
             term = get_kidney_term(name)

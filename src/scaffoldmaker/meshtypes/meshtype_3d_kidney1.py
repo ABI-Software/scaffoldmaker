@@ -41,7 +41,8 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         options["Define inner coordinates"] = True
         options["Elements count along"] = 2
         options["Kidney length"] = 1.0
-        options["Kidney diameter"] = 1.5
+        options["Kidney width"] = 0.5
+        options["Kidney thickness"] = 0.3
         options["Kidney bend angle degrees"] = 10
         options["Inner proportion default"] = 0.6
         return options
@@ -51,7 +52,8 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         return [
             "Elements count along",
             "Kidney length",
-            "Kidney diameter",
+            "Kidney width",
+            "Kidney thickness",
             "Kidney bend angle degrees",
             "Inner proportion default"
         ]
@@ -61,7 +63,8 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         dependentChanges = False
         for key in [
             "Kidney length",
-            "Kidney diameter"
+            "Kidney width",
+            "Kidney thickness"
         ]:
             if options[key] < 0.1:
                 options[key] = 0.1
@@ -93,7 +96,9 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         structure = options["Structure"] = cls.getLayoutStructure(options)
         kidneyElementsCount = options["Elements count along"]
         kidneyLength = options["Kidney length"]
-        kidneyRadius = 0.5 * options["Kidney diameter"]
+        halfKidneyLength = 0.5 * kidneyLength
+        halfKidneyWidth = 0.5 * options["Kidney width"]
+        halfKidneyThickness = 0.5 * options["Kidney thickness"]
         kidneyBendAngle = options["Kidney bend angle degrees"]
         innerProportionDefault = options["Inner proportion default"]
 
@@ -126,19 +131,21 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
 
         # Kidney
         nodeIdentifier = 1
-        halfKidneyLength = 0.5 * kidneyLength
-        kidneyScale = kidneyLength / kidneyElementsCount
+        tubeRadius = cls.getTubeRadius(halfKidneyWidth, halfKidneyThickness) * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
+        extensionLength = 0.5 * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
+        halfLayoutLength = (halfKidneyLength - tubeRadius - extensionLength)
+        kidneyScale = 2 * halfLayoutLength / kidneyElementsCount
         bendAngleRadians = math.radians(kidneyBendAngle)
         sinBendAngle = math.sin(bendAngleRadians)
         cosBendAngle = math.cos(bendAngleRadians)
         sinCurveAngle = math.sin(3 * bendAngleRadians)
         mx = [0.0, 0.0, 0.0]
         d1 = [kidneyScale, 0.0, 0.0]
-        d3 = [0.0, 0.0, kidneyRadius]
+        d3 = [0.0, 0.0, halfKidneyThickness]
         id3 = mult(d3, innerProportionDefault)
 
-        tx = halfKidneyLength * -cosBendAngle
-        ty = halfKidneyLength * -sinBendAngle
+        tx = halfLayoutLength * -cosBendAngle
+        ty = halfLayoutLength * -sinBendAngle
         sx = [tx, ty, 0.0]
         ex = [-tx, ty, 0.0]
         sd1 = mult([1.0, sinCurveAngle, 0.0], kidneyScale)
@@ -153,7 +160,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             sNodeIdentifiers.append(nodeIdentifier)
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            sd2 = set_magnitude(cross(d3, nd1[e]), kidneyRadius)
+            sd2 = set_magnitude(cross(d3, nd1[e]), halfKidneyWidth)
             sid2 = mult(sd2, innerProportionDefault)
             sd2_list.append(sd2)
             sd3_list.append(d3)
@@ -186,6 +193,16 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         assert nodesCountAlong > 1
 
         return f"({'-'.join(str(i) for i in range(1, nodesCountAlong + 1))})"
+
+    @classmethod
+    def getTubeRadius(cls, majorRadius, minorRadius):
+        """
+
+        """
+        if majorRadius > minorRadius:
+            return math.pow((majorRadius / minorRadius), 1 / 3)
+        elif majorRadius < minorRadius:
+            return math.pow((minorRadius / majorRadius), 1 / 3)
 
 
 class MeshType_3d_kidney1(Scaffold_base):
