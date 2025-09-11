@@ -39,10 +39,13 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         options = {}
         options["Base parameter set"] = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Define inner coordinates"] = True
+        options["Left kidney"] = True
+        options["Right kidney"] = True
         options["Elements count along"] = 2
         options["Kidney length"] = 1.0
         options["Kidney width"] = 0.5
-        options["Kidney thickness"] = 0.3
+        options["Kidney thickness"] = 0.4
+        options["Left-right kidney spacing"] = 1.0
         options["Kidney bend angle degrees"] = 10
         options["Inner proportion default"] = 0.6
         return options
@@ -50,10 +53,13 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
     @classmethod
     def getOrderedOptionNames(cls):
         return [
+            "Left kidney",
+            "Right kidney",
             "Elements count along",
             "Kidney length",
             "Kidney width",
             "Kidney thickness",
+            "Left-right kidney spacing",
             "Kidney bend angle degrees",
             "Inner proportion default"
         ]
@@ -71,6 +77,9 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
 
         if options["Elements count along"] < 2:
             options["Elements count along"] = 2
+
+        if options["Left-right kidney spacing"] < 0.0:
+            options["Left-right kidney spacing"] = 0.0
 
         if options["Kidney bend angle degrees"] < 0.0:
             options["Kidney bend angle degrees"] = 0.0
@@ -95,10 +104,13 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         # parameters
         structure = options["Structure"] = cls.getLayoutStructure(options)
         kidneyElementsCount = options["Elements count along"]
+        isLeftKidney = options["Left kidney"]
+        isRightKidney = options["Right kidney"]
         kidneyLength = options["Kidney length"]
         halfKidneyLength = 0.5 * kidneyLength
         halfKidneyWidth = 0.5 * options["Kidney width"]
         halfKidneyThickness = 0.5 * options["Kidney thickness"]
+        spacing = 0.5 * options["Left-right kidney spacing"]
         kidneyBendAngle = options["Kidney bend angle degrees"]
         innerProportionDefault = options["Inner proportion default"]
 
@@ -110,16 +122,16 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
 
         # set up element annotations
         kidneyGroup = AnnotationGroup(region, get_kidney_term("kidney"))
-        annotationGroups = [kidneyGroup]
-
         kidneyMeshGroup = kidneyGroup.getMeshGroup(mesh)
-        elementIdentifier = 1
-        meshGroups = [kidneyMeshGroup]
-        for e in range(kidneyElementsCount):
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            for meshGroup in meshGroups:
-                meshGroup.addElement(element)
-            elementIdentifier += 1
+
+        leftKidneyGroup = AnnotationGroup(region, get_kidney_term("left kidney"))
+        leftKidneyMeshGroup = leftKidneyGroup.getMeshGroup(mesh)
+
+        rightKidneyGroup = AnnotationGroup(region, get_kidney_term("right kidney"))
+        rightKidneyMeshGroup = rightKidneyGroup.getMeshGroup(mesh)
+
+        annotationGroups = [kidneyGroup, leftKidneyGroup, rightKidneyGroup]
+        meshGroups = [kidneyMeshGroup, leftKidneyMeshGroup, rightKidneyMeshGroup]
 
         # set coordinates (outer)
         fieldcache = fieldmodule.createFieldcache()
@@ -131,7 +143,9 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
 
         # Kidney
         nodeIdentifier = 1
-        tubeRadius = cls.getTubeRadius(halfKidneyWidth, halfKidneyThickness) * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
+        elementIdentifier = 1
+        tubeRadius = cls.getTubeRadius(halfKidneyWidth, halfKidneyThickness) * (
+        halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
         extensionLength = 0.5 * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
         halfLayoutLength = (halfKidneyLength - tubeRadius - extensionLength)
         kidneyScale = 2 * halfLayoutLength / kidneyElementsCount
@@ -139,46 +153,63 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         sinBendAngle = math.sin(bendAngleRadians)
         cosBendAngle = math.cos(bendAngleRadians)
         sinCurveAngle = math.sin(3 * bendAngleRadians)
-        mx = [0.0, 0.0, 0.0]
-        d1 = [kidneyScale, 0.0, 0.0]
-        d3 = [0.0, 0.0, halfKidneyThickness]
-        id3 = mult(d3, innerProportionDefault)
 
-        tx = halfLayoutLength * -cosBendAngle
-        ty = halfLayoutLength * -sinBendAngle
-        sx = [tx, ty, 0.0]
-        ex = [-tx, ty, 0.0]
-        sd1 = mult([1.0, sinCurveAngle, 0.0], kidneyScale)
-        ed1 = [sd1[0], -sd1[1], sd1[2]]
-        nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], kidneyElementsCount)[0:2]
-        nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
+        leftKidney, rightKidney = 0, 1
+        kidneys = [kidney for show, kidney in [(isLeftKidney, leftKidney), (isRightKidney, rightKidney)] if show]
+        for kidney in kidneys:
+            spacing = spacing if kidney is leftKidney else -spacing
+            mx = [0.0, 0.0, 0.0]
+            d1 = [kidneyScale, 0.0, 0.0]
+            d3 = [0.0, 0.0, halfKidneyThickness]
+            id3 = mult(d3, innerProportionDefault)
 
-        sd2_list = []
-        sd3_list = []
-        sNodeIdentifiers = []
-        for e in range(kidneyElementsCount + 1):
-            sNodeIdentifiers.append(nodeIdentifier)
-            node = nodes.findNodeByIdentifier(nodeIdentifier)
-            fieldcache.setNode(node)
-            sd2 = set_magnitude(cross(d3, nd1[e]), halfKidneyWidth)
-            sid2 = mult(sd2, innerProportionDefault)
-            sd2_list.append(sd2)
-            sd3_list.append(d3)
-            for field, derivatives in ((coordinates, (nd1[e], sd2, d3)), (innerCoordinates, (nd1[e], sid2, id3))):
-                setNodeFieldParameters(field, fieldcache, nx[e], *derivatives)
-            nodeIdentifier += 1
+            tx = halfLayoutLength * -cosBendAngle
+            ty = halfLayoutLength * -sinBendAngle
+            sx = [tx, ty, 0.0] if kidney is leftKidney else [tx, -ty, 0.0]
+            ex = [-tx, ty, 0.0] if kidney is leftKidney else [-tx, -ty, 0.0]
+            sd1 = mult([1.0, sinCurveAngle, 0.0], kidneyScale)
+            ed1 = [sd1[0], -sd1[1], sd1[2]]
+            nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], kidneyElementsCount)[0:2]
+            nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
+            for c in range(kidneyElementsCount + 1):
+                nx[c][1] += spacing
 
-        sd12 = smoothCurveSideCrossDerivatives(nx, nd1, [sd2_list])[0]
-        sd13 = smoothCurveSideCrossDerivatives(nx, nd1, [sd3_list])[0]
-        for e in range(kidneyElementsCount + 1):
-            node = nodes.findNodeByIdentifier(sNodeIdentifiers[e])
-            fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12[e])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sd13[e])
-            sid12 = mult(sd12[e], innerProportionDefault)
-            sid13 = mult(sd13[e], innerProportionDefault)
-            innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sid12)
-            innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sid13)
+            sd2_list = []
+            sd3_list = []
+            sNodeIdentifiers = []
+            for e in range(kidneyElementsCount + 1):
+                sNodeIdentifiers.append(nodeIdentifier)
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                sd2 = set_magnitude(cross(d3, nd1[e]), halfKidneyWidth)
+                sid2 = mult(sd2, innerProportionDefault)
+                sd2_list.append(sd2)
+                sd3_list.append(d3)
+                for field, derivatives in ((coordinates, (nd1[e], sd2, d3)), (innerCoordinates, (nd1[e], sid2, id3))):
+                    setNodeFieldParameters(field, fieldcache, nx[e], *derivatives)
+                nodeIdentifier += 1
+
+            sd12 = smoothCurveSideCrossDerivatives(nx, nd1, [sd2_list])[0]
+            sd13 = smoothCurveSideCrossDerivatives(nx, nd1, [sd3_list])[0]
+            for e in range(kidneyElementsCount + 1):
+                node = nodes.findNodeByIdentifier(sNodeIdentifiers[e])
+                fieldcache.setNode(node)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12[e])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sd13[e])
+                sid12 = mult(sd12[e], innerProportionDefault)
+                sid13 = mult(sd13[e], innerProportionDefault)
+                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sid12)
+                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sid13)
+
+            # add annotations
+            for e in range(kidneyElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                meshGroups[0].addElement(element)
+                if kidney is leftKidney and isLeftKidney:
+                    meshGroups[1].addElement(element)
+                if kidney is rightKidney and isRightKidney:
+                    meshGroups[2].addElement(element)
+                elementIdentifier += 1
 
         return annotationGroups, networkMesh
 
@@ -189,10 +220,14 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         :param options: Dict containing options. See getDefaultOptions().
         :return string version of the 1D layout structure
         """
-        nodesCountAlong = options["Elements count along"] + 1
-        assert nodesCountAlong > 1
+        nodes_count = options["Elements count along"] + 1
+        assert nodes_count > 1
 
-        return f"({'-'.join(str(i) for i in range(1, nodesCountAlong + 1))})"
+        left = f"({'-'.join(map(str, range(1, nodes_count + 1)))})"
+        if options["Left kidney"] and options["Right kidney"]:
+            right = f"({'-'.join(map(str, range(nodes_count + 1, 2 * nodes_count + 1)))})"
+            return f"{left},{right}"
+        return left
 
     @classmethod
     def getTubeRadius(cls, majorRadius, minorRadius):

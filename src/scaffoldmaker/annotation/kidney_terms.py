@@ -12,6 +12,7 @@ kidney_terms = [
     ("kidney capsule", "UBERON:0002015", "ILX:0733912"),
     ("lateral edge of kidney", ""),
     ("lateral surface of kidney", ""),
+    ("left kidney", "UBERON:0004538", "ILX:0725163"),
     ("major calyx", "UBERON:0001226", "ILX:0730785"),
     ("medial edge of kidney", ""),
     ("medial surface of kidney", ""),
@@ -19,6 +20,7 @@ kidney_terms = [
     ("renal medulla", "UBERON:0000362", "ILX:0729114"),
     ("renal pelvis", "UBERON:0001224", "ILX:0723968"),
     ("renal pyramid", "UBERON:0004200", "ILX:0727514"),
+    ("right kidney", "UBERON:0004539", "ILX:0735697"),
     ("posterior surface of kidney", "UBERON:0035471", "ILX:0724479"),
     ("ventral surface of kidney", "")
     ]
