@@ -15,9 +15,9 @@ from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.interpolation import smoothCubicHermiteDerivativesLine, sampleCubicHermiteCurves, \
     smoothCurveSideCrossDerivatives
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.networkmesh import NetworkMesh
-from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshBuilder, TubeNetworkMeshGenerateData, \
-    KidneyTubeNetworkMeshBuilder
+from scaffoldmaker.utils.tubenetworkmesh import KidneyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 from cmlibs.zinc.node import Node
 
 
@@ -25,6 +25,8 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
     """
     Defines kidney network layout.
     """
+
+    showKidneys = [False, False]
 
     @classmethod
     def getName(cls):
@@ -91,6 +93,10 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         elif options["Inner proportion default"] > 0.9:
             options["Inner proportion default"] = 0.9
 
+        if not options["Left kidney"] and not options["Right kidney"]:
+            dependentChanges = True
+            options["Left kidney"] = True
+
         return dependentChanges
 
     @classmethod
@@ -99,7 +105,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         Generate the unrefined mesh.
         :param region: Zinc region to define model in. Must be empty.
         :param options: Dict containing options. See getDefaultOptions().
-        :return [] empty list of AnnotationGroup, NetworkMesh
+        :return: [] empty list of AnnotationGroup, NetworkMesh
         """
         # parameters
         structure = options["Structure"] = cls.getLayoutStructure(options)
@@ -113,6 +119,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         spacing = 0.5 * options["Left-right kidney spacing"]
         kidneyBendAngle = options["Kidney bend angle degrees"]
         innerProportionDefault = options["Inner proportion default"]
+        cls.setShowKidneys(options)
 
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
@@ -145,7 +152,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         nodeIdentifier = 1
         elementIdentifier = 1
         tubeRadius = cls.getTubeRadius(halfKidneyWidth, halfKidneyThickness) * (
-        halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
+                halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
         extensionLength = 0.5 * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
         halfLayoutLength = (halfKidneyLength - tubeRadius - extensionLength)
         kidneyScale = 2 * halfLayoutLength / kidneyElementsCount
@@ -218,7 +225,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         """
         Generate 1D layout structure based on the number of elements count along.
         :param options: Dict containing options. See getDefaultOptions().
-        :return string version of the 1D layout structure
+        :return: string version of the 1D layout structure
         """
         nodes_count = options["Elements count along"] + 1
         assert nodes_count > 1
@@ -238,6 +245,15 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             return math.pow((majorRadius / minorRadius), 1 / 3)
         elif majorRadius < minorRadius:
             return math.pow((minorRadius / majorRadius), 1 / 3)
+
+    @classmethod
+    def getShowKidneys(cls):
+        return cls.showKidneys
+
+    @classmethod
+    def setShowKidneys(cls, options):
+        cls.showKidneys[0] = True if options["Left kidney"] else False
+        cls.showKidneys[1] = True if options["Right kidney"] else False
 
 
 class MeshType_3d_kidney1(Scaffold_base):
@@ -269,6 +285,8 @@ class MeshType_3d_kidney1(Scaffold_base):
         options["Number of elements across core box minor"] = 2
         options["Number of elements across core transition"] = 1
         options["Annotation numbers of elements across core box minor"] = [0]
+        options["Refine"] = False
+        options["Refine number of elements"] = 4
         return options
 
     @classmethod
@@ -281,7 +299,10 @@ class MeshType_3d_kidney1(Scaffold_base):
             "Target element density along longest segment",
             "Number of elements across core box minor",
             "Number of elements across core transition",
-            "Annotation numbers of elements across core box minor"]
+            "Annotation numbers of elements across core box minor",
+            "Refine",
+            "Refine number of elements"
+        ]
         return optionNames
 
     @classmethod
@@ -289,7 +310,6 @@ class MeshType_3d_kidney1(Scaffold_base):
         if optionName == "Kidney network layout":
             return [MeshType_1d_kidney_network_layout1]
         return []
-
 
     @classmethod
     def getOptionScaffoldPackage(cls, optionName, scaffoldType, parameterSetName=None):
@@ -377,6 +397,9 @@ class MeshType_3d_kidney1(Scaffold_base):
 
         if options["Target element density along longest segment"] < 2.0:
             options["Target element density along longest segment"] = 2.0
+
+        if options['Refine number of elements'] < 1:
+            options['Refine number of elements'] = 1
         return dependentChanges
 
     @classmethod
@@ -392,8 +415,9 @@ class MeshType_3d_kidney1(Scaffold_base):
         networkLayout.generate(layoutRegion)  # ask scaffold to generate to get user-edited parameters
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
+        showKidneys = getShowKidneysSettings()
 
-        tubeNetworkMeshBuilder = KidneyTubeNetworkMeshBuilder(
+        kidneyTubeNetworkMeshBuilder = KidneyTubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
             defaultElementsCountAround=options["Elements count around"],
@@ -402,14 +426,15 @@ class MeshType_3d_kidney1(Scaffold_base):
             isCore=True,
             elementsCountTransition=options["Number of elements across core transition"],
             defaultElementsCountCoreBoxMinor=options["Number of elements across core box minor"],
-            annotationElementsCountsCoreBoxMinor=options["Annotation numbers of elements across core box minor"]
+            annotationElementsCountsCoreBoxMinor=options["Annotation numbers of elements across core box minor"],
+            showKidneys=showKidneys
         )
 
-        tubeNetworkMeshBuilder.build()
+        kidneyTubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
             region, 3,
             isLinearThroughShell=False)
-        tubeNetworkMeshBuilder.generateMesh(generateData)
+        kidneyTubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
 
         # add kidney-specific annotation groups
@@ -437,6 +462,18 @@ class MeshType_3d_kidney1(Scaffold_base):
 
 
     @classmethod
+    def refineMesh(cls, meshRefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshRefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshRefinement, MeshRefinement)
+        refineElementsCount = options['Refine number of elements']
+        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
+
+
+    @classmethod
     def defineFaceAnnotations(cls, region, options, annotationGroups):
         """
         Add face annotation groups from the highest dimension mesh.
@@ -446,47 +483,146 @@ class MeshType_3d_kidney1(Scaffold_base):
         :param annotationGroups: List of annotation groups for top-level elements.
         New face annotation groups are appended to this list.
         """
+        show_kidneys = getShowKidneysSettings()
+
+        # Initialize field module and meshes
         fm = region.getFieldmodule()
         mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
-
+        mesh3d = fm.findMeshByDimension(3)
         is_exterior = fm.createFieldIsExterior()
-        kidneyGroup = getAnnotationGroupForTerm(annotationGroups, get_kidney_term("kidney")).getGroup()
 
-        # surface groups
-        kidneyCapsuleGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("kidney capsule"))
-        kidneyCapsuleGroup.getMeshGroup(mesh2d).addElementsConditional(fm.createFieldAnd(kidneyGroup, is_exterior))
+        # Get base kidney group
+        kidney_group = getAnnotationGroupForTerm(annotationGroups, get_kidney_term("kidney")).getGroup()
 
-        surfaceTypes = [
-            "anterior", "posterior",
-            "lateral", "medial",
-            "dorsal", "ventral"
-        ]
+        # Create side groups and tracking dictionaries
+        side_groups = {}
+        side_kidney_groups = {"left": {}, "right": {}}
 
-        arb_group = {}
-        kidney_exterior = {}
-        for surfaceType in surfaceTypes:
-            group = getAnnotationGroupForTerm(annotationGroups, (surfaceType, ""))
-            group2d = group.getGroup()
-            group2d_exterior = fm.createFieldAnd(group2d, is_exterior)
+        for side in ["left", "right"]:
+            group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(f"{side} kidney"))
+            side_groups[side] = group.getGroup()
+            side_kidney_groups[side][f"{side} kidney"] = group
 
-            term = f"{surfaceType} surface of kidney"
-            surfaceGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(term))
-            surfaceGroup.getMeshGroup(mesh2d).addElementsConditional(group2d_exterior)
+        # Create kidney part groups (cortex, hilum, medulla)
+        create_kidney_part_groups(fm, mesh3d, annotationGroups, region, side_groups, side_kidney_groups)
 
-            arb_group.update({surfaceType: group2d})
-            kidney_exterior.update({term: group2d_exterior})
+        # Create capsule groups
+        create_capsule_groups(fm, mesh2d, annotationGroups, region, kidney_group, side_groups, side_kidney_groups, is_exterior)
 
-        # edge groups
-        dorsalVentralBorderGroup = fm.createFieldAnd(fm.createFieldAnd(arb_group["dorsal"], arb_group["ventral"]), is_exterior)
+        # Create surface and edge annotation groups
+        create_surface_and_edge_groups(fm, mesh2d, mesh1d, annotationGroups, region, side_groups, side_kidney_groups, is_exterior)
 
-        for surfaceType in ["lateral", "medial"]:
-            term = f"{surfaceType} edge of kidney"
-            edgeGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(term))
-            edgeGroup.getMeshGroup(mesh1d).addElementsConditional(fm.createFieldAnd(arb_group[surfaceType], dorsalVentralBorderGroup))
+        # Remove groups based on kidney visibility settings
+        remove_hidden_kidney_groups(show_kidneys, side_kidney_groups, annotationGroups)
 
-        # for term in ["lateral", "medial", "dorsal", "ventral"]:
-        #     annotationGroups.remove(findAnnotationGroupByName(annotationGroups, term))
+
+def getShowKidneysSettings():
+    return MeshType_1d_kidney_network_layout1.getShowKidneys()
+
+
+def create_kidney_part_groups(fm, mesh3d, annotationGroups, region, side_groups, side_kidney_groups):
+    """
+    Create cortex, hilum, and medulla groups for each kidney side.
+    """
+    kidney_parts = ["cortex", "hilum", "medulla"]
+
+    for part in kidney_parts:
+        # Get the anatomical term for the part
+        arb_term = f"renal {part}" if part == "medulla" else f"{part} of kidney"
+        arb_group = getAnnotationGroupForTerm(annotationGroups, get_kidney_term(arb_term)).getGroup()
+
+        # Create side-specific part groups
+        for side in ["left", "right"]:
+            part_term = f"{part} of {side} kidney"
+            part_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(part_term))
+            part_group.getMeshGroup(mesh3d).addElementsConditional(fm.createFieldAnd(arb_group, side_groups[side]))
+            side_kidney_groups[side][part_term] = part_group
+
+
+def create_capsule_groups(fm, mesh2d, annotationGroups, region, kidney_group, side_groups, side_kidney_groups, is_exterior):
+    """
+    Create kidney capsule surface groups.
+    """
+    # General kidney capsule group
+    kidney_capsule_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("kidney capsule"))
+    kidney_exterior = fm.createFieldAnd(kidney_group, is_exterior)
+    kidney_capsule_group.getMeshGroup(mesh2d).addElementsConditional(kidney_exterior)
+
+    # Side-specific capsule groups
+    for side in ["left", "right"]:
+        capsule_term = f"{side} kidney capsule"
+        capsule_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(capsule_term))
+        capsule_exterior = fm.createFieldAnd(side_groups[side], is_exterior)
+        capsule_group.getMeshGroup(mesh2d).addElementsConditional(capsule_exterior)
+        side_kidney_groups[side][capsule_term] = capsule_group
+
+
+def create_surface_and_edge_groups(fm, mesh2d, mesh1d, annotationGroups, region, side_groups, side_kidney_groups, is_exterior):
+    """
+    Create surface and edge annotation groups.
+    """
+    surface_types = ["anterior", "posterior", "lateral", "medial", "dorsal", "ventral", "juxtamedullary cortex"]
+    surface_fields = {}
+
+    # Create surface groups
+    for surface_type in surface_types:
+        if surface_type == "juxtamedullary cortex":
+            cortex_group = getAnnotationGroupForTerm(annotationGroups, get_kidney_term("cortex of kidney")).getGroup()
+            medulla_group = getAnnotationGroupForTerm(annotationGroups, get_kidney_term("renal medulla")).getGroup()
+            surface_exterior = fm.createFieldAnd(medulla_group, cortex_group)
+        else:
+            base_group = getAnnotationGroupForTerm(annotationGroups, (surface_type, ""))
+            surface_field = base_group.getGroup()
+            surface_exterior = fm.createFieldAnd(surface_field, is_exterior)
+            surface_fields[surface_type] = surface_field
+
+        # General kidney surface group
+        general_term = f"{surface_type} surface of kidney"
+        general_surface_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(general_term))
+        general_surface_group.getMeshGroup(mesh2d).addElementsConditional(surface_exterior)
+
+        # Side-specific surface groups
+        for side in ["left", "right"]:
+            side_term = f"{surface_type} surface of {side} kidney"
+            side_surface_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(side_term))
+            side_surface_field = fm.createFieldAnd(surface_exterior, side_groups[side])
+            side_surface_group.getMeshGroup(mesh2d).addElementsConditional(side_surface_field)
+            side_kidney_groups[side][side_term] = side_surface_group
+
+    # Create edge groups at dorsal-ventral intersection
+    dorsal_ventral_border = fm.createFieldAnd(
+        fm.createFieldAnd(surface_fields["dorsal"], surface_fields["ventral"]), is_exterior)
+
+    edge_types = ["lateral", "medial"]
+
+    for edge_type in edge_types:
+        # General edge group
+        edge_term = f"{edge_type} edge of kidney"
+        edge_field = fm.createFieldAnd(surface_fields[edge_type], dorsal_ventral_border)
+        general_edge_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(edge_term))
+        general_edge_group.getMeshGroup(mesh1d).addElementsConditional(edge_field)
+
+        # Side-specific edge groups
+        for side in ["left", "right"]:
+            side_edge_term = f"{edge_type} edge of {side} kidney"
+            side_edge_group = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term(side_edge_term))
+            side_edge_field = fm.createFieldAnd(edge_field, side_groups[side])
+            side_edge_group.getMeshGroup(mesh1d).addElementsConditional(side_edge_field)
+            side_kidney_groups[side][side_edge_term] = side_edge_group
+
+
+def remove_hidden_kidney_groups(show_kidneys, side_kidney_groups, annotationGroups):
+    """
+    Remove annotation groups for kidneys that should not be shown.
+    """
+    if not show_kidneys[0]:  # Left kidney
+        for group in side_kidney_groups["left"].values():
+            annotationGroups.remove(group)
+
+    if not show_kidneys[1]:  # Right kidney
+        for group in side_kidney_groups["right"].values():
+            annotationGroups.remove(group)
 
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):

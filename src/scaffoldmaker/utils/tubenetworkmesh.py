@@ -4456,6 +4456,26 @@ class KidneyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
     Specialization of TubeNetworkMeshBuilder adding annotations for anterior, posterior, lateral, medial, and hilum regions.
     """
 
+    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
+                 layoutAnnotationGroups: list=[], annotationElementsCountsAlong: list=[],
+                 defaultElementsCountAround: int=8, annotationElementsCountsAround: list=[],
+                 elementsCountThroughShell: int=1, isCore=False, elementsCountTransition: int=1,
+                 defaultElementsCountCoreBoxMinor: int=2, annotationElementsCountsCoreBoxMinor: list=[],
+                 defaultCoreBoundaryScalingMode=1, annotationCoreBoundaryScalingMode=[],
+                 useOuterTrimSurfaces=True, showKidneys=[]):
+        """
+        Builds specialized continuous tube network meshes for kidney scaffold.
+        :param showKidneys: List of flags for showing left and/or right kidneys.
+        """
+        super(KidneyTubeNetworkMeshBuilder, self).__init__(
+            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong,
+            defaultElementsCountAround, annotationElementsCountsAround, elementsCountThroughShell, isCore,
+            elementsCountTransition, defaultElementsCountCoreBoxMinor, annotationElementsCountsCoreBoxMinor,
+            defaultCoreBoundaryScalingMode, annotationCoreBoundaryScalingMode, useOuterTrimSurfaces)
+
+        self._showKidneys = showKidneys
+
+
     def generateMesh(self, generateData):
         super(KidneyTubeNetworkMeshBuilder, self).generateMesh(generateData)
         # build anterior, posterior, lateral, medial annotation groups
@@ -4471,31 +4491,77 @@ class KidneyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
         halfElementsCountAround = elementsCountAround // 2
         increment = max(1, elementsCountAround // 8)
 
-        e1Start = halfElementsCountAround - increment
-        e1End = halfElementsCountAround + increment
+        leftKidney, rightKidney = 0, 1
+        # Kidney configuration mapping
+        kidney_configs = {
+            leftKidney: {
+                'lateral_flag': False,
+                'medial_flag': True,
+                'e1_start': halfElementsCountAround - increment,
+                'e1_end': halfElementsCountAround + increment
+            },
+            rightKidney: {
+                'lateral_flag': True,
+                'medial_flag': False,
+                'e1_start': -increment,
+                'e1_end': increment
+            }
+        }
 
-        for networkSegment in self._networkMesh.getNetworkSegments():
+        def add_common_elements(mesh_obj, method_prefix=""):
+            """
+            Add D1 and D3 elements that are common to all kidneys.
+            :param mesh_obj: The mesh object (segment or capMesh) to add elements to
+            :param method_prefix: Prefix for method names (e.g., "addCap" for capMesh methods)
+            """
+            d1_method = f"{method_prefix}SideD1ElementsToMeshGroup"
+            d3_method = f"{method_prefix}SideD3ElementsToMeshGroup"
+
+            getattr(mesh_obj, d1_method)(False, anteriorMeshGroup)
+            getattr(mesh_obj, d1_method)(True, posteriorMeshGroup)
+            getattr(mesh_obj, d3_method)(False, ventralMeshGroup)
+            getattr(mesh_obj, d3_method)(True, dorsalMeshGroup)
+
+        def add_kidney_specific_elements(mesh_obj, kidney, method_prefix=""):
+            """
+            Add kidney-specific D2 elements.
+            :param mesh_obj: The mesh object (segment or capMesh) to add elements to
+            :param kidney: Kidney identifier (leftKidney=0, rightKidney=1)
+            :param method_prefix: Prefix for method names (e.g., "addCap" for capMesh methods)
+            """
+            if kidney not in kidney_configs:
+                return
+
+            config = kidney_configs[kidney]
+            d2_method = f"{method_prefix}SideD2ElementsToMeshGroup"
+
+            getattr(mesh_obj, d2_method)(config['lateral_flag'], lateralMeshGroup)
+            getattr(mesh_obj, d2_method)(config['medial_flag'], medialMeshGroup)
+
+            # Shell opening elements only for segment (not capMesh)
+            if "Cap" not in method_prefix:
+                mesh_obj.addShellOpeningElementsToMeshGroup(config['e1_start'], config['e1_end'], openingMeshGroup)
+
+        for kidney in [leftKidney, rightKidney]:
+            if not self._showKidneys[kidney]:
+                continue
+
+            idx = 0 if False in self._showKidneys else kidney
+            networkSegment = self._networkMesh.getNetworkSegments()[idx]
             segment = self._segments[networkSegment]
             segmentCaps = segment.getIsCap()
-            if True in segmentCaps:
-                capMesh = segment.getCapMesh()
-            else:
-                capMesh = None
-            # segment on main axis
-            segment.addSideD1ElementsToMeshGroup(True, anteriorMeshGroup)
-            segment.addSideD1ElementsToMeshGroup(False, posteriorMeshGroup)
-            segment.addSideD2ElementsToMeshGroup(False, lateralMeshGroup)
-            segment.addSideD2ElementsToMeshGroup(True, medialMeshGroup)
-            segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
-            segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
-            segment.addShellOpeningElementsToMeshGroup(e1Start, e1End, openingMeshGroup)
+            capMesh = segment.getCapMesh() if True in segmentCaps else None
+
+            # Apply common elements to segment
+            add_common_elements(segment, "add")
+
+            # Apply kidney-specific elements to segment
+            add_kidney_specific_elements(segment, kidney, "add")
+
+            # Apply elements to capMesh if it exists
             if capMesh:
-                capMesh.addCapSideD1ElementsToMeshGroup(True, anteriorMeshGroup)
-                capMesh.addCapSideD1ElementsToMeshGroup(False, posteriorMeshGroup)
-                capMesh.addCapSideD2ElementsToMeshGroup(False, lateralMeshGroup)
-                capMesh.addCapSideD2ElementsToMeshGroup(True, medialMeshGroup)
-                capMesh.addCapSideD3ElementsToMeshGroup(False, ventralMeshGroup)
-                capMesh.addCapSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+                add_common_elements(capMesh, "addCap")
+                add_kidney_specific_elements(capMesh, kidney, "addCap")
 
 
 class TubeEllipseGenerator:
