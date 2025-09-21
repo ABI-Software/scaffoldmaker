@@ -426,7 +426,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
 
         renalPyramidMeshGroup = renalPyramidGroup.getMeshGroup(mesh)
         minorCalyxMeshGroup = minorCalyxGroup.getMeshGroup(mesh)
-        meshGroups = [renalPelvisMeshGroup, minorCalyxMeshGroup, renalPyramidMeshGroup]
+        meshGroups = [renalPelvisMeshGroup, minorCalyxMeshGroup]
         minorCalyxElementsCount = 1
         pyramidElementsCount = 3
         for calyx in minorCalyxList:
@@ -644,7 +644,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                         nz = sx[2] + minorCalyxLength * (sinMinorCalyxAngle if side == anterior else -sinMinorCalyxAngle)
                         x = [nx, sx[1], nz]
                         if isRotateMinorCalyx:
-                            rotateAxis = normalize(minorCalyxD1List[calyx])
+                            rotateAxis = [1,0,0]
                             tx = rotate_vector_around_vector((sub(x, sx)), rotateAxis, math.radians(90))
                             x = add(tx, sx)
                     else:
@@ -652,12 +652,12 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                         nz = sx[2] + minorCalyxLength * (sinMinorCalyxAngle if side == anterior else -sinMinorCalyxAngle)
                         x = [nx, sx[1], nz]
                         if isRotateMinorCalyx:
-                            rotateAxis = normalize(minorCalyxD1List[calyx])
+                            rotateAxis = [1, 0, 0]
                             tx = rotate_vector_around_vector((sub(x, sx)), rotateAxis, math.radians(90))
                             x = add(tx, sx)
 
                     if calyx != middleMajor:
-                        theta = math.radians(-minorCalyxRotateAngle) if calyx == bottomMajor else math.radians(minorCalyxRotateAngle)
+                        theta = math.radians(-minorCalyxRotateAngle) if calyx in [lowerMinor, bottomMinor] else math.radians(minorCalyxRotateAngle)
                         rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
                         ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
                         x = [rx, ry, x[2]]
@@ -719,20 +719,16 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             else:
                 index = 0 if calyx <= lowerMinor else (1 if calyx == middleMajor else 2)
                 if [isBottomMC, isMidMC, isTopMC][index]:
-                    if nMinorCalyxesList[calyx] > 1:
-                        minorCalyxAngle = bottomMinorCalyxAngle if calyx in (bottomMinor, topMinor) else lowerMinorCalyxAngle
-                    else:
-                        minorCalyxAngle = 0
-                    minorCalyxHalfAngle = 0.5 * minorCalyxAngle
-                    minorCalyxHalfAngleRadians = math.radians(minorCalyxHalfAngle)
-                    sinMinorCalyxAngle = math.sin(minorCalyxHalfAngleRadians)
-                    cosMinorCalyxAngle = math.cos(minorCalyxHalfAngleRadians)
                     for side in range(nMinorCalyxesList[calyx]):
                         sx = renalPyramidStartX[calyx][side]
                         if calyx in [bottomMinor, topMinor]:
-                            nx = -sinMinorCalyxAngle if side == anterior else sinMinorCalyxAngle
-                            ny = -cosMinorCalyxAngle if calyx == bottomMinor else cosMinorCalyxAngle
-                            pyramidDirn = [nx, ny, 0.0]
+                            tx = [0.0, -1.0, 0.0] if calyx == bottomMinor else [0.0, 1.0, 0.0]
+                            rotateAngle = -25 if side == anterior else 25
+                            rotateAngle = -rotateAngle + minorCalyxRotateAngle if calyx == topMinor else rotateAngle - minorCalyxRotateAngle
+                            theta = math.radians(rotateAngle)
+                            rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta) if side == anterior else tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
+                            ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta) if side == anterior else tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
+                            pyramidDirn = [rx, ry, 0.0]
                         else:
                             tx = [1.0, 0.0, 0.0]
                             theta = math.radians(-minorCalyxBendAngle) if calyx == lowerMinor else (0 if calyx == middleMajor else math.radians(minorCalyxBendAngle))
@@ -740,8 +736,12 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                             ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
                             pyramidDirn = [rx, ry, 0.0]
                             if isRotateMinorCalyx and nMinorCalyxesList[calyx] > 1:
-                                rotateAngle = math.radians(-20 if side == anterior else 20)
-                                pyramidDirn = rotate_about_z_axis(pyramidDirn, rotateAngle)
+                                rotateAngle = -25 if side == anterior else 25
+                                if calyx in [lowerMinor, upperMinor]:
+                                    rotateAngle = rotateAngle + (minorCalyxRotateAngle if calyx == upperMinor else -minorCalyxRotateAngle)
+                                rotateAngleRad = math.radians(rotateAngle)
+                                pyramidDirn = rotate_about_z_axis(pyramidDirn, rotateAngleRad)
+
                         xList = []
                         for e in range(pyramidElementsCount):
                             pyramidLengthScale = 0.3 * pyramidLength if e == 0 else (0.7 * pyramidLength if e == 1 else pyramidLength)
@@ -906,13 +906,30 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
 
+        elementsCountAlongPyramid = 4
+
+        annotationAlongCounts = []
+        defaultCoreBoundaryScalingMode = 1
+        annotationCoreBoundaryScalingMode = []
+        for layoutAnnotationGroup in layoutAnnotationGroups:
+            alongCount = 0
+            coreBoundaryScalingMode = 0
+            name = layoutAnnotationGroup.getName()
+            if "renal pyramid" in name:
+                alongCount = elementsCountAlongPyramid
+            annotationAlongCounts.append(alongCount)
+            annotationCoreBoundaryScalingMode.append(coreBoundaryScalingMode)
+
         tubeNetworkMeshBuilder = RenalPelvisTubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
+            layoutAnnotationGroups=layoutAnnotationGroups,
+            annotationElementsCountsAlong=annotationAlongCounts,
             defaultElementsCountAround=options["Elements count around"],
             elementsCountThroughShell=options["Elements count through shell"],
-            layoutAnnotationGroups=layoutAnnotationGroups,
-            annotationElementsCountsAround=options["Annotation elements counts around"])
+            annotationElementsCountsAround=options["Annotation elements counts around"],
+            defaultCoreBoundaryScalingMode=defaultCoreBoundaryScalingMode,
+            annotationCoreBoundaryScalingMode=annotationCoreBoundaryScalingMode)
 
         tubeNetworkMeshBuilder.build()
         generateData = TubeNetworkMeshGenerateData(
