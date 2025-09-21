@@ -5,7 +5,6 @@ from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.general import ChangeManager
 
 from cmlibs.zinc.context import Context
-from cmlibs.zinc.element import Element
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
 
@@ -47,13 +46,13 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(952, mesh3d.getSize())
+        self.assertEqual(936, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(3496, mesh2d.getSize())
+        self.assertEqual(3430, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(4157, mesh1d.getSize())
+        self.assertEqual(4075, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(1614, nodes.getSize())
+        self.assertEqual(1582, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -62,8 +61,8 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.7789485582121838, -2.285859056739037, -0.10878747768283183], tol)
-        assertAlmostEqualList(self, maximums, [4.189664358647292, 2.285859056739037, 0.10878747768283183], tol)
+        assertAlmostEqualList(self, minimums, [1.0718417770256363, -2.8357557021117126, -0.10878747768283183], tol)
+        assertAlmostEqualList(self, maximums, [5.199312959129288, 1.8502096232770497, 0.10878747768283183], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -81,19 +80,19 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.37585791891429127, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 15.62363951360235, delta=tol)
+            self.assertAlmostEqual(volume, 0.4866338272404299, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 17.309413531530122, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            "core": (360, 0.16220839845333077),
-            "major calyx": (64, 0.025523445233479505),
-            "minor calyx": (160, 0.039595947108606436),
-            "renal pelvis": (272, 0.10994753925440572),
-            "renal pyramid": (680, 0.2658662115503663),
-            "shell": (592, 0.21364857265602194),
-            "ureter": (64, 0.049524462117630445)
+            "core": (360, 0.22934693864957886),
+            "major calyx": (48, 0.01808641549910496),
+            "minor calyx": (160, 0.03421501056066799),
+            "renal pelvis": (256, 0.11402458784598982),
+            "renal pyramid": (680, 0.3726073231262026),
+            "shell": (576, 0.2572849723226171),
+            "ureter": (64, 0.06581299176056989)
             }
         for name in expectedSizes3d:
             term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
@@ -109,11 +108,11 @@ class RenalPelviscaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "major calyx": (272, 3.029777277349344),
-            "minor calyx": (696, 4.87169182999934),
-            "renal pelvis": (1136, 11.568504559613418),
-            "renal pyramid": (2440, 16.180214023192985),
-            "ureter": (264, 4.2985089237162715)
+            "major calyx": (208, 2.157380980683151),
+            "minor calyx": (694, 4.263807908549397),
+            "renal pelvis": (1070, 11.526296790112461),
+            "renal pyramid": (2440, 21.048589257773124),
+            "ureter": (264, 5.65955310775128)
             }
         for name in expectedSizes2d:
             term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
