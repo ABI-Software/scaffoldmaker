@@ -344,10 +344,10 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
 
         nTopMinorCalyxes = options["Number of calyxes at top minor calyx"]
         nUpperMinorCalyxes = options["Number of calyxes at upper minor calyx"]
-        nMIdMinorCalyxes = options["Number of calyxes at middle major calyx"]
+        nMidMinorCalyxes = options["Number of calyxes at middle major calyx"]
         nLowerMinorCalyxes = options["Number of calyxes at lower minor calyx"]
         nBottomMinorCalyxes = options["Number of calyxes at bottom minor calyx"]
-        nMinorCalyxesList = [nBottomMinorCalyxes, nLowerMinorCalyxes, nMIdMinorCalyxes, nTopMinorCalyxes, nUpperMinorCalyxes]
+        nMinorCalyxesList = [nBottomMinorCalyxes, nLowerMinorCalyxes, nMidMinorCalyxes, nTopMinorCalyxes, nUpperMinorCalyxes]
 
         ureterLength = options["Ureter length"]
         ureterRadius = options["Ureter radius"]
@@ -559,11 +559,10 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                         # bend lower and upper minor calyxes based on specified bend angle
                         ec = nMinorCalyxesList[1] if side == lowerMinor else nMinorCalyxesList[4]
                         minorCalyxBendAngle = 0 if ec < 2 else minorCalyxBendAngle
-                        if minorCalyxBendAngle > 0:
-                            theta = math.radians(-minorCalyxBendAngle) if calyx == bottomMajor else math.radians(minorCalyxBendAngle)
-                            rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
-                            ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
-                            x = [rx, ry, 0.0]
+                        theta = math.radians(-minorCalyxBendAngle) if calyx == bottomMajor else math.radians(minorCalyxBendAngle)
+                        rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
+                        ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
+                        x = [rx, ry, 0.0]
                     sd1 = sub(x, sx)
                     minorCalyxNodeIdentifiers.append(nodeIdentifier)
                     minorCalyxXList.append(x)
@@ -719,7 +718,10 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                         sx = renalPyramidStartX[calyx][side]
                         if calyx in [bottomMinor, topMinor]:
                             tx = [0.0, -1.0, 0.0] if calyx == bottomMinor else [0.0, 1.0, 0.0]
-                            rotateAngle = -25 if side == anterior else 25
+                            if nMinorCalyxesList[calyx] > 1:
+                                rotateAngle = -25 if side == anterior else 25
+                            else:
+                                rotateAngle = 0
                             rotateAngle = -rotateAngle + minorCalyxRotateAngle if calyx == topMinor else rotateAngle - minorCalyxRotateAngle
                             theta = math.radians(rotateAngle)
                             rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta) if side == anterior else tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
@@ -727,12 +729,18 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                             pyramidDirn = [rx, ry, 0.0]
                         else:
                             tx = [1.0, 0.0, 0.0]
-                            theta = math.radians(-minorCalyxBendAngle) if calyx == lowerMinor else (0 if calyx == middleMajor else math.radians(minorCalyxBendAngle))
+                            if nMinorCalyxesList[calyx] > 1:
+                                theta = math.radians(-minorCalyxBendAngle) if calyx == lowerMinor else (0 if calyx == middleMajor else math.radians(minorCalyxBendAngle))
+                            else:
+                                theta = 0
                             rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
                             ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
                             pyramidDirn = [rx, ry, 0.0]
-                            if isRotateMinorCalyx and nMinorCalyxesList[calyx] > 1:
-                                rotateAngle = -25 if side == anterior else 25
+                            if isRotateMinorCalyx:
+                                if nMinorCalyxesList[calyx] > 1:
+                                    rotateAngle = -25 if side == anterior else 25
+                                else:
+                                    rotateAngle = 0
                                 if calyx in [lowerMinor, upperMinor]:
                                     rotateAngle = rotateAngle + (minorCalyxRotateAngle if calyx == upperMinor else -minorCalyxRotateAngle)
                                 rotateAngleRad = math.radians(rotateAngle)
