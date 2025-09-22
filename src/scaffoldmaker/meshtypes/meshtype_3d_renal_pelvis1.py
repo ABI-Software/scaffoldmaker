@@ -4,7 +4,7 @@ Generates a 3D renal pelvis using tube network mesh.
 import math
 
 from cmlibs.maths.vectorops import mult, cross, add, sub, set_magnitude, rotate_about_z_axis, \
-    rotate_vector_around_vector, normalize
+    rotate_vector_around_vector
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.field import Field
 
@@ -50,6 +50,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         options["Inner proportion ureter"] = 0.7
 
         if parameterSetName in ["Default", "Human 1"]:
+            cls.isHuman = True
+            cls.isRat = False
 
             options["Top major calyx"] = True
             options["Middle major calyx"] = True
@@ -245,98 +247,99 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         isUpperMC = options["Upper minor calyx"]
         isLowerMC = options["Lower minor calyx"]
 
-        nTopMajorCalyxes = 2 if isUpperMC else 1
         nTopMinorCalyxes = options["Number of calyxes at top minor calyx"]
         nMidMajorCalyxes = options["Number of calyxes at middle major calyx"]
-        nBottomMajorCalyxes = 2 if isLowerMC else 1
         nBottomMinorCalyxes = options["Number of calyxes at bottom minor calyx"]
         nUpperMinorCalyxes = options["Number of calyxes at upper minor calyx"]
         nLowerMinorCalyxes = options["Number of calyxes at lower minor calyx"]
 
-        structure = "1-2, 2-3.1"
-        startNodeIdentifier = 3
-        nodeDerivative = 2
-        nodeIdentifier = 4
+        nTopMajorCalyxes = 2 if isUpperMC else 1
+        nBottomMajorCalyxes = 2 if isLowerMC else 1
 
-        # major calyx
+        structure = "1-2, 2-3.1"
+        nodeIdentifier = 4
+        nodeDerivative = 2
+
+        # Build major calyx connections
         majorCalyxNodeIdentifiers = []
-        for i in range(3):
-            if [isBottomMC, isMidMC, isTopMC][i]:
+        majorCalyxFlags = [isBottomMC, isMidMC, isTopMC]
+
+        for i, hasMajorCalyx in enumerate(majorCalyxFlags):
+            if hasMajorCalyx:
                 majorCalyxNodeIdentifiers.append(nodeIdentifier)
-                layout = str(startNodeIdentifier) + "." + str(nodeDerivative) + "-" + str(nodeIdentifier)
+                layout = f"3.{nodeDerivative}-{nodeIdentifier}"
+                structure += f",{layout}"
                 nodeDerivative += 1
                 nodeIdentifier += 1
-                structure = structure + "," + layout
-            else:
-                continue
 
+        # Build bottom major calyx to minor calyx connections
         bmcNodeIdentifiers = []
         if isBottomMC:
-            startNodeIdentifier = majorCalyxNodeIdentifiers[0]
+            startNode = majorCalyxNodeIdentifiers[0]
             for n in range(nBottomMajorCalyxes):
                 bmcNodeIdentifiers.append(nodeIdentifier)
-                if isLowerMC:
-                    layout = str(startNodeIdentifier) + "." + str(n + 2) + "-" + str(nodeIdentifier)
-                else:
-                    layout = str(startNodeIdentifier) + "-" + str(nodeIdentifier)
+                layout = f"{startNode}.{n + 2}-{nodeIdentifier}" if isLowerMC else f"{startNode}-{nodeIdentifier}"
+                structure += f",{layout}"
                 nodeIdentifier += 1
-                structure = structure + "," + layout
 
+        # Build top major calyx to minor calyx connections
         tmcNodeIdentifiers = []
         if isTopMC:
-            startNodeIdentifier = majorCalyxNodeIdentifiers[-1]
+            startNode = majorCalyxNodeIdentifiers[-1]
             for n in range(nTopMajorCalyxes):
                 tmcNodeIdentifiers.append(nodeIdentifier)
-                if isUpperMC:
-                    layout = str(startNodeIdentifier) + "." + str(n + 2) + "-" + str(nodeIdentifier)
-                else:
-                    layout = str(startNodeIdentifier) + "-" + str(nodeIdentifier)
+                layout = f"{startNode}.{n + 2}-{nodeIdentifier}" if isUpperMC else f"{startNode}-{nodeIdentifier}"
+                structure += f",{layout}"
                 nodeIdentifier += 1
-                structure = structure + "," + layout
 
-        minorCalyxNodeIndentifiers = []
+        # Build minor calyx connections
+        minorCalyxNodeIdentifiers = []
 
+        # Bottom minor calyxes
         if isBottomMC:
+            calyxCounts = [nBottomMinorCalyxes, nLowerMinorCalyxes]
             for i in range(nBottomMajorCalyxes):
-                nCalyxes = [nBottomMinorCalyxes, nLowerMinorCalyxes][i]
-                startNodeIdentifier = bmcNodeIdentifiers[i]
+                nCalyxes = calyxCounts[i]
+                startNode = bmcNodeIdentifiers[i]
                 for j in range(nCalyxes):
-                    minorCalyxNodeIndentifiers.append(nodeIdentifier)
-                    if nCalyxes > 1:
-                        layout = str(startNodeIdentifier) + "." + str(j + 2) + "-" + str(nodeIdentifier)
-                    else:
-                        layout = str(startNodeIdentifier) + "-" + str(nodeIdentifier)
+                    minorCalyxNodeIdentifiers.append(nodeIdentifier)
+                    layout = f"{startNode}.{j + 2}-{nodeIdentifier}" if nCalyxes > 1 else f"{startNode}-{nodeIdentifier}"
+                    structure += f",{layout}"
                     nodeIdentifier += 1
-                    structure = structure + "," + layout
 
+        # Middle minor calyxes
         if isMidMC:
-            index = 0 if len(majorCalyxNodeIdentifiers) == 2 and isTopMC or len(majorCalyxNodeIdentifiers) == 1 else 1
-            startNodeIdentifier = majorCalyxNodeIdentifiers[index]
+            # Determine correct index for middle major calyx
+            if len(majorCalyxNodeIdentifiers) == 3:  # All three major calyxes present
+                midIndex = 1
+            elif len(majorCalyxNodeIdentifiers) == 2 and isTopMC:  # Mid and Top present
+                midIndex = 0
+            else:  # Mid and Bottom present, or only Mid present
+                midIndex = -1 if len(majorCalyxNodeIdentifiers) == 2 else 0
+
+            startNode = majorCalyxNodeIdentifiers[midIndex]
             for n in range(nMidMajorCalyxes):
-                minorCalyxNodeIndentifiers.append(nodeIdentifier)
-                if nMidMajorCalyxes > 1:
-                    layout = str(startNodeIdentifier) + "." + str(n + 2) + "-" + str(nodeIdentifier)
-                else:
-                    layout = str(startNodeIdentifier) + "-" + str(nodeIdentifier)
+                minorCalyxNodeIdentifiers.append(nodeIdentifier)
+                layout = f"{startNode}.{n + 2}-{nodeIdentifier}" if nMidMajorCalyxes > 1 else f"{startNode}-{nodeIdentifier}"
+                structure += f",{layout}"
                 nodeIdentifier += 1
-                structure = structure + "," + layout
 
+        # Top minor calyxes
         if tmcNodeIdentifiers:
+            calyxCounts = [nTopMinorCalyxes, nUpperMinorCalyxes]
             for i in range(nTopMajorCalyxes):
-                nCalyxes = [nTopMinorCalyxes, nUpperMinorCalyxes][i]
-                startNodeIdentifier = tmcNodeIdentifiers[i]
+                nCalyxes = calyxCounts[i]
+                startNode = tmcNodeIdentifiers[i]
                 for j in range(nCalyxes):
-                    minorCalyxNodeIndentifiers.append(nodeIdentifier)
-                    if nCalyxes > 1:
-                        layout = str(startNodeIdentifier) + "." + str(j + 2) + "-" + str(nodeIdentifier)
-                    else:
-                        layout = str(startNodeIdentifier) + "-" + str(nodeIdentifier)
+                    minorCalyxNodeIdentifiers.append(nodeIdentifier)
+                    layout = f"{startNode}.{j + 2}-{nodeIdentifier}" if nCalyxes > 1 else f"{startNode}-{nodeIdentifier}"
+                    structure += f",{layout}"
                     nodeIdentifier += 1
-                    structure = structure + "," + layout
 
-        for nid in minorCalyxNodeIndentifiers:
-            layout = str(nid) + "-" + str(nodeIdentifier) + "-" + str(nodeIdentifier + 1) + "-" + str(nodeIdentifier + 2)
-            structure = structure + "," + layout
+        # Add final connections for each minor calyx
+        for nid in minorCalyxNodeIdentifiers:
+            layout = f"{nid}-{nodeIdentifier}-{nodeIdentifier + 1}-{nodeIdentifier + 2}"
+            structure += f",{layout}"
             nodeIdentifier += 3
 
         return structure
@@ -401,6 +404,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         renalPyramidGroup = AnnotationGroup(region, get_kidney_term("renal pyramid"))
         annotationGroups = [renalPelvisGroup, ureterGroup, majorCalyxGroup, minorCalyxGroup, renalPyramidGroup]
 
+        # Ureter elements
         renalPelvisMeshGroup = renalPelvisGroup.getMeshGroup(mesh)
         elementIdentifier = 1
         ureterElementsCount = 2
@@ -411,37 +415,45 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                 meshGroup.addElement(element)
             elementIdentifier += 1
 
+        # Major calyx elements
         majorCalyxElementsCount = sum([isBottomMC, isMidMC, isTopMC])
         meshGroups = [renalPelvisMeshGroup, majorCalyxGroup.getMeshGroup(mesh)]
-        startIndex = 1 if sum([isBottomMC, isMidMC, isTopMC]) == 2 and isTopMC or sum([isBottomMC, isMidMC, isTopMC]) == 1 else 0
-        bottomMajor, middleMajor, topMajor = 0, 1, 2
+        majorCalyxFlags = [isBottomMC, isMidMC, isTopMC]
+
+        totalMajorCalyxes = sum(majorCalyxFlags)
+        startIndex = 1 if (totalMajorCalyxes == 2 and isTopMC) or (totalMajorCalyxes == 1) else 0
+
+        middleMajorCalyxIdentifier = None
         for e in range(startIndex, majorCalyxElementsCount + startIndex):
             element = mesh.findElementByIdentifier(elementIdentifier)
-            if isMidMC:
-                if e == middleMajor:
-                    middleMajorCalyxIdentifier = elementIdentifier
-            else:
-                middleMajorCalyxIdentifier = None
+            if isMidMC and e == 1:  # middle major calyx index
+                middleMajorCalyxIdentifier = elementIdentifier
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
 
+        # Minor calyx elements
         meshGroups = [renalPelvisMeshGroup, minorCalyxGroup.getMeshGroup(mesh)]
+
         bottomMinor, lowerMinor, middleMajor, topMinor, upperMinor = 0, 1, 2, 3, 4
-        minorCalyxList = (([bottomMinor, lowerMinor] if isBottomMC else []) + ([middleMajor] if isMidMC else []) +
+        minorCalyxList = (([bottomMinor, lowerMinor] if isBottomMC else []) +
+                          ([middleMajor] if isMidMC else []) +
                           ([topMinor, upperMinor] if isTopMC else []))
+
         for calyx in minorCalyxList:
-            cElementIdentifier = middleMajorCalyxIdentifier if calyx == middleMajor and isMidMC else elementIdentifier
+            cElementIdentifier = middleMajorCalyxIdentifier if (calyx == middleMajor and isMidMC) else elementIdentifier
             element = mesh.findElementByIdentifier(cElementIdentifier)
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
-            elementIdentifier = elementIdentifier if calyx == middleMajor and isMidMC else elementIdentifier + 1
+            if not (calyx == middleMajor and isMidMC):
+                elementIdentifier += 1
 
+        # Minor calyx to pyramid connections
         renalPyramidMeshGroup = renalPyramidGroup.getMeshGroup(mesh)
         minorCalyxMeshGroup = minorCalyxGroup.getMeshGroup(mesh)
         meshGroups = [renalPelvisMeshGroup, minorCalyxMeshGroup]
         minorCalyxElementsCount = 1
-        pyramidElementsCount = 3
+
         for calyx in minorCalyxList:
             for side in range(nMinorCalyxesList[calyx]):
                 for e in range(minorCalyxElementsCount):
@@ -450,6 +462,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                         meshGroup.addElement(element)
                     elementIdentifier += 1
 
+        # Pyramid elements
+        pyramidElementsCount = 3
         for calyx in minorCalyxList:
             for side in range(nMinorCalyxesList[calyx]):
                 for e in range(pyramidElementsCount):
@@ -460,67 +474,77 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         # set coordinates (outer)
         fieldcache = fieldmodule.createFieldcache()
         coordinates = find_or_create_field_coordinates(fieldmodule)
-        # need to ensure inner coordinates are at least defined:
         cls.defineInnerCoordinates(region, coordinates, options, networkMesh, innerProportion=innerProportionDefault)
         innerCoordinates = find_or_create_field_coordinates(fieldmodule, "inner coordinates")
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
-        # ureter
+        # Generate ureter coordinates
         nodeIdentifier = 1
         ureterScale = ureterLength / ureterElementsCount
         ureterBendAngleRadians = math.radians(ureterBendAngle)
         sinUreterAngle = math.sin(ureterBendAngleRadians)
         cosUreterAngle = math.cos(ureterBendAngleRadians)
+
         endX = [ureterLength, 0.0, 0.0]
         tx = endX[0] - ureterLength * cosUreterAngle
         ty = endX[1] - ureterLength * sinUreterAngle
         startX = [tx, ty, 0.0]
+
         d1 = [ureterScale, 0.0, 0.0]
         d3 = [0.0, 0.0, ureterRadius]
         id3 = mult(d3, innerProportionUreter)
-        # td1 = [0.0, ureterScale, 0.0]
         td1 = rotate_about_z_axis(d1, 2 * ureterBendAngleRadians)
+
         sx, sd1 = sampleCubicHermiteCurves([startX, endX], [td1, d1], ureterElementsCount,  arcLengthDerivatives=True)[0:2]
         sd1 = smoothCubicHermiteDerivativesLine(sx, sd1, fixEndDirection=True)
+
         for e in range(ureterElementsCount + 1):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             sd2 = set_magnitude(cross(d3, sd1[e]), ureterRadius)
             sid2 = mult(sd2, innerProportionUreter)
+
             for field, derivatives in ((coordinates, (sd1[e], sd2, d3)), (innerCoordinates, (sd1[e], sid2, id3))):
                 setNodeFieldParameters(field, fieldcache, sx[e], *derivatives)
             nodeIdentifier += 1
+
         majorCalyxJunctionNodeIdentifier = nodeIdentifier - 1
         majorCalyxStartX = endX
 
-        # major calyx
+        # Generate major calyx coordinates
         majorCalyxAngleRadians = math.radians(majorCalyxAngle / 2)
         sx = majorCalyxStartX
         bottomMajor, middleMajor, topMajor = 0, 1, 2
         version = 2
         majorCalyxNodeIdentifiers, majorCalyxXList, majorCalyxD1List = [], [], []
+
         for calyx in (bottomMajor, middleMajor, topMajor):
-            if [isBottomMC, isMidMC, isTopMC][calyx]:
+            if majorCalyxFlags[calyx]:
                 majorCalyxNodeIdentifiers.append(nodeIdentifier)
                 calyxLength = middleMajorLength if calyx == middleMajor else majorCalyxLength
                 majorCalyxAngle = 0 if calyx == middleMajor else majorCalyxAngleRadians
                 cosMajorCalyxAngle = math.cos(majorCalyxAngle)
                 sinMajorCalyxAngle = math.sin(-majorCalyxAngle if calyx == bottomMajor else majorCalyxAngle)
+
                 majorCalyxEndX = sx[0] + calyxLength * cosMajorCalyxAngle
                 majorCalyxEndY = sx[1] + calyxLength * sinMajorCalyxAngle
                 x = [majorCalyxEndX, majorCalyxEndY, 0.0]
                 sd1 = sub(x, sx)
+
                 majorCalyxXList.append(x)
                 majorCalyxD1List.append(sd1)
+
                 for i in range(2):
                     isJunctionNode = i == 0
                     nodeId = majorCalyxJunctionNodeIdentifier if isJunctionNode else nodeIdentifier
                     node = nodes.findNodeByIdentifier(nodeId)
                     fieldcache.setNode(node)
+
                     sd3 = [0.0, 0.0, majorCalyxRadius]
                     sid3 = mult(sd3, innerProportionDefault)
                     sd2 = set_magnitude(cross(sd3, sd1), majorCalyxRadius)
                     sid2 = mult(sd2, innerProportionDefault)
+
                     if not isJunctionNode:
                         for field, derivatives in (
                                 (coordinates, [x, sd1, sd2, sd3]),
@@ -533,57 +557,71 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                             ):
                                 field.setNodeParameters(fieldcache, -1, valueLabel, 1, value)
                         nodeIdentifier += 1
+
                     setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, sd3)
-                    setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sid3)
+                    setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sd3)
                 version += 1
             else:
                 majorCalyxNodeIdentifiers.append(None)
                 majorCalyxXList.append(None)
                 majorCalyxD1List.append(None)
 
-        # top and bottom major calyx to minor calyx
+        # Generate top and bottom major calyx to minor calyx connections
         lowerMinor, bottomMinor = 1, 0
         topMinor, upperMinor = 0, 1
         minorCalyxNodeIdentifiers, minorCalyxXList, minorCalyxD1List = [], [], []
+
         for calyx in [bottomMajor, middleMajor, topMajor]:
             if calyx == middleMajor:
                 minorCalyxNodeIdentifiers.append(majorCalyxNodeIdentifiers[1])
                 minorCalyxXList.append(majorCalyxXList[1])
                 minorCalyxD1List.append(majorCalyxD1List[1])
                 continue
-            else:
-                sides = [bottomMinor, lowerMinor] if calyx == bottomMajor else [topMinor, upperMinor]
-            if [isBottomMC, isMidMC, isTopMC][calyx]:
+
+            sides = [bottomMinor, lowerMinor] if calyx == bottomMajor else [topMinor, upperMinor]
+
+            if majorCalyxFlags[calyx]:
                 cNodeIdentifier = majorCalyxNodeIdentifiers[calyx]
                 signValue = -1.0 if calyx == bottomMajor else 1.0
                 sx = majorCalyxXList[calyx]
+
                 for side in sides:
+                    # Skip if minor calyx is not present
                     if side in [lowerMinor, upperMinor]:
                         if (calyx == bottomMajor and not isLowerMC) or (calyx == topMajor and not isUpperMC):
                             minorCalyxNodeIdentifiers.append(None)
                             minorCalyxXList.append(None)
                             minorCalyxD1List.append(None)
                             continue
-                    calyxLength = majorToBottomMinorCalyxLength if side in (bottomMinor, topMinor) else majorToLowerMinorCalyxLength
-                    x = [sx[0], sx[1] + calyxLength * signValue, sx[2]] if side in (bottomMinor, topMinor) else \
-                        [sx[0] + calyxLength, sx[1], sx[2]]
-                    # rotate minor calyxes if rotate angle is not zero
-                    theta = math.radians(-minorCalyxRotateAngle) if calyx == bottomMajor else math.radians(minorCalyxRotateAngle)
+
+                    calyxLength = majorToBottomMinorCalyxLength if side in (
+                    bottomMinor, topMinor) else majorToLowerMinorCalyxLength
+
+                    if side in (bottomMinor, topMinor):
+                        x = [sx[0], sx[1] + calyxLength * signValue, sx[2]]
+                    else:
+                        x = [sx[0] + calyxLength, sx[1], sx[2]]
+
+                    # Apply rotation if needed
+                    theta = math.radians(-minorCalyxRotateAngle if calyx == bottomMajor else minorCalyxRotateAngle)
                     rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
                     ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
                     x = [rx, ry, 0.0]
+
+                    # Apply bend angle for lower/upper minor calyxes
                     if side in (lowerMinor, upperMinor):
-                        # bend lower and upper minor calyxes based on specified bend angle
                         ec = nMinorCalyxesList[1] if side == lowerMinor else nMinorCalyxesList[4]
-                        minorCalyxBendAngle = 0 if ec < 2 else minorCalyxBendAngle
-                        theta = math.radians(-minorCalyxBendAngle) if calyx == bottomMajor else math.radians(minorCalyxBendAngle)
+                        bendAngle = 0 if ec < 2 else minorCalyxBendAngle
+                        theta = math.radians(-bendAngle if calyx == bottomMajor else bendAngle)
                         rx = sx[0] + (x[0] - sx[0]) * math.cos(theta) - (x[1] - sx[1]) * math.sin(theta)
                         ry = sx[1] + (x[0] - sx[0]) * math.sin(theta) + (x[1] - sx[1]) * math.cos(theta)
                         x = [rx, ry, 0.0]
+
                     sd1 = sub(x, sx)
                     minorCalyxNodeIdentifiers.append(nodeIdentifier)
                     minorCalyxXList.append(x)
                     minorCalyxD1List.append(sd1)
+
                     for i in range(2):
                         isJunctionNode = i == 0
                         nodeId = cNodeIdentifier if isJunctionNode else nodeIdentifier
@@ -592,10 +630,14 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
 
                         version = 2 if side == 0 else 3
                         sd3 = [0.0, 0.0, minorCalyxRadius]
-                        sd2 = [minorCalyxRadius, 0.0, 0.0] if (calyx == bottomMajor and version == 2) \
-                            else set_magnitude(cross(sd3, sd1), minorCalyxRadius)
+                        if calyx == bottomMajor and version == 2:
+                            sd2 = [minorCalyxRadius, 0.0, 0.0]
+                        else:
+                            sd2 = set_magnitude(cross(sd3, sd1), minorCalyxRadius)
+
                         sid2 = mult(sd2, innerProportionDefault)
                         sid3 = mult(sd3, innerProportionDefault)
+
                         if not isJunctionNode:
                             for field, derivatives in (
                                     (coordinates, [x, sd1, sd2, sd3]),
@@ -608,6 +650,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                                 ):
                                     field.setNodeParameters(fieldcache, -1, valueLabel, 1, value)
                             nodeIdentifier += 1
+
                         setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, sd3)
                         setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sid3)
             else:
@@ -616,11 +659,12 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                     minorCalyxXList.append(None)
                     minorCalyxD1List.append(None)
 
-        # minor calyx to renal pyramid connection
+        # Generate minor calyx to renal pyramid connections
         anterior, posterior = 0, 1
         bottomMinor, lowerMinor, middleMajor, topMinor, upperMinor = 0, 1, 2, 3, 4
         renalPyramidStartX, renalPyramidNodeIdentifiers = [], []
         connection_sd2_list, connection_sd3_list = [], []
+
         for calyx in (bottomMinor, lowerMinor, middleMajor, topMinor, upperMinor):
             if minorCalyxNodeIdentifiers[calyx] is None:
                 renalPyramidNodeIdentifiers.append(None)
@@ -633,19 +677,23 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                 renalPyramidStartX.append([])
                 connection_sd2_list.append([])
                 connection_sd3_list.append([])
+
             index = 0 if calyx <= lowerMinor else (1 if calyx == middleMajor else 2)
             if [isBottomMC, isMidMC, isTopMC][index]:
                 cNodeIdentifier = minorCalyxNodeIdentifiers[calyx]
                 sx = minorCalyxXList[calyx]
                 minorCalyxLength = bottomMinorCalyxLength if calyx in (bottomMinor, topMinor) else lowerMinorCalyxLength
+
                 if nMinorCalyxesList[calyx] > 1:
                     minorCalyxAngle = bottomMinorCalyxAngle if calyx in (bottomMinor, topMinor) else lowerMinorCalyxAngle
                 else:
                     minorCalyxAngle = 0
+
                 minorCalyxHalfAngle = 0.5 * minorCalyxAngle
                 minorCalyxHalfAngleRadians = math.radians(minorCalyxHalfAngle)
                 sinMinorCalyxAngle = math.sin(minorCalyxHalfAngleRadians)
                 cosMinorCalyxAngle = math.cos(minorCalyxHalfAngleRadians)
+
                 for side in range(nMinorCalyxesList[calyx]):
                     if calyx in [bottomMinor, topMinor]:
                         nx = sx[0] + minorCalyxLength * (-sinMinorCalyxAngle if side == anterior else sinMinorCalyxAngle)
@@ -656,7 +704,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                         nz = sx[2] + minorCalyxLength * (sinMinorCalyxAngle if side == anterior else -sinMinorCalyxAngle)
                         x = [nx, sx[1], nz]
                         if isRotateMinorCalyx:
-                            rotateAxis = [1,0,0]
+                            rotateAxis = [1, 0, 0]
                             tx = rotate_vector_around_vector((sub(x, sx)), rotateAxis, math.radians(90))
                             x = add(tx, sx)
                     else:
@@ -721,102 +769,105 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                     connection_sd2_list[-1].append(None)
                     connection_sd3_list[-1].append(None)
 
-        # minor calyx to renal pyramids
-        pyramidElementsCount = 3
+        # Generate minor calyx to renal pyramids
         pyramidHalfWidth = 0.5 * pyramidWidth
-        bottomMinor, lowerMinor, middleMajor, topMinor, upperMinor = 0, 1, 2, 3, 4
+
         for calyx in [bottomMinor, lowerMinor, middleMajor, topMinor, upperMinor]:
             if renalPyramidNodeIdentifiers[calyx] is None:
                 continue
-            else:
-                index = 0 if calyx <= lowerMinor else (1 if calyx == middleMajor else 2)
-                if [isBottomMC, isMidMC, isTopMC][index]:
-                    for side in range(nMinorCalyxesList[calyx]):
-                        sx = renalPyramidStartX[calyx][side]
-                        if calyx in [bottomMinor, topMinor]:
-                            tx = [0.0, -1.0, 0.0] if calyx == bottomMinor else [0.0, 1.0, 0.0]
-                            if nMinorCalyxesList[calyx] > 1:
-                                rotateAngle = -25 if side == anterior else 25
-                            else:
-                                rotateAngle = 0
-                            rotateAngle = -rotateAngle + minorCalyxRotateAngle if calyx == topMinor else rotateAngle - minorCalyxRotateAngle
-                            theta = math.radians(rotateAngle)
-                            rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta) if side == anterior else tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
-                            ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta) if side == anterior else tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
-                            pyramidDirn = [rx, ry, 0.0]
-                        else:
-                            tx = [1.0, 0.0, 0.0]
-                            if nMinorCalyxesList[calyx] > 1:
-                                theta = math.radians(-minorCalyxBendAngle) if calyx == lowerMinor else (0 if calyx == middleMajor else math.radians(minorCalyxBendAngle))
-                            else:
-                                theta = 0
-                            rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
-                            ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
-                            pyramidDirn = [rx, ry, 0.0]
-                            if isRotateMinorCalyx:
-                                if nMinorCalyxesList[calyx] > 1:
-                                    rotateAngle = -25 if side == anterior else 25
-                                else:
-                                    rotateAngle = 0
-                                if calyx in [lowerMinor, upperMinor]:
-                                    rotateAngle = rotateAngle + (minorCalyxRotateAngle if calyx == upperMinor else -minorCalyxRotateAngle)
-                                rotateAngleRad = math.radians(rotateAngle)
-                                pyramidDirn = rotate_about_z_axis(pyramidDirn, rotateAngleRad)
 
-                        xList = []
-                        for e in range(pyramidElementsCount):
-                            pyramidLengthScale = 0.3 * pyramidLength if e == 0 else (0.7 * pyramidLength if e == 1 else pyramidLength)
-                            x = add(sx, mult(pyramidDirn, (pyramidLengthScale)))
-                            xList.append(x)
-                        pyramid_sd2_list = []
-                        pyramid_sd3_list = []
-                        sNodeIdentifiers = []
-                        for e in range(pyramidElementsCount):
-                            sNodeIdentifiers.append(nodeIdentifier)
-                            node = nodes.findNodeByIdentifier(nodeIdentifier)
-                            fieldcache.setNode(node)
+            index = 0 if calyx <= lowerMinor else (1 if calyx == middleMajor else 2)
+            if majorCalyxFlags[index]:
+                for side in range(nMinorCalyxesList[calyx]):
+                    sx = renalPyramidStartX[calyx][side]
 
-                            sd1 = sub(xList[1], xList[0])
-                            pyramidWidthScale = minorCalyxRadius if e == 0 else (pyramidHalfWidth if e == 1 else 0.9 * pyramidHalfWidth)
-                            pyramidThickness = 1.1 * minorCalyxRadius if e == 1 else minorCalyxRadius
-                            if calyx in [bottomMinor, topMinor]:
-                                sd3 = [0.0, 0.0, pyramidThickness]
-                                sd2 = set_magnitude(cross(sd3, sd1), pyramidWidthScale)
-                            else:
-                                sd3 = [0.0, 0.0, pyramidThickness]
-                                sd2 = set_magnitude(cross(sd3, sd1), pyramidWidthScale)
-                            pyramid_sd2_list.append(sd2)
-                            pyramid_sd3_list.append(sd3)
-                            sid2 = mult(sd2, innerProportionDefault)
-                            sid3 = mult(sd3, innerProportionDefault)
+                    # Calculate pyramid direction
+                    if calyx in [bottomMinor, topMinor]:
+                        tx = [0.0, -1.0, 0.0] if calyx == bottomMinor else [0.0, 1.0, 0.0]
+                        angle = 25 if nMinorCalyxesList[calyx + 1] > 1 else bottomMinorCalyxAngle * 0.5
+                        rotateAngle = 0 if nMinorCalyxesList[calyx] <= 1 else (-angle if side == anterior else angle)
 
-                            for field, derivatives in (
-                                    (coordinates, [xList[e], sd1, sd2, sd3]),
-                                    (innerCoordinates, [xList[e], sd1, sid2, sid3])
+                        rotateAngle = (-rotateAngle + minorCalyxRotateAngle if calyx == topMinor else rotateAngle - minorCalyxRotateAngle)
+                        theta = math.radians(rotateAngle)
+                        rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
+                        ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
+                        pyramidDirn = [rx, ry, 0.0]
+                    else:
+                        tx = [1.0, 0.0, 0.0]
+                        theta = 0
+                        if nMinorCalyxesList[calyx] > 1:
+                            if calyx == lowerMinor:
+                                theta = math.radians(-minorCalyxBendAngle)
+                            elif calyx == upperMinor:
+                                theta = math.radians(minorCalyxBendAngle)
+
+                        rx = tx[0] * math.cos(theta) - tx[1] * math.sin(theta)
+                        ry = tx[0] * math.sin(theta) + tx[1] * math.cos(theta)
+                        pyramidDirn = [rx, ry, 0.0]
+
+                        if isRotateMinorCalyx:
+                            rotateAngle = 0 if nMinorCalyxesList[calyx] <= 1 else (-25 if side == anterior else 25)
+                            if calyx in [lowerMinor, upperMinor]:
+                                rotateAngle += (minorCalyxRotateAngle if calyx == upperMinor else -minorCalyxRotateAngle)
+                            rotateAngleRad = math.radians(rotateAngle)
+                            pyramidDirn = rotate_about_z_axis(pyramidDirn, rotateAngleRad)
+
+                    # Generate pyramid node positions
+                    xList = []
+                    for e in range(pyramidElementsCount):
+                        pyramidLengthScale = [0.3, 0.7, 1.0][e] * pyramidLength
+                        x = add(sx, mult(pyramidDirn, pyramidLengthScale))
+                        xList.append(x)
+
+                    # Generate pyramid nodes
+                    pyramid_sd2_list = []
+                    pyramid_sd3_list = []
+                    sNodeIdentifiers = []
+
+                    for e in range(pyramidElementsCount):
+                        sNodeIdentifiers.append(nodeIdentifier)
+                        node = nodes.findNodeByIdentifier(nodeIdentifier)
+                        fieldcache.setNode(node)
+
+                        sd1 = sub(xList[1], xList[0])
+                        pyramidWidthScale = [minorCalyxRadius, pyramidHalfWidth, 0.9 * pyramidHalfWidth][e]
+                        pyramidThickness = 1.1 * minorCalyxRadius if e == 1 else minorCalyxRadius
+
+                        sd3 = [0.0, 0.0, pyramidThickness]
+                        sd2 = set_magnitude(cross(sd3, sd1), pyramidWidthScale)
+
+                        pyramid_sd2_list.append(sd2)
+                        pyramid_sd3_list.append(sd3)
+                        sid2 = mult(sd2, innerProportionDefault)
+                        sid3 = mult(sd3, innerProportionDefault)
+
+                        for field, derivatives in (
+                                (coordinates, [xList[e], sd1, sd2, sd3]),
+                                (innerCoordinates, [xList[e], sd1, sid2, sid3])
+                        ):
+                            for valueLabel, value in zip(
+                                    (Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
+                                     Node.VALUE_LABEL_D_DS3),
+                                    derivatives
                             ):
-                                for valueLabel, value in zip(
-                                        (Node.VALUE_LABEL_VALUE, Node.VALUE_LABEL_D_DS1, Node.VALUE_LABEL_D_DS2,
-                                         Node.VALUE_LABEL_D_DS3),
-                                        derivatives
-                                ):
-                                    field.setNodeParameters(fieldcache, -1, valueLabel, 1, value)
-                            nodeIdentifier += 1
+                                field.setNodeParameters(fieldcache, -1, valueLabel, 1, value)
+                        nodeIdentifier += 1
 
-                        pyramid_sd2_list.append(connection_sd2_list[calyx][side])
-                        pyramid_sd3_list.append(connection_sd3_list[calyx][side])
-                        for e in range(pyramidElementsCount):
-                            node = nodes.findNodeByIdentifier(sNodeIdentifiers[e])
-                            fieldcache.setNode(node)
-                            sd12 = sub(pyramid_sd2_list[e + 1], pyramid_sd2_list[e])
-                            sd13 = sub(pyramid_sd3_list[e + 1], pyramid_sd3_list[e])
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12)
-                            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sd13)
-                            sid12 = mult(sd12, innerProportionDefault)
-                            sid13 = mult(sd13, innerProportionDefault)
-                            innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sid12)
-                            innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sid13)
-                else:
-                    continue
+                    # Set cross derivatives for pyramid nodes
+                    pyramid_sd2_list.append(connection_sd2_list[calyx][side])
+                    pyramid_sd3_list.append(connection_sd3_list[calyx][side])
+
+                    for e in range(pyramidElementsCount):
+                        node = nodes.findNodeByIdentifier(sNodeIdentifiers[e])
+                        fieldcache.setNode(node)
+                        sd12 = sub(pyramid_sd2_list[e + 1], pyramid_sd2_list[e])
+                        sd13 = sub(pyramid_sd3_list[e + 1], pyramid_sd3_list[e])
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sd12)
+                        coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sd13)
+                        sid12 = mult(sd12, innerProportionDefault)
+                        sid13 = mult(sd13, innerProportionDefault)
+                        innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, 1, sid12)
+                        innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, 1, sid13)
 
         return annotationGroups, networkMesh
 

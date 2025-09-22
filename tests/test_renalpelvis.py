@@ -80,19 +80,19 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 0.4866338272404299, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 17.309413531530122, delta=tol)
+            self.assertAlmostEqual(volume, 0.48202318217985807, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 17.351342367941086, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
             "core": (360, 0.22934693864957886),
-            "major calyx": (48, 0.01808641549910496),
-            "minor calyx": (160, 0.03421501056066799),
-            "renal pelvis": (256, 0.11402458784598982),
+            "major calyx": (48, 0.014074549575560903),
+            "minor calyx": (160, 0.03321136172402478),
+            "renal pelvis": (256, 0.10941335689890085),
             "renal pyramid": (680, 0.3726073231262026),
-            "shell": (576, 0.2572849723226171),
-            "ureter": (64, 0.06581299176056989)
+            "shell": (576, 0.25267374137552767),
+            "ureter": (64, 0.06522783433316985)
             }
         for name in expectedSizes3d:
             term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
@@ -108,11 +108,11 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            "major calyx": (208, 2.157380980683151),
-            "minor calyx": (694, 4.263807908549397),
-            "renal pelvis": (1070, 11.526296790112461),
+            "major calyx": (208, 2.1196123306102757),
+            "minor calyx": (694, 4.248513168907139),
+            "renal pelvis": (1070, 11.484684326107075),
             "renal pyramid": (2440, 21.048589257773124),
-            "ureter": (264, 5.65955310775128)
+            "ureter": (264, 5.649317809917837)
             }
         for name in expectedSizes2d:
             term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
