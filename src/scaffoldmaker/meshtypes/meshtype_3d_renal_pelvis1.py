@@ -25,6 +25,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
     Defines renal pelvis network layout.
     """
 
+    isHuman = True
+    isRat = False
 
     @classmethod
     def getName(cls):
@@ -85,6 +87,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Structure"] = (
                 "1-2, 2-3.1,3.2-4,4-5,5-6-7-8"
             )
+            cls.isHuman = False
+            cls.isRat = True
 
             options["Define inner coordinates"] = True
             options["Top major calyx"] = False
@@ -114,46 +118,59 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Bottom/top minor calyx rotate angle degrees"] = 0
             options["Lower/upper minor calyx bifurcation angle degrees"] = 90
             options["Lower/upper minor calyx bend angle degrees"] = 10
-            options["Renal pyramid length"] = 0.5
-            options["Renal pyramid width"] = 0.5
+            options["Renal pyramid length"] = 0.6
+            options["Renal pyramid width"] = 0.6
 
         return options
 
     @classmethod
     def getOrderedOptionNames(cls):
-        return [
-            "Top major calyx",
-            "Middle major calyx",
-            "Bottom major calyx",
-            "Upper minor calyx",
-            "Lower minor calyx",
-            "Rotate upper, middle and lower minor calyxes",
-            "Number of calyxes at top minor calyx",
-            "Number of calyxes at upper minor calyx",
-            "Number of calyxes at middle major calyx",
-            "Number of calyxes at lower minor calyx",
-            "Number of calyxes at bottom minor calyx",
-            "Ureter length",
-            "Ureter radius",
-            "Ureter bend angle degrees",
-            "Major calyx length",
-            "Major calyx radius",
-            "Major calyx angle degrees",
-            "Middle major calyx length",
-            "Major to bottom/top minor calyx length",
-            "Major to lower/upper minor calyx length",
-            "Bottom/top minor calyx length",
-            "Lower/upper minor calyx length",
-            "Minor calyx radius",
-            "Bottom/top minor calyx bifurcation angle degrees",
-            "Bottom/top minor calyx rotate angle degrees",
-            "Lower/upper minor calyx bifurcation angle degrees",
-            "Lower/upper minor calyx bend angle degrees",
-            "Renal pyramid length",
-            "Renal pyramid width",
-            "Inner proportion default",
-            "Inner proportion ureter"
-        ]
+        if cls.isHuman:
+            return [
+                "Top major calyx",
+                "Middle major calyx",
+                "Bottom major calyx",
+                "Upper minor calyx",
+                "Lower minor calyx",
+                "Rotate upper, middle and lower minor calyxes",
+                "Number of calyxes at top minor calyx",
+                "Number of calyxes at upper minor calyx",
+                "Number of calyxes at middle major calyx",
+                "Number of calyxes at lower minor calyx",
+                "Number of calyxes at bottom minor calyx",
+                "Ureter length",
+                "Ureter radius",
+                "Ureter bend angle degrees",
+                "Major calyx length",
+                "Major calyx radius",
+                "Major calyx angle degrees",
+                "Middle major calyx length",
+                "Major to bottom/top minor calyx length",
+                "Major to lower/upper minor calyx length",
+                "Bottom/top minor calyx length",
+                "Lower/upper minor calyx length",
+                "Minor calyx radius",
+                "Bottom/top minor calyx bifurcation angle degrees",
+                "Bottom/top minor calyx rotate angle degrees",
+                "Lower/upper minor calyx bifurcation angle degrees",
+                "Lower/upper minor calyx bend angle degrees",
+                "Renal pyramid length",
+                "Renal pyramid width",
+                "Inner proportion default",
+                "Inner proportion ureter"
+            ]
+        elif cls.isRat:
+            return [
+                "Ureter length",
+                "Ureter radius",
+                "Ureter bend angle degrees",
+                "Middle major calyx length",
+                "Minor calyx radius",
+                "Renal pyramid length",
+                "Renal pyramid width",
+                "Inner proportion default",
+                "Inner proportion ureter"
+            ]
 
     @classmethod
     def checkOptions(cls, options):
