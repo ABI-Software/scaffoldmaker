@@ -66,9 +66,10 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Number of calyxes at lower minor calyx"] = 2
             options["Ureter length"] = 4.0
             options["Ureter radius"] = 0.1
+            options["Ureteropelvic junction width"] = 0.3
             options["Ureter bend angle degrees"] = 45
             options["Major calyx length"] = 0.7
-            options["Major calyx radius"] = 0.1
+            options["Major calyx radius"] = 0.15
             options["Major calyx angle degrees"] = 200
             options["Middle major calyx length"] = 0.4
             options["Major to bottom/top minor calyx length"] = 0.4
@@ -82,6 +83,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Lower/upper minor calyx bend angle degrees"] = 10
             options["Renal pyramid length"] = 0.6
             options["Renal pyramid width"] = 0.6
+            options["Renal pyramid thickness"] = 0.2
 
             options["Structure"] = cls.getPelvisLayoutStructure(options)
 
@@ -106,6 +108,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Number of calyxes at lower minor calyx"] = 1
             options["Ureter length"] = 3.0
             options["Ureter radius"] = 0.1
+            options["Ureteropelvic junction width"] = options["Ureter radius"]
             options["Ureter bend angle degrees"] = 45
             options["Major calyx length"] = 0.6
             options["Major calyx radius"] = 0.1
@@ -122,6 +125,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             options["Lower/upper minor calyx bend angle degrees"] = 10
             options["Renal pyramid length"] = 0.6
             options["Renal pyramid width"] = 0.6
+            options["Renal pyramid thickness"] = 0.2
 
         return options
 
@@ -142,6 +146,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                 "Number of calyxes at bottom minor calyx",
                 "Ureter length",
                 "Ureter radius",
+                "Ureteropelvic junction width",
                 "Ureter bend angle degrees",
                 "Major calyx length",
                 "Major calyx radius",
@@ -158,6 +163,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                 "Lower/upper minor calyx bend angle degrees",
                 "Renal pyramid length",
                 "Renal pyramid width",
+                "Renal pyramid thickness",
                 "Inner proportion default",
                 "Inner proportion ureter"
             ]
@@ -170,6 +176,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
                 "Minor calyx radius",
                 "Renal pyramid length",
                 "Renal pyramid width",
+                "Renal pyramid thickness",
                 "Inner proportion default",
                 "Inner proportion ureter"
             ]
@@ -180,6 +187,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         for key in [
             "Ureter length",
             "Ureter radius",
+            "Ureteropelvic junction width",
             "Ureter bend angle degrees",
             "Major calyx length",
             "Major calyx radius",
@@ -194,7 +202,8 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             "Lower/upper minor calyx bifurcation angle degrees",
             "Lower/upper minor calyx bend angle degrees",
             "Renal pyramid length",
-            "Renal pyramid width"
+            "Renal pyramid width",
+            "Renal pyramid thickness"
         ]:
             if options[key] < 0.1:
                 options[key] = 0.1
@@ -371,6 +380,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
 
         ureterLength = options["Ureter length"]
         ureterRadius = options["Ureter radius"]
+        upjWidth = options["Ureteropelvic junction width"]
         ureterBendAngle = options["Ureter bend angle degrees"]
         majorCalyxLength = options["Major calyx length"]
         majorCalyxRadius = options["Major calyx radius"]
@@ -387,6 +397,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         minorCalyxBendAngle = options["Lower/upper minor calyx bend angle degrees"]
         pyramidLength = options["Renal pyramid length"]
         pyramidWidth = options["Renal pyramid width"]
+        pyramidThickness = options["Renal pyramid thickness"]
         innerProportionDefault = options["Inner proportion default"]
         innerProportionUreter = options["Inner proportion ureter"]
 
@@ -491,8 +502,6 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         startX = [tx, ty, 0.0]
 
         d1 = [ureterScale, 0.0, 0.0]
-        d3 = [0.0, 0.0, ureterRadius]
-        id3 = mult(d3, innerProportionUreter)
         td1 = rotate_about_z_axis(d1, 2 * ureterBendAngleRadians)
 
         sx, sd1 = sampleCubicHermiteCurves([startX, endX], [td1, d1], ureterElementsCount,  arcLengthDerivatives=True)[0:2]
@@ -501,7 +510,13 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         for e in range(ureterElementsCount + 1):
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            sd2 = set_magnitude(cross(d3, sd1[e]), ureterRadius)
+            if e < ureterElementsCount:
+                d3 = [0.0, 0.0, ureterRadius]
+                sd2 = set_magnitude(cross(d3, sd1[e]), ureterRadius) # last one should be width
+            else:
+                d3 = [0.0, 0.0, majorCalyxRadius]
+                sd2 = set_magnitude(cross(d3, sd1[e]), upjWidth)
+            id3 = mult(d3, innerProportionUreter)
             sid2 = mult(sd2, innerProportionUreter)
 
             for field, derivatives in ((coordinates, (sd1[e], sd2, d3)), (innerCoordinates, (sd1[e], sid2, id3))):
@@ -831,9 +846,9 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
 
                         sd1 = sub(xList[1], xList[0])
                         pyramidWidthScale = [minorCalyxRadius, pyramidHalfWidth, 0.9 * pyramidHalfWidth][e]
-                        pyramidThickness = 1.1 * minorCalyxRadius if e == 1 else minorCalyxRadius
+                        thickness = minorCalyxRadius if e == 0 else (0.9 * pyramidThickness if e == pyramidElementsCount - 1 else pyramidThickness)
 
-                        sd3 = [0.0, 0.0, pyramidThickness]
+                        sd3 = [0.0, 0.0, thickness]
                         sd2 = set_magnitude(cross(sd3, sd1), pyramidWidthScale)
 
                         pyramid_sd2_list.append(sd2)
