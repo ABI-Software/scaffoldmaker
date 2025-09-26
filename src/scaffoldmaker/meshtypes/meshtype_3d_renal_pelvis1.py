@@ -15,6 +15,7 @@ from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_netw
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 from scaffoldmaker.utils.interpolation import sampleCubicHermiteCurves, smoothCubicHermiteDerivativesLine
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import TubeNetworkMeshGenerateData, RenalPelvisTubeNetworkMeshBuilder
 from cmlibs.zinc.node import Node
@@ -512,7 +513,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
             fieldcache.setNode(node)
             if e < ureterElementsCount:
                 d3 = [0.0, 0.0, ureterRadius]
-                sd2 = set_magnitude(cross(d3, sd1[e]), ureterRadius) # last one should be width
+                sd2 = set_magnitude(cross(d3, sd1[e]), ureterRadius)
             else:
                 d3 = [0.0, 0.0, majorCalyxRadius]
                 sd2 = set_magnitude(cross(d3, sd1[e]), upjWidth)
@@ -926,6 +927,8 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
         options["Use linear through shell"] = False
         options["Use outer trim surfaces"] = True
         options["Show trim surfaces"] = False
+        options["Refine"] = False
+        options["Refine number of elements"] = 4
         return options
 
     @classmethod
@@ -938,7 +941,9 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
             "Target element density along longest segment",
             "Use linear through shell",
             "Use outer trim surfaces",
-            "Show trim surfaces"
+            "Show trim surfaces",
+            "Refine",
+            "Refine number of elements"
         ]
 
     @classmethod
@@ -1027,6 +1032,17 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
         annotationGroups = generateData.getAnnotationGroups()
 
         return annotationGroups, None
+
+    @classmethod
+    def refineMesh(cls, meshRefinement, options):
+        """
+        Refine source mesh into separate region, with change of basis.
+        :param meshRefinement: MeshRefinement, which knows source and target region.
+        :param options: Dict containing options. See getDefaultOptions().
+        """
+        assert isinstance(meshRefinement, MeshRefinement)
+        refineElementsCount = options['Refine number of elements']
+        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """

@@ -1,3 +1,4 @@
+import copy
 import math
 import unittest
 
@@ -12,7 +13,7 @@ from scaffoldmaker.annotation.annotationgroup import getAnnotationGroupForTerm
 from scaffoldmaker.annotation.kidney_terms import get_kidney_term
 from scaffoldmaker.annotation.ureter_terms import get_ureter_term
 from scaffoldmaker.meshtypes.meshtype_3d_renal_pelvis1 import MeshType_3d_renal_pelvis1
-
+from scaffoldmaker.utils.meshrefinement import MeshRefinement
 
 from testutils import assertAlmostEqualList
 
@@ -28,7 +29,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Human 1")
 
-        self.assertEqual(9, len(options))
+        self.assertEqual(11, len(options))
         self.assertEqual(8, options["Elements count around"])
         self.assertEqual(1, options["Elements count through shell"])
         self.assertEqual([0], options["Annotation elements counts around"])
@@ -40,7 +41,19 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)[0]
+
+        fieldmodule = region.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            annotationGroups = scaffold.generateBaseMesh(region, options)[0]
+            fieldmodule.defineAllFaces()
+            originalAnnotationGroups = copy.copy(annotationGroups)
+            for annotationGroup in annotationGroups:
+                annotationGroup.addSubelements()
+            scaffold.defineFaceAnnotations(region, options, annotationGroups)
+            for annotationGroup in annotationGroups:
+                if annotationGroup not in originalAnnotationGroups:
+                    annotationGroup.addSubelements()
+
         self.assertEqual(7, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -127,6 +140,47 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
 
+        # refine 2x2x2 and check result
+        annotationGroups = originalAnnotationGroups
+
+        refineRegion = region.createRegion()
+        refineFieldmodule = refineRegion.getFieldmodule()
+        options['Refine'] = True
+        options['Refine number of elements'] = 2
+        refineNumberOfElements = options['Refine number of elements']
+        meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
+        scaffold.refineMesh(meshrefinement, options)
+        annotationGroups = meshrefinement.getAnnotationGroups()
+
+        refineFieldmodule.defineAllFaces()
+        oldAnnotationGroups = copy.copy(annotationGroups)
+        for annotationGroup in annotationGroups:
+            annotationGroup.addSubelements()
+        scaffold.defineFaceAnnotations(refineRegion, options, annotationGroups)
+        for annotation in annotationGroups:
+            if annotation not in oldAnnotationGroups:
+                annotationGroup.addSubelements()
+
+        self.assertEqual(7, len(annotationGroups))
+
+        mesh3d = refineFieldmodule.findMeshByDimension(3)
+        self.assertEqual(7488, mesh3d.getSize())
+        mesh2d = refineFieldmodule.findMeshByDimension(2)
+        self.assertEqual(24944, mesh2d.getSize())
+        mesh1d = refineFieldmodule.findMeshByDimension(1)
+        self.assertEqual(27474, mesh1d.getSize())
+        nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(10019, nodes.getSize())
+        datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        self.assertEqual(0, datapoints.getSize())
+
+        # check some refined annotationGroups:
+        for name in expectedSizes3d:
+            term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
+            group = getAnnotationGroupForTerm(annotationGroups, term)
+            size = group.getMeshGroup(mesh3d).getSize()
+            self.assertEqual(expectedSizes3d[name][0] * (refineNumberOfElements ** 3), size, name)
+
 
     def test_renal_pelvis_rat(self):
         """
@@ -137,7 +191,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Rat 1")
 
-        self.assertEqual(9, len(options))
+        self.assertEqual(11, len(options))
         self.assertEqual(8, options["Elements count around"])
         self.assertEqual(1, options["Elements count through shell"])
         self.assertEqual([0], options["Annotation elements counts around"])
@@ -149,7 +203,18 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
-        annotationGroups = scaffold.generateMesh(region, options)[0]
+
+        fieldmodule = region.getFieldmodule()
+        with ChangeManager(fieldmodule):
+            annotationGroups = scaffold.generateBaseMesh(region, options)[0]
+            fieldmodule.defineAllFaces()
+            originalAnnotationGroups = copy.copy(annotationGroups)
+            for annotationGroup in annotationGroups:
+                annotationGroup.addSubelements()
+            scaffold.defineFaceAnnotations(region, options, annotationGroups)
+            for annotationGroup in annotationGroups:
+                if annotationGroup not in originalAnnotationGroups:
+                    annotationGroup.addSubelements()
         self.assertEqual(7, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
@@ -235,6 +300,48 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
+
+        # refine 2x2x2 and check result
+        annotationGroups = originalAnnotationGroups
+
+        refineRegion = region.createRegion()
+        refineFieldmodule = refineRegion.getFieldmodule()
+        options['Refine'] = True
+        options['Refine number of elements'] = 2
+        refineNumberOfElements = options['Refine number of elements']
+        meshrefinement = MeshRefinement(region, refineRegion, annotationGroups)
+        scaffold.refineMesh(meshrefinement, options)
+        annotationGroups = meshrefinement.getAnnotationGroups()
+
+        refineFieldmodule.defineAllFaces()
+        oldAnnotationGroups = copy.copy(annotationGroups)
+        for annotationGroup in annotationGroups:
+            annotationGroup.addSubelements()
+        scaffold.defineFaceAnnotations(refineRegion, options, annotationGroups)
+        for annotation in annotationGroups:
+            if annotation not in oldAnnotationGroups:
+                annotationGroup.addSubelements()
+
+        self.assertEqual(7, len(annotationGroups))
+
+        mesh3d = refineFieldmodule.findMeshByDimension(3)
+        self.assertEqual(1184, mesh3d.getSize())
+        mesh2d = refineFieldmodule.findMeshByDimension(2)
+        self.assertEqual(4032, mesh2d.getSize())
+        mesh1d = refineFieldmodule.findMeshByDimension(1)
+        self.assertEqual(4526, mesh1d.getSize())
+        nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(1679, nodes.getSize())
+        datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        self.assertEqual(0, datapoints.getSize())
+
+        # check some refined annotationGroups:
+        for name in expectedSizes3d:
+            term = get_ureter_term(name) if name == "ureter" else get_kidney_term(name)
+            group = getAnnotationGroupForTerm(annotationGroups, term)
+            size = group.getMeshGroup(mesh3d).getSize()
+            self.assertEqual(expectedSizes3d[name][0] * (refineNumberOfElements ** 3), size, name)
+
 
 if __name__ == "__main__":
     unittest.main()
