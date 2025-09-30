@@ -448,9 +448,9 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         meshGroups = [renalPelvisMeshGroup, minorCalyxGroup.getMeshGroup(mesh)]
 
         bottomMinor, lowerMinor, middleMajor, topMinor, upperMinor = 0, 1, 2, 3, 4
-        minorCalyxList = (([bottomMinor, lowerMinor] if isBottomMC else []) +
-                          ([middleMajor] if isMidMC else []) +
-                          ([topMinor, upperMinor] if isTopMC else []))
+        calyxes = [bottomMinor, lowerMinor, middleMajor, upperMinor, topMinor]
+        flags = [isBottomMC, isLowerMC, isMidMC, isUpperMC, isTopMC]
+        minorCalyxList = [c for c, f in zip(calyxes, flags) if f]
 
         for calyx in minorCalyxList:
             cElementIdentifier = middleMajorCalyxIdentifier if (calyx == middleMajor and isMidMC) else elementIdentifier
