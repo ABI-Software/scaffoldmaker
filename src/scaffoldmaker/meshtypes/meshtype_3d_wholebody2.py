@@ -41,7 +41,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Structure"] = (
             "1-2-3-4,"  # Head
             "4-5-6.1,"  # Neck
-<<<<<<< HEAD
             "6.2-14-"  # Left shoulder
             "15-16-"  # Left brachium
             "17-18-"  # Left antebrachium
@@ -49,15 +48,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "6.3-21-"  # Right shoulder
             "22-23-"  # Right brachium
             "24-25-"  # Right antebrachium
-=======
-            "6.2-14-15,"  # Left shoulder
-            "15-16-"  # Left brachium
-            "17-18-19,"  # Left antebrachium
-            "19-20," # Left hand
-            "6.3-21-22,"  # Right shoulder
-            "22-23-"  # Right brachium
-            "24-25-26,"  # Right antebrachium
->>>>>>> 33d30c1191c1dee631ee56f380ed070189a3ef8c
             "26-27," # Right hand 
             "6.1-7-8-9,"  # Thorax
             "9-10-11-12-13.1,"  # Abdomen
