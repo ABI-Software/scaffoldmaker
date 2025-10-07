@@ -42,12 +42,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "1-2-3-4,"  # Head
             "4-5-6.1,"  # Neck
             "6.2-14-15,"  # Left shoulder
-            "15-16-17.1,"  # Left brachium
-            "17.2-18-19,"  # Left antebrachium
+            "15-16-"  # Left brachium
+            "17-18-19,"  # Left antebrachium
             "19-20," # Left hand
             "6.3-21-22,"  # Right shoulder
-            "22-23-24.1,"  # Right brachium
-            "24.2-25-26,"  # Right antebrachium
+            "22-23-"  # Right brachium
+            "24-25-26,"  # Right antebrachium
             "26-27," # Right hand 
             "6.1-7-8-9,"  # Thorax
             "9-10-11-12-13.1,"  # Abdomen
