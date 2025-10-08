@@ -40,22 +40,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options = {}
         options["Base parameter set"] = parameterSetName
         options["Structure"] = constructNetworkLayoutStructure(humanElementCounts)
-        # (
-        #     "1-2-3-4,"  # Head
-        #     "4-5-6.1,"  # Neck
-        #     "6.2-14-"  # Left shoulder
-        #     "15-16-"  # Left brachium
-        #     "17-18-"  # Left antebrachium
-        #     "19-20," # Left hand
-        #     "6.3-21-"  # Right shoulder
-        #     "22-23-"  # Right brachium
-        #     "24-25-"  # Right antebrachium
-        #     "26-27," # Right hand 
-        #     "6.1-7-8-9,"  # Thorax
-        #     "9-10-11-12-13.1,"  # Abdomen
-        #     "13.2-28-29-30-31-32,32-33-34,"  # Left lower limb
-        #     "13.3-35-36-37-38-39,39-40-41"  # Left upper limb
-        #     )  
         options["Define inner coordinates"] = True
         options["Head depth"] = 2.0
         options["Head length"] = 2.2
@@ -278,30 +262,45 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                             legGroup, legToFootGroup, leftLegGroup, rightLegGroup, footGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
-        headElementsCount = 3
+        headElementsCount = humanElementCounts['headElementsCount']
         meshGroups = [bodyMeshGroup, headGroup.getMeshGroup(mesh)]
         for e in range(headElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
-        neckElementsCount = 2
+        neckElementsCount = humanElementCounts['neckElementsCount']
         meshGroups = [bodyMeshGroup, neckGroup.getMeshGroup(mesh)]
         for e in range(neckElementsCount):
             element = mesh.findElementByIdentifier(elementIdentifier)
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
+        thoraxElementsCount = humanElementCounts['thoraxElementsCount']
+        abdomenElementsCount = humanElementCounts['abdomenElementsCount']
+        # Setup thorax elements
+        meshGroups = [bodyMeshGroup, thoraxGroup.getMeshGroup(mesh)]
+        for e in range(thoraxElementsCount):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            elementIdentifier += 1
+        # Setup abdomen elements 
+        meshGroups = [bodyMeshGroup, abdomenGroup.getMeshGroup(mesh)]
+        for e in range(abdomenElementsCount):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            elementIdentifier += 1
         left = 0
         right = 1
-        brachiumElementsCount = 4
-        antebrachiumElementsCount = 2
-        armToHandElementsCount = 6
-        handElementsCount = 1
+        brachiumElementsCount = humanElementCounts['brachiumElementsCount']
+        antebrachiumElementsCount = humanElementCounts['antebrachiumElementsCount']
+        handElementsCount = humanElementCounts['handElementsCount']
+        armToHandElementsCount = brachiumElementsCount + antebrachiumElementsCount
         armMeshGroup = armGroup.getMeshGroup(mesh)
         armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
         handMeshGroup = handGroup.getMeshGroup(mesh)
-        elbowJunctionNodeIdentifier = [] #0 for left, 1 for right
         for side in (left, right):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
             sideBrachiumGroup = leftBrachiumGroup if (side == left) else rightBrachiumGroup
@@ -323,7 +322,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
-            elbowJunctionNodeIdentifier.append(elementIdentifier)
             # Setup hand elements
             meshGroups = [bodyMeshGroup, armMeshGroup, handMeshGroup, sideHandGroup.getMeshGroup(mesh)]
             for e in range(handElementsCount):
@@ -331,24 +329,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
-        thoraxElementsCount = 3
-        abdomenElementsCount = 4
-        # Setup thorax elements
-        meshGroups = [bodyMeshGroup, thoraxGroup.getMeshGroup(mesh)]
-        for e in range(thoraxElementsCount):
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            for meshGroup in meshGroups:
-                meshGroup.addElement(element)
-            elementIdentifier += 1
-        # Setup abdomen elements 
-        meshGroups = [bodyMeshGroup, abdomenGroup.getMeshGroup(mesh)]
-        for e in range(abdomenElementsCount):
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            for meshGroup in meshGroups:
-                meshGroup.addElement(element)
-            elementIdentifier += 1
-        legToFootElementsCount = 5
-        footElementsCount = 2
+        upperLegElementsCount = humanElementCounts['upperLegElementsCount']
+        lowerLegElementsCount = humanElementCounts['lowerLegElementsCount']
+        footElementsCount = humanElementCounts['footElementsCount']
+        legToFootElementsCount = upperLegElementsCount + lowerLegElementsCount
         legMeshGroup = legGroup.getMeshGroup(mesh)
         legToFootMeshGroup = legToFootGroup.getMeshGroup(mesh)
         footMeshGroup = footGroup.getMeshGroup(mesh)
@@ -524,11 +508,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elementTwistAngle = ((armTwistAngleRadians if (side == left) else -armTwistAngleRadians) /
                                  (armToHandElementsCount - 3))
             # Setting brachium coordinates
-            for i in range(brachiumElementsCount - 1):
+            for i in range(brachiumElementsCount - 2):
                 xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                # x = [armStartX + d1[0] * i, armStartY + d1[1] * i, d1[2] * i]
                 x = add(armStart, mult(d1, i))
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
@@ -557,7 +540,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
-            # Setting antebrachium coordinates
             # Elbow rotation
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
             elbowAngleRadians = elbowLeftAngleRadians if (side == left) else elbowRigthAngleRadians
@@ -566,20 +548,55 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             antebrachiumDirn = matrix_vector_mult(rotationMatrixNode, armDirn)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
+            elbowDirn = matrix_vector_mult(rotationMatrixD2, armDirn)
+            elbowSide = armSide
             elbowFront = matrix_vector_mult(rotationMatrixD2, armFront)
-            # brachiumD1 = d1
-            # antebrachiumD1 = mult(antebrachiumDirn, armScale)
-            d1 = mult(antebrachiumDirn, armScale)
-            # The elbow is positioned between the last brachium and the first antebrachium node
-            # brachiumEnd = x.copy()
-            elbowPosition = sub(x, mult(armDirn, 1.5*halfThickness))
-            elbowPosition = add(x, mult(antebrachiumDirn, 1.5*halfThickness))
-            elbowPosition = x.copy() #node 17 
+            """
+            elbow node coordinates are setup independently
+            """
+            # Node position
+            xi = (brachiumElementsCount - 1) / (armToHandElementsCount - 2)
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            # elbowPosition = sub(x, mult(armDirn, 1.5*halfThickness))
+            # elbowPosition = add(x, mult(antebrachiumDirn, 1.5*halfThickness))
+            # elbowPosition = x.copy()
+            elbowPosition = add(x, mult(armDirn, 0.85*armScale))
+            elbowPosition = add(elbowPosition, mult(antebrachiumDirn, 0.15*armScale))
+            # Derivatives
+            halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            halfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth + halfWidth
+            d1 = elbowDirn.copy()
+            if i == 0:
+                twistAngle = 0.0
+            else:
+                twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * i
+            if twistAngle == 0.0:
+                d2 = mult(elbowSide, halfThickness)
+                d3 = mult(elbowFront, halfWidth)
+                d12 = mult(elbowSide, d12_mag)
+                d13 = mult(elbowFront, d13_mag)
+            else:
+                cosTwistAngle = math.cos(twistAngle)
+                sinTwistAngle = math.sin(twistAngle)
+                d2 = sub(mult(elbowSide, halfThickness * cosTwistAngle),
+                            mult(elbowFront, halfThickness * sinTwistAngle))
+                d3 = add(mult(elbowFront, halfWidth * cosTwistAngle),
+                            mult(elbowSide, halfWidth * sinTwistAngle))
+                d12 = set_magnitude(d2, d12_mag)
+                d13 = set_magnitude(d3, d13_mag)
+            id2 = mult(d2, innerProportionDefault)
+            id3 = mult(d3, innerProportionDefault)
+            id12 = mult(d12, innerProportionDefault)
+            id13 = mult(d13, innerProportionDefault)
+            setNodeFieldParameters(coordinates, fieldcache, elbowPosition, d1, d2, d3, d12, d13)
+            setNodeFieldParameters(innerCoordinates, fieldcache, elbowPosition, d1, id2, id3, id12, id13)
+            nodeIdentifier += 1
             # Set alternative derivartives for the elbow node
             # halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-            elbowHalfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth   # Custom half width for wider elbow
-            sd1 = mult(antebrachiumDirn, armScale)
-            field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, elbowPosition)
+            # elbowHalfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth   # Custom half width for wider elbow
+            # sd1 = mult(antebrachiumDirn, armScale)
+            # field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, elbowPosition)
             antebrachiumStart = add(elbowPosition, mult(armDirn, 1.5* halfThickness))
             antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, armScale - 1.5* halfThickness))
             # antebrachiumStart = add(elbowPosition, mult(antebrachiumDirn, armScale))
@@ -589,7 +606,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # elbowD1 = smoothCubicHermiteDerivativesLine(
             #     [brachiumEnd, antebrachiumStart], [brachiumD1, antebrachiumD1],fixAllDirections=True, fixStartDerivative=True
             #     )[1]
-            # d1 = antebrachiumD1
+            d1 = matrix_vector_mult(rotationMatrixNode, armDirn)
             for i in range(antebrachiumElementsCount):
                 xi = (i + brachiumElementsCount - 1) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
@@ -605,7 +622,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     
                 x = add(antebrachiumStart, mult(d1, i)) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-                halfWidth = elbowHalfWidth if (i ==0) else xi * halfWristWidth + (1.0 - xi) * armTopRadius
+                halfWidth =  xi * halfWristWidth + (1.0 - xi) * armTopRadius
                 # halfWidth = halfWidth
                 anteFront = antebrachiumFront
                 if i == (antebrachiumElementsCount - 1):
