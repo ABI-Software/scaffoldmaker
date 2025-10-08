@@ -17,7 +17,7 @@ from scaffoldmaker.utils.interpolation import (
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
-from scaffoldmaker.utils.human_network_layout import constructNetworkLayoutStructure, humanElementCounts
+from scaffoldmaker.utils.human_network_layout import constructNetworkLayoutStructure, humanElementCounts, constructNetworkLayoutStructure2
 # from scaffoldmaker.utils.human_network_layout import 
 import math
 
@@ -276,22 +276,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
-        thoraxElementsCount = humanElementCounts['thoraxElementsCount']
-        abdomenElementsCount = humanElementCounts['abdomenElementsCount']
-        # Setup thorax elements
-        meshGroups = [bodyMeshGroup, thoraxGroup.getMeshGroup(mesh)]
-        for e in range(thoraxElementsCount):
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            for meshGroup in meshGroups:
-                meshGroup.addElement(element)
-            elementIdentifier += 1
-        # Setup abdomen elements 
-        meshGroups = [bodyMeshGroup, abdomenGroup.getMeshGroup(mesh)]
-        for e in range(abdomenElementsCount):
-            element = mesh.findElementByIdentifier(elementIdentifier)
-            for meshGroup in meshGroups:
-                meshGroup.addElement(element)
-            elementIdentifier += 1
         left = 0
         right = 1
         brachiumElementsCount = humanElementCounts['brachiumElementsCount']
@@ -329,6 +313,22 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
+        thoraxElementsCount = humanElementCounts['thoraxElementsCount']
+        abdomenElementsCount = humanElementCounts['abdomenElementsCount']
+        # Setup thorax elements
+        meshGroups = [bodyMeshGroup, thoraxGroup.getMeshGroup(mesh)]
+        for e in range(thoraxElementsCount):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            elementIdentifier += 1
+        # Setup abdomen elements 
+        meshGroups = [bodyMeshGroup, abdomenGroup.getMeshGroup(mesh)]
+        for e in range(abdomenElementsCount):
+            element = mesh.findElementByIdentifier(elementIdentifier)
+            for meshGroup in meshGroups:
+                meshGroup.addElement(element)
+            elementIdentifier += 1
         upperLegElementsCount = humanElementCounts['upperLegElementsCount']
         lowerLegElementsCount = humanElementCounts['lowerLegElementsCount']
         footElementsCount = humanElementCounts['footElementsCount']
@@ -558,13 +558,11 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             xi = (brachiumElementsCount - 1) / (armToHandElementsCount - 2)
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            # elbowPosition = sub(x, mult(armDirn, 1.5*halfThickness))
-            # elbowPosition = add(x, mult(antebrachiumDirn, 1.5*halfThickness))
-            # elbowPosition = x.copy()
             elbowPosition = add(x, mult(armDirn, 0.85*armScale))
-            elbowPosition = add(elbowPosition, mult(antebrachiumDirn, 0.15*armScale))
+            elbowPosition = add(elbowPosition, mult(elbowDirn, 0.15*armScale))
             # Derivatives
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth + halfWidth
             d1 = elbowDirn.copy()
             if i == 0:
@@ -597,8 +595,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # elbowHalfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth   # Custom half width for wider elbow
             # sd1 = mult(antebrachiumDirn, armScale)
             # field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, elbowPosition)
-            antebrachiumStart = add(elbowPosition, mult(armDirn, 1.5* halfThickness))
-            antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, armScale - 1.5* halfThickness))
+            # antebrachiumStart = add(elbowPosition, mult(armDirn, 1.5* halfThickness))
+            # antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, armScale - 1.5* halfThickness))
+            antebrachiumStart = add(elbowPosition, mult(elbowDirn, 0.1*armScale))
+            antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, 0.9*armScale))
             # antebrachiumStart = add(elbowPosition, mult(antebrachiumDirn, armScale))
             # elbowNodes = [brachiumEnd, antebrachiumStart]
             # math.sqrt(2.0 * halfFootThickness * halfFootThickness) + legBottomRadius)
@@ -611,15 +611,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 xi = (i + brachiumElementsCount - 1) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                # if i == 0:
-                #     x = elbowPosition
-                #     d1 = mult(antebrachiumDirn, 1.5* halfThickness)
-                # elif i == 1:
-                #     x = antebrachiumStart
-                #     d1 = antebrachiumD1
-                # else:
-                #     x = add(antebrachiumStart, mult(d1, i))
-                    
                 x = add(antebrachiumStart, mult(d1, i)) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth =  xi * halfWristWidth + (1.0 - xi) * armTopRadius
