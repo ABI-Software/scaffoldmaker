@@ -17,6 +17,7 @@ from scaffoldmaker.utils.interpolation import (
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
+from scaffoldmaker.utils.human_network_layout import constructNetworkLayoutStructure, humanElementCounts
 # from scaffoldmaker.utils.human_network_layout import 
 import math
 
@@ -38,22 +39,23 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
     def getDefaultOptions(cls, parameterSetName="Default"):
         options = {}
         options["Base parameter set"] = parameterSetName
-        options["Structure"] = (
-            "1-2-3-4,"  # Head
-            "4-5-6.1,"  # Neck
-            "6.2-14-"  # Left shoulder
-            "15-16-"  # Left brachium
-            "17-18-"  # Left antebrachium
-            "19-20," # Left hand
-            "6.3-21-"  # Right shoulder
-            "22-23-"  # Right brachium
-            "24-25-"  # Right antebrachium
-            "26-27," # Right hand 
-            "6.1-7-8-9,"  # Thorax
-            "9-10-11-12-13.1,"  # Abdomen
-            "13.2-28-29-30-31-32,32-33-34,"  # Left lower limb
-            "13.3-35-36-37-38-39,39-40-41"  # Left upper limb
-            )  
+        options["Structure"] = constructNetworkLayoutStructure(humanElementCounts)
+        # (
+        #     "1-2-3-4,"  # Head
+        #     "4-5-6.1,"  # Neck
+        #     "6.2-14-"  # Left shoulder
+        #     "15-16-"  # Left brachium
+        #     "17-18-"  # Left antebrachium
+        #     "19-20," # Left hand
+        #     "6.3-21-"  # Right shoulder
+        #     "22-23-"  # Right brachium
+        #     "24-25-"  # Right antebrachium
+        #     "26-27," # Right hand 
+        #     "6.1-7-8-9,"  # Thorax
+        #     "9-10-11-12-13.1,"  # Abdomen
+        #     "13.2-28-29-30-31-32,32-33-34,"  # Left lower limb
+        #     "13.3-35-36-37-38-39,39-40-41"  # Left upper limb
+        #     )  
         options["Define inner coordinates"] = True
         options["Head depth"] = 2.0
         options["Head length"] = 2.2
@@ -63,8 +65,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Shoulder width"] = 4.5
         options["Left arm lateral angle degrees"] = 10.0
         options["Right arm lateral angle degrees"] = 10.0
-        options["Left elbow lateral angle degrees"] = 90.0
-        options["Right elbow lateral angle degrees"] = 45.0
+        options["Left elbow lateral angle degrees"] = 45.0
+        options["Right elbow lateral angle degrees"] = 90.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
@@ -83,7 +85,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left ankle lateral angle degrees"] = 60.0
+        options["Left ankle lateral angle degrees"] = 90.0
         options["Right ankle lateral angle degrees"] = 90.0
         options["Foot height"] = 1.25
         options["Foot length"] = 2.5
@@ -568,49 +570,19 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # brachiumD1 = d1
             # antebrachiumD1 = mult(antebrachiumDirn, armScale)
             d1 = mult(antebrachiumDirn, armScale)
-            # The elbow is positioned between the last brahcium and the first antebrachium node
+            # The elbow is positioned between the last brachium and the first antebrachium node
             # brachiumEnd = x.copy()
-            # elbowPosition = sub(x, mult(armDirn, 1.5*halfThickness))
-            # elbowPosition = add(x, mult(antebrachiumDirn, 1.5*halfThickness))
+            elbowPosition = sub(x, mult(armDirn, 1.5*halfThickness))
+            elbowPosition = add(x, mult(antebrachiumDirn, 1.5*halfThickness))
             elbowPosition = x.copy() #node 17 
             # Set alternative derivartives for the elbow node
-            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-            # halfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth + halfWidth  # Custom half width for wider elbow
+            # halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+            elbowHalfWidth = math.sin(elbowAngleRadians)*(math.sqrt(2)-1)*halfWidth   # Custom half width for wider elbow
             sd1 = mult(antebrachiumDirn, armScale)
-            # field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, elbowPosition)
-            if twistAngle == 0.0:
-                sd2 = mult(antebrachiumSide, halfThickness)
-                sd3 = mult(elbowFront, halfWidth)
-                sd12 = mult(antebrachiumSide, d12_mag)
-                sd13 = mult(elbowFront, d13_mag)
-            else:
-                cosTwistAngle = math.cos(twistAngle)
-                sinTwistAngle = math.sin(twistAngle)
-                sd2 = sub(mult(antebrachiumSide, halfThickness * cosTwistAngle),
-                            mult(elbowFront, halfThickness * sinTwistAngle))
-                sd3 = add(mult(elbowFront, halfWidth * cosTwistAngle),
-                            mult(antebrachiumSide, halfWidth * sinTwistAngle))
-                sd12 = set_magnitude(d2, d12_mag)
-                sd13 = set_magnitude(d3, d13_mag)
-                if i < (antebrachiumElementsCount - 1):
-                    sd12 = add(d12, set_magnitude(d3, -halfThickness * elementTwistAngle))
-            
-                    sd13 = add(d13, set_magnitude(d2, halfWidth * elementTwistAngle))
-            sid2 = mult(sd2, innerProportionDefault)
-            sid3 = mult(sd3, innerProportionDefault)
-            sid12 = mult(sd12, innerProportionDefault)
-            sid13 = mult(sd13, innerProportionDefault)
-            version = 2 
-            # for field in (coordinates, innerCoordinates):
-            #             field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, elbowPosition)
-            setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, sd3)
-            setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sid3, sid12, sid13)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, sd2)
-            innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, version, sid2)
-
-            # antebrachiumStart = add(elbowPosition, mult(armDirn, 1.5* halfThickness))
-            # antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, armScale - 1.5* halfThickness))
-            antebrachiumStart = add(elbowPosition, mult(antebrachiumDirn, armScale))
+            field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, elbowPosition)
+            antebrachiumStart = add(elbowPosition, mult(armDirn, 1.5* halfThickness))
+            antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, armScale - 1.5* halfThickness))
+            # antebrachiumStart = add(elbowPosition, mult(antebrachiumDirn, armScale))
             # elbowNodes = [brachiumEnd, antebrachiumStart]
             # math.sqrt(2.0 * halfFootThickness * halfFootThickness) + legBottomRadius)
             # Normalize d1 to get close to arc length  
@@ -633,7 +605,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     
                 x = add(antebrachiumStart, mult(d1, i)) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-                halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+                halfWidth = elbowHalfWidth if (i ==0) else xi * halfWristWidth + (1.0 - xi) * armTopRadius
                 # halfWidth = halfWidth
                 anteFront = antebrachiumFront
                 if i == (antebrachiumElementsCount - 1):
@@ -1124,6 +1096,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         """
         Add face annotation groups from the highest dimension mesh.
         Must have defined faces and added subelements for highest dimension groups.
+
         :param region: Zinc region containing model.
         :param options: Dict containing options. See getDefaultOptions().
         :param annotationGroups: List of annotation groups for top-level elements.
@@ -1215,6 +1188,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """
     Assign node field parameters x, d1, d2, d3 of field.
+    
     :param field: Field parameters to assign.
     :param fieldcache: Fieldcache with node set.
     :param x: Parameters to set for Node.VALUE_LABEL_VALUE.
@@ -1238,6 +1212,7 @@ def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None)
 def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=None, d13=None):
     """
     Assign node field parameters d1, d2, d3 of field.
+
     :param field: Field to assign parameters of.
     :param fieldcache: Fieldcache with node set.
     :param version: Version of d1, d2, d3 >= 1.
