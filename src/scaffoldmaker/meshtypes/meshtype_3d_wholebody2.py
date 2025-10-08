@@ -17,7 +17,7 @@ from scaffoldmaker.utils.interpolation import (
     sampleCubicHermiteCurvesSmooth, smoothCubicHermiteDerivativesLine)
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import BodyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
-from scaffoldmaker.utils.human_network_layout import constructNetworkLayoutStructure, humanElementCounts, constructNetworkLayoutStructure2
+from scaffoldmaker.utils.human_network_layout import constructNetworkLayoutStructure, humanElementCounts
 # from scaffoldmaker.utils.human_network_layout import 
 import math
 

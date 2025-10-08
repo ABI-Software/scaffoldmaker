@@ -14,7 +14,7 @@ humanElementCounts = {
 }
 
 
-def createSegment(nodeCount:int, segmentStart:str, nodeIdentifier:int, endSegment=False, version=0):
+def createSegment(nodeCount:int, networkLayout:str, nodeIdentifier:int, endSegment=False, version=0):
     """
     Construct a segment of the human network node
 
@@ -27,21 +27,21 @@ def createSegment(nodeCount:int, segmentStart:str, nodeIdentifier:int, endSegmen
     :return nodeIdentifier: The updated nodeIdentifier after adding the segment.
     """
     for i in range(nodeCount):
-        segmentLayout = segmentStart + str(nodeIdentifier)
+        networkLayout = networkLayout + str(nodeIdentifier)
         if i == nodeCount - 1:
             if endSegment:
                 if version == 0:
                     segmentConnector = ','
                 else:
                     segmentConnector = '.' + str(version) + ','
-                segmentLayout = segmentLayout + segmentConnector
+                networkLayout = networkLayout + segmentConnector
             else:
-                segmentLayout = segmentLayout + '-'
+                networkLayout = networkLayout + '-'
                 nodeIdentifier += 1
         else:
-            segmentLayout = segmentLayout + '-'
+            networkLayout = networkLayout + '-'
             nodeIdentifier += 1 
-    return segmentLayout, nodeIdentifier
+    return networkLayout, nodeIdentifier
 
 def constructNetworkLayoutStructure(humanElementCounts:dict):
     """
@@ -59,72 +59,71 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
     # Head
     headNetworkLayout = str(nodeIdentifier) + '-'
     nodeIdentifier += 1 
-    headNetworkLayout, nodeIdentifier = addNodesToLayout(
+    headNetworkLayout, nodeIdentifier = createSegment(
         humanElementCounts['headElementsCount'], 
         headNetworkLayout, nodeIdentifier, endSegment=True)
     # Neck
     necknNetworkLayout = str(nodeIdentifier) + '-'
     nodeIdentifier += 1 
-    necknNetworkLayout, nodeIdentifier = addNodesToLayout(
+    necknNetworkLayout, nodeIdentifier = createSegment(
         humanElementCounts['neckElementsCount'], 
         necknNetworkLayout, nodeIdentifier, endSegment=True, version=1)
     neckJointNode = nodeIdentifier
     # Thorax 
     thoraxNetworkLayout = str(nodeIdentifier) + '.1-'
     nodeIdentifier += 1 
-    thoraxNetworkLayout, nodeIdentifier = addNodesToLayout(
+    thoraxNetworkLayout, nodeIdentifier = createSegment(
         humanElementCounts['thoraxElementsCount'], 
         thoraxNetworkLayout, nodeIdentifier, endSegment=True)
     # Abdomen 
     abdomenNetworkLayout = str(nodeIdentifier) + '-'
     nodeIdentifier += 1 
-    abdomenNetworkLayout, nodeIdentifier = addNodesToLayout(
+    abdomenNetworkLayout, nodeIdentifier = createSegment(
         humanElementCounts['abdomenElementsCount'], 
         abdomenNetworkLayout, nodeIdentifier, endSegment=True, version=1)
     pelvisNodeJoint = nodeIdentifier
     # Arms
-    armNetworkLayouts = []
+    arms = []
     for i in range(2):
         version = 2 if (i == 0) else 3 #Left is 2, right is 3 
         armNetworkLayout = str(neckJointNode) + '.' + str(version) + '-'
         nodeIdentifier += 1  
         # Brachium 
-        armNetworkLayout, nodeIdentifier = addNodesToLayout(
+        armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['brachiumElementsCount'], 
             armNetworkLayout, nodeIdentifier)
         # Antebrachium 
-        armNetworkLayout, nodeIdentifier = addNodesToLayout(
+        armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['antebrachiumElementsCount'], 
             armNetworkLayout, nodeIdentifier)
         # Hand
-        armNetworkLayout, nodeIdentifier = addNodesToLayout(
+        armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['handElementsCount'], 
             armNetworkLayout, nodeIdentifier, endSegment=True)
-        armNetworkLayouts.append(armNetworkLayout)
+        arms.append(armNetworkLayout)
     #Legs 
-    legNetworkLayouts = []
+    legs = []
     for i in range(2):
         version = 2 if (i == 0) else 3 #Left is 2, right is 3 
         legNetworkLayout = str(pelvisNodeJoint) + '.' + str(version) + '-'
         nodeIdentifier += 1
         # Upper leg
-        legNetworkLayout, nodeIdentifier = addNodesToLayout(
+        legNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['upperLegElementsCount'], 
             legNetworkLayout, nodeIdentifier)
         # Lower leg 
-        legNetworkLayout, nodeIdentifier = addNodesToLayout(
+        legNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['lowerLegElementsCount'], 
             legNetworkLayout, nodeIdentifier)
         # Feet 
-        legNetworkLayout, nodeIdentifier = addNodesToLayout(
+        legNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['footElementsCount'], 
             legNetworkLayout, nodeIdentifier, endSegment=True)
-        legNetworkLayouts.append(legNetworkLayout)
-    humanNetworkLayout = headNetworkLayout + necknNetworkLayout + \
-        armNetworkLayouts[0] + armNetworkLayouts[1] + thoraxNetworkLayout + \
-        abdomenNetworkLayout + legNetworkLayouts[0] + legNetworkLayouts[1]
+        legs.append(legNetworkLayout)
+    humanNetworkLayout = headNetworkLayout + necknNetworkLayout + arms[0] + arms[1] + thoraxNetworkLayout + abdomenNetworkLayout + legs[0] + legs[1]
     humanNetworkLayout = humanNetworkLayout[:-1] #Remove a comma at the end
     return humanNetworkLayout
 
+constructNetworkLayoutStructure(humanElementCounts).replace(',', ',\n').splitlines()
 # humanNetworkLayout.replace(',', ',\n').splitlines()
 
