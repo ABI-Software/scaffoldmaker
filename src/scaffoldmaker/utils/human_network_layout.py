@@ -91,12 +91,16 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
         # Brachium 
         armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['brachiumElementsCount'], 
-            armNetworkLayout, nodeIdentifier)
+            armNetworkLayout, nodeIdentifier, endSegment=True)
         # Antebrachium 
+        armNetworkLayout = armNetworkLayout + str(nodeIdentifier) + '-'
+        nodeIdentifier += 1 
         armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['antebrachiumElementsCount'], 
-            armNetworkLayout, nodeIdentifier)
+            armNetworkLayout, nodeIdentifier, endSegment=True)
         # Hand
+        armNetworkLayout = armNetworkLayout + str(nodeIdentifier) + '-'
+        nodeIdentifier += 1 
         armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['handElementsCount'], 
             armNetworkLayout, nodeIdentifier, endSegment=True)
