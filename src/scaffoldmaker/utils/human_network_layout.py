@@ -114,8 +114,10 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
         # Lower leg 
         legNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['lowerLegElementsCount'], 
-            legNetworkLayout, nodeIdentifier)
+            legNetworkLayout, nodeIdentifier, endSegment=True)
         # Feet 
+        legNetworkLayout = legNetworkLayout + str(nodeIdentifier) + '-'
+        nodeIdentifier += 1 
         legNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['footElementsCount'], 
             legNetworkLayout, nodeIdentifier, endSegment=True)
@@ -125,5 +127,4 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
     return humanNetworkLayout
 
 constructNetworkLayoutStructure(humanElementCounts).replace(',', ',\n').splitlines()
-# humanNetworkLayout.replace(',', ',\n').splitlines()
 

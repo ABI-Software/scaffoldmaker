@@ -560,8 +560,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # However, doing so causes a distortion in the network layout 
             # This node is also moved 'forward' in the elbow direction (see above)
             # The 0.8/0.2 values were chosen by visual inspection of the scaffold 
-            elbowPosition = add(x, mult(armDirn, 0.8*armScale))
-            elbowPosition = add(elbowPosition, mult(elbowDirn, 0.2*armScale))
+            d1 = add(mult(armDirn,0.8), mult(elbowDirn,0.2))
+            d1 = set_magnitude(d1, armScale)
+            elbowPosition = add(x, d1)
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             # The elbow node uses a special width value during the transition
@@ -594,11 +595,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(innerCoordinates, fieldcache, elbowPosition, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
             # Antebrachium nodes start below the elbow position
-            # As with the elbow node, the first antebrachium node is position
+            # As with the elbow node, the first antebrachium node is positioned
             # via a linear combination of the elbow and antebrachium d1 
             # The values were chosen to produce the smoothest curve in the network layout. 
-            antebrachiumStart = add(elbowPosition, mult(elbowDirn, 0.5*armScale))
-            antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, 0.5*armScale))
+            d1 = add(mult(elbowDirn,0.5), mult(antebrachiumDirn,0.5))
+            d1 = set_magnitude(d1, armScale)
+            antebrachiumStart = add(elbowPosition, d1)
+            # antebrachiumStart = add(elbowPosition, mult(elbowDirn, 0.5*armScale))
+            # antebrachiumStart = add(antebrachiumStart, mult(antebrachiumDirn, 0.5*armScale))
             d1 = mult(antebrachiumDirn, armScale)
             for i in range(antebrachiumElementsCount):
                 xi = (i + brachiumElementsCount - 1) / (armToHandElementsCount - 2)
@@ -639,7 +643,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             assert handElementsCount == 1
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            # hx = [armStartX + armLength * cosArmAngle, armStartY + armLength * sinArmAngle, 0.0]
             hx = add(x, mult(antebrachiumDirn, handLength))
             hd1 = computeCubicHermiteEndDerivative(x, d1, hx, d1)
             twistAngle = armTwistAngleRadians if (side == left) else -armTwistAngleRadians
@@ -658,7 +661,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(coordinates, fieldcache, hx, hd1, hd2, hd3)
             setNodeFieldParameters(innerCoordinates, fieldcache, hx, hd1, hid2, hid3)
             nodeIdentifier += 1
-
         # legs
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
         nonFootLegLength = legLength - footHeight
@@ -710,11 +712,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
             # foot
-            # fx = [x,
-            #       add(add(legStart, mult(legDirn, legLength - 1.5 * halfFootThickness)),
-            #           [0.0, 0.0, legBottomRadius]),
-            #       add(add(legStart, mult(legDirn, legLength - halfFootThickness)),
-            #           [0.0, 0.0, footLength - legBottomRadius])]
             anklePosition = add(legStart, mult(legDirn, legLength - 1.5 * halfFootThickness))
             ankleAngleRadians = ankleLeftAngleRadians if (side == left) else ankleRigthAngleRadians
             rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians - math.pi/2))
@@ -1179,9 +1176,6 @@ class MeshType_3d_wholebody2(Scaffold_base):
             spinalCordGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_body_term("spinal cord"))
             is_spinal_cord = fieldmodule.createFieldAnd(is_core_shell, is_left_right_dorsal)
             spinalCordGroup.getMeshGroup(mesh1d).addElementsConditional(is_spinal_cord)
-
-            # Kinematic tree markers
-
 
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
