@@ -279,9 +279,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         left = 0
         right = 1
         brachiumElementsCount = humanElementCounts['brachiumElementsCount']
+        elbowElementsCount = humanElementCounts['elbowElementsCount']
         antebrachiumElementsCount = humanElementCounts['antebrachiumElementsCount']
         handElementsCount = humanElementCounts['handElementsCount']
-        armToHandElementsCount = brachiumElementsCount + antebrachiumElementsCount
+        armToHandElementsCount = brachiumElementsCount + antebrachiumElementsCount - elbowElementsCount + 1
         armMeshGroup = armGroup.getMeshGroup(mesh)
         armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
         handMeshGroup = handGroup.getMeshGroup(mesh)
@@ -508,7 +509,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elementTwistAngle = ((armTwistAngleRadians if (side == left) else -armTwistAngleRadians) /
                                  (armToHandElementsCount - 3))
             # Setting brachium coordinates
-            for i in range(brachiumElementsCount - 2):
+            for i in range(brachiumElementsCount - elbowElementsCount - 1):
                 xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
@@ -545,67 +546,83 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # The special elbow node is rotated by half that angle, to give a smoother transition
             elbowAngleRadians = elbowLeftAngleRadians if (side == left) else elbowRigthAngleRadians
             rotationMatrixNode = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians)
-            rotationMatrixD2 = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/2)
+            rotationMatrixD2 = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/3)
             antebrachiumDirn = matrix_vector_mult(rotationMatrixNode, armDirn)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
             elbowDirn = matrix_vector_mult(rotationMatrixD2, armDirn)
             elbowSide = armSide
-            elbowFront = matrix_vector_mult(rotationMatrixD2, armFront)
+            elbowd3 = []
+            elbowd3.append(matrix_vector_mult(rotationMatrixD2, armFront))
+            elbowd3.append(matrix_vector_mult(rotationMatrixD2, elbowd3[-1]))
             # Ideally, the elbow node has the same d1 direction as the rest of the brachium
             # However, doing so causes a distortion in the network layout 
             # This node is also moved 'forward' in the elbow direction (see above)
             # The 0.8/0.2 values were chosen by visual inspection of the scaffold 
-            elbowPosition = add(mult(armDirn,0.8), mult(elbowDirn,0.2))
-            elbowPosition = set_magnitude(elbowPosition, armScale)
-            elbowPosition = add(x, elbowPosition)
-            elbowd1 = mult(elbowDirn, armScale)
+            for field in (coordinates, innerCoordinates):
+                field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, mult(d1, 0.5))
+            elbowPosition = []
+            elbowd1 = []
+            elbowDir  = add(mult(armDirn,0.99), mult(elbowDirn,0.01))
+            elbowDir = set_magnitude(elbowDir, 0.5*armScale)
+            elbowPosition.append(add(x, elbowDir))
+            elbowDir  = add(mult(armDirn,0.01), mult(elbowDirn,0.99))
+            elbowDir = set_magnitude(elbowDir, 0.5*armScale)
+            elbowPosition.append(add(elbowPosition[-1], elbowDir))
+
+            elbowd1.append(mult(elbowDirn, 0.5*armScale))
+            elbowd1.append(mult(antebrachiumDirn, 1*armScale))
+            # elbowPosition 
             # Antebrachium nodes start below the elbow position
             # As with the elbow node, the first antebrachium node is positioned
             # via a linear combination of the elbow and antebrachium d1 
             # The values were chosen to produce the smoothest curve in the network layout. 
-            antebrachiumStart = add(mult(elbowDirn,0.5), mult(antebrachiumDirn,0.5))
-            antebrachiumStart = set_magnitude(antebrachiumStart, armScale)
-            antebrachiumStart = add(elbowPosition, antebrachiumStart)
+            # antebrachiumStart = add(mult(elbowDirn,0.5), mult(antebrachiumDirn,0.5))
+            antebrachiumStart = set_magnitude(antebrachiumDirn, 1*armScale)
+            antebrachiumStart = add(elbowPosition[-1], antebrachiumStart)
             # Smooth d1 at the elbow
-            d1 = smoothCubicHermiteDerivativesLine(
-                [x, elbowPosition], 
-                [d1, elbowd1], fixAllDirections=True, fixStartDerivative=True
-                )[1]
+            # d1 = smoothCubicHermiteDerivativesLine(
+            #     [x, elbowPosition], 
+            #     [d1, elbowd1], fixAllDirections=True, fixStartDerivative=True
+            #     )[1]
             # Elbow node field parameters are allocated separately from the rest of the brachium
-            xi = (brachiumElementsCount - 2) / (armToHandElementsCount - 2)
-            node = nodes.findNodeByIdentifier(nodeIdentifier)
-            fieldcache.setNode(node)
-            halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-            # The elbow node uses a special width value during the transition
-            # Which 'fattens' the scaffold around the elbow depending on the level of rotation
-            halfWidth = math.sin(elbowAngleRadians)*(0.25)*halfWidth + halfWidth
-            if i == 0:
-                twistAngle = 0.0
-            else:
-                twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * i
-            if twistAngle == 0.0:
-                d2 = mult(elbowSide, halfThickness)
-                d3 = mult(elbowFront, halfWidth)
-                d12 = mult(elbowSide, d12_mag)
-                d13 = mult(elbowFront, d13_mag)
-            else:
-                cosTwistAngle = math.cos(twistAngle)
-                sinTwistAngle = math.sin(twistAngle)
-                d2 = sub(mult(elbowSide, halfThickness * cosTwistAngle),
-                            mult(elbowFront, halfThickness * sinTwistAngle))
-                d3 = add(mult(elbowFront, halfWidth * cosTwistAngle),
-                            mult(elbowSide, halfWidth * sinTwistAngle))
-                d12 = set_magnitude(d2, d12_mag)
-                d13 = set_magnitude(d3, d13_mag)
-            id2 = mult(d2, innerProportionDefault)
-            id3 = mult(d3, innerProportionDefault)
-            id12 = mult(d12, innerProportionDefault)
-            id13 = mult(d13, innerProportionDefault)
-            setNodeFieldParameters(coordinates, fieldcache, elbowPosition, d1, d2, d3, d12, d13)
-            setNodeFieldParameters(innerCoordinates, fieldcache, elbowPosition, d1, id2, id3, id12, id13)
-            nodeIdentifier += 1
+            for i in range(elbowElementsCount):
+                xi = (brachiumElementsCount - elbowElementsCount - 1) / (armToHandElementsCount - 2)
+                x = elbowPosition[i]
+                d1 = elbowd1[i]
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+                halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+                # The elbow node uses a special width value
+                # Which 'fattens' the scaffold around the elbow depending on the level of rotation
+                halfWidth = math.sin(elbowAngleRadians)*(0.25)*halfWidth + halfWidth
+                elbowFront = elbowd3[i]
+                if i == 0:
+                    twistAngle = 0.0
+                else:
+                    twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * i
+                if twistAngle == 0.0:
+                    d2 = mult(elbowSide, halfThickness)
+                    d3 = mult(elbowFront, halfWidth)
+                    d12 = mult(elbowSide, d12_mag)
+                    d13 = mult(elbowFront, d13_mag)
+                else:
+                    cosTwistAngle = math.cos(twistAngle)
+                    sinTwistAngle = math.sin(twistAngle)
+                    d2 = sub(mult(elbowSide, halfThickness * cosTwistAngle),
+                                mult(elbowFront, halfThickness * sinTwistAngle))
+                    d3 = add(mult(elbowFront, halfWidth * cosTwistAngle),
+                                mult(elbowSide, halfWidth * sinTwistAngle))
+                    d12 = set_magnitude(d2, d12_mag)
+                    d13 = set_magnitude(d3, d13_mag)
+                id2 = mult(d2, innerProportionDefault)
+                id3 = mult(d3, innerProportionDefault)
+                id12 = mult(d12, innerProportionDefault)
+                id13 = mult(d13, innerProportionDefault)
+                setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
+                setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
+                nodeIdentifier += 1
             # Change d1 to the antebrachium direction
             d1 = mult(antebrachiumDirn, armScale)
             for i in range(antebrachiumElementsCount):
@@ -718,37 +735,35 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # foot
             anklePosition = add(legStart, mult(legDirn, legLength - 1.5 * halfFootThickness))
             ankleAngleRadians = ankleLeftAngleRadians if (side == left) else ankleRigthAngleRadians
-            rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians - math.pi/2))
+            rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians))
             # We need to create a 45* angle between d1 and d3 to avoid deformations
-            rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (math.pi/4))
+            rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians/2))
             cosAnkleAngle = math.cos(ankleAngleRadians)
             sinAnkleAngle = math.sin(ankleAngleRadians)
             footd1 = [-cosAnkleAngle, 0, sinAnkleAngle]
             footd2 = mult(legSide, halfFootWidth)
             footd3 = matrix_vector_mult(rotationMatrixAnkle, footd1)
             # footd2 = matrix_vector_mult(rotationMatrixAnkle, footd2)
+            # This positioning of the food nodes bends edge connecting the leg and the foot 
+            # Which allows the scaffold to better capture the shape of the calcaneus
             fx = [
                 x, 
-                add(anklePosition, mult(footd1, legBottomRadius)), 
+                add(anklePosition, mult(footd1, 0)), 
                 add(anklePosition, mult(footd1, footLength - legBottomRadius)), 
 
             ]
-            # fd1 = smoothCubicHermiteDerivativesLine(
-            #     fx, [d1, [0.0, 0.0, 0.5 * footLength], [0.0, 0.0, 0.5 * footLength]],
-            #     fixAllDirections=True, fixStartDerivative=True)
             fd1 = [d1, mult(footd1, 0.5*footLength), mult(footd1, 0.5*footLength)]
             fd1 = smoothCubicHermiteDerivativesLine(
                 fx, fd1, fixAllDirections=True, fixStartDerivative=True
                 )
             fd2 = [d2, footd2, footd2]
             fd3 = [d3,
-                #    set_magnitude(sub(legFront, legDirn),
-                #                  math.sqrt(2.0 * halfFootThickness * halfFootThickness) + legBottomRadius),
                     set_magnitude(footd3,
                                  math.sqrt(2.0 * halfFootThickness * halfFootThickness) + legBottomRadius),
-                   set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)]
+                   set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)
+            ]
             fd12 = sub(fd2[2], fd2[1])
-            fd13 = sub(fd3[2], fd3[1])
+            fd13 = sub(fd3[2], fd3[1]) 
             fid12 = mult(fd12, innerProportionDefault)
             fid13 = mult(fd13, innerProportionDefault)
             for i in range(1, 3):
