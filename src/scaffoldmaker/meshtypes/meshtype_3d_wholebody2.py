@@ -237,7 +237,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         headGroup = AnnotationGroup(region, get_body_term("head"))
         neckGroup = AnnotationGroup(region, get_body_term("neck"))
         armGroup = AnnotationGroup(region, get_body_term("upper limb"))
-        armToHandGroup = AnnotationGroup(region, ("arm to hand", ""))
+        # armToHandGroup = AnnotationGroup(region, ("arm to hand", ""))
         leftArmGroup = AnnotationGroup(region, get_body_term("left upper limb"))
         leftBrachiumGroup = AnnotationGroup(region, get_body_term("left brachium"))
         leftAntebrachiumGroup = AnnotationGroup(region, get_body_term("left antebrachium"))
@@ -255,7 +255,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         rightLegGroup = AnnotationGroup(region, get_body_term("right lower limb"))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
-                            armGroup, armToHandGroup, leftArmGroup, rightArmGroup, handGroup,
+                            armGroup, leftArmGroup, rightArmGroup, handGroup,
                             thoraxGroup, abdomenGroup,
                             leftBrachiumGroup, leftAntebrachiumGroup, leftHandGroup, 
                             rightBrachiumGroup, rightAntebrachiumGroup, rightHandGroup,
@@ -284,7 +284,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         handElementsCount = humanElementCounts['handElementsCount']
         armToHandElementsCount = brachiumElementsCount + antebrachiumElementsCount - elbowElementsCount + 1
         armMeshGroup = armGroup.getMeshGroup(mesh)
-        armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
+        # armToHandMeshGroup = armToHandGroup.getMeshGroup(mesh)
         handMeshGroup = handGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
@@ -292,7 +292,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             sideAntebrachiumGroup = leftAntebrachiumGroup if (side == left) else rightAntebrachiumGroup
             sideHandGroup = leftHandGroup if (side == left) else rightHandGroup
             # Setup brachium elements
-            meshGroups = [bodyMeshGroup, armMeshGroup, armToHandMeshGroup, 
+            meshGroups = [bodyMeshGroup, armMeshGroup, 
                           sideArmGroup.getMeshGroup(mesh), sideBrachiumGroup.getMeshGroup(mesh)]
             for e in range(brachiumElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
@@ -300,7 +300,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     meshGroup.addElement(element)
                 elementIdentifier += 1
             # Setup antebrachium elements
-            meshGroups = [bodyMeshGroup, armMeshGroup, armToHandMeshGroup,
+            meshGroups = [bodyMeshGroup, armMeshGroup,
                            sideArmGroup.getMeshGroup(mesh), sideAntebrachiumGroup.getMeshGroup(mesh)]
             for e in range(antebrachiumElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
@@ -820,7 +820,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options["Number of elements along neck"] = 1
         options["Number of elements along thorax"] = 2
         options["Number of elements along abdomen"] = 2
-        options["Number of elements along arm to hand"] = 3
+        options["Number of elements along brachium"] = 5
+        options["Number of elements along antebrachium"] = 2
         options["Number of elements along hand"] = 1
         options["Number of elements along leg to foot"] = 4
         options["Number of elements along foot"] = 2
@@ -838,7 +839,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             options["Number of elements along neck"] = 2
             options["Number of elements along thorax"] = 3
             options["Number of elements along abdomen"] = 3
-            options["Number of elements along arm to hand"] = 6
+            options["Number of elements along brachium"] = 6
+            options["Number of elements along antebrachium"] = 3
             options["Number of elements along hand"] = 1
             options["Number of elements along leg to foot"] = 6
             options["Number of elements along foot"] = 2
@@ -850,7 +852,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             options["Number of elements along neck"] = 2
             options["Number of elements along thorax"] = 4
             options["Number of elements along abdomen"] = 4
-            options["Number of elements along arm to hand"] = 8
+            options["Number of elements along brachium"] = 6
+            options["Number of elements along antebrachium"] = 4
             options["Number of elements along hand"] = 2
             options["Number of elements along leg to foot"] = 8
             options["Number of elements along foot"] = 3
@@ -871,7 +874,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements along neck",
             "Number of elements along thorax",
             "Number of elements along abdomen",
-            "Number of elements along arm to hand",
+            "Number of elements along brachium",
+            "Number of elements along antebrachium",
             "Number of elements along hand",
             "Number of elements along leg to foot",
             "Number of elements along foot",
@@ -919,7 +923,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements along neck",
             "Number of elements along thorax",
             "Number of elements along abdomen",
-            "Number of elements along arm to hand",
+            "Number of elements along brachium",
+            "Number of elements along antebrachium",
             "Number of elements along hand",
             "Number of elements along leg to foot",
             "Number of elements along foot"
@@ -974,7 +979,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         elementsCountAlongNeck = options["Number of elements along neck"]
         elementsCountAlongThorax = options["Number of elements along thorax"]
         elementsCountAlongAbdomen = options["Number of elements along abdomen"]
-        elementsCountAlongArmToHand = options["Number of elements along arm to hand"]
+        elementsCountAlongBrachium = options["Number of elements along brachium"]
+        elementsCountAlongAntebrachium = options["Number of elements along antebrachium"]
         elementsCountAlongHand = options["Number of elements along hand"]
         elementsCountAlongLegToFoot = options["Number of elements along leg to foot"]
         elementsCountAlongFoot = options["Number of elements along foot"]
@@ -1012,8 +1018,11 @@ class MeshType_3d_wholebody2(Scaffold_base):
                 alongCount = elementsCountAlongAbdomen
                 aroundCount = elementsCountAroundTorso
                 coreBoundaryScalingMode = 2
-            elif "arm to hand" in name:
-                alongCount = elementsCountAlongArmToHand
+            elif " brachium" in name:
+                alongCount = elementsCountAlongBrachium
+                aroundCount = elementsCountAroundArm
+            elif " antebrachium" in name:
+                alongCount = elementsCountAlongAntebrachium
                 aroundCount = elementsCountAroundArm
             elif "hand" in name:
                 alongCount = elementsCountAlongHand
