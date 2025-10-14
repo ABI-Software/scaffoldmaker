@@ -3,7 +3,7 @@
 humanElementCounts = {
     'headElementsCount': 3, 
     'neckElementsCount': 2, 
-    'brachiumElementsCount': 5, 
+    'brachiumElementsCount': 3, 
     'elbowElementsCount': 2, 
     'antebrachiumElementsCount': 2, 
     'handElementsCount': 1, 
@@ -92,6 +92,12 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
         # Brachium 
         armNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['brachiumElementsCount'], 
+            armNetworkLayout, nodeIdentifier, endSegment=True)
+        # Elbow 
+        armNetworkLayout = armNetworkLayout + str(nodeIdentifier) + '-'
+        nodeIdentifier += 1 
+        armNetworkLayout, nodeIdentifier = createSegment(
+            humanElementCounts['elbowElementsCount'], 
             armNetworkLayout, nodeIdentifier, endSegment=True)
         # Antebrachium 
         armNetworkLayout = armNetworkLayout + str(nodeIdentifier) + '-'
