@@ -51,7 +51,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Right arm lateral angle degrees"] = 10.0
         options["Left elbow lateral angle degrees"] = 45.0
         options["Right elbow lateral angle degrees"] = 90.0
-        options["Arm length"] = 7.5
+        options["Upper Arm length"] = 4.5
+        options["Lower Arm length"] = 3
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
         options["Wrist thickness"] = 0.5
@@ -92,7 +93,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Right arm lateral angle degrees",
             "Left elbow lateral angle degrees",
             "Right elbow lateral angle degrees",
-            "Arm length",
+            "Upper Arm length",
+            "Lower Arm length",
             "Arm top diameter",
             "Arm twist angle degrees",
             "Wrist thickness",
@@ -130,7 +132,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Neck length",
             "Shoulder drop",
             "Shoulder width",
-            "Arm length",
+            "Upper Arm length",
+            "Lower Arm length",
             "Arm top diameter",
             "Wrist thickness",
             "Wrist width",
@@ -197,7 +200,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         armRigthAngleRadians = math.radians(options["Right arm lateral angle degrees"])
         elbowLeftAngleRadians = math.radians(options["Left elbow lateral angle degrees"])
         elbowRigthAngleRadians = math.radians(options["Right elbow lateral angle degrees"])
-        armLength = options["Arm length"]
+        upperArmLength = options["Upper Arm length"]
+        lowerArmLength = options["Lower Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
         armTwistAngleRadians = math.radians(options["Arm twist angle degrees"])
         halfWristThickness = 0.5 * options["Wrist thickness"]
@@ -457,8 +461,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # assume shoulder drop is half shrug distance to get limiting shoulder angle for 180 degree arm rotation
             shoulderLimitAngleRadians = math.asin(1.5 * shoulderDrop / halfShoulderWidth)
             shoulderAngleRadians = shoulderRotationFactor * shoulderLimitAngleRadians
-            nonHandArmLength = armLength - handLength
-            armScale = nonHandArmLength / (armToHandElementsCount - 2)  # 2 == shoulder elements count
+            nonHandArmLength = upperArmLength + lowerArmLength - handLength
+            lowerArmScale = lowerArmLength / (antebrachiumElementsCount + (elbowElementsCount/2))  # 2 == shoulder elements count
+            upperArmScale = upperArmLength / (brachiumElementsCount + (elbowElementsCount/2) - 2)  # 2 == shoulder elements count
+            # armScale = nonHandArmLength / (armToHandElementsCount - 2)  # 2 == shoulder elements count
             d12_mag = (halfWristThickness - armTopRadius) / (armToHandElementsCount - 2)
             d13_mag = (halfWristWidth - armTopRadius) / (armToHandElementsCount - 2)
             armAngle = armAngleRadians if (side == left) else -armAngleRadians
@@ -471,10 +477,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             armDirn = [cosArmAngle, sinArmAngle, 0.0]
             armSide = [-sinArmAngle, cosArmAngle, 0.0]
             armFront = cross(armDirn, armSide)
-            d1 = mult(armDirn, armScale)
+            d1 = mult(armDirn, upperArmScale)
             # set arm versions 2 (left) and 3 (right) on arm junction node, and intermediate shoulder node
             sd1 = interpolateLagrangeHermiteDerivative(sx, x, d1, 0.0)
-            nx, nd1 = sampleCubicHermiteCurvesSmooth([sx, x], [sd1, d1], 2, derivativeMagnitudeEnd=armScale)[0:2]
+            nx, nd1 = sampleCubicHermiteCurvesSmooth([sx, x], [sd1, d1], 2, derivativeMagnitudeEnd=upperArmScale)[0:2]
             arcLengths = [getCubicHermiteArcLength(nx[i], nd1[i], nx[i + 1], nd1[i + 1]) for i in range(2)]
             sd2_list = []
             sd3_list = []
@@ -568,8 +574,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elbowd1 = []
             elbowd3.append(matrix_vector_mult(rotationMatrixD2, armFront))
             elbowd3.append(matrix_vector_mult(rotationMatrixD2, elbowd3[-1]))
-            elbowd1.append(set_magnitude(antebrachiumDirn, 1*armScale))
-            elbowd1.append(set_magnitude(antebrachiumDirn, 1*armScale))
+            elbowd1.append(set_magnitude(antebrachiumDirn, 1*lowerArmScale))
+            elbowd1.append(set_magnitude(antebrachiumDirn, 1*lowerArmScale))
             # The d1 on the last brachium node is reduced to fit the scale of the first
             # elbow node
             # for field in (coordinates, innerCoordinates):
@@ -582,11 +588,11 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             
             # elbowDir  = add(mult(armDirn,0.99), mult(elbowDirn,0.01))
             elbowDir = armDirn
-            elbowDir = set_magnitude(armDirn, 0.5*armScale)
+            elbowDir = set_magnitude(armDirn, (1/3)*(upperArmScale+lowerArmScale))
             elbowPosition.append(add(x, elbowDir))
             # elbowDir  = add(mult(armDirn,0.01), mult(elbowDirn,0.99))
             elbowDir = elbowDirn
-            elbowDir = set_magnitude(elbowd1[1], 1*armScale)
+            elbowDir = set_magnitude(elbowd1[1], (2/3)*(upperArmScale+lowerArmScale))
             elbowPosition.append(add(elbowPosition[-1], elbowDir))
 
             # elbowd1.append(mult(elbowDirn, 0.5*armScale))
@@ -596,7 +602,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # As with the elbow node, the first antebrachium node is positioned
             # via a linear combination of the elbow and antebrachium d1 
             # The values were chosen to produce the smoothest curve in the network layout. 
-            antebrachiumStart = set_magnitude(antebrachiumDirn, 1*armScale)
+            antebrachiumStart = set_magnitude(antebrachiumDirn, 1*lowerArmScale)
             antebrachiumStart = add(elbowPosition[-1], antebrachiumStart)
             # Smooth d1 at the elbow
             # d1 = smoothCubicHermiteDerivativesLine(
@@ -645,7 +651,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
             # Change d1 to the antebrachium direction
-            d1 = mult(antebrachiumDirn, armScale)
+            d1 = mult(antebrachiumDirn, lowerArmScale)
             for i in range(antebrachiumElementsCount):
                 xi = (i + brachiumElementsCount + elbowElementsCount - 1) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)

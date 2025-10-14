@@ -5,7 +5,7 @@ humanElementCounts = {
     'neckElementsCount': 2, 
     'brachiumElementsCount': 3, 
     'elbowElementsCount': 2, 
-    'antebrachiumElementsCount': 2, 
+    'antebrachiumElementsCount': 1, 
     'handElementsCount': 1, 
     'thoraxElementsCount': 3, 
     'abdomenElementsCount': 4, 
