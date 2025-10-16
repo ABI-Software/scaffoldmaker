@@ -254,14 +254,21 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         legGroup = AnnotationGroup(region, get_body_term("lower limb"))
         legToFootGroup = AnnotationGroup(region, ("leg to foot", ""))
         leftLegGroup = AnnotationGroup(region, get_body_term("left lower limb"))
+        leftUpperLegGroup = AnnotationGroup(region, get_body_term("left upper leg"))
+        leftLowerLegGroup = AnnotationGroup(region, get_body_term("left lower leg"))
         rightLegGroup = AnnotationGroup(region, get_body_term("right lower limb"))
+        rightUpperLegGroup = AnnotationGroup(region, get_body_term("right upper leg"))
+        rightLowerLegGroup = AnnotationGroup(region, get_body_term("right lower leg"))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
                             armGroup, leftArmGroup, rightArmGroup, handGroup,
                             thoraxGroup, abdomenGroup,
                             leftBrachiumGroup, leftElbowGroup, leftAntebrachiumGroup, leftHandGroup, 
                             rightBrachiumGroup, rightElbowGroup, rightAntebrachiumGroup, rightHandGroup,
-                            legGroup, legToFootGroup, leftLegGroup, rightLegGroup, footGroup]
+                            legGroup, legToFootGroup,
+                            leftLegGroup, leftUpperLegGroup, leftLowerLegGroup,
+                            rightLegGroup, rightUpperLegGroup, rightLowerLegGroup,
+                            footGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
         headElementsCount = humanElementCounts['headElementsCount']
@@ -281,7 +288,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         left = 0
         right = 1
         brachiumElementsCount = humanElementCounts['brachiumElementsCount']
-        elbowElementsCount = humanElementCounts['elbowElementsCount']
         antebrachiumElementsCount = humanElementCounts['antebrachiumElementsCount']
         handElementsCount = humanElementCounts['handElementsCount']
         armToHandElementsCount = brachiumElementsCount + antebrachiumElementsCount #all elbow nodes count as 1
@@ -350,8 +356,20 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         footMeshGroup = footGroup.getMeshGroup(mesh)
         for side in (left, right):
             sideLegGroup = leftLegGroup if (side == left) else rightLegGroup
-            meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, sideLegGroup.getMeshGroup(mesh)]
-            for e in range(legToFootElementsCount):
+            sideUpperLegGroup = leftUpperLegGroup if (side == left) else rightUpperLegGroup
+            sideLowerLegGroup = leftLowerLegGroup if (side == left) else rightLowerLegGroup
+            # Upper leg
+            meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, 
+                          sideLegGroup.getMeshGroup(mesh), sideUpperLegGroup.getMeshGroup(mesh)]
+            for e in range(upperLegElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+                elementIdentifier += 1
+            # Lower leg
+            meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, 
+                          sideLegGroup.getMeshGroup(mesh), sideLowerLegGroup.getMeshGroup(mesh)]
+            for e in range(lowerLegElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
@@ -556,7 +574,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 nodeIdentifier += 1
             # Elbow node field parameters are allocated separately from the rest of the arm
             # Calculating initial d2 and d3 before rotation
-            # Necessary in case there is is a non-zero twist angle
+            # Necessary in case there is a non-zero twist angle
             if twistAngle == 0.0:
                 d2 = armSide
                 d3 = armFront
