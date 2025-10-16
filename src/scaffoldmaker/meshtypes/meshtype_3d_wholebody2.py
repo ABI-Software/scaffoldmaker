@@ -555,9 +555,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
             # Elbow node field parameters are allocated separately from the rest of the amr
-            # Updating d2 and d3 for the elbow node 
-            i += 1
-            xi = i / (armToHandElementsCount - 2)
+            # Calculating initial d2 and d3 before rotation, just necessary in case there 
+            # is a non-zero twist angle
             if twistAngle == 0.0:
                 d2 = armSide
                 d3 = armFront
@@ -569,24 +568,28 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 d3 = add(mult(armFront,  cosTwistAngle),
                             mult(armSide, sinTwistAngle))
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
-            # Nodes in the antebrachium are rotated acoording to the elbow angle 
-            # The special elbow node is rotated by half that angle, to give a smoother transition
             elbowAngleRadians = elbowLeftAngleRadians if (side == left) else elbowRigthAngleRadians
-            rotationMatrixNode = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians)
-            rotationMatrixD3 = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/2)
-            antebrachiumDirn = matrix_vector_mult(rotationMatrixNode, armDirn)
+            rotationMatrixElbow = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians)
+            rotationMatrixElbowHalf = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/2)
+            antebrachiumDirn = matrix_vector_mult(rotationMatrixElbow, armDirn)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
-            elbowDirn = matrix_vector_mult(rotationMatrixD3, armDirn)
+            # The d3 direction in the elbow node is rotated by half this angle 
+            # To ensure a better transition at this node. 
+            elbowDirn = antebrachiumDirn
             elbowSide = d2
-            elbowFront = matrix_vector_mult(rotationMatrixD3, d3)
-            elbowPosition = add(x, set_magnitude(armDirn, armScale))
+            elbowFront = matrix_vector_mult(rotationMatrixElbowHalf, d3)
+            # Elbow node position does not depend on the rotation angle
+            elbowPosition = add(x, d1)
+            i += 1
             xi = i / (armToHandElementsCount - 2)
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             # The elbow node uses a special width value
             # Which 'fattens' the scaffold around the elbow depending on the level of rotation
-            halfWidth = math.sin(elbowAngleRadians)*halfWidth*(math.sqrt(2.0) -1) + halfWidth
+            halfWidth = math.sin(elbowAngleRadians)*halfWidth*(math.sqrt(2.0)-1) + halfWidth
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            x = elbowPosition
+            d1 = set_magnitude(elbowDirn, armScale)
             d2 = set_magnitude(elbowSide, halfThickness)
             d3 = set_magnitude(elbowFront, halfWidth)
             d12 = set_magnitude(elbowSide, d12_mag)
@@ -595,18 +598,15 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             id3 = mult(d3, innerProportionDefault)
             id12 = mult(d12, innerProportionDefault)
             id13 = mult(d13, innerProportionDefault)
-            x = add(x, set_magnitude(armDirn, armScale))
-            d1 = set_magnitude(antebrachiumDirn, armScale)
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
             # Antebrachium nodes starts after the last elbow node
-            antebrachiumStart = set_magnitude(antebrachiumDirn, 1*armScale)
-            antebrachiumStart = add(elbowPosition, antebrachiumStart)
-            # Change d1 to the antebrachium direction
             d1 = mult(antebrachiumDirn, armScale)
+            antebrachiumStart = add(elbowPosition, d1)
+            # Change d1 to the antebrachium direction
             for i in range(brachiumElementsCount, armToHandElementsCount - 1):
                 xi = (i) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
