@@ -69,6 +69,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
+        options["Left knee lateral angle degrees"] = 45.0
+        options["Right knee lateral angle degrees"] = 90.0
         options["Left ankle lateral angle degrees"] = 90.0
         options["Right ankle lateral angle degrees"] = 90.0
         options["Foot height"] = 1.25
@@ -110,6 +112,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
+            "Left knee lateral angle degrees",
+            "Right knee lateral angle degrees",
             "Foot height",
             "Foot length",
             "Foot thickness",
@@ -146,6 +150,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
+            "Left knee lateral angle degrees",
+            "Right knee lateral angle degrees",
             "Foot height",
             "Foot length",
             "Foot thickness",
@@ -166,6 +172,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Right arm lateral angle degrees": (-60.0, 200.0),
             "Left elbow lateral angle degrees": (0.0, 150.0),
             "Right elbow lateral angle degrees": (0.0, 150.0),
+            "Left knee lateral angle degrees": (0.0, 150.0),
+            "Right knee lateral angle degrees": (0.0, 150.0),
             "Left ankle lateral angle degrees": (60.0, 140.0),
             "Right ankle lateral angle degrees": (60.0, 140.0),
             "Arm twist angle degrees": (-90.0, 90.0),
@@ -215,6 +223,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         legLength = options["Leg length"]
         legTopRadius = 0.5 * options["Leg top diameter"]
         legBottomRadius = 0.5 * options["Leg bottom diameter"]
+        kneeLeftAngleRadians = math.radians(options["Left knee lateral angle degrees"])
+        kneeRigthAngleRadians = math.radians(options["Right knee lateral angle degrees"])
         ankleLeftAngleRadians = math.radians( options["Left ankle lateral angle degrees"])
         ankleRigthAngleRadians = math.radians(options["Right ankle lateral angle degrees"])
         footHeight = options["Foot height"]
@@ -587,23 +597,23 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                             mult(armSide, sinTwistAngle))
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
             elbowAngleRadians = elbowLeftAngleRadians if (side == left) else elbowRigthAngleRadians
-            rotationMatrixElbow = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians)
-            rotationMatrixElbowHalf = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/2)
-            antebrachiumDirn = matrix_vector_mult(rotationMatrixElbow, armDirn)
+            elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians)
+            elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/2)
+            antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, d1)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
             # The d3 direction in the elbow node is rotated by half this angle 
             # To ensure a better transition at this node. 
             elbowDirn = antebrachiumDirn
             elbowSide = d2
-            elbowFront = matrix_vector_mult(rotationMatrixElbowHalf, d3)
+            elbowFront = matrix_vector_mult(elbowHalfRotationMatrix, d3)
             # Elbow node position does not depend on the rotation angle
-            elbowPosition = add(x, d1)
+            elbowPosition = add(x, set_magnitude(d1, armScale))
             i += 1
             xi = i / (armToHandElementsCount - 2)
-            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             # The elbow node uses a special width value
             # Which 'fattens' the scaffold around the elbow depending on the level of rotation
+            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfWidth = math.sin(elbowAngleRadians)*halfWidth*(math.sqrt(2.0)-1) + halfWidth
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
             x = elbowPosition
@@ -621,7 +631,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
-            # Antebrachium nodes starts after the last elbow node
+            # Antebrachium nodes starts after the elbow node
             d1 = mult(antebrachiumDirn, armScale)
             antebrachiumStart = add(elbowPosition, d1)
             # Change d1 to the antebrachium direction
@@ -718,12 +728,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             id12 = mult(d12, innerProportionDefault)
             d13 = [0.0, 0.0, d13_mag]
             id13 = mult(d13, innerProportionDefault)
-            # main part of leg to ankle
-            for i in range(legToFootElementsCount):
+            # Upper leg
+            for i in range(upperLegElementsCount):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = [legStartX + d1[0] * i, legStartY + d1[1] * i, d1[2] * i]
+                x = add(legStart, mult(d1, i))
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = mult(legSide, radius)
                 d3 = [0.0, 0.0, radius]
@@ -732,20 +742,80 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
+            # knee
+            # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
+            kneeAngleRadians = kneeLeftAngleRadians if (side == left) else kneeRigthAngleRadians
+            kneeRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeAngleRadians)
+            kneeHalfrotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeAngleRadians/2)
+            lowerLegDirn = matrix_vector_mult(kneeRotationMatrix, d1)
+            lowerLegSide = legSide
+            lowerLegFront = cross(lowerLegDirn, lowerLegSide)
+            # The d3 direction in the knee node is rotated by half this angle 
+            # To ensure a better transition at this node. 
+            kneeDirn = lowerLegDirn
+            kneeSide = d2 
+            kneeFront = matrix_vector_mult(kneeHalfrotationMatrix, d3)
+            # Knee node position does not depend on the rotation angle 
+            kneePosition = add(x, set_magnitude(d1, legScale - 1.5 * radius))
+            i += 1
+            xi = i / legToFootElementsCount
+            radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
+            radius = math.sin(kneeAngleRadians)*radius*(math.sqrt(2.0)-1) + radius
+            x = kneePosition
+            d1 = set_magnitude(kneeDirn, legScale)
+            d2 = set_magnitude(kneeSide, radius)
+            d3 = set_magnitude(kneeFront, radius)
+            d12 = set_magnitude(kneeSide, d12_mag)
+            d13 = set_magnitude(kneeFront, d13_mag)
+            id2 = mult(d2, innerProportionDefault)
+            id3 = mult(d3, innerProportionDefault)
+            id12 = mult(d12, innerProportionDefault)
+            id13 = mult(d13, innerProportionDefault)
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
+            nodeIdentifier += 1
+            # Lower leg
+            d1 = set_magnitude(lowerLegDirn, legScale)
+            lowerLegStart = add(kneePosition, d1)
+            for i in range(upperLegElementsCount, legToFootElementsCount - 1):
+                xi = i / legToFootElementsCount
+                node = nodes.findNodeByIdentifier(nodeIdentifier)
+                fieldcache.setNode(node)
+                x = add(lowerLegStart, mult(d1, i - upperLegElementsCount))
+                radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
+                d2 = set_magnitude(lowerLegSide, radius)
+                d3 = set_magnitude(lowerLegFront, radius)
+                id2 = mult(d2, innerProportionDefault)
+                id3 = mult(d3, innerProportionDefault)
+                setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
+                setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
+                nodeIdentifier += 1
             # foot
-            anklePosition = add(legStart, mult(legDirn, legLength - 1.5 * halfFootThickness))
+            # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
             ankleAngleRadians = ankleLeftAngleRadians if (side == left) else ankleRigthAngleRadians
-            rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians))
-            # We need to create a 45* angle between d1 and d3 to avoid deformations
-            rotationMatrixAnkle = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians/2))
+            ankleRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians))
+            ankleHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians/2))
+            # The d3 direction in the ankle node is rotated by half this angle 
+            # To ensure a better transition at this node.
+            ankleDirn = matrix_vector_mult(ankleRotationMatrix, d1)
+            ankleSide = d2
+            ankleFront = cross(ankleDirn, ankleSide)
+    
             cosAnkleAngle = math.cos(ankleAngleRadians)
             sinAnkleAngle = math.sin(ankleAngleRadians)
-            footd1 = [-cosAnkleAngle, 0, sinAnkleAngle]
-            footd2 = mult(legSide, halfFootWidth)
-            footd3 = matrix_vector_mult(rotationMatrixAnkle, footd1)
+
+            footDirn = ankleDirn
+            footSide = d2 
+            footFront = matrix_vector_mult(ankleHalfRotationMatrix, d3)
+            footd1 = footDirn
+            footd2 = footSide
+            footd3 = footFront
             # footd2 = matrix_vector_mult(rotationMatrixAnkle, footd2)
             # This positioning of the food nodes bends edge connecting the leg and the foot 
             # Which allows the scaffold to better capture the shape of the calcaneus
+            anklePosition = add(x, set_magnitude(d1, legScale - 1.5 * halfFootThickness))
             fx = [
                 x, 
                 add(anklePosition, mult(footd1, 0)), 
@@ -823,7 +893,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options["Number of elements along brachium"] = 3
         options["Number of elements along antebrachium"] = 2
         options["Number of elements along hand"] = 1
-        options["Number of elements along leg to foot"] = 4
+        options["Number of elements along upper leg"] = 3
+        options["Number of elements along lower leg"] = 2
         options["Number of elements along foot"] = 2
         options["Number of elements around head"] = 12
         options["Number of elements around torso"] = 12
@@ -842,7 +913,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             options["Number of elements along brachium"] = 4
             options["Number of elements along antebrachium"] = 3
             options["Number of elements along hand"] = 1
-            options["Number of elements along leg to foot"] = 6
+            options["Number of elements along upper leg"] = 3
+            options["Number of elements along lower leg"] = 2
             options["Number of elements along foot"] = 2
             options["Number of elements around head"] = 16
             options["Number of elements around torso"] = 16
@@ -855,7 +927,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             options["Number of elements along brachium"] = 5
             options["Number of elements along antebrachium"] = 4
             options["Number of elements along hand"] = 2
-            options["Number of elements along leg to foot"] = 8
+            options["Number of elements along upper leg"] = 3
+            options["Number of elements along lower leg"] = 2
             options["Number of elements along foot"] = 3
             options["Number of elements around head"] = 20
             options["Number of elements around torso"] = 20
@@ -877,7 +950,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements along brachium",
             "Number of elements along antebrachium",
             "Number of elements along hand",
-            "Number of elements along leg to foot",
+            "Number of elements along upper leg",
+            "Number of elements along lower leg",
             "Number of elements along foot",
             "Number of elements around head",
             "Number of elements around torso",
@@ -927,7 +1001,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements along elbow",
             "Number of elements along antebrachium",
             "Number of elements along hand",
-            "Number of elements along leg to foot",
+            "Number of elements along upper leg",
+            "Number of elements along lower leg",
             "Number of elements along foot"
         ]:
             if options[key] < 1:
@@ -983,7 +1058,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         elementsCountAlongBrachium = options["Number of elements along brachium"]
         elementsCountAlongAntebrachium = options["Number of elements along antebrachium"]
         elementsCountAlongHand = options["Number of elements along hand"]
-        elementsCountAlongLegToFoot = options["Number of elements along leg to foot"]
+        elementsCountAlongUpperLeg = options["Number of elements along upper leg"]
+        elementsCountAlongLowerLeg = options["Number of elements along lower leg"]
         elementsCountAlongFoot = options["Number of elements along foot"]
         elementsCountAroundHead = options["Number of elements around head"]
         elementsCountAroundTorso = options["Number of elements around torso"]
@@ -1028,8 +1104,11 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elif "hand" in name:
                 alongCount = elementsCountAlongHand
                 aroundCount = elementsCountAroundArm
-            elif "leg to foot" in name:
-                alongCount = elementsCountAlongLegToFoot
+            elif "upper leg" in name:
+                alongCount = elementsCountAlongUpperLeg
+                aroundCount = elementsCountAroundLeg
+            elif "lower leg" in name:
+                alongCount = elementsCountAlongLowerLeg
                 aroundCount = elementsCountAroundLeg
             elif "foot" in name:
                 alongCount = elementsCountAlongFoot
