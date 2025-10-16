@@ -554,9 +554,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
-            # Elbow node field parameters are allocated separately from the rest of the amr
-            # Calculating initial d2 and d3 before rotation, just necessary in case there 
-            # is a non-zero twist angle
+            # Elbow node field parameters are allocated separately from the rest of the arm
+            # Calculating initial d2 and d3 before rotation
+            # Necessary in case there is is a non-zero twist angle
             if twistAngle == 0.0:
                 d2 = armSide
                 d3 = armFront
