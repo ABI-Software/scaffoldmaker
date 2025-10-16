@@ -1,7 +1,7 @@
 """
 Generates a 3D body coordinates using tube network mesh.
 """
-from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, magnitude, axis_angle_to_rotation_matrix, matrix_vector_mult
+from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, magnitude, axis_angle_to_rotation_matrix, matrix_vector_mult, dot
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_maximum_node_identifier
 from cmlibs.zinc.element import Element
@@ -554,6 +554,20 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
+            # Elbow node field parameters are allocated separately from the rest of the amr
+            # Updating d2 and d3 for the elbow node 
+            i += 1
+            xi = i / (armToHandElementsCount - 2)
+            if twistAngle == 0.0:
+                d2 = armSide
+                d3 = armFront
+            else:
+                cosTwistAngle = math.cos(twistAngle)
+                sinTwistAngle = math.sin(twistAngle)
+                d2 = sub(mult(armSide, cosTwistAngle),
+                            mult(armFront, sinTwistAngle))
+                d3 = add(mult(armFront,  cosTwistAngle),
+                            mult(armSide, sinTwistAngle))
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
             # Nodes in the antebrachium are rotated acoording to the elbow angle 
             # The special elbow node is rotated by half that angle, to give a smoother transition
@@ -564,42 +578,27 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
             elbowDirn = matrix_vector_mult(rotationMatrixD3, armDirn)
-            elbowSide = armSide
-            elbowFront = matrix_vector_mult(rotationMatrixD3, armFront)
+            elbowSide = d2
+            elbowFront = matrix_vector_mult(rotationMatrixD3, d3)
             elbowPosition = add(x, set_magnitude(armDirn, armScale))
-            # Elbow node field parameters are allocated separately from the rest of the brachium
-            x = add(x, set_magnitude(armDirn, armScale))
-            d1 = set_magnitude(antebrachiumDirn, armScale)
-            node = nodes.findNodeByIdentifier(nodeIdentifier)
-            fieldcache.setNode(node)
+            xi = i / (armToHandElementsCount - 2)
+            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             # The elbow node uses a special width value
             # Which 'fattens' the scaffold around the elbow depending on the level of rotation
-            xi = (brachiumElementsCount - 1) / (armToHandElementsCount - 2)
-            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfWidth = math.sin(elbowAngleRadians)*halfWidth*(math.sqrt(2.0) -1) + halfWidth
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-            if i == 0:
-                twistAngle = 0.0
-            else:
-                twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * i
-            if twistAngle == 0.0:
-                d2 = mult(elbowSide, halfThickness)
-                d3 = mult(elbowFront, halfWidth)
-                d12 = mult(elbowSide, d12_mag)
-                d13 = mult(elbowFront, d13_mag)
-            else:
-                cosTwistAngle = math.cos(twistAngle)
-                sinTwistAngle = math.sin(twistAngle)
-                d2 = sub(mult(elbowSide, halfThickness * cosTwistAngle),
-                            mult(elbowFront, halfThickness * sinTwistAngle))
-                d3 = add(mult(elbowFront, halfWidth * cosTwistAngle),
-                            mult(elbowSide, halfWidth * sinTwistAngle))
-                d12 = set_magnitude(d2, d12_mag)
-                d13 = set_magnitude(d3, d13_mag)
+            d2 = set_magnitude(elbowSide, halfThickness)
+            d3 = set_magnitude(elbowFront, halfWidth)
+            d12 = set_magnitude(elbowSide, d12_mag)
+            d13 = set_magnitude(elbowFront, d13_mag)
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
             id12 = mult(d12, innerProportionDefault)
             id13 = mult(d13, innerProportionDefault)
+            x = add(x, set_magnitude(armDirn, armScale))
+            d1 = set_magnitude(antebrachiumDirn, armScale)
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
@@ -608,17 +607,17 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             antebrachiumStart = add(elbowPosition, antebrachiumStart)
             # Change d1 to the antebrachium direction
             d1 = mult(antebrachiumDirn, armScale)
-            for i in range(antebrachiumElementsCount - 1):
-                xi = (i + brachiumElementsCount + elbowElementsCount - 1) / (armToHandElementsCount - 2)
+            for i in range(brachiumElementsCount, armToHandElementsCount - 1):
+                xi = (i) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(antebrachiumStart, mult(d1, i)) 
+                x = add(antebrachiumStart, mult(d1, i - brachiumElementsCount)) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth =  xi * halfWristWidth + (1.0 - xi) * armTopRadius
-                if i == (antebrachiumElementsCount - 1):
+                if i == 0:
                     twistAngle = armTwistAngleRadians if (side == left) else -armTwistAngleRadians
                 else:
-                    twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * (i + brachiumElementsCount - 1)
+                    twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * (i - 1)
                 if twistAngle == 0.0:
                     d2 = mult(antebrachiumSide, halfThickness)
                     d3 = mult(antebrachiumFront, halfWidth)
