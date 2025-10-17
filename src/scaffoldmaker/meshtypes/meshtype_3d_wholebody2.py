@@ -69,7 +69,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left knee lateral angle degrees"] = 45.0
+        options["Left knee lateral angle degrees"] = 120.0
         options["Right knee lateral angle degrees"] = 90.0
         options["Left ankle lateral angle degrees"] = 90.0
         options["Right ankle lateral angle degrees"] = 90.0
@@ -150,8 +150,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
-            "Left knee lateral angle degrees",
-            "Right knee lateral angle degrees",
             "Foot height",
             "Foot length",
             "Foot thickness",
@@ -750,21 +748,25 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             lowerLegDirn = matrix_vector_mult(kneeRotationMatrix, d1)
             lowerLegSide = legSide
             lowerLegFront = cross(lowerLegDirn, lowerLegSide)
+            rotationFactor = math.sin(kneeAngleRadians)*(math.sqrt(2)-1)
+            # rotationFactor = math.sin(kneeAngleRadians)*(math.sqrt(2)-1)
+            
             # The d3 direction in the knee node is rotated by half this angle 
             # To ensure a better transition at this node. 
             kneeDirn = lowerLegDirn
             kneeSide = d2 
             kneeFront = matrix_vector_mult(kneeHalfrotationMatrix, d3)
             # Knee node position does not depend on the rotation angle 
-            kneePosition = add(x, set_magnitude(d1, legScale - 1.5 * radius))
+            
             i += 1
             xi = i / legToFootElementsCount
             radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
-            radius = math.sin(kneeAngleRadians)*radius*(math.sqrt(2.0)-1) + radius
+            kneeRadius = radius/math.sin(kneeAngleRadians/2)
+            kneePosition = add(x, set_magnitude(d1, legScale - 2.0*rotationFactor * kneeRadius))
             x = kneePosition
-            d1 = set_magnitude(kneeDirn, legScale)
-            d2 = set_magnitude(kneeSide, radius)
-            d3 = set_magnitude(kneeFront, radius)
+            d1 = set_magnitude(kneeDirn, legScale + 2.0*rotationFactor*kneeRadius)
+            d2 = set_magnitude(kneeSide, kneeRadius)
+            d3 = set_magnitude(kneeFront, kneeRadius)
             d12 = set_magnitude(kneeSide, d12_mag)
             d13 = set_magnitude(kneeFront, d13_mag)
             id2 = mult(d2, innerProportionDefault)
@@ -777,13 +779,16 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
             # Lower leg
-            d1 = set_magnitude(lowerLegDirn, legScale)
             lowerLegStart = add(kneePosition, d1)
-            for i in range(upperLegElementsCount, legToFootElementsCount - 1):
+            d1 = set_magnitude(lowerLegDirn, legScale)
+            for i in range(upperLegElementsCount + 1, legToFootElementsCount):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(lowerLegStart, mult(d1, i - upperLegElementsCount))
+                x = add(lowerLegStart, mult(d1, i - (upperLegElementsCount + 1)))
+                # if (i == legToFootElementsCount): 
+                #     # x = add(x, set_magnitude(d1, 1.5 * radius))
+                #     d1 = set_magnitude(d1, legScale + 1.5 * radius)
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = set_magnitude(lowerLegSide, radius)
                 d3 = set_magnitude(lowerLegFront, radius)
@@ -815,14 +820,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # footd2 = matrix_vector_mult(rotationMatrixAnkle, footd2)
             # This positioning of the food nodes bends edge connecting the leg and the foot 
             # Which allows the scaffold to better capture the shape of the calcaneus
-            anklePosition = add(x, set_magnitude(d1, legScale - 1.5 * halfFootThickness))
+            anklePosition = add(x, set_magnitude(d1, legScale - 1.5*halfFootThickness))
             fx = [
                 x, 
-                add(anklePosition, mult(footd1, 0)), 
-                add(anklePosition, mult(footd1, footLength - legBottomRadius)), 
+                add(anklePosition, set_magnitude(footd1, 0)), 
+                add(anklePosition, set_magnitude(footd1, footLength - legBottomRadius)), 
 
             ]
-            fd1 = [d1, mult(footd1, 0.5*footLength), mult(footd1, 0.5*footLength)]
+            fd1 = [d1, set_magnitude(footd1, 0.5*footLength), set_magnitude(footd1, 0.5*footLength)]
             fd1 = smoothCubicHermiteDerivativesLine(
                 fx, fd1, fixAllDirections=True, fixStartDerivative=True
                 )
@@ -998,7 +1003,6 @@ class MeshType_3d_wholebody2(Scaffold_base):
             "Number of elements along thorax",
             "Number of elements along abdomen",
             "Number of elements along brachium",
-            "Number of elements along elbow",
             "Number of elements along antebrachium",
             "Number of elements along hand",
             "Number of elements along upper leg",
