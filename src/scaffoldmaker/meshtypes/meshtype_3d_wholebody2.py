@@ -69,8 +69,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left knee lateral angle degrees"] = 120.0
-        options["Right knee lateral angle degrees"] = 90.0
+        options["Left knee flexion degrees"] = 120.0
+        options["Right knee flexion degrees"] = 90.0
         options["Left ankle lateral angle degrees"] = 90.0
         options["Right ankle lateral angle degrees"] = 90.0
         options["Foot height"] = 1.25
@@ -112,8 +112,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
-            "Left knee lateral angle degrees",
-            "Right knee lateral angle degrees",
+            "Left knee flexion degrees",
+            "Right knee flexion degrees",
             "Foot height",
             "Foot length",
             "Foot thickness",
@@ -170,8 +170,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Right arm lateral angle degrees": (-60.0, 200.0),
             "Left elbow lateral angle degrees": (0.0, 150.0),
             "Right elbow lateral angle degrees": (0.0, 150.0),
-            "Left knee lateral angle degrees": (0.0, 150.0),
-            "Right knee lateral angle degrees": (0.0, 150.0),
+            "Left knee flexion degrees": (0.0, 140.0),
+            "Right knee flexion degrees": (0.0, 140.0),
             "Left ankle lateral angle degrees": (60.0, 140.0),
             "Right ankle lateral angle degrees": (60.0, 140.0),
             "Arm twist angle degrees": (-90.0, 90.0),
@@ -221,10 +221,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         legLength = options["Leg length"]
         legTopRadius = 0.5 * options["Leg top diameter"]
         legBottomRadius = 0.5 * options["Leg bottom diameter"]
-        kneeLeftAngleRadians = math.radians(options["Left knee lateral angle degrees"])
-        kneeRigthAngleRadians = math.radians(options["Right knee lateral angle degrees"])
-        ankleLeftAngleRadians = math.radians( options["Left ankle lateral angle degrees"])
-        ankleRigthAngleRadians = math.radians(options["Right ankle lateral angle degrees"])
+        kneeLeftFlexionRadians = math.radians(options["Left knee flexion degrees"])
+        kneeRightFlexionRadians = math.radians(options["Right knee flexion degrees"])
+        ankleLeftFlexionRadians = math.radians( options["Left ankle lateral angle degrees"])
+        ankleRightFlexionRadians = math.radians(options["Right ankle lateral angle degrees"])
         footHeight = options["Foot height"]
         footLength = options["Foot length"]
         halfFootThickness = 0.5 * options["Foot thickness"]
@@ -249,12 +249,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         leftArmGroup = AnnotationGroup(region, get_body_term("left upper limb"))
         leftBrachiumGroup = AnnotationGroup(region, get_body_term("left brachium"))
         leftAntebrachiumGroup = AnnotationGroup(region, get_body_term("left antebrachium"))
-        leftElbowGroup = AnnotationGroup(region, get_body_term("left elbow"))
+        # leftElbowGroup = AnnotationGroup(region, get_body_term("left elbow"))
         leftHandGroup = AnnotationGroup(region, get_body_term("left hand"))
         rightArmGroup = AnnotationGroup(region, get_body_term("right upper limb"))
         rightBrachiumGroup = AnnotationGroup(region, get_body_term("right brachium"))
         rightAntebrachiumGroup = AnnotationGroup(region, get_body_term("right antebrachium"))
-        rightElbowGroup = AnnotationGroup(region, get_body_term("right elbow"))
+        # rightElbowGroup = AnnotationGroup(region, get_body_term("right elbow"))
         rightHandGroup = AnnotationGroup(region, get_body_term("right hand"))
         handGroup = AnnotationGroup(region, get_body_term("hand"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
@@ -264,19 +264,20 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         leftLegGroup = AnnotationGroup(region, get_body_term("left lower limb"))
         leftUpperLegGroup = AnnotationGroup(region, get_body_term("left upper leg"))
         leftLowerLegGroup = AnnotationGroup(region, get_body_term("left lower leg"))
+        leftFootGroup = AnnotationGroup(region, get_body_term("left foot"))
         rightLegGroup = AnnotationGroup(region, get_body_term("right lower limb"))
         rightUpperLegGroup = AnnotationGroup(region, get_body_term("right upper leg"))
         rightLowerLegGroup = AnnotationGroup(region, get_body_term("right lower leg"))
+        rightFootGroup = AnnotationGroup(region, get_body_term("right foot"))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
                             armGroup, leftArmGroup, rightArmGroup, handGroup,
                             thoraxGroup, abdomenGroup,
-                            leftBrachiumGroup, leftElbowGroup, leftAntebrachiumGroup, leftHandGroup, 
-                            rightBrachiumGroup, rightElbowGroup, rightAntebrachiumGroup, rightHandGroup,
-                            legGroup, legToFootGroup,
-                            leftLegGroup, leftUpperLegGroup, leftLowerLegGroup,
-                            rightLegGroup, rightUpperLegGroup, rightLowerLegGroup,
-                            footGroup]
+                            leftBrachiumGroup, leftAntebrachiumGroup, leftHandGroup, 
+                            rightBrachiumGroup, rightAntebrachiumGroup, rightHandGroup,
+                            legGroup, footGroup,
+                            leftLegGroup, leftUpperLegGroup, leftLowerLegGroup, leftFootGroup,
+                            rightLegGroup, rightUpperLegGroup, rightLowerLegGroup, rightFootGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
         headElementsCount = humanElementCounts['headElementsCount']
@@ -306,7 +307,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             sideArmGroup = leftArmGroup if (side == left) else rightArmGroup
             sideBrachiumGroup = leftBrachiumGroup if (side == left) else rightBrachiumGroup
             sideAntebrachiumGroup = leftAntebrachiumGroup if (side == left) else rightAntebrachiumGroup
-            sideElbowGroup = leftElbowGroup if (side == left) else rightElbowGroup
+            # sideElbowGroup = leftElbowGroup if (side == left) else rightElbowGroup
             sideHandGroup = leftHandGroup if (side == left) else rightHandGroup
             # Setup brachium elements
             meshGroups = [bodyMeshGroup, armMeshGroup, 
@@ -316,14 +317,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
-            # # Setup elbow elements
-            # meshGroups = [bodyMeshGroup, armMeshGroup, 
-            #               sideArmGroup.getMeshGroup(mesh), sideElbowGroup.getMeshGroup(mesh)]
-            # for e in range(elbowElementsCount):
-            #     element = mesh.findElementByIdentifier(elementIdentifier)
-            #     for meshGroup in meshGroups:
-            #         meshGroup.addElement(element)
-            #     elementIdentifier += 1
             # Setup antebrachium elements
             meshGroups = [bodyMeshGroup, armMeshGroup,
                            sideArmGroup.getMeshGroup(mesh), sideAntebrachiumGroup.getMeshGroup(mesh)]
@@ -366,8 +359,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             sideLegGroup = leftLegGroup if (side == left) else rightLegGroup
             sideUpperLegGroup = leftUpperLegGroup if (side == left) else rightUpperLegGroup
             sideLowerLegGroup = leftLowerLegGroup if (side == left) else rightLowerLegGroup
+            sideFootGroup = leftFootGroup if (side == left) else rightFootGroup
             # Upper leg
-            meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, 
+            meshGroups = [bodyMeshGroup, legMeshGroup, 
                           sideLegGroup.getMeshGroup(mesh), sideUpperLegGroup.getMeshGroup(mesh)]
             for e in range(upperLegElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
@@ -375,14 +369,15 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     meshGroup.addElement(element)
                 elementIdentifier += 1
             # Lower leg
-            meshGroups = [bodyMeshGroup, legMeshGroup, legToFootMeshGroup, 
+            meshGroups = [bodyMeshGroup, legMeshGroup, 
                           sideLegGroup.getMeshGroup(mesh), sideLowerLegGroup.getMeshGroup(mesh)]
             for e in range(lowerLegElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
-            meshGroups = [bodyMeshGroup, legMeshGroup, footMeshGroup, sideLegGroup.getMeshGroup(mesh)]
+            # Foot
+            meshGroups = [bodyMeshGroup, legMeshGroup, footMeshGroup, sideFootGroup.getMeshGroup(mesh)]
             for e in range(footElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
@@ -742,30 +737,31 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 nodeIdentifier += 1
             # knee
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
-            kneeAngleRadians = kneeLeftAngleRadians if (side == left) else kneeRigthAngleRadians
-            kneeRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeAngleRadians)
-            kneeHalfrotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeAngleRadians/2)
+            kneeFlexionRadians = kneeLeftFlexionRadians if (side == left) else kneeRightFlexionRadians
+            # Angle between upper and lower leg
+            kneeJointAngleRadians = math.pi - kneeFlexionRadians
+            kneeRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeFlexionRadians)
+            kneeHalfrotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeFlexionRadians/2)
             lowerLegDirn = matrix_vector_mult(kneeRotationMatrix, d1)
             lowerLegSide = legSide
             lowerLegFront = cross(lowerLegDirn, lowerLegSide)
-            rotationFactor = math.sin(kneeAngleRadians)*(math.sqrt(2)-1)
-            # rotationFactor = math.sin(kneeAngleRadians)*(math.sqrt(2)-1)
-            
-            # The d3 direction in the knee node is rotated by half this angle 
+            # The d3 direction in the knee node is rotated by half the flexion angle
             # To ensure a better transition at this node. 
             kneeDirn = lowerLegDirn
             kneeSide = d2 
             kneeFront = matrix_vector_mult(kneeHalfrotationMatrix, d3)
-            # Knee node position does not depend on the rotation angle 
-            
+            # This rotation factor is used to adjust the position of the knee node relative 
+            # to the angle of flexion, and ensures a proper transition between the upper and lower leg
+            rotationFactor = 2.0*math.sin(kneeFlexionRadians)*(math.sqrt(2)-1)
             i += 1
             xi = i / legToFootElementsCount
             radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
-            kneeRadius = radius/math.sin(kneeAngleRadians/2)
-            kneePosition = add(x, set_magnitude(d1, legScale - 2.0*rotationFactor * kneeRadius))
+            # d3 direction is fattened at the joint to ensure a proper transition in the tube network
+            kneeRadius = radius/math.sin(kneeJointAngleRadians/2)
+            kneePosition = add(x, set_magnitude(d1, legScale - rotationFactor*kneeRadius))
             x = kneePosition
-            d1 = set_magnitude(kneeDirn, legScale + 2.0*rotationFactor*kneeRadius)
-            d2 = set_magnitude(kneeSide, kneeRadius)
+            d1 = set_magnitude(kneeDirn, legScale + rotationFactor*kneeRadius)
+            d2 = set_magnitude(kneeSide, radius)
             d3 = set_magnitude(kneeFront, kneeRadius)
             d12 = set_magnitude(kneeSide, d12_mag)
             d13 = set_magnitude(kneeFront, d13_mag)
@@ -799,28 +795,31 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 nodeIdentifier += 1
             # foot
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
-            ankleAngleRadians = ankleLeftAngleRadians if (side == left) else ankleRigthAngleRadians
-            ankleRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians))
-            ankleHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleAngleRadians/2))
+            ankleFlexionRadians = ankleLeftFlexionRadians if (side == left) else ankleRightFlexionRadians
+            # Angle between lower leg and foot
+            ankleJointAngleRadians = math.pi - ankleFlexionRadians
+            ankleRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleFlexionRadians))
+            ankleHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleFlexionRadians/2))
             # The d3 direction in the ankle node is rotated by half this angle 
             # To ensure a better transition at this node.
             ankleDirn = matrix_vector_mult(ankleRotationMatrix, d1)
             ankleSide = d2
             ankleFront = cross(ankleDirn, ankleSide)
-    
-            cosAnkleAngle = math.cos(ankleAngleRadians)
-            sinAnkleAngle = math.sin(ankleAngleRadians)
 
             footDirn = ankleDirn
             footSide = d2 
             footFront = matrix_vector_mult(ankleHalfRotationMatrix, d3)
+            # 
+            
             footd1 = footDirn
-            footd2 = footSide
+            footd2 = set_magnitude(footSide, halfFootWidth)
             footd3 = footFront
+            rotationFactor = 2.0*math.sin(ankleFlexionRadians)*(math.sqrt(2)- 1)
+            ankleThickness = halfFootThickness/math.sin(ankleJointAngleRadians/2)
             # footd2 = matrix_vector_mult(rotationMatrixAnkle, footd2)
             # This positioning of the food nodes bends edge connecting the leg and the foot 
             # Which allows the scaffold to better capture the shape of the calcaneus
-            anklePosition = add(x, set_magnitude(d1, legScale - 1.5*halfFootThickness))
+            anklePosition = add(x, set_magnitude(d1, legScale - 1*rotationFactor*footHeight))
             fx = [
                 x, 
                 add(anklePosition, set_magnitude(footd1, 0)), 
@@ -834,7 +833,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             fd2 = [d2, footd2, footd2]
             fd3 = [d3,
                     set_magnitude(footd3,
-                                 math.sqrt(2.0 * halfFootThickness * halfFootThickness) + legBottomRadius),
+                                 ankleThickness + legBottomRadius),
                    set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)
             ]
             fd12 = sub(fd2[2], fd2[1])
@@ -918,7 +917,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
             options["Number of elements along brachium"] = 4
             options["Number of elements along antebrachium"] = 3
             options["Number of elements along hand"] = 1
-            options["Number of elements along upper leg"] = 3
+            options["Number of elements along upper leg"] = 2
             options["Number of elements along lower leg"] = 2
             options["Number of elements along foot"] = 2
             options["Number of elements around head"] = 16
