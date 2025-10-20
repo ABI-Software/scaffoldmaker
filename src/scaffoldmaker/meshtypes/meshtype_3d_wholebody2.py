@@ -201,8 +201,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         halfShoulderWidth = 0.5 * options["Shoulder width"]
         armLeftAngleRadians = math.radians(options["Left arm lateral angle degrees"])
         armRigthAngleRadians = math.radians(options["Right arm lateral angle degrees"])
-        elbowLeftAngleRadians = math.radians(options["Left elbow lateral angle degrees"])
-        elbowRigthAngleRadians = math.radians(options["Right elbow lateral angle degrees"])
+        elbowLeftFlexionRadians = math.radians(options["Left elbow lateral angle degrees"])
+        elbowRigthFlexionRadians = math.radians(options["Right elbow lateral angle degrees"])
         armLength = options["Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
         armTwistAngleRadians = math.radians(options["Arm twist angle degrees"])
@@ -589,9 +589,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 d3 = add(mult(armFront,  cosTwistAngle),
                             mult(armSide, sinTwistAngle))
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
-            elbowAngleRadians = elbowLeftAngleRadians if (side == left) else elbowRigthAngleRadians
-            elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians)
-            elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowAngleRadians/2)
+            elbowFlexionRadians = elbowLeftFlexionRadians if (side == left) else elbowRigthFlexionRadians
+            elbowJointAngleRadians = math.pi - elbowFlexionRadians
+            elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians)
+            elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians/2)
             antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, d1)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
@@ -600,17 +601,19 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elbowDirn = antebrachiumDirn
             elbowSide = d2
             elbowFront = matrix_vector_mult(elbowHalfRotationMatrix, d3)
-            # Elbow node position does not depend on the rotation angle
-            elbowPosition = add(x, set_magnitude(d1, armScale))
+            # This rotation factor is used to adjust the position of the knee node relative 
+            # to the angle of flexion, and ensures a proper transition between the upper and lower leg
+            rotationFactor = 1.0*math.sin(elbowFlexionRadians)*(math.sqrt(2)-1)         
             i += 1
             xi = i / (armToHandElementsCount - 2)
             # The elbow node uses a special width value
             # Which 'fattens' the scaffold around the elbow depending on the level of rotation
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-            halfWidth = math.sin(elbowAngleRadians)*halfWidth*(math.sqrt(2.0)-1) + halfWidth
+            halfWidth = halfWidth/math.sin(elbowJointAngleRadians/2)
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            elbowPosition = add(x, set_magnitude(d1, armScale - rotationFactor*halfWidth))
             x = elbowPosition
-            d1 = set_magnitude(elbowDirn, armScale)
+            d1 = set_magnitude(elbowDirn, armScale + rotationFactor*halfWidth)
             d2 = set_magnitude(elbowSide, halfThickness)
             d3 = set_magnitude(elbowFront, halfWidth)
             d12 = set_magnitude(elbowSide, d12_mag)
@@ -625,8 +628,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
             # Antebrachium nodes starts after the elbow node
-            d1 = mult(antebrachiumDirn, armScale)
             antebrachiumStart = add(elbowPosition, d1)
+            d1 = mult(antebrachiumDirn, armScale)
             # Change d1 to the antebrachium direction
             for i in range(brachiumElementsCount, armToHandElementsCount - 1):
                 xi = (i) / (armToHandElementsCount - 2)
