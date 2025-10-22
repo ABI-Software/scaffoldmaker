@@ -71,8 +71,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left knee flexion degrees"] = 120.0
-        options["Right knee flexion degrees"] = 90.0
+        options["Left knee flexion degrees"] = 0.0
+        options["Right knee flexion degrees"] = 0.0
         options["Left ankle lateral angle degrees"] = 90.0
         options["Right ankle lateral angle degrees"] = 90.0
         options["Foot height"] = 1.25
@@ -208,9 +208,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         shoulderLeftFlexionRadians = math.radians(options["Left shoulder lateral angle degrees"])
         shoulderRightFlexionRadians = math.radians(options["Right shoulder lateral angle degrees"])
         armLeftAngleRadians = math.radians(options["Left arm lateral angle degrees"])
-        armRigthAngleRadians = math.radians(options["Right arm lateral angle degrees"])
+        armRightAngleRadians = math.radians(options["Right arm lateral angle degrees"])
         elbowLeftFlexionRadians = math.radians(options["Left elbow lateral angle degrees"])
-        elbowRigthFlexionRadians = math.radians(options["Right elbow lateral angle degrees"])
+        elbowRightFlexionRadians = math.radians(options["Right elbow lateral angle degrees"])
         armLength = options["Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
         armTwistAngleRadians = math.radians(options["Arm twist angle degrees"])
@@ -279,13 +279,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         rightFootGroup = AnnotationGroup(region, get_body_term("right foot"))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
-                            armGroup, leftArmGroup, rightArmGroup, handGroup,
                             thoraxGroup, abdomenGroup,
                             leftBrachiumGroup, leftAntebrachiumGroup, leftHandGroup, 
                             rightBrachiumGroup, rightAntebrachiumGroup, rightHandGroup,
-                            legGroup, footGroup,
                             leftLegGroup, leftUpperLegGroup, leftLowerLegGroup, leftFootGroup,
-                            rightLegGroup, rightUpperLegGroup, rightLowerLegGroup, rightFootGroup]
+                            rightLegGroup, rightUpperLegGroup, rightLowerLegGroup, rightFootGroup,
+                            armGroup, leftArmGroup, rightArmGroup, handGroup,
+                            legGroup, footGroup]
         bodyMeshGroup = bodyGroup.getMeshGroup(mesh)
         elementIdentifier = 1
         headElementsCount = humanElementCounts['headElementsCount']
@@ -485,7 +485,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # rotate shoulder with arm, pivoting about shoulder drop below arm junction on network
             # this has the realistic effect of shoulders becoming narrower with higher angles
             # initial shoulder rotation with arm is negligible, hence:
-            armAngleRadians = armLeftAngleRadians if (side == left) else armRigthAngleRadians
+            armAngleRadians = armLeftAngleRadians if (side == left) else armRightAngleRadians
             shoulderRotationFactor = 1.0 - math.cos(0.5 * armAngleRadians)
             # assume shoulder drop is half shrug distance to get limiting shoulder angle for 180 degree arm rotation
             shoulderLimitAngleRadians = math.asin(1.5 * shoulderDrop / halfShoulderWidth)
@@ -500,7 +500,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             armStartX = thoraxStartX + shoulderDrop - halfShoulderWidth * math.sin(shoulderAngleRadians)
             armStartY = (halfShoulderWidth if (side == left) else -halfShoulderWidth) * math.cos(shoulderAngleRadians)
             armStart = [armStartX, armStartY, 0.0]
-            x = armStart.copy()
+            x = armStart
             armDirn = [cosArmAngle, sinArmAngle, 0.0]
             armSide = [-sinArmAngle, cosArmAngle, 0.0]
             armFront = cross(armDirn, armSide)
@@ -552,8 +552,50 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # Arm twist
             elementTwistAngle = ((armTwistAngleRadians if (side == left) else -armTwistAngleRadians) /
                                  (armToHandElementsCount - 3))
+            # Shoulder flexion
+            d2 = mult(armSide, armScale)
+            d3 = mult(armFront, armScale)
+            # Updating frame of reference wrt flexion angle (using d2 as rotation axis)
+            shoulderFlexionRadians = shoulderLeftFlexionRadians if (side == left) else shoulderRightFlexionRadians
+            shoulderJointAngleRadians = math.pi - shoulderFlexionRadians
+            shoulderRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), shoulderFlexionRadians)
+            shoulderHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), shoulderFlexionRadians/2)
+            armDirn = matrix_vector_mult(shoulderRotationMatrix, armDirn)
+            armSide = armSide
+            armFront = cross(armDirn, armSide)
+            # The d3 direction in the shoulder node is rotated by half this angle 
+            # To ensure a better transition at this node. 
+            shoulderDirn = armDirn
+            shoulderSide = armSide
+            shoulderFront = matrix_vector_mult(shoulderRotationMatrix, d3)
+            # This rotation factor is used to adjust the position of the knee node relative 
+            # to the angle of flexion, and ensures a proper transition between the upper and lower leg
+            rotationFactor = 1.0*math.sin(shoulderFlexionRadians)*(math.sqrt(2)-1)      
+            i = 0 
+            xi = i / (armToHandElementsCount - 2)
+            halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+            # halfWidth = halfWidth/math.sin(shoulderJointAngleRadians/2)
+            shoulderPosition = add(armStart, set_magnitude(d1, 0))
+            x = shoulderPosition
+            d1 = set_magnitude(shoulderDirn, armScale)
+            d2 = set_magnitude(shoulderSide, halfThickness)
+            d3 = set_magnitude(shoulderFront, halfWidth)
+            d12 = set_magnitude(shoulderSide, d12_mag)
+            d13 = set_magnitude(shoulderFront, d13_mag)
+            id2 = mult(d2, innerProportionDefault)
+            id3 = mult(d3, innerProportionDefault)
+            id12 = mult(d12, innerProportionDefault)
+            id13 = mult(d13, innerProportionDefault)
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
+            nodeIdentifier += 1
+            # armStart = add(shoulderPosition,d1)
+            # d1 = mult(armDirn, armScale)
             # Setting brachium coordinates
-            for i in range(brachiumElementsCount - 2):
+            for i in range(1, brachiumElementsCount - 2):
                 xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
@@ -599,7 +641,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 d3 = add(mult(armFront,  cosTwistAngle),
                             mult(armSide, sinTwistAngle))
             # Updating frame of reference wrt flexion angle (using d2 as rotation axis)
-            elbowFlexionRadians = elbowLeftFlexionRadians if (side == left) else elbowRigthFlexionRadians
+            elbowFlexionRadians = elbowLeftFlexionRadians if (side == left) else elbowRightFlexionRadians
             elbowJointAngleRadians = math.pi - elbowFlexionRadians
             elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians)
             elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians/2)
