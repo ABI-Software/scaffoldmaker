@@ -72,7 +72,6 @@ class Scaffolds(object):
     def __init__(self):
         self._allScaffoldTypes = [
             MeshType_1d_bifurcationtree1,
-            MeshType_1d_human_body_network_layout1,
             MeshType_1d_network_layout1,
             MeshType_1d_path1,
             MeshType_2d_plate1,
