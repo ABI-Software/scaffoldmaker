@@ -131,6 +131,3 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
     humanNetworkLayout = headNetworkLayout + necknNetworkLayout + arms[0] + arms[1] + thoraxNetworkLayout + abdomenNetworkLayout + legs[0] + legs[1]
     humanNetworkLayout = humanNetworkLayout[:-1] #Remove a comma at the end
     return humanNetworkLayout
-
-constructNetworkLayoutStructure(humanElementCounts).replace(',', ',\n').splitlines()
-
