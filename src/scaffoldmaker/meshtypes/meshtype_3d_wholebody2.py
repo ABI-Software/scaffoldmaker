@@ -47,10 +47,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Neck length"] = 1.3
         options["Shoulder drop"] = 1.0
         options["Shoulder width"] = 4.5
+        options["Left shoulder lateral angle degrees"] = 0.0
+        options["Right shoulder lateral angle degrees"] = 0.0
         options["Left arm lateral angle degrees"] = 10.0
         options["Right arm lateral angle degrees"] = 10.0
-        options["Left elbow lateral angle degrees"] = 45.0
-        options["Right elbow lateral angle degrees"] = 90.0
+        options["Left elbow lateral angle degrees"] = 0.0
+        options["Right elbow lateral angle degrees"] = 0.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
@@ -90,6 +92,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Neck length",
             "Shoulder drop",
             "Shoulder width",
+            "Left shoulder lateral angle degrees",
+            "Right shoulder lateral angle degrees",
             "Left arm lateral angle degrees",
             "Right arm lateral angle degrees",
             "Left elbow lateral angle degrees",
@@ -166,6 +170,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elif options[key] > 0.9:
                 options[key] = 0.9
         for key, angleRange in {
+            "Left shoulder lateral angle degrees": (-60.0, 180.0),
+            "Right shoulder lateral angle degrees": (-60.0, 180.0),
             "Left arm lateral angle degrees": (-60.0, 200.0),
             "Right arm lateral angle degrees": (-60.0, 200.0),
             "Left elbow lateral angle degrees": (0.0, 150.0),
@@ -199,6 +205,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         neckLength = options["Neck length"]
         shoulderDrop = options["Shoulder drop"]
         halfShoulderWidth = 0.5 * options["Shoulder width"]
+        shoulderLeftFlexionRadians = math.radians(options["Left shoulder lateral angle degrees"])
+        shoulderRightFlexionRadians = math.radians(options["Right shoulder lateral angle degrees"])
         armLeftAngleRadians = math.radians(options["Left arm lateral angle degrees"])
         armRigthAngleRadians = math.radians(options["Right arm lateral angle degrees"])
         elbowLeftFlexionRadians = math.radians(options["Left elbow lateral angle degrees"])
@@ -310,7 +318,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # sideElbowGroup = leftElbowGroup if (side == left) else rightElbowGroup
             sideHandGroup = leftHandGroup if (side == left) else rightHandGroup
             # Setup brachium elements
-            meshGroups = [bodyMeshGroup, armMeshGroup, 
+            meshGroups = [bodyMeshGroup, 
+                          armMeshGroup, 
                           sideArmGroup.getMeshGroup(mesh), sideBrachiumGroup.getMeshGroup(mesh)]
             for e in range(brachiumElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
@@ -318,7 +327,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     meshGroup.addElement(element)
                 elementIdentifier += 1
             # Setup antebrachium elements
-            meshGroups = [bodyMeshGroup, armMeshGroup,
+            meshGroups = [bodyMeshGroup, 
+                          armMeshGroup,
                            sideArmGroup.getMeshGroup(mesh), sideAntebrachiumGroup.getMeshGroup(mesh)]
             for e in range(antebrachiumElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
@@ -326,7 +336,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     meshGroup.addElement(element)
                 elementIdentifier += 1
             # Setup hand elements
-            meshGroups = [bodyMeshGroup, armMeshGroup, handMeshGroup, sideHandGroup.getMeshGroup(mesh)]
+            meshGroups = [bodyMeshGroup, 
+                          armMeshGroup, 
+                          handMeshGroup, sideHandGroup.getMeshGroup(mesh)]
             for e in range(handElementsCount):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
@@ -479,8 +491,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             shoulderLimitAngleRadians = math.asin(1.5 * shoulderDrop / halfShoulderWidth)
             shoulderAngleRadians = shoulderRotationFactor * shoulderLimitAngleRadians
             nonHandArmLength = armLength - handLength
-            # lowerArmScale = lowerArmLength / (antebrachiumElementsCount)  # 2 == shoulder elements count
-            # upperArmScale = upperArmLength / (brachiumElementsCount - 2)  # 2 == shoulder elements count
             armScale = nonHandArmLength / (armToHandElementsCount - 2)  # 2 == shoulder elements count
             d12_mag = (halfWristThickness - armTopRadius) / (armToHandElementsCount - 2)
             d13_mag = (halfWristWidth - armTopRadius) / (armToHandElementsCount - 2)
@@ -543,7 +553,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elementTwistAngle = ((armTwistAngleRadians if (side == left) else -armTwistAngleRadians) /
                                  (armToHandElementsCount - 3))
             # Setting brachium coordinates
-            for i in range(brachiumElementsCount - 1):
+            for i in range(brachiumElementsCount - 2):
                 xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
@@ -588,12 +598,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                             mult(armFront, sinTwistAngle))
                 d3 = add(mult(armFront,  cosTwistAngle),
                             mult(armSide, sinTwistAngle))
-            # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
+            # Updating frame of reference wrt flexion angle (using d2 as rotation axis)
             elbowFlexionRadians = elbowLeftFlexionRadians if (side == left) else elbowRigthFlexionRadians
             elbowJointAngleRadians = math.pi - elbowFlexionRadians
             elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians)
             elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians/2)
-            antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, d1)
+            antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, armDirn)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
             # The d3 direction in the elbow node is rotated by half this angle 
@@ -631,11 +641,11 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             antebrachiumStart = add(elbowPosition, d1)
             d1 = mult(antebrachiumDirn, armScale)
             # Change d1 to the antebrachium direction
-            for i in range(brachiumElementsCount, armToHandElementsCount - 1):
+            for i in range(brachiumElementsCount - 1, armToHandElementsCount - 1):
                 xi = (i) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(antebrachiumStart, mult(d1, i - brachiumElementsCount)) 
+                x = add(antebrachiumStart, mult(d1, i - (brachiumElementsCount - 1))) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth =  xi * halfWristWidth + (1.0 - xi) * armTopRadius
                 if i == 0:
