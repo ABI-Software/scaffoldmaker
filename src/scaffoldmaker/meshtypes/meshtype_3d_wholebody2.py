@@ -47,12 +47,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Neck length"] = 1.3
         options["Shoulder drop"] = 1.0
         options["Shoulder width"] = 4.5
-        options["Left shoulder lateral angle degrees"] = 0.0
-        options["Right shoulder lateral angle degrees"] = 0.0
-        options["Left arm lateral angle degrees"] = 10.0
-        options["Right arm lateral angle degrees"] = 10.0
-        options["Left elbow lateral angle degrees"] = 0.0
-        options["Right elbow lateral angle degrees"] = 0.0
+        options["Left shoulder abduction degrees"] = 0.0
+        options["Right shoulder abduction degrees"] = 0.0
+        options["Left arm flexion degrees"] = 10.0
+        options["Right arm flexion degrees"] = 10.0
+        options["Left elbow flexion degrees"] = 0.0
+        options["Right elbow flexion degrees"] = 0.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
@@ -67,14 +67,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Torso width"] = 3.2
         options["Pelvis drop"] = 1.5
         options["Pelvis width"] = 2.0
-        options["Leg lateral angle degrees"] = 10.0
+        options["Leg abduction degrees"] = 10.0
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
         options["Left knee flexion degrees"] = 0.0
         options["Right knee flexion degrees"] = 0.0
-        options["Left ankle lateral angle degrees"] = 90.0
-        options["Right ankle lateral angle degrees"] = 90.0
+        options["Left ankle flexion degrees"] = 90.0
+        options["Right ankle flexion degrees"] = 90.0
         options["Foot height"] = 1.25
         options["Foot length"] = 2.5
         options["Foot thickness"] = 0.3
@@ -92,12 +92,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Neck length",
             "Shoulder drop",
             "Shoulder width",
-            "Left shoulder lateral angle degrees",
-            "Right shoulder lateral angle degrees",
-            "Left arm lateral angle degrees",
-            "Right arm lateral angle degrees",
-            "Left elbow lateral angle degrees",
-            "Right elbow lateral angle degrees",
+            "Left shoulder abduction degrees",
+            "Right shoulder abduction degrees",
+            "Left arm flexion degrees",
+            "Right arm flexion degrees",
+            "Left elbow flexion degrees",
+            "Right elbow flexion degrees",
             "Arm length",
             "Arm top diameter",
             "Arm twist angle degrees",
@@ -112,7 +112,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Torso width",
             "Pelvis drop",
             "Pelvis width",
-            "Leg lateral angle degrees",
+            "Leg abduction degrees",
             "Leg length",
             "Leg top diameter",
             "Leg bottom diameter",
@@ -122,8 +122,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Foot length",
             "Foot thickness",
             "Foot width",
-            "Left ankle lateral angle degrees",
-            "Right ankle lateral angle degrees",
+            "Left ankle flexion degrees",
+            "Right ankle flexion degrees",
             "Inner proportion default",
             "Inner proportion head"
         ]
@@ -170,18 +170,18 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elif options[key] > 0.9:
                 options[key] = 0.9
         for key, angleRange in {
-            "Left shoulder lateral angle degrees": (-60.0, 180.0),
-            "Right shoulder lateral angle degrees": (-60.0, 180.0),
-            "Left arm lateral angle degrees": (-60.0, 200.0),
-            "Right arm lateral angle degrees": (-60.0, 200.0),
-            "Left elbow lateral angle degrees": (0.0, 150.0),
-            "Right elbow lateral angle degrees": (0.0, 150.0),
+            "Left shoulder abduction degrees": (-60.0, 180.0),
+            "Right shoulder abduction degrees": (-60.0, 180.0),
+            "Left arm flexion degrees": (-60.0, 200.0),
+            "Right arm flexion degrees": (-60.0, 200.0),
+            "Left elbow flexion degrees": (0.0, 150.0),
+            "Right elbow flexion degrees": (0.0, 150.0),
             "Left knee flexion degrees": (0.0, 140.0),
             "Right knee flexion degrees": (0.0, 140.0),
-            "Left ankle lateral angle degrees": (60.0, 140.0),
-            "Right ankle lateral angle degrees": (60.0, 140.0),
+            "Left ankle flexion degrees": (60.0, 140.0),
+            "Right ankle flexion degrees": (60.0, 140.0),
             "Arm twist angle degrees": (-90.0, 90.0),
-            "Leg lateral angle degrees": (-20.0, 60.0)
+            "Leg abduction degrees": (-20.0, 60.0)
         }.items():
             if options[key] < angleRange[0]:
                 options[key] = angleRange[0]
@@ -205,12 +205,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         neckLength = options["Neck length"]
         shoulderDrop = options["Shoulder drop"]
         halfShoulderWidth = 0.5 * options["Shoulder width"]
-        shoulderLeftFlexionRadians = math.radians(options["Left shoulder lateral angle degrees"])
-        shoulderRightFlexionRadians = math.radians(options["Right shoulder lateral angle degrees"])
-        armLeftAngleRadians = math.radians(options["Left arm lateral angle degrees"])
-        armRightAngleRadians = math.radians(options["Right arm lateral angle degrees"])
-        elbowLeftFlexionRadians = math.radians(options["Left elbow lateral angle degrees"])
-        elbowRightFlexionRadians = math.radians(options["Right elbow lateral angle degrees"])
+        shoulderLeftFlexionRadians = math.radians(options["Left shoulder abduction degrees"])
+        shoulderRightFlexionRadians = math.radians(options["Right shoulder abduction degrees"])
+        armLeftAngleRadians = math.radians(options["Left arm flexion degrees"])
+        armRightAngleRadians = math.radians(options["Right arm flexion degrees"])
+        elbowLeftFlexionRadians = math.radians(options["Left elbow flexion degrees"])
+        elbowRightFlexionRadians = math.radians(options["Right elbow flexion degrees"])
         armLength = options["Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
         armTwistAngleRadians = math.radians(options["Arm twist angle degrees"])
@@ -225,14 +225,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         halfTorsoWidth = 0.5 * options["Torso width"]
         pelvisDrop = options["Pelvis drop"]
         halfPelvisWidth = 0.5 * options["Pelvis width"]
-        legAngleRadians = math.radians(options["Leg lateral angle degrees"])
+        legAngleRadians = math.radians(options["Leg abduction degrees"])
         legLength = options["Leg length"]
         legTopRadius = 0.5 * options["Leg top diameter"]
         legBottomRadius = 0.5 * options["Leg bottom diameter"]
         kneeLeftFlexionRadians = math.radians(options["Left knee flexion degrees"])
         kneeRightFlexionRadians = math.radians(options["Right knee flexion degrees"])
-        ankleLeftFlexionRadians = math.radians( options["Left ankle lateral angle degrees"])
-        ankleRightFlexionRadians = math.radians(options["Right ankle lateral angle degrees"])
+        ankleLeftFlexionRadians = math.radians( options["Left ankle flexion degrees"])
+        ankleRightFlexionRadians = math.radians(options["Right ankle flexion degrees"])
         footHeight = options["Foot height"]
         footLength = options["Foot length"]
         halfFootThickness = 0.5 * options["Foot thickness"]
