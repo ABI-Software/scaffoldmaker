@@ -243,11 +243,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options['Kinematic tree'] = {}
         networkMesh = NetworkMesh(structure)
         networkMesh.create1DLayoutMesh(region)
-
         fieldmodule = region.getFieldmodule()
         mesh = fieldmodule.findMeshByDimension(1)
-
-
         # set up element annotations
         bodyGroup = AnnotationGroup(region, get_body_term("body"))
         headGroup = AnnotationGroup(region, get_body_term("head"))
@@ -1218,18 +1215,10 @@ class MeshType_3d_wholebody2(Scaffold_base):
             abdominalCavityGroup.getMeshGroup(mesh).addElementsConditional(is_abdominal_cavity)
 
         # Kinematic tree markers 
-
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         node_identifier = max(1, get_maximum_node_identifier(nodes) + 1)
-        # node = stickman_nodes.findNodeByIdentifier(6)
-        # mesh = fieldmodule.findMeshByDimension(meshDimension)
         coordinates = find_or_create_field_coordinates(fieldmodule)
-        # fieldcache = fieldmodule.createFieldcache()
-        # fieldcache.setNode(node)
-        # marker_positions = coordinates.getNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, 3)[1]
-        # marker_names = 'thorax_stickman'
-        # const_coordinates_field = fieldmodule.createFieldConstant([0.0, 0.0, 0.0])
-        stickman_markers = options['Body network layout']._scaffoldSettings['Kinematic tree']
+        stickman_markers = networkLayout._scaffoldSettings['Kinematic tree']
         for marker_name, marker_position in stickman_markers.items():
             marker_group = findOrCreateAnnotationGroupForTerm(
                 annotationGroups, region, (marker_name, ""), isMarker=True
@@ -1237,20 +1226,6 @@ class MeshType_3d_wholebody2(Scaffold_base):
             marker_group.createMarkerNode(
                 node_identifier, coordinates, marker_position
                 )
-            # annotationGroups.append(marker_group)
-        # marker_locations = []
-        # for marker_name, marker_position in zip([marker_names], [marker_positions]):
-        #     const_coordinates_field.assignReal(fieldcache, marker_position)
-        #     # marker_location = evaluateAnnotationMarkerNearestMeshLocation(
-        #     #     fieldmodule, fieldcache, marker_position, coordinates, mesh
-        #     #     )
-        #     marker_group = findOrCreateAnnotationGroupForTerm(
-        #         annotationGroups, region, (marker_name, ""), isMarker=True
-        #         )
-        #     markerNode = marker_group.createMarkerNode(
-        #         node_identifier, coordinates, marker_position
-        #         )
-        #     annotationGroups.append(marker_group)
         return annotationGroups, None
 
     @classmethod
