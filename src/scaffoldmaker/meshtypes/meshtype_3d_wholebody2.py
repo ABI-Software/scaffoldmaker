@@ -747,7 +747,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         legScale = nonFootLegLength / (legToFootElementsCount - 1)
         d12_mag = (legBottomRadius - legTopRadius) / (armToHandElementsCount - 2)
         d13_mag = (legBottomRadius - legTopRadius) / (armToHandElementsCount - 2)
-
         pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]
         pid3 = mult(pd3, innerProportionDefault)
         for side in (left, right):
@@ -861,18 +860,17 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             ankleDirn = matrix_vector_mult(ankleRotationMatrix, d1)
             ankleSide = d2
             ankleFront = cross(ankleDirn, ankleSide)
-
             footDirn = ankleDirn
             footSide = d2 
             footFront = matrix_vector_mult(ankleHalfRotationMatrix, d3)
-            # 
-            
             footd1 = footDirn
             footd2 = set_magnitude(footSide, halfFootWidth)
             footd3 = footFront
+            # This rotation factor is used to adjust 'fatten' the d3 direction at the ankle node
+            # As well as adjusting the position of the node depending on the 
+            # angle of flexion, and ensures a proper transition between lower leg and the foot
             rotationFactor = 2.0*math.sin(ankleFlexionRadians)*(math.sqrt(2)- 1)
             ankleThickness = halfFootThickness/math.sin(ankleJointAngleRadians/2)
-            # footd2 = matrix_vector_mult(rotationMatrixAnkle, footd2)
             # This positioning of the food nodes bends edge connecting the leg and the foot 
             # Which allows the scaffold to better capture the shape of the calcaneus
             anklePosition = add(x, set_magnitude(d1, legScale - 1*rotationFactor*footHeight))
@@ -888,8 +886,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 )
             fd2 = [d2, footd2, footd2]
             fd3 = [d3,
-                    set_magnitude(footd3,
-                                 ankleThickness + legBottomRadius),
+                    set_magnitude(footd3, ankleThickness + legBottomRadius),
                    set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)
             ]
             fd12 = sub(fd2[2], fd2[1])
