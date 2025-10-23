@@ -596,7 +596,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # armStart = add(shoulderPosition,d1)
             # d1 = mult(armDirn, armScale)
             # Setting brachium coordinates
-            for i in range(1, brachiumElementsCount - 2):
+            for i in range(1, brachiumElementsCount - 1):
                 xi = i / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
@@ -680,15 +680,16 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
+            options['Kinematic tree']['ulna_' + side_label] = x
             # Antebrachium nodes starts after the elbow node
             antebrachiumStart = add(elbowPosition, d1)
             d1 = mult(antebrachiumDirn, armScale)
             # Change d1 to the antebrachium direction
-            for i in range(brachiumElementsCount - 1, armToHandElementsCount - 1):
+            for i in range(brachiumElementsCount, armToHandElementsCount - 1):
                 xi = (i) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(antebrachiumStart, mult(d1, i - (brachiumElementsCount - 1))) 
+                x = add(antebrachiumStart, mult(d1, i - (brachiumElementsCount))) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth =  xi * halfWristWidth + (1.0 - xi) * armTopRadius
                 if i == 0:
@@ -720,6 +721,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
             # Hand twist
+            options['Kinematic tree']['wrist_' + side_label] = x
             assert handElementsCount == 1
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
@@ -741,6 +743,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(coordinates, fieldcache, hx, hd1, hd2, hd3)
             setNodeFieldParameters(innerCoordinates, fieldcache, hx, hd1, hid2, hid3)
             nodeIdentifier += 1
+            
         # legs
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
         nonFootLegLength = legLength - footHeight
