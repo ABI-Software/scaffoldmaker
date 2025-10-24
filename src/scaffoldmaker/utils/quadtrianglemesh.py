@@ -1,12 +1,9 @@
 """
-Utilities for building 3-D triangle-topology meshes out of quad elements
+Utilities for building 2-D triangle-shaped meshes out of quad elements with cubic Hermite serendipity interpolation.
 """
-from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, mult, normalize, set_magnitude
 from scaffoldmaker.utils.interpolation import (
-    DerivativeScalingMode, get_nway_point, getCubicHermiteCurvesLength, linearlyInterpolateVectors,
-    smoothCubicHermiteDerivativesLine)
+    DerivativeScalingMode, get_nway_point, linearlyInterpolateVectors, smoothCubicHermiteDerivativesLine)
 import copy
-import math
 
 
 class QuadTriangleMesh:
