@@ -16,6 +16,8 @@ kidney_terms = [
     ("hilum of kidney", "UBERON:0008716", "ILX:0731719"),
     ("hilum of left kidney", ""),
     ("hilum of right kidney", ""),
+    ("inferior pole of left kidney", "FMA:15609"),
+    ("inferior pole of right kidney", "FMA:15608"),
     ("inner medulla of left kidney", "ILX:0784932"),
     ("inner medulla of right kidney", "ILX:0791193"),
     ("juxtamedullary cortex", "UBERON:0005271", "ILX:0730126"),
@@ -52,6 +54,8 @@ kidney_terms = [
     ("posterior surface of kidney", "UBERON:0035471", "ILX:0724479"),
     ("posterior surface of left kidney", ""),
     ("posterior surface of right kidney", ""),
+    ("superior pole of left kidney", "FMA:15607"),
+    ("superior pole of right kidney", "FMA:15606"),
     ("ventral surface of kidney", ""),
     ("ventral surface of left kidney", ""),
     ("ventral surface of right kidney", "")

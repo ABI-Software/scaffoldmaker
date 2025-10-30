@@ -1660,8 +1660,12 @@ class CapMesh:
         of a tube segment.
         """
         self._isStartCap = isStartCap
-        self._generateElements(annotationMeshGroups)
-        self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups)
+        if isStartCap:
+            self._generateElements(annotationMeshGroups)
+            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups)
+        else:
+            self._generateExtendedTubeElements(tubeBoxNodeIds, tubeRimNodeIds, annotationMeshGroups)
+            self._generateElements(annotationMeshGroups)
 
     def addCapBoxElementsToMeshGroup(self, meshGroup, e1Range=None, e2Range=None, e3Range=None, mode=0):
         """

@@ -1892,11 +1892,9 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._boxElementIds[e2] = []
             self._rimElementIds[e2] = []
             e2p = e2 + 1
-            # create cap elements
+            # create cap elements at the start of the tube
             if self._isCap[0] and e2 == 0:
                 capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=True)
-            elif self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
-                capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=False)
 
             if self._isCore:
                 # create box elements
@@ -1993,6 +1991,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         annotationMeshGroup.addElement(element)
                     ringElementIds.append(elementIdentifier)
                 self._rimElementIds[e2].append(ringElementIds)
+
+            # create cap elements at the end of the tube
+            if self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
+                capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=False)
 
     def generateJunctionRimElements(self, junction, generateData):
         """

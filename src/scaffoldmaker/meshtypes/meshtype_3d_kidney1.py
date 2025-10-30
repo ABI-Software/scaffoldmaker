@@ -4,7 +4,8 @@ Generates a 3D kidney using tube network mesh.
 import math
 
 from cmlibs.maths.vectorops import mult, set_magnitude, cross
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, findOrCreateFieldCoordinates
+from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.field import Field
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
@@ -278,9 +279,9 @@ class MeshType_3d_kidney1(Scaffold_base):
         useParameterSetName = "Human 1" if (parameterSetName == "Default") else parameterSetName
         options["Base parameter set"] = useParameterSetName
         options["Kidney network layout"] = ScaffoldPackage(MeshType_1d_kidney_network_layout1)
-        options["Elements count around"] = 8
-        options["Elements count through shell"] = 1
-        options["Annotation elements counts around"] = [0]
+        options["Number of elements around"] = 8
+        options["Number of elements through shell"] = 1
+        options["Annotation numbers of elements around"] = [0]
         options["Target element density along longest segment"] = 2.0
         options["Number of elements across core box minor"] = 2
         options["Number of elements across core transition"] = 1
@@ -293,9 +294,9 @@ class MeshType_3d_kidney1(Scaffold_base):
     def getOrderedOptionNames(cls):
         optionNames = [
             "Kidney network layout",
-            "Elements count around",
-            "Elements count through shell",
-            "Annotation elements counts around",
+            "Number of elements around",
+            "Number of elements through shell",
+            "Annotation numbers of elements around",
             "Target element density along longest segment",
             "Number of elements across core box minor",
             "Number of elements across core transition",
@@ -334,13 +335,13 @@ class MeshType_3d_kidney1(Scaffold_base):
                 cls.getOptionValidScaffoldTypes("Kidney network layout")):
             options["Kidney network layout"] = ScaffoldPackage(MeshType_1d_kidney_network_layout1)
 
-        if options["Elements count around"] < 8:
-            options["Elements count around"] = 8
-        elif options["Elements count around"] % 4:
-            options["Elements count around"] += 4 - (options["Elements count around"] % 4)
+        if options["Number of elements around"] < 8:
+            options["Number of elements around"] = 8
+        elif options["Number of elements around"] % 4:
+            options["Number of elements around"] += 4 - (options["Elements count around"] % 4)
 
-        if options["Elements count through shell"] < 1:
-            options["Elements count through shell"] = 1
+        if options["Number of elements through shell"] < 1:
+            options["Number of elements through shell"] = 1
 
         if options["Number of elements across core transition"] < 1:
             options["Number of elements across core transition"] = 1
@@ -357,7 +358,7 @@ class MeshType_3d_kidney1(Scaffold_base):
 
         annotationElementsCountsAround = options["Annotation elements counts around"]
         if len(annotationElementsCountsAround) == 0:
-            options["Annotation elements count around"] = [0]
+            options["Annotation numbers of elements around"] = [0]
         else:
             for i in range(len(annotationElementsCountsAround)):
                 if annotationElementsCountsAround[i] <= 0:
@@ -379,7 +380,7 @@ class MeshType_3d_kidney1(Scaffold_base):
             dependentChanges = True
         for i in range(len(annotationCoreBoxMinorCounts)):
             aroundCount = annotationElementsCountsAround[i] if annotationElementsCountsAround[i] \
-                else options["Elements count around"]
+                else options["Number of elements around"]
             maxCoreBoxMinorCount = aroundCount // 2 - 2
             if annotationCoreBoxMinorCounts[i] <= 0:
                 annotationCoreBoxMinorCounts[i] = 0
@@ -420,8 +421,8 @@ class MeshType_3d_kidney1(Scaffold_base):
         kidneyTubeNetworkMeshBuilder = KidneyTubeNetworkMeshBuilder(
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
-            defaultElementsCountAround=options["Elements count around"],
-            elementsCountThroughShell=options["Elements count through shell"],
+            defaultElementsCountAround=options["Number of elements around"],
+            elementsCountThroughShell=options["Number of elements through shell"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             isCore=True,
             elementsCountTransition=options["Number of elements across core transition"],
@@ -439,11 +440,16 @@ class MeshType_3d_kidney1(Scaffold_base):
 
         # add kidney-specific annotation groups
         fm = region.getFieldmodule()
+        coordinates = findOrCreateFieldCoordinates(fm)
         mesh = generateData.getMesh()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
 
         coreGroup = getAnnotationGroupForTerm(annotationGroups, ("core", "")).getGroup()
         shellGroup = getAnnotationGroupForTerm(annotationGroups, ("shell", "")).getGroup()
         openingGroup = getAnnotationGroupForTerm(annotationGroups, ("opening", "")).getGroup()
+
+        kidneyGroup = AnnotationGroup(region, get_kidney_term("kidney"))
+        kidneyNodesetGroup = kidneyGroup.getNodesetGroup(nodes)
 
         hilumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("hilum of kidney"))
         hilumGroup.getMeshGroup(mesh).addElementsConditional(openingGroup)
@@ -457,6 +463,52 @@ class MeshType_3d_kidney1(Scaffold_base):
 
         for term in ["core", "shell", "opening"]:
             annotationGroups.remove(findAnnotationGroupByName(annotationGroups, term))
+
+        # marker points
+        leftSuperiorPoleGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("superior pole of left kidney"))
+        leftInferiorPoleGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("inferior pole of left kidney"))
+
+        rightSuperiorPoleGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("superior pole of right kidney"))
+        rightInferiorPoleGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("inferior pole of right kidney"))
+
+        markerList = []
+        elementsCountAround = options["Number of elements around"]
+        elementsCountAlong = int(options["Target element density along longest segment"] + 2) # extra sections from the cap mesh
+        elementsCountThroughShell = options["Number of elements through shell"]
+        elementsCountCoreBoxMinor = options["Number of elements across core box minor"]
+        elementsCountCoreBoxMajor = (elementsCountAround // 2) - elementsCountCoreBoxMinor
+        elementsCountTransition = options["Number of elements across core transition"]
+
+        box_count = elementsCountCoreBoxMinor * elementsCountCoreBoxMajor
+        depth = elementsCountThroughShell + elementsCountTransition
+        offset = elementsCountCoreBoxMajor // 2 * elementsCountCoreBoxMinor + elementsCountCoreBoxMinor // 2 + 1
+        cap_count = box_count * (depth + 1) + elementsCountAround * depth
+        tube_section_count = box_count + elementsCountAround * depth
+        tube_count = tube_section_count * elementsCountAlong
+        kidney_elements_count = cap_count * 2 + tube_count if showKidneys[0] else 0
+
+        if showKidneys[0]:
+            idx = box_count * depth + offset
+            markerList.append({"group": leftSuperiorPoleGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+
+            idx = cap_count + tube_count + (box_count * depth + offset)
+            markerList.append({"group": leftInferiorPoleGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
+
+        if showKidneys[1]:
+            idx = kidney_elements_count + box_count * depth + offset
+            markerList.append({"group": rightSuperiorPoleGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
+
+            idx = kidney_elements_count + cap_count + tube_count + (box_count * depth + offset)
+            markerList.append({"group": rightInferiorPoleGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
+
+        nodeIdentifier = generateData.nextNodeIdentifier()
+        for marker in markerList:
+            annotationGroup = marker["group"]
+            markerNode = annotationGroup.createMarkerNode(
+                nodeIdentifier, element=mesh.findElementByIdentifier(marker["elementId"]), xi=marker["xi"])
+            annotationGroup.setMarkerMaterialCoordinates(coordinates)
+            kidneyNodesetGroup.addNode(markerNode)
+            nodeIdentifier += 1
 
         return annotationGroups, None
 

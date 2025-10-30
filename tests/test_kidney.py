@@ -28,9 +28,9 @@ class KidneyScaffoldTestCase(unittest.TestCase):
         options = scaffold.getDefaultOptions("Human 1")
 
         self.assertEqual(11, len(options))
-        self.assertEqual(8, options["Elements count around"])
-        self.assertEqual(1, options["Elements count through shell"])
-        self.assertEqual([0], options["Annotation elements counts around"])
+        self.assertEqual(8, options["Number of elements around"])
+        self.assertEqual(1, options["Number of elements through shell"])
+        self.assertEqual([0], options["Annotation numbers of elements around"])
         self.assertEqual(2.0, options["Target element density along longest segment"])
         self.assertEqual(2, options["Number of elements across core box minor"])
         self.assertEqual(1, options["Number of elements across core transition"])
@@ -40,7 +40,7 @@ class KidneyScaffoldTestCase(unittest.TestCase):
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(48, len(annotationGroups))
+        self.assertEqual(52, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -51,7 +51,7 @@ class KidneyScaffoldTestCase(unittest.TestCase):
         mesh1d = fieldmodule.findMeshByDimension(1)
         self.assertEqual(478 * 2, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(179 * 2, nodes.getSize())
+        self.assertEqual(181 * 2, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
