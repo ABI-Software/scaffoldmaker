@@ -473,12 +473,6 @@ class NetworkMeshGenerateData:
         """
         return self._coordinates
 
-    def setCoordinates(self, coordinates):
-        """
-
-        """
-        self._coordinates = coordinates
-
     def getFieldcache(self):
         """
         :return: Zinc Fieldcache for assigning field parameters with.
