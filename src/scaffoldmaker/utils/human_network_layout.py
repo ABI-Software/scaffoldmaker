@@ -3,7 +3,7 @@
 humanElementCounts = {
     'headElementsCount': 3, 
     'neckElementsCount': 2, 
-    'brachiumElementsCount': 4, 
+    'brachiumElementsCount': 5, 
     'antebrachiumElementsCount': 3, 
     'handElementsCount': 1, 
     'thoraxElementsCount': 3, 
