@@ -666,7 +666,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # This rotation factor is used to adjust the position of the joint node relative 
             # to the angle of flexion, and ensures a proper transition between the two parts
             rotationFactor = math.sin(elbowFlexionRadians)*(math.sqrt(2)-1)     
-            transitionNodes = 3 
             jointPositions = []
             # jointPositions.append(sub(x, d1)) #1 
             jointPositions.append(x)
@@ -679,8 +678,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             eDir =  add(set_magnitude(elbowFront, -ehalfdWidth), set_magnitude(antebrachiumDirn, armScale))
             eDir = set_magnitude(eDir, armScale)
             jointPositions.append(add(jointPositions[-1], eDir)) #3
-            # jointPositions.append(add(jointPositions[-1], set_magnitude(antebrachiumDirn, armScale))) #3
-            jointDir = [armDirn, armDirn, elbowDirn, antebrachiumDirn, antebrachiumDirn] 
             jointDir = [armDirn, elbowDirn, antebrachiumDirn] 
             jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
                 jointPositions, jointDir, 2, derivativeMagnitudeStart=armScale, derivativeMagnitudeEnd=armScale)[0:2]  
@@ -713,11 +710,11 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             antebrachiumStart = jointPositions[-1]
             d1 = mult(antebrachiumDirn, armScale)
             # Change d1 to the antebrachium direction
-            for i in range(brachiumElementsCount - shoulderElementCount + transitionNodes - 2, armToHandElementsCount - 1):
+            for i in range(brachiumElementsCount - shoulderElementCount + 1, armToHandElementsCount - 1):
                 xi = (i) / (armToHandElementsCount - 2)
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(antebrachiumStart, mult(d1, i - (brachiumElementsCount - shoulderElementCount + transitionNodes - 2))) 
+                x = add(antebrachiumStart, mult(d1, i - (brachiumElementsCount - shoulderElementCount + 1))) 
                 halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
                 halfWidth =  xi * halfWristWidth + (1.0 - xi) * armTopRadius
                 if i == 0:
