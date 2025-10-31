@@ -629,14 +629,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
-            # Diagram to calculate elbow flexion
+            # Diagram to calculate joint flexion
             # 1 
             # |
             # 2 -- 3 
             # 1 is brachium, 2 is the elbow, 4 is antebrachium
             # we fix the position of the nodes 1 and 3, and calculate 
-            # the position of 2 using the sampleCubicHermiteCurvesSmooth function. 
-            # This process also gives us the correct d1 and d3 directions for nodes 1 to 5.
+            # the position (and d1) of 2 using the sampleCubicHermiteCurvesSmooth function. 
 
             # Calculating initial d2 and d3 before rotation
             # Necessary in case there is a non-zero twist angle
@@ -663,21 +662,20 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, armDirn)
             antebrachiumSide = armSide
             antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
-            # This rotation factor is used to adjust the position of the joint node relative 
+            # These rotation factors are used to adjust the position of the joint node relative 
             # to the angle of flexion, and ensures a proper transition between the two parts
-            rotationFactor = math.sin(elbowFlexionRadians)*(0.5)     
+            rotationFactor = (0.5)*math.sin(elbowFlexionRadians)     
             rotationFactor2 = 1/math.sin(elbowJointAngleRadians/2)
             jointPositions = []
-            # jointPositions.append(sub(x, d1)) #1 
-            jointPositions.append(x)
+            jointPositions.append(x) # 1
             i += 1
             xi = i / (armToHandElementsCount - 2)
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-            eDir = add(set_magnitude(armDirn, armScale), set_magnitude(elbowFront, halfWidth*rotationFactor))
+            eDir = add(set_magnitude(armDirn, armScale), set_magnitude(elbowFront, 1.5*halfWidth*rotationFactor))
             eDir = set_magnitude(eDir, armScale)
             jointPositions.append(add(x, eDir)) # 2
-            eDir =  add(set_magnitude(elbowFront, -halfWidth*rotationFactor), set_magnitude(antebrachiumDirn, armScale))
+            eDir =  add(set_magnitude(elbowFront, -1.5*halfWidth*rotationFactor), set_magnitude(antebrachiumDirn, armScale))
             eDir = set_magnitude(eDir, armScale)
             jointPositions.append(add(jointPositions[-1], eDir)) #3
             jointDir = [armDirn, elbowDirn, antebrachiumDirn] 
@@ -687,7 +685,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             d1 = jointDirn[1]
             elbowFront = cross(d1, d2)
             d2 = set_magnitude(elbowSide, halfThickness)
-            d3 = set_magnitude(elbowFront, halfWidth*(rotationFactor2-0.5*rotationFactor))
+            d3 = set_magnitude(elbowFront, halfWidth*(rotationFactor2-(1/1.5)*rotationFactor))
             d12 = set_magnitude(elbowSide, d12_mag)
             d13 = set_magnitude(elbowFront, d13_mag)
             d13 = add(d13, set_magnitude(d1, -halfWidth*rotationFactor2))
