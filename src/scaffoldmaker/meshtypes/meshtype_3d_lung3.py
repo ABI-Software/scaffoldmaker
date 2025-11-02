@@ -1,5 +1,5 @@
 """
-Generates a lung scaffold by deforming a hemisphere.
+Generates a lung scaffold by deforming an ellipsoid.
 """
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates
 from cmlibs.zinc.field import Field
@@ -17,7 +17,7 @@ import math
 
 class MeshType_3d_lung3(Scaffold_base):
     """
-    Generates a lung scaffold by deforming a hemisphere.
+    Generates a lung scaffold by deforming an ellipsoid.
     """
 
     @classmethod
