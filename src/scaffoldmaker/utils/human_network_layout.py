@@ -8,8 +8,8 @@ humanElementCounts = {
     'handElementsCount': 1, 
     'thoraxElementsCount': 3, 
     'abdomenElementsCount': 4, 
-    'upperLegElementsCount': 3,
-    'lowerLegElementsCount': 2,
+    'upperLegElementsCount': 4,
+    'lowerLegElementsCount': 3,
     'footElementsCount': 2
 }
 
