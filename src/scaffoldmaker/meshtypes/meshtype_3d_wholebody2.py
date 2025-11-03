@@ -51,8 +51,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Right shoulder flexion degrees"] = 0.0
         options["Left shoulder abduction degrees"] = 10.0
         options["Right shoulder abduction degrees"] = 10.0
-        options["Left elbow flexion degrees"] = 110.0
-        options["Right elbow flexion degrees"] = 90.0
+        options["Left elbow flexion degrees"] = 0.0
+        options["Right elbow flexion degrees"] = 0.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
@@ -72,8 +72,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left knee flexion degrees"] = 0.0
-        options["Right knee flexion degrees"] = 0.0
+        options["Left knee flexion degrees"] = 90.0
+        options["Right knee flexion degrees"] = 110.0
         options["Left ankle flexion degrees"] = 90.0
         options["Right ankle flexion degrees"] = 90.0
         options["Foot height"] = 1.25
@@ -675,7 +675,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
             # The joint node is not set directly at the corner
-            # Instead it is nudged forward in the d3 direction
+            # Instead it is nudged forward towards the center of the joint
             # To get as smooth of a line as possible between node #1 and #3
             jointAdjustDir = add(
                     set_magnitude(elbowFront, rotationCoeff*halfWidth*flexionRotFactor), 
@@ -725,7 +725,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             options['Kinematic tree']['ulna_' + side_label] = x
             # Antebrachium nodes starts after the elbow node
             antebrachiumStart = jointPositions[-1]
-            d1 = mult(antebrachiumDirn, armScale)
+            d1 = set_magnitude(antebrachiumDirn, armScale)
             # Change d1 to the antebrachium direction
             for i in range(brachiumElementsCount - shoulderElementCount + 1, armToHandElementsCount - 1):
                 xi = (i) / (armToHandElementsCount - 2)
@@ -821,7 +821,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             d13 = [0.0, 0.0, d13_mag]
             id13 = mult(d13, innerProportionDefault)
             # Upper leg
-            for i in range(upperLegElementsCount):
+            for i in range(upperLegElementsCount-1):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
@@ -835,35 +835,80 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
             # knee
-            # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
+            # Diagram to calculate joint flexion
+            #     1 
+            #     |
+            # 3 - 2  
+            # 1 is upper leg, 2 is the knee, 3 is the lower leg
+            # we fix the position of the nodes 1 and 3, and calculate 
+            # the position (and d1) of 2 using the sampleCubicHermiteCurvesSmooth function.
+            # The frame at the joint node is rotated by half the flexion angle
+            # Calculating initial d2 and d3 before rotation
+            # Necessary in case there is a non-zero twist angle
             kneeFlexionRadians = kneeLeftFlexionRadians if (side == left) else kneeRightFlexionRadians
             # Angle between upper and lower leg
             kneeJointAngleRadians = math.pi - kneeFlexionRadians
             kneeRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeFlexionRadians)
             kneeHalfrotationMatrix = axis_angle_to_rotation_matrix(mult(d2, 1), kneeFlexionRadians/2)
+            # Calculating initial estimation for directions at the elbow node
+            kneeDirn = matrix_vector_mult(kneeHalfrotationMatrix, d1)
+            kneeSide = legSide
+            kneeFront = matrix_vector_mult(kneeHalfrotationMatrix, d3)
+            # Calculating directions for the lower leg
             lowerLegDirn = matrix_vector_mult(kneeRotationMatrix, d1)
             lowerLegSide = legSide
             lowerLegFront = cross(lowerLegDirn, lowerLegSide)
-            # The d3 direction in the knee node is rotated by half the flexion angle
-            # To ensure a better transition at this node. 
-            kneeDirn = lowerLegDirn
-            kneeSide = d2 
-            kneeFront = matrix_vector_mult(kneeHalfrotationMatrix, d3)
-            # This rotation factor is used to adjust the position of the knee node relative 
-            # to the angle of flexion, and ensures a proper transition between the upper and lower leg
-            rotationFactor = 2.0*math.sin(kneeFlexionRadians)*(math.sqrt(2)-1)
+            # These rotation factors are used to adjust the position of the joint node relative 
+            # to the angle of flexion, and ensures a proper transition between the two parts
+            rotationCoeff = 0.3
+            flexionRotFactor = 1*math.sin(kneeJointAngleRadians)     
+            jointRotFactor = 1/math.sin(kneeJointAngleRadians/2)
+            jointPositions = []
+            jointPositions.append(x) #1
             i += 1
             xi = i / legToFootElementsCount
             radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
-            # d3 direction is fattened at the joint to ensure a proper transition in the tube network
-            kneeRadius = radius/math.sin(kneeJointAngleRadians/2)
-            kneePosition = add(x, set_magnitude(d1, legScale - rotationFactor*kneeRadius))
-            x = kneePosition
-            d1 = set_magnitude(kneeDirn, legScale + rotationFactor*kneeRadius)
+            # The joint node is not set directly at the corner
+            # Instead it is nudged forward towards the center of the joint
+            # To get as smooth of a line as possible between node #1 and #3
+            jointAdjustDir = add(
+                    set_magnitude(kneeFront, -rotationCoeff*radius*flexionRotFactor), 
+                    set_magnitude(lowerLegDirn, rotationCoeff*radius*flexionRotFactor), 
+                )
+            jointAdjustDir = add(
+                set_magnitude(legDirn, legScale), 
+                jointAdjustDir
+            )
+            jointAdjustDir = set_magnitude(jointAdjustDir, legScale)
+            jointPositions.append(add(x, jointAdjustDir)) # 2
+            jointAdjustDir = add(
+                    set_magnitude(kneeDirn, rotationCoeff*radius*flexionRotFactor), 
+                    set_magnitude(legDirn, rotationCoeff*radius*flexionRotFactor), 
+                )
+            jointAdjustDir =  add(
+                set_magnitude(lowerLegDirn, legScale), 
+                jointAdjustDir
+                )
+            jointAdjustDir = set_magnitude(jointAdjustDir, legScale)
+            jointPositions.append(add(jointPositions[-1], jointAdjustDir)) #3
+            jointDir = [legDirn, kneeDirn, lowerLegDirn] 
+            jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
+                jointPositions, jointDir, 2, 
+                derivativeMagnitudeStart=legScale, derivativeMagnitudeEnd=legScale
+                )[0:2]  
+            # Set coordiantes for joint node
+            x = jointPositions[1]
+            d1 = jointDirn[1]
+            kneeFront = cross(d1, d2)
             d2 = set_magnitude(kneeSide, radius)
-            d3 = set_magnitude(kneeFront, kneeRadius)
+            d3 = set_magnitude(kneeFront, radius*(jointRotFactor-(rotationCoeff*flexionRotFactor)))
             d12 = set_magnitude(kneeSide, d12_mag)
-            d13 = set_magnitude(kneeFront, d13_mag)
+            d13 = set_magnitude(d1, legScale/jointRotFactor)
+            
+            # d13 = add(
+            #     set_magnitude(kneeFront, d13_mag), 
+            #     set_magnitude(d1, 1.1*radius*jointRotFactor)
+            #     )
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
             id12 = mult(d12, innerProportionDefault)
@@ -873,22 +918,27 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
+            options['Kinematic tree']['knee_' + side_label] = x
             # Lower leg
-            lowerLegStart = add(kneePosition, d1)
+            lowerLegStart = jointPositions[-1]
             d1 = set_magnitude(lowerLegDirn, legScale)
-            for i in range(upperLegElementsCount + 1, legToFootElementsCount):
+            for i in range(upperLegElementsCount, legToFootElementsCount):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(lowerLegStart, mult(d1, i - (upperLegElementsCount + 1)))
+                x = add(lowerLegStart, mult(d1, i - (upperLegElementsCount)))
                 # if (i == legToFootElementsCount): 
                 #     # x = add(x, set_magnitude(d1, 1.5 * radius))
                 #     d1 = set_magnitude(d1, legScale + 1.5 * radius)
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = set_magnitude(lowerLegSide, radius)
                 d3 = set_magnitude(lowerLegFront, radius)
+                d12 = set_magnitude(d2, d12_mag)
+                d13 = set_magnitude(d3, d13_mag)
                 id2 = mult(d2, innerProportionDefault)
                 id3 = mult(d3, innerProportionDefault)
+                id12 = set_magnitude(d12, d12_mag)
+                id13 = set_magnitude(d13, d13_mag)
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
@@ -994,8 +1044,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options["Number of elements along brachium"] = 5
         options["Number of elements along antebrachium"] = 3
         options["Number of elements along hand"] = 1
-        options["Number of elements along upper leg"] = 3
-        options["Number of elements along lower leg"] = 2
+        options["Number of elements along upper leg"] = 4
+        options["Number of elements along lower leg"] = 3
         options["Number of elements along foot"] = 2
         options["Number of elements around head"] = 12
         options["Number of elements around torso"] = 12
