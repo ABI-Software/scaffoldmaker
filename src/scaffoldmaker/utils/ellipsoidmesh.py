@@ -135,149 +135,24 @@ class EllipsoidMesh:
 
     def build(self):
         """
-        Determine coordinates and derivatives over and within ellipsoid.
+        Determine coordinates and derivatives over and within the full ellipsoid.
         """
         half_counts = [count // 2 for count in self._element_counts]
-        box_counts = [half_counts[i] - self._trans_count for i in range(3)]
 
-        octant1 = self._build_ellipsoid_octant(half_counts, self._axis2_x_rotation_radians, self._axis3_x_rotation_radians)
+        octant1 = self.build_octant(half_counts, self._axis2_x_rotation_radians, self._axis3_x_rotation_radians)
+        self.merge_octant(octant1, quadrant=0)
+        octant1.mirror_yz()
+        self.merge_octant(octant1, quadrant=2)
 
-        # copy octant1 into ellipsoid
-        octant_parameters = octant1.get_parameters()
-        for n3 in range(half_counts[2] + 1):
-            octant_nx_layer = octant_parameters[n3]
-            nx_layer = self._nx[half_counts[2] + n3]
-            for n2 in range(half_counts[1] + 1):
-                octant_nx_row = octant_nx_layer[n2]
-                nx_row = nx_layer[half_counts[1] + n2]
-                for n1 in range(half_counts[0] + 1):
-                    nx_row[half_counts[0] + n1] = copy.deepcopy(octant_nx_row[n1])
+        octant2 = self.build_octant([half_counts[0], half_counts[2], half_counts[1]],
+                                    self._axis3_x_rotation_radians, self._axis2_x_rotation_radians + math.pi)
+        self.merge_octant(octant2, quadrant=1)
+        octant2.mirror_yz()
+        self.merge_octant(octant2, quadrant=3)
 
-        octant2 = self._build_ellipsoid_octant([half_counts[0], half_counts[2], half_counts[1]],
-                                               self._axis3_x_rotation_radians - math.pi, self._axis2_x_rotation_radians)
+        self.copy_to_negative_axis1()
 
-        # transfer parameters on bottom plane of octant1 to target location of octant2 for blending
-        n3 = half_counts[2]
-        for i2 in range(1, half_counts[1] + 1):
-            n2 = half_counts[1] + i2
-            for i1 in range(half_counts[0] + 1):
-                n1 = half_counts[0] + i1
-                box = (i1 <= box_counts[0]) and (i2 <= box_counts[1])
-                parameters = self._nx[n3][n2][n1]
-                if not parameters or not parameters[0]:
-                    continue
-                x, d1, d2, d3 = parameters
-                x = [x[0], -x[1], -x[2]]
-                d1 = [d1[0], -d1[1], -d1[2]] if box else [-d1[0], d1[1], d1[2]]
-                d2 = [-d2[0], d2[1], d2[2]]
-                d3 = ([-d3[0], d3[1], d3[2]] if box else [d3[0], -d3[1], -d3[2]]) if d3 else None
-                self._nx[n3][self._element_counts[1] - n2][n1] = [x, d1, d2, d3]
-
-        # copy and mirror in y and z octant2 into ellipsoid, blending existing derivatives
-        octant_parameters = octant2.get_parameters()
-        for o3 in range(half_counts[1] + 1):
-            octant_nx_layer = octant_parameters[o3]
-            for o2 in range(half_counts[2] + 1):
-                octant_nx_row = octant_nx_layer[o2]
-                nx_row = self._nx[half_counts[2] + o2][half_counts[1] - o3]
-                box_row = (o2 <= box_counts[2]) and (o3 <= box_counts[1])
-                top_transition = o2 > box_counts[2]
-                for o1 in range(half_counts[0] + 1):
-                    octant_nx = octant_nx_row[o1]
-                    if octant_nx and octant_nx[0]:
-                        box = box_row and (o1 <= box_counts[0])
-                        x, d1, d2, d3 = octant_nx
-                        x = [x[0], -x[1], -x[2]]
-                        if top_transition:
-                            if o3 > box_counts[1]:
-                                d1 = [d1[0], -d1[1], -d1[2]]
-                                d2 = [d2[0], -d2[1], -d2[2]]
-                                # fix 3-way point case on transition 'corner':
-                                if (o3 >= box_counts[1]) and (o1 >= box_counts[0]):
-                                    d2 = add(d1, d2)
-                            else:
-                                d1 = [-d1[0], d1[1], d1[2]]
-                                d2 = [-d2[0], d2[1], d2[2]]
-                            d3 = [d3[0], -d3[1], -d3[2]] if d3 else None
-                        elif box:
-                            d1 = [d1[0], -d1[1], -d1[2]]
-                            d2, d3 = [-d3[0], d3[1], d3[2]], [d2[0], -d2[1], -d2[2]]
-                        else:
-                            if o3 > box_counts[1]:
-                                d1 = [d1[0], -d1[1], -d1[2]]
-                                d2 = [d2[0], -d2[1], -d2[2]]
-                            else:
-                                d1, d2 = [-d2[0], d2[1], d2[2]], [d1[0], -d1[1], -d1[2]]
-                            d3 = [d3[0], -d3[1], -d3[2]] if d3 else None
-                        new_nx = [x, d1, d2, d3]
-                        nx = nx_row[half_counts[0] + o1]
-                        # expect coordinates to be at the same location on boundaries
-                        nx[0] = copy.copy(x)
-                        for pix in range(1, 4):
-                            d = new_nx[pix]
-                            if nx[pix] and d:
-                                # blend derivatives with harmonic mean magnitude; should already be in same direction
-                                d = linearlyInterpolateVectors(
-                                    nx[pix], d, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-                            nx[pix] = copy.copy(d)
-
-        # transfer blended d2 derivatives on bottom plane of octant2 back to octant1
-        n3 = half_counts[2]
-        for i2 in range(1, half_counts[1] + 1):
-            n2 = half_counts[1] + i2
-            for i1 in range(half_counts[0] + 1):
-                n1 = half_counts[0] + i1
-                box = (i1 <= box_counts[0]) and (i2 <= box_counts[1])
-                parameters = self._nx[n3][self._element_counts[1] - n2][n1]
-                if not parameters or not parameters[0]:
-                    continue
-                x, d1, d2, d3 = parameters
-                x = [x[0], -x[1], -x[2]]
-                d1 = [d1[0], -d1[1], -d1[2]] if box else [-d1[0], d1[1], d1[2]]
-                d2 = [-d2[0], d2[1], d2[2]]
-                d3 = ([-d3[0], d3[1], d3[2]] if box else [d3[0], -d3[1], -d3[2]]) if d3 else None
-                self._nx[n3][n2][n1] = [x, d1, d2, d3]
-
-        # mirror octants over x = 0
-        for n3 in range(half_counts[2], self._element_counts[2] + 1):
-            for n2 in range(0, self._element_counts[1] + 1):
-                for n1 in range(half_counts[0] + 1, self._element_counts[0] + 1):
-                    parameters = self._nx[n3][n2][n1]
-                    if not parameters or not parameters[0]:
-                        continue
-                    x, d1, d2, d3 = parameters
-                    x = [-x[0], x[1], x[2]]
-                    d1 = [d1[0], -d1[1], -d1[2]] if d1 else None
-                    d2 = [-d2[0], d2[1], d2[2]] if d2 else None
-                    d3 = [-d3[0], d3[1], d3[2]] if d3 else None
-                    self._nx[n3][n2][self._element_counts[0] - n1] = [x, d1, d2, d3]
-
-        # flip top half about both y = 0 and z = 0
-        for n3 in range(half_counts[2] + 1, self._element_counts[2] + 1):
-            for n2 in range(0, self._element_counts[1] + 1):
-                top_nx_row = self._nx[n3][n2]
-                box2 = (self._trans_count <= n2 <=
-                        (self._element_counts[1] - self._trans_count))
-                box_row = (n3 <= (half_counts[2] + box_counts[2])) and box2
-                bottom_nx_row = self._nx[self._element_counts[2] - n3][self._element_counts[1] - n2]
-                bottom_transition = box2 and (n3 >= (half_counts[2] + box_counts[2]))
-                for n1 in range(self._element_counts[0] + 1):
-                    parameters = top_nx_row[n1]
-                    if parameters and parameters[0]:
-                        box = box_row and (self._trans_count <= n1 <=
-                                           (self._element_counts[0] - self._trans_count))
-                        x, d1, d2, d3 = parameters
-                        x = [x[0], -x[1], -x[2]]
-                        d2 = [-d2[0], d2[1], d2[2]] if d2 else None
-                        if box and not bottom_transition:
-                            d1 = [d1[0], -d1[1], -d1[2]]
-                            d3 = [-d3[0], d3[1], d3[2]]
-                        else:
-                            d1 = [-d1[0], d1[1], d1[2]] if d1 else None
-                            d3 = [d3[0], -d3[1], -d3[2]] if d3 else None
-                        bottom_nx_row[n1] = [x, d1, d2, d3]
-
-    def _build_ellipsoid_octant(self, half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians):
+    def build_octant(self, half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians):
         """
         Get coordinates of top, right, front octant with supplied angles.
         :param half_counts: Numbers of elements across octant 1, 2 and 3 directions.
@@ -434,158 +309,114 @@ class EllipsoidMesh:
 
         return octant
 
+    def merge_octant(self, octant: HexTetrahedronMesh, quadrant: int):
+        """
+        Merge octant parameters into ellipsoid in one of the 4 quadrants on +axis1.
+        :param octant: HexTetrahedronMesh
+        :param quadrant: 0 for +axis2, +axis3 increasing anticlockwise around +axis1 up to 3.
+        """
+        assert 0 <= quadrant <= 3
+        half_counts = [count // 2 for count in self._element_counts]
+        axis_counts = octant.get_axis_counts()
+        even_quadrant = quadrant in (0, 2)
+        if even_quadrant:
+            assert half_counts == axis_counts
+        else:
+            assert half_counts == [axis_counts[0], axis_counts[2], axis_counts[1]]
+        obox_counts = octant.get_box_counts()
+        # box_counts = [half_counts[i] - self._trans_count for i in range(3)]
+        octant_parameters = octant.get_parameters()
+
+        for o3 in range(axis_counts[2] + 1):
+            for o2 in range(axis_counts[1] + 1):
+                ox_row = octant_parameters[o3][o2]
+                if even_quadrant:
+                    if quadrant == 0:
+                        n3 = half_counts[2] + o3
+                        n2 = half_counts[1] + o2
+                    else:  # quadrant == 2:
+                        n3 = half_counts[2] - o3
+                        n2 = half_counts[1] - o2
+                else:
+                    if quadrant == 1:
+                        n3 = half_counts[2] + o2
+                        n2 = half_counts[1] - o3
+                    else:  # if quadrant == 3:
+                        n3 = half_counts[2] - o2
+                        n2 = half_counts[1] + o3
+                transition3 = (n3 < self._trans_count) or (n3 > (self._element_counts[2] - self._trans_count))
+                transition2 = (n2 < self._trans_count) or (n2 > (self._element_counts[1] - self._trans_count))
+                # bottom_transition = n3 < self._trans_count
+                nx_row = self._nx[n3][n2]
+                obox_row = (o3 <= obox_counts[2]) and (o2 <= obox_counts[1])
+                for o1 in range(axis_counts[0] + 1):
+                    n1 = half_counts[0] + o1
+                    transition1 = n1 > (self._element_counts[0] - self._trans_count)
+                    obox = obox_row and (o1 <= obox_counts[0])
+                    ox = ox_row[o1]
+                    if ox and ox[0]:
+                        x = copy.copy(ox[0])
+                        perm = None
+                        if even_quadrant:
+                            if quadrant == 0:
+                                perm = [1, 2, 3]
+                            else:  # quadrant == 2:
+                                perm = [1, -2, -3] if obox else [-1, -2, 3]
+                        else:
+                            if obox:
+                                perm = [1, -3, 2]
+                            elif transition3:
+                                if transition2:
+                                    if transition1:
+                                        # fix 3-way point
+                                        ox = [ox[0], ox[1], add(ox[1], ox[2]), ox[3]]
+                                    perm = [1, 2, 3]
+                                else:
+                                    perm = [-1, -2, 3]
+                            else:
+                                if transition1 and not transition2:
+                                    perm = [-2, 1, 3]
+                                else:
+                                    perm = [1, 2, 3]
+                            if quadrant == 3:
+                                perm = [perm[0], -perm[1], -perm[2]] if obox else [-perm[0], -perm[1], perm[2]]
+                        d1, d2, d3 = [copy.copy(ox[i]) if (i > 0) else [-d for d in ox[-i]] for i in perm]
+                        new_nx = [x, d1, d2, d3]
+                        # merge:
+                        nx = nx_row[n1]
+                        for i in range(4):
+                            d = new_nx[i]
+                            if i and nx[i]:
+                                # blend derivatives with harmonic mean magnitude; should already be in same direction
+                                d = linearlyInterpolateVectors(
+                                    nx[i], d, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
+                            nx[i] = d
+
+    def copy_to_negative_axis1(self):
+        """
+        Copy parameters from +axis1 to -axis1.
+        """
+        half_counts0 = self._element_counts[0] // 2
+        for n3 in range(self._element_counts[2] + 1):
+            nx_layer = self._nx[n3]
+            for n2 in range(self._element_counts[1] + 1):
+                nx_row = nx_layer[n2]
+                for n1 in range(half_counts0 + 1, self._element_counts[0] + 1):
+                    nx = self._nx[n3][n2][n1]
+                    if nx and nx[0]:
+                        x, d1, d2, d3 = nx
+                        x = [-x[0], x[1], x[2]]
+                        d1 = [d1[0], -d1[1], -d1[2]] if d1 else None
+                        d2 = [-d2[0], d2[1], d2[2]] if d2 else None
+                        d3 = [-d3[0], d3[1], d3[2]] if d3 else None
+                        nx_row[self._element_counts[0] - n1] = [x, d1, d2, d3]
+
     def _next_increment_out_of_bounds(self, indexes, index_increment):
         for c in range(3):
             index = indexes[c] + index_increment[c]
             if (index < 0) or (index > self._element_counts[c]):
                 return True
         return False
-
-    def _set_coordinates_around_rim(self, parameters, parameter_indexes, start_indexes, index_increments,
-                                    skip_start=False, skip_end=False,
-                                    blend_start=False, blend_middle=False, blend_end=False):
-        """
-        Insert parameters around the rim into the coordinates array.
-        :param parameters: List of lists of N node parameters e.g. [px, pd1, pd2]
-        :param parameter_indexes: Lists of parameter indexes where x=0, d1=1, d2=2, d3=3. Starts with first and
-        advances after each corner, then cycles back to first. Can be negative to invert vector.
-        e.g. [[0, 1, 2], [0, -2, 1]] for [x, d1, d2] then [x, -d2, d1] after first corner.
-        :param start_indexes: Index of first point.
-        :param index_increments: List of increments in indexes. Starts with first and after at each corner, then
-        cycles back to first.
-        :param skip_start: Set to True to skip the first value.
-        :param skip_end: Set to True to skip the last value.
-        :param blend_start: Set to True to blend parameters with any old parameters at start location.
-        :param blend_middle: Set to True to blend parameters with any old parameters at middle locations.
-        :param blend_end: Set to True to blend parameters with any old parameters at end location.
-        """
-        indexes = start_indexes
-        parameter_number = 0
-        parameter_index = parameter_indexes[0]
-        increment_number = 0
-        index_increment = index_increments[0]
-        start_n = 1 if skip_start else 0
-        last_n = len(parameters[0]) - 1
-        limit_n = len(parameters[0]) - (1 if skip_end else 0)
-        for n in range(start_n, limit_n):
-            if n > 0:
-                while True:
-                    indexes = [indexes[c] + index_increment[c] for c in range(3)]
-                    # skip over blank transition coordinates
-                    if self._nx[indexes[2]][indexes[1]][indexes[0]]:
-                        break
-            if self._next_increment_out_of_bounds(indexes, index_increment):
-                parameter_number += 1
-                if parameter_number == len(parameter_indexes):
-                    parameter_number = 0
-                parameter_index = parameter_indexes[parameter_number]
-                increment_number += 1
-                if increment_number == len(index_increments):
-                    increment_number = 0
-                index_increment = index_increments[increment_number]
-            nx = self._nx[indexes[2]][indexes[1]][indexes[0]]
-            for parameter, spix in zip(parameters, parameter_index):
-                new_parameter = [-d for d in parameter[n]] if (spix < 0) else copy.copy(parameter[n])
-                pix = abs(spix)
-                if nx[pix] and ((blend_start and (n == 0)) or (blend_middle and (0 < n < last_n)) or
-                        (blend_end and (n == last_n))):
-                    if pix == 0:
-                        # for fairness, move to surface before blending
-                        new_parameter = moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, new_parameter)
-                        new_parameter = [0.5 * (nx[pix][c] + new_parameter[c]) for c in range(3)]
-                    else:
-                        # harmonic mean to cope with significant element size differences on boundary
-                        new_parameter = linearlyInterpolateVectors(
-                            nx[pix], new_parameter, 0.5, magnitudeScalingMode=DerivativeScalingMode.HARMONIC_MEAN)
-                nx[pix] = new_parameter
-
-    def _smooth_derivatives_around_rim(self, start_indexes, end_indexes, index_increments,
-                                       derivative_indexes, end_derivative_index,
-                                       fix_start_direction=True, fix_end_direction=True,
-                                       blend_start=False, blend_end=False):
-        """
-        Smooth derivatives around the rim in the coordinates array.
-        :param start_indexes: Indexes of first point.
-        :param end_indexes: Indexes of last point.
-        :param index_increments: List of increments in indexes. Starts with first and after at each corner, then
-        cycles back to first.
-        :param derivative_indexes: List of signed derivative parameter index to along where d1=1, d2=2, d3=3.
-        Starts with first and advances after each corner, then cycles back to first. Can be negative to invert vector.
-        e.g. [1, -2] for d1 then -d2 after first corner.
-        :param end_derivative_index: List of signed derivative indexes to apply on the last point
-        e.g. [1, -2] gives d1 - d2.
-        :param fix_start_direction: Set to True to keep the start direction but scale its magnitude.
-        :param fix_end_direction: Set to True to keep the end direction but scale its magnitude.
-        :param blend_start: Set to True to 50:50 blend parameters with any old parameters at start location.
-        :param blend_end: Set to True to 50:50 blend parameters with any old parameters at end location.
-        """
-        indexes = start_indexes
-        derivative_number = 0
-        derivative_index = derivative_indexes[0]
-        increment_number = 0
-        index_increment = index_increments[0]
-        indexes_list = []
-        derivative_index_list = []
-        px = []
-        pd = []
-        n = 0
-        while True:
-            if n > 0:
-                if indexes == end_indexes:
-                    break
-                while True:
-                    indexes = [indexes[c] + index_increment[c] for c in range(3)]
-                    # skip over blank transition coordinates
-                    if self._nx[indexes[2]][indexes[1]][indexes[0]]:
-                        break
-            if self._next_increment_out_of_bounds(indexes, index_increment):
-                derivative_number += 1
-                if derivative_number == len(derivative_indexes):
-                    derivative_number = 0
-                derivative_index = derivative_indexes[derivative_number]
-                increment_number += 1
-                if increment_number == len(index_increments):
-                    increment_number = 0
-                index_increment = index_increments[increment_number]
-            parameters = self._nx[indexes[2]][indexes[1]][indexes[0]]
-            x = parameters[0]
-            use_derivative_index = end_derivative_index if (indexes == end_indexes) else [derivative_index]
-            indexes_list.append(copy.copy(indexes))
-            derivative_index_list.append(copy.copy(use_derivative_index))
-            d = [0.0, 0.0, 0.0]
-            for i in range(len(use_derivative_index)):
-                spix = use_derivative_index[i]
-                pix = abs(spix)
-                values = parameters[pix]
-                if values:
-                    if spix < 0:
-                        values = [-ad for ad in values]
-                    d = add(d, values)
-            px.append(x)
-            pd.append(d)
-            n += 1
-        sd = smoothCubicHermiteDerivativesLine(
-            px, pd, fixStartDirection=fix_start_direction, fixEndDirection=fix_end_direction,
-            fixEndDerivative=len(end_derivative_index) > 1)
-        for n in range(len(sd)):
-            sd[n] = moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, px[n], sd[n])
-        sd = smoothCubicHermiteDerivativesLine(
-            px, sd, fixAllDirections=True, fixEndDerivative=len(end_derivative_index) > 1)
-        last_n = len(sd) - 1
-        for n in range(len(sd)):
-            indexes = indexes_list[n]
-            derivative_index = derivative_index_list[n]
-            parameters = self._nx[indexes[2]][indexes[1]][indexes[0]]
-            if len(derivative_index) == 1:
-                spix = derivative_index[0]
-                new_derivative = [-d for d in sd[n]] if (spix < 0) else sd[n]
-                pix = abs(spix)
-                if parameters[pix] and (blend_start and (n == 0)) or (blend_end and (n == last_n)):
-                    new_derivative = linearlyInterpolateVectors(parameters[pix], new_derivative, 0.5)
-                parameters[pix] = new_derivative
-            # else:
-            #     # not putting back values if summed parameters
-
 
     def _get_nid_to_node_layout_map_3d(self, node_layout_manager):
         """

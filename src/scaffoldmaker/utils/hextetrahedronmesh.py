@@ -32,13 +32,13 @@ class HexTetrahedronMesh:
         assert all((count >= 2) for count in diag_counts)
         # check the faces have valid element counts around them
         max_diag_count0 = axis_counts[0] + axis_counts[1] - 2
-        assert any((diag_counts[0] == diag_count) for diag_count in range(max_diag_count0, 2, -2))
+        assert any((diag_counts[0] == diag_count) for diag_count in range(max_diag_count0, 1, -2))
         max_diag_count1 = axis_counts[0] + axis_counts[2] - 2
-        assert any((diag_counts[1] == diag_count) for diag_count in range(max_diag_count1, 2, -2))
+        assert any((diag_counts[1] == diag_count) for diag_count in range(max_diag_count1, 1, -2))
         max_diag_count2 = axis_counts[1] + axis_counts[2] - 2
-        assert any((diag_counts[2] == diag_count) for diag_count in range(max_diag_count2, 2, -2))
+        assert any((diag_counts[2] == diag_count) for diag_count in range(max_diag_count2, 1, -2))
         max_diag_count3 = diag_counts[0] + diag_counts[1] - 2
-        assert any((diag_counts[2] == diag_count) for diag_count in range(max_diag_count3, 2, -2))
+        assert any((diag_counts[2] == diag_count) for diag_count in range(max_diag_count3, 1, -2))
         self._axis_counts = copy.copy(axis_counts)
         self._diag_counts = copy.copy(diag_counts)
         self._nway_d_factor = nway_d_factor
@@ -81,6 +81,12 @@ class HexTetrahedronMesh:
                 nx_layer.append(nx_row)
                 # print(s)
             self._nx.append(nx_layer)
+
+    def get_axis_counts(self):
+        return self._axis_counts
+
+    def get_box_counts(self):
+        return self._box_counts
 
     def get_parameters(self):
         """
@@ -622,3 +628,19 @@ class HexTetrahedronMesh:
                 self._smooth_derivative_across(
                     [n1, self._box_counts[1] + nt, 0], [n1, 0, self._box_counts[2] + nt],
                     [[0, 0, 1], [0, -1, 0]], [2, -2], fix_start_direction=True, fix_end_direction=True)
+
+    def mirror_yz(self):
+        """
+        Mirror coordinates and derivatives about both y = 0 and z = 0 planes.
+        """
+        for n3 in range(self._axis_counts[2] + 1):
+            nx_layer = self._nx[n3]
+            for n2 in range(self._axis_counts[1] + 1):
+                nx_row = nx_layer[n2]
+                for n1 in range(self._axis_counts[0] + 1):
+                    nx = nx_row[n1]
+                    if nx:
+                        for d in nx:
+                            if d:
+                                d[1] = -d[1]
+                                d[2] = -d[2]
