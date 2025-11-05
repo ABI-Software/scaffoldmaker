@@ -51,8 +51,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Right shoulder flexion degrees"] = 0.0
         options["Left shoulder abduction degrees"] = 10.0
         options["Right shoulder abduction degrees"] = 10.0
-        options["Left elbow flexion degrees"] = 0.0
-        options["Right elbow flexion degrees"] = 0.0
+        options["Left elbow flexion degrees"] = 90.0
+        options["Right elbow flexion degrees"] = 110.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
@@ -72,8 +72,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 10.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left knee flexion degrees"] = 90.0
-        options["Right knee flexion degrees"] = 110.0
+        options["Left knee flexion degrees"] = 0.0
+        options["Right knee flexion degrees"] = 0.0
         options["Left ankle flexion degrees"] = 90.0
         options["Right ankle flexion degrees"] = 90.0
         options["Foot height"] = 1.25
@@ -668,6 +668,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             rotationCoeff = 0.25
             flexionRotFactor = 1*math.sin(elbowJointAngleRadians)     
             jointRotFactor = 1/math.sin(elbowJointAngleRadians/2)
+            d13RotFactor = math.sqrt(2)*math.tan(elbowFlexionRadians/2)
             jointPositions = []
             jointPositions.append(x) # 1
             i += 1
@@ -711,7 +712,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             d12 = set_magnitude(elbowSide, d12_mag)
             d13 = add(
                 set_magnitude(elbowFront, d13_mag), 
-                set_magnitude(d1, -halfWidth*jointRotFactor)
+                set_magnitude(d1, -halfWidth*d13RotFactor)
                 )
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
@@ -860,9 +861,10 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             lowerLegFront = cross(lowerLegDirn, lowerLegSide)
             # These rotation factors are used to adjust the position of the joint node relative 
             # to the angle of flexion, and ensures a proper transition between the two parts
-            rotationCoeff = 0.3
+            rotationCoeff = 0.25
             flexionRotFactor = 1*math.sin(kneeJointAngleRadians)     
             jointRotFactor = 1/math.sin(kneeJointAngleRadians/2)
+            d13RotFactor = math.sqrt(2)*math.tan(kneeFlexionRadians/2)
             jointPositions = []
             jointPositions.append(x) #1
             i += 1
@@ -901,14 +903,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             d1 = jointDirn[1]
             kneeFront = cross(d1, d2)
             d2 = set_magnitude(kneeSide, radius)
-            d3 = set_magnitude(kneeFront, radius*(jointRotFactor-(rotationCoeff*flexionRotFactor)))
+            d3 = set_magnitude(kneeFront, radius*(jointRotFactor-(0.35*flexionRotFactor)))
             d12 = set_magnitude(kneeSide, d12_mag)
-            d13 = set_magnitude(d1, legScale/jointRotFactor)
-            
-            # d13 = add(
-            #     set_magnitude(kneeFront, d13_mag), 
-            #     set_magnitude(d1, 1.1*radius*jointRotFactor)
-            #     )
+            d13 = add(
+                set_magnitude(d3, d13_mag),
+                set_magnitude(d1, radius*d13RotFactor)
+            )
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
             id12 = mult(d12, innerProportionDefault)
@@ -949,54 +949,125 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             ankleJointAngleRadians = math.pi - ankleFlexionRadians
             ankleRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleFlexionRadians))
             ankleHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), (ankleFlexionRadians/2))
-            # The d3 direction in the ankle node is rotated by half this angle 
-            # To ensure a better transition at this node.
-            ankleDirn = matrix_vector_mult(ankleRotationMatrix, d1)
-            ankleSide = d2
-            ankleFront = cross(ankleDirn, ankleSide)
-            footDirn = ankleDirn
-            footSide = d2 
-            footFront = matrix_vector_mult(ankleHalfRotationMatrix, d3)
-            footd1 = footDirn
-            footd2 = set_magnitude(footSide, halfFootWidth)
-            footd3 = footFront
-            # This rotation factor is used to adjust 'fatten' the d3 direction at the ankle node
-            # As well as adjusting the position of the node depending on the 
-            # angle of flexion, and ensures a proper transition between lower leg and the foot
-            rotationFactor = 2.0*math.sin(ankleFlexionRadians)*(math.sqrt(2)- 1)
-            ankleThickness = halfFootThickness/math.sin(ankleJointAngleRadians/2)
+            # Calculating initial estimation for directions at the elbow node
+            ankleDirn = matrix_vector_mult(ankleHalfRotationMatrix, d1)
+            ankleSide = legSide
+            ankleFront = matrix_vector_mult(ankleHalfRotationMatrix, d3)
+            # Calculating directions for the lower leg
+            footDirn = matrix_vector_mult(ankleRotationMatrix, d1)
+            footSide = legSide 
+            footFront = matrix_vector_mult(ankleRotationMatrix, d3)
+            # These rotation factors are used to adjust the position of the joint node relative 
+            # to the angle of flexion, and ensures a proper transition between the two parts
+            rotationCoeff = 0.2
+            flexionRotFactor = 1*math.sin(ankleJointAngleRadians)     
+            jointRotFactor = 1/math.sin(ankleJointAngleRadians/2)  
+            d13RotFactor = math.sqrt(2)*math.tan(ankleFlexionRadians/2)
+            jointPositions = []
+            jointPositions.append(x) #1
+            i += 1
+            radius = halfFootThickness + legBottomRadius
+            # radius = legbohalfFootThickness
+            jointAdjustDir = add(
+                    set_magnitude(ankleFront, rotationCoeff*radius*flexionRotFactor), 
+                    set_magnitude(footDirn, rotationCoeff*radius*flexionRotFactor), 
+                )
+            jointAdjustDir = add(
+                set_magnitude(lowerLegDirn, 0.8*footHeight), 
+                jointAdjustDir
+            )
+            jointAdjustDir = set_magnitude(jointAdjustDir, 0.8*footHeight)
+            jointPositions.append(add(x, jointAdjustDir)) # 2
+            # radius = halfFootThickness
+            jointAdjustDir = add(
+                    set_magnitude(ankleDirn, rotationCoeff*radius*flexionRotFactor), 
+                    set_magnitude(lowerLegDirn, rotationCoeff*radius*flexionRotFactor), 
+                )
+            jointAdjustDir =  add(
+                set_magnitude(lowerLegDirn, 0.8*footHeight), 
+                jointAdjustDir
+                )
+            jointAdjustDir =  add(
+                set_magnitude(footDirn, footLength), 
+                jointAdjustDir
+                )
+            jointAdjustDir = set_magnitude(jointAdjustDir, footLength)
+            jointPositions.append(add(jointPositions[0], jointAdjustDir)) #3
+            jointDir = [lowerLegDirn, footDirn, footDirn] 
+            jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
+                jointPositions, jointDir, 2, 
+                derivativeMagnitudeStart=legScale, derivativeMagnitudeEnd=footLength
+                )[0:2]  
+            # Set coordiantes for joint node
+            x = jointPositions[1]
+            d1 = jointDirn[1]
+            # ankleFront = cross(d1, d2)
+            d2 = set_magnitude(ankleSide, halfFootWidth)
+            d3 = set_magnitude(ankleFront, radius*(jointRotFactor-(rotationCoeff*flexionRotFactor)))
+            d12 = set_magnitude(ankleSide, d12_mag)
+            d13 = add(
+                set_magnitude(lowerLegFront, d13_mag), 
+                set_magnitude(d3, -radius*d13RotFactor)
+            )
+            id2 = mult(d2, innerProportionDefault)
+            id3 = mult(d3, innerProportionDefault)
+            id12 = mult(d12, innerProportionDefault)
+            id13 = mult(d13, innerProportionDefault)
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
+            nodeIdentifier += 1     
+            side_label = 'l' if (side == left) else 'r'
+            options['Kinematic tree']['toes_' + side_label] = x
+            # Foot end node 
+            x = jointPositions[2]
+            d1 = jointDirn[2]
+            d1 = computeCubicHermiteEndDerivative(jointPositions[1], jointDirn[1], jointPositions[2], jointDirn[2])
+            d2 = set_magnitude(footSide, halfFootWidth)
+            d3 = set_magnitude(footFront, halfFootThickness)
+            d12 = set_magnitude(d2, d12_mag)
+            d13 = set_magnitude(d3, d13_mag)
+            id2 = mult(d2, innerProportionDefault)
+            id3 = mult(d3, innerProportionDefault)
+            id12 = set_magnitude(d12, d12_mag)
+            id13 = set_magnitude(d13, d13_mag)
+            node = nodes.findNodeByIdentifier(nodeIdentifier)
+            fieldcache.setNode(node)
+            setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
+            setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
+            nodeIdentifier += 1
             # This positioning of the food nodes bends edge connecting the leg and the foot 
             # Which allows the scaffold to better capture the shape of the calcaneus
-            anklePosition = add(x, set_magnitude(d1, legScale - 1*rotationFactor*footHeight))
-            fx = [
-                x, 
-                add(anklePosition, set_magnitude(footd1, 0)), 
-                add(anklePosition, set_magnitude(footd1, footLength - legBottomRadius)), 
+            # anklePosition = add(x, set_magnitude(d1, legScale - 1*rotationFactor*footHeight))
+            # fx = [
+            #     x, 
+            #     add(anklePosition, set_magnitude(footd1, 0)), 
+            #     add(anklePosition, set_magnitude(footd1, footLength - legBottomRadius)), 
 
-            ]
-            fd1 = [d1, set_magnitude(footd1, 0.5*footLength), set_magnitude(footd1, 0.5*footLength)]
-            fd1 = smoothCubicHermiteDerivativesLine(
-                fx, fd1, fixAllDirections=True, fixStartDerivative=True
-                )
-            fd2 = [d2, footd2, footd2]
-            fd3 = [d3,
-                    set_magnitude(footd3, ankleThickness + legBottomRadius),
-                   set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)
-            ]
-            fd12 = sub(fd2[2], fd2[1])
-            fd13 = sub(fd3[2], fd3[1]) 
-            fid12 = mult(fd12, innerProportionDefault)
-            fid13 = mult(fd13, innerProportionDefault)
-            for i in range(1, 3):
-                node = nodes.findNodeByIdentifier(nodeIdentifier)
-                fieldcache.setNode(node)
-                setNodeFieldParameters(coordinates, fieldcache, fx[i], fd1[i], fd2[i], fd3[i], fd12, fd13)
-                fid2 = mult(fd2[i], innerProportionDefault)
-                fid3 = mult(fd3[i], innerProportionDefault)
-                setNodeFieldParameters(innerCoordinates, fieldcache, fx[i], fd1[i], fid2, fid3, fid12, fid13)
-                nodeIdentifier += 1
-            side_label = 'l' if (side == left) else 'r'
-            options['Kinematic tree']['toes_' + side_label] = fx[i]
+            # ]
+            # fd1 = [d1, set_magnitude(footd1, 0.5*footLength), set_magnitude(footd1, 0.5*footLength)]
+            # fd1 = smoothCubicHermiteDerivativesLine(
+            #     fx, fd1, fixAllDirections=True, fixStartDerivative=True
+            #     )
+            # fd2 = [d2, footd2, footd2]
+            # fd3 = [d3,
+            #         set_magnitude(footd3, ankleThickness + legBottomRadius),
+            #        set_magnitude(cross(fd1[2], fd2[2]), halfFootThickness)
+            # ]
+            # fd12 = sub(fd2[2], fd2[1])
+            # fd13 = sub(fd3[2], fd3[1]) 
+            # fid12 = mult(fd12, innerProportionDefault)
+            # fid13 = mult(fd13, innerProportionDefault)
+            # for i in range(1, 3):
+            #     node = nodes.findNodeByIdentifier(nodeIdentifier)
+            #     fieldcache.setNode(node)
+            #     setNodeFieldParameters(coordinates, fieldcache, fx[i], fd1[i], fd2[i], fd3[i], fd12, fd13)
+            #     fid2 = mult(fd2[i], innerProportionDefault)
+            #     fid3 = mult(fd3[i], innerProportionDefault)
+            #     setNodeFieldParameters(innerCoordinates, fieldcache, fx[i], fd1[i], fid2, fid3, fid12, fid13)
+            #     nodeIdentifier += 1
+            
 
         return annotationGroups, networkMesh
 
