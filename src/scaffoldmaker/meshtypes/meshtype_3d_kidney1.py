@@ -338,7 +338,7 @@ class MeshType_3d_kidney1(Scaffold_base):
         if options["Number of elements around"] < 8:
             options["Number of elements around"] = 8
         elif options["Number of elements around"] % 4:
-            options["Number of elements around"] += 4 - (options["Elements count around"] % 4)
+            options["Number of elements around"] += 4 - (options["Number of elements around"] % 4)
 
         if options["Number of elements through shell"] < 1:
             options["Number of elements through shell"] = 1
@@ -346,7 +346,7 @@ class MeshType_3d_kidney1(Scaffold_base):
         if options["Number of elements across core transition"] < 1:
             options["Number of elements across core transition"] = 1
 
-        minElementsCountAround = options["Elements count around"]
+        minElementsCountAround = options["Number of elements around"]
         maxElementsCountCoreBoxMinor = minElementsCountAround // 2 - 2
         if options["Number of elements across core box minor"] < 2:
             options["Number of elements across core box minor"] = 2
@@ -356,7 +356,7 @@ class MeshType_3d_kidney1(Scaffold_base):
         elif options["Number of elements across core box minor"] % 2:
             options["Number of elements across core box minor"] += options["Number of elements across core box minor"] % 2
 
-        annotationElementsCountsAround = options["Annotation elements counts around"]
+        annotationElementsCountsAround = options["Annotation numbers of elements around"]
         if len(annotationElementsCountsAround) == 0:
             options["Annotation numbers of elements around"] = [0]
         else:
