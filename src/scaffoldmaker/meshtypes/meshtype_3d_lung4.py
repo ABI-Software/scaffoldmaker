@@ -9,9 +9,10 @@ from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCrea
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
-from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh
+from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh, EllipsoidSurfaceD3Mode
 from scaffoldmaker.utils.zinc_utils import translate_nodeset_coordinates
 
+import copy
 import math
 
 
@@ -257,6 +258,78 @@ class MeshType_3d_lung4(Scaffold_base):
         leftLung, rightLung = 0, 1
         lungs = [lung for show, lung in [(isLeftLung, leftLung), (isRightLung, rightLung)] if show]
         nodeIdentifier, elementIdentifier = 1, 1
+
+        elementCounts = [elementsCountLateral, elementsCountOblique, elementsCountOblique]
+        lower_ellipsoid = EllipsoidMesh(halfDepth, halfBreadth, halfHeight, elementCounts, elementsCountTransition)
+        lower_ellipsoid.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
+        upper_ellipsoid = EllipsoidMesh(halfDepth, halfBreadth, halfHeight, elementCounts, elementsCountTransition)
+        upper_ellipsoid.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
+        pi__3 = math.pi / 3.0
+        normal_face_factor = 1.0
+        half_counts = [count // 2 for count in elementCounts]
+        octant1 = upper_ellipsoid.build_octant(half_counts, -pi__3, 0.0, normal_face_factor=normal_face_factor)
+        upper_ellipsoid.merge_octant(octant1, quadrant=3)
+        hilum_x = []
+        ox = octant1.get_parameters()
+        box_count1 = octant1.get_box_counts()[0]
+        for n1 in range(elementCounts[0] + 1):
+            mirror_x = n1 < half_counts[0]
+            o1 = abs(n1 - half_counts[0])
+            parameters = ox[0][0][o1]
+            obox = o1 <= box_count1
+            parameters = [
+                copy.copy(parameters[0]),
+                copy.copy(parameters[3 if obox else 2]),
+                [-d for d in parameters[2 if obox else 1]],
+                copy.copy(parameters[1 if obox else 3])
+            ]
+            if mirror_x:
+                for i in range(3):
+                    parameters[i][0] = -parameters[i][0]
+            hilum_x.append(parameters)
+
+        octant2 = upper_ellipsoid.build_octant(half_counts, 0.0, pi__3, normal_face_factor=normal_face_factor)
+        upper_ellipsoid.merge_octant(octant2, quadrant=0)
+        octant3 = upper_ellipsoid.build_octant(half_counts, pi__3, 2.0 * pi__3, normal_face_factor=normal_face_factor)
+        upper_ellipsoid.merge_octant(octant3, quadrant=1)
+        upper_ellipsoid.copy_to_negative_axis1()
+
+        lower_lobe_extension = 0.6 * halfHeight / math.cos(math.pi / 6.0)
+        lower_lobe_extension_elements_count = 2
+        octant4 = lower_ellipsoid.build_octant(half_counts, 2.0 * pi__3, math.pi,
+                                               lower_lobe_extension, lower_lobe_extension_elements_count,
+                                               normal_face_factor=normal_face_factor)
+        # merge into separate lower ellipsoid to have space for extension elements
+        lower_ellipsoid_mesh = EllipsoidMesh(
+            halfDepth, halfBreadth, halfHeight,
+            [elementCounts[0], elementCounts[1], elementCounts[2] + 2 * lower_lobe_extension_elements_count],
+            elementsCountTransition)
+        lower_ellipsoid_mesh.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
+        lower_ellipsoid_mesh.merge_octant(octant4, quadrant=1)
+        lower_ellipsoid_mesh.copy_to_negative_axis1()
+
+        node_layout_manager = lower_ellipsoid.get_node_layout_manager()
+        node_layout_permuted = node_layout_manager.getNodeLayoutRegularPermuted(d3Defined=True)
+        for n1 in range(elementCounts[0] + 1):
+            lower_ellipsoid_mesh.set_node_parameters(
+                n1, half_counts[1], elementCounts[2] + 2 * lower_lobe_extension_elements_count - half_counts[2], hilum_x[n1],
+                node_layout=node_layout_permuted)
+        nodeIdentifier, elementIdentifier = lower_ellipsoid_mesh.generate_mesh(
+            fieldmodule, coordinates, nodeIdentifier, elementIdentifier)
+
+        node_layout_manager = upper_ellipsoid.get_node_layout_manager()
+        node_layout_6way = node_layout_manager.getNodeLayout6Way12(d3Defined=True)
+        for n1 in range(elementCounts[0] + 1):
+            nid = lower_ellipsoid_mesh.get_node_identifier(
+                n1, half_counts[1], elementCounts[2] + 2 * lower_lobe_extension_elements_count - half_counts[2]) if (n1 >= half_counts[0]) else None
+            upper_ellipsoid.set_node_parameters(n1, half_counts[1], half_counts[2], hilum_x[n1],
+                                                nid, node_layout=node_layout_6way)
+        nodeIdentifier, elementIdentifier = upper_ellipsoid.generate_mesh(
+            fieldmodule, coordinates, nodeIdentifier, elementIdentifier)
+
+        return annotationGroups, None
+
+
         for lung in lungs:
             oblique_slope_radians = left_oblique_slope_radians if lung == leftLung else right_oblique_slope_radians
             axis2_x_rotation_radians = -oblique_slope_radians

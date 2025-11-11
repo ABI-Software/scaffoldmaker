@@ -1,7 +1,7 @@
 """
 Utilities for building solid ellipsoid meshes from hexahedral elements.
 """
-from cmlibs.maths.vectorops import add, cross, div, magnitude, mult, set_magnitude, sub
+from cmlibs.maths.vectorops import add, cross, div, dot, magnitude, mult, normalize, rejection, set_magnitude, sub
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
@@ -9,7 +9,7 @@ from cmlibs.zinc.node import Node
 from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager
 from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
-    moveDerivativeToEllipsoidSurface, sampleCurveOnEllipsoid)
+    moveDerivativeToEllipsoidSurface, moveDerivativeToEllipsoidSurfaceInPlane, sampleCurveOnEllipsoid)
 from scaffoldmaker.utils.interpolation import (
     DerivativeScalingMode, get_nway_point, linearlyInterpolateVectors, sampleHermiteCurve,
     smoothCubicHermiteDerivativesLine)
@@ -23,6 +23,7 @@ import math
 class EllipsoidSurfaceD3Mode(Enum):
     SURFACE_NORMAL = 1  # surface D3 are exact surface normals to ellipsoid
     OBLIQUE_DIRECTION = 2  # surface D3 are in direction of surface point on ellipsoid, gives flat oblique planes
+    SURFACE_NORMAL_PLANE_PROJECTION = 3  # Surface D3 are surface normals to ellipsoid projected onto planes from axis2 to axis3
 
 
 class EllipsoidMesh:
@@ -30,16 +31,13 @@ class EllipsoidMesh:
     Generates a solid ellipsoid of hexahedral elements with oblique cross axes suited to describing lung geometry.
     """
 
-    def __init__(self, a, b, c, element_counts, transition_element_count,
-                 axis2_x_rotation_radians, axis3_x_rotation_radians, surface_only=False):
+    def __init__(self, a, b, c, element_counts, transition_element_count, surface_only=False):
         """
         :param a: Axis length (radius) in x direction.
         :param b: Axis length (radius) in y direction.
         :param c: Axis length (radius) in z direction.
         :param element_counts: Number of elements across full ellipse in a, b, c.
         :param transition_element_count: Number of transition elements around outside >= 1.
-        :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
-        :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
         :param surface_only: Set to True to only make nodes and 2-D elements on the surface.
         """
         assert all((count >= 4) and (count % 2 == 0) for count in element_counts)
@@ -49,8 +47,6 @@ class EllipsoidMesh:
         self._c = c
         self._element_counts = element_counts
         self._trans_count = transition_element_count
-        self._axis2_x_rotation_radians = axis2_x_rotation_radians
-        self._axis3_x_rotation_radians = axis3_x_rotation_radians
         self._surface_only = surface_only
         self._nway_d_factor = 0.6
         self._surface_d3_mode = EllipsoidSurfaceD3Mode.SURFACE_NORMAL
@@ -96,6 +92,8 @@ class EllipsoidMesh:
                 # print(s)
             self._nx.append(nx_layer)
             self._nids.append(nids_layer)
+        self._node_layout_manager = HermiteNodeLayoutManager()
+        self._prescribed_node_layouts = []  # list of (n1, n2, n3, node_layout)
 
     def set_box_transition_groups(self, box_group, transition_group):
         """
@@ -133,53 +131,74 @@ class EllipsoidMesh:
         """
         self._surface_d3_mode = surface_d3_mode
 
-    def build(self):
+    def build(self, axis2_x_rotation_radians, axis3_x_rotation_radians):
         """
         Determine coordinates and derivatives over and within the full ellipsoid.
+        :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
+        :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
         """
         half_counts = [count // 2 for count in self._element_counts]
 
-        octant1 = self.build_octant(half_counts, self._axis2_x_rotation_radians, self._axis3_x_rotation_radians)
+        octant1 = self.build_octant(half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians)
         self.merge_octant(octant1, quadrant=0)
         octant1.mirror_yz()
         self.merge_octant(octant1, quadrant=2)
 
         octant2 = self.build_octant([half_counts[0], half_counts[2], half_counts[1]],
-                                    self._axis3_x_rotation_radians, self._axis2_x_rotation_radians + math.pi)
+                                    axis3_x_rotation_radians, axis2_x_rotation_radians + math.pi)
         self.merge_octant(octant2, quadrant=1)
         octant2.mirror_yz()
         self.merge_octant(octant2, quadrant=3)
 
         self.copy_to_negative_axis1()
 
-    def build_octant(self, half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians):
+    def build_octant(self, half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians,
+                     axis2_extension=0.0, axis2_extension_elements_count=0, normal_face_factor=0.0):
         """
         Get coordinates of top, right, front octant with supplied angles.
         :param half_counts: Numbers of elements across octant 1, 2 and 3 directions.
         :param axis2_x_rotation_radians: Rotation of axis 2 about +x direction
         :param axis3_x_rotation_radians: Rotation of axis 3 about +x direction.
+        :param axis2_extension: Extension distance along axis2 beyond origin [0.0, 0.0, 0.0].
+        :param axis2_extension_elements_count: If axis2_extension: number of elements beyond origin.
+        Note: included in half_counts[1].
+        :param normal_face_factor: 0.0 for interpolated face normals, up to 1.0 for fully normal to axis surface.
         :return: HexTetrahedronMesh
         """
-        elements_count_q12 = half_counts[0] + half_counts[1] - 2 * self._trans_count
-        elements_count_q13 = half_counts[0] + half_counts[2] - 2 * self._trans_count
-        elements_count_q23 = half_counts[1] + half_counts[2] - 2 * self._trans_count
+        assert ((axis2_extension == 0.0) and (axis2_extension_elements_count == 0)) or (
+                (axis2_extension > 0.0) and (0 < axis2_extension_elements_count))
         box_counts = [half_counts[i] - self._trans_count for i in range(3)]
 
+        cos_axis2 = math.cos(axis2_x_rotation_radians)
+        sin_axis2 = math.sin(axis2_x_rotation_radians)
         origin = [0.0, 0.0, 0.0]
-        axis1 = [self._a, 0.0, 0.0]
+        ext_origin = [0.0, -axis2_extension * cos_axis2, -axis2_extension * sin_axis2]
+        ext_axis1 = axis1 = [self._a, 0.0, 0.0]
         axis2 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis2_x_rotation_radians)
-        axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians)
+        axis2_normal = normalize([0.0, axis2[2], -axis2[1]])
+        ext_axis3 = axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians)
+        axis3_normal = normalize([0.0, axis3[2], -axis3[1]])
+        if axis2_extension_elements_count:
+            assert axis2_extension < magnitude(axis2)  # extension must not go outside ellipsoid
+            xb, xa = getEllipsePointAtTrueAngle(magnitude(axis2), self._a, math.pi / 2.0, [-axis2_extension, 0.0])
+            ext_axis1 = [xa, xb * cos_axis2, xb * sin_axis2]
+            ext_axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians, ext_axis1[1:])
+
         axis_d1 = div(axis1, half_counts[0])
+        ext_axis_d1 = div(sub(ext_axis1, ext_origin), half_counts[0])
         axis_d2 = div(axis2, half_counts[1])
         axis_d3 = div(axis3, half_counts[2])
+        ext_axis_d3 = div(sub(ext_axis3, ext_origin), half_counts[2])
         axis_md1 = [-d for d in axis_d1]
         axis_md2 = [-d for d in axis_d2]
         axis_md3 = [-d for d in axis_d3]
-        # magnitude of most derivatives indicating only direction so magnitude not known
+        ext_axis_md1 = [-d for d in ext_axis_d1]
+
+        # most derivatives indicate only direction, so magnitude not known
         dir_mag = min(magnitude(axis_d1), magnitude(axis_d2), magnitude(axis_d3))
         axis2_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, axis2[1:]), magnitude(axis_d3))
-        axis3_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, axis3[1:]), magnitude(axis_d2))
-        axis3_mdt = [-d for d in axis3_dt]
+        ext_axis3_dt = set_magnitude([0.0] + getEllipseTangentAtPoint(self._b, self._c, ext_axis3[1:]), magnitude(ext_axis_d3))
+        ext_axis3_mdt = [-d for d in ext_axis3_dt]
         axis2_mag = magnitude(axis2)
         axis3_mag = magnitude(axis3)
 
@@ -191,37 +210,77 @@ class EllipsoidMesh:
                 start_weight, end_weight, overweighting, end_transition))
         move_x_to_ellipsoid_surface = lambda x: moveCoordinatesToEllipsoidSurface(self._a, self._b, self._c, x)
         move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
+        def evaluate_surface_d3_ellipsoid_plane(tx, td1, td2):
+            """
+            Restrict d3 to be ellipsoid normal constrained be in plane interpolated from axis_d2 to axis_d3 at tx
+            relative to ext_origin.
+            :return: d3 with magnitude dir_mag.
+            """
+            n = [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)]
+            if dot(tx, axis3_normal) <= 1.0E-5:
+                if dot(tx, axis2_normal) >= -1.0E-5:
+                    return set_magnitude(axis1, dir_mag)
+                else:
+                    plane_normal = [0.0, axis3[2], -axis3[1]]
+            else:
+                plane_normal = [0.0, tx[2], -tx[1]]
+            normal = rejection(n, plane_normal)
+            return set_magnitude(normal, dir_mag)
         if self._surface_d3_mode == EllipsoidSurfaceD3Mode.SURFACE_NORMAL:
             evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(
                 [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)], dir_mag)
-        else:
-            evaluate_surface_d3_ellipsoid = lambda tx, td1, td2: set_magnitude(tx, dir_mag)
+        elif self._surface_d3_mode == EllipsoidSurfaceD3Mode.OBLIQUE_DIRECTION:
+            evaluate_surface_d3_ellipsoid=lambda tx, td1, td2: set_magnitude(tx, dir_mag)
+        else:  # EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION
+            evaluate_surface_d3_ellipsoid = evaluate_surface_d3_ellipsoid_plane
 
+        ext_half_counts = [
+            half_counts[0],
+            half_counts[1] + axis2_extension_elements_count,
+            half_counts[2]
+        ]
         diag_counts = [
             half_counts[0] + half_counts[1] - 2 * self._trans_count,
             half_counts[0] + half_counts[2] - 2 * self._trans_count,
             half_counts[1] + half_counts[2] - 2 * self._trans_count
         ]
-        octant = HexTetrahedronMesh(half_counts, diag_counts, nway_d_factor=self._nway_d_factor)
+        ext_diag_counts = [
+            ext_half_counts[0] + ext_half_counts[1] - 2 * self._trans_count,
+            ext_half_counts[0] + ext_half_counts[2] - 2 * self._trans_count,
+            ext_half_counts[1] + ext_half_counts[2] - 2 * self._trans_count
+        ]
+        octant = HexTetrahedronMesh(ext_half_counts, ext_diag_counts, nway_d_factor=self._nway_d_factor)
 
         # get outside curve from axis 1 to axis 2
         abx, abd1, abd2 = sampleCurveOnEllipsoid(
             self._a, self._b, self._c,
             axis1, axis_d2, axis_d3,
             axis2, axis_md1, axis2_dt,
-            elements_count_q12)
+            diag_counts[0])
+        if axis2_extension_elements_count:
+            end_axis_d3 = moveDerivativeToEllipsoidSurfaceInPlane(
+                self._a, self._b, self._c, ext_axis1, [axis_d3[0], -axis_d3[2], axis_d3[1]], axis_d3)
+            ext_abx, ext_abd1, ext_abd2 = sampleCurveOnEllipsoid(
+                self._a, self._b, self._c,
+                axis1, [-d for d in axis_d2], axis_d3,
+                ext_axis1, None, end_axis_d3,  # axis_d3
+                axis2_extension_elements_count)
+            for i in range(1, axis2_extension_elements_count + 1):
+                abx.insert(0, ext_abx[i])
+                abd1.insert(0, [-d for d in ext_abd1[i]])
+                abd2.insert(0, ext_abd2[i])
         # get outside curve from axis 1 to axis 3
         acx, acd2, acd1 = sampleCurveOnEllipsoid(
             self._a, self._b, self._c,
             abx[0], abd2[0], abd1[0],
-            axis3, axis_md1, axis3_mdt,
-            elements_count_q13)
+            ext_axis3, ext_axis_md1, ext_axis3_mdt,
+            ext_diag_counts[1])
         # get outside curve from axis 2 to axis 3
         bcx, bcd2, bcd1 = sampleCurveOnEllipsoid(
             self._a, self._b, self._c,
             abx[-1], abd2[-1], abd1[-1],
             acx[-1], [-d for d in acd1[-1]], acd2[-1],
-            elements_count_q23)
+            ext_diag_counts[2])
         # fix first/last derivatives
         abd2[0] = acd2[0]
         abd2[-1] = bcd2[0]
@@ -229,7 +288,7 @@ class EllipsoidMesh:
 
         # make outer surface triangle of octant 1
         triangle_abc = QuadTriangleMesh(
-            box_counts[0], box_counts[1], box_counts[2],
+            box_counts[0], box_counts[1] + axis2_extension_elements_count, box_counts[2],
             sample_curve_on_ellipsoid, move_x_to_ellipsoid_surface, move_d_to_ellipsoid_surface, self._nway_d_factor)
         triangle_abc.set_edge_parameters12(abx, abd1, abd2)
         triangle_abc.set_edge_parameters13(acx, acd1, acd2)
@@ -247,16 +306,25 @@ class EllipsoidMesh:
 
             # build interior lines from axis1, axis2, axis3 to origin
             aox, aod2, aod1 = sampleHermiteCurve(
-                axis1, axis_md1, abd1[0], origin, axis_md1, axis_d2, elements_count=half_counts[0])
+                ext_axis1, ext_axis_md1, abd1[0], ext_origin, ext_axis_md1, axis_d2, elements_count=half_counts[0])
             box, bod2, bod3 = sampleHermiteCurve(
                 axis2, axis_md2, bcd2[0], origin, axis_md2, axis_d3, elements_count=half_counts[1])
+            if axis2_extension_elements_count:
+                ext_box, ext_bod2, ext_bod3 = sampleHermiteCurve(
+                    box[-1], bod2[-1], bod3[-1], ext_origin, None, ext_axis_d3,
+                    elements_count=axis2_extension_elements_count)
+                for i in range(1, axis2_extension_elements_count + 1):
+                    box.append(ext_box[i])
+                    bod2.append(ext_bod2[i])
+                    bod3.append(ext_bod3[i])
             bod1 = [abd1[-1]] + [axis_md1] * (len(box) - 1)
             cox, cod2, cod1 = sampleHermiteCurve(
-                axis3, axis_md3, [-d for d in acd1[-1]], origin, axis_md3, axis_md2, elements_count=half_counts[2])
+                ext_axis3, axis_md3, [-d for d in acd1[-1]], ext_origin, axis_md3, bod2[-1],
+                elements_count=half_counts[2])
 
             # make inner surface triangle 1-2-origin
             triangle_abo = QuadTriangleMesh(
-                box_counts[0], box_counts[1], self._trans_count, sampleHermiteCurve,
+                box_counts[0], box_counts[1] + axis2_extension_elements_count, self._trans_count, sampleHermiteCurve,
                 nway_d_factor=self._nway_d_factor)
             abd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in abx]
             triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
@@ -265,7 +333,8 @@ class EllipsoidMesh:
             triangle_abo.set_edge_parameters23(box, bod1, bod2, bod3)
             triangle_abo.build()
             triangle_abo.assign_d3(lambda tx, td1, td2:
-                linearlyInterpolateVectors(axis_d3, axis2_dt, magnitude(tx[1:]) / axis2_mag))
+                linearlyInterpolateVectors(axis_d3, axis2_dt, magnitude(tx[1:]) / axis2_mag)
+                if (dot(tx, axis2) >= 0.0) else axis_d3)
             octant.set_triangle_abo(triangle_abo)
             # extract exact derivatives
             aod1 = triangle_abo.get_edge_parameters13()[1]
@@ -284,14 +353,14 @@ class EllipsoidMesh:
             triangle_aco.set_edge_parameters23(cox, cod3, cod2, cod1)
             triangle_aco.build()
             triangle_aco.assign_d3(lambda tx, td1, td2:
-                linearlyInterpolateVectors(axis_md2, axis3_dt, magnitude(tx[1:]) / axis3_mag))
+                linearlyInterpolateVectors(axis_md2, ext_axis3_dt, magnitude(tx[1:]) / axis3_mag))
             octant.set_triangle_aco(triangle_aco)
             # extract exact derivatives
             cod3 = triangle_aco.get_edge_parameters23()[1]
 
             # make inner surface 2-3-origin
             triangle_bco = QuadTriangleMesh(
-                box_counts[1], box_counts[2], self._trans_count, sampleHermiteCurve,
+                box_counts[1] + axis2_extension_elements_count, box_counts[2], self._trans_count, sampleHermiteCurve,
                 nway_d_factor=self._nway_d_factor)
             bcd3 = [bod2[0]] + [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in bcx[1:-1]] \
                    + [cod2[-1]]
@@ -312,6 +381,7 @@ class EllipsoidMesh:
     def merge_octant(self, octant: HexTetrahedronMesh, quadrant: int):
         """
         Merge octant parameters into ellipsoid in one of the 4 quadrants on +axis1.
+        Octant can be extended into its axis2 over regular elements of ellipsoid.
         :param octant: HexTetrahedronMesh
         :param quadrant: 0 for +axis2, +axis3 increasing anticlockwise around +axis1 up to 3.
         """
@@ -319,10 +389,11 @@ class EllipsoidMesh:
         half_counts = [count // 2 for count in self._element_counts]
         axis_counts = octant.get_axis_counts()
         even_quadrant = quadrant in (0, 2)
-        if even_quadrant:
-            assert half_counts == axis_counts
-        else:
-            assert half_counts == [axis_counts[0], axis_counts[2], axis_counts[1]]
+        assert half_counts[0] == axis_counts[0]
+        ext_count2 = (axis_counts[1] - half_counts[1]) if even_quadrant else 0
+        ext_count3 = 0 if even_quadrant else (axis_counts[1] - half_counts[2])
+        assert 0 <= ext_count2 < (half_counts[1] - self._trans_count)
+        assert 0 <= ext_count3 < (half_counts[2] - self._trans_count)
         obox_counts = octant.get_box_counts()
         # box_counts = [half_counts[i] - self._trans_count for i in range(3)]
         octant_parameters = octant.get_parameters()
@@ -332,18 +403,18 @@ class EllipsoidMesh:
                 ox_row = octant_parameters[o3][o2]
                 if even_quadrant:
                     if quadrant == 0:
-                        n3 = half_counts[2] + o3
-                        n2 = half_counts[1] + o2
+                        n3 = half_counts[2] + o3 - ext_count3
+                        n2 = half_counts[1] + o2 - ext_count2
                     else:  # quadrant == 2:
-                        n3 = half_counts[2] - o3
-                        n2 = half_counts[1] - o2
+                        n3 = half_counts[2] - o3 + ext_count3
+                        n2 = half_counts[1] - o2 + ext_count2
                 else:
                     if quadrant == 1:
-                        n3 = half_counts[2] + o2
-                        n2 = half_counts[1] - o3
+                        n3 = half_counts[2] + o2 - ext_count3
+                        n2 = half_counts[1] - o3 + ext_count2
                     else:  # if quadrant == 3:
-                        n3 = half_counts[2] - o2
-                        n2 = half_counts[1] + o3
+                        n3 = half_counts[2] - o2 + ext_count3
+                        n2 = half_counts[1] + o3 - ext_count2
                 transition3 = (n3 < self._trans_count) or (n3 > (self._element_counts[2] - self._trans_count))
                 transition2 = (n2 < self._trans_count) or (n2 > (self._element_counts[1] - self._trans_count))
                 # bottom_transition = n3 < self._trans_count
@@ -525,7 +596,37 @@ class EllipsoidMesh:
             nid_to_node_layout[nid] = node_layout_3way12[2]
             nid = self._nids[self._element_counts[2] - nt][self._element_counts[1] - nt][self._element_counts[0] - nt]
             nid_to_node_layout[nid] = node_layout_3way12[3]
+        # add prescribed node layouts
+        for n1, n2, n3, node_layout in self._prescribed_node_layouts:
+            nid = self._nids[n3][n2][n1]
+            nid_to_node_layout[nid] = node_layout
+            print(n1, n2, n3, "node", nid, "layout", node_layout)
         return nid_to_node_layout
+
+    def get_node_layout_manager(self):
+        return self._node_layout_manager
+
+    def get_node_identifier(self, n1, n2, n3):
+        assert 0 <= n1 <= self._element_counts[0]
+        assert 0 <= n2 <= self._element_counts[1]
+        assert 0 <= n3 <= self._element_counts[2]
+        return self._nids[n3][n2][n1]
+
+    def get_node_parameters(self, n1, n2, n3):
+        assert 0 <= n1 <= self._element_counts[0]
+        assert 0 <= n2 <= self._element_counts[1]
+        assert 0 <= n3 <= self._element_counts[2]
+        return self._nx[n3][n2][n1]
+
+    def set_node_parameters(self, n1, n2, n3, parameters, nid=None, node_layout=None):
+        assert 0 <= n1 <= self._element_counts[0]
+        assert 0 <= n2 <= self._element_counts[1]
+        assert 0 <= n3 <= self._element_counts[2]
+        assert self._nx[n3][n2][n1] is not None
+        assert self._nids[n3][n2][n1] is None
+        self._nx[n3][n2][n1] = copy.deepcopy(parameters)
+        self._nids[n3][n2][n1] = nid
+        self._prescribed_node_layouts.append((n1, n2, n3, node_layout))
 
     def generate_mesh(self, fieldmodule, coordinates, start_node_identifier=1, start_element_identifier=1):
         """
@@ -555,6 +656,8 @@ class EllipsoidMesh:
         for n3 in range(self._element_counts[2] + 1):
             for n2 in range(self._element_counts[1] + 1):
                 for n1 in range(self._element_counts[0] + 1):
+                    if self._nids[n3][n2][n1] is not None:
+                        continue  # prescribed node
                     parameters = self._nx[n3][n2][n1]
                     if not parameters:
                         continue
@@ -578,8 +681,8 @@ class EllipsoidMesh:
         mesh_dimension = 2 if self._surface_only else 3
         mesh = fieldmodule.findMeshByDimension(mesh_dimension)
         element_identifier = start_element_identifier
+        # return node_identifier, element_identifier
         half_counts = [count // 2 for count in self._element_counts]
-        node_layout_manager = HermiteNodeLayoutManager()
         octant_mesh_group_lists = None
         if self._octant_group_lists:
             octant_mesh_group_lists = []
@@ -634,8 +737,8 @@ class EllipsoidMesh:
                         element_identifier += 1
                 last_nids_row = nids_row
             # around sides
-            node_layout_permuted = node_layout_manager.getNodeLayoutRegularPermuted(d3Defined=False)
-            node_layout_triple_points = node_layout_manager.getNodeLayoutTriplePoint2D()
+            node_layout_permuted = self._node_layout_manager.getNodeLayoutRegularPermuted(d3Defined=False)
+            node_layout_triple_points = self._node_layout_manager.getNodeLayoutTriplePoint2D()
             index_increments = [[0, 1, 0], [-1, 0, 0], [0, -1, 0], [1, 0, 0]]
             increment_number = 0
             index_increment = index_increments[0]
@@ -749,7 +852,7 @@ class EllipsoidMesh:
             elementtemplate_special.setElementShapeType(Element.SHAPE_TYPE_CUBE)
             box_counts = [half_counts[i] - self._trans_count for i in range(3)]
             dbox_counts = [2 * box_counts[i] for i in range(3)]
-            nid_to_node_layout = self._get_nid_to_node_layout_map_3d(node_layout_manager)
+            nid_to_node_layout = self._get_nid_to_node_layout_map_3d(self._node_layout_manager)
             # bottom transition
             last_nids_layer = None
             last_nx_layer = None
