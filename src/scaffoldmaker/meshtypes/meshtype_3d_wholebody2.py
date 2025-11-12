@@ -67,8 +67,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Torso width"] = 3.2
         options["Pelvis drop"] = 0.8
         options["Pelvis width"] = 2.0
-        options["Left leg abduction degrees"] = 5.0
-        options["Right leg abduction degrees"] = 5.0
+        options["Left leg abduction degrees"] = 10.0
+        options["Right leg abduction degrees"] = 10.0
         options["Left hip flexion degrees"] = 90.0
         options["Right hip flexion degrees"] = 90.0
         options["Leg length"] = 11.0
@@ -79,7 +79,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Left ankle flexion degrees"] = 90.0
         options["Right ankle flexion degrees"] = 90.0
         options["Foot height"] = 1.25
-        options["Foot length"] = 2.5
+        options["Foot length"] = 2.0
         options["Foot thickness"] = 0.3
         options["Foot width"] = 1.0
         options["Inner proportion default"] = 0.7
@@ -276,6 +276,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         handGroup = AnnotationGroup(region, get_body_term("hand"))
         thoraxGroup = AnnotationGroup(region, get_body_term("thorax"))
         abdomenGroup = AnnotationGroup(region, get_body_term("abdomen"))
+        hipGroup = AnnotationGroup(region, get_body_term("hip"))
         legGroup = AnnotationGroup(region, get_body_term("lower limb"))
         legToFootGroup = AnnotationGroup(region, ("leg to foot", ""))
         leftLegGroup = AnnotationGroup(region, get_body_term("left lower limb"))
@@ -288,7 +289,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         rightFootGroup = AnnotationGroup(region, get_body_term("right foot"))
         footGroup = AnnotationGroup(region, get_body_term("foot"))
         annotationGroups = [bodyGroup, headGroup, neckGroup,
-                            thoraxGroup, abdomenGroup,
+                            thoraxGroup, abdomenGroup, hipGroup,
                             leftBrachiumGroup, leftAntebrachiumGroup, leftHandGroup, 
                             rightBrachiumGroup, rightAntebrachiumGroup, rightHandGroup,
                             leftLegGroup, leftUpperLegGroup, leftLowerLegGroup, leftFootGroup,
@@ -369,11 +370,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             for meshGroup in meshGroups:
                 meshGroup.addElement(element)
             elementIdentifier += 1
+        hipElementsCount = humanElementCounts['hipElementsCount']
         upperLegElementsCount = humanElementCounts['upperLegElementsCount']
         lowerLegElementsCount = humanElementCounts['lowerLegElementsCount']
         footElementsCount = humanElementCounts['footElementsCount']
-        legToFootElementsCount = upperLegElementsCount + lowerLegElementsCount
+        legToFootElementsCount = hipElementsCount + upperLegElementsCount + lowerLegElementsCount
         legMeshGroup = legGroup.getMeshGroup(mesh)
+        hipMeshGroup = hipGroup.getMeshGroup(mesh)
         legToFootMeshGroup = legToFootGroup.getMeshGroup(mesh)
         footMeshGroup = footGroup.getMeshGroup(mesh)
         for side in (left, right):
@@ -381,6 +384,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             sideUpperLegGroup = leftUpperLegGroup if (side == left) else rightUpperLegGroup
             sideLowerLegGroup = leftLowerLegGroup if (side == left) else rightLowerLegGroup
             sideFootGroup = leftFootGroup if (side == left) else rightFootGroup
+            # Hip
+            meshGroups = [bodyMeshGroup, legMeshGroup, hipMeshGroup]
+            for e in range(hipElementsCount):
+                element = mesh.findElementByIdentifier(elementIdentifier)
+                for meshGroup in meshGroups:
+                    meshGroup.addElement(element)
+                elementIdentifier += 1
             # Upper leg
             meshGroups = [bodyMeshGroup, legMeshGroup, 
                           sideLegGroup.getMeshGroup(mesh), sideUpperLegGroup.getMeshGroup(mesh)]
@@ -800,9 +810,9 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         # legs
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
         nonFootLegLength = legLength - footHeight
-        legScale = nonFootLegLength / (legToFootElementsCount - 1)
-        d12_mag = (legBottomRadius - legTopRadius) / (armToHandElementsCount - 2)
-        d13_mag = (legBottomRadius - legTopRadius) / (armToHandElementsCount - 2)
+        legScale = nonFootLegLength / (legToFootElementsCount - 1) 
+        d12_mag = (legBottomRadius - legTopRadius) / (legToFootElementsCount)
+        d13_mag = (legBottomRadius - legTopRadius) / (legToFootElementsCount)
         pd3 = [0.0, 0.0, 0.5 * legTopRadius + 0.5 * halfTorsoDepth]
         pid3 = mult(pd3, innerProportionDefault)
         for side in (left, right):
@@ -835,17 +845,21 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             id13 = mult(d13, innerProportionDefault)
             # options['Kinematic tree']['femur_' + side_label] = x
             # Upper leg
-            hipElementsCount = 1
-            for i in range(hipElementsCount):
+            # hipElementsCount = 1
+            for i in range(hipElementsCount-1):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
                 x = add(legStart, mult(d1, i))
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = mult(legSide, radius)
-                d3 = [0.0, 0.0, radius]
+                d3 = mult(legFront, radius)
+                d13 = mult(legFront, d13_mag)
+                d12 = mult(legSide, d12_mag)
                 id2 = mult(d2, innerProportionDefault)
                 id3 = mult(d3, innerProportionDefault)
+                id13 = mult(d13, innerProportionDefault)
+                id12 = mult(d12, innerProportionDefault)
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
@@ -867,7 +881,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             upperLegFront = cross(upperLegDirn, upperLegSide)
             # These rotation factors are used to adjust the position of the joint node relative 
             # to the angle of flexion, and ensures a proper transition between the two parts
-            rotationCoeff = 0.2
+            rotationCoeff = 0.1
             flexionRotFactor = 1*math.sin(hipJointAngleRadians)     
             jointRotFactor = 1/math.sin(hipJointAngleRadians/2)
             d13RotFactor = math.sqrt(2)*math.tan(hipFlexionRadians/2)
@@ -901,21 +915,21 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 )
             jointAdjustDir = set_magnitude(jointAdjustDir, legScale)
             jointPositions.append(add(jointPositions[-1], jointAdjustDir)) #3
-            jointDir = [legDirn, hipDirn, upperLegDirn] 
-            jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
-                jointPositions, jointDir, 2, 
-                derivativeMagnitudeStart=legScale, derivativeMagnitudeEnd=legScale
-                )[0:2]  
+            jointDirn = [legDirn, hipDirn, upperLegDirn] 
+            # jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
+            #     jointPositions, jointDirn, 2, 
+                # derivativeMagnitudeStart=legScale, derivativeMagnitudeEnd=legScale
+                # )[0:2]  
             # Set coordiantes for joint node
             x = jointPositions[1]
-            d1 = jointDirn[1]
-            hipFront = cross(d1, d2)
+            d1 = set_magnitude(hipDirn, legScale)
+            # hipFront = cross(d1, d2)
             d2 = set_magnitude(hipSide, radius)
-            d3 = set_magnitude(hipFront, radius*jointRotFactor - 2*rotDisplacementFactor)
+            d3 = set_magnitude(hipFront, radius*jointRotFactor - 2.5*rotDisplacementFactor)
             d12 = set_magnitude(hipSide, d12_mag)
             d13 = add(
                 set_magnitude(hipFront, d13_mag), 
-                set_magnitude(d1, -radius*d13RotFactor)
+                set_magnitude(d1, -(radius)/(legScale*jointRotFactor))
                 )
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
@@ -932,11 +946,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             d1 = set_magnitude(upperLegDirn, armScale)
 
             # Rest of upper leg
-            for i in range(hipElementsCount+1, upperLegElementsCount-1):
+            j = 0
+            for i in range(hipElementsCount, hipElementsCount+upperLegElementsCount-1):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(upperLegStart, mult(d1, i - (hipElementsCount+1)))
+                x = add(upperLegStart, mult(d1, j))
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = set_magnitude(upperLegSide, radius)
                 d3 = set_magnitude(upperLegFront, radius)
@@ -949,6 +964,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
+                j += 1
             # knee
             # Diagram to calculate joint flexion
             #     1 
@@ -1038,11 +1054,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # Lower leg
             lowerLegStart = jointPositions[-1]
             d1 = set_magnitude(lowerLegDirn, legScale)
-            for i in range(upperLegElementsCount, legToFootElementsCount):
+            j = 0 
+            for i in range(hipElementsCount+upperLegElementsCount, legToFootElementsCount):
                 xi = i / legToFootElementsCount
                 node = nodes.findNodeByIdentifier(nodeIdentifier)
                 fieldcache.setNode(node)
-                x = add(lowerLegStart, mult(d1, i - (upperLegElementsCount)))
+                x = add(lowerLegStart, mult(d1, j))
                 radius = xi * legBottomRadius + (1.0 - xi) * legTopRadius
                 d2 = set_magnitude(lowerLegSide, radius)
                 d3 = set_magnitude(lowerLegFront, radius)
@@ -1055,6 +1072,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
                 setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
                 nodeIdentifier += 1
+                j+=1
             # foot
             # Updating frame of reference wrt rotation angle (using d2 as rotation axis)
             ankleFlexionRadians = ankleLeftFlexionRadians if (side == left) else ankleRightFlexionRadians
@@ -1227,7 +1245,8 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options["Number of elements along brachium"] = 5
         options["Number of elements along antebrachium"] = 3
         options["Number of elements along hand"] = 1
-        options["Number of elements along upper leg"] = 6
+        options["Number of elements along hip"] = 2
+        options["Number of elements along upper leg"] = 4
         options["Number of elements along lower leg"] = 4
         options["Number of elements along foot"] = 2
         options["Number of elements around head"] = 12
@@ -1391,6 +1410,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         elementsCountAlongBrachium = options["Number of elements along brachium"]
         elementsCountAlongAntebrachium = options["Number of elements along antebrachium"]
         elementsCountAlongHand = options["Number of elements along hand"]
+        elementsCountAlongHip = options["Number of elements along hip"]
         elementsCountAlongUpperLeg = options["Number of elements along upper leg"]
         elementsCountAlongLowerLeg = options["Number of elements along lower leg"]
         elementsCountAlongFoot = options["Number of elements along foot"]
@@ -1437,6 +1457,9 @@ class MeshType_3d_wholebody2(Scaffold_base):
             elif "hand" in name:
                 alongCount = elementsCountAlongHand
                 aroundCount = elementsCountAroundArm
+            elif "hip" in name:
+                alongCount = elementsCountAlongHip
+                aroundCount = elementsCountAroundLeg
             elif "upper leg" in name:
                 alongCount = elementsCountAlongUpperLeg
                 aroundCount = elementsCountAroundLeg

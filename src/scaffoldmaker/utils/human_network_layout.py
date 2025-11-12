@@ -8,7 +8,8 @@ humanElementCounts = {
     'handElementsCount': 1, 
     'thoraxElementsCount': 3, 
     'abdomenElementsCount': 4, 
-    'upperLegElementsCount': 6,
+    'hipElementsCount': 2, 
+    'upperLegElementsCount': 4,
     'lowerLegElementsCount': 3,
     'footElementsCount': 2
 }
@@ -111,7 +112,13 @@ def constructNetworkLayoutStructure(humanElementCounts:dict):
         version = 2 if (i == 0) else 3 #Left is 2, right is 3 
         legNetworkLayout = str(pelvisNodeJoint) + '.' + str(version) + '-'
         nodeIdentifier += 1
+        # Hip
+        legNetworkLayout, nodeIdentifier = createSegment(
+            humanElementCounts['hipElementsCount'], 
+            legNetworkLayout, nodeIdentifier, endSegment=True)
         # Upper leg
+        legNetworkLayout = legNetworkLayout + str(nodeIdentifier) + '-'
+        nodeIdentifier += 1 
         legNetworkLayout, nodeIdentifier = createSegment(
             humanElementCounts['upperLegElementsCount'], 
             legNetworkLayout, nodeIdentifier, endSegment=True)

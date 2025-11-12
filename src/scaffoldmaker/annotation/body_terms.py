@@ -29,6 +29,7 @@ body_terms = [
     ("head core", ""),
     ("diaphragm", "UBERON:0001103", "ILX:0103194"),
     ("hand", "ILX:0104885", "FMA:9712"),
+    ("hip", ""),
     ("left", ""),
     ("lower limb", "UBERON:0000978"),
     ("left lower limb", "UBERON:8300004", "FMA:24981"),
