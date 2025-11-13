@@ -3,7 +3,7 @@ Generates a 3D kidney using tube network mesh.
 """
 import math
 
-from cmlibs.maths.vectorops import mult, set_magnitude, cross
+from cmlibs.maths.vectorops import mult, set_magnitude, cross, rotate_about_z_axis
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, findOrCreateFieldCoordinates
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.field import Field
@@ -20,6 +20,8 @@ from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.networkmesh import NetworkMesh
 from scaffoldmaker.utils.tubenetworkmesh import KidneyTubeNetworkMeshBuilder, TubeNetworkMeshGenerateData
 from cmlibs.zinc.node import Node
+
+from scaffoldmaker.utils.zinc_utils import translate_nodeset_coordinates
 
 
 class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
@@ -48,8 +50,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         options["Kidney length"] = 1.0
         options["Kidney width"] = 0.5
         options["Kidney thickness"] = 0.4
-        options["Left-right kidney spacing"] = 1.0
-        options["Kidney bend angle degrees"] = 10
+        options["Left-right kidney spacing"] = 0.0
         options["Inner proportion default"] = 0.6
         return options
 
@@ -63,7 +64,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             "Kidney width",
             "Kidney thickness",
             "Left-right kidney spacing",
-            "Kidney bend angle degrees",
             "Inner proportion default"
         ]
 
@@ -83,11 +83,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
 
         if options["Left-right kidney spacing"] < 0.0:
             options["Left-right kidney spacing"] = 0.0
-
-        if options["Kidney bend angle degrees"] < 0.0:
-            options["Kidney bend angle degrees"] = 0.0
-        elif options["Kidney bend angle degrees"] > 30.0:
-            options["Kidney bend angle degrees"] = 30.0
 
         if options["Inner proportion default"] < 0.1:
             options["Inner proportion default"] = 0.1
@@ -118,7 +113,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         halfKidneyWidth = 0.5 * options["Kidney width"]
         halfKidneyThickness = 0.5 * options["Kidney thickness"]
         spacing = 0.5 * options["Left-right kidney spacing"]
-        kidneyBendAngle = options["Kidney bend angle degrees"]
         innerProportionDefault = options["Inner proportion default"]
         cls.setShowKidneys(options)
 
@@ -152,15 +146,11 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         # Kidney
         nodeIdentifier = 1
         elementIdentifier = 1
-        tubeRadius = cls.getTubeRadius(halfKidneyWidth, halfKidneyThickness) * (
+        capRadius = cls.getCapRadius(halfKidneyWidth, halfKidneyThickness) * (
                 halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
         extensionLength = 0.5 * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
-        halfLayoutLength = (halfKidneyLength - tubeRadius - extensionLength)
+        halfLayoutLength = (halfKidneyLength - capRadius - extensionLength)
         kidneyScale = 2 * halfLayoutLength / kidneyElementsCount
-        bendAngleRadians = math.radians(kidneyBendAngle)
-        sinBendAngle = math.sin(bendAngleRadians)
-        cosBendAngle = math.cos(bendAngleRadians)
-        sinCurveAngle = math.sin(3 * bendAngleRadians)
 
         leftKidney, rightKidney = 0, 1
         kidneys = [kidney for show, kidney in [(isLeftKidney, leftKidney), (isRightKidney, rightKidney)] if show]
@@ -171,11 +161,10 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             d3 = [0.0, 0.0, halfKidneyThickness]
             id3 = mult(d3, innerProportionDefault)
 
-            tx = halfLayoutLength * -cosBendAngle
-            ty = halfLayoutLength * -sinBendAngle
-            sx = [tx, ty, 0.0] if kidney is leftKidney else [tx, -ty, 0.0]
-            ex = [-tx, ty, 0.0] if kidney is leftKidney else [-tx, -ty, 0.0]
-            sd1 = mult([1.0, sinCurveAngle, 0.0], kidneyScale)
+            tx = halfLayoutLength
+            sx = [tx, 0.0, 0.0] if kidney is leftKidney else [tx, 0.0, 0.0]
+            ex = [-tx, 0.0, 0.0] if kidney is leftKidney else [-tx, 0.0, 0.0]
+            sd1 = mult([1.0, 0.0, 0.0], kidneyScale)
             ed1 = [sd1[0], -sd1[1], sd1[2]]
             nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], kidneyElementsCount)[0:2]
             nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
@@ -238,14 +227,19 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         return left
 
     @classmethod
-    def getTubeRadius(cls, majorRadius, minorRadius):
+    def getCapRadius(cls, majorRadius, minorRadius):
         """
-
+        Calculate the radius of the cap mesh based on the major radius and the minor radius of tube cross-section.
+        :param majorRadius: The radius of a tube in the major-axis.
+        :param minorRadius: The radius of a tube in the minor-axis.
+        :return: Cap radius
         """
         if majorRadius > minorRadius:
             return math.pow((majorRadius / minorRadius), 1 / 3)
         elif majorRadius < minorRadius:
             return math.pow((minorRadius / majorRadius), 1 / 3)
+        else:
+            return majorRadius
 
     @classmethod
     def getShowKidneys(cls):
@@ -286,6 +280,8 @@ class MeshType_3d_kidney1(Scaffold_base):
         options["Number of elements across core box minor"] = 2
         options["Number of elements across core transition"] = 1
         options["Annotation numbers of elements across core box minor"] = [0]
+        options["Kidney spacing"] = 1.0
+        options["Kidney curvature"] = 1.0
         options["Refine"] = False
         options["Refine number of elements"] = 4
         return options
@@ -301,6 +297,8 @@ class MeshType_3d_kidney1(Scaffold_base):
             "Number of elements across core box minor",
             "Number of elements across core transition",
             "Annotation numbers of elements across core box minor",
+            "Kidney spacing",
+            "Kidney curvature",
             "Refine",
             "Refine number of elements"
         ]
@@ -417,6 +415,8 @@ class MeshType_3d_kidney1(Scaffold_base):
         layoutAnnotationGroups = networkLayout.getAnnotationGroups()
         networkMesh = networkLayout.getConstructionObject()
         showKidneys = getShowKidneysSettings()
+        isLeftKidney = showKidneys[0]
+        isRightKidney = showKidneys[1]
 
         kidneyTubeNetworkMeshBuilder = KidneyTubeNetworkMeshBuilder(
             networkMesh,
@@ -450,6 +450,12 @@ class MeshType_3d_kidney1(Scaffold_base):
 
         kidneyGroup = AnnotationGroup(region, get_kidney_term("kidney"))
         kidneyNodesetGroup = kidneyGroup.getNodesetGroup(nodes)
+
+        leftKidneyGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("left kidney"))
+        leftKidneyNodesetGroup = leftKidneyGroup.getNodesetGroup(nodes)
+
+        rightKidneyGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("right kidney"))
+        rightKidneyNodesetGroup = rightKidneyGroup.getNodesetGroup(nodes)
 
         hilumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_kidney_term("hilum of kidney"))
         hilumGroup.getMeshGroup(mesh).addElementsConditional(openingGroup)
@@ -487,14 +493,14 @@ class MeshType_3d_kidney1(Scaffold_base):
         tube_count = tube_section_count * elementsCountAlong
         kidney_elements_count = cap_count * 2 + tube_count if showKidneys[0] else 0
 
-        if showKidneys[0]:
+        if isLeftKidney:
             idx = box_count * depth + offset
             markerList.append({"group": leftSuperiorPoleGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
 
             idx = cap_count + tube_count + (box_count * depth + offset)
             markerList.append({"group": leftInferiorPoleGroup, "elementId": idx, "xi": [0.0, 1.0, 1.0]})
 
-        if showKidneys[1]:
+        if isRightKidney:
             idx = kidney_elements_count + box_count * depth + offset
             markerList.append({"group": rightSuperiorPoleGroup, "elementId": idx, "xi": [0.0, 0.0, 1.0]})
 
@@ -509,6 +515,25 @@ class MeshType_3d_kidney1(Scaffold_base):
             annotationGroup.setMarkerMaterialCoordinates(coordinates)
             kidneyNodesetGroup.addNode(markerNode)
             nodeIdentifier += 1
+
+        # transformation
+        leftKidney, rightKidney = 0, 1
+        kidneys = [lung for show, lung in [(isLeftKidney, leftKidney), (isRightKidney, rightKidney)] if show]
+        for kidney in kidneys:
+            isLeft = True if kidney == leftKidney else False
+            isRight = True if kidney == rightKidney else False
+            spacing = -options["Kidney spacing"] / 2 if isLeft else options["Kidney spacing"] / 2
+            curvature = options["Kidney curvature"] if isLeft else -options["Kidney curvature"]
+
+            kidneyNodeset = leftKidneyNodesetGroup if isLeft else rightKidneyNodesetGroup
+
+            if curvature != 0.0:
+                if isLeft:
+                    bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, stationaryPointXY=[-0.05, 0.0])
+                if isRight:
+                    bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, stationaryPointXY=[0.05, 0.0])
+
+            translate_nodeset_coordinates(kidneyNodeset, coordinates, [0.0, spacing, 0.0])
 
         return annotationGroups, None
 
@@ -675,6 +700,56 @@ def remove_hidden_kidney_groups(show_kidneys, side_kidney_groups, annotationGrou
     if not show_kidneys[1]:  # Right kidney
         for group in side_kidney_groups["right"].values():
             annotationGroups.remove(group)
+
+
+def bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, stationaryPointXY):
+    """
+    Transform coordinates by bending with curvature about a centre point the radius in
+    x direction from stationaryPointXY.
+    :param curvature: 1/radius. Must be non-zero.
+    :param fm: Field module being worked with.
+    :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param kidneyNodeset: Zinc NodesetGroup containing nodes to transform.
+    :param stationaryPointXY: Coordinates x, y which are not displaced by bending.
+    """
+    rotateKidneyMeshAboutZAxis(90, fm, coordinates, kidneyNodeset)
+
+    radius = 1.0 / curvature
+    scale = fm.createFieldConstant([-1.0, -curvature, -1.0])
+    centreOffset = [stationaryPointXY[0] - radius, stationaryPointXY[1], 0.0]
+    centreOfCurvature = fm.createFieldConstant(centreOffset)
+    polarCoordinates = (centreOfCurvature - coordinates) * scale
+    polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
+    rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
+    rcCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
+    newCoordinates = rcCoordinates + centreOfCurvature
+
+    fieldassignment = coordinates.createFieldassignment(newCoordinates)
+    fieldassignment.setNodeset(kidneyNodeset)
+    fieldassignment.assign()
+
+    rotateKidneyMeshAboutZAxis(-90, fm, coordinates, kidneyNodeset)
+
+
+def rotateKidneyMeshAboutZAxis(rotateAngle, fm, coordinates, kidneyNodeset):
+    """
+    Rotates the lung mesh coordinates about a specified axis using the right-hand rule.
+    :param rotateAngle: Angle of rotation in degrees.
+    :param fm: Field module being worked with.
+    :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param kidneyNodeset: Zinc NodesetGroup containing nodes to transform.
+    :return: None
+    """
+    rotateAngle = -math.radians(rotateAngle)  # negative value due to right handed rule
+    rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), math.sin(rotateAngle), 0.0,
+                                           -math.sin(rotateAngle), math.cos(rotateAngle), 0.0,
+                                           0.0, 0.0, 1.0])
+
+    rotated_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
+
+    fieldassignment = coordinates.createFieldassignment(rotated_coordinates)
+    fieldassignment.setNodeset(kidneyNodeset)
+    fieldassignment.assign()
 
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
