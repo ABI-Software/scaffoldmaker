@@ -150,10 +150,10 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             id3 = mult(d3, innerProportionDefault)
 
             tx = halfLayoutLength
-            sx = [tx, 0.0, 0.0] if kidney is leftKidney else [tx, 0.0, 0.0]
-            ex = [-tx, 0.0, 0.0] if kidney is leftKidney else [-tx, 0.0, 0.0]
-            sd1 = mult([1.0, 0.0, 0.0], kidneyScale)
-            ed1 = [sd1[0], -sd1[1], sd1[2]]
+            sx = [-tx, 0.0, 0.0] if kidney is leftKidney else [-tx, 0.0, 0.0]
+            ex = [tx, 0.0, 0.0] if kidney is leftKidney else [tx, 0.0, 0.0]
+            sd1 = mult([-1.0, 0.0, 0.0], kidneyScale)
+            ed1 = [-sd1[0], sd1[1], sd1[2]]
             nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], kidneyElementsCount)[0:2]
             nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
 
@@ -508,16 +508,16 @@ class MeshType_3d_kidney1(Scaffold_base):
         for kidney in kidneys:
             isLeft = True if kidney == leftKidney else False
             isRight = True if kidney == rightKidney else False
-            spacing = -options["Kidney spacing"] / 2 if isLeft else options["Kidney spacing"] / 2
-            curvature = options["Kidney curvature"] if isLeft else -options["Kidney curvature"]
+            spacing = options["Kidney spacing"] / 2 if isLeft else -options["Kidney spacing"] / 2
+            curvature = -options["Kidney curvature"] if isLeft else options["Kidney curvature"]
 
             kidneyNodeset = leftKidneyNodesetGroup if isLeft else rightKidneyNodesetGroup
 
             if curvature != 0.0:
                 if isLeft:
-                    bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, stationaryPointXY=[-0.05, 0.0])
-                if isRight:
                     bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, stationaryPointXY=[0.05, 0.0])
+                if isRight:
+                    bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, stationaryPointXY=[-0.05, 0.0])
 
             translate_nodeset_coordinates(kidneyNodeset, coordinates, [0.0, spacing, 0.0])
 
