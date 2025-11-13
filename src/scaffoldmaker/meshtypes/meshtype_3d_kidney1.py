@@ -260,7 +260,7 @@ class MeshType_3d_kidney1(Scaffold_base):
         options["Base parameter set"] = useParameterSetName
         options["Kidney network layout"] = ScaffoldPackage(MeshType_1d_kidney_network_layout1)
         options["Number of elements around"] = 8
-        options["Number of elements through shell"] = 1
+        options["Number of elements through cortex"] = 1
         options["Annotation numbers of elements around"] = [0]
         options["Target element density along longest segment"] = 2.0
         options["Number of elements across core box minor"] = 2
@@ -277,7 +277,7 @@ class MeshType_3d_kidney1(Scaffold_base):
         optionNames = [
             "Kidney network layout",
             "Number of elements around",
-            "Number of elements through shell",
+            "Number of elements through cortex",
             "Annotation numbers of elements around",
             "Target element density along longest segment",
             "Number of elements across core box minor",
@@ -324,8 +324,8 @@ class MeshType_3d_kidney1(Scaffold_base):
         elif options["Number of elements around"] % 4:
             options["Number of elements around"] += 4 - (options["Number of elements around"] % 4)
 
-        if options["Number of elements through shell"] < 1:
-            options["Number of elements through shell"] = 1
+        if options["Number of elements through cortex"] < 1:
+            options["Number of elements through cortex"] = 1
 
         if options["Number of elements across core transition"] < 1:
             options["Number of elements across core transition"] = 1
@@ -408,7 +408,7 @@ class MeshType_3d_kidney1(Scaffold_base):
             networkMesh,
             targetElementDensityAlongLongestSegment=options["Target element density along longest segment"],
             defaultElementsCountAround=options["Number of elements around"],
-            elementsCountThroughShell=options["Number of elements through shell"],
+            elementsCountThroughShell=options["Number of elements through cortex"],
             layoutAnnotationGroups=layoutAnnotationGroups,
             isCore=True,
             elementsCountTransition=options["Number of elements across core transition"],
@@ -466,7 +466,7 @@ class MeshType_3d_kidney1(Scaffold_base):
         markerList = []
         elementsCountAround = options["Number of elements around"]
         elementsCountAlong = int(options["Target element density along longest segment"] + 2) # extra sections from the cap mesh
-        elementsCountThroughShell = options["Number of elements through shell"]
+        elementsCountThroughShell = options["Number of elements through cortex"]
         elementsCountCoreBoxMinor = options["Number of elements across core box minor"]
         elementsCountCoreBoxMajor = (elementsCountAround // 2) - elementsCountCoreBoxMinor
         elementsCountTransition = options["Number of elements across core transition"]
