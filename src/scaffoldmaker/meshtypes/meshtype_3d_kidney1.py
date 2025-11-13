@@ -46,11 +46,10 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         options["Define inner coordinates"] = True
         options["Left kidney"] = True
         options["Right kidney"] = True
-        options["Elements count along"] = 2
         options["Kidney length"] = 1.0
         options["Kidney width"] = 0.5
         options["Kidney thickness"] = 0.4
-        options["Inner proportion default"] = 0.6
+        options["Medulla to cortex proportion"] = 0.6
         return options
 
     @classmethod
@@ -58,11 +57,10 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         return [
             "Left kidney",
             "Right kidney",
-            "Elements count along",
             "Kidney length",
             "Kidney width",
             "Kidney thickness",
-            "Inner proportion default"
+            "Medulla to cortex proportion"
         ]
 
     @classmethod
@@ -76,13 +74,10 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             if options[key] < 0.1:
                 options[key] = 0.1
 
-        if options["Elements count along"] < 2:
-            options["Elements count along"] = 2
-
-        if options["Inner proportion default"] < 0.1:
-            options["Inner proportion default"] = 0.1
-        elif options["Inner proportion default"] > 0.9:
-            options["Inner proportion default"] = 0.9
+        if options["Medulla to cortex proportion"] < 0.1:
+            options["Medulla to cortex proportion"] = 0.1
+        elif options["Medulla to cortex proportion"] > 0.9:
+            options["Medulla to cortex proportion"] = 0.9
 
         if not options["Left kidney"] and not options["Right kidney"]:
             dependentChanges = True
@@ -100,14 +95,13 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         """
         # parameters
         structure = options["Structure"] = cls.getLayoutStructure(options)
-        kidneyElementsCount = options["Elements count along"]
         isLeftKidney = options["Left kidney"]
         isRightKidney = options["Right kidney"]
         kidneyLength = options["Kidney length"]
         halfKidneyLength = 0.5 * kidneyLength
         halfKidneyWidth = 0.5 * options["Kidney width"]
         halfKidneyThickness = 0.5 * options["Kidney thickness"]
-        innerProportionDefault = options["Inner proportion default"]
+        innerProportionDefault = options["Medulla to cortex proportion"]
         cls.setShowKidneys(options)
 
         networkMesh = NetworkMesh(structure)
@@ -140,6 +134,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         # Kidney
         nodeIdentifier = 1
         elementIdentifier = 1
+        kidneyElementsCount = 2
         capRadius = cls.getCapRadius(halfKidneyWidth, halfKidneyThickness) * (
                 halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
         extensionLength = 0.5 * (halfKidneyWidth * 0.45 + halfKidneyThickness * 0.55)
@@ -208,7 +203,7 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         :param options: Dict containing options. See getDefaultOptions().
         :return: string version of the 1D layout structure
         """
-        nodes_count = options["Elements count along"] + 1
+        nodes_count = 3
         assert nodes_count > 1
 
         left = f"({'-'.join(map(str, range(1, nodes_count + 1)))})"
