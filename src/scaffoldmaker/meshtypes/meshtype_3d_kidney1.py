@@ -50,7 +50,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         options["Kidney length"] = 1.0
         options["Kidney width"] = 0.5
         options["Kidney thickness"] = 0.4
-        options["Left-right kidney spacing"] = 0.0
         options["Inner proportion default"] = 0.6
         return options
 
@@ -63,7 +62,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             "Kidney length",
             "Kidney width",
             "Kidney thickness",
-            "Left-right kidney spacing",
             "Inner proportion default"
         ]
 
@@ -80,9 +78,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
 
         if options["Elements count along"] < 2:
             options["Elements count along"] = 2
-
-        if options["Left-right kidney spacing"] < 0.0:
-            options["Left-right kidney spacing"] = 0.0
 
         if options["Inner proportion default"] < 0.1:
             options["Inner proportion default"] = 0.1
@@ -112,7 +107,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         halfKidneyLength = 0.5 * kidneyLength
         halfKidneyWidth = 0.5 * options["Kidney width"]
         halfKidneyThickness = 0.5 * options["Kidney thickness"]
-        spacing = 0.5 * options["Left-right kidney spacing"]
         innerProportionDefault = options["Inner proportion default"]
         cls.setShowKidneys(options)
 
@@ -155,7 +149,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
         leftKidney, rightKidney = 0, 1
         kidneys = [kidney for show, kidney in [(isLeftKidney, leftKidney), (isRightKidney, rightKidney)] if show]
         for kidney in kidneys:
-            spacing = spacing if kidney is leftKidney else -spacing
             mx = [0.0, 0.0, 0.0]
             d1 = [kidneyScale, 0.0, 0.0]
             d3 = [0.0, 0.0, halfKidneyThickness]
@@ -168,8 +161,6 @@ class MeshType_1d_kidney_network_layout1(MeshType_1d_network_layout1):
             ed1 = [sd1[0], -sd1[1], sd1[2]]
             nx, nd1 = sampleCubicHermiteCurves([sx, mx, ex], [sd1, d1, ed1], kidneyElementsCount)[0:2]
             nd1 = smoothCubicHermiteDerivativesLine(nx, nd1)
-            for c in range(kidneyElementsCount + 1):
-                nx[c][1] += spacing
 
             sd2_list = []
             sd3_list = []
