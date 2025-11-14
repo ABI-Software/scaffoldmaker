@@ -600,7 +600,6 @@ class EllipsoidMesh:
         for n1, n2, n3, node_layout in self._prescribed_node_layouts:
             nid = self._nids[n3][n2][n1]
             nid_to_node_layout[nid] = node_layout
-            print(n1, n2, n3, "node", nid, "layout", node_layout)
         return nid_to_node_layout
 
     def get_node_layout_manager(self):
