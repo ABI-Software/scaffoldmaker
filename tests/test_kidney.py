@@ -29,7 +29,7 @@ class KidneyScaffoldTestCase(unittest.TestCase):
 
         self.assertEqual(13, len(options))
         self.assertEqual(8, options["Number of elements around"])
-        self.assertEqual(1, options["Number of elements through shell"])
+        self.assertEqual(1, options["Number of elements through cortex"])
         self.assertEqual([0], options["Annotation numbers of elements around"])
         self.assertEqual(2.0, options["Target element density along longest segment"])
         self.assertEqual(2, options["Number of elements across core box minor"])
