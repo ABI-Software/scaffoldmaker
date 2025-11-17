@@ -22,12 +22,13 @@ def getEftTermScaling(eft, functionIndex, termIndex):
     scaleFactorCount, scaleFactorIndexes = eft.getTermScaling(functionIndex, termIndex, 1)
     if scaleFactorCount < 0:
         if eft.getNumberOfLocalScaleFactors() > 0:
-            print('getEftTermScaling function', functionIndex, ' term', termIndex, ' scaleFactorCount ', scaleFactorCount)
+            print('getEftTermScaling function', functionIndex, ' term', termIndex, ' scaleFactorCount ',
+                  scaleFactorCount)
         return []
     if scaleFactorCount == 0:
         return []
     if scaleFactorCount == 1:
-        return [ scaleFactorIndexes ]
+        return [scaleFactorIndexes]
     scaleFactorCount, scaleFactorIndexes = eft.getTermScaling(functionIndex, termIndex, scaleFactorCount)
     return scaleFactorIndexes
 
@@ -41,7 +42,8 @@ def mapEftFunction1Node1Term(eft, function, localNode, valueLabel, version, scal
     eft.setTermScaling(function, 1, scaleFactors)
 
 
-def mapEftFunction1Node2Terms(eft, function, localNode, valueLabel1, version1, scaleFactors1, valueLabel2, version2, scaleFactors2):
+def mapEftFunction1Node2Terms(eft, function, localNode, valueLabel1, version1, scaleFactors1, valueLabel2, version2,
+                              scaleFactors2):
     '''
     Set function of eft to sum 2 terms the respective valueLabels, versions from localNode with scaleFactors
     '''
@@ -62,7 +64,8 @@ def remapEftLocalNodes(eft, newNodeCount, localNodeIndexes):
     for f in range(1, functionCount + 1):
         termCount = eft.getFunctionNumberOfTerms(f)
         for t in range(1, termCount + 1):
-            eft.setTermNodeParameter(f, t, localNodeIndexes[eft.getTermLocalNodeIndex(f, t) - 1], eft.getTermNodeValueLabel(f, t), eft.getTermNodeVersion(f, t))
+            eft.setTermNodeParameter(f, t, localNodeIndexes[eft.getTermLocalNodeIndex(f, t) - 1],
+                                     eft.getTermNodeValueLabel(f, t), eft.getTermNodeVersion(f, t))
     eft.setNumberOfLocalNodes(newNodeCount)
 
 
@@ -130,7 +133,7 @@ def remapEftNodeValueLabelsVersion(eft, localNodeIndexes, valueLabels, version):
             valueLabel = eft.getTermNodeValueLabel(f, t)
             if (localNodeIndex in localNodeIndexes) and (valueLabel in valueLabels):
                 result = eft.setTermNodeParameter(f, t, localNodeIndex, valueLabel, version)
-                #print('remap result', result)
+                # print('remap result', result)
 
 
 def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, expressionTerms):
@@ -145,7 +148,8 @@ def remapEftNodeValueLabelWithNodes(eft, localNodeIndex, fromValueLabel, express
     functionCount = eft.getNumberOfFunctions()
     for f in range(1, functionCount + 1):
         if eft.getFunctionNumberOfTerms(f) == 1:
-            if (eft.getTermLocalNodeIndex(f, 1) == localNodeIndex) and (eft.getTermNodeValueLabel(f, 1) == fromValueLabel) and (not getEftTermScaling(eft, f, 1)):
+            if (eft.getTermLocalNodeIndex(f, 1) == localNodeIndex) and (
+                    eft.getTermNodeValueLabel(f, 1) == fromValueLabel) and (not getEftTermScaling(eft, f, 1)):
                 termCount = len(expressionTerms)
                 eft.setFunctionNumberOfTerms(f, termCount)
                 version = eft.getTermNodeVersion(f, 1)
@@ -246,7 +250,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNod
     eft = eftStd
     scalefactors = None
     scaleFactorCountIn = eftIn.getNumberOfLocalScaleFactors()
-    scaleFactorsUsed = [False]*scaleFactorCountIn  # flag scale factors used on top surface of element
+    scaleFactorsUsed = [False] * scaleFactorCountIn  # flag scale factors used on top surface of element
     functionCountIn = eftIn.getNumberOfFunctions()
     halfFunctionCountIn = functionCountIn // 2
     elementBasis = eftfactory.getElementbasis()
@@ -272,7 +276,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNod
             scalingCount, scalingIndexes = eftIn.getTermScaling(fIn, t, 0)
             if scalingCount > 0:
                 scalingIndexes = eftIn.getTermScaling(fIn, t, scalingCount)[1]
-                #if (scalingCount > 1) or (scalingIndexes != 1):
+                # if (scalingCount > 1) or (scalingIndexes != 1):
                 #    print("Scaling", scalingIndexes)
                 if scalingCount == 1:
                     scalingIndexes = [scalingIndexes]
@@ -306,7 +310,7 @@ def createEftElementSurfaceLayer(elementIn, eftIn, eftfactory, eftStd, removeNod
             else:
                 newt = t
         assert noRemap or (newt > 0), "Element " + str(elementIn.getIdentifier()) + " f " + str(f) + \
-            " terms " + str(termCountIn)
+                                      " terms " + str(termCountIn)
     if True in scaleFactorsUsed:
         # get used scale factors, reorder indexes
         result, scalefactorsIn = elementIn.getScaleFactors(eftIn, scaleFactorCountIn)
@@ -478,9 +482,9 @@ def determineTricubicHermiteEft(mesh, nodeParameters, nodeDerivativeFixedWeights
                 functionNumber = n * 8 + crossDerivativeLabels[cd]
                 derivativeIndexes = \
                     [0, 1] if (cd == 0) else \
-                    [0, 2] if (cd == 1) else \
-                    [1, 2] if (cd == 2) else \
-                    [0, 1, 2]
+                        [0, 2] if (cd == 1) else \
+                            [1, 2] if (cd == 2) else \
+                                [0, 1, 2]
                 sign = 1.0
                 crossDerivativeLabel = Node.VALUE_LABEL_VALUE
                 for ed in derivativeIndexes:
@@ -541,6 +545,9 @@ class HermiteNodeLayout:
                 # permutations.append((directions[j], directions[i]))
         else:
             normDir = [normalize(dir) for dir in self._directions]
+            # print("directions", self._directions)
+            # print("normDir", normDir)
+            # print("directionsCount", directionsCount)
             for i in range(directionsCount - 2):
                 for j in range(i + 1, directionsCount - 1):
                     if dot(normDir[i], normDir[j]) < -0.9:
@@ -570,6 +577,7 @@ class HermiteNodeLayout:
                             permutations.append((self._directions[ii], self._directions[jj], self._directions[kk]))
                             permutations.append((self._directions[jj], self._directions[kk], self._directions[ii]))
                             permutations.append((self._directions[kk], self._directions[ii], self._directions[jj]))
+        # print("permutations", permutations)
         return permutations
 
     def getComplexity(self):
@@ -610,11 +618,13 @@ class HermiteNodeLayout:
         inwardNodeDeltas = [[-d for d in nodeDeltas[i]] if flips[i] else nodeDeltas[i] for i in swizzleIndexes]
         derivativeWeightsList = None
         greatestSimilarity = -1.0
+        # print("permutations", self._permutations)
         for permutation in self._permutations:
             # skip permutations using directions not in any supplied limitDirections
             skipPermutation = False
             limitIndex = 0
             for limitDirections in self._limitDirections:
+                # print("limitDirections", limitDirections)
                 if limitDirections:
                     weights = permutation[swizzleIndexes[limitIndex]]
                     if flips[limitIndex]:
@@ -645,9 +655,12 @@ class HermiteNodeLayout:
                     cosineSimilarity = dot(derivative, delta) / (magDerivative * magDelta)
                     # magnitudeSimilarity = math.exp(-math.fabs((magDerivative - magDelta) / magDelta))
                     similarity += cosineSimilarity  # * magnitudeSimilarity
+                    # print("similarity", similarity)
             if similarity > greatestSimilarity:
                 greatestSimilarity = similarity
                 derivativeWeightsList = permutation
+        # print("swizzleIndexes", swizzleIndexes)
+        # print("derivativeWeightsList", derivativeWeightsList)
         finalWeightsList = [
             [-w for w in derivativeWeightsList[swizzleIndexes[i]]] if flips[i]
             else derivativeWeightsList[swizzleIndexes[i]] for i in range(derivativesPerNode)
@@ -719,19 +732,23 @@ class HermiteNodeLayoutManager:
             HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]]),
             HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]]),
             HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]])]
-        self._nodeLayoutTriplePointTopLeft = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]])
-        self._nodeLayoutTriplePointTopRight = HermiteNodeLayout(
-            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]])
-        self._nodeLayoutTriplePointBottomLeft = HermiteNodeLayout(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]])
-        self._nodeLayoutTriplePointBottomRight = HermiteNodeLayout(
-            [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])
+        self._nodeLayoutTriplePoint = [
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 1.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, -1.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]])]
         self._nodeLayoutTriplePoint23Front = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]])
         self._nodeLayoutTriplePoint23Back = HermiteNodeLayout(
             [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
         self.nodeLayoutsBifurcation6WayTriplePoint = {}
+        self._nodeLayoutCapShellTriplePoint = [
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [-1.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0]]),
+            HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [-1.0, -1.0, 0.0]]),
+            HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [1.0, -1.0, 0.0]])]
+        self._nodeLayoutCapBoxShield = None
+        self._nodeLayoutCapBoxShieldTriplePoint = None
 
     def getNodeLayoutRegularPermuted(self, d3Defined, limitDirections=None):
         """
@@ -847,9 +864,7 @@ class HermiteNodeLayoutManager:
         Bottom Left, and Bottom Right) each with its specific node layout.
         :return: List of 4 HermiteNodeLayout.
         """
-        nodeLayouts = [self._nodeLayoutTriplePointTopLeft, self._nodeLayoutTriplePointTopRight,
-                       self._nodeLayoutTriplePointBottomLeft, self._nodeLayoutTriplePointBottomRight]
-        return nodeLayouts
+        return self._nodeLayoutTriplePoint
 
     def getNodeLayoutBifurcation6WayTriplePoint(self, segmentsIn, sequence, maxMajorSegment, top):
         """
@@ -927,7 +942,7 @@ class HermiteNodeLayoutManager:
                      [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]])
                 nodeLayoutBifurcationCoreTransitionMMM = HermiteNodeLayout(
                     [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [1.0, 1.0, 0.0],
-                     [0.0, 0.0, 11.0], [-1.0, -1.0, -1.0]])
+                     [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]])
                 nodeLayouts = (
                     nodeLayoutBifurcationCoreTransitionPOP,
                     nodeLayoutBifurcationCoreTransitionOPP,
@@ -952,6 +967,76 @@ class HermiteNodeLayoutManager:
                 else:
                     return self._nodeLayoutBifurcationCoreTransitionBottomGeneral
         return nodeLayouts[layoutIndex]
+
+    def getNodeLayoutCapTransition(self, isSpecial=False):
+        """
+        Get node layout for transition elements between the core box elements and the shell elements in the cap mesh.
+        :param isSpecial: True if cap transition is a special case where the number of transition elements > 1 for
+        box shield elements. False for all other cases.
+        :return: HermiteNodeLayout.
+        """
+        if isSpecial:
+            nodeLayoutCapTransition = HermiteNodeLayout(
+                [[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0]])
+        else:
+            nodeLayoutCapTransition = self._nodeLayoutRegularPermuted_d3Defined
+        return nodeLayoutCapTransition
+
+    def getNodeLayoutCapShellTriplePoint(self):
+        """
+        Get node layout for triple-point corners of shell elements in the cap mesh. There are four corners
+        (Top Left, Top Right, Bottom Left, and Bottom Right) each with its specific node layout.
+        :return: HermiteNodeLayout.
+        """
+        return self._nodeLayoutCapShellTriplePoint
+
+    def getNodeLayoutCapBoxShield(self, isStartCap=True):
+        """
+        Get node layout for elements between the core box and the shield in the cap mesh. There are four types
+        (Top, Bottom, Left, and Right) each with its specific node layout. The node layout also changes direction in
+        the y-axis depending on whether the cap is at the start or the end of a tube segment.
+        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
+        of a tube segment.
+        :return: HermiteNodeLayout.
+        """
+        if isStartCap:
+            self._nodeLayoutCapBoxShield = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0], [0.0, -1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, -1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 0.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, -1.0, 0.0]])]
+        else:
+            self._nodeLayoutCapBoxShield = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], [0.0, 1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, -1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 0.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0], [1.0, 1.0, 0.0]])]
+
+        return self._nodeLayoutCapBoxShield
+
+    def getNodeLayoutCapBoxShieldTriplePoint(self, isStartCap=True):
+        """
+        Get node layout for triple-point corners of core box elements in the cap mesh. There are four corners
+        (Top Left, Top Right, Bottom Left, and Bottom Right) each with its specific node layout.
+        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
+        of a tube segment.
+        :return: HermiteNodeLayout.
+        """
+        if isStartCap:
+            self._nodeLayoutCapBoxShieldTriplePoint = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, -1.0, 1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0], [1.0, -1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, -1.0, -1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, -1.0, -1.0]])]
+        else:
+            self._nodeLayoutCapBoxShieldTriplePoint = [
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [-1.0, 1.0, 1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 1.0, 1.0]]),
+                HermiteNodeLayout([[1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 1.0, -1.0]]),
+                HermiteNodeLayout([[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, -1.0]])]
+
+        return self._nodeLayoutCapBoxShieldTriplePoint
+
 
 def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
     """
@@ -1034,7 +1119,7 @@ def determineCubicHermiteSerendipityEft(mesh, nodeParameters, nodeLayouts):
             nodeParameters[n][1],
             nodeParameters[n][2],
             nodeParameters[n][3] if d3Defined else None]
-        derivativeWeightsList =\
+        derivativeWeightsList = \
             nodeLayout.getDerivativeWeightsList(deltas[n], nodeDerivatives, n) if nodeLayout else None
         for ed in range(derivativesPerNode):
             if nodeLayout:
@@ -1128,7 +1213,8 @@ def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodePara
     :param localNodeIndexes: Local node indexes to scale value label at. Currently must be in [5, 6, 7, 8].
     :param valueLabel: Single value label to scale. Currently only implemened for D_DS3.
     :param version: Set to a number > 1 to use that derivative version instead of scale factors, and client is
-    responsible for assigning that derivative version in proportion to the returned scale factors.
+    responsible for assigning that derivative version in proportion to the returned scale factors. Versions 3 and 4
+    are used when the cap mesh is active, each representing the version used for start cap and end cap, respectively.
     :return: Modified eft, final scalefactors, add scalefactors (multiplying the affected derivatives; these are
     included in final scalefactors if version == 1, otherwise client must use these to scale versioned derivatives).
     """
@@ -1147,6 +1233,12 @@ def addTricubicHermiteSerendipityEftParameterScaling(eft, scalefactors, nodePara
         scalefactor = magnitude(dbScaled) / magnitude(db)
         addScalefactors.append(scalefactor)
     if version == 1:
+        newScalefactors = scalefactors + addScalefactors if scalefactors else addScalefactors
+        addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
+        return eft, newScalefactors, addScalefactors
+    elif version in [3, 4]:
+        addScalefactors = addScalefactors[-2:] if version == 3 else addScalefactors[:2]
+        localNodeIndexes = [7, 8] if version == 3 else [5, 6]
         newScalefactors = scalefactors + addScalefactors if scalefactors else addScalefactors
         addScaleEftNodesValueLabel(eft, localNodeIndexes, Node.VALUE_LABEL_D_DS3, 3)
         return eft, newScalefactors, addScalefactors

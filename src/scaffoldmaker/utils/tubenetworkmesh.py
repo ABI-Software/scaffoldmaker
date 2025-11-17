@@ -4,6 +4,8 @@ Specialisation of Network Mesh for building 2-D and 3-D tube mesh networks.
 from cmlibs.maths.vectorops import add, cross, dot, magnitude, mult, normalize, set_magnitude, sub, rejection
 from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.node import Node
+
+from scaffoldmaker.utils.capmesh import CapMesh
 from scaffoldmaker.utils.eft_utils import (
     addTricubicHermiteSerendipityEftParameterScaling, determineCubicHermiteSerendipityEft, HermiteNodeLayoutManager)
 from scaffoldmaker.utils.interpolation import (
@@ -80,6 +82,12 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             d3Defined, limitDirections=[None, [[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]], None])
         self._nodeLayoutTransitionTriplePoint = None
 
+        self._nodeLayoutCapTransition = None
+        self._nodeLayoutCapShellTriplePoint = None
+        self._nodeLayoutCapBoxShield = None
+        self._nodeLayoutCapBoxShieldTriplePoint = None
+
+
         # annotation groups created if core:
         self._coreGroup = None
         self._shellGroup = None
@@ -88,6 +96,14 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         self._rightGroup = None
         self._dorsalGroup = None
         self._ventralGroup = None
+        # annotations for the kidney scaffold:
+        self._renalCapsuleGroup = None
+        self._lateralGroup = None
+        self._medialGroup = None
+        self._anteriorGroup = None
+        self._posteriorGroup = None
+        self._openingGroup = None
+
 
     def getStandardElementtemplate(self):
         return self._standardElementtemplate, self._standardEft
@@ -97,6 +113,9 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         Create a new standard element field template for modifying.
         """
         return self._mesh.createElementfieldtemplate(self._elementbasis)
+
+    def getCapElementtemplate(self):
+        return self._capElementtemplate
 
     def getNodeLayout5Way(self):
         return self._nodeLayout5Way
@@ -168,6 +187,92 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         return self._nodeLayoutManager.getNodeLayoutBifurcation6WayTriplePoint(
             segmentsIn, sequence, maxMajorSegment, top)
 
+    def getNodeLayoutCapTransition(self, isSpecial=False):
+        """
+        Node layout for generating cap transition elements, excluding at triple points.
+        :param isSpecial:True if cap transition is a special case where the number of transition elements > 1 for
+        box shield elements. False for all other cases.
+        :return: Node layout.
+        """
+        self._nodeLayoutCapTransition = self._nodeLayoutManager.getNodeLayoutCapTransition(isSpecial=isSpecial)
+        return self._nodeLayoutCapTransition
+
+    def getNodeLayoutCapShellTriplePoint(self, location):
+        """
+        Special node layout for generating cap shell transition elements at triple points.
+        There are four layouts specific to each corner of the core box: Top left (location = 1);
+        top right (location = -1); bottom left (location = 2); and bottom right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :return: Node layout.
+        """
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapShellTriplePoint()
+        assert location in [1, -1, 2, -2, 0]
+        if location == 1:  # "Top Left"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Top Right"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Bottom Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Bottom Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = self._nodeLayoutCapTransition
+
+        self._nodeLayoutCapShellTriplePoint = nodeLayout
+        return self._nodeLayoutCapShellTriplePoint
+
+    def getNodeLayoutCapBoxShield(self, location, isStartCap=True):
+        """
+        Special node layout for generating cap box-shield transition elements.
+        There are four layouts relative to the core box: Top (location = 1); bottom (location = -1);
+        left (location = 2); and right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
+        of a tube segment.
+        :return: Node layout.
+        """
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShield(isStartCap)
+        assert location in [1, -1, 2, -2, 0]
+        if location == 1:  # "Top"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Bottom"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = None
+
+        self._nodeLayoutCapBoxShield = nodeLayout
+        return self._nodeLayoutCapBoxShield
+
+    def getNodeLayoutCapBoxShieldTriplePoint(self, location, isStartCap=True):
+        """
+        Special node layout for generating cap box-shield transition elements at triple points.
+        There are four layouts relative to the core box: Top left (location = 1); top right (location = -1);
+        bottom left (location = 2); and bottom right (location = -2).
+        :param location: Location identifier identifying four corners of solid core box.
+        :param isStartCap: True if generating a cap mesh at the start of a tube segment, False if generating at the end
+        of a tube segment.
+        :return: Node layout.
+        """
+        nodeLayouts = self._nodeLayoutManager.getNodeLayoutCapBoxShieldTriplePoint(isStartCap)
+        assert location in [1, -1, 2, -2, 0]
+        if location == 1:  # "Top Left"
+            nodeLayout = nodeLayouts[0]
+        elif location == -1:  # "Top Right"
+            nodeLayout = nodeLayouts[1]
+        elif location == 2:  # "Bottom Left"
+            nodeLayout = nodeLayouts[2]
+        elif location == -2:  # "Bottom Right"
+            nodeLayout = nodeLayouts[3]
+        else:
+            nodeLayout = self._nodeLayoutCapBoxShield
+
+        self._nodeLayoutCapBoxShieldTriplePoint = nodeLayout
+        return self._nodeLayoutCapBoxShieldTriplePoint
+
     def getNodetemplate(self):
         return self._nodetemplate
 
@@ -207,6 +312,36 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
             self._ventralGroup = self.getOrCreateAnnotationGroup(("ventral", ""))
         return self._ventralGroup.getMeshGroup(self._mesh)
 
+    def getRenalCapsuleMeshGroup(self):
+        if not self._renalCapsuleGroup:
+            self._renalCapsuleGroup = self.getOrCreateAnnotationGroup(("renal capsule", ""))
+        return self._renalCapsuleGroup.getMeshGroup(self._mesh)
+
+    def getAnteriorMeshGroup(self):
+        if not self._anteriorGroup:
+            self._anteriorGroup = self.getOrCreateAnnotationGroup(("anterior", ""))
+        return self._anteriorGroup.getMeshGroup(self._mesh)
+
+    def getPosteriorMeshGroup(self):
+        if not self._posteriorGroup:
+            self._posteriorGroup = self.getOrCreateAnnotationGroup(("posterior", ""))
+        return self._posteriorGroup.getMeshGroup(self._mesh)
+
+    def getLateralMeshGroup(self):
+        if not self._lateralGroup:
+            self._lateralGroup = self.getOrCreateAnnotationGroup(("lateral", ""))
+        return self._lateralGroup.getMeshGroup(self._mesh)
+
+    def getMedialMeshGroup(self):
+        if not self._medialGroup:
+            self._medialGroup = self.getOrCreateAnnotationGroup(("medial", ""))
+        return self._medialGroup.getMeshGroup(self._mesh)
+
+    def getOpeningMeshGroup(self):
+        if not self._openingGroup:
+            self._openingGroup = self.getOrCreateAnnotationGroup(("opening", ""))
+        return self._openingGroup.getMeshGroup(self._mesh)
+
     def getNewTrimAnnotationGroup(self):
         self._trimAnnotationGroupCount += 1
         return self.getOrCreateAnnotationGroup(("trim surface " + "{:03d}".format(self._trimAnnotationGroupCount), ""))
@@ -221,10 +356,12 @@ class TubeNetworkMeshGenerateData(NetworkMeshGenerateData):
         x, d1, d2, d3 each with 3 components.
         :param nodeIdentifiers: List over 8 3-D local nodes giving global node identifiers.
         :param mode: 1 to set scale factors, 2 to add version 2 to d3 for the boundary nodes and assigning
-        values to that version equal to the scale factors x version 1.
+        values to that version equal to the scale factors x version 1. Modes 3 and 4 are used for cap mesh, which are
+        similar to mode 1, but the local node indexes are limited to [7, 8] for mode 3 (start cap) and [5, 6] for mode
+        4 (end cap).
         :return: New eft, new scalefactors.
         """
-        assert mode in (1, 2)
+        assert mode in (1, 2, 3, 4)
         eft, scalefactors, addScalefactors = addTricubicHermiteSerendipityEftParameterScaling(
             eft, scalefactors, nodeParameters, [5, 6, 7, 8], Node.VALUE_LABEL_D_DS3, version=mode)
         if mode == 2:
@@ -304,10 +441,27 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         # [nAlong][nAcrossMajor][nAcrossMinor] format.
         self._boxElementIds = None  # [along][major][minor]
 
+        self._boxExtCoordinates = None
+        self._transitionExtCoordinates = None
+        self.rimExtCoordinates = None
+
+        self._networkPathParameters = pathParametersList
+        self._isCap = networkSegment.isCap()
+        if self._isCap:
+            if not self._isCore:
+                self._getNumberOfBoxElements()
+                self._elementsCountTransition = 1
+            self._capMesh = CapMesh(self._elementsCountAround, self._elementsCountCoreBoxMajor,
+                                    self._elementsCountCoreBoxMinor, self._elementsCountThroughShell,
+                                    self._elementsCountTransition, self._networkPathParameters,
+                                    self._isCap, self._isCore)
+
     def getNetworkSegment(self):
         return self._networkSegment
 
     def getCoreBoundaryScalingMode(self):
+        modes = (1, 2, 3, 4) if self._isCap else (1, 2)
+        assert self._coreBoundaryScalingMode in modes
         return self._coreBoundaryScalingMode
 
     def getElementsCountAround(self):
@@ -318,6 +472,12 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
     def getIsCore(self):
         return self._isCore
+
+    def getIsCap(self):
+        return self._isCap
+
+    def getCapMesh(self):
+        return self._capMesh
 
     def getElementsCountCoreBoxMajor(self):
         return self._elementsCountCoreBoxMajor
@@ -534,9 +694,29 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self._rimElementIds = [None] * elementsCountAlong
         self._boxElementIds = [None] * elementsCountAlong
 
-        if self._isCore:
-            # sample coordinates for the solid core
+        # sample coordinates for the solid core
+        if self._dimension == 3:
             self._sampleCoreCoordinates(elementsCountAlong)
+
+        if self._isCap:
+            # sample coordinates for the cap mesh at the ends of a tube segment
+            self._boxExtCoordinates, self._transitionExtCoordinates, self.rimExtCoordinates = (
+                self._capMesh.sampleCoordinates(self._boxCoordinates, self._transitionCoordinates, self._rimCoordinates))
+            # if self._isCore:
+            self._smoothD2DerivativesAtCapTubeJoint()
+
+    def _getNumberOfBoxElements(self):
+        """
+        Calculates the number of core box elements required to form a square-looking shield mesh.
+        Only used when the tube is without a core.
+        """
+        # assert
+        half = self._elementsCountAround // 4
+        if half % 2 == 0:
+            self._elementsCountCoreBoxMajor = self._elementsCountCoreBoxMinor = half
+        else:
+            self._elementsCountCoreBoxMinor = half - 1 if (half - 1) % 2 == 0 else half - 3
+            self._elementsCountCoreBoxMajor = half + 1 if (half + 1) % 2 == 0 else half + 3
 
     def _sampleCoreCoordinates(self, elementsCountAlong):
         """
@@ -1053,6 +1233,57 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
 
         return boxBoundaryNodeIds, boxBoundaryNodeToBoxId
 
+    def _smoothD2DerivativesAtCapTubeJoint(self):
+        """
+        Smooths D2 derivatives at the joint where the cap and the tube surfaces join to eliminate zero Jacobian contours.
+        """
+        def smoothBoxDerivatives():
+            capCoordinates = self._boxExtCoordinates[i]
+            for m in range(self._elementsCountCoreBoxMajor + 1):
+                for n in range(self._elementsCountCoreBoxMinor + 1):
+                    nx = [capCoordinates[0][m][n], self._boxCoordinates[0][i][m][n]]
+                    nd2 = [capCoordinates[2][m][n], self._boxCoordinates[2][i][m][n]]
+                    if i == -1:
+                        nx.reverse()
+                        nd2.reverse()
+                    sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
+                    self._boxCoordinates[2][i][m][n] = sd2[1]
+
+        def smoothRimDerivatives():
+            capCoordinates = self.rimExtCoordinates[i]
+            for n3 in range(self._elementsCountThroughShell + 1):
+                for n1 in range(self._elementsCountAround):
+                    nx = [capCoordinates[0][n3][n1], self._rimCoordinates[0][i][n3][n1]]
+                    nd2 = [capCoordinates[2][n3][n1], self._rimCoordinates[2][i][n3][n1]]
+                    if i == -1:
+                        nx.reverse()
+                        nd2.reverse()
+                    sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
+                    self._rimCoordinates[2][i][n3][n1] = sd2[1]
+
+            if self._transitionExtCoordinates is not None:
+                capCoordinates = self._transitionExtCoordinates[i]
+                for n3 in range(self._elementsCountTransition - 1):
+                    for n1 in range(self._elementsCountAround):
+                        nx = [capCoordinates[0][n3][n1], self._transitionCoordinates[0][i][n3][n1]]
+                        nd2 = [capCoordinates[2][n3][n1], self._transitionCoordinates[2][i][n3][n1]]
+                        if i == -1:
+                            nx.reverse()
+                            nd2.reverse()
+                        sd2 = smoothCubicHermiteDerivativesLine(nx, nd2)
+                        self._transitionCoordinates[2][i][n3][n1] = sd2[1]
+
+        for i in [0, -1]:
+            if not self._isCap[i]:
+                continue
+
+            if self._isCore:
+                smoothBoxDerivatives()
+                smoothRimDerivatives()
+            else:
+                smoothRimDerivatives()
+
+
     @classmethod
     def blendSampledCoordinates(cls, segment1, nodeIndexAlong1, segment2, nodeIndexAlong2):
         nodesCountAround = segment1._elementsCountAround
@@ -1363,19 +1594,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                 [None] * self._elementsCountCoreBoxMinor for _ in range(self._elementsCountCoreBoxMajor)]
         self._boxElementIds[e2][e3][e1] = elementIdentifier
 
-    def _addBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+    def _addBoxElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup, e2Start=None, e2Limit=None):
         """
         Add ranges of box elements to mesh group.
         :param e1Start: Start element index in major / d2 direction.
         :param e1Limit: Limit element index in major / d2 direction.
         :param e3Start: Start element index in minor / d3 direction.
         :param e3Limit: Limit element index in minor / d3 direction.
+        :param e2Start: Start element index in d1 direction. If None, use 0 as default.
+        :param e2Limit: Limit element index in d1 direction. If None, use elementsCountAlong as default.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         # print("Add box elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
         elementsCountAlong = self.getSampledElementsCountAlong()
         mesh = meshGroup.getMasterMesh()
-        for e2 in range(elementsCountAlong):
+        e2Start = 0 if e2Start is None else e2Start
+        e2Limit = elementsCountAlong if e2Limit is None else e2Limit
+        for e2 in range(e2Start, e2Limit):
             boxSlice = self._boxElementIds[e2]
             if boxSlice:
                 # print(boxSlice[e1Start:e1Limit])
@@ -1384,19 +1619,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         element = mesh.findElementByIdentifier(elementIdentifier)
                         meshGroup.addElement(element)
 
-    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup):
+    def _addRimElementsToMeshGroup(self, e1Start, e1Limit, e3Start, e3Limit, meshGroup, e2Start=None, e2Limit=None):
         """
         Add ranges of rim elements to mesh group.
         :param e1Start: Start element index around. Can be negative which supports wrapping.
         :param e1Limit: Limit element index around.
         :param e3Start: Start element index rim.
         :param e3Limit: Limit element index rim.
+        :param e2Start: Start element index in d1 direction. If None, use 0 as default.
+        :param e2Limit: Limit element index in d1 direction. If None, use elementsCountAlong as default.
         :param meshGroup: Zinc MeshGroup to add elements to.
         """
         # print("Add rim elements", e1Start, e1Limit, e3Start, e3Limit, meshGroup.getName())
         elementsCountAlong = self.getSampledElementsCountAlong()
         mesh = meshGroup.getMasterMesh()
-        for e2 in range(elementsCountAlong):
+        e2Start = 0 if e2Start is None else e2Start
+        e2Limit = elementsCountAlong if e2Limit is None else e2Limit
+        for e2 in range(e2Start, e2Limit):
             rimSlice = self._rimElementIds[e2]
             if rimSlice:
                 for elementIdentifiersList in rimSlice[e3Start:e3Limit]:
@@ -1438,6 +1677,23 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         self.addCoreElementsToMeshGroup(meshGroup)
         self.addShellElementsToMeshGroup(meshGroup)
 
+    def addSideD1ElementsToMeshGroup(self, side: bool, meshGroup):
+        """
+        Add elements to the mesh group on side of +d1 or -d1, often matching anterior and posterior.
+        :param side: False for +d1 direction, True for -d1 direction.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountAlong = self.getSampledElementsCountAlong()
+        e2Start = 0 if side else elementsCountAlong // 2
+        e2Limit = elementsCountAlong // 2 if side else elementsCountAlong
+        if self._isCore:
+            self._addBoxElementsToMeshGroup(0, self._elementsCountCoreBoxMajor,
+                                            0, self._elementsCountCoreBoxMinor, meshGroup,
+                                            e2Start=e2Start, e2Limit=e2Limit)
+        self._addRimElementsToMeshGroup(0, self._elementsCountAround,
+                                        0, self.getElementsCountRim(), meshGroup,
+                                        e2Start=e2Start, e2Limit=e2Limit)
+
     def addSideD2ElementsToMeshGroup(self, side: bool, meshGroup):
         """
         Add elements to the mesh group on side of +d2 or -d2, often matching left and right.
@@ -1469,6 +1725,19 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
         e1Start = (self._elementsCountAround // 2) if side else 0
         e1Limit = e1Start + (self._elementsCountAround // 2)
         self._addRimElementsToMeshGroup(e1Start, e1Limit, 0, self.getElementsCountRim(), meshGroup)
+
+    def addShellOpeningElementsToMeshGroup(self, e1Start, e1Limit, meshGroup):
+        """
+        Add specific elements in the shell to mesh group.
+        :param e1Start: Start element index around.
+        :param e1Limit: Limit element index around.
+        :param meshGroup: Zinc MeshGroup to add elements to.
+        """
+        elementsCountRim = self.getElementsCountRim()
+        elementsCountShell = self._elementsCountThroughShell
+        e3ShellStart = elementsCountRim - elementsCountShell
+
+        self._addRimElementsToMeshGroup(e1Start, e1Limit, e3ShellStart, elementsCountRim, meshGroup)
 
     def getRimNodeIdsSlice(self, n2):
         """
@@ -1547,8 +1816,13 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         self._rimNodeIds[n2] = rimNodeIds
                         continue
 
+            capMesh = self._capMesh
+            # create cap nodes at the start section of a tube segment
+            if self._isCap[0] and n2 == 0:
+                capMesh.generateNodes(generateData, isStartCap=True)
+
             # create core box nodes
-            if self._boxCoordinates:
+            if self._isCore:
                 self._boxNodeIds[n2] = [] if self._boxNodeIds[n2] is None else self._boxNodeIds[n2]
                 coreBoxMajorNodesCount = self.getCoreBoxMajorNodesCount()
                 coreBoxMinorNodesCount = self.getCoreBoxMinorNodesCount()
@@ -1598,6 +1872,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                     ringNodeIds.append(nodeIdentifier)
                 self._rimNodeIds[n2].append(ringNodeIds)
 
+            # create cap nodes at the end section of a tube segment
+            if self._isCap[-1] and n2 == elementsCountAlong:
+                self._endCapNodeIds = capMesh.generateNodes(generateData, isStartCap=False)
+
         # create a new list containing box node ids are located at the boundary
         if self._isCore:
             self._boxBoundaryNodeIds, self._boxBoundaryNodeToBoxId = (
@@ -1614,6 +1892,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
             self._boxElementIds[e2] = []
             self._rimElementIds[e2] = []
             e2p = e2 + 1
+            # create cap elements at the start of the tube
+            if self._isCap[0] and e2 == 0:
+                capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=True)
+
             if self._isCore:
                 # create box elements
                 elementsCountAcrossMinor = self.getCoreBoxMinorNodesCount() - 1
@@ -1709,6 +1991,10 @@ class TubeNetworkMeshSegment(NetworkMeshSegment):
                         annotationMeshGroup.addElement(element)
                     ringElementIds.append(elementIdentifier)
                 self._rimElementIds[e2].append(ringElementIds)
+
+            # create cap elements at the end of the tube
+            if self._isCap[-1] and e2 == (elementsCountAlong - endSkipCount - 1):
+                capMesh.generateElements(self._boxNodeIds, self._rimNodeIds, annotationMeshGroups, isStartCap=False)
 
     def generateJunctionRimElements(self, junction, generateData):
         """
@@ -4052,6 +4338,12 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
                 self._layoutNodes, self._layoutInnerCoordinates, pathValueLabels,
                 networkSegment.getNodeIdentifiers(), networkSegment.getNodeVersions()))
         elementsCountAround = self._defaultElementsCountAround
+        if any(networkSegment.isCap()) and not self._isCore:
+            if elementsCountAround < 8:
+                elementsCountAround = 8
+            elif elementsCountAround % 4:
+                elementsCountAround += 4 - self._defaultElementsCountAround % 4
+
         elementsCountCoreBoxMinor = self._defaultElementsCountCoreBoxMinor
 
         coreBoundaryScalingMode = self._defaultCoreBoundaryScalingMode
@@ -4106,8 +4398,14 @@ class TubeNetworkMeshBuilder(NetworkMeshBuilder):
             shellMeshGroup = generateData.getShellMeshGroup()
             for networkSegment in self._networkMesh.getNetworkSegments():
                 segment = self._segments[networkSegment]
+                segmentCaps = segment.getIsCap()
                 segment.addCoreElementsToMeshGroup(coreMeshGroup)
                 segment.addShellElementsToMeshGroup(shellMeshGroup)
+                for isCap in segmentCaps:
+                    if isCap:
+                        capMesh = segment.getCapMesh()
+                        capMesh.addCapBoxElementsToMeshGroup(coreMeshGroup)
+                        capMesh.addCapShellElementsToMeshGroup(shellMeshGroup)
 
 
 class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
@@ -4128,6 +4426,11 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
         ventralMeshGroup = generateData.getVentralMeshGroup()
         for networkSegment in self._networkMesh.getNetworkSegments():
             segment = self._segments[networkSegment]
+            segmentCaps = segment.getIsCap()
+            if True in segmentCaps:
+                capMesh = segment.getCapMesh()
+            else:
+                capMesh = None
             annotationTerms = segment.getAnnotationTerms()
             for annotationTerm in annotationTerms:
                 if "left" in annotationTerm[0]:
@@ -4140,8 +4443,127 @@ class BodyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
                 # segment on main axis
                 segment.addSideD2ElementsToMeshGroup(False, leftMeshGroup)
                 segment.addSideD2ElementsToMeshGroup(True, rightMeshGroup)
+                if capMesh:
+                    capMesh.addCapSideD2ElementsToMeshGroup(False, leftMeshGroup)
+                    capMesh.addCapSideD2ElementsToMeshGroup(True, rightMeshGroup)
             segment.addSideD3ElementsToMeshGroup(False, ventralMeshGroup)
             segment.addSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+            if capMesh:
+                capMesh.addCapSideD3ElementsToMeshGroup(False, ventralMeshGroup)
+                capMesh.addCapSideD3ElementsToMeshGroup(True, dorsalMeshGroup)
+
+
+class KidneyTubeNetworkMeshBuilder(TubeNetworkMeshBuilder):
+    """
+    Specialization of TubeNetworkMeshBuilder adding annotations for anterior, posterior, lateral, medial, and hilum regions.
+    """
+
+    def __init__(self, networkMesh: NetworkMesh, targetElementDensityAlongLongestSegment: float,
+                 layoutAnnotationGroups: list=[], annotationElementsCountsAlong: list=[],
+                 defaultElementsCountAround: int=8, annotationElementsCountsAround: list=[],
+                 elementsCountThroughShell: int=1, isCore=False, elementsCountTransition: int=1,
+                 defaultElementsCountCoreBoxMinor: int=2, annotationElementsCountsCoreBoxMinor: list=[],
+                 defaultCoreBoundaryScalingMode=1, annotationCoreBoundaryScalingMode=[],
+                 useOuterTrimSurfaces=True, showKidneys=[]):
+        """
+        Builds specialized continuous tube network meshes for kidney scaffold.
+        :param showKidneys: List of flags for showing left and/or right kidneys.
+        """
+        super(KidneyTubeNetworkMeshBuilder, self).__init__(
+            networkMesh, targetElementDensityAlongLongestSegment, layoutAnnotationGroups, annotationElementsCountsAlong,
+            defaultElementsCountAround, annotationElementsCountsAround, elementsCountThroughShell, isCore,
+            elementsCountTransition, defaultElementsCountCoreBoxMinor, annotationElementsCountsCoreBoxMinor,
+            defaultCoreBoundaryScalingMode, annotationCoreBoundaryScalingMode, useOuterTrimSurfaces)
+
+        self._showKidneys = showKidneys
+
+
+    def generateMesh(self, generateData):
+        super(KidneyTubeNetworkMeshBuilder, self).generateMesh(generateData)
+        # build anterior, posterior, lateral, medial annotation groups
+        anteriorMeshGroup = generateData.getAnteriorMeshGroup()
+        posteriorMeshGroup = generateData.getPosteriorMeshGroup()
+        lateralMeshGroup = generateData.getLateralMeshGroup()
+        medialMeshGroup = generateData.getMedialMeshGroup()
+        dorsalMeshGroup = generateData.getDorsalMeshGroup()
+        ventralMeshGroup = generateData.getVentralMeshGroup()
+        openingMeshGroup = generateData.getOpeningMeshGroup()
+
+        elementsCountAround = self._defaultElementsCountAround
+        halfElementsCountAround = elementsCountAround // 2
+        increment = max(1, elementsCountAround // 8)
+
+        leftKidney, rightKidney = 0, 1
+        # Kidney configuration mapping
+        kidney_configs = {
+            leftKidney: {
+                'lateral_flag': False,
+                'medial_flag': True,
+                'e1_start': halfElementsCountAround - increment,
+                'e1_end': halfElementsCountAround + increment
+            },
+            rightKidney: {
+                'lateral_flag': True,
+                'medial_flag': False,
+                'e1_start': -increment,
+                'e1_end': increment
+            }
+        }
+
+        def add_common_elements(mesh_obj, method_prefix=""):
+            """
+            Add D1 and D3 elements that are common to all kidneys.
+            :param mesh_obj: The mesh object (segment or capMesh) to add elements to
+            :param method_prefix: Prefix for method names (e.g., "addCap" for capMesh methods)
+            """
+            d1_method = f"{method_prefix}SideD1ElementsToMeshGroup"
+            d3_method = f"{method_prefix}SideD3ElementsToMeshGroup"
+
+            getattr(mesh_obj, d1_method)(False, anteriorMeshGroup)
+            getattr(mesh_obj, d1_method)(True, posteriorMeshGroup)
+            getattr(mesh_obj, d3_method)(False, ventralMeshGroup)
+            getattr(mesh_obj, d3_method)(True, dorsalMeshGroup)
+
+        def add_kidney_specific_elements(mesh_obj, kidney, method_prefix=""):
+            """
+            Add kidney-specific D2 elements.
+            :param mesh_obj: The mesh object (segment or capMesh) to add elements to
+            :param kidney: Kidney identifier (leftKidney=0, rightKidney=1)
+            :param method_prefix: Prefix for method names (e.g., "addCap" for capMesh methods)
+            """
+            if kidney not in kidney_configs:
+                return
+
+            config = kidney_configs[kidney]
+            d2_method = f"{method_prefix}SideD2ElementsToMeshGroup"
+
+            getattr(mesh_obj, d2_method)(config['lateral_flag'], lateralMeshGroup)
+            getattr(mesh_obj, d2_method)(config['medial_flag'], medialMeshGroup)
+
+            # Shell opening elements only for segment (not capMesh)
+            if "Cap" not in method_prefix:
+                mesh_obj.addShellOpeningElementsToMeshGroup(config['e1_start'], config['e1_end'], openingMeshGroup)
+
+        for kidney in [leftKidney, rightKidney]:
+            if not self._showKidneys[kidney]:
+                continue
+
+            idx = 0 if False in self._showKidneys else kidney
+            networkSegment = self._networkMesh.getNetworkSegments()[idx]
+            segment = self._segments[networkSegment]
+            segmentCaps = segment.getIsCap()
+            capMesh = segment.getCapMesh() if True in segmentCaps else None
+
+            # Apply common elements to segment
+            add_common_elements(segment, "add")
+
+            # Apply kidney-specific elements to segment
+            add_kidney_specific_elements(segment, kidney, "add")
+
+            # Apply elements to capMesh if it exists
+            if capMesh:
+                add_common_elements(capMesh, "addCap")
+                add_kidney_specific_elements(capMesh, kidney, "addCap")
 
 
 class TubeEllipseGenerator:
