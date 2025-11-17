@@ -29,7 +29,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Human 1")
 
-        self.assertEqual(11, len(options))
+        self.assertEqual(12, len(options))
         self.assertEqual(8, options["Elements count around"])
         self.assertEqual(1, options["Elements count through shell"])
         self.assertEqual([0], options["Annotation elements counts around"])
@@ -54,7 +54,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
                 if annotationGroup not in originalAnnotationGroups:
                     annotationGroup.addSubelements()
 
-        self.assertEqual(7, len(annotationGroups))
+        self.assertEqual(8, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -74,8 +74,8 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [1.0718417770256363, -2.8357557021117126, -0.19871303721933536], tol)
-        assertAlmostEqualList(self, maximums, [5.199312959129288, 1.8502096232770497, 0.19871303721933536], tol)
+        assertAlmostEqualList(self, minimums, [-1.8502096232770495, -2.9281582229743637, -0.19871303721933536], tol)
+        assertAlmostEqualList(self, maximums, [2.8357557021117126, 1.1993129591292884, 0.19871303721933536], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -161,7 +161,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
 
-        self.assertEqual(7, len(annotationGroups))
+        self.assertEqual(8, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(7488, mesh3d.getSize())
@@ -191,7 +191,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         self.assertEqual(parameterSetNames, ["Default", "Human 1", "Rat 1"])
         options = scaffold.getDefaultOptions("Rat 1")
 
-        self.assertEqual(11, len(options))
+        self.assertEqual(12, len(options))
         self.assertEqual(8, options["Elements count around"])
         self.assertEqual(1, options["Elements count through shell"])
         self.assertEqual([0], options["Annotation elements counts around"])
@@ -215,7 +215,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             for annotationGroup in annotationGroups:
                 if annotationGroup not in originalAnnotationGroups:
                     annotationGroup.addSubelements()
-        self.assertEqual(7, len(annotationGroups))
+        self.assertEqual(8, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -235,8 +235,8 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.7789485582121838, -2.128648920925165, -0.19868582233021914], tol)
-        assertAlmostEqualList(self, maximums, [4.2, 0.2983665771942383, 0.19868582233021914], tol)
+        assertAlmostEqualList(self, minimums, [-0.29836657719423826, -2.221051441787816, -0.19868582233021914], tol)
+        assertAlmostEqualList(self, maximums, [2.128648920925165, 1.2000000000000002, 0.19868582233021914], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -322,7 +322,7 @@ class RenalPelviScaffoldTestCase(unittest.TestCase):
             if annotation not in oldAnnotationGroups:
                 annotationGroup.addSubelements()
 
-        self.assertEqual(7, len(annotationGroups))
+        self.assertEqual(8, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
         self.assertEqual(1184, mesh3d.getSize())

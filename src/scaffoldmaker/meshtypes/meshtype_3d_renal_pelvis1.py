@@ -5,10 +5,11 @@ import math
 
 from cmlibs.maths.vectorops import mult, cross, add, sub, set_magnitude, rotate_about_z_axis, \
     rotate_vector_around_vector
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates
+from cmlibs.utils.zinc.field import find_or_create_field_coordinates, findOrCreateFieldCoordinates
 from cmlibs.zinc.field import Field
 
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, getAnnotationGroupForTerm, \
+    findOrCreateAnnotationGroupForTerm
 from scaffoldmaker.annotation.kidney_terms import get_kidney_term
 from scaffoldmaker.annotation.ureter_terms import get_ureter_term
 from scaffoldmaker.meshtypes.meshtype_1d_network_layout1 import MeshType_1d_network_layout1
@@ -497,7 +498,7 @@ class MeshType_1d_renal_pelvis_network_layout1(MeshType_1d_network_layout1):
         sinUreterAngle = math.sin(ureterBendAngleRadians)
         cosUreterAngle = math.cos(ureterBendAngleRadians)
 
-        endX = [ureterLength, 0.0, 0.0]
+        endX = [0.0, 0.0, 0.0]
         tx = endX[0] - ureterLength * cosUreterAngle
         ty = endX[1] - ureterLength * sinUreterAngle
         startX = [tx, ty, 0.0]
@@ -920,6 +921,7 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
         options["Base parameter set"] = useParameterSetName
         options["Network layout"] = ScaffoldPackage(MeshType_1d_renal_pelvis_network_layout1,
                                                     defaultParameterSetName=useParameterSetName)
+        options["Left"] = True
         options["Elements count around"] = 8
         options["Elements count through shell"] = 1
         options["Annotation elements counts around"] = [0]
@@ -935,6 +937,7 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
     def getOrderedOptionNames(cls):
         return [
             "Network layout",
+            "Left",
             "Elements count around",
             "Elements count through shell",
             "Annotation elements counts around",
@@ -1031,6 +1034,24 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
         tubeNetworkMeshBuilder.generateMesh(generateData)
         annotationGroups = generateData.getAnnotationGroups()
 
+        fm = region.getFieldmodule()
+        coordinates = findOrCreateFieldCoordinates(fm)
+        mesh = generateData.getMesh()
+        nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+
+        coreGroup = getAnnotationGroupForTerm(annotationGroups, ("core", "")).getGroup()
+        shellGroup = getAnnotationGroupForTerm(annotationGroups, ("shell", "")).getGroup()
+
+        tempGroup = fm.createFieldAdd(shellGroup, coreGroup)
+        allGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region,("all", ""))
+        allGroup.getMeshGroup(mesh).addElementsConditional(tempGroup)
+        allNodeset = allGroup.getNodesetGroup(nodes)
+
+        isLeft = options["Left"]
+        rotateMeshAboutAxis(90, fm, coordinates, allNodeset, axis=3)
+        if not isLeft:
+            rotateMeshAboutAxis(180, fm, coordinates, allNodeset, axis=1)
+
         return annotationGroups, None
 
     @classmethod
@@ -1043,6 +1064,42 @@ class MeshType_3d_renal_pelvis1(Scaffold_base):
         assert isinstance(meshRefinement, MeshRefinement)
         refineElementsCount = options['Refine number of elements']
         meshRefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
+
+
+def rotateMeshAboutAxis(rotateAngle, fm, coordinates, nodeset, axis):
+    """
+    Rotates the mesh coordinates about a specified axis using the right-hand rule.
+    :param rotateAngle: Angle of rotation in degrees.
+    :param fm: Field module being worked with.
+    :param coordinates: The coordinate field, initially circular in y-z plane.
+    :param nodeset: Zinc NodesetGroup containing nodes to transform.
+    :param axis: Axis of rotation.
+    :return: None
+    """
+    rotateAngle = -math.radians(rotateAngle)  # negative value due to right handed rule
+
+    if axis == 1:
+        # Rotation about x-axis
+        rotateMatrix = fm.createFieldConstant([1.0, 0.0, 0.0,
+                                               0.0, math.cos(rotateAngle), math.sin(rotateAngle),
+                                               0.0, -math.sin(rotateAngle), math.cos(rotateAngle)])
+    elif axis == 2:
+        # Rotation about y-axis
+        rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), 0.0, -math.sin(rotateAngle),
+                                               0.0, 1.0, 0.0,
+                                               math.sin(rotateAngle), 0.0, math.cos(rotateAngle)])
+    elif axis == 3:
+        # Rotation about z-axis
+        rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), math.sin(rotateAngle), 0.0,
+                                               -math.sin(rotateAngle), math.cos(rotateAngle), 0.0,
+                                               0.0, 0.0, 1.0])
+
+    rotated_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
+
+    fieldassignment = coordinates.createFieldassignment(rotated_coordinates)
+    fieldassignment.setNodeset(nodeset)
+    fieldassignment.assign()
+
 
 def setNodeFieldParameters(field, fieldcache, x, d1, d2, d3, d12=None, d13=None):
     """
