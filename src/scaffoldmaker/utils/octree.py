@@ -89,7 +89,7 @@ class Octree:
 
     def addObjectAtCoordinates(self, x, obj):
         '''
-        Add object at coordianates to octree.
+        Add object at coordinates to octree.
         Caller must have received None result for findObjectByCoordinates() first!
         Assumes caller has verified x is within range of Octree.
         :param x: 3 coordinates in a list.
