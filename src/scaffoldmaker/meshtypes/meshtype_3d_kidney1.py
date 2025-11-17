@@ -3,9 +3,8 @@ Generates a 3D kidney using tube network mesh.
 """
 import math
 
-from cmlibs.maths.vectorops import mult, set_magnitude, cross, rotate_about_z_axis
+from cmlibs.maths.vectorops import mult, set_magnitude, cross
 from cmlibs.utils.zinc.field import find_or_create_field_coordinates, findOrCreateFieldCoordinates
-from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.field import Field
 
 from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findOrCreateAnnotationGroupForTerm, \
@@ -504,7 +503,7 @@ class MeshType_3d_kidney1(Scaffold_base):
 
         # transformation
         leftKidney, rightKidney = 0, 1
-        kidneys = [lung for show, lung in [(isLeftKidney, leftKidney), (isRightKidney, rightKidney)] if show]
+        kidneys = [kidney for show, kidney in [(isLeftKidney, leftKidney), (isRightKidney, rightKidney)] if show]
         for kidney in kidneys:
             isLeft = True if kidney == leftKidney else False
             isRight = True if kidney == rightKidney else False
@@ -719,7 +718,7 @@ def bendKidneyMeshAroundZAxis(curvature, fm, coordinates, kidneyNodeset, station
 
 def rotateKidneyMeshAboutZAxis(rotateAngle, fm, coordinates, kidneyNodeset):
     """
-    Rotates the lung mesh coordinates about a specified axis using the right-hand rule.
+    Rotates the mesh coordinates about a specified axis using the right-hand rule.
     :param rotateAngle: Angle of rotation in degrees.
     :param fm: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
@@ -785,9 +784,7 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
 
 def setHilumGroupThreshold(fm, coordinates, halfLength):
     """
-    Creates a field to identify lung base elements based on y-coordinate threshold.
-    Elements with y-coordinates below 45% of the rotated half-breadth are considered part of the lung base region for
-    annotation purposes.
+    Creates a field to identify hilum elements based on x-coordinate threshold.
     :param fm: Field module used for creating and managing fields.
     :param coordinates: The coordinate field.
     :param halfLength: Half-length of tube.
