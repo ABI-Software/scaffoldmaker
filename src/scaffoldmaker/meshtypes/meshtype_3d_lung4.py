@@ -45,7 +45,7 @@ class MeshType_3d_lung4(Scaffold_base):
         options["Left lung"] = True
         options["Right lung"] = True
         height = options["Ellipsoid height"] = 1.0
-        depth = options["Ellipsoid dorsal-ventral size"] = 0.7
+        depth = options["Ellipsoid dorsal-ventral size"] = 0.8
         options["Ellipsoid medial-lateral size"] = 0.4
         options["Left-right lung spacing"] = 0.5
         options["Lower lobe extension"] = 0.3
@@ -169,8 +169,8 @@ class MeshType_3d_lung4(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         :return: list of AnnotationGroup, None
         """
-        is_left_lung = options["Left lung"]
-        is_right_lung = options["Right lung"]
+        has_left_lung = options["Left lung"]
+        has_right_lung = options["Right lung"]
 
         elements_count_lateral = options["Number of elements lateral"]
         elements_count_lower_extension = options["Number of elements lower extension"]
@@ -188,66 +188,79 @@ class MeshType_3d_lung4(Scaffold_base):
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        mesh = fieldmodule.findMeshByDimension(3)
 
         # annotation groups & nodeset groups
         lungGroup = AnnotationGroup(region, get_lung_term("lung"))
 
-        leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-        rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
+        if has_left_lung:
+            leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
+            lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
+            upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
+            leftAnteriorLungGroup = AnnotationGroup(region, ("anterior left lung", ""))
+            leftLateralLungGroup = AnnotationGroup(region, ("lateral left lung", ""))
+            leftMedialLungGroup = AnnotationGroup(region, ("medial left lung", ""))
+            left_annotation_groups = [leftLungGroup, lowerLeftLungGroup, upperLeftLungGroup,
+                                      leftAnteriorLungGroup, leftLateralLungGroup, leftMedialLungGroup]
+        else:
+            leftLungGroup = lowerLeftLungGroup = upperLeftLungGroup = None
+            leftLateralLungGroup = leftMedialLungGroup = leftAnteriorLungGroup = None
+            left_annotation_groups = []
 
-        leftLateralLungGroup = AnnotationGroup(region, ("lateral left lung", ""))
-        rightLateralLungGroup = AnnotationGroup(region, ("lateral right lung", ""))
-
-        leftMedialLungGroup = AnnotationGroup(region, ("medial left lung", ""))
-        rightMedialLungGroup = AnnotationGroup(region, ("medial right lung", ""))
-
-        leftAnteriorLungGroup = AnnotationGroup(region, ("anterior left lung", ""))
-        rightAnteriorLungGroup = AnnotationGroup(region, ("anterior right lung", ""))
-
-        lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
-        upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
-        middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
-
-        annotation_groups = [lungGroup, leftLungGroup, rightLungGroup,
-                            leftAnteriorLungGroup, leftLateralLungGroup, leftMedialLungGroup,
-                            rightAnteriorLungGroup, rightLateralLungGroup, rightMedialLungGroup,
-                            lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup]
-
-        lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
-        upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
-        annotation_groups += [lowerLeftLungGroup, upperLeftLungGroup]
+        if has_right_lung:
+            rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
+            lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
+            middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
+            upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
+            rightAnteriorLungGroup = AnnotationGroup(region, ("anterior right lung", ""))
+            rightLateralLungGroup = AnnotationGroup(region, ("lateral right lung", ""))
+            rightMedialLungGroup = AnnotationGroup(region, ("medial right lung", ""))
+            right_annotation_groups = [rightLungGroup, lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup,
+                                       rightAnteriorLungGroup, rightLateralLungGroup, rightMedialLungGroup]
+        else:
+            rightLungGroup = lowerRightLungGroup = middleRightLungGroup = upperRightLungGroup = None
+            rightAnteriorLungGroup = rightLateralLungGroup = rightMedialLungGroup = None
+            right_annotation_groups = []
 
         box_group = AnnotationGroup(region, ("box", ""))
         transition_group = AnnotationGroup(region, ("transition", ""))
-        annotation_groups += [box_group, transition_group]
+
+        annotation_groups = [lungGroup] + left_annotation_groups + right_annotation_groups + \
+                            [box_group, transition_group]
 
         # Nodeset group
-        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes)
-        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes)
+        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes) if leftLungGroup else None
+        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes) if rightLungGroup else None
 
         halfDepth = ellipsoid_depth * 0.5
         halfBreadth = ellipsoid_breadth * 0.5
         halfHeight = ellipsoid_height * 0.5
 
         left_lung, right_lung = 0, 1
-        lungs = [lung for show, lung in [(is_left_lung, left_lung), (is_right_lung, right_lung)] if show]
+        lungs = [lung for show, lung in [(has_left_lung, left_lung), (has_right_lung, right_lung)] if show]
         nodeIdentifier, elementIdentifier = 1, 1
 
-        for lung in lungs:
+        # currently build left lung if right lung is being built to get correct node/element identifiers
+        lungs_construct = [left_lung, right_lung] if has_right_lung else [left_lung] if has_left_lung else []
+
+        for lung in lungs_construct:
 
             if lung == left_lung:
-                lower_octant_group_lists = []
+                if has_left_lung:
+                    lower_octant_group_lists = []
+                    upper_octant_group_lists = []
+                    for octant in range(8):
+                        octant_group_list = [group.getGroup() for group in [lungGroup, leftLungGroup, lowerLeftLungGroup] +
+                                             [leftMedialLungGroup if (octant & 1) else leftLateralLungGroup]]
+                        lower_octant_group_lists.append(octant_group_list)
+                        octant_group_list = [group.getGroup() for group in [lungGroup, leftLungGroup, upperLeftLungGroup] +
+                                             [leftMedialLungGroup if (octant & 1) else leftLateralLungGroup]]
+                        if octant & 2:
+                            octant_group_list.append(leftAnteriorLungGroup.getGroup())
+                        upper_octant_group_lists.append(octant_group_list)
+                else:
+                    lower_octant_group_lists = upper_octant_group_lists = None
                 middle_octant_group_lists = None
-                upper_octant_group_lists = []
-                for octant in range(8):
-                    octant_group_list = [group.getGroup() for group in [lungGroup, leftLungGroup, lowerLeftLungGroup] +
-                                         [leftMedialLungGroup if (octant & 1) else leftLateralLungGroup]]
-                    lower_octant_group_lists.append(octant_group_list)
-                    octant_group_list = [group.getGroup() for group in [lungGroup, leftLungGroup, upperLeftLungGroup] +
-                                         [leftMedialLungGroup if (octant & 1) else leftLateralLungGroup]]
-                    if octant & 2:
-                        octant_group_list.append(leftAnteriorLungGroup.getGroup())
-                    upper_octant_group_lists.append(octant_group_list)
             else:
                 lower_octant_group_lists = []
                 middle_octant_group_lists = []
@@ -401,6 +414,18 @@ class MeshType_3d_lung4(Scaffold_base):
         mesh1d = fm.findMeshByDimension(1)
         mesh2d = fm.findMeshByDimension(2)
 
+        has_left_lung = options["Left lung"]
+        has_right_lung = options["Right lung"]
+
+        if (has_right_lung) and (not has_left_lung):
+            # destroy left lung elements, faces, lines and nodes now to ensure persistent identifiers used on right
+            is_left = fm.createFieldNot(
+                getAnnotationGroupForTerm(annotation_groups, get_lung_term("right lung")).getGroup())
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            for mesh in [fm.findMeshByDimension(3), mesh2d, mesh1d]:
+                mesh.destroyElementsConditional(is_left)
+            nodes.destroyNodesConditional(is_left)
+
         is_exterior = fm.createFieldIsExterior()
         is_face_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
         is_face_xi1_1 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_1)
@@ -430,51 +455,69 @@ class MeshType_3d_lung4(Scaffold_base):
         is_face_box31_trans21 = fm.createFieldOr(
             fm.createFieldAnd(is_box, is_face_xi3_1), fm.createFieldAnd(is_trans, is_face_xi2_1))
 
-        is_lower_left = getAnnotationGroupForTerm(annotation_groups, get_lung_term("lower lobe of left lung")).getGroup()
-        is_upper_left = getAnnotationGroupForTerm(annotation_groups, get_lung_term("upper lobe of left lung")).getGroup()
-        is_anterior_left = findAnnotationGroupByName(annotation_groups, "anterior left lung").getGroup()
-        is_lateral_left = findAnnotationGroupByName(annotation_groups, "lateral left lung").getGroup()
-        is_medial_left = findAnnotationGroupByName(annotation_groups, "medial left lung").getGroup()
+        face_term_conditionals_map = {}
 
-        is_lower_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("lower lobe of right lung")).getGroup()
-        is_middle_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("middle lobe of right lung")).getGroup()
-        is_upper_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("upper lobe of right lung")).getGroup()
-        is_anterior_right = findAnnotationGroupByName(annotation_groups, "anterior right lung").getGroup()
-        is_lateral_right = findAnnotationGroupByName(annotation_groups, "lateral right lung").getGroup()
-        is_medial_right = findAnnotationGroupByName(annotation_groups, "medial right lung").getGroup()
+        if has_left_lung:
+            is_lower_left = getAnnotationGroupForTerm(annotation_groups, get_lung_term("lower lobe of left lung")).getGroup()
+            is_upper_left = getAnnotationGroupForTerm(annotation_groups, get_lung_term("upper lobe of left lung")).getGroup()
+            is_anterior_left = findAnnotationGroupByName(annotation_groups, "anterior left lung").getGroup()
+            is_lateral_left = findAnnotationGroupByName(annotation_groups, "lateral left lung").getGroup()
+            is_medial_left = findAnnotationGroupByName(annotation_groups, "medial left lung").getGroup()
 
-        face_term_conditionals_map = {
-            "base of lower lobe of left lung surface": (is_lower_left, is_exterior, is_face_box30_trans20),
-            "base of lower lobe of right lung surface": (is_lower_right, is_exterior, is_face_box30_trans20),
-            "base of middle lobe of right lung surface": (is_middle_right, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_0),
-            "base of upper lobe of left lung surface": (is_upper_left, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_0, is_anterior_left),
-            "horizontal fissure of middle lobe of right lung": (is_middle_right, is_exterior, is_face_box31_trans21),
-            "horizontal fissure of upper lobe of right lung": (is_upper_right, is_exterior, is_face_box30_trans20, is_anterior_right),
-            "lateral surface of left lung": (is_lateral_left, is_on_ellipsoid),
-            "lateral surface of lower lobe of left lung": (is_lower_left, is_on_ellipsoid, is_lateral_left),
-            "lateral surface of lower lobe of right lung": (is_lower_right, is_on_ellipsoid, is_lateral_right),
-            "lateral surface of middle lobe of right lung": (is_middle_right, is_on_ellipsoid, is_lateral_right),
-            "lateral surface of right lung": (is_lateral_right, is_on_ellipsoid),
-            "lateral surface of upper lobe of left lung": (is_upper_left, is_on_ellipsoid, is_lateral_left),
-            "lateral surface of upper lobe of right lung": (is_upper_right, is_on_ellipsoid, is_lateral_right),
-            "lower lobe of left lung surface": (is_lower_left, is_exterior),
-            "lower lobe of right lung surface": (is_lower_right, is_exterior),
-            "middle lobe of right lung surface": (is_middle_right, is_exterior),
-            "upper lobe of left lung surface": (is_upper_left, is_exterior),
-            "upper lobe of right lung surface": (is_upper_right, is_exterior),
-            "medial surface of left lung": (is_medial_left, is_on_ellipsoid),
-            "medial surface of lower lobe of left lung": (is_lower_left, is_on_ellipsoid, is_medial_left),
-            "medial surface of lower lobe of right lung": (is_lower_right, is_on_ellipsoid, is_medial_right),
-            "medial surface of middle lobe of right lung": (is_middle_right, is_on_ellipsoid, is_medial_right),
-            "medial surface of right lung": (is_medial_right, is_on_ellipsoid),
-            "medial surface of upper lobe of left lung": (is_upper_left, is_on_ellipsoid, is_medial_left),
-            "medial surface of upper lobe of right lung": (is_upper_right, is_on_ellipsoid, is_medial_right),
-            "oblique fissure of lower lobe of left lung": (is_lower_left, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_1),
-            "oblique fissure of lower lobe of right lung": (is_lower_right, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_1),
-            "oblique fissure of middle lobe of right lung": (is_middle_right, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_0),
-            "oblique fissure of upper lobe of left lung": (is_upper_left, is_exterior, fm.createFieldOr(is_face_xi1_0_or_xi1_1_or_xi2_0, is_face_box30_trans20)),
-            "oblique fissure of upper lobe of right lung": (is_upper_right, is_exterior, fm.createFieldAnd(is_face_box30_trans20, fm.createFieldNot(is_anterior_right))),
-        }
+            left_face_term_conditionals_map = {
+                "base of lower lobe of left lung surface": (is_lower_left, is_exterior, is_face_box30_trans20),
+                "base of upper lobe of left lung surface": (is_upper_left, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_0,
+                                                            is_anterior_left),
+                "lateral surface of left lung": (is_lateral_left, is_on_ellipsoid),
+                "lateral surface of lower lobe of left lung": (is_lower_left, is_on_ellipsoid, is_lateral_left),
+                "lateral surface of upper lobe of left lung": (is_upper_left, is_on_ellipsoid, is_lateral_left),
+                "lower lobe of left lung surface": (is_lower_left, is_exterior),
+                "upper lobe of left lung surface": (is_upper_left, is_exterior),
+                "medial surface of left lung": (is_medial_left, is_on_ellipsoid),
+                "medial surface of lower lobe of left lung": (is_lower_left, is_on_ellipsoid, is_medial_left),
+                "medial surface of upper lobe of left lung": (is_upper_left, is_on_ellipsoid, is_medial_left),
+                "oblique fissure of lower lobe of left lung": (is_lower_left, is_exterior,
+                                                               is_face_xi1_0_or_xi1_1_or_xi2_1),
+                "oblique fissure of upper lobe of left lung": (is_upper_left, is_exterior,
+                                                               fm.createFieldOr(is_face_xi1_0_or_xi1_1_or_xi2_0,
+                                                                                is_face_box30_trans20)),
+            }
+            face_term_conditionals_map.update(left_face_term_conditionals_map)
+        else:
+            left_face_term_conditionals_map = {}
+
+        if has_right_lung:
+            is_lower_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("lower lobe of right lung")).getGroup()
+            is_middle_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("middle lobe of right lung")).getGroup()
+            is_upper_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("upper lobe of right lung")).getGroup()
+            is_anterior_right = findAnnotationGroupByName(annotation_groups, "anterior right lung").getGroup()
+            is_lateral_right = findAnnotationGroupByName(annotation_groups, "lateral right lung").getGroup()
+            is_medial_right = findAnnotationGroupByName(annotation_groups, "medial right lung").getGroup()
+
+            right_face_term_conditionals_map = {
+                "base of lower lobe of right lung surface": (is_lower_right, is_exterior, is_face_box30_trans20),
+                "base of middle lobe of right lung surface": (is_middle_right, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_0),
+                "horizontal fissure of middle lobe of right lung": (is_middle_right, is_exterior, is_face_box31_trans21),
+                "horizontal fissure of upper lobe of right lung": (is_upper_right, is_exterior, is_face_box30_trans20, is_anterior_right),
+                "lateral surface of lower lobe of right lung": (is_lower_right, is_on_ellipsoid, is_lateral_right),
+                "lateral surface of middle lobe of right lung": (is_middle_right, is_on_ellipsoid, is_lateral_right),
+                "lateral surface of right lung": (is_lateral_right, is_on_ellipsoid),
+                "lateral surface of upper lobe of right lung": (is_upper_right, is_on_ellipsoid, is_lateral_right),
+                "lower lobe of right lung surface": (is_lower_right, is_exterior),
+                "middle lobe of right lung surface": (is_middle_right, is_exterior),
+                "upper lobe of right lung surface": (is_upper_right, is_exterior),
+                "medial surface of lower lobe of right lung": (is_lower_right, is_on_ellipsoid, is_medial_right),
+                "medial surface of middle lobe of right lung": (is_middle_right, is_on_ellipsoid, is_medial_right),
+                "medial surface of right lung": (is_medial_right, is_on_ellipsoid),
+                "medial surface of upper lobe of right lung": (is_upper_right, is_on_ellipsoid, is_medial_right),
+                "oblique fissure of lower lobe of right lung": (is_lower_right, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_1),
+                "oblique fissure of middle lobe of right lung": (is_middle_right, is_exterior, is_face_xi1_0_or_xi1_1_or_xi2_0),
+                "oblique fissure of upper lobe of right lung": (is_upper_right, is_exterior, fm.createFieldAnd(is_face_box30_trans20, fm.createFieldNot(is_anterior_right))),
+            }
+            face_term_conditionals_map.update(right_face_term_conditionals_map)
+        else:
+            right_face_term_conditionals_map = {}
+
         is_face_conditional = {}
         for face_term, conditionals in face_term_conditionals_map.items():
             annotation_group = findOrCreateAnnotationGroupForTerm(annotation_groups, region, get_lung_term(face_term))
@@ -487,67 +530,80 @@ class MeshType_3d_lung4(Scaffold_base):
             annotation_group.addSubelements()
             is_face_conditional[face_term] = group
 
-        line_term_conditionals_map = {
-            "anterior edge of middle lobe of right lung":
-                (is_middle_right, is_on_ellipsoid, is_medial_right, is_lateral_right),
-            "antero-posterior edge of upper lobe of left lung":
-                (is_upper_left, is_on_ellipsoid, is_medial_left, is_lateral_left),
-            "antero-posterior edge of upper lobe of right lung":
-                (is_upper_right, is_on_ellipsoid, is_medial_right, is_lateral_right),
-            "base edge of oblique fissure of lower lobe of left lung": (
-                is_face_conditional["base of lower lobe of left lung surface"], is_face_conditional["oblique fissure of lower lobe of left lung"]),
-            "base edge of oblique fissure of lower lobe of right lung": (
-                is_face_conditional["base of lower lobe of right lung surface"], is_face_conditional["oblique fissure of lower lobe of right lung"]),
-            "lateral edge of base of lower lobe of left lung": (
-                is_face_conditional["base of lower lobe of left lung surface"], is_lateral_left, is_on_ellipsoid),
-            "lateral edge of base of lower lobe of right lung": (
-                is_face_conditional["base of lower lobe of right lung surface"], is_lateral_right, is_on_ellipsoid),
-            "lateral edge of base of middle lobe of right lung": (
-                is_face_conditional["base of middle lobe of right lung surface"], is_lateral_right, is_on_ellipsoid),
-            "lateral edge of base of upper lobe of left lung": (
-                is_face_conditional["base of upper lobe of left lung surface"], is_lateral_left, is_on_ellipsoid),
-            "lateral edge of horizontal fissure of middle lobe of right lung": (
-                is_face_conditional["horizontal fissure of middle lobe of right lung"], is_lateral_right, is_on_ellipsoid),
-            "lateral edge of horizontal fissure of upper lobe of right lung": (
-                is_face_conditional["horizontal fissure of upper lobe of right lung"], is_lateral_right, is_on_ellipsoid),
-            "lateral edge of oblique fissure of lower lobe of left lung": (
-                is_face_conditional["oblique fissure of lower lobe of left lung"], is_lateral_left, is_on_ellipsoid),
-            "lateral edge of oblique fissure of lower lobe of right lung": (
-                is_face_conditional["oblique fissure of lower lobe of right lung"], is_lateral_right, is_on_ellipsoid),
-            "lateral edge of oblique fissure of middle lobe of right lung": (
-                is_face_conditional["oblique fissure of middle lobe of right lung"], is_lateral_right, is_on_ellipsoid),
-            "lateral edge of oblique fissure of upper lobe of left lung": (
-                is_face_conditional["oblique fissure of upper lobe of left lung"], is_lateral_left, is_on_ellipsoid),
-            "lateral edge of oblique fissure of upper lobe of right lung": (
-                is_face_conditional["oblique fissure of upper lobe of right lung"], is_lateral_right, is_on_ellipsoid),
-            "medial edge of base of lower lobe of left lung": (
-                is_face_conditional["base of lower lobe of left lung surface"], is_medial_left, is_on_ellipsoid),
-            "medial edge of base of lower lobe of right lung": (
-                is_face_conditional["base of lower lobe of right lung surface"], is_medial_right, is_on_ellipsoid),
-            "medial edge of base of middle lobe of right lung": (
-                is_face_conditional["base of middle lobe of right lung surface"], is_medial_right, is_on_ellipsoid),
-            "medial edge of base of upper lobe of left lung": (
-                is_face_conditional["base of upper lobe of left lung surface"], is_medial_left, is_on_ellipsoid),
-            "medial edge of horizontal fissure of middle lobe of right lung": (
-                is_face_conditional["horizontal fissure of middle lobe of right lung"], is_medial_right, is_on_ellipsoid),
-            "medial edge of horizontal fissure of upper lobe of right lung": (
-                is_face_conditional["horizontal fissure of upper lobe of right lung"], is_medial_right, is_on_ellipsoid),
-            "medial edge of oblique fissure of lower lobe of left lung": (
-                is_face_conditional["oblique fissure of lower lobe of left lung"], is_medial_left, is_on_ellipsoid),
-            "medial edge of oblique fissure of lower lobe of right lung": (
-                is_face_conditional["oblique fissure of lower lobe of right lung"], is_medial_right, is_on_ellipsoid),
-            "medial edge of oblique fissure of middle lobe of right lung": (
-                is_face_conditional["oblique fissure of middle lobe of right lung"], is_medial_right, is_on_ellipsoid),
-            "medial edge of oblique fissure of upper lobe of left lung": (
-                is_face_conditional["oblique fissure of upper lobe of left lung"], is_medial_left, is_on_ellipsoid),
-            "medial edge of oblique fissure of upper lobe of right lung": (
-                is_face_conditional["oblique fissure of upper lobe of right lung"], is_medial_right, is_on_ellipsoid),
-            "posterior edge of lower lobe of left lung":
-                (is_lower_left, is_lateral_left, is_medial_left, is_on_ellipsoid),
-            "posterior edge of lower lobe of right lung":
-                (is_lower_right, is_lateral_right, is_medial_right, is_on_ellipsoid),
+        line_term_conditionals_map = {}
 
-        }
+        if has_left_lung:
+            left_line_term_conditionals_map = {
+                "antero-posterior edge of upper lobe of left lung":
+                    (is_upper_left, is_on_ellipsoid, is_medial_left, is_lateral_left),
+                "base edge of oblique fissure of lower lobe of left lung": (
+                    is_face_conditional["base of lower lobe of left lung surface"], is_face_conditional["oblique fissure of lower lobe of left lung"]),
+                "lateral edge of base of lower lobe of left lung": (
+                    is_face_conditional["base of lower lobe of left lung surface"], is_lateral_left, is_on_ellipsoid),
+                "lateral edge of base of upper lobe of left lung": (
+                    is_face_conditional["base of upper lobe of left lung surface"], is_lateral_left, is_on_ellipsoid),
+                "lateral edge of oblique fissure of lower lobe of left lung": (
+                    is_face_conditional["oblique fissure of lower lobe of left lung"], is_lateral_left, is_on_ellipsoid),
+                "lateral edge of oblique fissure of upper lobe of left lung": (
+                    is_face_conditional["oblique fissure of upper lobe of left lung"], is_lateral_left, is_on_ellipsoid),
+                "medial edge of base of lower lobe of left lung": (
+                    is_face_conditional["base of lower lobe of left lung surface"], is_medial_left, is_on_ellipsoid),
+                "medial edge of base of upper lobe of left lung": (
+                    is_face_conditional["base of upper lobe of left lung surface"], is_medial_left, is_on_ellipsoid),
+                "medial edge of oblique fissure of lower lobe of left lung": (
+                    is_face_conditional["oblique fissure of lower lobe of left lung"], is_medial_left, is_on_ellipsoid),
+                "medial edge of oblique fissure of upper lobe of left lung": (
+                    is_face_conditional["oblique fissure of upper lobe of left lung"], is_medial_left, is_on_ellipsoid),
+                "posterior edge of lower lobe of left lung":
+                    (is_lower_left, is_lateral_left, is_medial_left, is_on_ellipsoid),
+            }
+            line_term_conditionals_map.update(left_line_term_conditionals_map)
+        else:
+            left_line_term_conditionals_map = {}
+
+        if has_right_lung:
+            right_line_term_conditionals_map = {
+                "anterior edge of middle lobe of right lung":
+                    (is_middle_right, is_on_ellipsoid, is_medial_right, is_lateral_right),
+                "antero-posterior edge of upper lobe of right lung":
+                    (is_upper_right, is_on_ellipsoid, is_medial_right, is_lateral_right),
+                "base edge of oblique fissure of lower lobe of right lung": (
+                    is_face_conditional["base of lower lobe of right lung surface"], is_face_conditional["oblique fissure of lower lobe of right lung"]),
+                "lateral edge of base of lower lobe of right lung": (
+                    is_face_conditional["base of lower lobe of right lung surface"], is_lateral_right, is_on_ellipsoid),
+                "lateral edge of base of middle lobe of right lung": (
+                    is_face_conditional["base of middle lobe of right lung surface"], is_lateral_right, is_on_ellipsoid),
+                "lateral edge of horizontal fissure of middle lobe of right lung": (
+                    is_face_conditional["horizontal fissure of middle lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                "lateral edge of horizontal fissure of upper lobe of right lung": (
+                    is_face_conditional["horizontal fissure of upper lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                "lateral edge of oblique fissure of lower lobe of right lung": (
+                    is_face_conditional["oblique fissure of lower lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                "lateral edge of oblique fissure of middle lobe of right lung": (
+                    is_face_conditional["oblique fissure of middle lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                "lateral edge of oblique fissure of upper lobe of right lung": (
+                    is_face_conditional["oblique fissure of upper lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                "medial edge of base of lower lobe of right lung": (
+                    is_face_conditional["base of lower lobe of right lung surface"], is_medial_right, is_on_ellipsoid),
+                "medial edge of base of middle lobe of right lung": (
+                    is_face_conditional["base of middle lobe of right lung surface"], is_medial_right, is_on_ellipsoid),
+                "medial edge of horizontal fissure of middle lobe of right lung": (
+                    is_face_conditional["horizontal fissure of middle lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                "medial edge of horizontal fissure of upper lobe of right lung": (
+                    is_face_conditional["horizontal fissure of upper lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                "medial edge of oblique fissure of lower lobe of right lung": (
+                    is_face_conditional["oblique fissure of lower lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                "medial edge of oblique fissure of middle lobe of right lung": (
+                    is_face_conditional["oblique fissure of middle lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                "medial edge of oblique fissure of upper lobe of right lung": (
+                    is_face_conditional["oblique fissure of upper lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                "posterior edge of lower lobe of right lung":
+                    (is_lower_right, is_lateral_right, is_medial_right, is_on_ellipsoid)
+            }
+            line_term_conditionals_map.update(right_line_term_conditionals_map)
+        else:
+            right_line_term_conditionals_map = {}
+
         for line_term, conditionals in line_term_conditionals_map.items():
             annotation_group = findOrCreateAnnotationGroupForTerm(annotation_groups, region, (line_term, ""))
             conditional = conditionals[0]
@@ -567,7 +623,8 @@ class MeshType_3d_lung4(Scaffold_base):
             "transition"
         ]:
             annotation_group = findAnnotationGroupByName(annotation_groups, group_name)
-            annotation_groups.remove(annotation_group)
+            if annotation_group:
+                annotation_groups.remove(annotation_group)
 
 
 def rotateLungMeshAboutAxis(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
