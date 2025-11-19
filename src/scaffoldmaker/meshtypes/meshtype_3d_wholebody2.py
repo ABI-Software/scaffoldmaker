@@ -669,71 +669,83 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                             mult(armFront, sinTwistAngle))
                 d3 = add(mult(armFront,  cosTwistAngle),
                             mult(armSide, sinTwistAngle))
+                armSide = d2 
+                armFront = d3
+            
             # Updating frame of reference wrt flexion angle (using d2 as rotation axis)
             elbowFlexionRadians = elbowLeftFlexionRadians if (side == left) else elbowRightFlexionRadians
-            elbowJointAngleRadians = math.pi - elbowFlexionRadians
-            elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians)
-            elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians/2)
-            # Calculating initial estimation for directions at the elbow node
-            elbowDirn = matrix_vector_mult(elbowHalfRotationMatrix, d1)
-            elbowFront = matrix_vector_mult(elbowHalfRotationMatrix, d3)
-            elbowSide = d2
-            # Calculating direction for the antebrachium
-            antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, d1)
-            antebrachiumSide = armSide
-            antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
-            # These rotation factors are used to adjust the position of the joint node relative 
-            # to the angle of flexion, and ensures a proper transition between the two parts
-            rotationCoeff = 0.25
-            flexionRotFactor = 1*math.sin(elbowJointAngleRadians)     
-            jointRotFactor = 1/math.sin(elbowJointAngleRadians/2)
-            d13RotFactor = math.sqrt(2)*math.tan(elbowFlexionRadians/2)
-            jointPositions = []
-            jointPositions.append(x) # 1
+            # jointAngleRadians = math.pi - elbowFlexionRadians
+            # elbowJointAngleRadians = math.pi - elbowFlexionRadians
+            # elbowRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians)
+            # elbowHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(d2, -1), elbowFlexionRadians/2)
+            # # Calculating initial estimation for directions at the elbow node
+            # elbowDirn = matrix_vector_mult(elbowHalfRotationMatrix, d1)
+            # elbowFront = matrix_vector_mult(elbowHalfRotationMatrix, d3)
+            # elbowSide = d2
+            # # Calculating direction for the antebrachium
+            # antebrachiumDirn = matrix_vector_mult(elbowRotationMatrix, d1)
+            # antebrachiumSide = armSide
+            # antebrachiumFront = cross(antebrachiumDirn, antebrachiumSide)
+            # # These rotation factors are used to adjust the position of the joint node relative 
+            # # to the angle of flexion, and ensures a proper transition between the two parts
+            # rotationCoeff = 0.25
+            # flexionRotFactor = 1*math.sin(elbowJointAngleRadians)     
+            # jointRotFactor = 1/math.sin(elbowJointAngleRadians/2)
+            # d13RotFactor = math.sqrt(2)*math.tan(elbowFlexionRadians/2)
+            # jointPositions = []
+            # jointPositions.append(x) # 1
+            # i += 1
+            # xi = i / (armToHandElementsCount - 2)
+            # halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+            # halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            # # The joint node is not set directly at the corner
+            # # Instead it is nudged forward towards the center of the joint
+            # # To get as smooth of a line as possible between node #1 and #3
+            # rotDisplacementFactor = rotationCoeff*halfWidth*flexionRotFactor
+            # ventralFlexion = 1
+            # jointAdjustDir = add(
+            #         set_magnitude(elbowFront, ventralFlexion*rotDisplacementFactor), 
+            #         set_magnitude(antebrachiumDirn, rotDisplacementFactor), 
+            #     )
+            # jointAdjustDir = add(
+            #     set_magnitude(armDirn, armScale), 
+            #     jointAdjustDir
+            # )
+            # jointAdjustDir = set_magnitude(jointAdjustDir, armScale)
+            # jointPositions.append(add(x, jointAdjustDir)) # 2
+            # jointAdjustDir = add(
+            #         set_magnitude(elbowDirn, rotDisplacementFactor), 
+            #         set_magnitude(armDirn, rotDisplacementFactor), 
+            #     )
+            # jointAdjustDir =  add(
+            #     set_magnitude(antebrachiumDirn, armScale), 
+            #     jointAdjustDir
+            #     )
+            # jointAdjustDir = set_magnitude(jointAdjustDir, armScale)
+            # jointPositions.append(add(jointPositions[-1], jointAdjustDir)) #3
+            # jointDir = [armDirn, elbowDirn, antebrachiumDirn] 
+            # jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
+            #     jointPositions, jointDir, 2, 
+            #     derivativeMagnitudeStart=armScale, derivativeMagnitudeEnd=armScale
+            #     )[0:2]  
+            armDir = [armDirn, armSide, armFront]
             i += 1
             xi = i / (armToHandElementsCount - 2)
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-            # The joint node is not set directly at the corner
-            # Instead it is nudged forward towards the center of the joint
-            # To get as smooth of a line as possible between node #1 and #3
-            rotDisplacementFactor = rotationCoeff*halfWidth*flexionRotFactor
-            ventralFlexion = 1
-            jointAdjustDir = add(
-                    set_magnitude(elbowFront, ventralFlexion*rotDisplacementFactor), 
-                    set_magnitude(antebrachiumDirn, rotDisplacementFactor), 
-                )
-            jointAdjustDir = add(
-                set_magnitude(armDirn, armScale), 
-                jointAdjustDir
-            )
-            jointAdjustDir = set_magnitude(jointAdjustDir, armScale)
-            jointPositions.append(add(x, jointAdjustDir)) # 2
-            jointAdjustDir = add(
-                    set_magnitude(elbowDirn, rotDisplacementFactor), 
-                    set_magnitude(armDirn, rotDisplacementFactor), 
-                )
-            jointAdjustDir =  add(
-                set_magnitude(antebrachiumDirn, armScale), 
-                jointAdjustDir
-                )
-            jointAdjustDir = set_magnitude(jointAdjustDir, armScale)
-            jointPositions.append(add(jointPositions[-1], jointAdjustDir)) #3
-            jointDir = [armDirn, elbowDirn, antebrachiumDirn] 
-            jointPositions, jointDirn = sampleCubicHermiteCurvesSmooth(
-                jointPositions, jointDir, 2, 
-                derivativeMagnitudeStart=armScale, derivativeMagnitudeEnd=armScale
-                )[0:2]  
+            rotationCoeff = 0.25
+            [x, elbowDir, antebrachiumStart, antebrachiumDir, elbowd3_mag, elbowd13_mag] = getJointAndDistalFlexionFrames(elbowFlexionRadians, x, armDir,halfWidth, armScale, rotationCoeff,ventralFlexion=True)
             # Set coordiantes for joint node
-            x = jointPositions[1]
-            d1 = jointDirn[1]
-            elbowFront = cross(d1, d2)
+            # x = jointPositions[1]
+            elbowDirn, elbowSide, elbowFront = elbowDir
+            d1 = mult(elbowDirn, armScale)
+            # elbowFront = cross(d1, d2)
             d2 = set_magnitude(elbowSide, halfThickness)
-            d3 = set_magnitude(elbowFront, halfWidth*(jointRotFactor-(rotationCoeff*flexionRotFactor)))
+            d3 = set_magnitude(elbowFront, elbowd3_mag)
             d12 = set_magnitude(elbowSide, d12_mag)
             d13 = add(
                 set_magnitude(elbowFront, d13_mag), 
-                set_magnitude(d1, -halfWidth*d13RotFactor)
+                set_magnitude(d1, -elbowd13_mag)
                 )
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
@@ -746,7 +758,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             nodeIdentifier += 1
             options['Kinematic tree']['ulna_' + side_label] = x
             # Antebrachium nodes starts after the elbow node
-            antebrachiumStart = jointPositions[-1]
+            # antebrachiumStart = jointPositions[-1]
+            antebrachiumDirn, antebrachiumSide, antebrachiumFront = antebrachiumDir
             d1 = set_magnitude(antebrachiumDirn, armScale)
             # Change d1 to the antebrachium direction
             for i in range(brachiumElementsCount - shoulderElementCount + 1, armToHandElementsCount - 1):
@@ -881,7 +894,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             upperLegFront = cross(upperLegDirn, upperLegSide)
             # These rotation factors are used to adjust the position of the joint node relative 
             # to the angle of flexion, and ensures a proper transition between the two parts
-            rotationCoeff = 0.1
+            rotationCoeff = 0.25
             flexionRotFactor = 1*math.sin(hipJointAngleRadians)     
             jointRotFactor = 1/math.sin(hipJointAngleRadians/2)
             d13RotFactor = math.sqrt(2)*math.tan(hipFlexionRadians/2)
@@ -923,13 +936,13 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # Set coordiantes for joint node
             x = jointPositions[1]
             d1 = set_magnitude(hipDirn, legScale)
-            # hipFront = cross(d1, d2)
+            hipFront = cross(d1, d2)
             d2 = set_magnitude(hipSide, radius)
-            d3 = set_magnitude(hipFront, radius*jointRotFactor - 2.5*rotDisplacementFactor)
+            d3 = set_magnitude(hipFront, radius*jointRotFactor - 1*rotDisplacementFactor)
             d12 = set_magnitude(hipSide, d12_mag)
             d13 = add(
                 set_magnitude(hipFront, d13_mag), 
-                set_magnitude(d1, -(radius)/(legScale*jointRotFactor))
+                mult(d1, -radius*d13RotFactor)
                 )
             id2 = mult(d2, innerProportionDefault)
             id3 = mult(d3, innerProportionDefault)
@@ -1665,3 +1678,70 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, d12)
     if d13:
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)
+
+def getJointAndDistalFlexionFrames(jointFlexionRadians, proximalNodePosition, proximalDir, 
+                             frontScale, dirnScale, rotationCoeff,ventralFlexion=True):
+    jointAngleRadians = math.pi - jointFlexionRadians
+    proximalDirn, proximalSide, proximalFront = proximalDir
+    ventral = 1 if ventralFlexion else -1 
+    jointRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians)
+    jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians/2)
+    # Joint directions (frame is rotated by half the flexion angle)
+    jointDirn = matrix_vector_mult(jointHalfRotationMatrix, proximalDirn)
+    jointSide = proximalSide
+    jointFront = matrix_vector_mult(jointHalfRotationMatrix, proximalFront)
+    # Proximal directions
+    distalDirn = matrix_vector_mult(jointRotationMatrix, proximalDirn)
+    distalSide = proximalSide
+    distalFront = matrix_vector_mult(jointRotationMatrix, proximalFront)
+    # These rotation factors are used to adjust the position of the joint node relative 
+    # to the angle of flexion, and ensures a proper transition between the two parts
+    flexionRotFactor = 1*math.sin(jointAngleRadians)     
+    jointRotFactor = 1/math.sin(jointAngleRadians/2)
+    d13RotFactor = math.sqrt(2)*math.tan(jointFlexionRadians/2)
+    # Diagram to calculate position of joint node with flexion
+    # 1 
+    # |
+    # 2 -- 3 
+    # 1 is the proximal node, 2 is the joint node, 3 is distal node
+    # we fix the position of the nodes 1 and 3, and calculate 
+    # the position of 2 using the sampleCubicHermiteCurvesSmooth function.
+    nodePositions = []
+    nodePositions.append(proximalNodePosition) #1
+    # The joint node is not set directly at the corner
+    # Instead it is nudged forward towards the center of the tube
+    # To get as smooth of a line as possible between node #1 and #3
+    rotDisplacementFactor = rotationCoeff*frontScale*flexionRotFactor
+    jointAdjustDir = add(
+                    set_magnitude(jointFront, ventral*rotDisplacementFactor), 
+                    set_magnitude(distalDirn, rotDisplacementFactor), 
+                )
+    jointAdjustDir = add(
+                set_magnitude(proximalDirn, dirnScale), 
+                jointAdjustDir
+            )
+    jointAdjustDir = set_magnitude(jointAdjustDir, dirnScale)
+    nodePositions.append(add(nodePositions[-1], jointAdjustDir)) #2
+    jointAdjustDir = add(
+            set_magnitude(jointDirn, rotDisplacementFactor), 
+            set_magnitude(proximalDirn, rotDisplacementFactor), 
+        )
+    jointAdjustDir =  add(
+        set_magnitude(distalDirn, dirnScale), 
+        jointAdjustDir
+        )
+    jointAdjustDir = set_magnitude(jointAdjustDir, dirnScale)
+    nodePositions.append(add(nodePositions[-1], jointAdjustDir)) #3
+    # nodeDir = [proximalDirn, jointDirn, distalDirn]
+    # nodePositions, nodeDirn = sampleCubicHermiteCurvesSmooth(
+    # nodePositions, jo, 2, 
+    # derivativeMagnitudeStart=dirnScale, derivativeMagnitudeEnd=dirnScale
+    # )[0:2]  
+    jointNodePosition = nodePositions[1]
+    jointDir = [jointDirn, jointSide, jointFront]
+    distalNodePosition = nodePositions[2]
+    distalDir = [distalDirn, distalSide, distalFront]
+    # Magnitudes
+    jointd3_mag = frontScale*(jointRotFactor-(rotationCoeff*flexionRotFactor))
+    jointd13_mag = frontScale*d13RotFactor
+    return [jointNodePosition, jointDir, distalNodePosition, distalDir, jointd3_mag, jointd13_mag]
