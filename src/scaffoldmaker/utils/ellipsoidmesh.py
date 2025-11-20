@@ -153,7 +153,7 @@ class EllipsoidMesh:
         self.copy_to_negative_axis1()
 
     def build_octant(self, half_counts, axis2_x_rotation_radians, axis3_x_rotation_radians,
-                     axis2_extension=0.0, axis2_extension_elements_count=0, normal_face_factor=0.0):
+                     axis2_extension=0.0, axis2_extension_elements_count=0):
         """
         Get coordinates of top, right, front octant with supplied angles.
         :param half_counts: Numbers of elements across octant 1, 2 and 3 directions.
@@ -162,7 +162,6 @@ class EllipsoidMesh:
         :param axis2_extension: Extension distance along axis2 beyond origin [0.0, 0.0, 0.0].
         :param axis2_extension_elements_count: If axis2_extension: number of elements beyond origin.
         Note: included in half_counts[1].
-        :param normal_face_factor: 0.0 for interpolated face normals, up to 1.0 for fully normal to axis surface.
         :return: HexTetrahedronMesh
         """
         assert ((axis2_extension == 0.0) and (axis2_extension_elements_count == 0)) or (
