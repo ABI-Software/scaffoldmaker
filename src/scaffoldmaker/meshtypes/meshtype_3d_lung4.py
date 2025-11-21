@@ -383,54 +383,10 @@ class MeshType_3d_lung4(Scaffold_base):
             lungMedialCurvature = -medial_curvature if is_left else medial_curvature
 
             if lower_lobe_base_concavity > 0.0:
-                cos_pi__3 = math.cos(pi__3)
-                sin_pi__3 = math.sin(pi__3)
-                value0 = fieldmodule.createFieldConstant(0.0)
-                value1 = fieldmodule.createFieldConstant(1.0)
-                value2 = fieldmodule.createFieldConstant(2.0)
-                value3 = fieldmodule.createFieldConstant(3.0)
-                x = fieldmodule.createFieldComponent(coordinates, 1)
-                y = fieldmodule.createFieldComponent(coordinates, 2)
-                z = fieldmodule.createFieldComponent(coordinates, 3)
-                xx = x * x
-                yy = y * y
-                minus_c = fieldmodule.createFieldConstant(-half_height)
-                nz = z / minus_c
-                zfact = fieldmodule.createFieldSqrt(value1 - nz * nz)
-                a = fieldmodule.createFieldConstant(half_ml_size) * zfact
-                b = fieldmodule.createFieldConstant(half_dv_size) * zfact
-                aa = a * a
-                bb = b * b
-                r = fieldmodule.createFieldSqrt((xx / aa) + (yy / bb))
-                rr = r * r
-                phi_r = value1 - rr
-                z_ext = -lower_lobe_extension * sin_pi__3
-                e = z / fieldmodule.createFieldConstant(z_ext)
-                ee = e * e
-                eee = ee * e
-                phi_e = fieldmodule.createFieldIf(fieldmodule.createFieldLessThan(e, value0), value0,
-                                                  value3 * ee - value2 * eee)
-                # reduce concavity to zero at oblique fissure
-                y_ext = fieldmodule.createFieldConstant(lower_lobe_extension * cos_pi__3)
-                y_max = b + y_ext
-                d = value1 + (y - e * y_ext) / y_max
-                dd = d * d
-                phi_y = value1 - dd
-
-                phi = phi_e * phi_r * phi_y
-                delta_y = phi * fieldmodule.createFieldConstant(-lower_lobe_base_concavity * cos_pi__3 / sin_pi__3)
-                delta_z = phi * fieldmodule.createFieldConstant(lower_lobe_base_concavity)
-                # get span a at displaced z, to calculate delta_x
-                displ_nz = (z + delta_z) / minus_c
-                displ_zfact = fieldmodule.createFieldSqrt(value1 - displ_nz * displ_nz)
-                displ_a = fieldmodule.createFieldConstant(half_ml_size) * displ_zfact
-                delta_x = (x * displ_a / a - x)
-                displacement = fieldmodule.createFieldConcatenate([delta_x, delta_y, delta_z])
-                new_coordinates = coordinates + displacement
-                fieldassignment = coordinates.createFieldassignment(new_coordinates)
-                lower_lung_group = lowerLeftLungGroup if (lung == left_lung) else lowerRightLungGroup
-                fieldassignment.setNodeset(lower_lung_group.getNodesetGroup(nodes))
-                fieldassignment.assign()
+                form_lower_lobe_base_concavity(
+                    lower_lobe_base_concavity, lower_lobe_extension, half_ml_size, half_dv_size, half_height,
+                    fieldmodule, nodes, coordinates,
+                    lower_lobe_group=lowerLeftLungGroup if (lung == left_lung) else lowerRightLungGroup)
 
             if ventral_sharpness_factor != 0.0:
                 taperLungEdge(ventral_sharpness_factor, fieldmodule, coordinates, lungNodeset, half_dv_size)
@@ -761,6 +717,70 @@ def bendLungMeshAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, statio
 
     fieldassignment = coordinates.createFieldassignment(newCoordinates)
     fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.assign()
+
+
+def form_lower_lobe_base_concavity(lower_lobe_base_concavity, lower_lobe_extension,
+                                    half_ml_size, half_dv_size, half_height,
+                                    fieldmodule, nodes, coordinates, lower_lobe_group):
+    """
+    Reshape the base of the lower lobe to be concave, tapering off to the oblique fissure.
+    :param lower_lobe_base_concavity: Lower lobe base concavity distance. Note this is reduced by the taper.
+    :param lower_lobe_extension: Distance along oblique fissure below origin that lower lobe extends.
+    :param half_ml_size: Half medial-lateral ellipsoid size.
+    :param half_dv_size: Half dorsal-ventral ellipsoid size.
+    :param half_height: Half ellipsoid height.
+    :param fieldmodule: Fieldmodule owning fields to modify.
+    :param nodes: Nodeset to modify.
+    :param coordinates: Coordinate field to modify.
+    :param lower_lobe_group: Group to form concave base on: left or right lower lobe.
+    """
+    pi__3 = math.pi / 3.0
+    cos_pi__3 = math.cos(pi__3)
+    sin_pi__3 = math.sin(pi__3)
+    value0 = fieldmodule.createFieldConstant(0.0)
+    value1 = fieldmodule.createFieldConstant(1.0)
+    value2 = fieldmodule.createFieldConstant(2.0)
+    value3 = fieldmodule.createFieldConstant(3.0)
+    x = fieldmodule.createFieldComponent(coordinates, 1)
+    y = fieldmodule.createFieldComponent(coordinates, 2)
+    z = fieldmodule.createFieldComponent(coordinates, 3)
+    xx = x * x
+    yy = y * y
+    minus_c = fieldmodule.createFieldConstant(-half_height)
+    nz = z / minus_c
+    zfact = fieldmodule.createFieldSqrt(value1 - nz * nz)
+    a = fieldmodule.createFieldConstant(half_ml_size) * zfact
+    b = fieldmodule.createFieldConstant(half_dv_size) * zfact
+    aa = a * a
+    bb = b * b
+    r = fieldmodule.createFieldSqrt((xx / aa) + (yy / bb))
+    rr = r * r
+    phi_r = value1 - rr
+    z_ext = -lower_lobe_extension * sin_pi__3
+    e = z / fieldmodule.createFieldConstant(z_ext)
+    ee = e * e
+    eee = ee * e
+    phi_e = fieldmodule.createFieldIf(fieldmodule.createFieldLessThan(e, value0), value0,
+                                      value3 * ee - value2 * eee)
+    # taper concavity to zero at oblique fissure
+    y_ext = fieldmodule.createFieldConstant(lower_lobe_extension * cos_pi__3)
+    y_max = b + y_ext
+    d = value1 + (y - e * y_ext) / y_max
+    dd = d * d
+    phi_y = value1 - dd
+    phi = phi_e * phi_r * phi_y
+    delta_y = phi * fieldmodule.createFieldConstant(-lower_lobe_base_concavity * cos_pi__3 / sin_pi__3)
+    delta_z = phi * fieldmodule.createFieldConstant(lower_lobe_base_concavity)
+    # get span a at displaced z, to calculate delta_x
+    displ_nz = (z + delta_z) / minus_c
+    displ_zfact = fieldmodule.createFieldSqrt(value1 - displ_nz * displ_nz)
+    displ_a = fieldmodule.createFieldConstant(half_ml_size) * displ_zfact
+    delta_x = (x * displ_a / a - x)
+    displacement = fieldmodule.createFieldConcatenate([delta_x, delta_y, delta_z])
+    new_coordinates = coordinates + displacement
+    fieldassignment = coordinates.createFieldassignment(new_coordinates)
+    fieldassignment.setNodeset(lower_lobe_group.getNodesetGroup(nodes))
     fieldassignment.assign()
 
 
