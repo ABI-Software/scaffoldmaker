@@ -44,11 +44,10 @@ class MeshType_3d_lung4(Scaffold_base):
         useParameterSetName = "Human 1 Coarse" if (parameterSetName == "Default") else parameterSetName
         options["Left lung"] = True
         options["Right lung"] = True
-        height = options["Ellipsoid height"] = 1.0
-        depth = options["Ellipsoid dorsal-ventral size"] = 0.8
+        options["Ellipsoid height"] = 1.0
+        options["Ellipsoid dorsal-ventral size"] = 0.8
         options["Ellipsoid medial-lateral size"] = 0.4
         options["Left-right lung spacing"] = 0.5
-        options["Lower lobe base concavity"] = 0.1
         options["Lower lobe extension"] = 0.3
         options["Refine"] = False
         options["Refine number of elements"] = 4
@@ -70,13 +69,13 @@ class MeshType_3d_lung4(Scaffold_base):
             options["Number of transition elements"] = 1
 
         if "Human" in useParameterSetName:
-            options["Ventral edge sharpness factor"] = 0.8
-            options["Medial curvature"] = 3.0
-            options["Medial curvature bias"] = 1.0
+            options["Lower lobe base concavity"] = 0.1
+            options["Ventral edge sharpness factor"] = 0.9
+            options["Cardiac curvature"] = 2.0
         else:
+            options["Lower lobe base concavity"] = 0.0
             options["Ventral edge sharpness factor"] = 0.0
-            options["Medial curvature"] = 0.0
-            options["Medial curvature bias"] = 0.0
+            options["Cardiac curvature"] = 0.0
 
         return options
 
@@ -97,8 +96,7 @@ class MeshType_3d_lung4(Scaffold_base):
             "Lower lobe base concavity",
             "Lower lobe extension",
             "Ventral edge sharpness factor",
-            "Medial curvature",
-            "Medial curvature bias",
+            "Cardiac curvature",
             "Refine",
             "Refine number of elements"
         ]
@@ -141,7 +139,8 @@ class MeshType_3d_lung4(Scaffold_base):
                 options[key] = 1.0
         for key in [
             "Lower lobe base concavity",
-            "Lower lobe extension"
+            "Lower lobe extension",
+            "Cardiac curvature"
         ]:
             if options[key] < 0.0:
                 options[key] = 0.0
@@ -158,8 +157,7 @@ class MeshType_3d_lung4(Scaffold_base):
             options["Left-right lung spacing"] = 0.0
 
         for dimension in [
-            "Ventral edge sharpness factor",
-            "Medial curvature bias"
+            "Ventral edge sharpness factor"
         ]:
             if options[dimension] < 0.0:
                 options[dimension] = 0.0
@@ -190,11 +188,10 @@ class MeshType_3d_lung4(Scaffold_base):
         lower_lobe_extension = options["Lower lobe extension"]
         lower_lobe_base_concavity = options["Lower lobe base concavity"]
         ventral_sharpness_factor = options["Ventral edge sharpness factor"]
+        cardiac_curvature = options["Cardiac curvature"]
         ellipsoid_ml_size = options["Ellipsoid medial-lateral size"]
         ellipsoid_dv_size = options["Ellipsoid dorsal-ventral size"]
         ellipsoid_height = options["Ellipsoid height"]
-        medial_curvature = options["Medial curvature"]
-        medial_curvature_bias = options["Medial curvature bias"]
 
         fieldmodule = region.getFieldmodule()
         coordinates = find_or_create_field_coordinates(fieldmodule)
@@ -202,46 +199,43 @@ class MeshType_3d_lung4(Scaffold_base):
         mesh = fieldmodule.findMeshByDimension(3)
 
         # annotation groups & nodeset groups
-        lungGroup = AnnotationGroup(region, get_lung_term("lung"))
+        lung_group = AnnotationGroup(region, get_lung_term("lung"))
 
         if has_left_lung:
-            leftLungGroup = AnnotationGroup(region, get_lung_term("left lung"))
-            lowerLeftLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
-            upperLeftLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
-            leftAnteriorLungGroup = AnnotationGroup(region, ("anterior left lung", ""))
-            leftLateralLungGroup = AnnotationGroup(region, ("lateral left lung", ""))
-            leftMedialLungGroup = AnnotationGroup(region, ("medial left lung", ""))
-            left_annotation_groups = [leftLungGroup, lowerLeftLungGroup, upperLeftLungGroup,
-                                      leftAnteriorLungGroup, leftLateralLungGroup, leftMedialLungGroup]
+            left_lung_group = AnnotationGroup(region, get_lung_term("left lung"))
+            lower_left_lung_group = AnnotationGroup(region, get_lung_term("lower lobe of left lung"))
+            upper_left_lung_group = AnnotationGroup(region, get_lung_term("upper lobe of left lung"))
+            left_anterior_lung_group = AnnotationGroup(region, ("anterior left lung", ""))
+            left_lateral_lung_group = AnnotationGroup(region, ("lateral left lung", ""))
+            left_medial_lung_group = AnnotationGroup(region, ("medial left lung", ""))
+            left_annotation_groups = [left_lung_group, lower_left_lung_group, upper_left_lung_group,
+                                      left_anterior_lung_group, left_lateral_lung_group, left_medial_lung_group]
         else:
-            leftLungGroup = lowerLeftLungGroup = upperLeftLungGroup = None
-            leftLateralLungGroup = leftMedialLungGroup = leftAnteriorLungGroup = None
+            left_lung_group = lower_left_lung_group = upper_left_lung_group = None
+            left_lateral_lung_group = left_medial_lung_group = left_anterior_lung_group = None
             left_annotation_groups = []
 
         if has_right_lung:
-            rightLungGroup = AnnotationGroup(region, get_lung_term("right lung"))
-            lowerRightLungGroup = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
-            middleRightLungGroup = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
-            upperRightLungGroup = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
-            rightAnteriorLungGroup = AnnotationGroup(region, ("anterior right lung", ""))
-            rightLateralLungGroup = AnnotationGroup(region, ("lateral right lung", ""))
-            rightMedialLungGroup = AnnotationGroup(region, ("medial right lung", ""))
-            right_annotation_groups = [rightLungGroup, lowerRightLungGroup, middleRightLungGroup, upperRightLungGroup,
-                                       rightAnteriorLungGroup, rightLateralLungGroup, rightMedialLungGroup]
+            right_lung_group = AnnotationGroup(region, get_lung_term("right lung"))
+            lower_right_lung_group = AnnotationGroup(region, get_lung_term("lower lobe of right lung"))
+            middle_right_lung_group = AnnotationGroup(region, get_lung_term("middle lobe of right lung"))
+            upper_right_lung_group = AnnotationGroup(region, get_lung_term("upper lobe of right lung"))
+            right_anterior_lung_group = AnnotationGroup(region, ("anterior right lung", ""))
+            right_lateral_lung_group = AnnotationGroup(region, ("lateral right lung", ""))
+            right_medial_lung_group = AnnotationGroup(region, ("medial right lung", ""))
+            right_annotation_groups = [
+                right_lung_group, lower_right_lung_group, middle_right_lung_group, upper_right_lung_group,
+                right_anterior_lung_group, right_lateral_lung_group, right_medial_lung_group]
         else:
-            rightLungGroup = lowerRightLungGroup = middleRightLungGroup = upperRightLungGroup = None
-            rightAnteriorLungGroup = rightLateralLungGroup = rightMedialLungGroup = None
+            right_lung_group = lower_right_lung_group = middle_right_lung_group = upper_right_lung_group = None
+            right_anterior_lung_group = right_lateral_lung_group = right_medial_lung_group = None
             right_annotation_groups = []
 
         box_group = AnnotationGroup(region, ("box", ""))
         transition_group = AnnotationGroup(region, ("transition", ""))
 
-        annotation_groups = [lungGroup] + left_annotation_groups + right_annotation_groups + \
+        annotation_groups = [lung_group] + left_annotation_groups + right_annotation_groups + \
                             [box_group, transition_group]
-
-        # Nodeset group
-        leftLungNodesetGroup = leftLungGroup.getNodesetGroup(nodes) if leftLungGroup else None
-        rightLungNodesetGroup = rightLungGroup.getNodesetGroup(nodes) if rightLungGroup else None
 
         half_ml_size = ellipsoid_ml_size * 0.5
         half_dv_size = ellipsoid_dv_size * 0.5
@@ -251,7 +245,7 @@ class MeshType_3d_lung4(Scaffold_base):
 
         left_lung, right_lung = 0, 1
         lungs = [lung for show, lung in [(has_left_lung, left_lung), (has_right_lung, right_lung)] if show]
-        nodeIdentifier, elementIdentifier = 1, 1
+        node_identifier, element_identifier = 1, 1
 
         # currently build left lung if right lung is being built to get correct node/element identifiers
         lungs_construct = [left_lung, right_lung] if has_right_lung else [left_lung] if has_left_lung else []
@@ -263,13 +257,15 @@ class MeshType_3d_lung4(Scaffold_base):
                     lower_octant_group_lists = []
                     upper_octant_group_lists = []
                     for octant in range(8):
-                        octant_group_list = [group.getGroup() for group in [lungGroup, leftLungGroup, lowerLeftLungGroup] +
-                                             [leftMedialLungGroup if (octant & 1) else leftLateralLungGroup]]
+                        octant_group_list = [group.getGroup() for group in
+                                             [lung_group, left_lung_group, lower_left_lung_group] +
+                                             [left_medial_lung_group if (octant & 1) else left_lateral_lung_group]]
                         lower_octant_group_lists.append(octant_group_list)
-                        octant_group_list = [group.getGroup() for group in [lungGroup, leftLungGroup, upperLeftLungGroup] +
-                                             [leftMedialLungGroup if (octant & 1) else leftLateralLungGroup]]
+                        octant_group_list = [group.getGroup() for group in
+                                             [lung_group, left_lung_group, upper_left_lung_group] +
+                                             [left_medial_lung_group if (octant & 1) else left_lateral_lung_group]]
                         if octant & 2:
-                            octant_group_list.append(leftAnteriorLungGroup.getGroup())
+                            octant_group_list.append(left_anterior_lung_group.getGroup())
                         upper_octant_group_lists.append(octant_group_list)
                 else:
                     lower_octant_group_lists = upper_octant_group_lists = None
@@ -279,34 +275,40 @@ class MeshType_3d_lung4(Scaffold_base):
                 middle_octant_group_lists = []
                 upper_octant_group_lists = []
                 for octant in range(8):
-                    octant_group_list = [group.getGroup() for group in [lungGroup, rightLungGroup, lowerRightLungGroup] +
-                                         [rightLateralLungGroup if (octant & 1) else rightMedialLungGroup]]
+                    octant_group_list = [group.getGroup() for group in
+                                         [lung_group, right_lung_group, lower_right_lung_group] +
+                                         [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
                     lower_octant_group_lists.append(octant_group_list)
-                    octant_group_list = [group.getGroup() for group in [lungGroup, rightLungGroup, middleRightLungGroup] +
-                                         [rightLateralLungGroup if (octant & 1) else rightMedialLungGroup]]
+                    octant_group_list = [group.getGroup() for group in
+                                         [lung_group, right_lung_group, middle_right_lung_group] +
+                                         [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
                     if octant & 2:
-                        octant_group_list.append(rightAnteriorLungGroup.getGroup())
+                        octant_group_list.append(right_anterior_lung_group.getGroup())
                     middle_octant_group_lists.append(octant_group_list)
-                    octant_group_list = [group.getGroup() for group in [lungGroup, rightLungGroup, upperRightLungGroup] +
-                                         [rightLateralLungGroup if (octant & 1) else rightMedialLungGroup]]
+                    octant_group_list = [group.getGroup() for group in
+                                         [lung_group, right_lung_group, upper_right_lung_group] +
+                                         [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
                     if octant & 2:
-                        octant_group_list.append(rightAnteriorLungGroup.getGroup())
+                        octant_group_list.append(right_anterior_lung_group.getGroup())
                     upper_octant_group_lists.append(octant_group_list)
 
-            elementCounts = [elements_count_lateral, elements_count_oblique, elements_count_oblique]
-            lower_ellipsoid = EllipsoidMesh(half_ml_size, half_dv_size, half_height, elementCounts, elements_count_transition)
+            element_counts = [elements_count_lateral, elements_count_oblique, elements_count_oblique]
+            lower_ellipsoid = EllipsoidMesh(
+                half_ml_size, half_dv_size, half_height, element_counts, elements_count_transition)
             lower_ellipsoid.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
             lower_ellipsoid.set_box_transition_groups(box_group.getGroup(), transition_group.getGroup())
-            upper_ellipsoid = EllipsoidMesh(half_ml_size, half_dv_size, half_height, elementCounts, elements_count_transition)
+            upper_ellipsoid = EllipsoidMesh(
+                half_ml_size, half_dv_size, half_height, element_counts, elements_count_transition)
             upper_ellipsoid.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
             upper_ellipsoid.set_box_transition_groups(box_group.getGroup(), transition_group.getGroup())
             if lung == right_lung:
-                middle_ellipsoid = EllipsoidMesh(half_ml_size, half_dv_size, half_height, elementCounts, elements_count_transition)
+                middle_ellipsoid = EllipsoidMesh(
+                    half_ml_size, half_dv_size, half_height, element_counts, elements_count_transition)
                 middle_ellipsoid.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
                 middle_ellipsoid.set_box_transition_groups(box_group.getGroup(), transition_group.getGroup())
             else:
                 middle_ellipsoid = upper_ellipsoid
-            half_counts = [count // 2 for count in elementCounts]
+            half_counts = [count // 2 for count in element_counts]
             octant1 = middle_ellipsoid.build_octant(half_counts, -pi__3, 0.0)
             middle_ellipsoid.merge_octant(octant1, quadrant=3)
             if lung == right_lung:
@@ -316,7 +318,7 @@ class MeshType_3d_lung4(Scaffold_base):
             hilum_x = []
             ox = octant1.get_parameters()
             box_count1 = octant1.get_box_counts()[0]
-            for n1 in range(elementCounts[0] + 1):
+            for n1 in range(element_counts[0] + 1):
                 mirror_x = n1 < half_counts[0]
                 o1 = abs(n1 - half_counts[0])
                 parameters = ox[0][0][o1]
@@ -343,7 +345,7 @@ class MeshType_3d_lung4(Scaffold_base):
             # merge into separate lower ellipsoid to have space for extension elements
             lower_ellipsoid_mesh = EllipsoidMesh(
                 half_ml_size, half_dv_size, half_height,
-                [elementCounts[0], elementCounts[1], elementCounts[2] + 2 * elements_count_lower_extension],
+                [element_counts[0], element_counts[1], element_counts[2] + 2 * elements_count_lower_extension],
                 elements_count_transition)
             lower_ellipsoid_mesh.set_surface_d3_mode(EllipsoidSurfaceD3Mode.SURFACE_NORMAL_PLANE_PROJECTION)
             lower_ellipsoid_mesh.set_box_transition_groups(box_group.getGroup(), transition_group.getGroup())
@@ -352,20 +354,20 @@ class MeshType_3d_lung4(Scaffold_base):
 
             node_layout_manager = lower_ellipsoid.get_node_layout_manager()
             node_layout_permuted = node_layout_manager.getNodeLayoutRegularPermuted(d3Defined=True)
-            for n1 in range(elementCounts[0] + 1):
+            for n1 in range(element_counts[0] + 1):
                 lower_ellipsoid_mesh.set_node_parameters(
-                    n1, half_counts[1], elementCounts[2] + 2 * elements_count_lower_extension - half_counts[2], hilum_x[n1],
-                    node_layout=node_layout_permuted)
+                    n1, half_counts[1], element_counts[2] + 2 * elements_count_lower_extension - half_counts[2],
+                    hilum_x[n1], node_layout=node_layout_permuted)
             lower_ellipsoid_mesh.set_octant_group_lists(lower_octant_group_lists)
-            nodeIdentifier, elementIdentifier = lower_ellipsoid_mesh.generate_mesh(
-                fieldmodule, coordinates, nodeIdentifier, elementIdentifier)
+            node_identifier, element_identifier = lower_ellipsoid_mesh.generate_mesh(
+                fieldmodule, coordinates, node_identifier, element_identifier)
 
             for ellipsoid in [middle_ellipsoid, upper_ellipsoid] if (lung == right_lung) else [upper_ellipsoid]:
                 node_layout_manager = ellipsoid.get_node_layout_manager()
                 node_layout_6way = node_layout_manager.getNodeLayout6Way12(d3Defined=True)
-                for n1 in range(elementCounts[0] + 1):
+                for n1 in range(element_counts[0] + 1):
                     nid = (lower_ellipsoid_mesh.get_node_identifier(
-                        n1, half_counts[1], elementCounts[2] + 2 * elements_count_lower_extension - half_counts[2])
+                        n1, half_counts[1], element_counts[2] + 2 * elements_count_lower_extension - half_counts[2])
                            if (((lung == left_lung) and (n1 >= half_counts[0])) or
                                ((lung == right_lung) and (n1 <= half_counts[0]))) else None)
                     ellipsoid.set_node_parameters(n1, half_counts[1], half_counts[2], hilum_x[n1],
@@ -373,32 +375,28 @@ class MeshType_3d_lung4(Scaffold_base):
                 ellipsoid.set_octant_group_lists(
                     middle_octant_group_lists if ((ellipsoid == middle_ellipsoid) and
                                                   (ellipsoid != upper_ellipsoid)) else upper_octant_group_lists)
-                nodeIdentifier, elementIdentifier = ellipsoid.generate_mesh(
-                    fieldmodule, coordinates, nodeIdentifier, elementIdentifier)
+                node_identifier, element_identifier = ellipsoid.generate_mesh(
+                    fieldmodule, coordinates, node_identifier, element_identifier)
 
         for lung in lungs:
             is_left = lung == left_lung
-            lungNodeset = leftLungNodesetGroup if is_left else rightLungNodesetGroup
-            spacing = -lung_spacing if is_left else lung_spacing
-            lungMedialCurvature = -medial_curvature if is_left else medial_curvature
+            lung_nodeset = (left_lung_group if is_left else right_lung_group).getNodesetGroup(nodes)
 
             if lower_lobe_base_concavity > 0.0:
+                lower_lobe_group = lower_left_lung_group if (lung == left_lung) else lower_right_lung_group
                 form_lower_lobe_base_concavity(
                     lower_lobe_base_concavity, lower_lobe_extension, half_ml_size, half_dv_size, half_height,
-                    fieldmodule, nodes, coordinates,
-                    lower_lobe_group=lowerLeftLungGroup if (lung == left_lung) else lowerRightLungGroup)
+                    fieldmodule, coordinates, lower_lobe_group.getNodesetGroup(nodes))
 
             if ventral_sharpness_factor != 0.0:
-                taperLungEdge(ventral_sharpness_factor, fieldmodule, coordinates, lungNodeset, half_dv_size)
+                taper_lung_edge(ventral_sharpness_factor, fieldmodule, coordinates, lung_nodeset, half_dv_size)
 
-            dorsalVentralXi = getDorsalVentralXiField(fieldmodule, coordinates, half_dv_size)
-            if lungMedialCurvature != 0:
-                bendLungMeshAroundZAxis(lungMedialCurvature, fieldmodule, coordinates, lungNodeset,
-                                        stationaryPointXY=[0.0, 0.0],
-                                        bias=medial_curvature_bias,
-                                        dorsalVentralXi=dorsalVentralXi)
+            if cardiac_curvature > 0.0:
+                curve_cardiac_anterior(-cardiac_curvature if is_left else cardiac_curvature,
+                                       half_ml_size, half_dv_size, half_height, fieldmodule, coordinates, lung_nodeset)
 
-            translate_nodeset_coordinates(lungNodeset, coordinates, [spacing, 0.0, 0.0])
+            translate_nodeset_coordinates(lung_nodeset, coordinates,
+                                          [-lung_spacing if is_left else lung_spacing, 0.0, 0.0])
 
         return annotation_groups, None
 
@@ -411,8 +409,9 @@ class MeshType_3d_lung4(Scaffold_base):
         :param options: Dict containing options. See getDefaultOptions().
         """
         assert isinstance(meshRefinement, MeshRefinement)
-        refineElementsCount = options['Refine number of elements']
-        meshRefinement.refineAllElementsCubeStandard3d(refineElementsCount, refineElementsCount, refineElementsCount)
+        refine_elements_count = options['Refine number of elements']
+        meshRefinement.refineAllElementsCubeStandard3d(
+            refine_elements_count, refine_elements_count, refine_elements_count)
 
     @classmethod
     def defineFaceAnnotations(cls, region, options, annotation_groups):
@@ -456,14 +455,10 @@ class MeshType_3d_lung4(Scaffold_base):
         is_on_ellipsoid = fm.createFieldAnd(fm.createFieldAnd(is_exterior_face_xi3_1, is_trans),
                                             fm.createFieldNot(is_box))
 
-        # is_face_box20_trans10 = fm.createFieldOr(
-        #     fm.createFieldAnd(is_box, is_face_xi2_0), fm.createFieldAnd(is_trans, is_face_xi1_0))
         is_face_xi1_0_or_xi1_1_or_xi2_0 = fm.createFieldOr(
             fm.createFieldOr(is_face_xi1_0, is_face_xi1_1), is_face_xi2_0)
         is_face_xi1_0_or_xi1_1_or_xi2_1 = fm.createFieldOr(
             fm.createFieldOr(is_face_xi1_0, is_face_xi1_1), is_face_xi2_1)
-        # is_face_box21_trans11 = fm.createFieldOr(
-        #     fm.createFieldAnd(is_box, is_face_xi2_1), fm.createFieldAnd(is_trans, is_face_xi1_1))
         is_face_box30_trans20 = fm.createFieldOr(
             fm.createFieldAnd(is_box, is_face_xi3_0), fm.createFieldAnd(is_trans, is_face_xi2_0))
         is_face_box31_trans21 = fm.createFieldOr(
@@ -498,7 +493,7 @@ class MeshType_3d_lung4(Scaffold_base):
             }
             face_term_conditionals_map.update(left_face_term_conditionals_map)
         else:
-            left_face_term_conditionals_map = {}
+            is_lower_left = is_upper_left = is_lateral_left = is_medial_left = None
 
         if has_right_lung:
             is_lower_right = getAnnotationGroupForTerm(annotation_groups, get_lung_term("lower lobe of right lung")).getGroup()
@@ -530,7 +525,7 @@ class MeshType_3d_lung4(Scaffold_base):
             }
             face_term_conditionals_map.update(right_face_term_conditionals_map)
         else:
-            right_face_term_conditionals_map = {}
+            is_lower_right = is_middle_right = is_upper_right = is_lateral_right = is_medial_right = None
 
         is_face_conditional = {}
         for face_term, conditionals in face_term_conditionals_map.items():
@@ -540,7 +535,6 @@ class MeshType_3d_lung4(Scaffold_base):
             for add_conditional in conditionals[1:]:
                 conditional = fm.createFieldAnd(conditional, add_conditional)
             annotation_group.getMeshGroup(mesh2d).addElementsConditional(conditional)
-            print(conditional.isValid(), "Term:", face_term, "sizes", mesh2d.getSize(), group.getMeshGroup(mesh2d).isValid(), group.getMeshGroup(mesh2d).getSize(), group.getMeshGroup(mesh1d).getSize())
             annotation_group.addSubelements()
             is_face_conditional[face_term] = group
 
@@ -572,8 +566,6 @@ class MeshType_3d_lung4(Scaffold_base):
                     (is_lower_left, is_lateral_left, is_medial_left, is_on_ellipsoid),
             }
             line_term_conditionals_map.update(left_line_term_conditionals_map)
-        else:
-            left_line_term_conditionals_map = {}
 
         if has_right_lung:
             right_line_term_conditionals_map = {
@@ -615,8 +607,6 @@ class MeshType_3d_lung4(Scaffold_base):
                     (is_lower_right, is_lateral_right, is_medial_right, is_on_ellipsoid)
             }
             line_term_conditionals_map.update(right_line_term_conditionals_map)
-        else:
-            right_line_term_conditionals_map = {}
 
         for line_term, conditionals in line_term_conditionals_map.items():
             annotation_group = findOrCreateAnnotationGroupForTerm(annotation_groups, region, (line_term, ""))
@@ -624,6 +614,25 @@ class MeshType_3d_lung4(Scaffold_base):
             for add_conditional in conditionals[1:]:
                 conditional = fm.createFieldAnd(conditional, add_conditional)
             annotation_group.getMeshGroup(mesh1d).addElementsConditional(conditional)
+
+        tweak_middle_lobe_tip_edges = True
+        if has_right_lung and tweak_middle_lobe_tip_edges:
+            # tweaks edges of base of middle lobe of right lung to include anterior edge of middle lobe
+            # as these edges of the base data can go sharply up the anterior edge
+            # but this is a difficult and undesirable fit for the middle lobe shape
+            is_anterior_edge = fm.findFieldByName("anterior edge of middle lobe of right lung").castGroup()
+            for base_edge_group_name in [
+                "lateral edge of base of middle lobe of right lung",
+                "medial edge of base of middle lobe of right lung"
+            ]:
+                base_edge_group = fm.findFieldByName(base_edge_group_name).castGroup()
+                base_edge_group.getMeshGroup(mesh1d).addElementsConditional(is_anterior_edge)
+            is_medial_surface = fm.findFieldByName("medial surface of middle lobe of right lung").castGroup()
+            for base_surface_group_name in [
+                "base of middle lobe of right lung surface"
+            ]:
+                base_surface_group = fm.findFieldByName(base_surface_group_name).castGroup()
+                base_surface_group.getMeshGroup(mesh2d).addElementsConditional(is_medial_surface)
 
         # remove temporary annotation groups
         for group_name in [
@@ -641,88 +650,63 @@ class MeshType_3d_lung4(Scaffold_base):
                 annotation_groups.remove(annotation_group)
 
 
-def rotateLungMeshAboutAxis(rotateAngle, fm, coordinates, lungNodesetGroup, axis):
-    """
-    Rotates the lung mesh coordinates about a specified axis using the right-hand rule.
-    :param rotateAngle: Angle of rotation in degrees.
-    :param fm: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param axis: Axis of rotation.
-    :return: None
-    """
-    if axis not in (2, 3):
-        raise ValueError("Axis must be 2 (y), or 3 (z).")
-
-    rotateAngle = -math.radians(rotateAngle)  # negative value due to right handed rule
-
-    if axis == 2:
-        rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), 0.0, -math.sin(rotateAngle),
-                                               0.0, 1.0, 0.0,
-                                               math.sin(rotateAngle), 0.0, math.cos(rotateAngle)])
-    elif axis == 3:
-        rotateMatrix = fm.createFieldConstant([math.cos(rotateAngle), math.sin(rotateAngle), 0.0,
-                                               -math.sin(rotateAngle), math.cos(rotateAngle), 0.0,
-                                               0.0, 0.0, 1.0])
-
-    rotated_coordinates = fm.createFieldMatrixMultiply(3, rotateMatrix, coordinates)
-
-    fieldassignment = coordinates.createFieldassignment(rotated_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
-    fieldassignment.assign()
-
-
-def getDorsalVentralXiField(fm, coordinates, half_dv_size):
-    """
-    Get a field varying from 0.0 on dorsal tip to 1.0 on ventral tip on [-axisLength, axisLength]
-    :param fm: Field module being worked with.
-    :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param half_dv_size: Half breadth of lung.
-    :return: Scalar Xi field.
-    """
-    hl = fm.createFieldConstant(half_dv_size)
-    fl = fm.createFieldConstant(2.0 * half_dv_size)
-    y = fm.createFieldComponent(coordinates, 2)
-    return (y + hl) / fl
-
-
-def bendLungMeshAroundZAxis(curvature, fm, coordinates, lungNodesetGroup, stationaryPointXY, bias=0.0,
-                            dorsalVentralXi=None):
+def curve_cardiac_anterior(curvature, half_ml_size, half_dv_size, half_height, fieldmodule, coordinates, nodeset):
     """
     Transform coordinates by bending with curvature about a centre point the radius in
     x direction from stationaryPointXY.
     :param curvature: 1/radius. Must be non-zero.
-    :param fm: Field module being worked with.
+    :param half_ml_size: Half medial-lateral ellipsoid size.
+    :param half_dv_size: Half dorsal-ventral ellipsoid size.
+    :param half_height: Half ellipsoid height.
+    :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field, initially circular in y-z plane.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
-    :param stationaryPointXY: Coordinates x, y which are not displaced by bending.
-    :param bias: 0.0 for a simple bend through the whole length, up to 1.0 for no bend at dorsal end.
-    :param dorsalVentralXi: Field returned by getDorsalVentralXiField if bias > 0.0:
+    :param nodeset: Zinc Nodeset containing nodes to transform.
     """
-    radius = 1.0 / curvature
-    scale = fm.createFieldConstant([-1.0, -curvature, -1.0])
-    centreOffset = [stationaryPointXY[0] - radius, stationaryPointXY[1], 0.0]
-    centreOfCurvature = fm.createFieldConstant(centreOffset)
-    polarCoordinates = (centreOfCurvature - coordinates) * scale
-    polarCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_CYLINDRICAL_POLAR)
-    rcCoordinates = fm.createFieldCoordinateTransformation(polarCoordinates)
-    rcCoordinates.setCoordinateSystemType(Field.COORDINATE_SYSTEM_TYPE_RECTANGULAR_CARTESIAN)
-    newCoordinates = rcCoordinates + centreOfCurvature
+    radius_of_curvature = 1.0 / curvature
+    x_offset = fieldmodule.createFieldConstant(radius_of_curvature)
 
-    if bias > 0.0:
-        one = fm.createFieldConstant(1.0)
-        xiS = (one - dorsalVentralXi) * fm.createFieldConstant(bias)
-        xiC = one - xiS
-        newCoordinates = (coordinates * xiS) + (newCoordinates * xiC)
+    pi__3 = math.pi / 3.0
+    cos_pi__3 = math.cos(pi__3)
+    sin_pi__3 = math.sin(pi__3)
+    value_small = fieldmodule.createFieldConstant(1.0E-10)
+    value05 = fieldmodule.createFieldConstant(0.5)
+    x = fieldmodule.createFieldComponent(coordinates, 1)
+    y = fieldmodule.createFieldComponent(coordinates, 2)
+    z = fieldmodule.createFieldComponent(coordinates, 3)
+    yz = fieldmodule.createFieldConcatenate([y, z])
+    r = fieldmodule.createFieldMagnitude(yz)
+    # angle around hilum, not changing
+    theta = fieldmodule.createFieldAtan2(z, y)
+    cos_theta = fieldmodule.createFieldCos(theta)
+    sin_theta = fieldmodule.createFieldSin(theta)
+    # obliqueness factor as want maximum curvature at anterior oblique fissure, none opposite
+    tip_yz = getEllipsePointAtTrueAngle(half_dv_size, half_height, -pi__3)
+    double_max_o = fieldmodule.createFieldConstant(2.0 * magnitude(tip_yz))
+    oblique = fieldmodule.createFieldConstant([cos_pi__3, -sin_pi__3])
+    o = value05 + fieldmodule.createFieldDotProduct(yz, oblique) / double_max_o
+    phi_o = o * o  # so curvature mostly at anterior edge
+    # radial curvature
+    alpha = phi_o * r / x_offset
+    cos_alpha = fieldmodule.createFieldCos(alpha)
+    sin_alpha = fieldmodule.createFieldSin(alpha)
 
-    fieldassignment = coordinates.createFieldassignment(newCoordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
+    mod_x_offset = x_offset / phi_o
+    mod_offset_x = x + mod_x_offset
+    new_x = mod_offset_x * cos_alpha - mod_x_offset
+
+    new_r = mod_offset_x * sin_alpha
+    new_y = new_r * cos_theta
+    new_z = new_r * sin_theta
+    new_coordinates = fieldmodule.createFieldIf(fieldmodule.createFieldLessThan(o, value_small), coordinates,
+                                                fieldmodule.createFieldConcatenate([new_x, new_y, new_z]))
+    fieldassignment = coordinates.createFieldassignment(new_coordinates)
+    fieldassignment.setNodeset(nodeset)
     fieldassignment.assign()
 
 
 def form_lower_lobe_base_concavity(lower_lobe_base_concavity, lower_lobe_extension,
-                                    half_ml_size, half_dv_size, half_height,
-                                    fieldmodule, nodes, coordinates, lower_lobe_group):
+                                   half_ml_size, half_dv_size, half_height,
+                                   fieldmodule, coordinates, nodeset):
     """
     Reshape the base of the lower lobe to be concave, tapering off to the oblique fissure.
     :param lower_lobe_base_concavity: Lower lobe base concavity distance. Note this is reduced by the taper.
@@ -731,9 +715,8 @@ def form_lower_lobe_base_concavity(lower_lobe_base_concavity, lower_lobe_extensi
     :param half_dv_size: Half dorsal-ventral ellipsoid size.
     :param half_height: Half ellipsoid height.
     :param fieldmodule: Fieldmodule owning fields to modify.
-    :param nodes: Nodeset to modify.
     :param coordinates: Coordinate field to modify.
-    :param lower_lobe_group: Group to form concave base on: left or right lower lobe.
+    :param nodeset: Nodeset to modify.
     """
     pi__3 = math.pi / 3.0
     cos_pi__3 = math.cos(pi__3)
@@ -780,44 +763,44 @@ def form_lower_lobe_base_concavity(lower_lobe_base_concavity, lower_lobe_extensi
     displacement = fieldmodule.createFieldConcatenate([delta_x, delta_y, delta_z])
     new_coordinates = coordinates + displacement
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lower_lobe_group.getNodesetGroup(nodes))
+    fieldassignment.setNodeset(nodeset)
     fieldassignment.assign()
 
 
-def taperLungEdge(sharpeningFactor, fm, coordinates, lungNodesetGroup, halfValue, isBase=False):
+def taper_lung_edge(sharpeningFactor, fieldmodule, coordinates, nodeset, halfValue, isBase=False):
     """
     Applies a tapering transformation to the lung geometry to sharpen the anterior edge or the base.
     If isBase is False, it sharpens the anterior edge (along the y-axis).
     If isBase is True, it sharpens the base (along the z-axis), but only for nodes below a certain height.
     :param sharpeningFactor: A value between 0 and 1, where 1 represents the maximum sharpness.
-    :param fm: Field module being worked with.
+    :param fieldmodule: Field module being worked with.
     :param coordinates: The coordinate field. The anterior edge is towards the +y-axis, and the base is towards the
     -z-axis.
-    :param lungNodesetGroup: Zinc NodesetGroup containing nodes to transform.
+    :param nodeset: Zinc NodesetGroup containing nodes to transform.
     :param halfValue: Half value of lung breadth/height depending on isBase.
     :param isBase: False if transforming the anterior edge, True if transforming the base of the lung.
     """
-    x = fm.createFieldComponent(coordinates, 1)
-    y = fm.createFieldComponent(coordinates, 2)
-    z = fm.createFieldComponent(coordinates, 3)
+    x = fieldmodule.createFieldComponent(coordinates, 1)
+    y = fieldmodule.createFieldComponent(coordinates, 2)
+    z = fieldmodule.createFieldComponent(coordinates, 3)
 
     coord_value = z if isBase else y
     start_value = 0.5 * halfValue if isBase else -0.5 * halfValue
     end_value = -1.1 * halfValue if isBase else 1.1 * halfValue
 
-    start_value_field = fm.createFieldConstant(start_value)
-    end_value_field = fm.createFieldConstant(end_value)
+    start_value_field = fieldmodule.createFieldConstant(start_value)
+    end_value_field = fieldmodule.createFieldConstant(end_value)
 
-    xi = (coord_value - start_value_field) / fm.createFieldConstant(end_value - start_value)
+    xi = (coord_value - start_value_field) / fieldmodule.createFieldConstant(end_value - start_value)
     xi__2 = xi * xi
-    one = fm.createFieldConstant(1.0)
-    x_scale = one - fm.createFieldConstant(sharpeningFactor) * xi__2
+    one = fieldmodule.createFieldConstant(1.0)
+    x_scale = one - fieldmodule.createFieldConstant(sharpeningFactor) * xi__2
     if isBase:
-        new_x = fm.createFieldIf(fm.createFieldLessThan(coord_value, start_value_field), x * x_scale, x)
+        new_x = fieldmodule.createFieldIf(fieldmodule.createFieldLessThan(coord_value, start_value_field), x * x_scale, x)
     else:
-        new_x = fm.createFieldIf(fm.createFieldGreaterThan(coord_value, start_value_field), x * x_scale, x)
-    new_coordinates = fm.createFieldConcatenate([new_x, y, z])
+        new_x = fieldmodule.createFieldIf(fieldmodule.createFieldGreaterThan(coord_value, start_value_field), x * x_scale, x)
+    new_coordinates = fieldmodule.createFieldConcatenate([new_x, y, z])
 
     fieldassignment = coordinates.createFieldassignment(new_coordinates)
-    fieldassignment.setNodeset(lungNodesetGroup)
+    fieldassignment.setNodeset(nodeset)
     fieldassignment.assign()
