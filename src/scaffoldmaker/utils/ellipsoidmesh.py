@@ -170,18 +170,29 @@ class EllipsoidMesh:
 
         cos_axis2 = math.cos(axis2_x_rotation_radians)
         sin_axis2 = math.sin(axis2_x_rotation_radians)
+        cos_axis3 = math.cos(axis3_x_rotation_radians)
+        sin_axis3 = math.sin(axis3_x_rotation_radians)
+
         origin = [0.0, 0.0, 0.0]
         ext_origin = [0.0, -axis2_extension * cos_axis2, -axis2_extension * sin_axis2]
         ext_axis1 = axis1 = [self._a, 0.0, 0.0]
         axis2 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis2_x_rotation_radians)
+        axis2_mag = magnitude(axis2)
         axis2_normal = normalize([0.0, axis2[2], -axis2[1]])
         ext_axis3 = axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians)
         axis3_normal = normalize([0.0, axis3[2], -axis3[1]])
         if axis2_extension_elements_count:
-            assert axis2_extension < magnitude(axis2)  # extension must not go outside ellipsoid
-            xb, xa = getEllipsePointAtTrueAngle(magnitude(axis2), self._a, math.pi / 2.0, [-axis2_extension, 0.0])
+            assert axis2_extension < axis2_mag  # extension must not go outside ellipsoid
+            xb, xa = getEllipsePointAtTrueAngle(axis2_mag, self._a, math.pi / 2.0, [-axis2_extension, 0.0])
             ext_axis1 = [xa, xb * cos_axis2, xb * sin_axis2]
             ext_axis3 = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians, ext_axis1[1:])
+            ext_axis3m = [0.0] + getEllipsePointAtTrueAngle(self._b, self._c, axis3_x_rotation_radians + math.pi, ext_axis1[1:])
+            centre_mod_axis3 = mult(add(ext_axis3, ext_axis3m), 0.5)
+            mod_axis3 = sub(ext_axis3, centre_mod_axis3)
+            mag_mod_axis3 = magnitude(mod_axis3)
+        else:
+            centre_mod_axis3 = origin
+            mag_mod_axis3 = magnitude(axis3)
 
         axis_d1 = div(axis1, half_counts[0])
         ext_axis_d1 = div(sub(ext_axis1, ext_origin), half_counts[0])
@@ -327,13 +338,27 @@ class EllipsoidMesh:
                 nway_d_factor=self._nway_d_factor)
             abd3 = [[-d for d in evaluate_surface_d3_ellipsoid(x, None, None)] for x in abx]
             triangle_abo.set_edge_parameters12(abx, abd1, abd3, abd2)
-            aod3 = [abd2[0]] + [axis_d3] * (len(aox) - 1)
+            count = len(aox) - 1
+            aod3 = [linearlyInterpolateVectors(abd2[0], axis_d3, i / count) for i in range(count + 1)]
+
             triangle_abo.set_edge_parameters13(aox, aod1, aod2, aod3)
             triangle_abo.set_edge_parameters23(box, bod1, bod2, bod3)
-            triangle_abo.build()
-            triangle_abo.assign_d3(lambda tx, td1, td2:
-                linearlyInterpolateVectors(axis_d3, axis2_dt, magnitude(tx[1:]) / axis2_mag)
-                if (dot(tx, axis2) >= 0.0) else axis_d3)
+            triangle_abo.build(regular_count2=axis2_extension_elements_count)
+            aa = self._a * self._a
+            bb = axis2_mag * axis2_mag  # of axis2 ellipse
+            def evaluate_surface_d3_abo(tx, td1, td2):
+                y = tx[1] * cos_axis2 + tx[2] * sin_axis2
+                yy = y * y
+                if yy >= bb:
+                    return axis2_dt  # tip of ellipse
+                centre_d3 = (linearlyInterpolateVectors(axis_d3, axis2_dt, magnitude(tx[1:]) / axis2_mag)
+                             if (y >= 0.0) else axis_d3)
+                xx = aa * (1.0 - yy / bb)
+                x = math.sqrt(xx)
+                side_x = [x, tx[1], tx[2]]
+                side_d3 = moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, side_x, centre_d3)
+                return linearlyInterpolateVectors(centre_d3, side_d3, tx[0] / x)
+            triangle_abo.assign_d3(evaluate_surface_d3_abo)
             octant.set_triangle_abo(triangle_abo)
             # extract exact derivatives
             aod1 = triangle_abo.get_edge_parameters13()[1]
@@ -351,8 +376,22 @@ class EllipsoidMesh:
             cod3 = [acd2[-1]] + [axis_md1] * (len(cox) - 1)
             triangle_aco.set_edge_parameters23(cox, cod3, cod2, cod1)
             triangle_aco.build()
-            triangle_aco.assign_d3(lambda tx, td1, td2:
-                linearlyInterpolateVectors(axis_md2, ext_axis3_dt, magnitude(tx[1:]) / axis3_mag))
+            aa = self._a * self._a
+            bb = mag_mod_axis3 * mag_mod_axis3  # mod_axis3 ellipse
+            def evaluate_surface_d3_aco(tx, td1, td2):
+                mx = sub(tx, centre_mod_axis3)
+                y = mx[1] * cos_axis3 + mx[2] * sin_axis3
+                yy = y * y
+                if yy >= bb:
+                    return ext_axis3_dt  # tip of ellipse
+                centre_d3 = (linearlyInterpolateVectors(axis_md2, ext_axis3_dt, magnitude(mx[1:]) / axis3_mag)
+                             if (y >= 0.0) else axis_md2)
+                xx = aa * (1.0 - yy / bb)
+                x = math.sqrt(xx)
+                side_x = [x, tx[1], tx[2]]
+                side_d3 = moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, side_x, centre_d3)
+                return linearlyInterpolateVectors(centre_d3, side_d3, tx[0] / x)
+            triangle_aco.assign_d3(evaluate_surface_d3_aco)
             octant.set_triangle_aco(triangle_aco)
             # extract exact derivatives
             cod3 = triangle_aco.get_edge_parameters23()[1]

@@ -931,10 +931,10 @@ class LungScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 4.887248605193398, delta=tol)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(volume, 0.301840881252553, delta=tol)
+        self.assertAlmostEqual(surfaceArea, 4.88745261466682, delta=tol)
+        self.assertAlmostEqual(volume, 0.301840862866859, delta=tol)
 
         # check some annotationGroups:
         expectedSizes3d = {
@@ -1070,25 +1070,26 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
 
         expected_mesh_sizes = {
-            'mesh3d': (232, 0.23530885292594117),
-            'mesh2d': (830, 9.319471884650373),
-            'mesh1d': (1003, 110.40052051549354),
-            'left lung.mesh3d': (116, 0.11765435261543447),
-            'lower lobe of left lung.mesh3d': (44, 0.055981613269369804),
-            'upper lobe of left lung.mesh3d': (72, 0.061672739346064646),
-            'right lung.mesh3d': (116, 0.11765450031050663),
-            'lower lobe of right lung.mesh3d': (44, 0.05598161326936981),
-            'middle lobe of right lung.mesh3d': (24, 0.015908839886146862),
-            'upper lobe of right lung.mesh3d': (48, 0.04576404715499016),
-            'oblique fissure of lower lobe of left lung.mesh2d': (18, 0.23573101582930447),
-            'oblique fissure of upper lobe of left lung.mesh2d': (20, 0.26116146713690136),
-            'horizontal fissure of middle lobe of right lung.mesh2d': (10, 0.08506039275120462),
+
+            'mesh3d': (232, 0.23531518999948317),
+            'mesh2d': (830, 9.322931842916137),
+            'mesh1d': (1003, 110.4277660475001),
+            'left lung.mesh3d': (116, 0.11765752113724519),
+            'lower lobe of left lung.mesh3d': (44, 0.055984781964438096),
+            'upper lobe of left lung.mesh3d': (72, 0.06167273917280671),
+            'right lung.mesh3d': (116, 0.11765766886223888),
+            'lower lobe of right lung.mesh3d': (44, 0.05598478196443805),
+            'middle lobe of right lung.mesh3d': (24, 0.015908839863426272),
+            'upper lobe of right lung.mesh3d': (48, 0.04576404703437447),
+            'oblique fissure of lower lobe of left lung.mesh2d': (18, 0.23573085010104664),
+            'oblique fissure of upper lobe of left lung.mesh2d': (20, 0.26116146713690147),
+            'horizontal fissure of middle lobe of right lung.mesh2d': (10, 0.08506039275120454),
             'horizontal fissure of upper lobe of right lung.mesh2d': (10, 0.08506039275120465),
-            'oblique fissure of lower lobe of right lung.mesh2d': (18, 0.2357310158293046),
+            'oblique fissure of lower lobe of right lung.mesh2d': (18, 0.23573085010104675),
             'oblique fissure of middle lobe of right lung.mesh2d': (10, 0.11847510573774353),
-            'oblique fissure of upper lobe of right lung.mesh2d': (10, 0.1426863613991579),
+            'oblique fissure of upper lobe of right lung.mesh2d': (10, 0.14268636139915797),
             'posterior edge of lower lobe of left lung.mesh1d': (6, 0.7217563496699031),
-            'posterior edge of lower lobe of right lung.mesh1d': (6, 0.7217563496699031)
+            'posterior edge of lower lobe of right lung.mesh1d': (6, 0.7217563496699028)
         }
         TOL = 1.0E-6
         with ChangeManager(fieldmodule):
@@ -1103,8 +1104,7 @@ class LungScaffoldTestCase(unittest.TestCase):
                 val_integral.setNumbersOfPoints(4)
                 result, val = val_integral.evaluateReal(fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
-                self.assertAlmostEqual(val, expected_val, delta=TOL)
-                print(mesh_name, size, val)
+                self.assertAlmostEqual(val, expected_val, msg=mesh_name, delta=TOL)
 
 
 if __name__ == "__main__":

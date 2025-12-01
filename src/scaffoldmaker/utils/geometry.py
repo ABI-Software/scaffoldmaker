@@ -557,7 +557,7 @@ def sampleCurveOnEllipsoid(a, b, c, start_x, start_d1, start_d2, end_x, end_d1, 
     by distance from the other end.
     :param overweighting: Multiplier of arc length to use with initial curve to exaggerate end derivatives.
     :param end_transition: If supplied with end_d1, modify size of last element to fit end_d1.
-    :return: x[], d1[], d2[]
+    :return: x[], d1[]{, d2[] if start_d2 supplied}
     """
     assert (not end_transition) or end_d1
     end_d1_mag = magnitude(end_d1) if end_d1 else None
