@@ -251,6 +251,7 @@ class MeshRefinement:
 
         faces = [None] * 6
         exterior_faces = [False] * 6  # whether face is on exterior boundary of mesh
+        null_face_count = 0
         if sourceElement.getNumberOfFaces() == 6:
             for f in range(6):
                 face =  sourceElement.getFaceElement(f + 1)
@@ -261,8 +262,10 @@ class MeshRefinement:
                     exterior_faces[f] = (result == RESULT_OK) and (value != 0.0)
                 else:
                     faces[f] = None
+                    null_face_count += 1
         # collapsed elements have no face, so get all faces which are adjacent to collapsed face
-        if (None in faces) and any(face is not None for face in faces):
+        # check there is at least one valid face and one null face
+        if 0 < null_face_count < 6:
             for f, face in enumerate(faces):
                 if not face:
                     # get coordinates at centre of face
