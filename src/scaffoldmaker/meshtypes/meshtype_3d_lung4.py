@@ -84,7 +84,6 @@ class MeshType_3d_lung4(Scaffold_base):
         return [
             "Left lung",
             "Right lung",
-            # "Number of left lung lobes",
             "Number of elements lateral",
             "Number of elements lower lobe extension",
             "Number of elements oblique",
@@ -115,9 +114,8 @@ class MeshType_3d_lung4(Scaffold_base):
             "Number of elements lateral",
             "Number of elements oblique"
         ]:
-            min_elements_count = 4 if (key == "Number of elements lateral") else 6
-            if options[key] < min_elements_count:
-                options[key] = min_elements_count
+            if options[key] < 4:
+                options[key] = 4
             elif options[key] % 2:
                 options[key] += 1
             transition_count = (options[key] // 2) - 1

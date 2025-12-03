@@ -2,6 +2,7 @@ import copy
 import math
 import unittest
 
+from cmlibs.utils.zinc.field import find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.context import Context
@@ -1060,17 +1061,44 @@ class LungScaffoldTestCase(unittest.TestCase):
 
         context = Context("Test")
         region = context.getDefaultRegion()
+        fieldmodule = region.getFieldmodule()
         self.assertTrue(region.isValid())
-        annotation_groups, _  = scaffold.generateMesh(region, options)
+        annotation_groups, _  = scaffold.generateBaseMesh(region, options)
+        base_annotation_groups = copy.copy(annotation_groups)
+        self.assertEqual(16, len(base_annotation_groups))
+        fieldmodule.defineAllFaces()
+        for annotation_group in annotation_groups:
+            annotation_group.addSubelements()
+        scaffold.defineFaceAnnotations(region, options, annotation_groups)
+        for annotation_group in annotation_groups:
+            if annotation_group not in base_annotation_groups:
+                annotation_group.addSubelements()
         self.assertEqual(67, len(annotation_groups))
 
-        fieldmodule = region.getFieldmodule()
         fieldcache = fieldmodule.createFieldcache()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(407, nodes.getSize())
+        intersection_group_names = [
+            ("lower lobe of left lung", "upper lobe of left lung"),
+            ("lower lobe of right lung", "middle lobe of right lung"),
+            ("lower lobe of right lung", "upper lobe of right lung"),
+            ("middle lobe of right lung", "upper lobe of right lung")
+        ]
+        # check number of common nodes at hilum
+        with ChangeManager(fieldmodule):
+            for group_name1, group_name2 in intersection_group_names:
+                group = fieldmodule.createFieldGroup()
+                nodeset_group = group.createNodesetGroup(nodes)
+                nodeset_group.addNodesConditional(
+                    fieldmodule.createFieldAnd(fieldmodule.findFieldByName(group_name1),
+                                               fieldmodule.findFieldByName(group_name2)))
+                self.assertEqual(3, nodeset_group.getSize())
+                del nodeset_group
+                del group
 
         expected_mesh_sizes = {
-
             'mesh3d': (232, 0.23531518999948317),
             'mesh2d': (830, 9.322931842916137),
             'mesh1d': (1003, 110.4277660475001),
@@ -1098,11 +1126,82 @@ class LungScaffoldTestCase(unittest.TestCase):
                 expected_size, expected_val = expected_sizes
                 mesh_group = fieldmodule.findMeshByName(mesh_name)
                 size = mesh_group.getSize()
-                self.assertEqual(size, expected_size)
+                self.assertEqual(size, expected_size, msg=mesh_name)
                 # volume/area/length
                 val_integral = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh_group)
                 val_integral.setNumbersOfPoints(4)
                 result, val = val_integral.evaluateReal(fieldcache, 1)
+                self.assertEqual(result, RESULT_OK)
+                self.assertAlmostEqual(val, expected_val, msg=mesh_name, delta=TOL)
+
+        # refine 2x2x2 and check result
+        refine_region = region.createRegion()
+        refine_fieldmodule = refine_region.getFieldmodule()
+        options['Refine'] = True
+        options['Refine number of elements'] = 2
+        meshrefinement = MeshRefinement(region, refine_region, base_annotation_groups)
+        scaffold.refineMesh(meshrefinement, options)
+        refine_annotation_groups = meshrefinement.getAnnotationGroups()
+        self.assertEqual(16, len(refine_annotation_groups))
+        refine_fieldmodule.defineAllFaces()
+        for annotation_group in refine_annotation_groups:
+            annotation_group.addSubelements()
+        old_annotation_groups = copy.copy(refine_annotation_groups)
+        scaffold.defineFaceAnnotations(refine_region, options, refine_annotation_groups)
+        for annotation_group in refine_annotation_groups:
+            if annotation_group not in old_annotation_groups:
+                annotation_group.addSubelements()
+        self.assertEqual(67, len(refine_annotation_groups))
+
+        refine_fieldcache = refine_fieldmodule.createFieldcache()
+        refine_coordinates = refine_fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(refine_coordinates.isValid())
+        refine_nodes = refine_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(2472, refine_nodes.getSize())
+        # check number of common nodes at hilum
+        with ChangeManager(refine_fieldmodule):
+            for group_name1, group_name2 in intersection_group_names:
+                group = refine_fieldmodule.createFieldGroup()
+                nodeset_group = group.createNodesetGroup(refine_nodes)
+                nodeset_group.addNodesConditional(
+                    refine_fieldmodule.createFieldAnd(refine_fieldmodule.findFieldByName(group_name1),
+                                                      refine_fieldmodule.findFieldByName(group_name2)))
+                self.assertEqual(5, nodeset_group.getSize())
+                del nodeset_group
+                del group
+
+        expected_refine_mesh_sizes = {
+            'mesh3d': (1856, 0.230336480247037),
+            'mesh2d': (6104, 16.332327494330084),
+            'mesh1d': (6718, 358.30880646477294),
+            'left lung.mesh3d': (928, 0.1151678888674793),
+            'lower lobe of left lung.mesh3d': (352, 0.0548394588491132),
+            'upper lobe of left lung.mesh3d': (576, 0.060328430018365395),
+            'right lung.mesh3d': (928, 0.11516859137956122),
+            'lower lobe of right lung.mesh3d': (352, 0.054839458849113155),
+            'middle lobe of right lung.mesh3d': (192, 0.015593500770872093),
+            'upper lobe of right lung.mesh3d': (384, 0.04473563175957532),
+            'oblique fissure of lower lobe of left lung.mesh2d': (72, 0.23303251949030654),
+            'oblique fissure of upper lobe of left lung.mesh2d': (80, 0.25693609525575456),
+            'horizontal fissure of middle lobe of right lung.mesh2d': (40, 0.08446588867418067),
+            'horizontal fissure of upper lobe of right lung.mesh2d': (40, 0.08446588867418048),
+            'oblique fissure of lower lobe of right lung.mesh2d': (72, 0.23303251949030673),
+            'oblique fissure of middle lobe of right lung.mesh2d': (40, 0.11647413723834865),
+            'oblique fissure of upper lobe of right lung.mesh2d': (40, 0.14046195801740563),
+            'posterior edge of lower lobe of left lung.mesh1d': (12, 0.7213630968439506),
+            'posterior edge of lower lobe of right lung.mesh1d': (12, 0.7213630968439503),
+        }
+        with ChangeManager(refine_fieldmodule):
+            one = refine_fieldmodule.createFieldConstant(1.0)
+            for mesh_name, expected_sizes in expected_refine_mesh_sizes.items():
+                expected_size, expected_val = expected_sizes
+                mesh_group = refine_fieldmodule.findMeshByName(mesh_name)
+                size = mesh_group.getSize()
+                self.assertEqual(size, expected_size, msg=mesh_name)
+                # volume/area/length
+                val_integral = refine_fieldmodule.createFieldMeshIntegral(one, refine_coordinates, mesh_group)
+                val_integral.setNumbersOfPoints(4)
+                result, val = val_integral.evaluateReal(refine_fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
                 self.assertAlmostEqual(val, expected_val, msg=mesh_name, delta=TOL)
 
