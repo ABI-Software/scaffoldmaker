@@ -450,6 +450,7 @@ class MeshType_3d_lung4(Scaffold_base):
         is_box = box_group.getGroup()
         transition_group = findAnnotationGroupByName(annotation_groups, "transition")
         is_trans = transition_group.getGroup()
+        # this works correctly for faces, but gets extra layers for lines on base and fissures which are exterior:
         is_on_ellipsoid = fm.createFieldAnd(fm.createFieldAnd(is_exterior_face_xi3_1, is_trans),
                                             fm.createFieldNot(is_box))
 
@@ -539,70 +540,74 @@ class MeshType_3d_lung4(Scaffold_base):
         line_term_conditionals_map = {}
 
         if has_left_lung:
+            is_left_lateral_surface = is_face_conditional["lateral surface of left lung"]
+            is_left_medial_surface = is_face_conditional["medial surface of left lung"]
             left_line_term_conditionals_map = {
                 "antero-posterior edge of upper lobe of left lung":
-                    (is_upper_left, is_on_ellipsoid, is_medial_left, is_lateral_left),
+                    (is_upper_left, is_left_lateral_surface, is_left_medial_surface),
                 "base edge of oblique fissure of lower lobe of left lung": (
                     is_face_conditional["base of lower lobe of left lung surface"], is_face_conditional["oblique fissure of lower lobe of left lung"]),
                 "lateral edge of base of lower lobe of left lung": (
-                    is_face_conditional["base of lower lobe of left lung surface"], is_lateral_left, is_on_ellipsoid),
+                    is_face_conditional["base of lower lobe of left lung surface"], is_left_lateral_surface),
                 "lateral edge of base of upper lobe of left lung": (
-                    is_face_conditional["base of upper lobe of left lung surface"], is_lateral_left, is_on_ellipsoid),
+                    is_face_conditional["base of upper lobe of left lung surface"], is_left_lateral_surface),
                 "lateral edge of oblique fissure of lower lobe of left lung": (
-                    is_face_conditional["oblique fissure of lower lobe of left lung"], is_lateral_left, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of lower lobe of left lung"], is_left_lateral_surface),
                 "lateral edge of oblique fissure of upper lobe of left lung": (
-                    is_face_conditional["oblique fissure of upper lobe of left lung"], is_lateral_left, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of upper lobe of left lung"], is_left_lateral_surface),
                 "medial edge of base of lower lobe of left lung": (
-                    is_face_conditional["base of lower lobe of left lung surface"], is_medial_left, is_on_ellipsoid),
+                    is_face_conditional["base of lower lobe of left lung surface"], is_left_medial_surface),
                 "medial edge of base of upper lobe of left lung": (
-                    is_face_conditional["base of upper lobe of left lung surface"], is_medial_left, is_on_ellipsoid),
+                    is_face_conditional["base of upper lobe of left lung surface"], is_left_medial_surface),
                 "medial edge of oblique fissure of lower lobe of left lung": (
-                    is_face_conditional["oblique fissure of lower lobe of left lung"], is_medial_left, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of lower lobe of left lung"], is_left_medial_surface),
                 "medial edge of oblique fissure of upper lobe of left lung": (
-                    is_face_conditional["oblique fissure of upper lobe of left lung"], is_medial_left, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of upper lobe of left lung"], is_left_medial_surface),
                 "posterior edge of lower lobe of left lung":
-                    (is_lower_left, is_lateral_left, is_medial_left, is_on_ellipsoid),
+                    (is_lower_left, is_left_lateral_surface, is_left_medial_surface),
             }
             line_term_conditionals_map.update(left_line_term_conditionals_map)
 
         if has_right_lung:
+            is_right_lateral_surface = is_face_conditional["lateral surface of right lung"]
+            is_right_medial_surface = is_face_conditional["medial surface of right lung"]
             right_line_term_conditionals_map = {
                 "anterior edge of middle lobe of right lung":
-                    (is_middle_right, is_on_ellipsoid, is_medial_right, is_lateral_right),
+                    (is_middle_right, is_right_lateral_surface, is_right_medial_surface),
                 "antero-posterior edge of upper lobe of right lung":
-                    (is_upper_right, is_on_ellipsoid, is_medial_right, is_lateral_right),
+                    (is_upper_right, is_right_lateral_surface, is_right_medial_surface),
                 "base edge of oblique fissure of lower lobe of right lung": (
                     is_face_conditional["base of lower lobe of right lung surface"], is_face_conditional["oblique fissure of lower lobe of right lung"]),
                 "lateral edge of base of lower lobe of right lung": (
-                    is_face_conditional["base of lower lobe of right lung surface"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["base of lower lobe of right lung surface"], is_right_lateral_surface),
                 "lateral edge of base of middle lobe of right lung": (
-                    is_face_conditional["base of middle lobe of right lung surface"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["base of middle lobe of right lung surface"], is_right_lateral_surface),
                 "lateral edge of horizontal fissure of middle lobe of right lung": (
-                    is_face_conditional["horizontal fissure of middle lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["horizontal fissure of middle lobe of right lung"], is_right_lateral_surface),
                 "lateral edge of horizontal fissure of upper lobe of right lung": (
-                    is_face_conditional["horizontal fissure of upper lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["horizontal fissure of upper lobe of right lung"], is_right_lateral_surface),
                 "lateral edge of oblique fissure of lower lobe of right lung": (
-                    is_face_conditional["oblique fissure of lower lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of lower lobe of right lung"], is_right_lateral_surface),
                 "lateral edge of oblique fissure of middle lobe of right lung": (
-                    is_face_conditional["oblique fissure of middle lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of middle lobe of right lung"], is_right_lateral_surface),
                 "lateral edge of oblique fissure of upper lobe of right lung": (
-                    is_face_conditional["oblique fissure of upper lobe of right lung"], is_lateral_right, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of upper lobe of right lung"], is_right_lateral_surface),
                 "medial edge of base of lower lobe of right lung": (
-                    is_face_conditional["base of lower lobe of right lung surface"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["base of lower lobe of right lung surface"], is_right_medial_surface),
                 "medial edge of base of middle lobe of right lung": (
-                    is_face_conditional["base of middle lobe of right lung surface"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["base of middle lobe of right lung surface"], is_right_medial_surface),
                 "medial edge of horizontal fissure of middle lobe of right lung": (
-                    is_face_conditional["horizontal fissure of middle lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["horizontal fissure of middle lobe of right lung"], is_right_medial_surface),
                 "medial edge of horizontal fissure of upper lobe of right lung": (
-                    is_face_conditional["horizontal fissure of upper lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["horizontal fissure of upper lobe of right lung"], is_right_medial_surface),
                 "medial edge of oblique fissure of lower lobe of right lung": (
-                    is_face_conditional["oblique fissure of lower lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of lower lobe of right lung"], is_right_medial_surface),
                 "medial edge of oblique fissure of middle lobe of right lung": (
-                    is_face_conditional["oblique fissure of middle lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of middle lobe of right lung"], is_right_medial_surface),
                 "medial edge of oblique fissure of upper lobe of right lung": (
-                    is_face_conditional["oblique fissure of upper lobe of right lung"], is_medial_right, is_on_ellipsoid),
+                    is_face_conditional["oblique fissure of upper lobe of right lung"], is_right_medial_surface),
                 "posterior edge of lower lobe of right lung":
-                    (is_lower_right, is_lateral_right, is_medial_right, is_on_ellipsoid)
+                    (is_lower_right, is_right_lateral_surface, is_right_medial_surface)
             }
             line_term_conditionals_map.update(right_line_term_conditionals_map)
 

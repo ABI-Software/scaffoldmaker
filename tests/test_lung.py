@@ -2,7 +2,6 @@ import copy
 import math
 import unittest
 
-from cmlibs.utils.zinc.field import find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from cmlibs.utils.zinc.general import ChangeManager
 from cmlibs.zinc.context import Context
@@ -1111,12 +1110,21 @@ class LungScaffoldTestCase(unittest.TestCase):
             'upper lobe of right lung.mesh3d': (48, 0.04576404703437447),
             'oblique fissure of lower lobe of left lung.mesh2d': (18, 0.23573085010104664),
             'oblique fissure of upper lobe of left lung.mesh2d': (20, 0.26116146713690147),
+            # base of middle lobe includes medial surface
+            'base of middle lobe of right lung surface.mesh2d': (18, 0.2036121963903865),
             'horizontal fissure of middle lobe of right lung.mesh2d': (10, 0.08506039275120454),
             'horizontal fissure of upper lobe of right lung.mesh2d': (10, 0.08506039275120465),
             'oblique fissure of lower lobe of right lung.mesh2d': (18, 0.23573085010104675),
             'oblique fissure of middle lobe of right lung.mesh2d': (10, 0.11847510573774353),
             'oblique fissure of upper lobe of right lung.mesh2d': (10, 0.14268636139915797),
+            'lateral edge of base of lower lobe of left lung.mesh1d': (3, 0.6163117802059481),
+            'medial edge of base of lower lobe of left lung.mesh1d': (3, 0.5174206016915209),
             'posterior edge of lower lobe of left lung.mesh1d': (6, 0.7217563496699031),
+            'lateral edge of base of lower lobe of right lung.mesh1d': (3, 0.6163117802059481),
+            'medial edge of base of lower lobe of right lung.mesh1d': (3, 0.5174206016915209),
+            # base of middle lobe includes anterior edge
+            'lateral edge of base of middle lobe of right lung.mesh1d': (7, 1.0751126241895612),
+            'medial edge of base of middle lobe of right lung.mesh1d': (7, 0.8432549927571157),
             'posterior edge of lower lobe of right lung.mesh1d': (6, 0.7217563496699028)
         }
         TOL = 1.0E-6
@@ -1183,13 +1191,22 @@ class LungScaffoldTestCase(unittest.TestCase):
             'upper lobe of right lung.mesh3d': (384, 0.04473563175957532),
             'oblique fissure of lower lobe of left lung.mesh2d': (72, 0.23303251949030654),
             'oblique fissure of upper lobe of left lung.mesh2d': (80, 0.25693609525575456),
+            # base of middle lobe includes medial surface
+            'base of middle lobe of right lung surface.mesh2d': (72, 0.2007412231447152),
             'horizontal fissure of middle lobe of right lung.mesh2d': (40, 0.08446588867418067),
             'horizontal fissure of upper lobe of right lung.mesh2d': (40, 0.08446588867418048),
             'oblique fissure of lower lobe of right lung.mesh2d': (72, 0.23303251949030673),
             'oblique fissure of middle lobe of right lung.mesh2d': (40, 0.11647413723834865),
             'oblique fissure of upper lobe of right lung.mesh2d': (40, 0.14046195801740563),
+            'lateral edge of base of lower lobe of left lung.mesh1d': (6, 0.6113060310659696),
+            'medial edge of base of lower lobe of left lung.mesh1d': (6, 0.5145764175197279),
             'posterior edge of lower lobe of left lung.mesh1d': (12, 0.7213630968439506),
-            'posterior edge of lower lobe of right lung.mesh1d': (12, 0.7213630968439503),
+            'lateral edge of base of lower lobe of right lung.mesh1d': (6, 0.6113060310659696),
+            'medial edge of base of lower lobe of right lung.mesh1d': (6, 0.5145764175197279),
+            # base of middle lobe includes anterior edge
+            'lateral edge of base of middle lobe of right lung.mesh1d': (14, 1.0700457132854544),
+            'medial edge of base of middle lobe of right lung.mesh1d': (14, 0.8398626858403571),
+            'posterior edge of lower lobe of right lung.mesh1d': (12, 0.7213630968439503)
         }
         with ChangeManager(refine_fieldmodule):
             one = refine_fieldmodule.createFieldConstant(1.0)
