@@ -1,7 +1,7 @@
 """
 Generates a 3D body coordinates using tube network mesh.
 """
-from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, magnitude, axis_angle_to_rotation_matrix, matrix_vector_mult, dot
+from cmlibs.maths.vectorops import add, cross, mult, set_magnitude, sub, magnitude, axis_angle_to_rotation_matrix, matrix_vector_mult, matrix_mult, dot, angle 
 from cmlibs.utils.zinc.field import Field, find_or_create_field_coordinates
 from cmlibs.utils.zinc.finiteelement import get_maximum_node_identifier
 from cmlibs.zinc.element import Element
@@ -46,13 +46,15 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Head width"] = 2.0
         options["Neck length"] = 1.3
         options["Shoulder drop"] = 1.0
-        options["Shoulder width"] = 4.5
+        options["Shoulder width"] = 5.0
         options["Left shoulder flexion degrees"] = 0.0
         options["Right shoulder flexion degrees"] = 0.0
-        options["Left shoulder abduction degrees"] = 10.0
-        options["Right shoulder abduction degrees"] = 10.0
-        options["Left elbow flexion degrees"] = 90.0
-        options["Right elbow flexion degrees"] = 110.0
+        options["Left shoulder abduction degrees"] = 0.0
+        options["Right shoulder abduction degrees"] = 0.0
+        options["Left elbow flexion degrees"] = 0.0
+        options["Right elbow flexion degrees"] = 0.0
+        options["Left arm rotation degrees"] = 0.0
+        options["Right arm rotation degrees"] = 0.0
         options["Arm length"] = 7.5
         options["Arm top diameter"] = 1.0
         options["Arm twist angle degrees"] = 0.0
@@ -60,6 +62,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Wrist width"] = 0.7
         options["Left wrist flexion degrees"] = 0.0
         options["Right wrist flexion degrees"] = 0.0
+        options["Left wrist deviation degrees"] = 0.0
+        options["Right wrist deviation degrees"] = 0.0
         options["Hand length"] = 2.0
         options["Hand thickness"] = 0.2
         options["Hand width"] = 1.0
@@ -71,8 +75,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Pelvis width"] = 2.0
         options["Left leg abduction degrees"] = 10.0
         options["Right leg abduction degrees"] = 10.0
-        options["Left hip flexion degrees"] = 90.0
-        options["Right hip flexion degrees"] = 90.0
+        options["Left hip flexion degrees"] = 0.0
+        options["Right hip flexion degrees"] = 0.0
         options["Leg length"] = 11.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
@@ -98,18 +102,25 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             "Shoulder drop",
             "Shoulder width",
             "Left shoulder abduction degrees",
-            "Right shoulder abduction degrees",
             "Left shoulder flexion degrees",
-            "Right shoulder flexion degrees",
             "Left elbow flexion degrees",
+            "Left arm rotation degrees",
+            "Right shoulder abduction degrees",
+            
+            "Right shoulder flexion degrees",
+            
             "Right elbow flexion degrees",
+            
+            "Right arm rotation degrees",
+            "Left wrist flexion degrees",
+            "Right wrist flexion degrees",
+            "Left wrist deviation degrees",
+            "Right wrist deviation degrees",
             "Arm length",
             "Arm top diameter",
             "Arm twist angle degrees",
             "Wrist thickness",
             "Wrist width",
-            "Left wrist flexion degrees",
-            "Right wrist flexion degrees",
             "Hand length",
             "Hand thickness",
             "Hand width",
@@ -180,12 +191,14 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             elif options[key] > 0.9:
                 options[key] = 0.9
         for key, angleRange in {
-            "Left shoulder abduction degrees": (-60.0, 180.0),
-            "Right shoulder abduction degrees": (-60.0, 180.0),
+            "Left shoulder abduction degrees": (-100.0, 180.0),
+            "Right shoulder abduction degrees": (-100.0, 180.0),
             "Left shoulder flexion degrees": (-60.0, 200.0),
             "Right shoulder flexion degrees": (-60.0, 200.0),
-            "Left elbow flexion degrees": (0.0, 150.0),
-            "Right elbow flexion degrees": (0.0, 150.0),
+            # "Left elbow flexion degrees": (0.0, 150.0),
+            # "Right elbow flexion degrees": (0.0, 150.0),
+            # "Left arm rotation degrees": (0.0, 150.0),
+            # "Right arm rotation degrees": (0.0, 150.0),
             "Left wrist flexion degrees": (-30.0, 30.0),
             "Right wrist flexion degrees": (-30.0, 30.0),
             "Left hip flexion degrees": (0.0, 150.0),
@@ -226,8 +239,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         armRightAngleRadians = math.radians(options["Right shoulder abduction degrees"])
         elbowLeftFlexionRadians = math.radians(options["Left elbow flexion degrees"])
         elbowRightFlexionRadians = math.radians(options["Right elbow flexion degrees"])
+        armLeftRotationRadians = math.radians(options["Left arm rotation degrees"])
+        armRightRotationRadians = math.radians(options["Right arm rotation degrees"])
         wristLeftFlexionRadians = math.radians(options["Left wrist flexion degrees"])
         wristRightFlexionRadians = math.radians(options["Right wrist flexion degrees"])
+        wristLeftAbductionRadians = math.radians(options["Left wrist deviation degrees"])
+        wristRightAbductionRadians = math.radians(options["Right wrist deviation degrees"])
         armLength = options["Arm length"]
         armTopRadius = 0.5 * options["Arm top diameter"]
         armTwistAngleRadians = math.radians(options["Arm twist angle degrees"])
@@ -527,8 +544,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # rotate shoulder with arm, pivoting about shoulder drop below arm junction on network
             # this has the realistic effect of shoulders becoming narrower with higher angles
             # initial shoulder rotation with arm is negligible, hence:
-            armAngleRadians = armLeftAngleRadians if (side == left) else armRightAngleRadians
-            shoulderRotationFactor = 1.0 - math.cos(0.5 * armAngleRadians)
+            armAbductionRadians = armLeftAngleRadians if (side == left) else armRightAngleRadians
+            shoulderRotationFactor = 1.0 - math.cos(0.5 * armAbductionRadians)
             # assume shoulder drop is half shrug distance to get limiting shoulder angle for 180 degree arm rotation
             shoulderLimitAngleRadians = math.asin(1.5 * shoulderDrop / halfShoulderWidth)
             shoulderAngleRadians = shoulderRotationFactor * shoulderLimitAngleRadians
@@ -537,7 +554,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             armScale = nonHandArmLength / (armToHandElementsCount - shoulderElementsCount)
             d12_mag = (halfWristThickness - armTopRadius) / (armToHandElementsCount - shoulderElementsCount)
             d13_mag = (halfWristWidth - armTopRadius) / (armToHandElementsCount - shoulderElementsCount)
-            armAngle = armAngleRadians if (side == left) else -armAngleRadians
+            armAngle = armAbductionRadians if (side == left) else -armAbductionRadians
             cosArmAngle = math.cos(armAngle)
             sinArmAngle = math.sin(armAngle)
             armStartX = thoraxStartX + shoulderDrop - halfShoulderWidth * math.sin(shoulderAngleRadians)
@@ -557,6 +574,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             sNodeIdentifiers = []
             side_label = 'l' if (side == left) else 'r'
             options['Kinematic tree']['humerus_' + side_label] = nx[1]
+            # Upper shoulder nodes
             for i in range(2):
                 sNodeIdentifiers.append(nodeIdentifier if (i > 0) else armJunctionNodeIdentifier)
                 node = nodes.findNodeByIdentifier(sNodeIdentifiers[-1])
@@ -578,53 +596,48 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                     nodeIdentifier += 1
                 setNodeFieldVersionDerivatives(coordinates, fieldcache, version, sd1, sd2, sd3)
                 setNodeFieldVersionDerivatives(innerCoordinates, fieldcache, version, sd1, sid2, sid3)
-            sd2_list.append([-armTopRadius * sinArmAngle, armTopRadius * cosArmAngle, 0.0])
-            sd3_list.append([0.0, 0.0, armTopRadius])
-            for i in range(2):
-                node = nodes.findNodeByIdentifier(sNodeIdentifiers[i])
-                fieldcache.setNode(node)
-                version = 1 if (i > 0) else 2 if (side == left) else 3
-                sd12 = sub(sd2_list[i + 1], sd2_list[i])
-                sd13 = sub(sd3_list[i + 1], sd3_list[i])
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sd12)
-                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, sd13)
-                sid12 = mult(sd12, innerProportionDefault)
-                sid13 = mult(sd13, innerProportionDefault)
-                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sid12)
-                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, sid13)
             # Arm twist
             elementTwistAngle = ((armTwistAngleRadians if (side == left) else -armTwistAngleRadians) /
                                  (armToHandElementsCount - 3))
-            # Shoulder flexion
-            # Updating frame of reference wrt flexion angle (using d2 as rotation axis)
+            # Shoulder rotation
+            #Reset flexion angle w.r.t. current node
             shoulderFlexionRadians = shoulderLeftFlexionRadians if (side == left) else shoulderRightFlexionRadians
-            armDir = [armDirn, armSide, armFront]
+            ventralFlexion = True
+            if shoulderFlexionRadians < 0:
+                ventralFlexion = False
+                shoulderFlexionRadians = -shoulderFlexionRadians
+            #Reset abdution angle w.r.t. current node
+            shoulderAbductionRadians =  (1 if (side == left) else -1)*angle([1,0,0], sd1) - armAngle
+            upwardAbduction = True
+            if shoulderAbductionRadians < 0:
+                upwardAbduction = False
+                shoulderAbductionRadians = -shoulderAbductionRadians
+            # Calculate magntiudes for joint node
             i = 0
             xi = i / (armToHandElementsCount - 2)
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-            rotationCoeff = 0.25
-            upperShoulderPosition = nx[1]
-            upperShoulderDir = sd1, sd2, sd3
-            upperShoulderDir = [set_magnitude(sd, 1) for sd in upperShoulderDir]
-            shoulderDir, armDir = getJointFlexionFrames(shoulderFlexionRadians, upperShoulderDir, ventralFlexion=True)
-            shoulderDir, armDir = getJointAdbuctionFrames(armAngleRadians,shoulderDir, armDir, ventralAbduction=True)
-            x, shoulderd3_mag, shoulderd13_mag = getJointFlexionPosition(
-                shoulderFlexionRadians, upperShoulderDir, shoulderDir, 
-                armDir, upperShoulderPosition, armStart, halfWidth, rotationCoeff, 
-                ventralFlexion=True)
-            x, shoulderd2_mag, shoulderd12_mag =getJointAbductionPosition(
-                armAngleRadians, upperShoulderDir, shoulderDir, 
-                armDir, upperShoulderPosition, x, halfThickness, rotationCoeff, 
-                ventralAbduction=True)
-            # [x, shoulderDir, armStart, armDir, shoulderd3_mag, shoulderd13_mag] =\
-                #   getJointAndDistalFlexionFrames(shoulderFlexionRadians, x, upperShoulderDir,halfWidth, arcLengths[1], rotationCoeff,ventralFlexion=True)
-            # Set coordiantes for joint node
-            # x = jointPositions[1]
-            # x = armStart
-            shoulderDirn, shoulderSide, shoulderFront = shoulderDir
+            upperShoulderDir = [nx[1], sd1, sd2, sd3, nd1[1], 0, 0]
+            armRotationRadians = armLeftRotationRadians if (side == left) else armRightRotationRadians
+            x1 = [0,1,0]
+            for i in range(1, 4):
+                upperShoulderDir[i] = set_magnitude(upperShoulderDir[i], 1) #normalize frame
+            shoulderDir, armDir = getJointRotationFrames( \
+                shoulderAbductionRadians, shoulderFlexionRadians, upperShoulderDir, upwardAbduction, ventralFlexion)
+            shoulderDir[0] = armStart
+            shoulderDir[4:] = [armScale, halfThickness, halfWidth]
+            rotationCoeff = 0.2
+            x, shoulderd2_mag, shoulderd3_mag, shoulderd12_mag, shoulderd13_mag = getJointRotationPosition(
+                shoulderAbductionRadians, shoulderFlexionRadians, upperShoulderDir, \
+                    shoulderDir, armDir, rotationCoeff, upwardAbduction, ventralFlexion
+            )
+            armRotationRadians = armLeftRotationRadians if (side == left) else armRightRotationRadians
+            jointAbductionMatrix = axis_angle_to_rotation_matrix(mult(shoulderDir[1], 1), armRotationRadians)
+            for i in range(2, 4):
+                shoulderDir[i] = matrix_vector_mult(jointAbductionMatrix, shoulderDir[i])
+                armDir[i] = matrix_vector_mult(jointAbductionMatrix, armDir[i])
+            shoulderDirn, shoulderSide, shoulderFront = shoulderDir[1:4]
             d1 = mult(shoulderDirn, armScale)
-            # shoulderFront = cross(d1, d2)
             d2 = mult(shoulderSide, shoulderd2_mag)
             d3 = mult(shoulderFront, shoulderd3_mag)
             d12 = add(
@@ -644,15 +657,29 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(coordinates, fieldcache, x, d1, d2, d3, d12, d13)
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
+            sd2_list.append(d2)
+            sd3_list.append(d3)
+            # Adjusting d12 and 13 for the upper Shoulder node
+            for i in range(2):
+                node = nodes.findNodeByIdentifier(sNodeIdentifiers[i])
+                fieldcache.setNode(node)
+                version = 1 if (i > 0) else 2 if (side == left) else 3
+                sd12 = sub(sd2_list[i + 1], sd2_list[i])
+                sd13 = sub(sd3_list[i + 1], sd3_list[i])
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sd12)
+                coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, sd13)
+                sid12 = mult(sd12, innerProportionDefault)
+                sid13 = mult(sd13, innerProportionDefault)
+                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS2, version, sid12)
+                innerCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, sid13)
             options['Kinematic tree']['ulna_' + side_label] = x
-            # antebrachiumStart = jointPositions[-1]
-            armDirn, armSide, armFront = armDir
+            # Initial position for arm node
+            armDirn, armSide, armFront = armDir[1:4]
             d1 = set_magnitude(armDirn, armScale)
-            armStart = getDistalJointNodePosition(
-                shoulderFlexionRadians, upperShoulderDir, shoulderDir, 
-                armDir, rotationCoeff, halfWidth, armScale, x)
-            # armStart = add(shoulderPosition,d1)
-            # d1 = mult(armDirn, armScale)
+            armStart = add(x, d1)
+            armDir[0] = armStart
+            armStart = getDistalNodePosition(shoulderAbductionRadians, shoulderFlexionRadians,
+                upperShoulderDir, shoulderDir, armDir, 0.2)
             # Setting brachium coordinates
             j = 0
             for i in range(1, brachiumElementsCount):
@@ -689,6 +716,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 nodeIdentifier += 1
                 j += 1
             # Elbow
+            i += 1
+            twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * (i)
             if twistAngle == 0.0:
                 d2 = armSide 
                 d3 = armFront
@@ -703,22 +732,30 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             armFront = d3
             # Updating frame of reference wrt flexion angle (using d2 as rotation axis)
             elbowFlexionRadians = elbowLeftFlexionRadians if (side == left) else elbowRightFlexionRadians
-            armDir = [armDirn, armSide, armFront]
-            i += 1
+            elbowAbductionRadians = 0
+            ventralFlexion = True
+            if shoulderFlexionRadians < 0:
+                ventralFlexion = False
+                shoulderFlexionRadians = -shoulderFlexionRadians
+            armDir[0] = x
             xi = i / (armToHandElementsCount - 2)
-            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
+            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             rotationCoeff = 0.25
-            [x, elbowDir, antebrachiumStart, antebrachiumDir, elbowd3_mag, elbowd13_mag] =\
-                  getJointAndDistalFlexionFrames(elbowFlexionRadians, x, armDir,halfWidth, armScale, rotationCoeff,ventralFlexion=True)
-            # Set coordiantes for joint node
-            # x = jointPositions[1]
-            elbowDirn, elbowSide, elbowFront = elbowDir
+            elbowDir, antebrachiumDir = getJointRotationFrames( \
+                0, elbowFlexionRadians, armDir, upwardAbduction, ventralFlexion)
+            elbowDir[0] = add(x, d1)
+            elbowDir[4:] = [armScale, halfThickness, halfWidth]
+            x, elbowd2_mag, elbowd3_mag, elbowd12_mag, elbowd13_mag = getJointRotationPosition(
+                0, elbowFlexionRadians, armDir, elbowDir, antebrachiumDir, rotationCoeff, upwardAbduction, ventralFlexion)
+            elbowDirn, elbowSide, elbowFront = elbowDir[1:4]
             d1 = mult(elbowDirn, armScale)
-            # elbowFront = cross(d1, d2)
-            d2 = mult(elbowSide, halfThickness)
+            d2 = mult(elbowSide, elbowd2_mag)
             d3 = mult(elbowFront, elbowd3_mag)
-            d12 = mult(elbowSide, d12_mag)
+            d12 = add(
+                mult(elbowSide, d12_mag), 
+                mult(elbowDirn, elbowd12_mag)
+                )
             d13 = add(
                 mult(elbowFront, d13_mag), 
                 mult(elbowDirn, elbowd13_mag)
@@ -735,9 +772,12 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             options['Kinematic tree']['ulna_' + side_label] = x
             # Antebrachium nodes starts after the elbow node
             # antebrachiumStart = jointPositions[-1]
-            antebrachiumDirn, antebrachiumSide, antebrachiumFront = antebrachiumDir
+            antebrachiumDirn, antebrachiumSide, antebrachiumFront = antebrachiumDir[1:4]
             d1 = set_magnitude(antebrachiumDirn, armScale)
-            # Change d1 to the antebrachium direction
+            antebrachiumStart = add(x, d1)
+            antebrachiumDir[0] = antebrachiumStart
+            antebrachiumStart = getDistalNodePosition(elbowAbductionRadians, elbowFlexionRadians,
+                armDir, elbowDir, antebrachiumDir, rotationCoeff)
             j=0
             for i in range(brachiumElementsCount + 1, armToHandElementsCount - 2):
                 xi = (i) / (armToHandElementsCount - 2)
@@ -749,7 +789,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 if i == 0:
                     twistAngle = armTwistAngleRadians if (side == left) else -armTwistAngleRadians
                 else:
-                    twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * (i - 1)
+                    twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * (i)
                 if twistAngle == 0.0:
                     d2 = mult(antebrachiumSide, halfThickness)
                     d3 = mult(antebrachiumFront, halfWidth)
@@ -776,6 +816,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                 nodeIdentifier += 1
                 j += 1
             # Wrist flexion 
+            i += 1
+            twistAngle = -0.5 * elementTwistAngle + elementTwistAngle * (i)
             if twistAngle == 0.0:
                 d2 = antebrachiumSide 
                 d3 = antebrachiumFront
@@ -788,23 +830,40 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                             mult(antebrachiumSide, sinTwistAngle))
             antebrachiumSide = d2 
             antebrachiumFront = d3
-            antebrachiumDir = [antebrachiumDirn, antebrachiumSide, antebrachiumFront]
             wristFlexionRadians = wristLeftFlexionRadians if (side == left) else wristRightFlexionRadians
-            i += 1
+            wristAbductionRadians = wristLeftAbductionRadians if (side == left) else wristRightAbductionRadians
+            ventralFlexion = True
+            if wristFlexionRadians < 0:
+                ventralFlexion = False
+                wristFlexionRadians = -wristFlexionRadians
+            upwardAbduction = False
+            if wristAbductionRadians < 0:
+                upwardAbduction = True
+                wristAbductionRadians = -wristAbductionRadians
+            antebrachiumDir[0] = x
             xi = i / (armToHandElementsCount - 2)
-            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
-            rotationCoeff = 0.25
-            [x, wristDir, handStart, handDir, wristd3_mag, wristd13_mag] =\
-                  getJointAndDistalFlexionFrames(wristFlexionRadians, x, antebrachiumDir,halfWidth, armScale, rotationCoeff,ventralFlexion=True)
+            halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
+            rotationCoeff = 0.4
+            wristDir, handDir = getJointRotationFrames(
+                wristAbductionRadians, wristFlexionRadians, antebrachiumDir, upwardAbduction, ventralFlexion
+            )
+            wristDir[0] = add(x, d1)
+            wristDir[4:] = [handLength, halfThickness, halfWidth]
+            x, wristd2_mag, wristd3_mag, wristd12_mag, wristd13_mag = getJointRotationPosition(
+                wristAbductionRadians, wristFlexionRadians, antebrachiumDir, wristDir, handDir, rotationCoeff,  upwardAbduction, ventralFlexion
+            )
             # Set coordiantes for joint node
             # x = jointPositions[1]
-            wristDirn, wristSide, wristFront = wristDir
-            d1 = mult(wristDirn, armScale)
-            # wristFront = cross(d1, d2)
-            d2 = mult(wristSide, halfThickness)
+            wristDirn, wristSide, wristFront = wristDir[1:4]
+            handDirn, handSide, handFront = handDir[1:4]
+            d1 = mult(wristDirn, handLength)
+            d2 = mult(wristSide, wristd2_mag)
             d3 = mult(wristFront, wristd3_mag)
-            d12 = mult(wristSide, d12_mag)
+            d12 = add(
+                mult(wristSide, d12_mag), 
+                mult(wristDirn, wristd12_mag)
+                )
             d13 = add(
                 mult(wristFront, d13_mag), 
                 mult(wristDirn, wristd13_mag)
@@ -819,14 +878,16 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
             options['Kinematic tree']['hand_' + side_label] = x
-            handDirn, handSide, handFront = handDir
             d1 = set_magnitude(handDirn, armScale)
+            handStart = add(x, mult(handDirn, handLength))
+            handDir[0] = handStart
+            handStart = getDistalNodePosition(wristAbductionRadians, wristFlexionRadians, antebrachiumDir,
+                                              wristDir, handDir, rotationCoeff)
             # Hand
             assert handElementsCount == 1
             node = nodes.findNodeByIdentifier(nodeIdentifier)
             fieldcache.setNode(node)
-            hx = add(x, mult(handDirn, handLength))
-            hd1 = computeCubicHermiteEndDerivative(x, d1, hx, d1)
+            hd1 = computeCubicHermiteEndDerivative(x, d1, handStart, d1)
             twistAngle = armTwistAngleRadians if (side == left) else -armTwistAngleRadians
             if twistAngle >= 0.0:
                 hd2 = set_magnitude(handSide, halfHandThickness)
@@ -840,8 +901,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                           mult(handSide, halfHandWidth * sinTwistAngle))
             hid2 = mult(hd2, innerProportionDefault)
             hid3 = mult(hd3, innerProportionDefault)
-            setNodeFieldParameters(coordinates, fieldcache, hx, hd1, hd2, hd3)
-            setNodeFieldParameters(innerCoordinates, fieldcache, hx, hd1, hid2, hid3)
+            setNodeFieldParameters(coordinates, fieldcache, handStart, hd1, hd2, hd3)
+            setNodeFieldParameters(innerCoordinates, fieldcache, handStart, hd1, hid2, hid3)
             nodeIdentifier += 1
         # legs
         legStartX = abdomenStartX + abdomenLength + pelvisDrop
@@ -1111,7 +1172,7 @@ class MeshType_3d_wholebody2(Scaffold_base):
         options["Number of elements along abdomen"] = 2
         options["Number of elements along shoulder"] = 2
         options["Number of elements along brachium"] = 3
-        options["Number of elements along antebrachium"] = 3
+        options["Number of elements along antebrachium"] = 2
         options["Number of elements along hand"] = 1
         options["Number of elements along hip"] = 2
         options["Number of elements along upper leg"] = 3
@@ -1543,132 +1604,292 @@ def setNodeFieldVersionDerivatives(field, fieldcache, version, d1, d2, d3, d12=N
         field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D2_DS1DS3, version, d13)
 
 
-def getJointFlexionFrame(jointFlexionRadians, proximalDir, ventralFlexion=True):
-    jointAngleRadians = math.pi - jointFlexionRadians
-    proximalDirn, proximalSide, proximalFront = proximalDir
-    ventral = 1 if ventralFlexion else -1 
-    jointRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians)
-    jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians/2)
-    # Joint directions (frame is rotated by half the flexion angle)
-    jointDirn = matrix_vector_mult(jointHalfRotationMatrix, proximalDirn)
-    jointSide = proximalSide
-    jointFront = matrix_vector_mult(jointHalfRotationMatrix, proximalFront)
-    jointDir = [jointDirn, jointSide, jointFront]
-    return jointDir 
+# def getJointFlexionFrame(jointFlexionRadians, proximalDir, ventralFlexion=True):
+#     jointAngleRadians = math.pi - jointFlexionRadians
+#     proximalDirn, proximalSide, proximalFront = proximalDir
+#     ventral = 1 if ventralFlexion else -1 
+#     jointRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians)
+#     jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians/2)
+#     # Joint directions (frame is rotated by half the flexion angle)
+#     jointDirn = matrix_vector_mult(jointHalfRotationMatrix, proximalDirn)
+#     jointSide = proximalSide
+#     jointFront = matrix_vector_mult(jointHalfRotationMatrix, proximalFront)
+#     jointDir = [jointDirn, jointSide, jointFront]
+#     return jointDir 
 
-def getJointAdbuctionFrames(jointAbductionRadians, jointDir, distalDir, ventralAbduction=True):
-    jointAngleRadians = math.pi - jointAbductionRadians
-    jointDirn, jointSide, jointFront = jointDir 
-    distalDirn, distalSide, distalFront = distalDir
-    ventral = 1 if ventralAbduction else -1 
-    jointRotationMatrix = axis_angle_to_rotation_matrix(mult(jointFront, -1*ventral), jointAbductionRadians)
-    jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(jointFront, -1*ventral), jointAbductionRadians/2)
+# def getJointAdbuctionFrames(jointAbductionRadians, jointDir, distalDir, ventralAbduction=True):
+#     jointAngleRadians = math.pi - jointAbductionRadians
+#     jointDirn, jointSide, jointFront = jointDir 
+#     distalDirn, distalSide, distalFront = distalDir
+#     ventral = 1 if ventralAbduction else -1 
+#     jointRotationMatrix = axis_angle_to_rotation_matrix(mult(jointFront, -1*ventral), jointAbductionRadians)
+#     jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(jointFront, -1*ventral), jointAbductionRadians/2)
+#     # Joint directions (frame is rotated by half the abduction angle)
+#     jointDirn = matrix_vector_mult(jointHalfRotationMatrix, jointDirn)
+#     jointSide = matrix_vector_mult(jointHalfRotationMatrix, jointSide)
+#     jointFront = jointFront
+#     # Distal directions
+#     distalDirn = matrix_vector_mult(jointRotationMatrix, distalDirn)
+#     distalSide = matrix_vector_mult(jointRotationMatrix, distalSide)
+#     distalFront = distalFront
+#     jointDir = [jointDirn, jointSide, jointFront]
+#     distalDir = [distalDirn, distalSide, distalFront]
+#     return jointDir, distalDir
+
+def getJointRotationFrames(jointAbductionRadians, jointFlexionRadians, proximalDir, upwardAbduction=True, ventralFlexion=True):
+    proximalDirn, proximalSide, proximalFront = proximalDir[1:4]
+    ventral = 1 if upwardAbduction else -1 
+    jointAbductionMatrix = axis_angle_to_rotation_matrix(mult(proximalFront, -1*ventral), jointAbductionRadians)
+    jointHalfAbductionMatrix = axis_angle_to_rotation_matrix(mult(proximalFront, -1*ventral), jointAbductionRadians/2)
+    ventral = 1 if ventralFlexion else -1 
+    jointFlexionMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians)
+    jointHalfFlexionMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians/2)
+    # jointRotationMatrix = matrix_mult(jointAbductionMatrix, jointFlexionMatrix)
+    # jointHalfRotationMatrix = matrix_mult(jointHalfAbductionMatrix, jointHalfFlexionMatrix)
+    jointRotationMatrix = matrix_mult(jointFlexionMatrix,jointAbductionMatrix)
+    jointHalfRotationMatrix = matrix_mult(jointHalfFlexionMatrix, jointHalfAbductionMatrix)
     # Joint directions (frame is rotated by half the abduction angle)
-    jointDirn = matrix_vector_mult(jointHalfRotationMatrix, jointDirn)
-    jointSide = matrix_vector_mult(jointHalfRotationMatrix, jointSide)
-    jointFront = jointFront
-    # Distal directions
-    distalDirn = matrix_vector_mult(jointRotationMatrix, distalDirn)
-    distalSide = matrix_vector_mult(jointRotationMatrix, distalSide)
-    distalFront = distalFront
-    jointDir = [jointDirn, jointSide, jointFront]
-    distalDir = [distalDirn, distalSide, distalFront]
-    return jointDir, distalDir
-
-def getJointFlexionFrames(jointFlexionRadians, proximalDir, ventralFlexion=True):
-    jointAngleRadians = math.pi - jointFlexionRadians
-    proximalDirn, proximalSide, proximalFront = proximalDir
-    ventral = 1 if ventralFlexion else -1 
-    jointRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians)
-    jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians/2)
-    # Joint directions (frame is rotated by half the flexion angle)
     jointDirn = matrix_vector_mult(jointHalfRotationMatrix, proximalDirn)
-    jointSide = proximalSide
+    jointSide = matrix_vector_mult(jointHalfRotationMatrix, proximalSide)
     jointFront = matrix_vector_mult(jointHalfRotationMatrix, proximalFront)
     # Distal directions
     distalDirn = matrix_vector_mult(jointRotationMatrix, proximalDirn)
-    distalSide = proximalSide
+    distalSide = matrix_vector_mult(jointRotationMatrix, proximalSide)
     distalFront = matrix_vector_mult(jointRotationMatrix, proximalFront)
-    jointDir = [jointDirn, jointSide, jointFront]
-    distalDir = [distalDirn, distalSide, distalFront]
+    jointDir = [0, jointDirn, jointSide, jointFront, 0, 0, 0]
+    distalDir = [0, distalDirn, distalSide, distalFront, 0, 0, 0]
     return jointDir, distalDir
 
-def getJointFlexionPosition(jointFlexionRadians, proximalDir, 
-                            jointDir, distalDir, proximalNodePosition, 
-                            jointNodePosition, frontScale, 
-                            rotationCoeff, ventralFlexion = True):
+
+def getJointRotationPosition(jointAbductionRadians, jointFlexionRadians, \
+    proximalDir, jointDir, distalDir, rotationCoeff, upwardAbduction=True, ventralFlexion=True):
+    ventral = 1 if ventralFlexion else -1 
+    upward = 1 if upwardAbduction else -1 
+    proximalNodePosition, proximalDirn, proximalSide, proximalFront = proximalDir[0:4]
+    jointNodePosition, jointDirn, jointSide, jointFront = jointDir[0:4]
+    distalNodePosition, distalDirn, distalSide, distalFront = distalDir[0:4]
+    # Flexion node adjustment
     jointAngleRadians = math.pi - jointFlexionRadians
-    proximalDirn, proximalSide, proximalFront = proximalDir
-    jointDirn, jointSide, jointFront = jointDir 
-    distalDirn, distalSide, distalFront = distalDir
-    flexionRotFactor = 1*math.sin(jointAngleRadians)     
+    frontScale = jointDir[6]
+    rotationRotFactor = 1*math.sin(jointAngleRadians)     
     jointRotFactor = 1/math.sin(jointAngleRadians/2)
     d13RotFactor = math.sqrt(2)*math.tan(jointFlexionRadians/2)
-    ventral = 1 if ventralFlexion else -1 
-    proximalScale = magnitude(sub(proximalNodePosition, jointNodePosition))
-    rotDisplacementFactor = rotationCoeff*frontScale*flexionRotFactor
-    jointAdjustDir = add(
-                    set_magnitude(jointFront, ventral*rotDisplacementFactor), 
-                    set_magnitude(distalDirn, rotDisplacementFactor), 
-                )
-    jointAdjustDir = add(
-                set_magnitude(proximalDirn, proximalScale), 
-                jointAdjustDir
-            )
-    jointAdjustDir = set_magnitude(jointAdjustDir, proximalScale)
-    jointAdjustPosition = add(proximalNodePosition, jointAdjustDir)
-    jointDir
-    jointd3_mag = frontScale*(jointRotFactor-(rotationCoeff*flexionRotFactor))
-    jointd13_mag = -1*ventral*frontScale*d13RotFactor
-    return [jointAdjustPosition, jointd3_mag, jointd13_mag]
-
-def getJointAbductionPosition(jointAbductionRadians, proximalDir, 
-                            jointDir, distalDir, proximalNodePosition, 
-                            jointNodePosition, sideScale, 
-                            rotationCoeff, ventralAbduction = True):
+    rotDisplacementFactor = rotationCoeff*frontScale*rotationRotFactor
+    jointNodePosition = adjustJointNodePosition(proximalNodePosition, jointNodePosition, \
+        jointFront, distalDirn, rotDisplacementFactor, ventralFlexion)
+    d3_mag = frontScale*(jointRotFactor-(rotationCoeff*rotationRotFactor))
+    d13_mag = -1*ventral*frontScale*d13RotFactor
+    # Abduction node adjustment
     jointAngleRadians = math.pi - jointAbductionRadians
-    proximalDirn, proximalSide, proximalFront = proximalDir
-    jointDirn, jointSide, jointFront = jointDir 
-    distalDirn, distalSide, distalFront = distalDir
-    AbductionRotFactor = 1*math.sin(jointAngleRadians)     
+    sideScale = jointDir[5]
+    jointSide = mult(jointSide, -1)
+    rotationRotFactor = 1*math.sin(jointAngleRadians)     
     jointRotFactor = 1/math.sin(jointAngleRadians/2)
-    d13RotFactor = math.sqrt(2)*math.tan(jointAbductionRadians/2)
-    ventral = 1 if ventralAbduction else -1 
-    proximalScale = magnitude(sub(proximalNodePosition, jointNodePosition))
-    rotDisplacementFactor = rotationCoeff*sideScale*AbductionRotFactor
-    jointAdjustDir = add(
-                    set_magnitude(jointSide, ventral*rotDisplacementFactor), 
-                    set_magnitude(distalDirn, rotDisplacementFactor), 
-                )
-    jointAdjustDir = add(
-                set_magnitude(proximalDirn, proximalScale), 
-                jointAdjustDir
-            )
-    jointAdjustDir = set_magnitude(jointAdjustDir, proximalScale)
-    jointAdjustPosition = add(proximalNodePosition, jointAdjustDir)
-    jointd2_mag = sideScale*(jointRotFactor-(rotationCoeff*AbductionRotFactor))
-    jointd12_mag = -1*ventral*sideScale*d13RotFactor
-    return [jointAdjustPosition, jointd2_mag, jointd12_mag]
+    d12RotFactor = math.sqrt(2)*math.tan(jointAbductionRadians/2)
+    rotDisplacementFactor = rotationCoeff*sideScale*rotationRotFactor
+    jointNodePosition = adjustJointNodePosition(proximalNodePosition, jointNodePosition, \
+        jointSide, distalDirn, rotDisplacementFactor, upwardAbduction)
+    d2_mag = sideScale*(jointRotFactor-(rotationCoeff*rotationRotFactor))
+    d12_mag = upward*sideScale*d12RotFactor
+    return [jointNodePosition, d2_mag, d3_mag, d12_mag, d13_mag]
 
-def getDistalJointNodePosition(jointFlexionRadians, proximalDir, jointDir, distalDir, rotationCoeff,
-                               frontScale, distalScale, jointNodePosition): 
-    proximalDirn, proximalSide, proximalFront = proximalDir
-    jointDirn, jointSide, jointFront = jointDir 
-    distalDirn, distalSide, distalFront = distalDir
+def getDistalNodePosition(jointAbductionRadians, jointFlexionRadians, proximalDir, jointDir, distalDir, rotationCoeff):
+    proximalNodePosition, proximalDirn, proximalSide, proximalFront = proximalDir[0:4]
+    jointNodePosition, jointDirn, jointSide, jointFront = jointDir[0:4]
+    distalNodePosition, distalDirn, distalSide, distalFront = distalDir[0:4]
+    # Flexion
+    jointFrontScale = jointDir[6]
     jointAngleRadians = math.pi - jointFlexionRadians
     flexionRotFactor = 1*math.sin(jointAngleRadians)     
-    rotDisplacementFactor = rotationCoeff*frontScale*flexionRotFactor
-    jointAdjustDir = add(
-            set_magnitude(jointDirn, rotDisplacementFactor), 
-            set_magnitude(proximalDirn, rotDisplacementFactor), 
-        )
-    jointAdjustDir =  add(
-        set_magnitude(distalDirn, distalScale), 
-        jointAdjustDir
-        )
-    jointAdjustDir = set_magnitude(jointAdjustDir, distalScale)
-    distalNodePosition = add(jointNodePosition, jointAdjustDir)
+    rotDisplacementFactor = rotationCoeff*jointFrontScale*flexionRotFactor
+    distalNodePosition = adjustJointNodePosition(jointNodePosition, distalNodePosition, \
+        jointDirn, proximalDirn, rotDisplacementFactor)
+    # Abduction
+    jointSideScale = jointDir[5]
+    jointAngleRadians = math.pi - jointAbductionRadians
+    abductionRotFactor = 1*math.sin(jointAngleRadians)     
+    rotDisplacementFactor = rotationCoeff*jointSideScale*abductionRotFactor
+    distalNodePosition = adjustJointNodePosition(jointNodePosition, distalNodePosition, \
+        jointDirn, proximalDirn, rotDisplacementFactor)
     return distalNodePosition
+
+def adjustJointNodePosition(proximalNodePosition, nodePosition, d1, d2, dispFactor, ventral = True):
+    """
+    Displaces a node towards the center of the tube network,
+    while preserving the distance between the current node and the previous (proximal) node
+
+    :param proximalNodePosition: Position of the node previous to nodePosition
+    :param nodePosition: Original position of the node to be rotated.
+    :param lenScale: Distance between the joint node and the proximal/distal node.
+    :param d1: Typically jointFront or or jointSide.
+    :param d2: Typically distalDirn or jointDirn.
+    :param dispFactor: Measure of displacement of the node away from the corner.
+    """
+    initialDir = sub(nodePosition, proximalNodePosition)
+    lenScale = magnitude(initialDir)
+    ventral = 1 if (ventral) else -1
+    jointAdjustDir = add(
+            set_magnitude(d1, ventral*dispFactor), 
+            set_magnitude(d2, dispFactor), 
+        )
+    jointAdjustDir =  add(initialDir, jointAdjustDir)
+    jointAdjustDir = set_magnitude(jointAdjustDir, lenScale)
+    adjustedNodePosition = add(proximalNodePosition, jointAdjustDir)
+    return adjustedNodePosition
+# def getJointFlexionFrames(jointFlexionRadians, proximalDir, ventralFlexion=True):
+#     jointAngleRadians = math.pi - jointFlexionRadians
+#     proximalDirn, proximalSide, proximalFront = proximalDir
+#     ventral = 1 if ventralFlexion else -1 
+#     jointRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians)
+#     jointHalfRotationMatrix = axis_angle_to_rotation_matrix(mult(proximalSide, -1*ventral), jointFlexionRadians/2)
+#     # Joint directions (frame is rotated by half the flexion angle)
+#     jointDirn = matrix_vector_mult(jointHalfRotationMatrix, proximalDirn)
+#     jointSide = proximalSide
+#     jointFront = matrix_vector_mult(jointHalfRotationMatrix, proximalFront)
+#     # Distal directions
+#     distalDirn = matrix_vector_mult(jointRotationMatrix, proximalDirn)
+#     distalSide = proximalSide
+#     distalFront = matrix_vector_mult(jointRotationMatrix, proximalFront)
+#     jointDir = [jointDirn, jointSide, jointFront]
+#     distalDir = [distalDirn, distalSide, distalFront]
+#     return jointDir, distalDir
+
+# def getJointFlexionPosition(jointFlexionRadians, proximalDir, 
+#                             jointDir, distalDir, proximalNodePosition, 
+#                             jointNodePosition, frontScale, 
+#                             rotationCoeff, ventralFlexion = True):
+#     jointAngleRadians = math.pi - jointFlexionRadians
+#     proximalDirn, proximalSide, proximalFront = proximalDir
+#     jointDirn, jointSide, jointFront = jointDir 
+#     jointFront = mult(jointFront, -1) if (jointFlexionRadians < 0) else jointFront
+#     distalDirn, distalSide, distalFront = distalDir
+#     flexionRotFactor = 1*math.sin(jointAngleRadians)     
+#     jointRotFactor = 1/math.sin(jointAngleRadians/2)
+#     d13RotFactor = math.sqrt(2)*math.tan(jointFlexionRadians/2)
+#     ventral = 1 if ventralFlexion else -1 
+#     proximalScale = magnitude(sub(proximalNodePosition, jointNodePosition))
+#     rotDisplacementFactor = rotationCoeff*frontScale*flexionRotFactor
+#     jointAdjustDir = add(
+#                     set_magnitude(jointFront, ventral*rotDisplacementFactor), 
+#                     set_magnitude(distalDirn, rotDisplacementFactor), 
+#                 )
+#     jointAdjustDir = add(
+#                 set_magnitude(proximalDirn, proximalScale), 
+#                 jointAdjustDir
+#             )
+#     jointAdjustDir = set_magnitude(jointAdjustDir, proximalScale)
+#     jointAdjustPosition = add(proximalNodePosition, jointAdjustDir)
+#     jointDir
+#     jointd3_mag = frontScale*(jointRotFactor-(rotationCoeff*flexionRotFactor))
+#     jointd13_mag = -1*ventral*frontScale*d13RotFactor
+#     return [jointAdjustPosition, jointd3_mag, jointd13_mag]
+
+# def getJointAbductionPosition(jointAbductionRadians, proximalDir, 
+#                             jointDir, distalDir, proximalNodePosition, 
+#                             jointNodePosition, sideScale, proximalScale,
+#                             rotationCoeff, ventralAbduction = True, side = 0):
+#     jointAngleRadians = math.pi - jointAbductionRadians
+#     proximalDirn, proximalSide, proximalFront = proximalDir
+#     jointDirn, jointSide, jointFront = jointDir 
+#     right = -1 if (side == 0) else 1
+#     jointSide = mult(jointSide, right)
+#     distalDirn, distalSide, distalFront = distalDir
+#     AbductionRotFactor = 1*math.sin(jointAngleRadians)     
+#     jointRotFactor = 1/math.sin(jointAngleRadians/2)
+#     d13RotFactor = math.sqrt(2)*math.tan(jointAbductionRadians/2)
+#     ventral = 1 if (ventralAbduction)  else -1 
+#     rotDisplacementFactor = rotationCoeff*sideScale*AbductionRotFactor
+#     jointAdjustDir = add(
+#                     set_magnitude(jointSide, ventral*rotDisplacementFactor), 
+#                     set_magnitude(distalDirn, rotDisplacementFactor), 
+#                 )
+#     jointAdjustDir = add(
+#                 set_magnitude(proximalDirn, proximalScale), 
+#                 jointAdjustDir
+#             )
+#     jointAdjustDir = set_magnitude(jointAdjustDir, proximalScale)
+#     jointAdjustPosition = add(proximalNodePosition, jointAdjustDir)
+#     jointd2_mag = sideScale*(jointRotFactor-(rotationCoeff*AbductionRotFactor))
+#     jointd12_mag = -1*right*ventral*sideScale*d13RotFactor
+#     return [jointAdjustPosition, jointd2_mag, jointd12_mag]
+
+# def getDistalJointNodePosition(jointFlexionRadians, proximalDir, jointDir, distalDir, rotationCoeff,
+#                                frontScale, distalScale, jointNodePosition): 
+#     proximalDirn, proximalSide, proximalFront = proximalDir
+#     jointDirn, jointSide, jointFront = jointDir 
+#     distalDirn, distalSide, distalFront = distalDir
+#     jointAngleRadians = math.pi - jointFlexionRadians
+#     flexionRotFactor = 1*math.sin(jointAngleRadians)     
+#     rotDisplacementFactor = rotationCoeff*frontScale*flexionRotFactor
+#     jointAdjustDir = add(
+#             set_magnitude(jointDirn, rotDisplacementFactor), 
+#             set_magnitude(proximalDirn, rotDisplacementFactor), 
+#         )
+#     jointAdjustDir =  add(
+#         set_magnitude(distalDirn, distalScale), 
+#         jointAdjustDir
+#         )
+#     jointAdjustDir = set_magnitude(jointAdjustDir, distalScale)
+#     distalNodePosition = add(jointNodePosition, jointAdjustDir)
+#     return distalNodePosition
+
+
+
+
+# def getJointFlexionAdjustment(jointRotationRadians, proximalDir, jointDir, distalDir, rotationCoeff, ventralFlexion = True): 
+#     proximalNodePosition = proximalDir[0]
+#     jointNodePosition = jointDir[0]
+#     jointFront = jointDir[3]
+#     jointFrontScale = jointDir[6]
+#     distalDirn = distalDir[1]
+#     jointAngleRadians = math.pi - jointRotationRadians
+#     abductionRotFactor = 1*math.sin(jointAngleRadians)     
+#     rotDisplacementFactor = rotationCoeff*jointFrontScale*abductionRotFactor
+#     distalNodePosition = adjustJointNodePosition(proximalNodePosition, jointNodePosition, \
+#         jointFront, distalDirn, rotDisplacementFactor, ventralFlexion)
+#     return distalNodePosition
+
+# def getJointAbductionAdjustment(jointRotationRadians, proximalDir, jointDir, distalDir, rotationCoeff): 
+#     proximalDirn = proximalDir[1]
+#     jointNodePosition = jointDir[0]
+#     jointDirn = jointDir[1]
+#     jointSideScale = jointDir[5]
+#     distalNodePosition = distalDir[0]
+#     jointAngleRadians = math.pi - jointRotationRadians
+#     abductionRotFactor = 1*math.sin(jointAngleRadians)     
+#     rotDisplacementFactor = rotationCoeff*jointSideScale*abductionRotFactor
+#     distalNodePosition = adjustJointNodePosition(jointNodePosition, distalNodePosition, \
+#         jointDirn, proximalDirn, rotDisplacementFactor)
+#     return distalNodePosition
+
+# def getDistalNodeAdjustment(jointRotationRadians, proximalDir, jointDir, distalDir, rotationCoeff): 
+#     proximalDirn = proximalDir[1]
+#     jointNodePosition = jointDir[0]
+#     jointDirn = jointDir[1]
+#     jointFrontScale = jointDir[6]
+#     distalNodePosition = distalDir[0]
+#     jointAngleRadians = math.pi - jointRotationRadians
+#     abductionRotFactor = 1*math.sin(jointAngleRadians)     
+#     rotDisplacementFactor = rotationCoeff*jointFrontScale*abductionRotFactor
+#     distalNodePosition = adjustJointNodePosition(jointNodePosition, distalNodePosition, \
+#         jointDirn, proximalDirn, rotDisplacementFactor)
+#     return distalNodePosition
+
+# def getDistalAbductionAdjustment(jointRotationRadians, proximalDir, jointDir, distalDir, rotationCoeff): 
+#     proximalDirn = proximalDir[1]
+#     jointNodePosition = jointDir[0]
+#     jointDirn = jointDir[1]
+#     jointSideScale = jointDir[5]
+#     distalNodePosition = distalDir[0]
+#     jointAngleRadians = math.pi - jointRotationRadians
+#     abductionRotFactor = 1*math.sin(jointAngleRadians)     
+#     rotDisplacementFactor = rotationCoeff*jointSideScale*abductionRotFactor
+#     distalNodePosition = adjustJointNodePosition(jointNodePosition, distalNodePosition, \
+#         jointDirn, proximalDirn, rotDisplacementFactor)
+#     return distalNodePosition
+
+
+
 
 def getJointAndDistalFlexionFrames(jointFlexionRadians, proximalNodePosition, proximalDir, 
                              frontScale, dirnScale, rotationCoeff, distalnScale = False, ventralFlexion=True):
