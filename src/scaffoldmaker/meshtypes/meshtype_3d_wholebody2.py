@@ -49,8 +49,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Shoulder width"] = 5.0
         options["Left shoulder flexion degrees"] = 0.0
         options["Right shoulder flexion degrees"] = 0.0
-        options["Left shoulder abduction degrees"] = 0.0
-        options["Right shoulder abduction degrees"] = 0.0
+        options["Left shoulder abduction degrees"] = 10.0
+        options["Right shoulder abduction degrees"] = 10.0
         options["Left elbow flexion degrees"] = 0.0
         options["Right elbow flexion degrees"] = 0.0
         options["Left arm rotation degrees"] = 0.0
@@ -80,8 +80,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Leg length"] = 11.0
         options["Leg top diameter"] = 2.0
         options["Leg bottom diameter"] = 0.7
-        options["Left knee flexion degrees"] = 90.0
-        options["Right knee flexion degrees"] = 90.0
+        options["Left knee flexion degrees"] = 0.0
+        options["Right knee flexion degrees"] = 0.0
         options["Left ankle flexion degrees"] = 90.0
         options["Right ankle flexion degrees"] = 90.0
         options["Foot height"] = 1.25
@@ -844,7 +844,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             xi = i / (armToHandElementsCount - 2)
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-            rotationCoeff = 0.4
+            rotationCoeff = 0.3
             wristDir, handDir = getJointRotationFrames(
                 wristAbductionRadians, wristFlexionRadians, antebrachiumDir, upwardAbduction, ventralFlexion
             )
@@ -856,7 +856,6 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             # Set coordiantes for joint node
             # x = jointPositions[1]
             wristDirn, wristSide, wristFront = wristDir[1:4]
-            handDirn, handSide, handFront = handDir[1:4]
             d1 = mult(wristDirn, handLength)
             d2 = mult(wristSide, wristd2_mag)
             d3 = mult(wristFront, wristd3_mag)
@@ -878,6 +877,7 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             setNodeFieldParameters(innerCoordinates, fieldcache, x, d1, id2, id3, id12, id13)
             nodeIdentifier += 1
             options['Kinematic tree']['hand_' + side_label] = x
+            handDirn, handSide, handFront = handDir[1:4]
             d1 = set_magnitude(handDirn, armScale)
             handStart = add(x, mult(handDirn, handLength))
             handDir[0] = handStart
