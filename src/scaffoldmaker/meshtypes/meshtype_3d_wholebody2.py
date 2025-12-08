@@ -62,8 +62,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
         options["Wrist width"] = 0.7
         options["Left wrist flexion degrees"] = 0.0
         options["Right wrist flexion degrees"] = 0.0
-        options["Left wrist deviation degrees"] = 0.0
-        options["Right wrist deviation degrees"] = 0.0
+        options["Left wrist deviation degrees"] = 90.0
+        options["Right wrist deviation degrees"] = 90.0
         options["Hand length"] = 2.0
         options["Hand thickness"] = 0.2
         options["Hand width"] = 1.0
@@ -830,8 +830,8 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
                             mult(antebrachiumSide, sinTwistAngle))
             antebrachiumSide = d2 
             antebrachiumFront = d3
-            wristFlexionRadians = wristLeftFlexionRadians if (side == left) else wristRightFlexionRadians
-            wristAbductionRadians = wristLeftAbductionRadians if (side == left) else wristRightAbductionRadians
+            wristFlexionRadians = wristLeftFlexionRadians if (side == left) else -wristRightFlexionRadians
+            wristAbductionRadians = wristLeftAbductionRadians if (side == left) else -wristRightAbductionRadians
             ventralFlexion = True
             if wristFlexionRadians < 0:
                 ventralFlexion = False
@@ -844,19 +844,19 @@ class MeshType_1d_human_body_network_layout1(MeshType_1d_network_layout1):
             xi = i / (armToHandElementsCount - 2)
             halfThickness = xi * halfWristThickness + (1.0 - xi) * armTopRadius
             halfWidth = xi * halfWristWidth + (1.0 - xi) * armTopRadius
-            rotationCoeff = 0.3
+            rotationCoeff = 0.6
             wristDir, handDir = getJointRotationFrames(
                 wristAbductionRadians, wristFlexionRadians, antebrachiumDir, upwardAbduction, ventralFlexion
             )
             wristDir[0] = add(x, d1)
-            wristDir[4:] = [handLength, halfThickness, halfWidth]
+            wristDir[4:] = [armScale, halfThickness, halfWidth]
             x, wristd2_mag, wristd3_mag, wristd12_mag, wristd13_mag = getJointRotationPosition(
                 wristAbductionRadians, wristFlexionRadians, antebrachiumDir, wristDir, handDir, rotationCoeff,  upwardAbduction, ventralFlexion
             )
             # Set coordiantes for joint node
             # x = jointPositions[1]
             wristDirn, wristSide, wristFront = wristDir[1:4]
-            d1 = mult(wristDirn, handLength)
+            d1 = mult(wristDirn, armScale)
             d2 = mult(wristSide, wristd2_mag)
             d3 = mult(wristFront, wristd3_mag)
             d12 = add(
