@@ -10,9 +10,7 @@ from scaffoldmaker.utils.eft_utils import determineCubicHermiteSerendipityEft, H
 from scaffoldmaker.utils.geometry import (
     getEllipsePointAtTrueAngle, getEllipseTangentAtPoint, moveCoordinatesToEllipsoidSurface,
     moveDerivativeToEllipsoidSurface, moveDerivativeToEllipsoidSurfaceInPlane, sampleCurveOnEllipsoid)
-from scaffoldmaker.utils.interpolation import (
-    DerivativeScalingMode, get_nway_point, linearlyInterpolateVectors, sampleHermiteCurve,
-    smoothCubicHermiteDerivativesLine)
+from scaffoldmaker.utils.interpolation import DerivativeScalingMode, linearlyInterpolateVectors, sampleHermiteCurve
 from scaffoldmaker.utils.hextetrahedronmesh import HexTetrahedronMesh
 from scaffoldmaker.utils.quadtrianglemesh import QuadTriangleMesh
 import copy
@@ -23,7 +21,8 @@ import math
 class EllipsoidSurfaceD3Mode(Enum):
     SURFACE_NORMAL = 1  # surface D3 are exact surface normals to ellipsoid
     OBLIQUE_DIRECTION = 2  # surface D3 are in direction of surface point on ellipsoid, gives flat oblique planes
-    SURFACE_NORMAL_PLANE_PROJECTION = 3  # Surface D3 are surface normals to ellipsoid projected onto planes from axis2 to axis3
+    # Surface D3 are surface normals to ellipsoid projected onto radial planes transitioning between axis2 and axis3
+    SURFACE_NORMAL_PLANE_PROJECTION = 3
 
 
 class EllipsoidMesh:
@@ -222,9 +221,12 @@ class EllipsoidMesh:
         move_d_to_ellipsoid_surface = lambda x, d: moveDerivativeToEllipsoidSurface(self._a, self._b, self._c, x, d)
         def evaluate_surface_d3_ellipsoid_plane(tx, td1, td2):
             """
-            Restrict d3 to be ellipsoid normal constrained be in plane interpolated from axis_d2 to axis_d3 at tx
-            relative to ext_origin.
-            :return: d3 with magnitude dir_mag.
+            Restrict d3 to be the ellipsoid normal constrained to be in radial planes from ext_origin through tx,
+            varying between axis_d2 and axis_d3.
+            :param tx: Coordinates of a point on the ellipsoid surface in the octant.
+            :param td1: Unused point d1.
+            :param td2: Unused point d2.
+            :return: Radial plane constrained ellipsoid normal d3 with magnitude dir_mag.
             """
             n = [tx[0] / (self._a * self._a), tx[1] / (self._b * self._b), tx[2] / (self._c * self._c)]
             if dot(tx, axis3_normal) <= 1.0E-5:
@@ -521,6 +523,11 @@ class EllipsoidMesh:
                         nx_row[self._element_counts[0] - n1] = [x, d1, d2, d3]
 
     def _next_increment_out_of_bounds(self, indexes, index_increment):
+        """
+        :param indexes: List of 3 current indexes in the EllipsoidMesh nodes block: [n1, n2, n3].
+        :param index_increment: Increments to the 3 indexes.
+        :return: True if adding index_increment to indexes puts the index outside the nodes block.
+        """
         for c in range(3):
             index = indexes[c] + index_increment[c]
             if (index < 0) or (index > self._element_counts[c]):

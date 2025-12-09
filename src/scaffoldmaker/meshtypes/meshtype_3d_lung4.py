@@ -106,11 +106,6 @@ class MeshType_3d_lung4(Scaffold_base):
 
         max_transition_count = None
         for key in [
-            "Number of elements lower lobe extension"
-        ]:
-            if options[key] < 1:
-                options[key] = 1
-        for key in [
             "Number of elements lateral",
             "Number of elements oblique"
         ]:
@@ -128,13 +123,13 @@ class MeshType_3d_lung4(Scaffold_base):
             options["Number of transition elements"] = max_transition_count
             dependent_changes = True
 
-        for key in [
-            "Ellipsoid height",
-            "Ellipsoid dorsal-ventral size",
-            "Ellipsoid medial-lateral size"
+        for key, default in [
+            ("Ellipsoid height", 1.0),
+            ("Ellipsoid dorsal-ventral size", 0.8),
+            ("Ellipsoid medial-lateral size", 0.4)
         ]:
             if options[key] <= 0.0:
-                options[key] = 1.0
+                options[key] = default
         for key in [
             "Lower lobe base concavity",
             "Lower lobe extension",
@@ -144,6 +139,9 @@ class MeshType_3d_lung4(Scaffold_base):
                 options[key] = 0.0
         if options["Lower lobe extension"] == 0.0:
             options["Number of elements lower lobe extension"] = 0
+            dependent_changes = True
+        elif options["Number of elements lower lobe extension"] < 1:
+            options["Number of elements lower lobe extension"] = 1
             dependent_changes = True
         depth = options["Ellipsoid dorsal-ventral size"]
         height = options["Ellipsoid height"]
@@ -380,7 +378,7 @@ class MeshType_3d_lung4(Scaffold_base):
             is_left = lung == left_lung
             lung_nodeset = (left_lung_group if is_left else right_lung_group).getNodesetGroup(nodes)
 
-            if lower_lobe_base_concavity > 0.0:
+            if (lower_lobe_base_concavity > 0.0) and (lower_lobe_extension > 0.0):
                 lower_lobe_group = lower_left_lung_group if (lung == left_lung) else lower_right_lung_group
                 form_lower_lobe_base_concavity(
                     lower_lobe_base_concavity, lower_lobe_extension, half_ml_size, half_dv_size, half_height,
@@ -397,7 +395,6 @@ class MeshType_3d_lung4(Scaffold_base):
                                           [-lung_spacing if is_left else lung_spacing, 0.0, 0.0])
 
         return annotation_groups, None
-
 
     @classmethod
     def refineMesh(cls, meshRefinement, options):
@@ -766,7 +763,7 @@ def form_lower_lobe_base_concavity(lower_lobe_base_concavity, lower_lobe_extensi
 
 def taper_lung_edge(sharpeningFactor, fieldmodule, coordinates, nodeset, halfValue, isBase=False):
     """
-    Applies a tapering transformation to the lung geometry to sharpen the anterior edge or the base.
+    Apply a tapering transformation to the lung geometry to sharpen the anterior edge or the base.
     If isBase is False, it sharpens the anterior edge (along the y-axis).
     If isBase is True, it sharpens the base (along the z-axis), but only for nodes below a certain height.
     :param sharpeningFactor: A value between 0 and 1, where 1 represents the maximum sharpness.
