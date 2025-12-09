@@ -630,12 +630,6 @@ class MeshType_3d_lung4(Scaffold_base):
             ]:
                 base_edge_group = fm.findFieldByName(base_edge_group_name).castGroup()
                 base_edge_group.getMeshGroup(mesh1d).addElementsConditional(is_anterior_edge)
-            is_medial_surface = fm.findFieldByName("medial surface of middle lobe of right lung").castGroup()
-            for base_surface_group_name in [
-                "base of middle lobe of right lung surface"
-            ]:
-                base_surface_group = fm.findFieldByName(base_surface_group_name).castGroup()
-                base_surface_group.getMeshGroup(mesh2d).addElementsConditional(is_medial_surface)
 
         # remove temporary annotation groups
         for group_name in [

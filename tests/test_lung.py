@@ -1111,7 +1111,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             'oblique fissure of lower lobe of left lung.mesh2d': (18, 0.23573085010104664),
             'oblique fissure of upper lobe of left lung.mesh2d': (20, 0.26116146713690147),
             # base of middle lobe includes medial surface
-            'base of middle lobe of right lung surface.mesh2d': (18, 0.2036121963903865),
+            'base of middle lobe of right lung surface.mesh2d': (10, 0.11847510573774353),
             'horizontal fissure of middle lobe of right lung.mesh2d': (10, 0.08506039275120454),
             'horizontal fissure of upper lobe of right lung.mesh2d': (10, 0.08506039275120465),
             'oblique fissure of lower lobe of right lung.mesh2d': (18, 0.23573085010104675),
@@ -1192,7 +1192,7 @@ class LungScaffoldTestCase(unittest.TestCase):
             'oblique fissure of lower lobe of left lung.mesh2d': (72, 0.23303251949030654),
             'oblique fissure of upper lobe of left lung.mesh2d': (80, 0.25693609525575456),
             # base of middle lobe includes medial surface
-            'base of middle lobe of right lung surface.mesh2d': (72, 0.2007412231447152),
+            'base of middle lobe of right lung surface.mesh2d': (40, 0.11647413723834865),
             'horizontal fissure of middle lobe of right lung.mesh2d': (40, 0.08446588867418067),
             'horizontal fissure of upper lobe of right lung.mesh2d': (40, 0.08446588867418048),
             'oblique fissure of lower lobe of right lung.mesh2d': (72, 0.23303251949030673),
