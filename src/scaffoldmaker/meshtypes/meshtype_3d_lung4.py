@@ -11,9 +11,10 @@ from scaffoldmaker.annotation.annotationgroup import (
 from scaffoldmaker.annotation.lung_terms import get_lung_term
 from scaffoldmaker.meshtypes.scaffold_base import Scaffold_base
 from scaffoldmaker.utils.geometry import getEllipsePointAtTrueAngle
+from scaffoldmaker.utils.interpolation import getNearestLocationOnCurve
 from scaffoldmaker.utils.meshrefinement import MeshRefinement
 from scaffoldmaker.utils.ellipsoidmesh import EllipsoidMesh, EllipsoidSurfaceD3Mode
-from scaffoldmaker.utils.zinc_utils import translate_nodeset_coordinates
+from scaffoldmaker.utils.zinc_utils import get_mesh_first_element_with_node, translate_nodeset_coordinates
 
 import copy
 import math
@@ -190,6 +191,7 @@ class MeshType_3d_lung4(Scaffold_base):
         ellipsoid_height = options["Ellipsoid height"]
 
         fieldmodule = region.getFieldmodule()
+        fieldcache = fieldmodule.createFieldcache()
         coordinates = find_or_create_field_coordinates(fieldmodule)
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
         mesh = fieldmodule.findMeshByDimension(3)
@@ -238,6 +240,7 @@ class MeshType_3d_lung4(Scaffold_base):
         half_height = ellipsoid_height * 0.5
 
         pi__3 = math.pi / 3.0
+        sin_pi__3 = math.sin(pi__3)
 
         left_lung, right_lung = 0, 1
         lungs = [lung for show, lung in [(has_left_lung, left_lung), (has_right_lung, right_lung)] if show]
@@ -245,6 +248,7 @@ class MeshType_3d_lung4(Scaffold_base):
 
         # currently build left lung if right lung is being built to get correct node/element identifiers
         lungs_construct = [left_lung, right_lung] if has_right_lung else [left_lung] if has_left_lung else []
+        marker_name_element_xi = []
 
         for lung in lungs_construct:
 
@@ -373,6 +377,94 @@ class MeshType_3d_lung4(Scaffold_base):
                                                   (ellipsoid != upper_ellipsoid)) else upper_octant_group_lists)
                 node_identifier, element_identifier = ellipsoid.generate_mesh(
                     fieldmodule, coordinates, node_identifier, element_identifier)
+
+            # find elements for marker points
+            if ((lung == left_lung) and has_left_lung) or ((lung == right_lung) and has_right_lung):
+                nid = upper_ellipsoid.get_node_identifier(
+                    elements_count_lateral // 2, 0, element_counts[2])
+                group = upper_left_lung_group if (lung == left_lung) else upper_right_lung_group
+                if nid and group:
+                    marker_name_element_xi.append((
+                        "apex of left lung" if (lung == left_lung) else "apex of right lung",
+                        get_mesh_first_element_with_node(
+                            group.getMeshGroup(mesh), coordinates, nodes.findNodeByIdentifier(nid)),
+                        [1.0, 1.0, 1.0]))
+                nid = lower_ellipsoid_mesh.get_node_identifier(
+                    elements_count_lateral // 2, 0, elements_count_oblique // 2 + elements_count_lower_extension)
+                group = lower_left_lung_group if (lung == left_lung) else lower_right_lung_group
+                if nid and group:
+                    marker_name_element_xi.append((
+                        "dorsal base of left lung" if (lung == left_lung) else "dorsal base of right lung",
+                        get_mesh_first_element_with_node(
+                            group.getMeshGroup(mesh), coordinates, nodes.findNodeByIdentifier(nid)),
+                    [1.0, 0.0, 1.0]))
+                if lung == right_lung:
+                    nid = middle_ellipsoid.get_node_identifier(
+                        elements_count_lateral, elements_count_oblique // 2, elements_count_oblique // 2)
+                    group = middle_right_lung_group
+                    if nid and group:
+                        marker_name_element_xi.append((
+                            "laterodorsal tip of middle lobe of right lung",
+                            get_mesh_first_element_with_node(
+                                group.getMeshGroup(mesh), coordinates, nodes.findNodeByIdentifier(nid)),
+                            [0.0, 1.0, 1.0]))
+                # need to find element xi where medial base edge crosses 0.0
+                group = lower_left_lung_group if (lung == left_lung) else lower_right_lung_group
+                if group:
+                    n1 = elements_count_lateral if (lung == left_lung) else 0
+                    n3 = elements_count_oblique // 2 + elements_count_lower_extension
+                    last_n2 = None
+                    last_nid = None
+                    last_nx = None
+                    last_nd1 = None
+                    for n2 in range(0, elements_count_oblique // 2 + 1):
+                        nid = lower_ellipsoid_mesh.get_node_identifier(n1, n2, n3)
+                        if nid:
+                            nx, nd1 = lower_ellipsoid_mesh.get_node_parameters(n1, n2, n3)[:2]
+                            if last_nid:
+                                if (last_nx[1] <= 0.0) and (nx[1] >= 0.0):
+                                    element = get_mesh_first_element_with_node(
+                                        group.getMeshGroup(mesh), coordinates, nodes.findNodeByIdentifier(
+                                            nid if ((lung == left_lung) or (last_n2 == 0)) else last_nid))
+                                    if element.isValid():
+                                        # xi1 goes counter-clockwise from above so different for left and right
+                                        if lung == left_lung:
+                                            curve_location, x = getNearestLocationOnCurve(
+                                                [last_nx[1:2], nx[1:2]], [last_nd1[1:2], nd1[1:2]], [0.0],
+                                                startLocation=(0, -last_nx[1] / (nx[1] - last_nx[1])))
+                                        else:
+                                            curve_location, x = getNearestLocationOnCurve(
+                                                [nx[1:2], last_nx[1:2]], [nd1[1:2], last_nd1[1:2]], [0.0],
+                                                startLocation=(0, nx[1] / (nx[1] - last_nx[1])))
+                                        marker_name_element_xi.append((
+                                            "medial base of left lung" if (lung == left_lung) else
+                                            "medial base of right lung",
+                                            element, [curve_location[1], 0.0, 1.0]))
+                                    break
+                            last_n2 = n2
+                            last_nid = nid
+                            last_nx = nx
+                            last_nd1 = nd1
+                ventral_ellipsoid = upper_ellipsoid if (lung == left_lung) else middle_ellipsoid
+                nid = ventral_ellipsoid.get_node_identifier(
+                    elements_count_lateral // 2, elements_count_oblique // 2, 0)
+                group = upper_left_lung_group if (lung == left_lung) else middle_right_lung_group
+                if nid and group:
+                    marker_name_element_xi.append((
+                        "ventral base of left lung" if (lung == left_lung) else "ventral base of right lung",
+                        get_mesh_first_element_with_node(
+                            group.getMeshGroup(mesh), coordinates, nodes.findNodeByIdentifier(nid)),
+                        [0.0, 0.0, 1.0]))
+
+        # marker points; make after regular nodes so higher node numbers
+
+        lung_nodeset = lung_group.getNodesetGroup(nodes)
+        for marker_name, element, xi in marker_name_element_xi:
+            annotation_group = findOrCreateAnnotationGroupForTerm(
+                annotation_groups, region, get_lung_term(marker_name), isMarker=True)
+            marker_node = annotation_group.createMarkerNode(node_identifier, element=element, xi=xi)
+            lung_nodeset.addNode(marker_node)
+            node_identifier += 1
 
         for lung in lungs:
             is_left = lung == left_lung

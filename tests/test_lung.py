@@ -1064,7 +1064,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         self.assertTrue(region.isValid())
         annotation_groups, _  = scaffold.generateBaseMesh(region, options)
         base_annotation_groups = copy.copy(annotation_groups)
-        self.assertEqual(16, len(base_annotation_groups))
+        self.assertEqual(25, len(base_annotation_groups))
         fieldmodule.defineAllFaces()
         for annotation_group in annotation_groups:
             annotation_group.addSubelements()
@@ -1072,13 +1072,13 @@ class LungScaffoldTestCase(unittest.TestCase):
         for annotation_group in annotation_groups:
             if annotation_group not in base_annotation_groups:
                 annotation_group.addSubelements()
-        self.assertEqual(67, len(annotation_groups))
+        self.assertEqual(76, len(annotation_groups))
 
         fieldcache = fieldmodule.createFieldcache()
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(407, nodes.getSize())
+        self.assertEqual(416, nodes.getSize())
         intersection_group_names = [
             ("lower lobe of left lung", "upper lobe of left lung"),
             ("lower lobe of right lung", "middle lobe of right lung"),
@@ -1150,7 +1150,7 @@ class LungScaffoldTestCase(unittest.TestCase):
         meshrefinement = MeshRefinement(region, refine_region, base_annotation_groups)
         scaffold.refineMesh(meshrefinement, options)
         refine_annotation_groups = meshrefinement.getAnnotationGroups()
-        self.assertEqual(16, len(refine_annotation_groups))
+        self.assertEqual(25, len(refine_annotation_groups))
         refine_fieldmodule.defineAllFaces()
         for annotation_group in refine_annotation_groups:
             annotation_group.addSubelements()
@@ -1159,13 +1159,13 @@ class LungScaffoldTestCase(unittest.TestCase):
         for annotation_group in refine_annotation_groups:
             if annotation_group not in old_annotation_groups:
                 annotation_group.addSubelements()
-        self.assertEqual(67, len(refine_annotation_groups))
+        self.assertEqual(76, len(refine_annotation_groups))
 
         refine_fieldcache = refine_fieldmodule.createFieldcache()
         refine_coordinates = refine_fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(refine_coordinates.isValid())
         refine_nodes = refine_fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(2472, refine_nodes.getSize())
+        self.assertEqual(2481, refine_nodes.getSize())
         # check number of common nodes at hilum
         with ChangeManager(refine_fieldmodule):
             for group_name1, group_name2 in intersection_group_names:
