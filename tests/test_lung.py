@@ -1142,7 +1142,18 @@ class LungScaffoldTestCase(unittest.TestCase):
                 self.assertEqual(result, RESULT_OK)
                 self.assertAlmostEqual(val, expected_val, msg=mesh_name, delta=TOL)
 
-        # refine 2x2x2 and check result
+        # check markers
+        marker_group = fieldmodule.findFieldByName("marker").castGroup()
+        marker_nodes = marker_group.getNodesetGroup(nodes)
+        self.assertEqual(9, marker_nodes.getSize())
+        for annotation_group in annotation_groups:
+            if annotation_group.isMarker():
+                group_field = annotation_group.getGroup()
+                self.assertEqual(group_field, marker_group)
+                null_group = fieldmodule.findFieldByName(annotation_group.getName()).castGroup()
+                self.assertFalse(null_group.isValid())
+
+        # refine 2x2x2 and check results
         refine_region = region.createRegion()
         refine_fieldmodule = refine_region.getFieldmodule()
         options['Refine'] = True
@@ -1221,6 +1232,18 @@ class LungScaffoldTestCase(unittest.TestCase):
                 result, val = val_integral.evaluateReal(refine_fieldcache, 1)
                 self.assertEqual(result, RESULT_OK)
                 self.assertAlmostEqual(val, expected_val, msg=mesh_name, delta=TOL)
+
+        # check refine markers
+        refine_marker_group = refine_fieldmodule.findFieldByName("marker").castGroup()
+        refine_marker_nodes = refine_marker_group.getNodesetGroup(refine_nodes)
+        self.assertEqual(9, refine_marker_nodes.getSize())
+        for annotation_group in refine_annotation_groups:
+            if annotation_group.isMarker():
+                group_field = annotation_group.getGroup()
+                self.assertEqual(group_field, refine_marker_group)
+                null_group = refine_fieldmodule.findFieldByName(annotation_group.getName()).castGroup()
+                self.assertFalse(null_group.isValid())
+
 
 
 if __name__ == "__main__":

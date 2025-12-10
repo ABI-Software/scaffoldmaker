@@ -8,7 +8,7 @@ from cmlibs.zinc.element import Element, Elementbasis
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
-from scaffoldmaker.annotation.annotationgroup import AnnotationGroup
+from scaffoldmaker.annotation.annotationgroup import AnnotationGroup, findAnnotationGroupByName
 from scaffoldmaker.utils.octree import Octree
 
 import copy
@@ -79,15 +79,13 @@ class MeshRefinement:
         self._sourceAnnotationGroups = sourceAnnotationGroups
         self._annotationGroups = []
         self._sourceAndTargetMeshGroups = []
-        self._sourceAndTargetNodesetGroups = []
         for sourceAnnotationGroup in sourceAnnotationGroups:
-            targetAnnotationGroup = AnnotationGroup(self._targetRegion, sourceAnnotationGroup.getTerm())
+            targetAnnotationGroup = AnnotationGroup(
+                self._targetRegion, sourceAnnotationGroup.getTerm(), isMarker=sourceAnnotationGroup.isMarker())
             self._annotationGroups.append(targetAnnotationGroup)
             # assume have only highest dimension element or node/point annotation groups:
             if sourceAnnotationGroup.hasMeshGroup(self._sourceMesh):
                 self._sourceAndTargetMeshGroups.append((sourceAnnotationGroup.getMeshGroup(self._sourceMesh), targetAnnotationGroup.getMeshGroup(self._targetMesh)))
-            else:
-                self._sourceAndTargetNodesetGroups.append((sourceAnnotationGroup.getNodesetGroup(self._sourceNodes), targetAnnotationGroup.getNodesetGroup(self._targetNodes)))
 
         # prepare element -> marker point list map
         self.elementMarkerMap = {}
@@ -387,10 +385,10 @@ class MeshRefinement:
                 targetXi = [0.0] * 3
                 for marker in markerList:
                     markerName, sourceXi, sourceNodeIdentifier = marker
-                    sourceNode = self._sourceNodes.findNodeByIdentifier(sourceNodeIdentifier)
-                    node = self._targetMarkerNodes.createNode(self._nodeIdentifier, self._targetMarkerTemplate)
-                    self._targetCache.setNode(node)
-                    self._targetMarkerName.assignString(self._targetCache, markerName)
+                    annotationGroup = findAnnotationGroupByName(self._annotationGroups, markerName)
+                    if not annotationGroup:
+                        print("Could not find annotation group", markerName)
+                        continue
                     # determine which sub-element, targetXi that sourceXi maps to
                     targetElementIdentifier = startElementIdentifier
                     for i in range(3):
@@ -403,12 +401,8 @@ class MeshRefinement:
                             targetXi[i] = 1.0
                         targetElementIdentifier += el * elementOffset[i]
                     targetElement = self._targetMesh.findElementByIdentifier(targetElementIdentifier)
-                    result = self._targetMarkerLocation.assignMeshLocation(self._targetCache, targetElement, targetXi)
+                    annotationGroup.createMarkerNode(self._nodeIdentifier, element=targetElement, xi=targetXi)
                     self._nodeIdentifier += 1
-                    # add new node to matching annotation groups the previous one was in
-                    for sourceAndTargetNodesetGroup in self._sourceAndTargetNodesetGroups:
-                        if sourceAndTargetNodesetGroup[0].containsNode(sourceNode):
-                            sourceAndTargetNodesetGroup[1].addNode(node)
 
         return nids, nx
 
