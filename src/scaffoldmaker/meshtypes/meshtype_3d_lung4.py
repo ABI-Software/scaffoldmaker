@@ -463,17 +463,6 @@ class MeshType_3d_lung4(Scaffold_base):
                 for i in range(4 if (lung == left_lung) else 5):
                     marker_name_element_xi.append(("dummy", None, None))
 
-        # marker points; make after regular nodes so higher node numbers
-
-        lung_nodeset = lung_group.getNodesetGroup(nodes)
-        for marker_name, element, xi in marker_name_element_xi:
-            if element:  # skip dummy markers for missing left/right, but increment node_identifier always
-                annotation_group = findOrCreateAnnotationGroupForTerm(
-                    annotation_groups, region, get_lung_term(marker_name), isMarker=True)
-                marker_node = annotation_group.createMarkerNode(node_identifier, element=element, xi=xi)
-                lung_nodeset.addNode(marker_node)
-            node_identifier += 1
-
         for lung in lungs:
             is_left = lung == left_lung
             lung_nodeset = (left_lung_group if is_left else right_lung_group).getNodesetGroup(nodes)
@@ -493,6 +482,20 @@ class MeshType_3d_lung4(Scaffold_base):
 
             translate_nodeset_coordinates(lung_nodeset, coordinates,
                                           [-lung_spacing if is_left else lung_spacing, 0.0, 0.0])
+
+        # marker points; make after regular nodes so higher node numbers
+        lung_nodeset = lung_group.getNodesetGroup(nodes)
+        for marker_name, element, xi in marker_name_element_xi:
+            if element:  # skip dummy markers for missing left/right, but increment node_identifier always
+                annotation_group = findOrCreateAnnotationGroupForTerm(
+                    annotation_groups, region, get_lung_term(marker_name), isMarker=True)
+                marker_node = annotation_group.createMarkerNode(node_identifier, element=element, xi=xi)
+                if 'left' in marker_name:
+                    left_lung_group.getNodesetGroup(nodes).addNode(marker_node)
+                else:
+                    right_lung_group.getNodesetGroup(nodes).addNode(marker_node)
+                lung_nodeset.addNode(marker_node)
+            node_identifier += 1
 
         return annotation_groups, None
 

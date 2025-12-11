@@ -170,7 +170,7 @@ class MeshRefinement:
                     tmp_line_ids.append(line.getIdentifier())
             face_line_ids.append(tmp_line_ids)
         new_line_ids = set()
-        # if there is a single line between 2 faces can do less work later, but not if there are collpased faces
+        # if there is a single line between 2 faces can do less work later, but not if there are collapsed faces
         single_line = initial_face_count < 3
         for f1 in range(len(faces) - 1):
             for f2 in range(f1 + 1, len(faces)):
@@ -401,7 +401,18 @@ class MeshRefinement:
                             targetXi[i] = 1.0
                         targetElementIdentifier += el * elementOffset[i]
                     targetElement = self._targetMesh.findElementByIdentifier(targetElementIdentifier)
-                    annotationGroup.createMarkerNode(self._nodeIdentifier, element=targetElement, xi=targetXi)
+                    markerNode = annotationGroup.createMarkerNode(
+                        self._nodeIdentifier, element=targetElement, xi=targetXi)
+                    # add marker node to target annotation groups for any non-marker source annotation groups
+                    # the source node was in. (Marker annotation groups all share the same 'marker' group.)
+                    for sourceAnnotationGroup in self._sourceAnnotationGroups:
+                        if not sourceAnnotationGroup.isMarker():
+                            if sourceAnnotationGroup.getNodesetGroup(self._sourceNodes).findNodeByIdentifier(
+                                    sourceNodeIdentifier).isValid():
+                                targetAnnotationGroup = findAnnotationGroupByName(
+                                    self._annotationGroups, sourceAnnotationGroup.getName())
+                                if targetAnnotationGroup:
+                                    targetAnnotationGroup.getNodesetGroup(self._targetNodes).addNode(markerNode)
                     self._nodeIdentifier += 1
 
         return nids, nx

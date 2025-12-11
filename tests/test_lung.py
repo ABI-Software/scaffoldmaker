@@ -1237,11 +1237,16 @@ class LungScaffoldTestCase(unittest.TestCase):
         # check refine markers
         refine_marker_group = refine_fieldmodule.findFieldByName("marker").castGroup()
         refine_marker_nodes = refine_marker_group.getNodesetGroup(refine_nodes)
+        refine_lung_nodes = refine_fieldmodule.findFieldByName("lung").castGroup().getNodesetGroup(refine_nodes)
         self.assertEqual(9, refine_marker_nodes.getSize())
         for annotation_group in refine_annotation_groups:
             if annotation_group.isMarker():
+                marker_node = annotation_group.getMarkerNode()
+                self.assertTrue(marker_node.isValid())
                 group_field = annotation_group.getGroup()
                 self.assertEqual(group_field, refine_marker_group)
+                self.assertTrue(refine_marker_nodes.containsNode(marker_node))
+                self.assertTrue(refine_lung_nodes.containsNode(marker_node))
                 null_group = refine_fieldmodule.findFieldByName(annotation_group.getName()).castGroup()
                 self.assertFalse(null_group.isValid())
 
