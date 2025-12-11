@@ -69,7 +69,6 @@ from scaffoldmaker.scaffoldpackage import ScaffoldPackage
 
 
 class Scaffolds(object):
-
     _allScaffoldTypes = [
         MeshType_1d_bifurcationtree1,
         MeshType_1d_uterus_network_layout1,
