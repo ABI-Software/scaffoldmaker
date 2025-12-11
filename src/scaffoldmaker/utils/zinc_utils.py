@@ -134,6 +134,27 @@ def mesh_destroy_elements_and_nodes_by_identifiers(mesh, element_identifiers):
     return
 
 
+def get_mesh_first_element_with_node(mesh, field, node):
+    """
+    Assumes all components of field have the same Elementfieldtemplate.
+    :param mesh: A Zinc Mesh or MeshGroup.
+    :param field: Field to query, since nodes are mapped by field.
+    :param node: A Zinc Node
+    :return: Zinc Element or None
+    """
+    elementiterator = mesh.createElementiterator()
+    element = elementiterator.next()
+    while element.isValid():
+        eft = element.getElementfieldtemplate(field, -1)
+        if eft.isValid():
+            node_count = eft.getNumberOfLocalNodes()
+            for n in range(1, node_count + 1):
+                if element.getNode(eft, n) == node:
+                    return element
+        element = elementiterator.next()
+    return None
+
+
 def get_nodeset_field_parameters(nodeset, field, only_value_labels=None):
     """
     Returns parameters of field from nodes in nodeset in identifier order.
