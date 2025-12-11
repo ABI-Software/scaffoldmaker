@@ -55,7 +55,34 @@ body_terms = [
     ("thoracic cavity", "UBERON:0002224"),
     ("thoracic cavity boundary surface", "ILX:0796508"),
     ("thorax", "ILX:0742178"),
-    ("ventral", "")
+    ("ventral", ""),
+    # kinematic tree markers
+    ('pelvis', ""), 
+    ('femur_r', ""), 
+    ('tibia_r', ""), 
+    ('talus_r', ""), 
+    ('calcn_r', ""), 
+    ('toes_r', ""), 
+    ('femur_l', ""), 
+    ('tibia_l', ""), 
+    ('talus_l', ""), 
+    ('calcn_l', ""), 
+    ('toes_l', ""), 
+    ('lumbar_body', ""), 
+    ('thorax_top', ""), 
+    ('head_marker', ""), 
+    ('scapula_r', ""), 
+    ('humerus_r', ""), 
+    ('ulna_r', ""), 
+    ('radius_r', ""), 
+    ('hand_r', ""), 
+    ('scapula_l', ""), 
+    ('humerus_l', ""), 
+    ('ulna_l', ""), 
+    ('radius_l', ""), 
+    ('hand_l', ""), 
+    
+
     ]
 
 def get_body_term(name : str):
@@ -68,3 +95,12 @@ def get_body_term(name : str):
         if name in term:
             return ( term[0], term[1] )
     raise NameError("Body annotation term '" + name + "' not found.")
+
+def marker_name_in_terms(name: str):
+    """
+    Check if term exists in approved marker terms
+    """
+    for term in body_terms:
+        if name in term:
+            return True
+    return False
