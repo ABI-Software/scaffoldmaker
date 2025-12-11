@@ -4,6 +4,7 @@ import unittest
 
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange, findNodeWithName
 from cmlibs.utils.zinc.general import ChangeManager
+from cmlibs.utils.zinc.group import mesh_group_to_identifier_ranges, nodeset_group_to_identifier_ranges
 from cmlibs.zinc.context import Context
 from cmlibs.zinc.field import Field
 from cmlibs.zinc.result import RESULT_OK
@@ -1244,6 +1245,79 @@ class LungScaffoldTestCase(unittest.TestCase):
                 null_group = refine_fieldmodule.findFieldByName(annotation_group.getName()).castGroup()
                 self.assertFalse(null_group.isValid())
 
+    def test_lung4_human_left(self):
+        """
+        Test creation of human lung scaffold lung4 left side only, that objects have expected identifiers.
+        """
+        scaffold = MeshType_3d_lung4
+        options = scaffold.getDefaultOptions("Human 1 Coarse")
+        options["Number of elements oblique"] = 4  # minimum, for speed
+        options["Right lung"] = False
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        fieldmodule = region.getFieldmodule()
+        self.assertTrue(region.isValid())
+        annotation_groups, _  = scaffold.generateMesh(region, options)
+        self.assertEqual(31, len(annotation_groups))
+        # check no right annotations
+        for annotation_group in annotation_groups:
+            name = annotation_group.getName()
+            self.assertFalse("right" in name)
+        # get ranges of identifiers in meshes and nodes
+        expected_domain_count_ranges = [
+            ("mesh3d", 44, [[1, 44]]),
+            ("mesh2d", 164, [[1, 164]]),
+            ("mesh1d", 208, [[1, 208]]),
+            ("nodes", 93, [[1, 89], [187, 190]]),
+            ("marker.nodes", 4, [[187, 190]])
+        ]
+        for domain_name, expected_count, expected_ranges in expected_domain_count_ranges:
+            if "mesh" in domain_name:
+                domain = fieldmodule.findMeshByName(domain_name)
+                ranges = mesh_group_to_identifier_ranges(domain)
+            else:
+                domain = fieldmodule.findNodesetByName(domain_name)
+                ranges = nodeset_group_to_identifier_ranges(domain)
+            self.assertEqual(domain.getSize(), expected_count)
+            self.assertEqual(ranges, expected_ranges)
+
+    def test_lung4_human_right(self):
+        """
+        Test creation of human lung scaffold lung4 left side only, that objects have expected identifiers.
+        """
+        scaffold = MeshType_3d_lung4
+        options = scaffold.getDefaultOptions("Human 1 Coarse")
+        options["Number of elements oblique"] = 4  # minimum, for speed
+        options["Left lung"] = False
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        fieldmodule = region.getFieldmodule()
+        self.assertTrue(region.isValid())
+        annotation_groups, _  = scaffold.generateMesh(region, options)
+        self.assertEqual(46, len(annotation_groups))
+        # check no right annotations
+        for annotation_group in annotation_groups:
+            name = annotation_group.getName()
+            self.assertFalse("left" in name)
+        # get ranges of identifiers in meshes and nodes
+        expected_domain_count_ranges = [
+            ("mesh3d", 44, [[45, 88]]),
+            ("mesh2d", 170, [[165, 334]]),
+            ("mesh1d", 222, [[209, 430]]),
+            ("nodes", 102, [[90, 186], [191, 195]]),
+            ("marker.nodes", 5, [[191, 195]])
+        ]
+        for domain_name, expected_count, expected_ranges in expected_domain_count_ranges:
+            if "mesh" in domain_name:
+                domain = fieldmodule.findMeshByName(domain_name)
+                ranges = mesh_group_to_identifier_ranges(domain)
+            else:
+                domain = fieldmodule.findNodesetByName(domain_name)
+                ranges = nodeset_group_to_identifier_ranges(domain)
+            self.assertEqual(domain.getSize(), expected_count, msg=domain_name)
+            self.assertEqual(ranges, expected_ranges, msg=domain_name)
 
 
 if __name__ == "__main__":

@@ -246,11 +246,11 @@ class MeshType_3d_lung4(Scaffold_base):
         lungs = [lung for show, lung in [(has_left_lung, left_lung), (has_right_lung, right_lung)] if show]
         node_identifier, element_identifier = 1, 1
 
-        # currently build left lung if right lung is being built to get correct node/element identifiers
-        lungs_construct = [left_lung, right_lung] if has_right_lung else [left_lung] if has_left_lung else []
         marker_name_element_xi = []
 
-        for lung in lungs_construct:
+        # need to build both left and right lungs then delete any not used so element, face, line, node numbers
+        # are the same if only left or right
+        for lung in [left_lung, right_lung]:
 
             if lung == left_lung:
                 if has_left_lung:
@@ -271,26 +271,29 @@ class MeshType_3d_lung4(Scaffold_base):
                     lower_octant_group_lists = upper_octant_group_lists = None
                 middle_octant_group_lists = None
             else:
-                lower_octant_group_lists = []
-                middle_octant_group_lists = []
-                upper_octant_group_lists = []
-                for octant in range(8):
-                    octant_group_list = [group.getGroup() for group in
-                                         [lung_group, right_lung_group, lower_right_lung_group] +
-                                         [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
-                    lower_octant_group_lists.append(octant_group_list)
-                    octant_group_list = [group.getGroup() for group in
-                                         [lung_group, right_lung_group, middle_right_lung_group] +
-                                         [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
-                    if octant & 2:
-                        octant_group_list.append(right_anterior_lung_group.getGroup())
-                    middle_octant_group_lists.append(octant_group_list)
-                    octant_group_list = [group.getGroup() for group in
-                                         [lung_group, right_lung_group, upper_right_lung_group] +
-                                         [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
-                    if octant & 2:
-                        octant_group_list.append(right_anterior_lung_group.getGroup())
-                    upper_octant_group_lists.append(octant_group_list)
+                if has_right_lung:
+                    lower_octant_group_lists = []
+                    middle_octant_group_lists = []
+                    upper_octant_group_lists = []
+                    for octant in range(8):
+                        octant_group_list = [group.getGroup() for group in
+                                             [lung_group, right_lung_group, lower_right_lung_group] +
+                                             [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
+                        lower_octant_group_lists.append(octant_group_list)
+                        octant_group_list = [group.getGroup() for group in
+                                             [lung_group, right_lung_group, middle_right_lung_group] +
+                                             [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
+                        if octant & 2:
+                            octant_group_list.append(right_anterior_lung_group.getGroup())
+                        middle_octant_group_lists.append(octant_group_list)
+                        octant_group_list = [group.getGroup() for group in
+                                             [lung_group, right_lung_group, upper_right_lung_group] +
+                                             [right_lateral_lung_group if (octant & 1) else right_medial_lung_group]]
+                        if octant & 2:
+                            octant_group_list.append(right_anterior_lung_group.getGroup())
+                        upper_octant_group_lists.append(octant_group_list)
+                else:
+                    lower_octant_group_lists = middle_octant_group_lists = upper_octant_group_lists = None
 
             element_counts = [elements_count_lateral, elements_count_oblique, elements_count_oblique]
             lower_ellipsoid = EllipsoidMesh(
@@ -455,15 +458,20 @@ class MeshType_3d_lung4(Scaffold_base):
                         get_mesh_first_element_with_node(
                             group.getMeshGroup(mesh), coordinates, nodes.findNodeByIdentifier(nid)),
                         [0.0, 0.0, 1.0]))
+            else:
+                # need to make sure marker node identifiers are consistent if left/right not used
+                for i in range(4 if (lung == left_lung) else 5):
+                    marker_name_element_xi.append(("dummy", None, None))
 
         # marker points; make after regular nodes so higher node numbers
 
         lung_nodeset = lung_group.getNodesetGroup(nodes)
         for marker_name, element, xi in marker_name_element_xi:
-            annotation_group = findOrCreateAnnotationGroupForTerm(
-                annotation_groups, region, get_lung_term(marker_name), isMarker=True)
-            marker_node = annotation_group.createMarkerNode(node_identifier, element=element, xi=xi)
-            lung_nodeset.addNode(marker_node)
+            if element:  # skip dummy markers for missing left/right, but increment node_identifier always
+                annotation_group = findOrCreateAnnotationGroupForTerm(
+                    annotation_groups, region, get_lung_term(marker_name), isMarker=True)
+                marker_node = annotation_group.createMarkerNode(node_identifier, element=element, xi=xi)
+                lung_nodeset.addNode(marker_node)
             node_identifier += 1
 
         for lung in lungs:
@@ -517,14 +525,15 @@ class MeshType_3d_lung4(Scaffold_base):
         has_left_lung = options["Left lung"]
         has_right_lung = options["Right lung"]
 
-        if (has_right_lung) and (not has_left_lung):
-            # destroy left lung elements, faces, lines and nodes now to ensure persistent identifiers used on right
-            is_left = fm.createFieldNot(
-                getAnnotationGroupForTerm(annotation_groups, get_lung_term("right lung")).getGroup())
-            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        if (not has_left_lung) or (not has_right_lung):
+            # destroy elements, faces, lines and nodes now to ensure persistent identifiers when only one side
+            # these are any objects not in the "lung" group:
+            not_lung = fm.createFieldNot(getAnnotationGroupForTerm(annotation_groups, get_lung_term("lung")).getGroup())
             for mesh in [fm.findMeshByDimension(3), mesh2d, mesh1d]:
-                mesh.destroyElementsConditional(is_left)
-            nodes.destroyNodesConditional(is_left)
+                mesh.destroyElementsConditional(not_lung)
+            nodes = fm.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+            nodes.destroyNodesConditional(not_lung)
+            del nodes
 
         is_exterior = fm.createFieldIsExterior()
         is_face_xi1_0 = fm.createFieldIsOnFace(Element.FACE_TYPE_XI1_0)
