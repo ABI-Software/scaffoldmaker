@@ -987,17 +987,18 @@ class MeshType_3d_nerve1(Scaffold_base):
         for branch_common_name, branch_names in branch_common_groups.items():
             term = get_vagus_term(branch_common_name)
             branch_common_group = findOrCreateAnnotationGroupForTerm(annotation_groups, region, term)
-            branch_common_mesh_group = branch_common_group.getMeshGroup(mesh3d)
 
             for branch_name in branch_names:
                 branch_group = findAnnotationGroupByName(annotation_groups, branch_name)
-                branch_mesh_group = branch_group.getMeshGroup(mesh3d)
-
-                el_iter = branch_mesh_group.createElementiterator()
-                element = el_iter.next()
-                while element.isValid():
-                    branch_common_mesh_group.addElement(element)
+                for meshgroup in [mesh1d, mesh2d, mesh3d]:
+                    branch_common_mesh_group = branch_common_group.getMeshGroup(meshgroup)
+                    branch_mesh_group = branch_group.getMeshGroup(meshgroup)
+                    el_iter = branch_mesh_group.createElementiterator()
                     element = el_iter.next()
+                    while element.isValid():
+                        branch_common_mesh_group.addElement(element)
+                        element = el_iter.next()
+
 
         # ============================================
         # Add trunk section groups: cervical, thoracic
@@ -1241,8 +1242,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     points_count_calibration_factor = len(px) / 25000
     # calibration_length = 27840.0
     length_calibration_factor = length / 25000.0
-    strain_penalty = 1000.0 * points_count_calibration_factor * length_calibration_factor
-    curvature_penalty = 1.0E+8 * points_count_calibration_factor * (length_calibration_factor ** 3)
+    strain_penalty = 10000.0 * points_count_calibration_factor * length_calibration_factor
+    curvature_penalty = 1.0E+9 * points_count_calibration_factor * (length_calibration_factor ** 3)
     marker_weight = 10.0 * points_count_calibration_factor
     sliding_factor = 0.0001
 
