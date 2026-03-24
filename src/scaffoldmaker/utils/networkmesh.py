@@ -102,15 +102,17 @@ class NetworkSegment:
     Describes a segment of a network between junctions as a sequence of nodes with node derivative versions.
     """
 
-    def __init__(self, networkNodes: list, nodeVersions: list, isPatch):
+    def __init__(self, networkNodes: list, nodeVersions: list, isCap: list, isPatch):
         """
         :param networkNodes: List of NetworkNodes from start to end. Must be at least 2.
         :param nodeVersions: List of node versions to use for derivatives at network nodes.
+        :param isCap: List of boolean true if segment requires a cap at either ends. [Start, End]
         :param isPatch: True if segment at the other end of the junction requires a patch.
         """
         assert isinstance(networkNodes, list) and (len(networkNodes) > 1) and (len(nodeVersions) == len(networkNodes))
         self._networkNodes = networkNodes
         self._nodeVersions = nodeVersions
+        self._isCap = isCap
         self._isPatch = isPatch
         self._elementIdentifiers = [None] * (len(networkNodes) - 1)
         for networkNode in networkNodes[1:-1]:
@@ -161,6 +163,12 @@ class NetworkSegment:
         this segment.
         """
         return False  # not implemented, assume not cyclic
+
+    def isCap(self):
+        """
+        :return: True if the segment requires a cap mesh, False if not.
+        """
+        return self._isCap
 
     def isPatch(self):
         """
@@ -216,16 +224,24 @@ class NetworkMesh(ConstructionObject):
         self._networkSegments = []
         sequenceStrings = structureString.split(",")
         for sequenceString in sequenceStrings:
-            # check if segment is a patch
-            if not sequenceString[0].isnumeric():
-                try:
-                    isPatch = True if sequenceString[0] == "#" else False
-                    sequenceString = sequenceString[2:] if isPatch else sequenceString
-                except ValueError:
-                    print("Network mesh: Skipping invalid cap sequence", sequenceString, file=sys.stderr)
-                    continue
-            else:
-                isPatch = False
+            # check if the segment requires a cap or a patch
+            isStartCap = isEndCap = isPatch = False
+            try:
+                # Check and handle caps
+                if sequenceString.startswith("("):
+                    isStartCap = True
+                    sequenceString = sequenceString[1:]
+                if sequenceString.endswith(")"):
+                    isEndCap = True
+                    sequenceString = sequenceString[:-1]
+                # Check and handle patch
+                if sequenceString.startswith("#"):
+                    isPatch = True
+                    sequenceString = sequenceString[2:]
+            except (ValueError, IndexError):
+                print("Network mesh: Skipping invalid cap sequence", sequenceString, file=sys.stderr)
+                continue
+            isCap = [isStartCap, isEndCap]
 
             nodeIdentifiers = []
             nodeVersions = []
@@ -260,7 +276,7 @@ class NetworkMesh(ConstructionObject):
                 sequenceNodes.append(networkNode)
                 sequenceVersions.append(nodeVersion)
                 if (len(sequenceNodes) > 1) and (existingNetworkNode or (nodeIdentifier == nodeIdentifiers[-1])):
-                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isPatch)
+                    networkSegment = NetworkSegment(sequenceNodes, sequenceVersions, isCap, isPatch)
                     self._networkSegments.append(networkSegment)
                     sequenceNodes = sequenceNodes[-1:]
                     sequenceVersions = sequenceVersions[-1:]
