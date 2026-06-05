@@ -168,7 +168,7 @@ class NetworkSegment:
         """
         return self._isPatch
 
-    def split(self, splitNetworkNode):
+    def split(self, splitNetworkNode, isPatch):
         """
         Split segment to finish at splitNetworkNode, returning remainder as a new NetworkSegment.
         :param splitNetworkNode: NetworkNode to split segment at.
@@ -176,7 +176,7 @@ class NetworkSegment:
         """
         index = self._networkNodes.index(splitNetworkNode, 1, -1)  # throws exception if not an interior node
         splitNetworkNode.setInteriorSegment(None)
-        nextSegment = NetworkSegment(self._networkNodes[index:], self._nodeVersions[index:])
+        nextSegment = NetworkSegment(self._networkNodes[index:], self._nodeVersions[index:], isPatch)
         self._networkNodes = self._networkNodes[:index + 1]
         self._nodeVersions = self._nodeVersions[:index + 1]
         return nextSegment
@@ -250,7 +250,7 @@ class NetworkMesh(ConstructionObject):
                 if networkNode:
                     interiorSegment = networkNode.getInteriorSegment()
                     if interiorSegment:
-                        nextSegment = interiorSegment.split(networkNode)
+                        nextSegment = interiorSegment.split(networkNode, isPatch)
                         index = self._networkSegments.index(interiorSegment) + 1
                         self._networkSegments.insert(index, nextSegment)
                 else:
