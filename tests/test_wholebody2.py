@@ -33,7 +33,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Human 1 Coarse")
-        self.assertEqual(19, len(options))
+        self.assertEqual(20, len(options))
         self.assertEqual(4, options["Number of elements along head"])
         self.assertEqual(1, options["Number of elements along neck"])
         self.assertEqual(2, options["Number of elements along thorax"])
@@ -49,14 +49,16 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertEqual(1, options["Number of elements through shell"])
         self.assertEqual(False, options["Show trim surfaces"])
         self.assertEqual(True, options["Use Core"])
+        self.assertEqual(True, options["Define body coordinates"])
         self.assertEqual(2, options["Number of elements across core box minor"])
         self.assertEqual(1, options["Number of elements across core transition"])
+        options["Define body coordinates"] = False
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(32, len(annotationGroups))
+        self.assertEqual(40, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -76,9 +78,8 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.0, -3.564009344317094, -1.25], tol)
-        assertAlmostEqualList(self, maximums, [20.48318197880853, 3.564009344317094, 2.15], tol)
-
+        assertAlmostEqualList(self, minimums, [0.0, -3.616103797617173, -1.1], tol)
+        assertAlmostEqualList(self, maximums, [19.24758095792375, 3.616103797617173, 2.15], tol)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             isExterior = fieldmodule.createFieldIsExterior()
@@ -95,17 +96,17 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 97.51745631678456, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 224.43852405713952, delta=tol)
+            self.assertAlmostEqual(volume, 87.71602603842298, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 210.77856912093645, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            'abdominal cavity': (40, 10.133113919623222),
-            'core': (456, 49.06689096137938),
-            'head': (112, 6.124221560163941),
-            'shell': (296, 48.45056946176061),
-            'thoracic cavity': (40, 7.27744126306781)
+            'abdominal cavity': (40, 8.522281537550803),
+            'core': (456, 43.87534817618252),
+            'head': (112, 6.950404130313098),
+            'shell': (296, 43.84067786223915),
+            'thoracic cavity': (40, 6.412033649183387)
         }
         for name in expectedSizes3d:
             term = get_body_term(name)
@@ -121,14 +122,14 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            'abdominal cavity boundary surface': (64, 27.40775743766599),
-            'diaphragm': (20, 3.0778646664612053),
-            'left lower limb skin epidermis outer surface': (68, 55.200948405121075),
-            'left upper limb skin epidermis outer surface': (68, 21.457586819815013),
-            'right lower limb skin epidermis outer surface': (68, 55.200948405121075),
-            'right upper limb skin epidermis outer surface': (68, 21.457586819815013),
-            'skin epidermis outer surface': (376, 224.43852405713952),
-            'thoracic cavity boundary surface': (64, 21.041355045545792)
+            'abdominal cavity boundary surface': (64, 24.910327273019295),
+            'diaphragm': (20, 2.708465738209734),
+            'left lower limb skin epidermis outer surface': (68, 49.774713300961594),
+            'left upper limb skin epidermis outer surface': (68, 21.97237292522156),
+            'right lower limb skin epidermis outer surface': (68, 49.774713300961594),
+            'right upper limb skin epidermis outer surface': (68, 21.97237292522156),
+            'skin epidermis outer surface': (376, 210.77856912093645),
+            'thoracic cavity boundary surface': (64, 19.65794758925974)
         }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -144,7 +145,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
 
         expectedSizes1d = {
-            "spinal cord": (6, 8.594771044838403)
+            'spinal cord': (6, 7.8460305427862655)
             }
         for name in expectedSizes1d:
             term = get_body_term(name)
@@ -167,15 +168,16 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Human 1 Coarse")
-        self.assertEqual(19, len(options))
+        self.assertEqual(20, len(options))
         options["Number of elements through shell"] = 0
         self.assertEqual(True, options["Use Core"])
+        options["Define body coordinates"] = False
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(26, len(annotationGroups))  # since cavity groups x 4, diaphragm and spinal cord not defined
+        self.assertEqual(34, len(annotationGroups))  # since cavity groups x 4, diaphragm and spinal cord not defined
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -193,8 +195,8 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.0, -3.564009344317094, -1.25], tol)
-        assertAlmostEqualList(self, maximums, [20.48318197880853, 3.564009344317094, 2.15], tol)
+        assertAlmostEqualList(self, minimums, [0.0, -3.616103797617173, -1.1], tol)
+        assertAlmostEqualList(self, maximums, [19.24758095792375, 3.616103797617173, 2.15], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -212,14 +214,14 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 97.5174433382703, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 224.43852405713952, delta=tol)
+            self.assertAlmostEqual(volume, 87.71600676917448, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 210.77856851311986, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            'core': (456, 97.5174433382703),
-            'head': (68, 6.124221560163941)
+            'core': (456, 87.71600676917448),
+            'head': (68, 6.950404175746005)
         }
         for name in expectedSizes3d:
             term = get_body_term(name)
@@ -235,12 +237,115 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            'shell': (296, 223.61973750373534),
-            'left lower limb skin epidermis outer surface': (60, 55.200948405121075),
-            'left upper limb skin epidermis outer surface': (60, 21.457586819815013),
-            'right lower limb skin epidermis outer surface': (60, 55.200948405121075),
-            'right upper limb skin epidermis outer surface': (60, 21.457586819815013),
-            'skin epidermis outer surface': (344, 224.43852405713952)
+            'shell': (296, 209.95978269096952),
+            'left lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'left upper limb skin epidermis outer surface': (60, 21.972372925221592),
+            'right lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'right upper limb skin epidermis outer surface': (60, 21.972372925221592),
+            'skin epidermis outer surface': (344, 210.77856851311986)
+        }
+        for name in expectedSizes2d:
+            term = get_body_term(name)
+            annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
+            size = annotationGroup.getMeshGroup(mesh2d).getSize()
+            self.assertEqual(expectedSizes2d[name][0], size, name)
+            surfaceMeshGroup = annotationGroup.getMeshGroup(mesh2d)
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(one, coordinates, surfaceMeshGroup)
+            surfaceAreaField.setNumbersOfPoints(4)
+            fieldcache = fieldmodule.createFieldcache()
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
+
+    def test_wholebody2_core_0shell_arms_up(self):
+        """
+        Test creation of whole-body scaffold with solid core and 0 shell count.
+        Variant with "Arm lateral angle degrees" == 90.0.
+        """
+        scaffold = MeshType_3d_wholebody2
+        parameterSetNames = scaffold.getParameterSetNames()
+        self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
+        options = scaffold.getDefaultOptions("Human 1 Coarse")
+        self.assertEqual(20, len(options))
+        options["Number of elements through shell"] = 0
+        self.assertEqual(True, options["Use Core"])
+        networkLayoutScaffoldPackage = options["Body network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertEqual(networkLayoutSettings["Torso depth"], 2.2)
+        self.assertEqual(networkLayoutSettings["Arm lateral angle degrees"], 10.0)
+        networkLayoutSettings["Arm lateral angle degrees"] = 90.0
+        options["Define body coordinates"] = False
+
+        context = Context("Test")
+        region = context.getDefaultRegion()
+        self.assertTrue(region.isValid())
+        annotationGroups = scaffold.generateMesh(region, options)[0]
+        self.assertEqual(34, len(annotationGroups))  # since cavity groups x 4, diaphragm and spinal cord not defined
+
+        fieldmodule = region.getFieldmodule()
+        self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
+        mesh3d = fieldmodule.findMeshByDimension(3)
+        self.assertEqual(456, mesh3d.getSize())
+        mesh2d = fieldmodule.findMeshByDimension(2)
+        self.assertEqual(1540, mesh2d.getSize())
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        self.assertEqual(1750, mesh1d.getSize())
+        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+        self.assertEqual(667, nodes.getSize())
+
+        # Check coordinates range, volume
+        coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
+        self.assertTrue(coordinates.isValid())
+        minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
+        tol = 1.0E-4
+        assertAlmostEqualList(self, minimums, [0.0, -9.498803665233037, -1.1], tol)
+        assertAlmostEqualList(self, maximums, [19.24758095792375, 9.498803665233039, 2.15], tol)
+
+        with ChangeManager(fieldmodule):
+            one = fieldmodule.createFieldConstant(1.0)
+            isExterior = fieldmodule.createFieldIsExterior()
+            mesh2d = fieldmodule.findMeshByDimension(2)
+            fieldcache = fieldmodule.createFieldcache()
+
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, mesh3d)
+            volumeField.setNumbersOfPoints(4)
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            surfaceAreaField = fieldmodule.createFieldMeshIntegral(isExterior, coordinates, mesh2d)
+            surfaceAreaField.setNumbersOfPoints(4)
+            result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+
+            self.assertAlmostEqual(volume, 86.97366453323825, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 208.46045439347216, delta=tol)
+
+        # check some annotation groups:
+
+        expectedSizes3d = {
+            'core': (456, 86.97366453323825),
+            'head': (68, 6.950404175746005)
+        }
+        for name in expectedSizes3d:
+            term = get_body_term(name)
+            annotationGroup = getAnnotationGroupForTerm(annotationGroups, term)
+            size = annotationGroup.getMeshGroup(mesh3d).getSize()
+            self.assertEqual(expectedSizes3d[name][0], size, name)
+            volumeMeshGroup = annotationGroup.getMeshGroup(mesh3d)
+            volumeField = fieldmodule.createFieldMeshIntegral(one, coordinates, volumeMeshGroup)
+            volumeField.setNumbersOfPoints(4)
+            fieldcache = fieldmodule.createFieldcache()
+            result, volume = volumeField.evaluateReal(fieldcache, 1)
+            self.assertEqual(result, RESULT_OK)
+            self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
+
+        expectedSizes2d = {
+            'shell': (296, 207.6416685713218),
+            'left lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'left upper limb skin epidermis outer surface': (60, 20.92362423377758),
+            'right lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'right upper limb skin epidermis outer surface': (60, 20.92362423377758),
+            'skin epidermis outer surface': (344, 208.46045439347216)
         }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -263,12 +368,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         options = scaffold.getDefaultOptions("Human 1 Coarse")
         options["Number of elements through shell"] = 1
         options["Use Core"] = False
+        options["Define body coordinates"] = False
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(24, len(annotationGroups))
+        self.assertEqual(32, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -288,9 +394,8 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.0, -3.564009344317094, -1.25], tol)
-        assertAlmostEqualList(self, maximums, [20.48318197880853, 3.564009344317094, 2.15], tol)
-
+        assertAlmostEqualList(self, minimums, [0.0, -3.616103797617173, -1.1], tol)
+        assertAlmostEqualList(self, maximums, [19.24758095792375, 3.616103797617173, 2.15], tol)
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
             isExterior = fieldmodule.createFieldIsExterior()
@@ -316,13 +421,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 48.450569662911285, delta=tol)
-            self.assertAlmostEqual(outerSurfaceArea, 223.61973750307317, delta=tol)
-            self.assertAlmostEqual(innerSurfaceArea, 159.91637103811314, delta=tol)
+            self.assertAlmostEqual(volume, 43.84067786223915, delta=tol)
+            self.assertAlmostEqual(outerSurfaceArea, 209.95978269096972, delta=tol)
+            self.assertAlmostEqual(innerSurfaceArea, 150.0576729688168, delta=tol)
 
         # check some annotationGroups:
         expectedSizes2d = {
-            "skin epidermis outer surface": (328, 224.03731833004653)
+            'skin epidermis outer surface': (328, 210.37736352385247)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -347,15 +452,19 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         parameterSetNames = scaffold.getParameterSetNames()
         self.assertEqual(parameterSetNames, ["Default", "Human 1 Coarse", "Human 1 Medium", "Human 1 Fine"])
         options = scaffold.getDefaultOptions("Human 1 Coarse")
-        self.assertEqual(19, len(options))
+        self.assertEqual(20, len(options))
         options["Number of elements through shell"] = 0
         options["Use Core"] = False
+        networkLayoutScaffoldPackage = options["Body network layout"]
+        networkLayoutSettings = networkLayoutScaffoldPackage.getScaffoldSettings()
+        self.assertEqual(networkLayoutSettings["Torso depth"], 2.2)
+        options["Define body coordinates"] = False
 
         context = Context("Test")
         region = context.getDefaultRegion()
         self.assertTrue(region.isValid())
         annotationGroups = scaffold.generateMesh(region, options)[0]
-        self.assertEqual(24, len(annotationGroups))
+        self.assertEqual(32, len(annotationGroups))
 
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
@@ -373,8 +482,8 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
         tol = 1.0E-4
-        assertAlmostEqualList(self, minimums, [0.0, -3.564009344317094, -1.25], tol)
-        assertAlmostEqualList(self, maximums, [20.48318197880853, 3.564009344317094, 2.15], tol)
+        assertAlmostEqualList(self, minimums, [0.0, -3.616103797617173, -1.1], tol)
+        assertAlmostEqualList(self, maximums, [19.24758095792375, 3.616103797617173, 2.15], tol)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -384,17 +493,17 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 223.61973728023918, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 209.96239984209245, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes2d = {
-            'head': (44, 14.371626119628749),
-            'left lower limb skin epidermis outer surface': (48, 54.95928934791463),
-            'left upper limb skin epidermis outer surface': (48, 21.289852617027275),
-            'right lower limb skin epidermis outer surface': (48, 54.95928934791463),
-            'right upper limb skin epidermis outer surface': (48, 21.289852617027275),
-            'skin epidermis outer surface': (296, 223.61973728023918)
+            'head': (44, 16.006190273878417),
+            'left lower limb skin epidermis outer surface': (48, 49.52338673317427),
+            'left upper limb skin epidermis outer surface': (48, 21.804638705395174),
+            'right lower limb skin epidermis outer surface': (48, 49.52338673317427),
+            'right upper limb skin epidermis outer surface': (48, 21.804638705395174),
+            'skin epidermis outer surface': (296, 209.96239984209245)
         }
         for name in expectedSizes2d:
             term = get_body_term(name)
