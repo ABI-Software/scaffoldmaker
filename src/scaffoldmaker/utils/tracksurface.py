@@ -1190,7 +1190,7 @@ class TrackSurface:
             print("    final position", position)
         return position
 
-    def findNearestPositionOnCurve(self, cx, cd1, loop=False, startCurveLocation=None, curveSamples: int = 4,
+    def findNearestPositionOnCurve(self, cx, cd1, loop=False, startCurveLocation=None, curveSamples: int=4,
                                    sampleEnds=True, sampleHalf=0, sampleCurveDirection=None, instrument=False):
         """
         Find nearest/intersection point on curve to this surface.
@@ -1252,7 +1252,10 @@ class TrackSurface:
                     nearestDistance = tmpDistance
                     curveLocation = tmpCurveLocation
                     surfacePosition = tmpSurfacePosition
-                elif tmpValidDirection and (sampleCurveDirection is not None):
+                    if tmpValidDirection:
+                        validDirection = True
+                elif (tmpValidDirection and (sampleCurveDirection is not None) and
+                      (tmpDistance > (2.0 * nearestDistance))):
                     break  # stop once tmpDistance increases
         MAX_MAG_DXI = 0.5  # target/maximum magnitude of xi increment
         XI_TOL = 1.0E-7

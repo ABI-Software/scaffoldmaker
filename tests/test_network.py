@@ -908,9 +908,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(total_surface_area, expected_total_surface_area, delta=X_TOL)
 
         # check symmetry of 6-way points between halves
-        expected_6way_x = [0.0019087276136859437, 1.449669088475029e-12, 0.4974239029992438]
-        expected_6way_d1 = [0.21323439153813475, -0.366878278894931, 0.006705174406225433]
-        expected_6way_d2 = [0.2132343915369731, 0.3668782788954939, 0.006705174412369234]
+        expected_6way_x = [0.001909748306703198, 1.4483738282796328e-12, 0.49742406745582785]
+        expected_6way_d1 = [0.21323395558603095, -0.3668761608521931, 0.00670463393072843]
+        expected_6way_d2 = [0.21323395558487, 0.3668761608527556, 0.006704633936871088]
         expected_6way_d3 = [-0.01522810167549951, 1.304512053934559e-15, 0.0946259665889043]
         for node_identifier in (72, 333):
             node = nodes.findNodeByIdentifier(node_identifier)
@@ -1280,10 +1280,9 @@ class NetworkScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=X_TOL)
 
         # check symmetry of 6-way points between halves
-        expected_6way_x = [0.0019087276136859437, 1.449669088475029e-12, 0.4974239029992438]
-        #                  [0.001911572706954583, 1.4486837655406741e-12, 0.4974241342799763]
-        expected_6way_d1 = [0.21323439153813475, -0.366878278894931, 0.006705174406225433]
-        expected_6way_d2 = [0.2132343915369731, 0.3668782788954939, 0.006705174412369234]
+        expected_6way_x = [0.001909748306703198, 1.4483738282796328e-12, 0.49742406745582785]
+        expected_6way_d1 = [0.21323395558603095, -0.3668761608521931, 0.00670463393072843]
+        expected_6way_d2 = [0.21323395558487, 0.3668761608527556, 0.006704633936871088]
         for node_identifier in (45, 213):
             node = nodes.findNodeByIdentifier(node_identifier)
             fieldcache.setNode(node)
