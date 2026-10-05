@@ -96,16 +96,16 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 87.71602603842298, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 210.77856912093645, delta=tol)
+            self.assertAlmostEqual(volume, 87.72570292112903, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 210.75957387100027, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            'abdominal cavity': (40, 8.522281537550803),
-            'core': (456, 43.87534817618252),
+            'abdominal cavity': (40, 8.717673002020284),
+            'core': (456, 44.00099211322349),
             'head': (112, 6.950404130313098),
-            'shell': (296, 43.84067786223915),
+            'shell': (296, 43.72471080790253),
             'thoracic cavity': (40, 6.412033649183387)
         }
         for name in expectedSizes3d:
@@ -122,13 +122,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            'abdominal cavity boundary surface': (64, 24.910327273019295),
+            'abdominal cavity boundary surface': (64, 25.31587112895641),
             'diaphragm': (20, 2.708465738209734),
-            'left lower limb skin epidermis outer surface': (68, 49.774713300961594),
+            'left lower limb skin epidermis outer surface': (68, 49.59045724721793),
             'left upper limb skin epidermis outer surface': (68, 21.97237292522156),
-            'right lower limb skin epidermis outer surface': (68, 49.774713300961594),
+            'right lower limb skin epidermis outer surface': (68, 49.59045724721793),
             'right upper limb skin epidermis outer surface': (68, 21.97237292522156),
-            'skin epidermis outer surface': (376, 210.77856912093645),
+            'skin epidermis outer surface': (376, 210.75957387100027),
             'thoracic cavity boundary surface': (64, 19.65794758925974)
         }
         for name in expectedSizes2d:
@@ -145,7 +145,7 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(surfaceArea, expectedSizes2d[name][1], delta=tol)
 
         expectedSizes1d = {
-            'spinal cord': (6, 7.8460305427862655)
+            'spinal cord': (6, 7.946109519033584)
             }
         for name in expectedSizes1d:
             term = get_body_term(name)
@@ -214,13 +214,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 87.71600676917448, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 210.77856851311986, delta=tol)
+            self.assertAlmostEqual(volume, 87.72568830663302, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 210.7595732631839, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            'core': (456, 87.71600676917448),
+            'core': (456, 87.72568830663302),
             'head': (68, 6.950404175746005)
         }
         for name in expectedSizes3d:
@@ -237,12 +237,12 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            'shell': (296, 209.95978269096952),
-            'left lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'shell': (296, 209.94078744103356),
+            'left lower limb skin epidermis outer surface': (60, 49.59045694330983),
             'left upper limb skin epidermis outer surface': (60, 21.972372925221592),
-            'right lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'right lower limb skin epidermis outer surface': (60, 49.59045694330983),
             'right upper limb skin epidermis outer surface': (60, 21.972372925221592),
-            'skin epidermis outer surface': (344, 210.77856851311986)
+            'skin epidermis outer surface': (344, 210.7595732631839)
         }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -317,13 +317,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 86.97366453323825, delta=tol)
-            self.assertAlmostEqual(surfaceArea, 208.46045439347216, delta=tol)
+            self.assertAlmostEqual(volume, 86.98334690761513, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 208.4414547061007, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes3d = {
-            'core': (456, 86.97366453323825),
+            'core': (456, 86.98334690761513),
             'head': (68, 6.950404175746005)
         }
         for name in expectedSizes3d:
@@ -340,12 +340,12 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             self.assertAlmostEqual(volume, expectedSizes3d[name][1], delta=tol)
 
         expectedSizes2d = {
-            'shell': (296, 207.6416685713218),
-            'left lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'shell': (296, 207.6226688839504),
+            'left lower limb skin epidermis outer surface': (60, 49.59045694330983),
             'left upper limb skin epidermis outer surface': (60, 20.92362423377758),
-            'right lower limb skin epidermis outer surface': (60, 49.774712997053356),
+            'right lower limb skin epidermis outer surface': (60, 49.59045694330983),
             'right upper limb skin epidermis outer surface': (60, 20.92362423377758),
-            'skin epidermis outer surface': (344, 208.46045439347216)
+            'skin epidermis outer surface': (344, 208.4414547061007)
         }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -421,13 +421,13 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             result, innerSurfaceArea = innerSurfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
 
-            self.assertAlmostEqual(volume, 43.84067786223915, delta=tol)
-            self.assertAlmostEqual(outerSurfaceArea, 209.95978269096972, delta=tol)
-            self.assertAlmostEqual(innerSurfaceArea, 150.0576729688168, delta=tol)
+            self.assertAlmostEqual(volume, 43.7247104089304, delta=tol)
+            self.assertAlmostEqual(outerSurfaceArea, 209.94078663940007, delta=tol)
+            self.assertAlmostEqual(innerSurfaceArea, 150.09635712165286, delta=tol)
 
         # check some annotationGroups:
         expectedSizes2d = {
-            'skin epidermis outer surface': (328, 210.37736352385247)
+            'skin epidermis outer surface': (328, 210.3583674722828)
             }
         for name in expectedSizes2d:
             term = get_body_term(name)
@@ -493,17 +493,17 @@ class WholeBody2ScaffoldTestCase(unittest.TestCase):
             surfaceAreaField.setNumbersOfPoints(4)
             result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
             self.assertEqual(result, RESULT_OK)
-            self.assertAlmostEqual(surfaceArea, 209.96239984209245, delta=tol)
+            self.assertAlmostEqual(surfaceArea, 209.9408162682843, delta=tol)
 
         # check some annotation groups:
 
         expectedSizes2d = {
             'head': (44, 16.006190273878417),
-            'left lower limb skin epidermis outer surface': (48, 49.52338673317427),
+            'left lower limb skin epidermis outer surface': (48, 49.34872674551631),
             'left upper limb skin epidermis outer surface': (48, 21.804638705395174),
-            'right lower limb skin epidermis outer surface': (48, 49.52338673317427),
+            'right lower limb skin epidermis outer surface': (48, 49.34872674551631),
             'right upper limb skin epidermis outer surface': (48, 21.804638705395174),
-            'skin epidermis outer surface': (296, 209.96239984209245)
+            'skin epidermis outer surface': (296, 209.9408162682843)
         }
         for name in expectedSizes2d:
             term = get_body_term(name)
