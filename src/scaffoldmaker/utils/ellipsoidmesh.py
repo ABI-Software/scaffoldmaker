@@ -2057,10 +2057,9 @@ class EllipsoidMesh:
 
     def add_shell_elements_to_mesh_group(self, mesh_group):
         """
-        Add 3-D elements in the shell to the mesh group.
-        :param mesh_group: 3-D Zinc MeshGroup.
+        Add elements in the shell to the mesh group.
+        :param mesh_group: Zinc MeshGroup.
         """
-        assert mesh_group.getDimension() == 3
         master_mesh = mesh_group.getMasterMesh()
         for e3 in range(self._element_counts[2]):
             e3_shell = (e3 < self._shell_count) or (e3 >= (self._element_counts[2] - self._shell_count))

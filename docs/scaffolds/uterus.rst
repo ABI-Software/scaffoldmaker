@@ -18,7 +18,8 @@ Variants
 
 The uterus scaffold is provided with parameter sets for the following three species, which differ in shape:
 
-* Human
+* Human 1
+* Human 2
 * Mouse
 * Rat
 
@@ -34,6 +35,9 @@ of these along the network layout. If editing, use the Interactive Functions to 
 *Make side derivatives normal* and *Smooth side cross derivatives* to make these as smooth as required.
 
 The human, mouse, and rat uterus scaffolds are parameterized with literature data to represent the anatomy accurately.
+
+Human 1 and Human 2 differ in the structure of their network layouts. In Human 1, the fundus is constructed using a patch
+that bridges the two oviducts across the body, whereas in Human 2, the fundus is modelled as a dome-shaped cap.
 
 Coordinates
 -----------
