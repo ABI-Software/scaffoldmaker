@@ -915,12 +915,12 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         elif isHumanPregnant:
             if isHumanPregnant2:
                 options["Structure"] = (
-                    "1-2-3-4-5-6-7-8-9-20.1,"
-                    "10-11-12-13-14-15-16-17-18-20.2,"
-                    "(19-20.3,"
-                    "20.4-21-22-23,"
-                    "23-24,"
-                    "24-25-26-27-28")
+                    "1-2-3-4, 4-5-12.1,"
+                    "6-7-8-9, 9-10-12.2,"
+                    "(11-12.3,"
+                    "12.4-13-14-15,"
+                    "15-16,"
+                    "16-17-18-19-20")
             else:
                 options["Structure"] = (
                     "1-2-3-4-5-6-7-8-9-31.1,"
@@ -1108,12 +1108,10 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                             cervixGroup, vaginaGroup]
         uterusMeshGroup = uterusGroup.getMeshGroup(mesh)
 
-        if isHuman2:
+        if isHuman2 or isHumanPregnant2:
             leftFundusSideGroup = AnnotationGroup(region, ("left bill", ""))
-            leftFundusSideMeshGroup = leftFundusSideGroup.getMeshGroup(mesh)
             annotationGroups.append(leftFundusSideGroup)
             rightFundusSideGroup = AnnotationGroup(region, ("right bill", ""))
-            rightFundusSideMeshGroup = rightFundusSideGroup.getMeshGroup(mesh)
             annotationGroups.append(rightFundusSideGroup)
         elementIdentifier = 1
 
@@ -1127,7 +1125,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             cervixElementsCount = 1
             vaginaElementsCount = 2
         elif isHumanPregnant:
-            oviductElementsCount = 9
+            oviductElementsCount = 5 if isHumanPregnant2 else 9
             fundusPatchElementsCount = 1 if isHumanPregnant2 else 12
             fundusPostBodyJunctionElementsCount = 3 if isHumanPregnant2 else 12
             cervixElementsCount = 1
@@ -1142,12 +1140,12 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         for side in (left, right):
             sideOviductGroup = leftOviductGroup if (side == left) else rightOviductGroup
             meshGroups = [uterusMeshGroup, sideOviductGroup.getMeshGroup(mesh)]
-            for e in range(oviductElementsCount - (2 if isHuman2 else 0)):
+            for e in range(oviductElementsCount - (2 if (isHuman2 or isHumanPregnant2) else 0)):
                 element = mesh.findElementByIdentifier(elementIdentifier)
                 for meshGroup in meshGroups:
                     meshGroup.addElement(element)
                 elementIdentifier += 1
-            if isHuman2:
+            if isHuman2 or isHumanPregnant2:
                 sideFundusSideGroup = leftFundusSideGroup if (side == left) else rightFundusSideGroup
                 meshGroups = [uterusMeshGroup, sideFundusSideGroup.getMeshGroup(mesh)]
                 for e in range(2):
@@ -1196,7 +1194,6 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         # Calculate scales
         fundusScalePostBodyJunction = bodyLength / fundusPostBodyJunctionElementsCount
         cervicalScale = cervicalLength / cervixElementsCount
-        vaginalScale = vaginaLength / vaginaElementsCount
 
         # Note: For rodents, the wall thickness is calculated from the uterine horn wall thickness and set to be
         # consistent from uterine horn to vagina. User-defined inner proportions of body, cervix and vagina for rat
@@ -1227,7 +1224,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         cEllipse = bodyLength / math.cos(cThetaCervicalEnd)
 
         if isHumanPregnant2 or isHuman2:
-            fundusToBodyLengthScale = 0.4
+            fundusToBodyLengthScale = halfFundusDepth / bodyLength
 
         # Oviducts
         d1BodyJunction = []
@@ -1295,11 +1292,12 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                 lastTubeIdx = 0
                 xStart = [0.0, segment1Length * (-1.0 if side == left else 1.0), 0.0]
                 for i in range(oviductElementsCount + 1):
-                    if isHuman2:
-                        numBill = 2  # number of bill (transition) elements per side
-                        numOviduct = oviductElementsCount - numBill  # = 2
-                        oviductStep = oviductLength / numOviduct
-                        billStep = halfFundusWidth / numBill
+                    if isHuman2 or isHumanPregnant2:
+                        billOffset = 0.075
+                        numBill = 2
+                        numOviduct = oviductElementsCount - numBill
+                        oviductStep = (oviductLength - halfFundusWidth * billOffset) / numOviduct
+                        billStep = halfFundusWidth * (1 + billOffset) / numBill
                         sideSign = 1.0 if side == left else -1.0
                         if i < numOviduct:
                             d1Length = oviductStep
@@ -1315,14 +1313,15 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                         elif i < oviductElementsCount:
                             # bill zone: evenly spaced from halfFundusWidth toward 0
                             billIdx = i - numOviduct
-                            x = [0.0, -sideSign * halfFundusWidth * (numBill - billIdx) / numBill, 0.0]
+                            x = [0.0, -sideSign * (1 + billOffset) * halfFundusWidth * (numBill - billIdx) / numBill, 0.0]
                         else:
                             # junction node at origin
                             x = [0.0, 0.0, 0.0]
                     else:
                         d1Oviduct = [0.0, segment1LengthScale * (1.0 if side == left else -1.0), 0.0]
                         x = add(xStart, mult(d1Oviduct, i))
-                    if (not isHuman2 and segment1LengthScale * i < oviductLength) or (isHuman2 and abs(x[1]) > halfFundusWidth):
+                    if (not isHuman2 and not isHumanPregnant2 and segment1LengthScale * i < oviductLength) or \
+                            ((isHuman2 or isHumanPregnant2) and i < numOviduct):
                         d2 = [-oviductRadius if side == left else oviductRadius, 0.0, 0.0]
                         d3 = [0.0, 0.0, oviductRadius]
                         d12 = [0.0, 0.0, 0.0]
@@ -1331,11 +1330,13 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                         id3 = mult(d3, innerProportionOviducts)
                         id12 = mult(d12, innerProportionOviducts)
                         id13 = mult(d13, innerProportionOviducts)
-                        if isHuman2:
+                        if isHuman2 or isHumanPregnant2:
                             lastTubeIdx = i
                     else:  # in ellipse zone
-                        theta = math.acos(x[1] / halfFundusWidth)
-                        if abs(halfFundusDepth * math.sin(theta)) < oviductRadius and not isHuman2:
+                        cosTheta = x[1] / (
+                                    halfFundusWidth * ((1 + billOffset) if isHuman2 or isHumanPregnant2 else 1.0))
+                        theta = math.acos(max(-1.0, min(1.0, cosTheta)))
+                        if abs(halfFundusDepth * math.sin(theta)) < oviductRadius and not isHuman2 and not isHumanPregnant2:
                             d2 = [-oviductRadius if side == left else oviductRadius, 0.0, 0.0]
                             d3 = [0.0, 0.0, oviductRadius]
                             d12 = [0.0, 0.0, 0.0]
@@ -1357,11 +1358,16 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
                                    (-1.0 if side == left else 1.0)]
 
                             if isHuman2 or isHumanPregnant2:
-                                depth = halfFundusDepth * 0.25
+                                depth = halfFundusDepth * (0.2 if isHuman2 else 0.15)
                                 d2 = [depth * (-1.0 if side == left else 1.0), 0.0, 0.0]
                                 d3 = [0.0, 0.0, depth]
-                                d12 = [(fundusToBodyLengthScale * bodyLength - oviductRadius) * (-1.0 if side == left else 1.0) / 2, 0.0, 0.0]
-                                d13 = [0.0, 0.0, (halfFundusDepth - oviductRadius) / 2]
+                                if i == lastTubeIdx + 1:
+                                    d12 = [(fundusToBodyLengthScale * bodyLength - oviductRadius) * (
+                                        -1.0 if side == left else 1.0) / (1.5 if isHuman2 else 2.0), 0.0, 0.0]
+                                    d13 = [0.0, 0.0, (halfFundusDepth - oviductRadius) / (1.5 if isHuman2 else 2.0)]
+                                else:
+                                    d12 = [0.0, 0.0, 0.0]
+                                    d13 = [0.0, 0.0, 0.0]
 
                             innerProportionFundus = \
                                 interpolateCubicHermite(
@@ -1414,9 +1420,8 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
             depth = halfFundusDepth * math.sin(thetaC)
 
             if isHumanPregnant2 or isHuman2:
-                scale = 1.0 if i else 0.9
-                width = halfFundusWidth * scale
-                depth = halfFundusDepth * scale
+                width = halfFundusWidth
+                depth = halfFundusDepth
 
             nd2Patch.append([0.0, width, 0.0])
             nd3Patch.append([0.0, 0.0, depth])
@@ -1632,7 +1637,7 @@ class MeshType_1d_uterus_network_layout1(MeshType_1d_network_layout1):
         nx.append([bodyLength, 0.0, 0.0])
         nd1.append(nd1Body[-1])
 
-        xTurningPt = [vaginalStartX + 0.15 * vaginaLength, 0.0, 0.0]
+        xTurningPt = [vaginalStartX + 0.1 * vaginaLength, 0.0, 0.0]
         xTranslateMat = sub(xTurningPt, xBodyJunction)
 
         for i in range(2, 11):
@@ -2086,6 +2091,12 @@ class MeshType_3d_uterus1(Scaffold_base):
 
             annotationGroups.remove(fundusSerosa)
             annotationGroups.remove(cervixSerosa)
+
+            if isHumanType2:
+                leftBill = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("left bill", ""))
+                rightBill = findOrCreateAnnotationGroupForTerm(annotationGroups, region, ("right bill", ""))
+                annotationGroups.remove(leftBill)
+                annotationGroups.remove(rightBill)
 
         uterusGroup = getAnnotationGroupForTerm(annotationGroups, get_uterus_term("uterus"))
         myometriumGroup = findOrCreateAnnotationGroupForTerm(annotationGroups, region, get_uterus_term("myometrium"))
