@@ -68,8 +68,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-2.9999999999999964, -14.0, -8.201149866258765], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [13.994479106259377, 14.0, 2.9919276924165974], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-2.9999999999999964, -14.0, -8.670996176651718], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [13.665489177922211, 14.0, 2.9919276786074787], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -83,8 +83,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 336.64153452445015, delta=5.0E-2)
-        self.assertAlmostEqual(volume, 255.69163498084598, delta=5.0E-2)
+        self.assertAlmostEqual(surfaceArea, 335.16878464302835, delta=5.0E-2)
+        self.assertAlmostEqual(volume, 255.3891569258927, delta=5.0E-2)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:
@@ -205,8 +205,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-2.9999999999999964, -14.0, -8.201149866258765], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [13.994479106259377, 14.0, 2.9919276924165974], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-2.9999999999999964, -14.0, -8.670996176651718], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [13.665489177922211, 14.0, 2.9919276786074787], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -215,7 +215,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
         fieldcache = fieldmodule.createFieldcache()
         result, surfaceArea = surfaceAreaField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 335.4880848987993, delta=5.0E-2)
+        self.assertAlmostEqual(surfaceArea, 334.01533498901864, delta=5.0E-2)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:
@@ -251,7 +251,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
 
         networkLayout = options.get("Network layout")
         networkLayoutSettings = networkLayout.getScaffoldSettings()
-        self.assertEqual("1-2-3-4-10.1,5-6-7-8-10.2,(9-10.3,10.4-11-12-13,13-14,14-15-16-17-18",
+        self.assertEqual("1-2-3-4, 4-5-12.1,6-7-8-9, 9-10-12.2,(11-12.3,12.4-13-14-15,15-16,16-17-18-19-20",
                          networkLayoutSettings["Structure"])
 
         self.assertEqual(15, len(options))
@@ -269,21 +269,21 @@ class UterusScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(340, mesh3d.getSize())
+        self.assertEqual(356, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(1378, mesh2d.getSize())
+        self.assertEqual(1442, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1753, mesh1d.getSize())
+        self.assertEqual(1833, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(718, nodes.getSize())
+        self.assertEqual(750, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-3.15, -14.0, -8.201149866258763], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [13.994479106259377, 14.0, 3.000008384729209], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-3.0, -14.0, -8.670996176651718], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [13.665489177922211, 14.0, 2.999613692275487], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -297,8 +297,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 340.0350366489269, delta=5.0E-2)
-        self.assertAlmostEqual(volume, 251.3644411904487, delta=5.0E-2)
+        self.assertAlmostEqual(surfaceArea, 334.6487843226844, delta=5.0E-2)
+        self.assertAlmostEqual(volume, 239.29634390309874, delta=5.0E-2)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:
@@ -310,11 +310,11 @@ class UterusScaffoldTestCase(unittest.TestCase):
         expectedSizes3d = {
             "fundus of uterus": 52,
             "body of uterus": 128,
-            "left oviduct": 40,
+            "left oviduct": 48,
             "vagina": 80,
-            'left broad ligament of uterus': 12,
-            'right broad ligament of uterus': 12,
-            "uterus": 260
+            'left broad ligament of uterus': 13,
+            'right broad ligament of uterus': 13,
+            "uterus": 276
             }
 
         meshes = [mesh1d, mesh2d, mesh3d]
@@ -349,13 +349,13 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(22, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(2720, mesh3d.getSize())
+        self.assertEqual(2848, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(9592, mesh2d.getSize())
+        self.assertEqual(10040, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(11058, mesh1d.getSize())
+        self.assertEqual(11570, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(4189, nodes.getSize())
+        self.assertEqual(4381, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -365,9 +365,9 @@ class UterusScaffoldTestCase(unittest.TestCase):
         expectedSizes3d = {
             "fundus of uterus": 52,
             "body of uterus": 128,
-            "left oviduct": 40,
+            "left oviduct": 48,
             "vagina": 80,
-            "uterus": 260
+            "uterus": 276
         }
         for name in expectedSizes3d:
             term = get_uterus_term(name)
@@ -433,8 +433,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-5.999999999999985, -16.0, -8.201149866258765], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [20.994479106259377, 16.0, 5.983806305763669], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-5.999999999999985, -16.0, -8.670996176651716], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [20.665489177922215, 16.0, 5.983807401981006], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -448,8 +448,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 809.956584291775, delta=5.0E-2)
-        self.assertAlmostEqual(volume, 267.60969130550086, delta=5.0E-2)
+        self.assertAlmostEqual(surfaceArea, 808.1695283156978, delta=5.0E-2)
+        self.assertAlmostEqual(volume, 267.32383532984153, delta=5.0E-2)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:
@@ -551,8 +551,7 @@ class UterusScaffoldTestCase(unittest.TestCase):
 
         networkLayout = options.get("Network layout")
         networkLayoutSettings = networkLayout.getScaffoldSettings()
-        self.assertEqual("1-2-3-4-5-6-7-8-9-20.1,10-11-12-13-14-15-16-17-18-20.2,"
-                         "(19-20.3,20.4-21-22-23,23-24,24-25-26-27-28",
+        self.assertEqual("1-2-3-4, 4-5-12.1,6-7-8-9, 9-10-12.2,(11-12.3,12.4-13-14-15,15-16,16-17-18-19-20",
                          networkLayoutSettings["Structure"])
 
         self.assertEqual(15, len(options))
@@ -570,21 +569,21 @@ class UterusScaffoldTestCase(unittest.TestCase):
         fieldmodule = region.getFieldmodule()
         self.assertEqual(RESULT_OK, fieldmodule.defineAllFaces())
         mesh3d = fieldmodule.findMeshByDimension(3)
-        self.assertEqual(340, mesh3d.getSize())
+        self.assertEqual(356, mesh3d.getSize())
         mesh2d = fieldmodule.findMeshByDimension(2)
-        self.assertEqual(1378, mesh2d.getSize())
+        self.assertEqual(1442, mesh2d.getSize())
         mesh1d = fieldmodule.findMeshByDimension(1)
-        self.assertEqual(1753, mesh1d.getSize())
+        self.assertEqual(1833, mesh1d.getSize())
         nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(718, nodes.getSize())
+        self.assertEqual(750, nodes.getSize())
         datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
         coordinates = fieldmodule.findFieldByName("coordinates").castFiniteElement()
         self.assertTrue(coordinates.isValid())
         minimums, maximums = evaluateFieldNodesetRange(coordinates, nodes)
-        assertAlmostEqualList(self, minimums, [-6.3, -16.0, -8.201149866258765], 1.0E-6)
-        assertAlmostEqualList(self, maximums, [20.994479106259377, 16.0, 5.979109874196457], 1.0E-6)
+        assertAlmostEqualList(self, minimums, [-6.0, -16.0, -8.670996176651718], 1.0E-6)
+        assertAlmostEqualList(self, maximums, [20.665489177922215, 16.0, 5.982961495423099], 1.0E-6)
 
         with ChangeManager(fieldmodule):
             one = fieldmodule.createFieldConstant(1.0)
@@ -598,8 +597,8 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(result, RESULT_OK)
         result, volume = volumeField.evaluateReal(fieldcache, 1)
         self.assertEqual(result, RESULT_OK)
-        self.assertAlmostEqual(surfaceArea, 813.7381551716634, delta=5.0E-2)
-        self.assertAlmostEqual(volume, 280.18220494062393, delta=5.0E-2)
+        self.assertAlmostEqual(surfaceArea, 808.4682964428358, delta=5.0E-2)
+        self.assertAlmostEqual(volume, 300.64013061482416, delta=5.0E-2)
 
         fieldmodule.defineAllFaces()
         for annotationGroup in annotationGroups:
@@ -611,11 +610,11 @@ class UterusScaffoldTestCase(unittest.TestCase):
         expectedSizes3d = {
             "fundus of uterus": 52,
             "body of uterus": 128,
-            "left oviduct": 40,
+            "left oviduct": 48,
             "vagina": 80,
-            'left broad ligament of uterus': 12,
-            'right broad ligament of uterus': 12,
-            "uterus": 260
+            'left broad ligament of uterus': 13,
+            'right broad ligament of uterus': 13,
+            "uterus": 276
             }
 
         meshes = [mesh1d, mesh2d, mesh3d]
@@ -650,13 +649,13 @@ class UterusScaffoldTestCase(unittest.TestCase):
         self.assertEqual(22, len(annotationGroups))
 
         mesh3d = refineFieldmodule.findMeshByDimension(3)
-        self.assertEqual(2720, mesh3d.getSize())
+        self.assertEqual(2848, mesh3d.getSize())
         mesh2d = refineFieldmodule.findMeshByDimension(2)
-        self.assertEqual(9592, mesh2d.getSize())
+        self.assertEqual(10040, mesh2d.getSize())
         mesh1d = refineFieldmodule.findMeshByDimension(1)
-        self.assertEqual(11058, mesh1d.getSize())
+        self.assertEqual(11570, mesh1d.getSize())
         nodes = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        self.assertEqual(4189, nodes.getSize())
+        self.assertEqual(4381, nodes.getSize())
         datapoints = refineFieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
         self.assertEqual(0, datapoints.getSize())
 
@@ -666,9 +665,9 @@ class UterusScaffoldTestCase(unittest.TestCase):
         expectedSizes3d = {
             "fundus of uterus": 52,
             "body of uterus": 128,
-            "left oviduct": 40,
+            "left oviduct": 48,
             "vagina": 80,
-            "uterus": 260
+            "uterus": 276
         }
         for name in expectedSizes3d:
             term = get_uterus_term(name)
