@@ -19,8 +19,6 @@ import copy
 from enum import Enum
 import math
 
-from scaffoldmaker.utils.zinc_utils import generate_datapoints
-
 
 class EllipsoidSurfaceD3Mode(Enum):
     SURFACE_NORMAL = 1  # surface D3 are exact surface normals to ellipsoid

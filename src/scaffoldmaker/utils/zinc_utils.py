@@ -3,25 +3,23 @@ Utility functions for easing use of Zinc API.
 """
 from cmlibs.maths.vectorops import add, cross, div, magnitude, mult, normalize, rejection, set_magnitude, sub
 from cmlibs.utils.zinc.field import (
-    find_or_create_field_coordinates, find_or_create_field_finite_element, find_or_create_field_group,
+    find_or_create_field_coordinates, find_or_create_field_group,
     find_or_create_field_stored_mesh_location, find_or_create_field_stored_string)
-from cmlibs.utils.zinc.finiteelement import (
-    get_element_node_identifiers, get_maximum_element_identifier, get_maximum_node_identifier)
+from cmlibs.utils.zinc.finiteelement import (create_hermite_curve_elements, create_node_points,
+    get_element_node_identifiers, get_maximum_node_identifier)
 from cmlibs.utils.zinc.general import ChangeManager, HierarchicalChangeManager
 from cmlibs.zinc.context import Context
-from cmlibs.zinc.element import Element, Elementbasis, MeshGroup
+from cmlibs.zinc.element import MeshGroup
 from cmlibs.zinc.field import Field, FieldGroup, FieldFindMeshLocation
 from cmlibs.zinc.fieldmodule import Fieldmodule
-from cmlibs.zinc.node import Node, NodesetGroup
+from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from fieldfitter.fitter import Fitter as FieldFitter
 from scaffoldfitter.fitter import Fitter as GeometryFitter
 from scaffoldfitter.fitterstepconfig import FitterStepConfig
 from scaffoldfitter.fitterstepfit import FitterStepFit
 from scaffoldmaker.utils import interpolation as interp
-import copy
 import logging
-import math
 
 
 logger = logging.getLogger(__name__)
@@ -680,122 +678,6 @@ def clearRegion(region):
             field = fieldIter.next()
 
 
-def generate_curve_mesh(region, nx, nd1, loop=False, start_node_identifier=None, start_element_identifier=None,
-                        coordinate_field_name="coordinates", group_name=None):
-    """
-    Generate a set of 1-D elements with Hermite basis
-    :param region: Zinc Region.
-    :param nx: Coordinates along curve.
-    :param nd1: Derivatives along curve.
-    :param loop: True if curve loops back to first point, False if not.
-    :param start_node_identifier: Optional first node identifier to use.
-    :param start_element_identifier: Optional first 1D element identifier to use.
-    :param coordinate_field_name: Optional name of coordinate field to define, if omitted use "coordinates".
-    :param group_name: Optional name of group to put new nodes and elements in.
-    :return: next node identifier, next 1D element identifier
-    """
-    fieldmodule = region.getFieldmodule()
-    with ChangeManager(fieldmodule):
-        coordinates = find_or_create_field_coordinates(fieldmodule, name=coordinate_field_name)
-        group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
-
-        nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        node_identifier = start_node_identifier if start_node_identifier is not None else \
-            max(get_maximum_node_identifier(nodes), 0) + 1
-
-        nodetemplate = nodes.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        nodetemplate.setValueNumberOfVersions(coordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-
-        mesh = fieldmodule.findMeshByDimension(1)
-        element_identifier = start_element_identifier if start_element_identifier is not None else \
-            max(get_maximum_element_identifier(mesh), 0) + 1
-        elementtemplate = mesh.createElementtemplate()
-        elementtemplate.setElementShapeType(Element.SHAPE_TYPE_LINE)
-        cubicHermiteBasis = fieldmodule.createElementbasis(
-            1, Elementbasis.FUNCTION_TYPE_CUBIC_HERMITE)
-        eft = mesh.createElementfieldtemplate(cubicHermiteBasis)
-        elementtemplate.defineField(coordinates, -1, eft)
-
-        fieldcache = fieldmodule.createFieldcache()
-        nids = []
-        nCount = len(nx)
-        nodeset_group = group.getOrCreateNodesetGroup(nodes) if group else None
-        for n in range(nCount):
-            node = nodes.createNode(node_identifier, nodetemplate)
-            nids.append(node_identifier)
-            fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, nx[n])
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, nd1[n])
-            if nodeset_group:
-                nodeset_group.addNode(node)
-            node_identifier += 1
-        eCount = nCount if loop else nCount - 1
-        if loop:
-            nids.append(nids[0])
-        mesh_group = group.getOrCreateMeshGroup(mesh) if group else None
-        for e in range(eCount):
-            element = mesh.createElement(element_identifier, elementtemplate)
-            element.setNodesByIdentifier(eft, nids[e:e + 2])
-            if mesh_group:
-                mesh_group.addElement(element)
-            element_identifier += 1
-
-    return node_identifier, element_identifier
-
-
-def generate_datapoints(region, px, start_data_identifier=None, coordinate_field_name="coordinates",
-                        field_names_and_values=[], group_name=None):
-    """
-    Generate a set of datapoints in the region.
-    :param region: Zinc Region.
-    :param px: Coordinates of data points.
-    :param start_data_identifier: Optional first datapoint identifier to use.
-    :param coordinate_field_name: Optional name of coordinate field to define, if omitted use "coordinates".
-    :param field_names_and_values: Optional lists of (field_name, list of values) for additional fields to
-    define on the datapoints. Values may be scalar or vector (list of lists) real, or string.
-    Must be same number of values as number of points.
-    :param group_name: Optional name of group to put new datapoints in.
-    :return: next datapoint identifier
-    """
-    fieldmodule = region.getFieldmodule()
-    with ChangeManager(fieldmodule):
-        coordinates = find_or_create_field_coordinates(fieldmodule, name=coordinate_field_name)
-        group = find_or_create_field_group(fieldmodule, group_name) if group_name else None
-
-        datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
-        data_identifier = start_data_identifier if (start_data_identifier is not None) else \
-            max(get_maximum_node_identifier(datapoints), 0) + 1
-        data_group = group.getOrCreateNodesetGroup(datapoints) if group else datapoints
-
-        nodetemplate = datapoints.createNodetemplate()
-        nodetemplate.defineField(coordinates)
-        fields_values = []  # (field, is_string, values)
-        for field_name, field_values in field_names_and_values:
-            is_string = isinstance(field_values[0], str)
-            if is_string:
-                field = find_or_create_field_stored_string(fieldmodule, field_name, managed=True)
-            else:
-                components_count = len(field_values[0]) if isinstance(field_values[0], list) else 1
-                field = find_or_create_field_finite_element(fieldmodule, field_name, components_count, managed=True)
-            nodetemplate.defineField(field)
-            fields_values.append((field, is_string, field_values))
-
-        fieldcache = fieldmodule.createFieldcache()
-        for n, x in enumerate(px):
-            node = data_group.createNode(data_identifier, nodetemplate)
-            fieldcache.setNode(node)
-            coordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, x)
-            for field, is_string, values in fields_values:
-                if is_string:
-                    field.assignString(fieldcache, values[n])
-                else:
-                    field.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, values[n])
-            data_identifier += 1
-
-    return data_identifier
-
-
 def generate_mesh_marker_points(mesh, marker_data, start_node_identifier=None):
     """
     Create marker points in the "marker" group with supplied names and mesh locations.
@@ -985,8 +867,13 @@ def fit_hermite_curve(bx, bd1, px, outlier_length=0.0, region=None, group_name=N
     fieldmodule = fit_region.getFieldmodule()
     with ChangeManager(fieldmodule):
         coordinates = find_or_create_field_coordinates(fieldmodule)
-        generate_curve_mesh(fit_region, bx, bd1, group_name=curve_group_name)
-        generate_datapoints(fit_region, px, group_name=curve_group_name)
+        curve_group = find_or_create_field_group(fieldmodule, curve_group_name)
+        mesh1d = fieldmodule.findMeshByDimension(1)
+        curve_mesh_group = curve_group.getOrCreateMeshGroup(mesh1d)
+        create_hermite_curve_elements(curve_mesh_group, bx, bd1)
+        datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
+        curve_data_group = curve_group.getOrCreateNodesetGroup(datapoints)
+        create_node_points(curve_data_group, px)
         # need a zero fibre field to apply strain/curvature penalties on 1-D model
         zero_fibres = find_or_create_field_zero_fibres(fieldmodule)
 

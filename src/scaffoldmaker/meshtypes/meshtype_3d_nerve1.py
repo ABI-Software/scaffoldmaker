@@ -1,10 +1,10 @@
 from cmlibs.maths.vectorops import (
     add, cross, distance, dot, magnitude, matrix_mult, matrix_inv, mult, normalize, rejection, set_magnitude, sub)
 from cmlibs.utils.zinc.field import find_or_create_field_group, find_or_create_field_coordinates
-from cmlibs.utils.zinc.finiteelement import evaluate_field_nodeset_range
+from cmlibs.utils.zinc.finiteelement import evaluate_field_nodeset_range, create_node_points
 from cmlibs.utils.zinc.general import ChangeManager
-from cmlibs.zinc.element import Element, Elementbasis, Elementfieldtemplate
-from cmlibs.zinc.field import Field, FieldFindMeshLocation, FieldGroup
+from cmlibs.zinc.element import Element, Elementbasis
+from cmlibs.zinc.field import Field, FieldFindMeshLocation
 from cmlibs.zinc.node import Node
 from cmlibs.zinc.result import RESULT_OK
 from scaffoldfitter.fitter import Fitter as GeometryFitter
@@ -25,8 +25,8 @@ from scaffoldmaker.utils.interpolation import (
     smoothCurveSideCrossDerivatives, track_curve_side_direction)
 from scaffoldmaker.utils.read_vagus_data import load_vagus_data
 from scaffoldmaker.utils.zinc_utils import (
-    define_and_fit_field, find_or_create_field_zero_fibres, fit_hermite_curve, generate_curve_mesh,
-    generate_datapoints, generate_mesh_marker_points)
+    define_and_fit_field, find_or_create_field_zero_fibres, fit_hermite_curve, create_hermite_curve_elements,
+    generate_mesh_marker_points)
 import copy
 import logging
 import math
@@ -1166,8 +1166,6 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     cx, cd1 = fit_hermite_curve(bx, bd1, px)  # , outlier_length=outlier_length)
     # resample to even size
     dx, dd1 = sampleCubicHermiteCurvesSmooth(cx, cd1, trunk_elements_count_prefit)[0:2]
-    # generate_curve_mesh(region, dx, dd1, group_name=vagus_data.get_trunk_group_name())[0]
-    # return dx, dd1, [], []
 
     # 2. make initial full trunk extending pre-fit based on furthest marker material coordinates
 
@@ -1249,14 +1247,18 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     components_count = coordinates.getNumberOfComponents()
     mesh1d = fieldmodule.findMeshByDimension(1)
     trunk_group_name = vagus_data.get_trunk_group_name()
+    datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
     with ChangeManager(fieldmodule):
-        node_identifier = generate_curve_mesh(fit_region, ex, ed1, group_name=trunk_group_name)[0]
+        trunk_group = find_or_create_field_group(fieldmodule, name=trunk_group_name)
+        trunk_mesh_group = trunk_group.getOrCreateMeshGroup(mesh1d)
+        node_identifier = create_hermite_curve_elements(trunk_mesh_group, ex, ed1)[0]
         trunk_group = find_or_create_field_group(fieldmodule, trunk_group_name)
         pr = vagus_data.get_trunk_radius()
         field_names_and_values = [("radius", pr)] if pr else []
         data_identifier = 1
-        data_identifier = generate_datapoints(
-            fit_region, px, data_identifier, field_names_and_values=field_names_and_values, group_name=trunk_group_name)
+        trunk_data_group = trunk_group.getOrCreateNodesetGroup(datapoints)
+        data_identifier = create_node_points(
+            trunk_data_group, px, data_identifier, field_names_and_values=field_names_and_values)
         radius = fieldmodule.findFieldByName("radius").castFiniteElement()
 
         # add marker points in order along trunk
@@ -1276,9 +1278,11 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         node_identifier = generate_mesh_marker_points(mesh1d, ordered_marker_data, node_identifier)
 
         # add data marker points:
-        data_identifier = generate_datapoints(
-            fit_region, list(raw_marker_data.values()), data_identifier,
-            field_names_and_values=[("marker_name", list(raw_marker_data.keys()))], group_name="marker")
+        marker_group = find_or_create_field_group(fieldmodule, "marker")
+        marker_data_group = marker_group.getOrCreateNodesetGroup(datapoints)
+        data_identifier = create_node_points(
+            marker_data_group, list(raw_marker_data.values()), data_identifier,
+            field_names_and_values=[("marker_name", list(raw_marker_data.keys()))])
 
         zero_fibres = find_or_create_field_zero_fibres(fieldmodule)
 
@@ -1306,7 +1310,6 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
                     in_data_multi_path_range = True
                     break
             node_in_data_multi_path_range.append(in_data_multi_path_range)
-        element_in_data_multi_path_range = []
         for element_identifier in range(1, trunk_elements_count + 1):
             if (node_in_data_multi_path_range[element_identifier - 1] or
                     node_in_data_multi_path_range[element_identifier]):
@@ -1358,7 +1361,6 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         fit_step.run()
         del fit_step
 
-    datapoints = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_DATAPOINTS)
     rms_error, max_error = fitter.getDataRMSAndMaximumProjectionError(trunk_group.getNodesetGroup(datapoints))
     nerve_metadata.set_name_rms_max_error("trunk centroid fit error", rms_error, max_error)
 
@@ -1392,8 +1394,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
             node = nodeiterator.next()
         if tx:
             field_names_and_values = [("radius", [default_trunk_diameter * 0.5] * len(tx))]
-            data_identifier = generate_datapoints(
-                fit_region, tx, data_identifier, field_names_and_values=field_names_and_values, group_name=trunk_group_name)
+            data_identifier = create_node_points(
+                trunk_data_group, tx, data_identifier, field_names_and_values=field_names_and_values)
 
         # add projection distance to radius
         trunk_location = fieldmodule.createFieldFindMeshLocation(coordinates, coordinates, mesh1d)
@@ -1461,7 +1463,7 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
     for segment_trunk_info in segment_trunk_info_list:
         segment_name = segment_trunk_info['name']
         sx = segment_trunk_info['unordered_coordinates']
-        generate_datapoints(fit_region, sx, start_data_identifier=1)
+        node_identifier = create_node_points(datapoints, sx, start_node_identifier=1)
         min_result, segment_min_trunk_distance = datapoints_min_trunk_distance.evaluateReal(fieldcache, 1)
         max_result, segment_max_trunk_distance = datapoints_max_trunk_distance.evaluateReal(fieldcache, 1)
         if (min_result == RESULT_OK) and (max_result == RESULT_OK):
@@ -1494,12 +1496,12 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
             anterior_x.append(add(x, mult(dir3, default_trunk_radius)))
         if anterior_x:
             orientation_dct = {'orientation anterior': anterior_x}
+    orientation_locations = []  # list of curve location (element index, xi) for orientation points
+    orientation_directions = []  # list of anterior directions
+    orientation_names = []  # list of orientation names
     if orientation_dct:
         # convert to list in order down the trunk
         length = getCubicHermiteCurvesLength(tx, td1)
-        orientation_directions = []  # list of anterior directions
-        orientation_names = []  # list of orientation names
-        orientation_locations = []  # list of curve location (element index, xi) for orientation points
         one_sqrt2 = 1.0 / math.sqrt(2.0)
         # weights of d2, d3 to give anterior direction for a given orientation direction name
         orientation_anterior_weights = {
@@ -1586,8 +1588,8 @@ def generate_trunk_1d(vagus_data, trunk_proportion, trunk_elements_count_prefit,
         data_identifier = 1
         twist_angle_field_name = "twist angle"
         twist_points_count_calibration_factor = len(orientation_twist_angles) / 27.0
-        data_identifier = generate_datapoints(
-            fit_region, orientation_x, data_identifier,
+        data_identifier = create_node_points(
+            datapoints, orientation_x, data_identifier,
             field_names_and_values=[(twist_angle_field_name, orientation_twist_angles)])
 
         gradient1_penalty = 100.0 * twist_points_count_calibration_factor * length_calibration_factor

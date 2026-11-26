@@ -2,7 +2,6 @@ import math
 import unittest
 
 from cmlibs.maths.vectorops import dot, magnitude, mult, normalize, sub
-from cmlibs.utils.zinc.field import find_or_create_field_coordinates, find_or_create_field_group
 from cmlibs.utils.zinc.finiteelement import evaluateFieldNodesetRange
 from cmlibs.utils.zinc.group import identifier_ranges_from_string, identifier_ranges_to_string, \
     mesh_group_add_identifier_ranges, mesh_group_to_identifier_ranges, \
@@ -27,7 +26,7 @@ from scaffoldmaker.utils.interpolation import computeCubicHermiteSideCrossDeriva
 from scaffoldmaker.utils.tracksurface import TrackSurface, TrackSurfacePosition
 from scaffoldmaker.utils.tubenetworkmesh import (
     TubeNetworkMeshSegment, getPathRawTubeCoordinates, resampleTubeCoordinates)
-from scaffoldmaker.utils.zinc_utils import generate_curve_mesh, get_nodeset_path_ordered_field_parameters
+from scaffoldmaker.utils.zinc_utils import get_nodeset_path_ordered_field_parameters
 
 from testutils import assertAlmostEqualList
 
@@ -720,25 +719,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         # nearest projection is normal to loop1
         self.assertAlmostEqual(dot(sub(p8x, op8x), op8t), 0.0, delta=X_TOL)
 
-        # context = Context("Curve nearest and intersection")
-        # region = context.getDefaultRegion()
-        # generate_curve_mesh(region, curve1_x, curve1_d1)
-        # generate_curve_mesh(region, curve2_x, curve2_d1)
-        # generate_curve_mesh(region, curve3_x, curve3_d1)
-        # generate_curve_mesh(region, curve4_x, curve4_d1)
-        # generate_curve_mesh(region, loop1_x, loop1_d1, loop=True)
-        # fieldmodule = region.getFieldmodule()
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # pointCoordinates = create_field_coordinates(fieldmodule, "point_coordinates", managed=True)
-        # nodetemplate.defineField(pointCoordinates)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [t1x, p1x, t2x, p2x, t3x, p3x, p4x, op4x, p5x, op5x, p6x, p7x, p8x, op8x]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     pointCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-
     def test_curve_track_surface_nearest_intersection(self):
         """
         Test finding nearest/intersection points on a curve and a track surface.
@@ -773,23 +753,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         p2x = surf2.evaluateCoordinates(p2)
         cp2x = evaluateCoordinatesOnCurve(curve4_x, curve4_d1, cp2)
         assertAlmostEqualList(self, p2x, cp2x, delta=X_TOL)
-
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # generate_curve_mesh(region, curve3_x, curve3_d1)
-        # generate_curve_mesh(region, curve4_x, curve4_d1)
-        # surf2.generateMesh(region)
-        # fieldmodule = region.getFieldmodule()
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # pointCoordinates = find_or_create_field_coordinates(fieldmodule, "point_coordinates", managed=True)
-        # nodetemplate.defineField(pointCoordinates)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, cp1x, cp2x]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     pointCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
 
     def test_track_surface_intersection(self):
         """
@@ -882,33 +845,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [0.9, 0.625], dprops[0], delta=XI_TOL)
         assertAlmostEqualList(self, [0.6714699015724951, 0.7450512483881269], dprops[4], delta=3.0*XI_TOL)
         assertAlmostEqualList(self, [0.5797035235769857, 1.0], dprops[8], delta=3.0*XI_TOL)
-
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # surfaceGroupName = "surface"
-        # surf1.generateMesh(region, group_name=surfaceGroupName)
-        # surf2.generateMesh(region, group_name=surfaceGroupName)
-        # coordinateFieldName = "curve_coordinates"
-        # curveGroupName = "curve"
-        # fieldmodule = region.getFieldmodule()
-        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, p2x, p3x, p4x]
-        # pd1 = [p1t, p2t, p3t, p4t]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        #     curveNodesetGroup.addNode(node)
-        # generate_curve_mesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generate_curve_mesh(region, dx, dd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections1(self):
         """
@@ -1076,35 +1012,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(aCurveLocation[1], 0.7537941734689295, delta=XI_TOL)
         self.assertEqual(cCurveLocation[0], 3)
         self.assertAlmostEqual(cCurveLocation[1], 0.05064922547377515, delta=XI_TOL)
-
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # surfaceGroupName = "surface"
-        # tube1Surface.generateMesh(region, group_name=surfaceGroupName)
-        # tube2Surface.generateMesh(region, group_name=surfaceGroupName)
-        # # tube3Surface.generateMesh(region, group_name=surfaceGroupName)
-        # tube3TrimmedSurface.generateMesh(region, group_name=surfaceGroupName)
-        # coordinateFieldName = "curve_coordinates"
-        # curveGroupName = "curve"
-        # fieldmodule = region.getFieldmodule()
-        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, p2x, p3x, p4x]
-        # pd1 = [[0.0, 0.0, 0.0], p2t, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        #     curveNodesetGroup.addNode(node)
-        # generate_curve_mesh(region, ax, ad1, aloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generate_curve_mesh(region, cx, cd1, cloop, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
 
     def test_tube_intersections1_coarse(self):
         """
@@ -1414,39 +1321,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         elif elementsCountAround == 4:
             self.assertAlmostEqual(cLength, 0.9914369553370298, delta=X_TOL)
 
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # surfaceGroupName = "surface"
-        # tube1Surface.generateMesh(region, group_name=surfaceGroupName)
-        # tube2Surface.generateMesh(region, group_name=surfaceGroupName)
-        # tube3Surface.generateMesh(region, group_name=surfaceGroupName)
-        # coordinateFieldName = "curve_coordinates"
-        # curveGroupName = "curve"
-        # fieldmodule = region.getFieldmodule()
-        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # fieldcache = fieldmodule.createFieldcache()
-        # zero = [0.0, 0.0, 0.0]
-        # px = [pax, pbx, pcx]  # , p1x, p2x, p3x, p4x, p5x, p6x, p7x]
-        # pd1 = [zero, pbd1, pcd1]  # , p1t, p2t, p3t, p4t, p5t, p6t, p7t]
-        # pd2 = [zero, pbd2, pcd2]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, pd2[n])
-        #     curveNodesetGroup.addNode(node)
-        # generate_curve_mesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generate_curve_mesh(region, bx, bd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # generate_curve_mesh(region, cx, cd1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-
     def test_tube_intersections3(self):
         """
         Regular converging bifurcation failed to find boundary intersection point.
@@ -1543,32 +1417,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         assertAlmostEqualList(self, [1.0000505870312695, 0.030691274736817955], aprops[4], delta=XI_TOL)
         assertAlmostEqualList(self, [1.249358801390615, 1.0], aprops[8], delta=XI_TOL)
 
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # surfaceGroupName = "surface"
-        # tube1Surface.generateMesh(region, group_name=surfaceGroupName)
-        # tube2Surface.generateMesh(region, group_name=surfaceGroupName)
-        # coordinateFieldName = "curve_coordinates"
-        # curveGroupName = "curve"
-        # fieldmodule = region.getFieldmodule()
-        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, p2x, p3x, p4x]
-        # pd1 = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], p4t]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        #     curveNodesetGroup.addNode(node)
-        # generate_curve_mesh(region, ax, ad1, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-
     def test_2d_tube_intersections_bifurcation(self):
         """
         Test 2D bifurcation tube intersections.
@@ -1658,32 +1506,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertEqual(nearestPosition.e2, 1)
         self.assertAlmostEqual(nearestPosition.xi1, 0.7685409157940459, delta=XI_TOL)
         self.assertAlmostEqual(nearestPosition.xi2, 0.5313185345910925, delta=XI_TOL)
-
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # fieldmodule = region.getFieldmodule()
-        # surfaceGroupName = "surface"
-        # for i in range(3):
-        #     trackSurfaces[i].generateMesh(region, group_name=surfaceGroupName)
-        # coordinateFieldName = "curve_coordinates"
-        # curveGroupName = "curve"
-        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, p2x, p3x, cx[0], cx[1], p4x, p5x, p6x, p7x, p8x, p9x, p10x]
-        # zero = [0.0, 0.0, 0.0]
-        # pd1 = [zero, zero, zero, cd1[0], cd1[1], zero, zero, zero, zero, zero, zero, zero]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        #     curveNodesetGroup.addNode(node)
 
     def test_2d_tube_intersections_sphere_cube(self):
         """
@@ -1776,35 +1598,6 @@ class GeneralScaffoldTestCase(unittest.TestCase):
         self.assertAlmostEqual(nearestPosition.xi2, 1.0, delta=XI_TOL)
         self.assertEqual(nearestCurveLocation[0], 0)
         self.assertAlmostEqual(nearestCurveLocation[1], 0.8587082918561665, delta=XI_TOL)
-
-        # context = Context("TrackSurface")
-        # region = context.getDefaultRegion()
-        # fieldmodule = region.getFieldmodule()
-        # surfaceGroupName = "surface"
-        # trackSurface.generateMesh(region, group_name=surfaceGroupName)
-        # coordinateFieldName = "curve_coordinates"
-        # curveGroupName = "curve"
-        # curveCoordinates = find_or_create_field_coordinates(fieldmodule, coordinateFieldName, managed=True)
-        # curveGroup = find_or_create_field_group(fieldmodule, curveGroupName)
-        # generate_curve_mesh(region, cx, cd1, loop=False, coordinate_field_name=coordinateFieldName, group_name=curveGroupName)
-        # nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
-        # nodetemplate = nodes.createNodetemplate()
-        # nodetemplate.defineField(curveCoordinates)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS1, 1)
-        # nodetemplate.setValueNumberOfVersions(curveCoordinates, -1, Node.VALUE_LABEL_D_DS2, 1)
-        # curveNodesetGroup = curveGroup.getOrCreateNodesetGroup(nodes)
-        # fieldcache = fieldmodule.createFieldcache()
-        # px = [p1x, p2x, p3x, p4x, p5x, p6x, p7x, p8x]
-        # zero = [0.0, 0.0, 0.0]
-        # pd1 = [zero, zero, zero, zero, zero, zero, zero, zero]
-        # pd2 = [zero, zero, zero, zero, zero, zero, zero, zero]
-        # for n in range(len(px)):
-        #     node = nodes.createNode(-1, nodetemplate)
-        #     fieldcache.setNode(node)
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_VALUE, 1, px[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS1, 1, pd1[n])
-        #     curveCoordinates.setNodeParameters(fieldcache, -1, Node.VALUE_LABEL_D_DS2, 1, pd2[n])
-        #     curveNodesetGroup.addNode(node)
 
     def test_smooth_side_cross_derivatives(self):
         """
